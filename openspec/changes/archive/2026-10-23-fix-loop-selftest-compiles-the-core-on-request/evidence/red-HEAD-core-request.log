@@ -1,0 +1,3 @@
+  a case that asks for the core is handed the compiled class path: the driver hands a case no way to ask for the core
+FAIL stub#asksForTheCore: expected '0', got '1'
+FAIL driver#aCaseThatAsksForTheCoreGetsItOrRefuses

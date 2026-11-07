@@ -1,0 +1,16 @@
+loop-mutations: selected 4 of 242 records (labels: 68.2 68.6 81.1 81.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.OzVfab
+RED    68.2  run#childIsEndedAtTheRunsDeadline   (the guard that leaves an item the run's own deadline cut for the next run instead of escalating it (issue #674))
+       2026-11-06T05:03:06Z — an item the run's own deadline cut is not escalated as a decision: expected '', got 'agent/needs-decision'
+restore 68.2 run#childIsEndedAtTheRunsDeadline green again
+RED    68.6  run#childOutlastingTheWallClockIsBlocked   (the bound a cap-ended item records as no escalation, so a child clock the item reached spends a decision slot and holds a pair a run stops on (issues #674, #786))
+       2026-11-06T05:03:24Z — and is not escalated as a decision, because a bound asks nobody a question: expected '', got 'agent/needs-decision'
+restore 68.6 run#childOutlastingTheWallClockIsBlocked green again
+RED    81.1  run#childPastItsTurnBoundIsBlocked   (the mechanism a block a turn bound caused records, so a bound reads as a refusal (issue #786))
+       2026-11-06T05:03:42Z — the block records the run's own bound as its mechanism: expected 'bound', got ''
+restore 81.1 run#childPastItsTurnBoundIsBlocked green again
+RED    81.2  state#aBlockAtTheRunsBoundIsNoRefusal   (the streak read from refusals only, so two bound blocks stop a run whose queue and clock are untouched (issue #786))
+       2026-11-06T05:03:52Z — and two of them in a row are no pair either: expected '0', got '3'
+restore 81.2 state#aBlockAtTheRunsBoundIsNoRefusal green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

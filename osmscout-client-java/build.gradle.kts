@@ -13,10 +13,28 @@ java {
 
 val clientJavaDir = "${rootDir}/app/src/main/cpp/libosmscout/libosmscout-client-java/java"
 
+// The module compiles two provenances: its own local overrides (`src/main/java`) and the vendored libosmscout Java
+// client API the submodule ships. They are two source sets, so each has its own classes directory and therefore its
+// own coverage report — one coverage-row key per provenance rather than one denominator for both (issue #678).
 sourceSets {
     main {
         java {
             setSrcDirs(listOf("src/main/java"))
+        }
+    }
+    create("vendored") {
+        java {
+            setSrcDirs(listOf(clientJavaDir))
+            // All submodule Java sources except the files provided locally (with Android-compatible HTTP and
+            // debug-suffix-aware library loading). RoadInfo.java is NOT overridden: upstream's version is
+            // byte-identical in behavior (public ctor + hasInfo), so the submodule file compiles as-is.
+            exclude(
+                "**/OSMScoutClientBuilder.java",
+                "**/OSMScoutClient.java",
+                "**/MapDownloadManager.java",
+                "**/AvailableMapEntry.java",
+                "**/BasemapManager.java"
+            )
         }
     }
 }
@@ -28,23 +46,24 @@ idea {
     }
 }
 
-// Include all submodule Java sources except files provided locally
-// (with Android-compatible HTTP and debug-suffix-aware library loading).
-// RoadInfo.java is NOT overridden: upstream's version is byte-identical in
-// behavior (public ctor + hasInfo), so the submodule file compiles as-is.
-tasks.named<JavaCompile>("compileJava") {
-    source(fileTree(clientJavaDir).matching {
-        exclude(
-            "**/OSMScoutClientBuilder.java",
-            "**/OSMScoutClient.java",
-            "**/MapDownloadManager.java",
-            "**/AvailableMapEntry.java",
-            "**/BasemapManager.java"
-        )
-    })
+// The local overrides compile against the vendored types beside them, and the published jar carries both — the app
+// consumes one artifact, as before.
+dependencies {
+    compileOnly(sourceSets["vendored"].output)
+    testImplementation(sourceSets["vendored"].output)
 }
 
+// The split must not cost a consumer the vendored half. The jar carries both provenances, but an Android consumer
+// does not read the jar: AGP dexes a project dependency from the source set's *classes directories* (`main`'s
+// alone), so the app packaged the six overrides and started with `ClassNotFoundException:
+// com.framstag.libosmscout.client.MapProvider` (issue #691). The vendored classes directory is therefore a classes
+// directory of `main` too — `SourceSetOutput.dir(...)` is not enough, it feeds `output.files` and not the
+// `classesDirs` collection the Android consumer resolves.
+(sourceSets["main"].output.classesDirs as ConfigurableFileCollection)
+    .from(sourceSets["vendored"].output.classesDirs)
+
 tasks.named<Jar>("jar") {
+    from(sourceSets["vendored"].output)
     archiveBaseName.set("libosmscoutclientjava")
     archiveVersion.set("1.0.0")
 }
@@ -58,6 +77,13 @@ val forceTests: Boolean =
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // The host JNI stub `:app` and `:auto` ship for their unit tests (`guidelines/Build.md` §6h) is on this
+    // module's test path too, so `OSMScoutClient`'s static `System.loadLibrary` succeeds here: without it the
+    // class is unreachable from a host case and the module's own JNI surface is measured by nothing.
+    systemProperty(
+        "java.library.path",
+        layout.projectDirectory.dir("src/test/jniLibs").asFile.absolutePath
+    )
     if (forceTests) {
         outputs.upToDateWhen { false }
     }
@@ -68,11 +94,41 @@ tasks.withType<Test> {
 // reports), so the standard Gradle JaCoCo plugin is used here. Report-only;
 // HTML + XML at build/reports/jacoco/test. Not part of the root Kover merge.
 // See guidelines/Build.md → Code coverage.
+//
+// One report per provenance: `jacocoTestReport` measures the module's own overrides, `jacocoVendoredTestReport`
+// the vendored client API compiled beside them. Both read the one execution data of the suite, so a case that
+// reaches a vendored class counts there and a case that reaches an override counts here, never both (#678).
+val jacocoExec = layout.buildDirectory.file("jacoco/test.exec")
+
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.named("test"))
+    // The override compile's own directory, not `main`'s `classesDirs` collection: that collection also carries the
+    // vendored directory, because the Android consumer only sees `classesDirs` (issue #691) — and this row measures
+    // the module's own code alone (#678).
+    classDirectories.setFrom(
+        tasks.named<org.gradle.api.tasks.compile.JavaCompile>("compileJava")
+            .flatMap { it.destinationDirectory }
+    )
+    sourceDirectories.setFrom(files(sourceSets["main"].allSource.srcDirs))
+    executionData.setFrom(jacocoExec)
     reports {
         html.required.set(true)
         xml.required.set(true)
+    }
+}
+
+tasks.register<JacocoReport>("jacocoVendoredTestReport") {
+    group = "verification"
+    description = "Instruction coverage of the vendored libosmscout Java client API this module compiles"
+    dependsOn(tasks.named("test"))
+    classDirectories.setFrom(files(sourceSets["vendored"].output.classesDirs))
+    sourceDirectories.setFrom(files(sourceSets["vendored"].allSource.srcDirs))
+    executionData.setFrom(jacocoExec)
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/vendored/html"))
+        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/vendored/jacocoVendoredTestReport.xml"))
     }
 }
 

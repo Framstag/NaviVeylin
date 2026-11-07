@@ -1,0 +1,23 @@
+# Citations of UI.md, retargeted
+
+Pre-cut set: see pre-cut-citations.txt.
+
+$ grep -rnE "UI(P|)\.md|UIPhone\.md" AGENTS.md guidelines/*.md .pi/skills/*/SKILL.md  (section-bearing)
+AGENTS.md:30:| car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 2.9 kB, §6b 5.2 kB (measured 2026-10-29) |
+AGENTS.md:31:| parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |
+AGENTS.md:32:| dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
+AGENTS.md:33:| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+AGENTS.md:52:| whether `UI.md` is still accurate | `UI.md` §20 "Keeping this document honest" |
+AGENTS.md:139:guarded**) — are `guidelines/Design.md` §8, `guidelines/UI.md` §3, §3a, §3b and §3c,
+guidelines/Backlog.recipes.md:749:eight sections — `UI.md` §1 (25 206 bytes) and `UIPhone.md` §8 (19 681), `MapRendering.md` §1 (22 592), `UIPhone.md` §7a (13 102),
+guidelines/Design.md:122:  not what it contains (spec `group-ordering`; `guidelines/UI.md` §1).
+guidelines/UIPhone.md:100:  — see `UI.md` §6b. The car `SearchTemplate` shows empty-query suggestions (mode rows + recent searches)
+guidelines/UIPhone.md:501:  other screen push (`UI.md` §3, spec `car-host-fault-isolation`).
+guidelines/UIPhone.md:503:  (`UI.md` §3, spec `car-list-row-limit`).
+
+Retargeted:
+  AGENTS.md phone row, §10a row and §6a row -> UIPhone.md
+  guidelines/Design.md §11 (x3) and §8 -> UIPhone.md §11 / §8b
+  guidelines/MapRendering.md §10a -> UIPhone.md §10a
+  guidelines/Backlog.recipes.md §8 and §7a (companion, not resolved by the check) -> UIPhone.md
+  .pi/skills/compose-geometry/SKILL.md §8 (x2) -> UIPhone.md §8b

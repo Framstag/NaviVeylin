@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/gen-feature-list-selftest.sh" tests="119" failures="0" errors="0" time="16">
+  <system-out> gen-feature-list-selftest: 119 passed, 0 failed gen-feature-list-selftest: all 119 cases passed</system-out>
+</testsuite>

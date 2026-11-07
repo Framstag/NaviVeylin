@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of sensor-suite.log: `bash tools/sensor-selftest.sh` in full, 2026-11-04, offline, no token,
+     no Gradle build. The suite grew from 78 to 81 cases: lib#aRowBoundIsACount,
+     run#aRowDeclaresItsOwnRecurrenceBound and run#libosmscoutLagReadsThreeOutcomes are the three this change adds. -->
+<testsuite name="bash tools/sensor-selftest.sh" tests="81" failures="0" errors="0" time="0.000">
+  <testcase name="lib#aRowBoundIsACount" classname="sensor-selftest"/>
+  <testcase name="run#aRowDeclaresItsOwnRecurrenceBound" classname="sensor-selftest"/>
+  <testcase name="run#libosmscoutLagReadsThreeOutcomes" classname="sensor-selftest"/>
+  <system-out>sensor-selftest: all 81 cases passed (JDK 27, offline, no token)</system-out>
+</testsuite>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/gate.sh — seven documentation suites, summed" tests="27" failures="0" errors="0" timestamp="2026-10-30T07:15:30Z">
+  <system-out>sum of evidence/gate-tallies/*.xml: gen-feature-list 0 + check-doc-routes-selftest 21 + check-doc-routes 0 + check-openspec-hygiene-selftest 6 + check-openspec-hygiene 0 + check-todo-references 0 + check-doc-routes mutations --list 0 = 27 tests, 0 failures, 0 errors; gate exit 0</system-out>
+</testsuite>

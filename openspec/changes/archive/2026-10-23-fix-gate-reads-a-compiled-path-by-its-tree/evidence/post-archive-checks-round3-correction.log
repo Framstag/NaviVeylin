@@ -1,0 +1,56 @@
+2026-10-23T12:51:29Z
+== post-archive checks, round 3 correction (issue #273 — the round-3 review's finding 1 repaired: the
+   profile pinned to the tree under test; no code, case, assertion, spec or requirement byte changed)
+
+-- evidence this correction added to openspec/changes/archive/2026-10-23-fix-gate-reads-a-compiled-path-by-its-tree/evidence/:
+   gate-round3-pinned.log              the gate with LOOP_CONF pinned to the tree under test: five checks, no build, exit=0
+   gate-tallies-round3-pinned/*.xml    the five tallies that run wrote (176 + 98 + 34 + 0 + 0; no build tally, because no build ran)
+
+-- the profile the pinned run read (this tree's own, tools/loop/loop.conf):
+   140:LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+-- and what the same delta owes under the profile run.sh exports (the project's, i.e. the pre-change one):
+   ./gradlew test -PforceTests --no-build-cache
+   tools/loop-selftest.sh
+   bash tools/loop-mutations.sh --check
+   tools/loop-mutations-selftest.sh
+   bash tools/gen-feature-list.sh --check-classification
+   tools/check-doc-routes.sh
+
+-- tools/check-doc-routes.sh (this correction edits two *.md):
+   check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+   exit=0
+
+-- bash tools/gen-feature-list.sh --check-classification:
+   gen-feature-list: stale classification entry for a spec that no longer exists:
+     search-name-matching
+     search-result-row-icon
+     start-map-selection
+   specs read: 177
+   classified: 180
+   unclassified: 0
+   delta spec ids: 0
+   stale: 3
+   car-only areas: 1
+   highlights: 19
+   exit=0
+
+-- openspec validate agent-issue-loop --strict (the requirement is byte-unchanged):
+   long-requirement warnings: 8
+
+-- bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/archive/2026-10-23-fix-gate-reads-a-compiled-path-by-its-tree --root .:
+   ok   C1 §references: 2 checked, 0 exempted as archived pointers
+   ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+   ok   C3 /tmp pointers: none cited
+   ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+   ok   C5 file:line: 352 resolved and in range, 0 unresolved or ambiguous
+   ----
+   evidence-check: PASS
+
+-- the sixth tally of the earlier unpinned run, which a plain ls hides (tools/loop/gate.sh:137 derives a tally
+   name from the command with tr '/ ' '__', so ./gradlew's leading dot becomes a dotfile):
+   ls   : 5
+   ls -a: 6
+
+-- ordering: the pinned gate (evidence/gate-round3-pinned.log) ran after every code and spec byte of
+   round 3 and before this correction's two *.md edits, which are prose only and owe check-doc-routes.sh —
+   rerun above, on the bytes that are committed.

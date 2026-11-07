@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The fixed gate against the same probe suite HEAD was measured with (2026-10-23T09:39:32Z): the suite writes
+     `BUILD FAILED in 21s` and exits 1, so it reported no summary. HEAD tallied it as one failing case
+     (evidence/red-HEAD.xml); here the tally states the two facts apart — zero cases, zero reported failures, one
+     error — and the gate's own line carries the same three. Reproduced with
+     `LOOP_CONF=<probe>/gate.conf bash tools/loop/gate.sh --base f5c32df2`, the probe's suite named in the tally. -->
+<testsuite name="bash <probe>/suite.sh" tests="0" failures="0" errors="1">
+  <system-out>Could not create task :app:mergeNativeSbom BUILD FAILED in 21s</system-out>
+</testsuite>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/sensor-selftest.sh --case run#aFirstExerciseOnATickReportsInsteadOfFiling" tests="1" failures="1" errors="0" time="3">
+  <system-out>  the tick files no condition on a row with no measurement on record: expected '0', got '3'
+FAIL run#aFirstExerciseOnATickReportsInsteadOfFiling (2026-10-26T22:14:39Z)</system-out>
+</testsuite>

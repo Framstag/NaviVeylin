@@ -1,0 +1,13 @@
+red on the base `2de16da0`, 2026-10-27T06:43Z — the three cases the change names, each run alone
+
+state#floorIsDerivedFromTheFinishedItemsWallTimes|   the refusal names the measurement it derived: 'cheapest 60 min over 3 finished items' not found in: only 27 min left, below the 90 min floor for the next item (median 60 min over 3 finished items, configured minimum 65)
+FAIL state#floorIsDerivedFromTheFinishedItemsWallTimes
+
+run#childIsEndedAtTheRunsDeadline|   an item the run's own deadline cut is not escalated as a decision: expected '', got 'agent/needs-decision'
+FAIL run#childIsEndedAtTheRunsDeadline
+
+run#treeOfACapEndedChildIsKeptAsAPatch|   the item's state record names the patch the ended child's work is kept in: expected '…/items/21/leftover-from-killed-run.patch', got ''
+FAIL run#treeOfACapEndedChildIsKeptAsAPatch
+
+The machine-readable tallies beside this log: `red-on-base-floor.xml`, `red-on-base-deadline.xml`,
+`red-on-base-leftover.xml` — `tests=1 failures=1` each.

@@ -1,0 +1,9 @@
+revert-check 2026-10-28
+mutation: formatDistanceCompact guard adds || meters <= 0.0 (REVERT-CHECK MUTATION marker)
+> Task :app:testMobileDebugUnitTest FAILED
+NavigationNotificationContentFormatterTest > zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown FAILED
+    java.lang.AssertionError: zero distance must render 0 m in the notification: in -- · arrive 14:32 · 0 min · 12.4 km
+BUILD FAILED in 6s
+restore: grep -c 'REVERT-CHECK MUTATION' -> 0
+BUILD SUCCESSFUL in 4s
+<testsuite name="com.naviveylin.service.NavigationNotificationContentFormatterTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-28T18:19:58.570Z" hostname="dingens" time="0.506"

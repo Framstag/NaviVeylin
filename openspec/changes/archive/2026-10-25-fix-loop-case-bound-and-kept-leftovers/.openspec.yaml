@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-25
+goal: Bound every self-test case, stream a case's own output, end the heartbeat
+  with a signalled run, and keep a killed or dirty tree's leftovers as a patch

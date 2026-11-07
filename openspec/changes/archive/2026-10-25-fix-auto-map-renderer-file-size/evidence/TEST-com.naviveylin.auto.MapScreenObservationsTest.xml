@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapScreenObservationsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:25.094Z" hostname="dingens" time="0.032">
+  <properties/>
+  <testcase name="aNullFixIsNotApplied" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.01"/>
+  <testcase name="everyObservedSourceReachesItsEffect" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.002"/>
+  <testcase name="theInitialBasemapRevisionIsNotApplied" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.002"/>
+  <testcase name="threeStartStopCyclesLeaveOneInstancePerSource" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.007"/>
+  <testcase name="theFavoritesProviderResolvesOffTheHostThread" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.005"/>
+  <testcase name="aStoppedScreenObservesNothing" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.003"/>
+  <testcase name="aChangeWhileStoppedIsAppliedOnceOnStart" classname="com.naviveylin.auto.MapScreenObservationsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+== date: 2026-10-22T04:42:51Z
+== HEAD: ee95d71 (work tree carries the change)
+
+PASS gate#theMapCoversEveryPipelineStep
+exit=0
+PASS gate#aPipelineCheckIsOwedByItsPaths
+exit=0
+
+== the map against the pipeline: 31 commands named, 0 missing

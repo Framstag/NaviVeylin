@@ -1,0 +1,27 @@
+Gate — fix-basemap-data-format-admission, 2026-10-30 (after the review corrections)
+Command: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+Result:  BUILD SUCCESSFUL in 5m 14s   (166 actionable tasks: 26 executed, 140 up-to-date)
+Wall clock (time): 3,19s user 0,63s system 1% cpu 5:14,84 total
+
+Executed test tasks (not UP-TO-DATE):
+  :app:testMobileDebugUnitTest, :app:testAutomotiveDebugUnitTest, :app:test
+  :auto:testDebugUnitTest, :auto:test
+  :core:testDebugUnitTest, :core:test
+  :osmscout-client-java:test
+  :buildSrc:test
+
+Per-directory tallies (JUnit XML in each module's build/test-results, read after the run):
+  app/build/test-results/testMobileDebugUnitTest:      classes=306 tests=2189 failures=0 errors=0
+  app/build/test-results/testAutomotiveDebugUnitTest:  classes=306 tests=2189 failures=0 errors=0
+  auto/build/test-results/testDebugUnitTest:           classes= 92 tests= 887 failures=0 errors=0
+  core/build/test-results/testDebugUnitTest:           classes= 65 tests= 645 failures=0 errors=0
+  osmscout-client-java/build/test-results/test:        classes= 23 tests= 112 failures=0 errors=0
+  buildSrc/build/test-results/test:                    classes=  2 tests=  31 failures=0 errors=0
+  total: 6 053 tests, 794 classes, failures=0 errors=0
+
+Also green and run by this change (not part of the `test` task graph):
+  :app:checkNoCoordinatesInLogs   (the new diagnostics line carries a path and two integers)
+
+Exclusions, named: no native build and no instrumented run — this change touches no C++, no CMake and no
+device-only path; the native library is unchanged. `app/build/test-results/loop-gate/`, `build/scratch-cov-measure/`
+and `.pi/issue-loop/items/*/` hold earlier runs' XML and are not part of this tally.

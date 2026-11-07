@@ -1,0 +1,16 @@
+Taken 2026-10-23T18:45:58Z — `bash tools/loop-mutations.sh --only "12.3 12.4 12.9 12.10"`: the recorded line, the round
+discarded on a placed difference, the strict worker verdict, and the in-time reading that does the placing.
+
+loop-mutations: selected 4 of 123 records (labels: 12.3 12.4 12.9 12.10)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.hgQFvU
+RED    12.3  run#childWriteOutsideTheWorktreeIsNoted   (the run recording a child write left outside the worktree)
+restore 12.3 run#childWriteOutsideTheWorktreeIsNoted green again
+RED    12.4  run#strictOutsideWriteDiscardsTheReviewRound   (the round discarded on a difference the run can place or was told to judge)
+restore 12.4 run#strictOutsideWriteDiscardsTheReviewRound green again
+RED    12.9  run#strictOutsideWriteBlocksTheItem   (the strict run turning the difference into a verdict about the item)
+restore 12.9 run#strictOutsideWriteBlocksTheItem green again
+RED    12.10  run#aWriterTheRunCanPlaceBlocksTheItem   (the reading taken while the child runs, which is what ties a write to it)
+restore 12.10 run#aWriterTheRunCanPlaceBlocksTheItem green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+exit=0

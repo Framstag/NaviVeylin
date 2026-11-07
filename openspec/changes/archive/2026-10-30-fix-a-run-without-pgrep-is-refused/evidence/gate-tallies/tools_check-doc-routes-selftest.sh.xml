@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes-selftest.sh" tests="22" failures="0" errors="0" time="2">
+  <system-out>PASS  routed-read#route — a row that routes a lettered sub-section of any document states its cost, here and over the project's own table PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case check-doc-routes-selftest: all 22 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)</system-out>
+</testsuite>

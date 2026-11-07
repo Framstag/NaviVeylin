@@ -1,0 +1,22 @@
+# gate run 2026-11-03T21:28:28Z
+# command: ./tools/loop/gate.sh
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/probe/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate: bash tools/gen-feature-list.sh --check-classification
+gate: bash tools/gen-feature-list.sh --check-classification — 4s
+gate: tools/check-doc-routes.sh
+gate: tools/check-doc-routes.sh — 1s
+gate: tools/check-doc-routes-selftest.sh
+gate: tools/check-doc-routes-selftest.sh — 8s
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list — 1s
+gate: tools/check-todo-references.sh
+gate: tools/check-todo-references.sh — 1s
+gate: tools/check-openspec-hygiene.sh
+gate: tools/check-openspec-hygiene.sh — 0s
+gate: tools/check-openspec-hygiene-selftest.sh
+gate: tools/check-openspec-hygiene-selftest.sh — 0s
+gate: tools/ci-vcpkg-cache-selftest.sh
+gate: tools/ci-vcpkg-cache-selftest.sh — 0s
+LOOP-GATE: tests=48 failures=0 errors=0 (bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/ci-vcpkg-cache-selftest.sh 0s)
+# exit=0

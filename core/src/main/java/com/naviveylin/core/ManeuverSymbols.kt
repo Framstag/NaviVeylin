@@ -5,7 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import kotlin.math.PI
 import kotlin.math.cos
@@ -60,18 +60,18 @@ object ManeuverSymbols {
      * geometry as the host instruction panel arrows.
      *
      * A roundabout exit drawn through this entry point carries no number; use
-     * [bitmapForInstruction] wherever the instruction's exit ordinal is available.
+     * [bitmapForStep] wherever the step's exit ordinal is available.
      */
     fun bitmapForTurnType(type: TurnType?): Bitmap = bitmapFor(type, 0)
 
     /**
-     * Bitmap for [instruction], carrying the roundabout exit ordinal when there is one
-     * (spec: roundabout-renderer - Roundabout exit symbol shows the exit number). An
-     * instruction with no exit ordinal falls back to the plain leave arrow, never to an
-     * invented or zero number.
+     * Bitmap for [com.framstag.libosmscout.client.RouteStep], carrying the roundabout exit ordinal
+     * when there is one (spec: roundabout-renderer - Roundabout exit symbol shows the exit number).
+     * A step with no exit ordinal falls back to the plain leave arrow, never to an invented or zero
+     * number.
      */
-    fun bitmapForInstruction(instruction: RouteInstruction): Bitmap =
-        bitmapFor(instruction.turnType, instruction.roundaboutExitNumber)
+    fun bitmapForStep(step: com.framstag.libosmscout.client.RouteStep): Bitmap =
+        bitmapFor(turnTypeFor(step), step.exitOrdinal)
 
     /** A self-drawn exit bitmap's identity: the ordinal and the pixel size it was drawn at. */
     private data class ExitBitmapKey(val exitNumber: Int, val sizePx: Int)
@@ -82,7 +82,7 @@ object ManeuverSymbols {
      * The numbered roundabout-exit glyph drawn at [sizePx], for a surface that draws it itself at
      * a size other than [BITMAP_SIZE]: the phone overlay draws the icon at 64 dp, which is several
      * hundred pixels on a high-density screen, and scaling a 48 px bitmap up would blur the digit.
-     * Same geometry as [bitmapForInstruction], so the phone, the notification and the car bitmap
+     * Same geometry as [bitmapForStep], so the phone, the notification and the car bitmap
      * surfaces cannot drift apart (spec: roundabout-renderer - Phone and car roundabout symbols
      * stay one artwork).
      *

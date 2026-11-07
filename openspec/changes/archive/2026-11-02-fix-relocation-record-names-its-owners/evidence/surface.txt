@@ -1,0 +1,34 @@
+# the entry this change was filed from, verified against the tree — 2026-11-02T04:26:31Z
+# base 650028bfdf6e652ebd045b4af1be0a90b6c0a481
+
+## the record's owner citation, and the paths under it (quoted, so it is not a citation here)
+```
+    owner: .pi/skills/*/SKILL.md (the skill's own contract) — no guideline owns a skill's job; the nine
+    names are kept, the per-skill prose is dropped.
+      .pi/skills/build-app/SKILL.md
+```
+owner paths cited: 35
+
+## what the block it justifies named ("Nine skills own the tracker", table at 4330ce3e^:AGENTS.md)
+table rows: 8
+  | `create-issue` | file one finding, fingerprint-deduped, never self-authorising |
+  | `list-issues` | select a working set from the labels, without reading bodies; `--id N` for one migrated entry |
+  | `update-issue` | repair a label or a status against the closed vocabularies |
+  | `close-issue` | the only terminal state — with a reason and its evidence |
+  | `issue-metadata` | the metadata pass — rescore the items whose basis moved, classify the items with no kind; an interpreter returns numbers and never writes a label (`tools/issues/prioritise.sh`, `classify.sh`) |
+  | `triage-todo` | read-only — rank what is open from the persisted band and name the next change |
+  | `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
+  | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
+  
+
+## the archived review grade of it
+22:## G2 — block B2's evidence proves less than it claims
+
+## the surface, before the plan is fixed (this changes own directory excluded - it quotes the record)
+owner citations in the tree (open changes): 10
+files carrying them: 1
+of those carrying a glob: 1
+records under archive/ carrying them: 1
+cases in the hygiene selftest, now / at base: 7 / 6
+skills on disk today: 36
+cases that declare tools/loop/ (the suite a tools/loop path would owe): 288

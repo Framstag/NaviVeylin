@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.SearchPanelComposeTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:46:27.831Z" hostname="dingens" time="2.031">
+  <properties/>
+  <testcase name="distanceFollowsReferencePoint" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.304"/>
+  <testcase name="historyEntryHiddenWhileTyping" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.212"/>
+  <testcase name="noRegionNameWithoutResolvedRegion" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.166"/>
+  <testcase name="resultShowsDistanceFromReferencePoint" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.184"/>
+  <testcase name="currentLocationRowHiddenWithoutGps" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.156"/>
+  <testcase name="historyEntryRestoredOnClear" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.447"/>
+  <testcase name="currentLocationRowShownWithGps" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.177"/>
+  <testcase name="regionNameShownAboveSearchField" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.169"/>
+  <testcase name="historyEntryVisibleOnEmptyQuery" classname="com.naviveylin.ui.map.SearchPanelComposeTest" time="0.196"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

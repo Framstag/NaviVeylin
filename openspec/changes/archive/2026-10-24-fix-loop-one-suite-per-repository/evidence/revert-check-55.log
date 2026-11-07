@@ -1,0 +1,13 @@
+=== bash tools/loop-mutations.sh --only "55.1 55.2 55.3 55.4", 2026-10-24T10:58:02Z, base a0ca0f35
+loop-mutations: selected 4 of 137 records (labels: 55.1 55.2 55.3 55.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/i295/.pi/tmp/loop-mutations.fDvoR7
+RED    55.1  driver#aSecondSuiteInOneRepositoryIsRefused   (the lock that refuses a second suite in one repository (issue #295))
+restore 55.1 driver#aSecondSuiteInOneRepositoryIsRefused green again
+RED    55.2  driver#aSecondSuiteInOneRepositoryIsRefused   (the pattern a suite is, told from the one named case that is not (issue #295))
+restore 55.2 driver#aSecondSuiteInOneRepositoryIsRefused green again
+RED    55.3  driver#aSecondSuiteInOneRepositoryIsRefused   (the release that leaves the repository free for the suite after it (issue #295))
+restore 55.3 driver#aSecondSuiteInOneRepositoryIsRefused green again
+RED    55.4  driver#aSecondSuiteInOneRepositoryIsRefused   (the lease that lets a suite whose owner is gone take the lock over (issue #295))
+restore 55.4 driver#aSecondSuiteInOneRepositoryIsRefused green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

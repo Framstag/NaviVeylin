@@ -238,12 +238,13 @@ class MapCanvasViewModelViewportRestoreTest {
             val fileB = File(context.filesDir, "maps/viewport-mapB.json")
             fileB.writeText("""{"centerLat":52.5,"centerLon":13.4,"magnification":14.0,"angle":0.0}""")
 
-            // Hold the FIRST storage dispatch (initMap(mapA)'s viewport load);
-            // later dispatches run inline, so the re-entry initMap(mapB) runs
-            // to completion while mapA's coroutine is still suspended. Without
-            // the supersession fix, mapA's held load resumes on release and
-            // clobbers mapB's restore; with it, the cancelled mapA init aborts.
-            val gated = FirstDispatchGatedDispatcher()
+            // Hold every storage dispatch made while mapA is the initialization under way (its
+            // viewport load), keyed on the state initMap publishes synchronously; the re-entry
+            // initMap(mapB) re-keys the ViewModel, so mapB's own load dispatches inline and runs
+            // to completion while mapA's coroutine is still suspended. Without the supersession
+            // fix, mapA's held load resumes on release and clobbers mapB's restore; with it, the
+            // cancelled mapA init aborts.
+            val gated = StateGatedDispatcher { viewModel.currentMapKey == "mapA" }
             viewportStorage.ioDispatcher = gated
 
             viewModel.initMap("/data/maps/mapA")
@@ -291,7 +292,9 @@ class MapCanvasViewModelViewportRestoreTest {
             val fileB = File(context.filesDir, "maps/viewport-mapB.json")
             fileB.writeText("""{"centerLat":52.5,"centerLon":13.4,"magnification":14.0,"angle":0.0}""")
 
-            val gated = FirstDispatchGatedDispatcher()
+            // Same state-keyed gate as the case above: mapA's load is held, and the re-entry's own
+            // load runs inline because initMap(mapB) re-keyed the ViewModel before it dispatched.
+            val gated = StateGatedDispatcher { viewModel.currentMapKey == "mapA" }
             viewportStorage.ioDispatcher = gated
 
             // mapA init suspended at the held load; re-entry mapB re-armed the
@@ -344,7 +347,7 @@ class MapCanvasViewModelViewportRestoreTest {
             // section — so the first held block is the style load that follows the
             // dark push.
             viewModel.setScreenSize(100, 100)
-            val gated = PostInitializationGatedDispatcher { !viewModel.uiState.value.isLoading }
+            val gated = StateGatedDispatcher { !viewModel.uiState.value.isLoading }
             viewModel.defaultDispatcher = gated
             viewModel.initMap("/data/maps/testmap")
 
@@ -410,18 +413,29 @@ class MapCanvasViewModelViewportRestoreTest {
     }
 
     /**
-     * Holds every block dispatched once [initializationDone] reports true; blocks dispatched before
-     * that run inline.
+     * Holds every block dispatched while [holdWhile] reports true; a block dispatched when the state
+     * it keys on is false runs inline.
      *
-     * The first hop to the ViewModel's `defaultDispatcher` during `initMap` is the initialization's own
-     * off-main section (spec: `map-render` — Map initialization keeps native and file work off the main
-     * thread); the init-time *style load* is a later hop, after the renderer exists. A case that wants
-     * to hold that load while the renderer submits a render therefore gates on the moment the
-     * initialization is over, not on a dispatch ordinal (which moves whenever the section gains or
-     * loses a suspension point).
+     * State-keyed, never ordinal: the held hop is named by the condition the test is in, so a case
+     * keeps its meaning when the code under it gains or loses a suspension point (a dispatch ordinal
+     * moves with every such change).
+     *
+     * The two uses are the init-time *style load*, held while the ViewModel still reports loading —
+     * the first hop to its `defaultDispatcher` is the initialization's own off-main section (spec:
+     * `map-render` — Map initialization keeps native and file work off the main thread), and the style
+     * load is a later hop, after the renderer exists — and the viewport load of the map an `initMap`
+     * is restoring, held while that map is the one the ViewModel is on (`currentMapKey`, re-keyed
+     * synchronously by a re-entry, so the re-entry's own load dispatches inline).
+     *
+     * After [release] every dispatch runs inline, including one that arrives later: a test that
+     * releases the gate before its first dispatch happened — a real possibility, because the hops
+     * before the held one may run on real dispatchers the test scheduler cannot drain — would
+     * otherwise have that dispatch queued with nothing left to drain it, suspending the calling
+     * coroutine forever. A case that needs to be *inside* the window waits for [heldCount] itself
+     * (see `driveUntil`), so the intent is asserted instead of assumed.
      */
-    private class PostInitializationGatedDispatcher(
-        private val initializationDone: () -> Boolean
+    private class StateGatedDispatcher(
+        private val holdWhile: () -> Boolean
     ) : CoroutineDispatcher() {
         private val queue = ConcurrentLinkedQueue<Runnable>()
 
@@ -432,7 +446,7 @@ class MapCanvasViewModelViewportRestoreTest {
         val heldCount: Int get() = queue.size
 
         override fun dispatch(context: CoroutineContext, block: Runnable) {
-            if (!released && initializationDone()) {
+            if (!released && holdWhile()) {
                 queue.offer(block)
             } else {
                 block.run()
@@ -441,46 +455,6 @@ class MapCanvasViewModelViewportRestoreTest {
 
         fun release() {
             released = true
-            while (true) {
-                val block = queue.poll() ?: break
-                block.run()
-            }
-        }
-    }
-
-    /**
-     * Holds only the FIRST dispatched block until [release]; all later blocks
-     * run inline. Lets a test keep initMap(mapA) suspended at the viewport
-     * load while a re-entry initMap(mapB) completes its own load — the exact
-     * window the supersession fix closes.
-     *
-     * After [release] every dispatch runs inline, including one that arrives
-     * later: a test that releases the gate before its first dispatch happened —
-     * a real possibility, because the hops before the viewport load run on real
-     * dispatchers the test scheduler cannot drain — would otherwise have that
-     * dispatch queued with nothing left to drain it, suspending the calling
-     * coroutine forever. A test that needs the ordering guarantee waits for
-     * [heldCount] itself (see `driveUntil`), so the intent is asserted
-     * instead of assumed.
-     */
-    private class FirstDispatchGatedDispatcher : CoroutineDispatcher() {
-        private val first = AtomicBoolean(true)
-        private val released = AtomicBoolean(false)
-        private val queue = ConcurrentLinkedQueue<Runnable>()
-
-        /** Number of blocks currently held (first dispatch only). */
-        val heldCount: Int get() = queue.size
-
-        override fun dispatch(context: CoroutineContext, block: Runnable) {
-            if (!released.get() && first.compareAndSet(true, false)) {
-                queue.offer(block)
-            } else {
-                block.run()
-            }
-        }
-
-        fun release() {
-            released.set(true)
             while (true) {
                 val block = queue.poll() ?: break
                 block.run()

@@ -10,14 +10,15 @@
 # TWO PRECONDITIONS, refused rather than reported red (issue #172): the suite reads the real tree's check
 # (its case `passesOnTheRealTree` drives it) and the fixture's versioned path (its case
 # `fixtureIsVersioned` asserts it lives in the tracked tree). Run it from a copy outside a git working tree,
-# or from a path under `.pi/` — machine-local state, not a checkout — and it stops with a named reason and
-# exit 2: a red case there reads as a failure of the code under test, and cost two sessions a ten-minute hunt
-# for a defect that was not theirs. Use the check itself (`tools/check-portability.sh`) from such a copy;
-# only this suite needs a checkout.
+# or from a copy under `.pi/` that is not this project's checkout — machine-local state — and it stops with a
+# named reason and exit 2: a red case there reads as a failure of the code under test, and cost two sessions a
+# ten-minute hunt for a defect that was not theirs. A linked working tree under `.pi/worktrees/` *is* a
+# checkout and runs the suite, because the loop's gate runs in one and the suite it owes there may not refuse
+# the change root (issue #289). Use the check itself (`tools/check-portability.sh`) from any such copy.
 #
 # Usage: bash tools/check-portability-selftest.sh [--list] [--case <group#name>]
 # Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable —
-#        the root is not inside a git working tree, or the root path is machine-local state (`.pi/`).
+#        the root is not inside a git working tree, or it is a `.pi/` path that is not this project's checkout.
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -26,7 +27,7 @@ case "${1:-}" in
   --list) list_only=1; only_case="" ;;
   --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; list_only=0; only_case="${2:-}" ;;
   "") list_only=0; only_case="" ;;
-  -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
   *) echo "check-portability-selftest: unknown argument $1" >&2; exit 2 ;;
 esac
 
@@ -37,8 +38,14 @@ if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 case "$root" in
   *"/.pi/"*)
-    echo "check-portability-selftest: the suite's root $root is a /.pi/ path — machine-local state is not a checkout; run it from the project's working tree, or use tools/check-portability.sh from here" >&2
-    exit 2
+    # A `.pi/` path is machine-local state unless it is a checkout of *this project*: the loop's change root is
+    # a linked working tree under `.pi/worktrees/`, which carries the tracked tree and the fixture, while a copy
+    # of the suite under `.pi/tmp/` is not a checkout at all — and the top of another repository under `.pi/` is
+    # a checkout that is not this one. Ask git and the fixture which of the three this is (issue #289).
+    if [ -n "$(git -C "$root" rev-parse --show-prefix 2>/dev/null)" ] || [ ! -d "$root/tools/fixtures/foreign-project" ]; then
+      echo "check-portability-selftest: the suite's root $root is a /.pi/ path and is not this project's checkout — machine-local state is not one; run it from the project's working tree or a linked one, or use tools/check-portability.sh from here" >&2
+      exit 2
+    fi
     ;;
 esac
 

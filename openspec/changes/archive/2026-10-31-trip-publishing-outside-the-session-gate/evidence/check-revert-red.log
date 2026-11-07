@@ -1,0 +1,34 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :auto:checkHardcodedStrings
+> Task :auto:checkNoWallClockWaits
+> Task :auto:checkTripSendGate FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':auto:checkTripSendGate' (registered in build file 'auto/build.gradle.kts').
+> trip-send gate: 1 finding(s) — the trip send is bounded by the navigation period, not by the session start
+  (spec: car-host-fault-isolation — Trip metadata publishing is bounded by the navigation period)
+    auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:732: allowHostMutation( — the trip collector asks the session gate; the trip send is bounded by the navigation period, not by the session start
+    there is no allowlist: a file that holds a trip collector must obey the rule
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s
+6 actionable tasks: 3 executed, 3 up-to-date

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the same command printed on the change (`PASS gate#theDeclarationCaseIsOwedFirst`, status 0,
+     2026-11-06T08:45:18Z–2026-11-06T08:45:20Z), carried beside evidence/green-on-change.log because the shell
+     runner writes no JUnit XML. `time` is the span that log's two timestamps bracket, the case alone. -->
+<testsuite name="bash tools/loop-selftest.sh --case gate#theDeclarationCaseIsOwedFirst" tests="1" failures="0" errors="0" time="2" timestamp="2026-11-06T08:45:18Z">
+  <testcase name="gate#theDeclarationCaseIsOwedFirst" classname="gate"/>
+  <system-out>PASS gate#theDeclarationCaseIsOwedFirst</system-out>
+</testsuite>

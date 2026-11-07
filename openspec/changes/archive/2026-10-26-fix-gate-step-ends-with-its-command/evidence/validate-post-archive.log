@@ -1,0 +1,19 @@
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+hygiene exit=0
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+doc-routes exit=0
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 0
+stale: 3
+car-only areas: 1
+highlights: 19
+classification exit=0
+No items found to validate.
+validate-changes exit=0

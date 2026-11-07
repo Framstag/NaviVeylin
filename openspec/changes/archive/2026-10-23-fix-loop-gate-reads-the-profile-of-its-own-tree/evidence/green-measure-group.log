@@ -1,0 +1,7 @@
+# bash tools/loop-selftest.sh --group measure — 2026-10-23T14:20:59Z
+PASS measure#namesTheOwedChecksInOneBlock
+PASS measure#printsTheNumbersTheReviewerAsksFor
+PASS measure#refusesToGuessWhichChangeItMeasures
+PASS measure#saysHowManyTalliesItWithheld
+loop-selftest: all 4 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group measure
+exit=0

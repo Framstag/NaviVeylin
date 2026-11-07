@@ -1,0 +1,9 @@
+HEAD 0b89f079a6ab350b268f9bfa35ded458c71122ea · 2026-10-24T20:37Z
+loop-mutations: selected 2 of 145 records (labels: 57.1 57.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.reY9TB
+RED    57.1  worktree#refusesToMergeIntoATreeOffTheBaseBranch   (the checkout the landing step merges into being the base branch)
+restore 57.1 worktree#refusesToMergeIntoATreeOffTheBaseBranch green again
+RED    57.2  state#setBaseRefusesACommitTheBaseBranchDoesNotCarry   (the ancestry of a recorded base against the base branch)
+restore 57.2 state#setBaseRefusesACommitTheBaseBranchDoesNotCarry green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

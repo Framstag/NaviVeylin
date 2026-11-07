@@ -1,0 +1,27 @@
+# The structural checks of the delta, taken 2026-10-24T09:58:54Z
+# The delta compiles nothing, so no Gradle suite is owed (guidelines/Build.md, the scope block);
+# these are the checks that stand in for it, beside the loop suite the gate runs.
+
+$ bash -n tools/loop-cases.sh
+parses
+
+$ openspec validate fix-loop-prescreen-case-reads-the-stream --strict
+Change 'fix-loop-prescreen-case-reads-the-stream' is valid
+
+$ openspec doctor
+  OpenSpec root: ok
+
+References
+  (none declared)
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+
+$ bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-loop-prescreen-case-reads-the-stream --root .
+ok   C1 §references: 2 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 327 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS

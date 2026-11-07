@@ -75,15 +75,15 @@ class RoutePanelViewModelSessionTest {
         DiagnosticsLog.reset()
     }
 
-    private fun routeEntry(): RouteEntry = RouteEntry().apply {
-        routeHandle = 1L
-        latitudes = doubleArrayOf(52.5200, 52.5230, 52.5300)
-        longitudes = doubleArrayOf(13.4050, 13.4080, 13.4100)
+    private fun routeEntry(): RouteEntry = routeWithSteps(
+        startStep(lat = 52.5200, lon = 13.4050),
+        turnStep(
+            com.framstag.libosmscout.client.TurnType.LEFT,
+            lat = 52.5230, lon = 13.4080,
+            legDistance = 5000.0, legTime = 300.0, name = "B"
+        ),
         distance = 5000.0
-        descriptions = arrayOf("Start: A  [0.0 km]", "Left onto B  [1.2 km]")
-        instructionLats = doubleArrayOf(52.5200, 52.5230)
-        instructionLons = doubleArrayOf(13.4050, 13.4080)
-    }
+    )
 
     private fun entry(label: String, lat: Double = 51.5, lon: Double = 7.4): LocationEntry =
         LocationEntry().apply {
@@ -109,7 +109,14 @@ class RoutePanelViewModelSessionTest {
     private fun geometryLessRouteEntry(): RouteEntry = RouteEntry().apply {
         routeHandle = 1L
         distance = 5000.0
-        descriptions = arrayOf("Start: A  [0.0 km]", "Left onto B  [1.2 km]")
+        steps = arrayOf(
+            startStep(lat = 52.5200, lon = 13.4050),
+            turnStep(
+                com.framstag.libosmscout.client.TurnType.LEFT,
+                lat = 52.5230, lon = 13.4080,
+                legDistance = 5000.0, legTime = 300.0, name = "B"
+            )
+        )
     }
 
     @Test

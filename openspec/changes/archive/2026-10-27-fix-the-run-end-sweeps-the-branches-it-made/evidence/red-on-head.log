@@ -1,0 +1,5 @@
+run#theEndSweepsTheLandedBranchesItMade|   the landed branch survived the run's own end
+--- run#theEndSweepsTheLandedBranchesItMade[0] (exit 1)
+  the landed branch survived the run's own end
+FAIL run#theEndSweepsTheLandedBranchesItMade
+loop-selftest: 1 of 1 cases failed

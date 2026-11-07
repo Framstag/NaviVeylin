@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelViewportPreInitSaveTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:51:02.994Z" hostname="dingens" time="0.34">
+  <properties/>
+  <testcase name="a lifecycle save without a map key writes no viewport file" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportPreInitSaveTest" time="0.328"/>
+  <system-out><![CDATA[viewportPreInit files=[[]]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

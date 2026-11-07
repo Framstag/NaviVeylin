@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-jvm-test-graph-selftest.sh" tests="3" failures="0" errors="0" time="5">
+  <system-out>check-jvm-test-graph-selftest: all 3 cases passed (--dry-run configurations, no build, no network)</system-out>
+</testsuite>

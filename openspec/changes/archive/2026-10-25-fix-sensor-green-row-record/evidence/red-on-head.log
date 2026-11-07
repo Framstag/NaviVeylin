@@ -1,0 +1,15 @@
+# The red case on HEAD (the fix stashed: tools/sensors/lib.sh and tools/sensors/run.sh)
+$ bash tools/sensor-selftest.sh --case 'run#aClearWithNoIssueReachesTheRecord'
+  the clear files the row's record issue: expected '1', got '0'
+FAIL run#aClearWithNoIssueReachesTheRecord
+exit=1
+
+$ bash tools/sensor-selftest.sh --case 'lib#theRecordIsNotACondition'
+  the row's record is not a condition: [{"number":9,"state":"OPEN","fingerprint":"","condition":{},"measurement":""}]: expected '[]', got '[{"number":9,"state":"OPEN","fingerprint":"","condition":{},"measurement":""}]'
+FAIL lib#theRecordIsNotACondition
+exit=1
+
+# The report case is green on HEAD: the report is already generic, so the defect is the missing write
+$ bash tools/sensor-selftest.sh --case 'report#aGreenRowIsNotNever'
+PASS report#aGreenRowIsNotNever
+exit=0

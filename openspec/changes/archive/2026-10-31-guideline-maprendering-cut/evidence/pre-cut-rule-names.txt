@@ -1,0 +1,8 @@
+# The five hand-written rule names — the map's rule entries in tools/doc-routes.json
+# (group `glob: guidelines/MapRendering.md`). Each must survive verbatim.
+
+MapRendering.md §1 "the vehicle anchor is applied in exactly one place — the follow render target."
+MapRendering.md §2 "Every frame that goes to Compose (`_frontBufferFlow.value`) must be an independent copy"
+MapRendering.md §2 "a render target is released, never recycled"
+MapRendering.md §2 "a frame still in use is never handed out again."
+MapRendering.md §2 "the frame's pixel storage is caller-owned too"

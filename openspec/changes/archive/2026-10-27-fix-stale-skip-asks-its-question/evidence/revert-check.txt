@@ -1,0 +1,56 @@
+# Revert-check — one mutation, the named case red, the restore green
+
+Command, from the change root, 2026-10-27:
+
+```
+bash tools/loop-mutations.sh --only 21.3
+```
+
+Output, verbatim:
+
+```
+loop-mutations: selected 1 of 198 records (labels: 21.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.oddjyN
+RED    21.3  run#staleSkipAsksItsQuestion   (the escalation a stale skip owes instead of a bare hold nobody can answer)
+       2026-10-27T19:38:00Z — a stale skip leaves a decision, not a bare hold nobody can answer: '--add-label agent/needs-decision' not found in: gh issue edit 21 --add-label agent/in-progress
+restore 21.3 run#staleSkipAsksItsQuestion green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+```
+
+The record it mutated (`tools/loop-mutations.sh`):
+
+```
+'21.3@-@tools/loop/run.sh@run#staleSkipAsksItsQuestion@the escalation a stale skip owes instead of a bare hold nobody can answer@s|^        \|\| \[ "\$skip_verdict" = "falsified" \] \|\| \[ "\$skip_verdict" = "stale" \]; then$|        \|\| [ "$skip_verdict" = "falsified" ]; then|'
+```
+
+The record applies to the line it names — `bash tools/loop-mutations.sh --check --only 21.3` printed `all 1 cases
+passed — every selected record applies to the file it names`.
+
+## The red before the fix, and the green after it
+
+On HEAD, before any production edit, the same case failed with the same line:
+
+```
+FAIL run#staleSkipAsksItsQuestion
+  a stale skip leaves a decision, not a bare hold nobody can answer: '--add-label agent/needs-decision' not found in: gh issue edit 21 --add-label agent/in-progress
+loop-selftest: 1 of 1 cases failed
+```
+
+(`XML tests="1" failures="1"` — `evidence/stale-skip-red.xml`, 2026-10-27T19:36:18Z.)
+
+After the fix, the two cases added by the change and the cases the change rewrote:
+
+```
+PASS run#staleSkipAsksItsQuestion
+PASS run#staleSkipKeepsTheWorkersQuestion
+PASS labels#verdictToLabelMatrix
+PASS labels#holdCarriesItsReason
+PASS run#aSkipClearsTheInProgressMark
+PASS run#skipEscalationCarriesTheDecision
+PASS prompt#workerNamesTheDecisionField
+PASS run#falsificationWithoutAMeasurementIsEscalated
+```
+
+and the gate's own run of the whole loop suite: `tests="256" failures="0" errors="0" time="434"`
+(`gate-tallies/tools_loop-selftest.sh_--from-git_6f61cffe4f82e91c38349f5a6787c28011466387.xml`).

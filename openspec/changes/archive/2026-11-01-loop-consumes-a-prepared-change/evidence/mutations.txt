@@ -1,0 +1,10 @@
+$ bash tools/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.ygyLhv
+loop-mutations: all 220 cases passed — every selected record applies to the file it names
+
+$ bash tools/loop-mutations.sh --list | grep -c .
+220
+
+$ bash tools/loop-mutations.sh --list | grep "74\."
+74.1	worktree#aMissingChangeRefusesTheItem	the refusal of a change the tree does not hold, replaced by an empty change directory
+74.2	prescreen#aChangeThatIsNoLongerReadyIsRefused	the tier-B refusal decided on the readiness checker verdict

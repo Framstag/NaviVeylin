@@ -29,7 +29,7 @@ The roundabout renderer SHALL draw the roundabout as a circle with exit markers 
 
 ### Requirement: Exit position reflects actual geometry
 
-Exit positions on the roundabout SHALL be placed at angles that reflect the actual road geometry, not just evenly spaced. When angle data is available from `RouteInstruction`, exits SHALL be positioned accordingly.
+Exit positions on the roundabout SHALL be placed at angles that reflect the actual road geometry, not just evenly spaced. When angle data is available from the route step ahead, exits SHALL be positioned accordingly.
 
 #### Scenario: Exits at specific angles
 - **WHEN** the renderer receives exit angle data (e.g., exit 1 at 45°, exit 2 at 180°, exit 3 at 315°)

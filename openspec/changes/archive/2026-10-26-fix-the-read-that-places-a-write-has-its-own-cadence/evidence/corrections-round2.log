@@ -1,0 +1,143 @@
+# correction round 2 — structural checks, 2026-10-26T20:22:17Z
+
+$ openspec validate agent-issue-loop --type spec
+Specification 'agent-issue-loop' is valid
+⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[19]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[27]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[28]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[36]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[37]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[38]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[53]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[57]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+rc=0
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+rc=0
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+rc=0
+
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .
+ok   C1 §references: 1 checked, 1 exempted as archived pointers
+ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 523 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+rc=0
+
+$ grep -n "970|12.10 12.12" proposal.md design.md tasks.md
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/design.md:157:output is `evidence/mutation-12.12.log`. The "~970 s" gate figure in `proposal.md` and in the alternative this
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/tasks.md:59:  --only 12.12` and `evidence/mutation-12.12.log`; the gate figure `~970 s` in `proposal.md` and `design.md` becomes
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/tasks.md:62:  `--strict` output is absent from the record and what stands in its place. Verify: `grep -n '970\|12.10 12.12'
+rc=0 (1 = nothing found)
+
+$ body character count of the ADDED requirement, delta and shipped spec
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/specs/agent-issue-loop/spec.md: chars=477
+openspec/specs/agent-issue-loop/spec.md: chars=477
+
+$ grep -rn "until the first difference" (delta, shipped spec, guideline)
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/specs/agent-issue-loop/spec.md:6:life until the first difference is recorded, whatever `LOOP_PROGRESS_SECONDS` is, because that reading is the only
+openspec/specs/agent-issue-loop/spec.md:2431:life until the first difference is recorded, whatever `LOOP_PROGRESS_SECONDS` is, because that reading is the only
+guidelines/Backlog.md:274:beside every child reads the project's tree **once per whole second of that child's life until the first difference
+rc=0
+
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .
+ok   C1 §references: 1 checked, 1 exempted as archived pointers
+ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 523 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+rc=0
+
+$ grep -n "970|12.10 12.12" proposal.md design.md tasks.md
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/tasks.md:62:  `--strict` output is absent from the record and what stands in its place. Verify: `grep -n '970\|12\.10 12\.12'
+rc=0 (1 = nothing found)
+
+$ body character count of the ADDED requirement, delta and shipped spec
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/specs/agent-issue-loop/spec.md: chars=477
+openspec/specs/agent-issue-loop/spec.md: chars=477
+
+$ grep -rn "until the first difference" (delta, shipped spec, guideline)
+openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/specs/agent-issue-loop/spec.md:6:life until the first difference is recorded, whatever `LOOP_PROGRESS_SECONDS` is, because that reading is the only
+openspec/specs/agent-issue-loop/spec.md:2431:life until the first difference is recorded, whatever `LOOP_PROGRESS_SECONDS` is, because that reading is the only
+guidelines/Backlog.md:274:beside every child reads the project's tree **once per whole second of that child's life until the first difference
+rc=0
+
+$ grep -n "970|12.10 12.12" proposal.md design.md tasks.md
+rc=1 (1 = nothing found)
+
+$ delta MODIFIED block vs shipped requirement (byte-identical?)
+98d97
+< 
+rc=1 · delta=97 lines, shipped=98 lines
+
+$ delta MODIFIED block vs shipped requirement, trailing blank stripped
+rc=0 · delta=97 lines, shipped=97 lines
+
+# re-run after the guideline reflow moved line numbers, 2026-10-26T20:22:58Z
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+rc=0
+
+$ tools/check-todo-references.sh
+check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
+check-todo-references: 63 citation(s) resolve through the recorded table; 5582 file(s) excluded by the allowlist above
+rc=0
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+rc=0
+
+$ openspec validate agent-issue-loop --type spec
+Specification 'agent-issue-loop' is valid
+rc=0
+
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .
+ok   C1 §references: 1 checked, 1 exempted as archived pointers
+ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 524 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+rc=0
+
+$ grep -rn "Backlog.md:27[0-9]\|Backlog.md:28[0-9]" (references to the reflowed paragraph)
+./openspec/changes/archive/2026-10-23-fix-loop-ended-child-tree-is-not-committed/proposal.md:54:`guidelines/Backlog.md:281` ("What bounds it: …"), which states what the cap leaves behind.
+./openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/proposal.md:48:**Owning guideline section.** `guidelines/Backlog.md`'s section "The loop" (`guidelines/Backlog.md:279`–`287`), the
+
+$ ADDED requirement: delta copy vs shipped copy (diff)
+17a18
+> 
+rc=1 · 18 lines each
+
+$ git diff --stat
+ guidelines/Backlog.md                              | 24 +++++++--------
+ .../design.md                                      | 36 +++++++++++++++++++++-
+ .../proposal.md                                    |  8 +++--
+ .../specs/agent-issue-loop/spec.md                 |  7 +++--
+ .../tasks.md                                       | 24 +++++++++++++--
+ openspec/specs/agent-issue-loop/spec.md            |  7 +++--
+ 6 files changed, 81 insertions(+), 25 deletions(-)
+
+# note: the 17a18 hunk above is one trailing blank line in the delta copy (both blocks are 18 lines and
+# the requirement text is identical); the same hunk appears in the MODIFIED-block comparison, where the
+# trailing blank is stripped and the diff is clean (rc=0).
+
+$ grep -n "970|12.10 12.12" openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/{proposal,design,tasks}.md  (final state)
+rc=1 (1 = nothing found)
+
+# note: the earlier grep run in this log (rc=0) ran before tasks.md task 16 stopped quoting the old
+# pattern in its own verify line; the run directly above is the final state.

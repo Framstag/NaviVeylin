@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.CompassNeedleStrokeTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:05.180Z" hostname="dingens" time="17.727">
+  <properties/>
+  <testcase name="needle stroke keeps its width in dp at 1x and 4x" classname="com.naviveylin.ui.map.CompassNeedleStrokeTest" time="16.801"/>
+  <system-out><![CDATA[NeedleFrame raster=320x470 d=1.0x center=28,28 | d=4.0x center=168,112
+CompassNeedleStroke 1x=4px (4.0dp) 4x=12px (3.0dp)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

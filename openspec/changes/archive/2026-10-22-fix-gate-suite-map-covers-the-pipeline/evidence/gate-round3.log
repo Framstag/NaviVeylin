@@ -1,0 +1,9 @@
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/gen-feature-list.sh --check-classification
+gate: tools/check-doc-routes.sh
+gate: tools/check-doc-routes-selftest.sh
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+gate: tools/check-todo-references.sh
+gate: tools/loop-selftest.sh
+gate: tools/loop-mutations-selftest.sh
+LOOP-GATE: tests=157 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh, tools/check-doc-routes-selftest.sh, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list, tools/check-todo-references.sh, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh)

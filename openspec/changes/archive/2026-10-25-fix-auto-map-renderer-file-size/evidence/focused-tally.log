@@ -1,0 +1,4 @@
+# focused :auto unit suite — 2026-10-25T18:45:39Z
+$ ./gradlew :auto:testDebugUnitTest -PjvmTestsOnly -PforceTests --tests 'com.naviveylin.auto.*'
+# 91 XMLs under auto/build/test-results/testDebugUnitTest, tallied:
+tests=880 skipped=0 failures=0 errors=0

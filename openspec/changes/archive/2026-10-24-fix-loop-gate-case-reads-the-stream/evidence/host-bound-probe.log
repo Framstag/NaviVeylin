@@ -1,0 +1,31 @@
+host: 16 cpus, load 8.89 8.57 9.68; an added 0.6s per git call
+
+--- run 1: the base reading (HEAD), one sample 1.5 s in ---
+LOOP-GATE-PROFILE: /tmp/host-bound-probe.np7ipz/case.Sf2PIy/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296/tools/loop/loop.conf)
+  the suite is announced before it runs: 'gate: bash' not found in: LOOP-GATE-PROFILE: /tmp/host-bound-probe.np7ipz/case.Sf2PIy/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296/tools/loop/loop.conf)
+  the suite's own first line reaches the console while the suite runs: 'case: a note is read' not found in: LOOP-GATE-PROFILE: /tmp/host-bound-probe.np7ipz/case.Sf2PIy/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296/tools/loop/loop.conf)
+the base reading: RED — the sample holds no stream at all
+
+--- run 2: the fixed reading, waiting for the suites own first line ---
+LOOP-GATE-PROFILE: /tmp/host-bound-probe.np7ipz/case.iyu0IK/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296/tools/loop/loop.conf)
+gate: bash /tmp/host-bound-probe.np7ipz/case.iyu0IK/suite.sh
+case: a note is read
+progress: the suite is still working
+the fixed reading: green on the same slow host
+
+--- run 3: a gate whose output is captured and replayed, read by the fixed form ---
+LOOP-GATE-PROFILE: /tmp/host-bound-probe.np7ipz/case.tPAsKq/gate.conf — pinned; not the profile beside this engine (/tmp/host-bound-probe.np7ipz/case.tPAsKq/re/tools/loop/loop.conf)
+gate: bash /tmp/host-bound-probe.np7ipz/case.tPAsKq/suite.sh
+case: a note is read
+progress: the suite is still working
+notes: all 1 cases passed
+gate: bash /tmp/host-bound-probe.np7ipz/case.tPAsKq/suite.sh — 3s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /tmp/host-bound-probe.np7ipz/case.tPAsKq/suite.sh 3s)
+  and the summary it has not printed yet does not: the output is streamed, not replayed: 'notes: all 1 cases passed' should not appear in: LOOP-GATE-PROFILE: /tmp/host-bound-probe.np7ipz/case.tPAsKq/gate.conf — pinned; not the profile beside this engine (/tmp/host-bound-probe.np7ipz/case.tPAsKq/re/tools/loop/loop.conf)
+gate: bash /tmp/host-bound-probe.np7ipz/case.tPAsKq/suite.sh
+case: a note is read
+progress: the suite is still working
+notes: all 1 cases passed
+gate: bash /tmp/host-bound-probe.np7ipz/case.tPAsKq/suite.sh — 3s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /tmp/host-bound-probe.np7ipz/case.tPAsKq/suite.sh 3s)
+the replayed gate: RED — the fixed reading still refuses a replay

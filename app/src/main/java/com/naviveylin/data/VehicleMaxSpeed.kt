@@ -1,5 +1,6 @@
 package com.naviveylin.data
 
+import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 
 /**
@@ -15,3 +16,19 @@ internal fun AppSettings.maxSpeedKmhFor(vehicle: Vehicle): Double = when (vehicl
     Vehicle.BICYCLE -> bicycleMaxSpeedKmh
     Vehicle.PEDESTRIAN -> footMaxSpeedKmh
 }.toDouble()
+
+/**
+ * The routing profile every calculation uses (spec: `routing-avoidance` — One builder produces the
+ * profile every calculation uses).
+ *
+ * The one place that turns the stored values into a profile: the vehicle's maximum speed and all three
+ * avoidance choices. A call site that built a profile from individual fields could carry the speed and
+ * silently drop a new choice, which is how the avoidance flags stayed inert in the first place.
+ */
+internal fun AppSettings.routingProfileFor(vehicle: Vehicle): RoutingProfile = RoutingProfile(
+    vehicle,
+    avoidTolls,
+    avoidFerries,
+    avoidUnpaved,
+    maxSpeedKmhFor(vehicle)
+)

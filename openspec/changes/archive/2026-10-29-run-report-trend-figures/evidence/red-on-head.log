@@ -1,0 +1,13 @@
+# absence on HEAD — the report's third section, 2026-10-29T09:33:28Z
+$ grep -n "first round\|round 1\|reddened\|landings:" tools/loop/report.sh
+(no match, exit 1)
+$ grep -rn "first rounds passed\|reddened main" tools/ guidelines/ openspec/specs/
+$ grep -n "main" tools/loop/state.sh | head -3
+27:#     `--base` defaults to the base branch's commit (`LOOP_BASE_REF`, `main` when unset), never the project
+$ grep -n "origin/main\|broken\|reddened\|mainRed" tools/loop/run.sh
+(no match)
+$ grep -c "gh " tools/loop/report.sh  # printed hints only, no gh call: sed -n 220,270p
+    line="$line: $question · the comment itself: gh issue view $issue"
+    line="$line: the run's state does not hold the question — gh issue view $issue"
+  actions[${#actions[@]}]="set #$issue's tracker state by hand — the run could not write $failed, so the item's state there is stale — gh issue view $issue"
+  actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"

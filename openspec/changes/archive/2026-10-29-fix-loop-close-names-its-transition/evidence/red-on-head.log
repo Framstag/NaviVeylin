@@ -1,0 +1,5 @@
+labels#closeNamesTheSettledTransition|   a closure over the other settled state was refused: status-settled: #21 carries status/retired, a settled state of the project profile — pass --displace-settled to name the transition
+--- labels#closeNamesTheSettledTransition[0] (exit 1)
+  a closure over the other settled state was refused: status-settled: #21 carries status/retired, a settled state of the project profile — pass --displace-settled to name the transition
+FAIL labels#closeNamesTheSettledTransition
+loop-selftest: 1 of 1 cases failed

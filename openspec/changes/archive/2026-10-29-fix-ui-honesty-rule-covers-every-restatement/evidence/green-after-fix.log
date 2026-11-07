@@ -1,0 +1,4 @@
+PASS ui-honesty#a-restatement-names-its-guard — every case the document names is declared by the honesty section, under an obligation that names the case that guards a restatement
+PASS ui-honesty#a-listed-guard-is-a-case-in-the-tree — every guard the honesty section names resolves to a test source
+PASS ui-honesty#a-listed-section-resolves — every section the honesty section names resolves by number and heading text
+red-probe: 0 of 3 cases failed

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.ManeuverFromStepTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-06T21:36:58.858Z" hostname="dingens" time="0.014">
+  <properties/>
+  <testcase name="a turn without a turn record keeps its move absent" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.008"/>
+  <testcase name="a motorway change step carries its signposted destination" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.001"/>
+  <testcase name="the display name prefers the name and falls back to the reference" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.0"/>
+  <testcase name="every step kind maps to its manoeuvre fields" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.001"/>
+  <testcase name="a motorway change carries both sides and its move" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.001"/>
+  <testcase name="a motorway enter names the motorway entered" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.0"/>
+  <testcase name="the manoeuvre carries the first segment of a multi-value destination" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.0"/>
+  <testcase name="a name change names the street the route continues on" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.001"/>
+  <testcase name="an absent record stays absent" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.0"/>
+  <testcase name="a straight-on turn is the move that collapses" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.0"/>
+  <testcase name="a roundabout leave carries its ordinal and its circulation direction" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.001"/>
+  <testcase name="a roundabout enter carries the direction and no ordinal" classname="com.naviveylin.core.ManeuverFromStepTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

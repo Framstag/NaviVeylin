@@ -1,0 +1,9 @@
+10-28 12:31:24.485 20919 20968 I NaviVeylin: [JNI] guidance dispatch: list steps=330 us=7503
+10-28 12:31:24.485 20919 20968 I NaviVeylin: [JNI] guidance dispatch: next steps=1 us=81
+10-28 12:31:24.492 20919 20968 I NaviVeylin: [JNI] guidance dispatch: list steps=329 us=6816
+10-28 12:31:24.492 20919 20968 I NaviVeylin: [JNI] guidance dispatch: next steps=1 us=53
+10-28 12:31:24.604 20919 20984 I NaviVeylin: [JNI] guidance dispatch: list steps=330 us=5706
+10-28 12:31:24.604 20919 20984 I NaviVeylin: [JNI] guidance dispatch: next steps=1 us=70
+10-28 12:31:24.604 20919 20932 I RouteDeviceTest: live step list: published=330 calculated=330
+10-28 12:31:24.610 20919 20984 I NaviVeylin: [JNI] guidance dispatch: list steps=329 us=6503
+10-28 12:31:24.611 20919 20984 I NaviVeylin: [JNI] guidance dispatch: next steps=1 us=85

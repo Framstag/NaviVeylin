@@ -1,0 +1,5 @@
+$ bash tools/loop/report.sh  # the tree state .pi/issue-loop/run.json, 2026-10-29
+trend — this run's own items; no rate is green or red in one run:
+  review: - · this state records no review verdict — it was written before the report read one
+  wall:   median 174 s (min 25, max 2679) · 30 items
+  landings: not in the run's state — no record says which commit a landing merged, so a main it reddened is the tracker's answer: gh issue list --label broken-main

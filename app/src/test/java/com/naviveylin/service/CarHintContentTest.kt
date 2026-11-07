@@ -1,12 +1,13 @@
 package com.naviveylin.service
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.R
 import com.naviveylin.core.StringResolver
-import com.naviveylin.core.TurnInstructionLocalizer
-import com.naviveylin.ui.navigation.splitInstruction
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.manoeuvreFromStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -26,6 +27,8 @@ class CarHintContentTest {
             R.string.nav_turn_left -> "Turn left"
             R.string.nav_turn_right -> "Turn right"
             R.string.nav_straight_on -> "Straight on"
+            R.string.nav_keep_right -> "Keep right"
+            R.string.nav_towards -> "towards ${args[0]}"
             R.string.nav_start -> "Start"
             R.string.nav_hint_neutral -> "Navigation active"
             R.string.nav_hint_distance_eta -> "${args[0]} · ${args[1]}"
@@ -39,13 +42,25 @@ class CarHintContentTest {
         description: String = "Turn left into Hauptstrasse",
         shortDescription: String = "Turn left",
         distanceTo: Double = 250.0
-    ) = RouteInstruction(distanceTo, turnType, streetName, description, shortDescription)
+    ) = stepOf(distanceTo, turnType, streetName, description, shortDescription)
+
+    /** A motorway change onto the A8, the manoeuvre a signposted destination exists for. */
+    private fun motorwayChange(destination: String? = "München") = RouteStep().apply {
+        kind = RouteStep.Kind.MOTORWAY_CHANGE
+        remainingDistance = 450.0
+        motorwayChange = RouteStep.MotorwayChange().apply {
+            from = RouteStep.Name("", "A3")
+            to = RouteStep.Name("", "A8")
+            move = TurnType.RIGHT
+        }
+        this.destination = destination
+    }
 
     @Test
     fun instructionIsThePrimaryCarText() {
         val state = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction(),
+            nextStep = instruction(),
             destinationName = "Home",
             remainingDistance = 12_400.0,
             etaMillis = 1_700_000_000_000L
@@ -64,7 +79,7 @@ class CarHintContentTest {
     fun maneuverWithoutStreetNameKeepsInstructionWording() {
         val state = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction(
+            nextStep = instruction(
                 streetName = "",
                 description = "Turn left",
                 shortDescription = "Turn left"
@@ -78,6 +93,42 @@ class CarHintContentTest {
 
         assertEquals("Turn left", hint?.title)
         assertTrue("no street composition expected", hint?.title?.contains("into") == false)
+    }
+
+    @Test
+    fun aMotorwayChangesSecondaryTextCarriesTheSignpostedDestination() {
+        // The hint's primary text stays the manoeuvre; the destination joins the secondary text so a
+        // motorway fork stops reading as two identical "Keep right" hints (spec:
+        // `auto-navigation-hints` — The car hint names the signposted destination).
+        val state = NavigationState(
+            isNavigating = true,
+            nextStep = motorwayChange(destination = "München"),
+            etaMillis = 1_700_000_000_000L
+        )
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            state, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+
+        assertEquals("Keep right", hint?.title)
+        assertEquals("450 m · 14:32 · A8 towards München", hint?.text)
+    }
+
+    @Test
+    fun aMotorwayChangeWithoutADestinationKeepsTodaysSecondaryText() {
+        // Every other hint is byte-identical to what it showed before the clause existed.
+        val state = NavigationState(
+            isNavigating = true,
+            nextStep = motorwayChange(destination = null),
+            etaMillis = 1_700_000_000_000L
+        )
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            state, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+
+        assertEquals("Keep right", hint?.title)
+        assertEquals("450 m · 14:32", hint?.text)
     }
 
     @Test
@@ -103,7 +154,7 @@ class CarHintContentTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 4,
-            instructions = emptyList(),
+            steps = emptyList(),
             remainingDistance = 1_200.0
         )
 
@@ -128,23 +179,21 @@ class CarHintContentTest {
 
     @Test
     fun carTitleMatchesOnScreenNextTurnText() {
+        // The car hint and the phone overlay word a manoeuvre from the same builder, so the two
+        // cannot disagree — that is what the retired text comparison used to check by hand
+        // (spec: `turn-instruction-localization` — one wording for both variants).
         val cases = listOf(
             instruction(),
-            instruction(streetName = "", description = "Turn left", shortDescription = "Turn left"),
-            instruction(turnType = TurnType.RIGHT, streetName = "Ringstrasse", description = "Turn right into Ringstrasse", shortDescription = "Turn right"),
-            instruction(turnType = TurnType.START, streetName = "", description = "Start", shortDescription = "Start")
+            instruction(turnType = TurnType.RIGHT, streetName = "Ringstrasse"),
+            instruction(turnType = TurnType.START, streetName = "")
         )
 
         for (case in cases) {
-            val state = NavigationState(isNavigating = true, nextInstruction = case)
+            val state = NavigationState(isNavigating = true, nextStep = case)
             val carTitle = NavigationNotificationContentFormatter.carHint(
                 state, resolver, etaClock = { "14:32" }, locale = Locale.US
             )?.title
-            val onScreen = splitInstruction(
-                description = case.description,
-                shortDescription = TurnInstructionLocalizer.shortDescription(resolver, case),
-                streetName = case.streetName
-            ).generic
+            val onScreen = ManoeuvreLabels.short(resolver, manoeuvreFromStep(case))
 
             assertEquals("car hint title must equal the on-screen next-turn text", onScreen, carTitle)
         }

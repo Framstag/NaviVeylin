@@ -1,0 +1,15 @@
+== run#childIsEndedAtTheRunsDeadline
+PASS run#childIsEndedAtTheRunsDeadline
+== run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+== run#treeOfAChildTheCapEndedIsNotCommitted
+PASS run#treeOfAChildTheCapEndedIsNotCommitted
+== run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+== run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed
+ended 47248 — its working directory is inside loop-selftest.VoIuZk
+== mutations --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/.pi/tmp/loop-mutations.SwvrHP
+loop-mutations: all 133 cases passed — every selected record applies to the file it names
+DONE

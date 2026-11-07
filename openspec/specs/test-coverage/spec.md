@@ -40,6 +40,95 @@ agent detached, and the tests' results SHALL be unaffected by the choice.
 - **THEN** the report is produced from that invocation's execution data without executing the tests
   again
 
+### Requirement: The pure-Java module's suite covers the classes it ships
+
+The `:osmscout-client-java` module's JVM suite SHALL exercise every class the module compiles that a host
+test can reach — the local overrides and the submodule's Java client API beside them. Its coverage SHALL be
+measured per provenance, one coverage-row key each, and each key SHALL stay at or above the row's floor. A
+class that only the native side can reach SHALL NOT be counted as coverable, and no case SHALL be asked to
+execute native code.
+
+#### Scenario: The POI category table is exercised
+
+- **WHEN** the table that maps a POI search category to its OSM type names is read
+- **THEN** the table carries one entry per documented category id, and every entry names at least one
+  well-formed OSM type
+- **Case**: `PoiCategoriesTest.everyCategoryMapsToAtLeastOneOsmType`
+
+#### Scenario: The lane-turn ids match the native enum
+
+- **WHEN** a lane turn is marshalled back from the numeric id the engine reports
+- **THEN** every constant comes back from its own numeric id
+- **Case**: `LaneTurnTest.everyLaneTurnRoundTripsThroughItsNumericId`
+
+#### Scenario: The navigation callbacks' defaults are callable
+
+- **WHEN** a listener implements no callback of its own
+- **THEN** every callback of the navigation and download listeners can be invoked without effect, so an
+  implementation that overrides one method still receives the rest
+- **Case**: `ClientValueTypesTest.theCallbackInterfacesCarryDefaultMethodsTheClientCanLeaveAlone`
+
+#### Scenario: The installed basemap is described
+
+- **WHEN** a basemap directory holds map data and the settings screen asks for its description
+- **THEN** the file count and the summed size are the directory's own
+- **Case**: `BasemapManagerInstalledTest.theInstalledInfoCountsFilesAndSumsTheirSizes`
+
+#### Scenario: A downloaded basemap is installed
+
+- **WHEN** a provider serves a basemap archive and the download completes
+- **THEN** the archive's content is installed at the basemap directory and the completion names that
+  directory
+- **Case**: `BasemapManagerTest.testSuccessfulDownloadInstallsTheBasemap`
+
+#### Scenario: The provider's listing is what the screen offers
+
+- **WHEN** the basemap probe reads the provider's directory listing
+- **THEN** the archives the provider's listing carries are offered, and `BaseMap-2026-02-23.tar.gz` is
+  the latest basemap
+- **Case**: `BasemapManagerTest.testFetchAvailableBasemapsReadsTheDirectoryListing`
+
+#### Scenario: The installed-map scan finds every database directory
+
+- **WHEN** the shared scan walks a maps root
+- **THEN** every directory holding `types.dat` at any depth is a map, and a directory without it is not
+- **Case**: `InstalledMapsTest.everyDirectoryHoldingTypesDatIsAMap`
+
+#### Scenario: A failing download reports instead of escaping
+
+- **WHEN** the download worker's first fallible step fails
+- **THEN** the listener is handed the failure and the message names the step that failed, so a worker that
+  dies is a download error the caller sees rather than an uncaught throwable on a thread nobody awaits
+- **Case**: `MapDownloadManagerListingTest.aFailedNativePreparationIsReportedThroughTheListener`
+
+#### Scenario: The module's coverage is measured against the row's floor
+
+- **WHEN** the module's own JaCoCo report is read after its suite has run
+- **THEN** the percentage the coverage row reads under the module's own key is at or above the row's floor
+- **Case**: `coverage-floor-probe: the own-code instruction coverage reaches the 70% floor`
+
+#### Scenario: The client's own methods are exercised
+
+- **WHEN** one of `OSMScoutClient`'s convenience methods runs on a client whose native entry points answer from
+  a fake
+- **THEN** the method hands the native call the arguments and the request generation it promises, and it ends
+  the request it began even when the native call fails
+- **Case**: `OSMScoutClientWrappersTest.aStandaloneSearchBeginsAndEndsItsOwnRequest`
+
+#### Scenario: The settings builder stores what it is handed
+
+- **WHEN** a caller chains the builder's setters before `build()`
+- **THEN** every setter returns the same builder, and a repeated custom-POI registration appends instead of
+  replacing the first
+- **Case**: `OSMScoutClientBuilderTest.everySettingIsChainableAndKeepsItsValue`
+
+#### Scenario: The two provenances are two row keys
+
+- **WHEN** the coverage summary is written from the module's own report and its vendored report
+- **THEN** the summary carries a percentage for each provenance under its own key, and a missing vendored report
+  is refused instead of read as the module's mixed number
+- **Case**: `inputs#splitsTheJavaModulesCoverageByProvenance`
+
 ### Requirement: Aggregated multi-module report
 A single aggregated coverage report SHALL combine the unit test coverage of the Kotlin modules `app`, `auto`, and `core` so the whole Kotlin surface can be judged from one report (the pure-Java module is reported separately by JaCoCo).
 
@@ -75,3 +164,120 @@ The CI workflow SHALL generate the coverage reports after its unit test step and
 #### Scenario: CI stays green without thresholds
 - **WHEN** CI runs with coverage enabled
 - **THEN** the workflow SHALL NOT fail the build due to coverage percentages — measurement is report-only
+
+### Requirement: A module's suite reaches the coverage row's floor
+
+A module's unit suite SHALL cover the classes a host test can reach, so the instruction coverage that the
+sensor registry's coverage row reads from that module's own report does not fall below that row's floor. A case
+added for that coverage SHALL assert a behaviour the capability owns, never that a line ran; a class only the
+native side can reach SHALL NOT be covered from a host test; and a case that builds a component with long-lived
+background work SHALL release it before it returns.
+
+#### Scenario: The coverage probe passes on the change
+
+- **WHEN** the coverage row's arithmetic — the last instruction counter of the module's Kover report against the
+  row's 70 % floor — is applied to the `auto` module's report
+- **THEN** the module SHALL be at or above the floor
+- **Case**: `coverage-floor-probe#theAutoModulesInstructionCoverageReachesTheFloor`
+
+#### Scenario: The free-driving screen's template is the map-only template
+
+- **WHEN** the free-driving screen is asked for its template
+- **THEN** the template SHALL be a `NavigationTemplate`, the one template with no content slot; its map
+  action strip SHALL carry two actions, and its action strip the zoom-in and zoom-out actions in that order
+- **Case**: `FreeDrivingScreenHostTest#theTemplateIsTheBareNavigationTemplateCarryingItsActions`
+
+#### Scenario: A started screen takes the session surface and a stopped one releases it
+
+- **WHEN** the free-driving screen reaches the started state and later the stopped state
+- **THEN** it SHALL call the session surface's attach exactly once on start and its detach exactly once on
+  stop, so no screen holds the surface while the session draws through another
+- **Case**: `FreeDrivingScreenHostTest#aStartedScreenTakesTheSessionSurfaceAndStopsReleasing`
+
+#### Scenario: A started screen observes fixes and map-data revisions
+
+- **WHEN** the shared location source publishes a fix and the basemap notifier publishes a revision while the
+  free-driving screen is started
+- **THEN** the screen SHALL process both without faulting and still answer a `NavigationTemplate`
+- **Case**: `FreeDrivingScreenHostTest#aStartedScreenObservesFixesAndBasemapRevisions`
+
+#### Scenario: The screen votes for free driving on entry
+
+- **WHEN** the free-driving screen is constructed
+- **THEN** it SHALL publish the car's free-driving flag, so the shared indicator and the ongoing notification
+  follow the surface that is driving
+- **Case**: `FreeDrivingScreenHostTest#anEnteredScreenVotesTheFreeDrivingFlagOn`
+
+#### Scenario: A destroyed screen drops the road status it published
+
+- **WHEN** the shared status provider carries the car's road/speed status while a free-driving screen is
+  started, and the screen is destroyed
+- **THEN** it SHALL clear that status, so no road from an ended session survives into the notification
+- **Case**: `FreeDrivingScreenHostTest#aDestroyedScreenDropsTheRoadStatusItPublishedAndItsSurface`
+
+### Requirement: The split's vendored half reaches the packaged app
+
+The two provenances `:osmscout-client-java` compiles SHALL both be part of what an Android consumer
+receives, and the packaged dex of a variant SHALL define one class for every `*.java` file under the
+module's two source roots. A class the sources declare and the dex does not define SHALL fail that
+variant's `assemble`/`bundle` naming the class, because it is a startup `ClassNotFoundException` and not
+a compile error.
+
+#### Scenario: Every client class is defined in the packaged dex
+
+- **WHEN** a variant's packaging tasks run after the module's sources were split into two source sets
+- **THEN** the gate reads that variant's merged dex files and finds a `class_defs` entry for every class
+  the two source roots declare, and absent one it fails the build and names it
+- **Case**: `:app:checkClientApiInDexMobileDebug` — red with the classes directory wiring removed (35 of the
+  module's 48 classes absent, `com.framstag.libosmscout.client.MapProvider` among them), green with it
+  (issue #691)
+
+#### Scenario: A referenced type is not a defined one
+
+- **WHEN** a dex file mentions a class only as a referenced type — the state the packaged APK was in
+- **THEN** that class is absent from the descriptors the gate reads as defined
+- **Case**: `buildSrc: ClientApiDexGateTest` "a type that is only referenced is not defined"
+
+#### Scenario: The two provenance rows stay two rows
+
+- **WHEN** the module's own and vendored JaCoCo reports are written after the classes directory wiring
+- **THEN** the own row measures the override classes alone and the vendored row the vendored classes alone
+- **Case**: `inputs#splitsTheJavaModulesCoverageByProvenance`
+
+### Requirement: The dex gate waits for its variant's dex producer
+
+`:app:checkClientApiInDex<Variant>` SHALL depend on the task AGP uses to write that variant's dex — the dex
+builder and merge steps for a plain variant, `minify<Variant>WithR8` for a minified one — and the variant's
+`assemble`/`bundle` SHALL depend on the gate.
+
+#### Scenario: A minified variant's gate waits for R8
+
+- **WHEN** the graph of `:app:checkClientApiInDex<Variant>` is requested for a variant with
+  `isMinifyEnabled = true`
+- **THEN** the graph holds `minify<Variant>WithR8`, the task whose output is the variant's only `*.dex`, under
+  the `intermediates/dex/<variant>` tree the gate reads
+- **AND** the gate's action therefore sees a non-empty tree instead of failing with "No dex archives to scan"
+- **Case**: `dexGateGraph#mobileReleaseGateFollowsR8` and `dexGateGraph#automotiveReleaseGateFollowsR8`
+  (`tools/check-dex-gate-graph-selftest.sh`) — red on the merge-only dependency set, whose graph is the gate
+  alone (`:app:checkClientApiInDexAutomotiveRelease SKIPPED`, the reported `./gradlew release` failure);
+  green with the producer named. The tree identity in the THEN is measured rather than asserted: one
+  `find` after `:app:minifyAutomotiveReleaseWithR8` (`openspec/changes/archive/2026-10-28-fix-dex-gate-waits-for-r8/tasks.md`
+  1.2)
+
+#### Scenario: A plain variant's gate waits for the dex chain
+
+- **WHEN** the same graph is requested for a variant with `isMinifyEnabled = false`
+- **THEN** it holds `dexBuilder<Variant>` and the three merge steps, and no R8 task, because no such task exists
+  for that variant
+- **Case**: `dexGateGraph#mobileDebugGateFollowsTheDexChain` and
+  `dexGateGraph#automotiveDebugGateFollowsTheDexChain` (`tools/check-dex-gate-graph-selftest.sh`) — the wiring
+  that was already correct, asserted so a single shape cannot replace the other
+
+#### Scenario: The packaging graph holds the gate and its producer
+
+- **WHEN** the graph of `bundle<Variant>` is requested for a release variant
+- **THEN** it holds both `checkClientApiInDex<Variant>` and `minify<Variant>WithR8`, so the command that builds a
+  shippable artifact carries the guard and the dex it reads
+- **Case**: `dexGateGraph#mobileBundleFollowsTheGate` and `dexGateGraph#automotiveBundleFollowsTheGate`
+  (`tools/check-dex-gate-graph-selftest.sh`); `./gradlew release` green afterwards, both AABs written
+  (2026-10-28, `NaviVeylin release: 2026-10-28-2 (versionCode 107)`)

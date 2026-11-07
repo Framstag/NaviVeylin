@@ -1,0 +1,14 @@
+# red on HEAD: the tree the change lands on (05ed9835, 2026-11-02T19:56:54Z)
+# The tree holds HEAD's workflows and README and none of the change's files.
+
+$ grep -c sonarcloud README.md
+0
+
+$ ls .github/workflows/sonar.yml sonar-project.properties
+ls: Zugriff auf '/tmp/nv-sonar-red-tree/.github/workflows/sonar.yml' nicht möglich: Datei oder Verzeichnis nicht gefunden
+ls: Zugriff auf '/tmp/nv-sonar-red-tree/sonar-project.properties' nicht möglich: Datei oder Verzeichnis nicht gefunden
+
+$ bash tools/check-sonar-workflow.sh --root <HEAD tree>
+::error file=.github/workflows/sonar.yml,line=1::missing — the scan is produced by CI from a workflow in this repository (spec sonar-analysis, 'The scan is produced by CI from the main branch')
+::error file=sonar-project.properties,line=1::missing — the scan's source boundary and coverage inputs are declared in this file, not inferred (spec sonar-analysis, 'The analysis measures this repository's sources and nothing else')
+exit=1

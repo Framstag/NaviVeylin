@@ -132,6 +132,20 @@ fun BasemapSection(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        val outdated = state.outdatedFormat
+                        if (outdated != null) {
+                            // Installed but unreadable by this build: say so, and name the way out
+                            // (spec `basemap-ui` — Report a basemap this build cannot read).
+                            Text(
+                                text = stringResource(
+                                    R.string.basemap_outdated_format,
+                                    outdated.installedVersion,
+                                    outdated.expectedVersion
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                     if (state.updateAvailable) {
                         Button(onClick = { viewModel.update() }) {

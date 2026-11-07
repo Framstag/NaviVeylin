@@ -1,0 +1,10 @@
+== mutation 1: the gate ignores the trigger (keyed on the baseline alone)
+801:  if [ -z "$baseline" ]; then
+  a dispatch that asked to write records the row's first exercise: expected '3', got '0'
+FAIL run#aDispatchedFirstExerciseRecordsItsMeasurement
+== mutation 2: no gate at all
+  the tick files no condition on a row with no measurement on record: expected '0', got '3'
+FAIL run#aFirstExerciseOnATickReportsInsteadOfFiling
+== restored
+ tools/sensors/run.sh | 33 +++++++++++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)

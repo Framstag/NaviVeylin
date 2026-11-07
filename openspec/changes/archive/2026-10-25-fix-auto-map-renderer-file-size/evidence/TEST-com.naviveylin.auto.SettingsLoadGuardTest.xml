@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SettingsLoadGuardTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:32.382Z" hostname="dingens" time="0.084">
+  <properties/>
+  <testcase name="onLifecycleStartDeliversContentWhenLoaded" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.003"/>
+  <testcase name="throwingReReadHookDoesNotBlockReRender" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.066"/>
+  <testcase name="lifecycleObserverRunsReReadHookOnStartAndCancelsOnDestroy" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.003"/>
+  <testcase name="contentArrivalDeliversWithConfirmRefresh" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.002"/>
+  <testcase name="retryResetsBudgetAndErrorState" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.001"/>
+  <testcase name="watchdogFiresOnlyAfterTimeoutWindow" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.001"/>
+  <testcase name="stallExhaustsCapAndEndsInErrorState" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.001"/>
+  <testcase name="thrownInvalidateIsSwallowedAndRetried" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.003"/>
+  <testcase name="loadFailureTransitionsToErrorImmediately" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.0"/>
+  <testcase name="onLifecycleStartReRendersStalePlaceholder" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.001"/>
+  <testcase name="laterContentClearsErrorState" classname="com.naviveylin.auto.SettingsLoadGuardTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

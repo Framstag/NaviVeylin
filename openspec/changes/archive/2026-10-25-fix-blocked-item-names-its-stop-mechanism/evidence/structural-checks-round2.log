@@ -1,0 +1,8 @@
+== 2026-10-25T00:35:47Z — structural checks after the documentation edits (no compiled file, no case file, no engine script changed after the gate)
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+check-openspec-hygiene exit=0
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+check-doc-routes exit=0
+gen-feature-list --check-classification exit=0
+== 2026-10-25T00:35:51Z — done

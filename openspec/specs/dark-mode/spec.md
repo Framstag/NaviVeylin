@@ -195,3 +195,56 @@ On Android Auto (projection and Android Automotive OS), the system SHALL NOT the
 
 - **WHEN** the user changes the app's dark mode preference (On / Off / Automatic)
 - **THEN** only the app-drawn surface and app controls are affected; host template chrome is unchanged
+
+### Requirement: A user change outranks an in-flight settings read
+
+The dark-mode state SHALL carry a preference or an ambient-light sensitivity the user changed while the
+persisted settings were still loading: when that read completes it SHALL NOT restore a persisted value over the
+user's newer choice, in the resolver and in the UI state alike. A field the user did not change SHALL still be
+restored from disk.
+
+#### Scenario: A change made while the read runs survives it
+
+- **WHEN** the persisted settings carry Automatic and the sensor off, and the user sets the preference to On and
+  the sensitivity to High after the start-up read has begun but before it completes
+- **THEN** the completed read leaves the preference On and the sensitivity High, resolved and in the UI state,
+  instead of restoring Automatic and off
+- **Case**: `DarkModeLateRestoreTest.aChangeThatLandsBeforeTheReadKeepsBothFields`
+
+#### Scenario: An unchanged field is still restored
+
+- **WHEN** the persisted settings carry Off and Medium and the user changes neither field while the start-up read
+  runs
+- **THEN** the completed read restores Off and Medium into the resolver and the UI state
+- **Case**: `DarkModeLateRestoreTest.untouchedFieldsAreStillRestoredFromDisk`
+
+### Requirement: Which app-drawn elements stay visible in dark presentation
+
+Dark presentation SHALL keep a clearly visible tone only for app-drawn elements that carry navigation-essential
+information: the vehicle's own position marker and the active route. Every other app-drawn element SHALL dim to a
+dark tone of its own hue family, a status-carrying overlay included. The exempt set SHALL stay small and SHALL be
+enumerable from this specification, so a dark map shows few loud elements.
+
+#### Scenario: The navigation-essential elements keep their dark tone
+
+- **WHEN** dark presentation is active and the map draws the vehicle marker or the active route
+- **THEN** the marker SHALL use its dark casing with its lighter dark-presentation core
+- **AND** the route SHALL keep its own dark-presentation colours
+- **AND** neither SHALL be dimmed by this requirement
+- **Case**: `auto: AutoMapRendererMarkerDrawCacheTest` "aDarkPresentationChangeRebuildsThePalette"
+
+#### Scenario: An overlay that carries no nav-essential information dims
+
+- **WHEN** dark presentation is active and an app-drawn overlay that is neither the vehicle marker nor the route
+  is drawn
+- **THEN** it SHALL be drawn in a dark tone of its own hue family
+- **AND** it SHALL NOT keep the tone it is drawn in under light presentation
+- **Case**: `app: LocationMarkerOverlayPaletteTest` "theDrawnAccuracyRingUsesADarkerToneOfTheSameHueFamily",
+  `auto: AutoMapRendererMarkerDrawCacheTest` "theAccuracyRingBranchesOnTheDarkPresentation"
+
+#### Scenario: No overlay keeps a light literal while dark presentation is active
+
+- **WHEN** every app-drawn overlay colour of this palette is resolved for dark presentation
+- **THEN** each SHALL resolve to a different value than it does under light presentation
+- **AND** none SHALL still be the presentation-independent literal it was before this palette existed
+- **Case**: `core: GpsMarkerPaletteTest` "everyOverlayColourBranchesOnThePresentation"

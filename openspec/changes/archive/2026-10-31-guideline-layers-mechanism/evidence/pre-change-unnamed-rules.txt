@@ -1,0 +1,15 @@
+# The unnamed population — guideline-layers-mechanism, task 1.3
+# date: 2026-10-31T09:30:35Z
+# imperative bullets a document already writes but that carry no '**Rule: <name>**' name: the population
+# the six document changes will have to name. Command:
+#   grep -cE '^[-*] \*\*(Never|Do not|Always|MUST)' guidelines/*.md
+guidelines/Backlog.md	0
+guidelines/Build.md	3
+guidelines/Design.md	38
+guidelines/FeatureList.md	0
+guidelines/Logging.md	3
+guidelines/MapRendering.md	1
+guidelines/Metrics.md	0
+guidelines/Regulatory.md	0
+guidelines/UI.md	1
+total: 46

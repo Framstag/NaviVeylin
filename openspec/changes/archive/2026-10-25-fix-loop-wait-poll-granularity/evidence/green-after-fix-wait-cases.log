@@ -1,0 +1,6 @@
+after the fix 2026-10-25T01:28:31Z
+2 running line(s) for a 4 s child at a 2 s interval
+PASS run#theProgressLineKeepsItsInterval
+status=0
+PASS run#childReportsWhileItWaits
+status=0

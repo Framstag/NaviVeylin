@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes-selftest.sh" tests="23" failures="0" errors="0" time="3">
+  <system-out>PASS  routed-read#range — a range a row states is the span of the lettered sections it names, and a past measurement in the same row is not compared PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case check-doc-routes-selftest: all 23 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)</system-out>
+</testsuite>

@@ -1,0 +1,31 @@
+loop-mutations: selected 9 of 217 records (labels: 72.1 72.2 72.3 72.4 72.5 72.6 72.7 72.8 73.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.9fqZ5h
+RED    72.1  report#trendFiguresFromState   (the numerator read from the round count instead of the round verdict, so a round 1 that refused and then blocked is totalled as a pass — the review round 1 finding of this change (issue #247))
+       2026-10-29T22:37:40Z — the rate counts the verdicts a round ended on: two passes of five decided rounds, one round without a verdict, two items no round ran for: 'review: 2/5 first rounds passed · 1 undecided · 2 never reviewed' not found in: trend — this run's o
+restore 72.1 report#trendFiguresFromState green again
+RED    72.2  report#trendFiguresFromState   (the middle index a median is taken at, so the smallest wall of the run is printed as its median (issue #247))
+       2026-10-29T22:37:48Z — the wall figures are the recorded walls, with the count printed beside them: 'wall:   median 403 s (min 41, max 1644) · 5 items' not found in: trend — this run's own items; no rate is green or red in one run:
+restore 72.2 report#trendFiguresFromState green again
+RED    72.3  report#trendFiguresFromState   (the denominator of the pass rate, so a round that ended without a verdict is counted as a decided round (issue #247))
+       2026-10-29T22:37:56Z — the rate counts the verdicts a round ended on: two passes of five decided rounds, one round without a verdict, two items no round ran for: 'review: 2/5 first rounds passed · 1 undecided · 2 never reviewed' not found in: trend — this run's o
+restore 72.3 report#trendFiguresFromState green again
+RED    72.4  report#noRoundOrWallPrintsDashNotZero   (the dash a wall nobody measured prints, replaced by the zero that reads as a measurement (issue #247))
+       2026-10-29T22:38:04Z — no wall and no median: the same: 'wall:   - · no item recorded a wall time' not found in: trend — this run's own items; no rate is green or red in one run:
+restore 72.4 report#noRoundOrWallPrintsDashNotZero green again
+RED    72.5  report#noRoundOrWallPrintsDashNotZero   (the dash a review rate nobody measured prints, replaced by a `0/0` (issue #247))
+       2026-10-29T22:38:11Z — state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.tBsOg8/cases/0/tree/case.FmgZGk/repo/.pi/issue-loop/runs/2026-10-29T22:38:07Z.json
+restore 72.5 report#noRoundOrWallPrintsDashNotZero green again
+RED    72.6  report#landingsNamedNotInvented   (the report making no tracker read of its own, so the figure it says it only points at is fetched (issue #247))
+       2026-10-29T22:38:18Z — the report called the tracker: issue list --label broken-main
+restore 72.6 report#landingsNamedNotInvented green again
+RED    72.7  report#trendFiguresFromState   (the bucket a round that ended without a verdict is counted in, so it is silently absent from every figure the line prints (issue #247))
+       2026-10-29T22:38:24Z — the rate counts the verdicts a round ended on: two passes of five decided rounds, one round without a verdict, two items no round ran for: 'review: 2/5 first rounds passed · 1 undecided · 2 never reviewed' not found in: trend — this run's o
+restore 72.7 report#trendFiguresFromState green again
+RED    72.8  report#noRoundOrWallPrintsDashNotZero   (the rule that a state written before the verdict was recorded prints a dash instead of a rate over a count that cannot tell a pass from a refusal (issue #247))
+       2026-10-29T22:38:32Z — a state whose items carry no verdict prints a dash and the reason, not a rate over a count that cannot tell a pass from a refusal: 'review: - · this state records no review verdict' not found in: trend — this run's own items; no rate is gre
+restore 72.8 report#noRoundOrWallPrintsDashNotZero green again
+RED    73.1  run#aReviewerEndedAtItsTurnBoundIsNotARefusal   (the branch recording a round the item turn bound ended as cut, so the silence of a reviewer that never answered is read as a refusal and buys a rework worker (issue #247))
+       2026-10-29T22:38:50Z — the cut round was read as a refusal and bought a rework worker
+restore 73.1 run#aReviewerEndedAtItsTurnBoundIsNotARefusal green again
+
+red-when-mutated: 9 · not-noticed: 0 · restore-failures: 0

@@ -6,7 +6,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
@@ -32,7 +33,7 @@ class NextTurnOverlayTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val instruction = RouteInstruction(
+    private val step = stepOf(
         450.0,
         300.0,
         900.0,
@@ -52,20 +53,63 @@ class NextTurnOverlayTest {
         exit: Int,
         nextNextType: TurnType = TurnType.STRAIGHT_ON,
         nextNextExit: Int = 0
-    ) = RouteInstruction(
+    ) = stepOf(
         450.0, 300.0, 900.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
         "Take exit $exit onto Bahnhofstraße", "Exit $exit",
         100.0, nextNextType, "native next-next", "native next-next short",
         exit, true, nextNextExit
     )
 
+    // --- the signposted destination (spec: next-turn-overlay - The second line carries it) ---
+
+    /** A motorway change onto the A8: the manoeuvre a signposted destination exists for. */
+    private fun motorwayChange(destination: String? = "München"): RouteStep = RouteStep().apply {
+        kind = RouteStep.Kind.MOTORWAY_CHANGE
+        remainingDistance = 450.0
+        motorwayChange = RouteStep.MotorwayChange().apply {
+            from = RouteStep.Name("", "A3")
+            to = RouteStep.Name("", "A8")
+            move = TurnType.RIGHT
+        }
+        this.destination = destination
+    }
+
+    @Test
+    fun `a motorway change's second line carries the signposted destination`() {
+        composeRule.setContent { NextTurnOverlay(step = motorwayChange()) }
+
+        // The first line stays the manoeuvre alone; the destination joins the second one.
+        composeRule.onNodeWithText("Keep right").assertIsDisplayed()
+        composeRule.onNodeWithText("A8 towards München").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a motorway change without a destination keeps the bare reference`() {
+        composeRule.setContent { NextTurnOverlay(step = motorwayChange(destination = null)) }
+
+        composeRule.onNodeWithText("A8").assertExists()
+        composeRule.onNodeWithText("towards", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the destination clause wraps inside the existing line limit`() {
+        // The longer line stays inside the overlay's own budget: the description keeps its existing
+        // limit and ellipsis, and the card gains no third text row.
+        composeRule.setContent {
+            NextTurnOverlay(step = motorwayChange(destination = "Garmisch-Partenkirchen"))
+        }
+
+        composeRule.onNodeWithText("A8 towards Garmisch-Partenkirchen").assertExists()
+        composeRule.onNodeWithTag("nextTurnNextNextArrow").assertDoesNotExist()
+    }
+
     @Test
     fun `a roundabout exit icon carries the exit number`() {
-        val symbol = navSymbolForInstruction(roundaboutInstruction(exit = 3))
+        val symbol = navSymbolForStep(roundaboutInstruction(exit = 3))
 
         assertEquals(NavSymbol.RoundaboutExit(3), symbol)
         // and the overlay renders it, so the symbol reaches the row rather than only the decision
-        composeRule.setContent { NextTurnOverlay(instruction = roundaboutInstruction(exit = 3)) }
+        composeRule.setContent { NextTurnOverlay(step = roundaboutInstruction(exit = 3)) }
         composeRule.onNodeWithText("Exit 3").assertIsDisplayed()
     }
 
@@ -73,20 +117,45 @@ class NextTurnOverlayTest {
     fun `a roundabout exit without an ordinal keeps the plain leave arrow`() {
         assertEquals(
             NavSymbol.TurnArrow(TurnType.ROUNDABOUT_LEAVE),
-            navSymbolForInstruction(roundaboutInstruction(exit = 0))
+            navSymbolForStep(roundaboutInstruction(exit = 0))
         )
     }
 
     @Test
+    fun `the next-next hint renders from the nested step`() {
+        // The hint row exists because the published step carries a nested record; it names that
+        // manoeuvre's own wording and its own distance (spec: next-turn-overlay — "Next next" hint).
+        val withHint = roundaboutInstruction(
+            exit = 3,
+            nextNextType = TurnType.RIGHT,
+            nextNextExit = 0
+        )
+
+        composeRule.setContent { NextTurnOverlay(step = withHint) }
+
+        composeRule.onNodeWithTag("nextTurnNextNextArrow").assertExists()
+        composeRule.onNodeWithText("Turn right").assertExists()
+    }
+
+    @Test
+    fun `a step without a nested hint shows no second row`() {
+        val withoutHint = stepOf(250.0, TurnType.LEFT, "Hauptstraße")
+
+        composeRule.setContent { NextTurnOverlay(step = withoutHint) }
+
+        composeRule.onNodeWithTag("nextTurnNextNextArrow").assertDoesNotExist()
+    }
+
+    @Test
     fun `the next-next roundabout exit shows its own number`() {
-        val instruction = roundaboutInstruction(
+        val step = roundaboutInstruction(
             exit = 3,
             nextNextType = TurnType.ROUNDABOUT_LEAVE,
             nextNextExit = 1
         )
 
-        assertEquals(NavSymbol.RoundaboutExit(1), navSymbolForNextNext(instruction))
-        assertEquals(NavSymbol.RoundaboutExit(3), navSymbolForInstruction(instruction))
+        assertEquals(NavSymbol.RoundaboutExit(1), navSymbolForNextNext(step))
+        assertEquals(NavSymbol.RoundaboutExit(3), navSymbolForStep(step))
     }
 
     private fun styleFontSize(capture: () -> Unit): Float {
@@ -102,7 +171,7 @@ class NextTurnOverlayTest {
 
     @Test
     fun overlayRendersInstruction() {
-        composeRule.setContent { NextTurnOverlay(instruction = instruction) }
+        composeRule.setContent { NextTurnOverlay(step = step) }
         composeRule.onNodeWithText("450 m").assertIsDisplayed()
         composeRule.onNodeWithText("Turn left").assertIsDisplayed()
         composeRule.onNodeWithText("100 m").assertIsDisplayed()
@@ -149,7 +218,7 @@ class NextTurnOverlayTest {
 
     @Test
     fun iconsAtLeast64And36dp() {
-        composeRule.setContent { NextTurnOverlay(instruction = instruction) }
+        composeRule.setContent { NextTurnOverlay(step = step) }
         val mainPx = with(composeRule.density) { 64.dp.toPx() }
         val nextNextPx = with(composeRule.density) { 36.dp.toPx() }
         val main = composeRule.onNodeWithTag("nextTurnArrow").fetchSemanticsNode().size

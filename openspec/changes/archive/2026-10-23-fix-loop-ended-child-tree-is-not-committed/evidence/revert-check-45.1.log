@@ -1,0 +1,7 @@
+taken 2026-10-23T16:20:34Z (branch fix/issue-271-a-run-that-ended-its-own-child-still-com, HEAD f429df9e)
+loop-mutations: selected 1 of 113 records (labels: 45.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/271/.pi/tmp/loop-mutations.gpDtH9
+RED    45.1  run#treeOfAChildTheCapEndedIsNotCommitted   (the guard that leaves the tree of a child the run ended uncommitted (issue #271))
+restore 45.1 run#treeOfAChildTheCapEndedIsNotCommitted green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

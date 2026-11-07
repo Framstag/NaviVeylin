@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
+import com.naviveylin.data.AppSettings
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 import kotlin.math.roundToInt
@@ -94,8 +95,20 @@ fun LocationOptionsOverlay(
     onSetAmbientLightSensitivity: (AmbientLightSensitivity) -> Unit = {},
     laneHintsEnabled: Boolean = true,
     onToggleLaneHints: (Boolean) -> Unit = {},
+    // The phone's spoken-guidance switch and the shared GPS-announcement switch
+    // (spec: `voice-guidance` — The phone offers both switches in its settings sheet).
+    voiceGuidanceEnabled: Boolean = true,
+    onToggleVoiceGuidance: (Boolean) -> Unit = {},
+    announceGpsState: Boolean = false,
+    onToggleAnnounceGpsState: (Boolean) -> Unit = {},
     overspeedWarningDeltaKmh: Int = 5,
     onSetOverspeedWarningDelta: (Int) -> Unit = {},
+    // Long-press timeout: REQUIRED (no defaults), for the same reason as the max-speed and anchor
+    // rows below. The row renders in EVERY mode, so an optional callback would let a call site
+    // compile into a slider whose selection is silently dropped
+    // (spec: location-options-ui — Long-press timeout control).
+    longPressTimeoutMs: Int,
+    onSetLongPressTimeoutMs: (Int) -> Unit,
     // Usual maximum speed per vehicle: REQUIRED (no defaults), for the same reason as the anchor
     // rows below. The sliders render in EVERY mode, so an optional callback would let a call site
     // compile into a slider whose selection is silently dropped (spec: location-options-ui —
@@ -106,6 +119,16 @@ fun LocationOptionsOverlay(
     onSetBicycleMaxSpeed: (Int) -> Unit,
     footMaxSpeedKmh: Int,
     onSetFootMaxSpeed: (Int) -> Unit,
+    // Routing avoidance: REQUIRED (no defaults), for the same reason as the max-speed rows. The
+    // switches render in EVERY mode, so an optional callback would let a call site compile into a
+    // switch whose change is silently dropped (spec: `routing-avoidance` — The phone edits the
+    // choices and the car reads them).
+    avoidTolls: Boolean,
+    onSetAvoidTolls: (Boolean) -> Unit,
+    avoidFerries: Boolean,
+    onSetAvoidFerries: (Boolean) -> Unit,
+    avoidUnpaved: Boolean,
+    onSetAvoidUnpaved: (Boolean) -> Unit,
     // Vehicle anchor rows: REQUIRED (no defaults). The rows render in EVERY mode,
     // so an optional callback would let a call site (e.g. the routing view) compile
     // into a picker that silently ignores the selection and keeps showing "Center"
@@ -175,14 +198,26 @@ fun LocationOptionsOverlay(
                 onSetAmbientLightSensitivity = onSetAmbientLightSensitivity,
                 laneHintsEnabled = laneHintsEnabled,
                 onToggleLaneHints = onToggleLaneHints,
+                voiceGuidanceEnabled = voiceGuidanceEnabled,
+                onToggleVoiceGuidance = onToggleVoiceGuidance,
+                announceGpsState = announceGpsState,
+                onToggleAnnounceGpsState = onToggleAnnounceGpsState,
                 overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
                 onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
+                longPressTimeoutMs = longPressTimeoutMs,
+                onSetLongPressTimeoutMs = onSetLongPressTimeoutMs,
                 carMaxSpeedKmh = carMaxSpeedKmh,
                 onSetCarMaxSpeed = onSetCarMaxSpeed,
                 bicycleMaxSpeedKmh = bicycleMaxSpeedKmh,
                 onSetBicycleMaxSpeed = onSetBicycleMaxSpeed,
                 footMaxSpeedKmh = footMaxSpeedKmh,
                 onSetFootMaxSpeed = onSetFootMaxSpeed,
+                avoidTolls = avoidTolls,
+                onSetAvoidTolls = onSetAvoidTolls,
+                avoidFerries = avoidFerries,
+                onSetAvoidFerries = onSetAvoidFerries,
+                avoidUnpaved = avoidUnpaved,
+                onSetAvoidUnpaved = onSetAvoidUnpaved,
                 routingAnchor = routingAnchor,
                 onSetRoutingAnchor = onSetRoutingAnchor,
                 freeDrivingAnchor = freeDrivingAnchor,
@@ -217,14 +252,26 @@ private fun LocationOptionsSheetContent(
     onSetAmbientLightSensitivity: (AmbientLightSensitivity) -> Unit,
     laneHintsEnabled: Boolean,
     onToggleLaneHints: (Boolean) -> Unit,
+    voiceGuidanceEnabled: Boolean,
+    onToggleVoiceGuidance: (Boolean) -> Unit,
+    announceGpsState: Boolean,
+    onToggleAnnounceGpsState: (Boolean) -> Unit,
     overspeedWarningDeltaKmh: Int,
     onSetOverspeedWarningDelta: (Int) -> Unit,
+    longPressTimeoutMs: Int,
+    onSetLongPressTimeoutMs: (Int) -> Unit,
     carMaxSpeedKmh: Int,
     onSetCarMaxSpeed: (Int) -> Unit,
     bicycleMaxSpeedKmh: Int,
     onSetBicycleMaxSpeed: (Int) -> Unit,
     footMaxSpeedKmh: Int,
     onSetFootMaxSpeed: (Int) -> Unit,
+    avoidTolls: Boolean,
+    onSetAvoidTolls: (Boolean) -> Unit,
+    avoidFerries: Boolean,
+    onSetAvoidFerries: (Boolean) -> Unit,
+    avoidUnpaved: Boolean,
+    onSetAvoidUnpaved: (Boolean) -> Unit,
     routingAnchor: VehicleAnchorPosition,
     onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
     freeDrivingAnchor: VehicleAnchorPosition,
@@ -380,6 +427,25 @@ private fun LocationOptionsSheetContent(
             )
         }
 
+        // Spoken guidance: the phone's own voice switch and the GPS-announcement switch both
+        // surfaces share (spec: `voice-guidance` — The phone offers both switches in its settings
+        // sheet). Always visible, like the lane-hint switch above them.
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        AnnouncementSwitchRow(
+            label = stringResource(R.string.voice_guidance_switch),
+            checked = voiceGuidanceEnabled,
+            testTag = "voiceGuidanceSwitch",
+            onToggle = onToggleVoiceGuidance
+        )
+
+        AnnouncementSwitchRow(
+            label = stringResource(R.string.gps_announcements_switch),
+            checked = announceGpsState,
+            testTag = "announceGpsSwitch",
+            onToggle = onToggleAnnounceGpsState
+        )
+
         // Overspeed warning delta — always visible, 0-30 km/h, 1 km/h
         // precision (spec: location-options-ui — Overspeed warning delta
         // control: slider over the integer range 0-30 with the current value
@@ -416,6 +482,44 @@ private fun LocationOptionsSheetContent(
                 .testTag("overspeedDeltaSlider")
         )
 
+        // Long-press timeout — always visible, 250-1000 ms in 50 ms steps (spec:
+        // location-options-ui — Long-press timeout control; map-long-press-timeout — The
+        // long-press timeout is a persisted setting). The map's gesture handler reads this
+        // value instead of a literal, and the sheet is its only editor.
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.long_press_timeout),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.long_press_timeout_value, longPressTimeoutMs),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Slider(
+            value = longPressTimeoutMs.toFloat(),
+            onValueChange = { value ->
+                onSetLongPressTimeoutMs(value.roundToInt())
+            },
+            valueRange = AppSettings.LONG_PRESS_TIMEOUT_MIN_MS.toFloat()..
+                AppSettings.LONG_PRESS_TIMEOUT_MAX_MS.toFloat(),
+            steps = (AppSettings.LONG_PRESS_TIMEOUT_MAX_MS - AppSettings.LONG_PRESS_TIMEOUT_MIN_MS) /
+                AppSettings.LONG_PRESS_TIMEOUT_STEP_MS - 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("longPressTimeoutSlider")
+        )
+
         // Usual maximum speed per vehicle (spec: location-options-ui — Vehicle maximum speed
         // sliders in the options sheet): one slider per routing vehicle, rendered in EVERY mode
         // because the value is set before a trip at least as often as during one. The same stored
@@ -449,6 +553,34 @@ private fun LocationOptionsSheetContent(
             range = MaxSpeedRange.FOOT,
             testTag = "footMaxSpeedSlider",
             onSetValue = onSetFootMaxSpeed
+        )
+
+        // Routing avoidance (spec: `routing-avoidance` — The phone edits the choices and the car reads
+        // them). Beside the vehicle speeds because they are the same kind of choice: how the next route
+        // should be calculated. The car has no such control; it uses the values stored here.
+        Text(
+            text = stringResource(R.string.avoidance_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+        AvoidanceSwitch(
+            label = stringResource(R.string.avoid_tolls),
+            checked = avoidTolls,
+            testTag = "avoidTollsSwitch",
+            onSetChecked = onSetAvoidTolls
+        )
+        AvoidanceSwitch(
+            label = stringResource(R.string.avoid_ferries),
+            checked = avoidFerries,
+            testTag = "avoidFerriesSwitch",
+            onSetChecked = onSetAvoidFerries
+        )
+        AvoidanceSwitch(
+            label = stringResource(R.string.avoid_unpaved),
+            checked = avoidUnpaved,
+            testTag = "avoidUnpavedSwitch",
+            onSetChecked = onSetAvoidUnpaved
         )
 
         // Vehicle anchor presets (spec: location-options-ui — Vehicle anchor
@@ -868,10 +1000,100 @@ private fun MaxSpeedSlider(
 }
 
 /**
- * The three usual-maximum-speed sliders with their default values, as the sheet shows them on a
- * fresh install.
+ * One routing-avoidance row: the choice's label and the switch that sets it (spec: `routing-avoidance`
+ * — The phone edits the choices and the car reads them). The label carries the test tag, so a test
+ * names the row and reads the switch inside it.
+ */
+@Composable
+private fun AvoidanceSwitch(
+    label: String,
+    checked: Boolean,
+    testTag: String,
+    onSetChecked: (Boolean) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .testTag(testTag)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = { enabled -> onSetChecked(enabled) }
+        )
+    }
+}
+
+/**
+ * One spoken-announcement switch row: a label and its switch, 56 dp tall, tagged so a Compose case
+ * can find it (spec: `voice-guidance` — The phone offers both switches in its settings sheet).
+ */
+@Composable
+private fun AnnouncementSwitchRow(
+    label: String,
+    checked: Boolean,
+    testTag: String,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .testTag(testTag)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = { enabled ->
+                onToggle(enabled)
+            }
+        )
+    }
+}
+
+/**
+ * The two spoken-announcement rows at their defaults: the phone's voice switch on, the shared GPS
+ * switch off (spec: `voice-guidance` — The voice switch is per surface, persisted and on by default;
+ * GPS announcements are one shared switch, off by default).
  */
 @Preview(showBackground = true)
+@Composable
+private fun AnnouncementSwitchRowsPreview() {
+    MaterialTheme {
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            AnnouncementSwitchRow(
+                label = stringResource(R.string.voice_guidance_switch),
+                checked = true,
+                testTag = "previewVoiceGuidanceSwitch",
+                onToggle = {}
+            )
+            AnnouncementSwitchRow(
+                label = stringResource(R.string.gps_announcements_switch),
+                checked = false,
+                testTag = "previewAnnounceGpsSwitch",
+                onToggle = {}
+            )
+        }
+    }
+}
+
+/**
+ * The three usual-maximum-speed sliders with their default values, as the sheet shows them on a
+ * fresh install.
+ */@Preview(showBackground = true)
 @Composable
 private fun MaxSpeedSlidersPreview() {
     MaterialTheme {

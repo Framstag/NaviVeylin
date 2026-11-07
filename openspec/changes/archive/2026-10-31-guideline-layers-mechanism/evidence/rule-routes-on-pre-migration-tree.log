@@ -1,0 +1,2 @@
+check-rule-routes: every glob matches the tree and all 5 named rule(s) are reached
+exit=0

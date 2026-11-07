@@ -7,7 +7,7 @@
 # `tools/loop/loop.conf`). One leaked literal — a repository name, an allowlisted author, a value of the
 # vocabulary, a path the registry declares, the gate command — is the whole difference between "the tool
 # runs in someone else's repository" and "the second project discovers the leaks one at a time"
-# (`tooling-portability` D1, `guidelines/Backlog.md` §10).
+# (`tooling-portability` D1, `guidelines/BacklogTooling.md` §10).
 #
 # The rule is a check over a **declared value set**, not a hand-written ban list: the values it forbids
 # are read from the project's own profile and per-tool configs at run time, so a value added to the
@@ -169,9 +169,13 @@ done < <(printf '%s\n' "$namespace_names")
 
 # the profile's `roles` section: which namespace value each of the engines' decisions means, so its values
 # are project values exactly as the namespaces' are. A numeric or boolean role is a count or a switch, not a
-# name — `firstCategoryEvery: 4` would otherwise forbid every `$4` in the engines.
+# name — `firstCategoryEvery: 4` would otherwise forbid every `$4` in the engines. `shapingVerdicts` is the one
+# list of *loop* values: the verdict names are the worker protocol's own words (`tools/loop/prompts/worker.md`
+# declares the gates by them), and only *which* of them carry the shaping label is the project's judgement
+# (`shaping-inbox`, D2) — so the list is read by an engine and is not a project value. `shapingAgent`, the label
+# it writes, is one, and is swept like every other role.
 while IFS= read -r value; do add "$value" "tools/tooling.json roles" word; done < <(
-  jq -r '.roles | to_entries[] | select(.key != "comment") | .value
+  jq -r '.roles | to_entries[] | select(.key != "comment" and .key != "shapingVerdicts") | .value
     | if type == "array" then .[] else . end
     | select(type != "number" and type != "boolean")' "$profile" 2>/dev/null)
 
@@ -193,6 +197,12 @@ add "$(conf_value LOOP_SUBMODULE_PATH)" "tools/loop/loop.conf LOOP_SUBMODULE_PAT
 while IFS= read -r value; do
   add "$value" "tools/loop/loop.conf LOOP_WORKTREE_SCRATCH_PATHS"
 done < <(printf '%s' "$(conf_value LOOP_WORKTREE_SCRATCH_PATHS)" | tr ' ' '\n' | grep -v '^$')
+# The paths the evidence check reads are the project's as well (issue #255): the check is an engine, so its scan
+# roots and its tally directory are configuration, and an engine that writes one of them is a leak like any other.
+while IFS= read -r value; do
+  add "$value" "tools/loop/loop.conf LOOP_EVIDENCE_SCAN_PATHS"
+done < <(printf '%s' "$(conf_value LOOP_EVIDENCE_SCAN_PATHS)" | tr ' ' '\n' | grep -v '^$')
+add "$(conf_value LOOP_EVIDENCE_XML_DIR)" "tools/loop/loop.conf LOOP_EVIDENCE_XML_DIR"
 while IFS= read -r skill; do add "$skill" "tools/loop/loop.conf LOOP_WORKER_SKILLS" word; done \
   < <(printf '%s' "$(conf_value LOOP_WORKER_SKILLS)" | tr ' ' '\n')
 

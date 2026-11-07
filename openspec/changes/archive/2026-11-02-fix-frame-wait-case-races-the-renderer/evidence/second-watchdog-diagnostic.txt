@@ -1,0 +1,4 @@
+AutoMapRendererFrameWaitTest > theArmedWaitFiresAndRetriesTheFrame FAILED
+    java.lang.AssertionError: the armed wait spent one retry expected:<1> but was:<2>
+> Task :auto:testDebugUnitTest FAILED
+BUILD FAILED in 9s

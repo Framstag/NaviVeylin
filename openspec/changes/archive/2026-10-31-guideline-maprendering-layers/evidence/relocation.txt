@@ -1,0 +1,23 @@
+# Relocation count — statements removed from the normative layer, and where they are found
+
+Every block removed from a normative Map document has its statement in the document that received it
+(documentation-ownership, "A relocated rule keeps its statement").
+
+| # | removed from | statement | found in |
+|---|---|---|---|
+| 1 | MapRendering.md §1a | the inline blit call site, issue #18 (2026-09-27) | MapRendering.why.md §1 |
+| 2 | MapRendering.md §1a | `callSiteRawReads=2` measurement (measured 2026-10-21) | MapRendering.why.md §1 |
+| 3 | MapFollow.md §11 | the walk pin's fitted-route measurement (measured 2026-10-13) | MapFollow.why.md §11 |
+| 4 | MapCar.md §14 | the driver-visible silence, issue #25 | MapCar.why.md §14 |
+| 5 | MapRendering.md §20 | the pango `1.58.0` measurement (measured 2026-10-26) | MapRendering.recipes.md §20 |
+| 6 | MapRendering.md "Known Pitfalls" (2 bullets) | the regression checklist | MapRendering.why.md §13 |
+| 7 | MapRendering.md "Parameter Overview" | the parameter table | MapRendering.recipes.md §20 |
+
+removed blocks: 7. statements found in the receiving document: 7. count closes.
+
+## normative section moves (numbers carried, not relocated statements)
+
+MapFollow.md <- §3, §6, §7, §8, §9, §10, §11        (7 numbered sections)
+MapCar.md    <- §14 (the Android Auto renderer), §18  (2)
+MapStyling.md<- §15, §15a, §16, §16a, §16b, §17       (6)
+MapRendering.md <- §1 split into §1a..§1e             (5 sub-sections added)

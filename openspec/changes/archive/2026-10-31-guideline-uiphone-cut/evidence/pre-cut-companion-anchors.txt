@@ -1,0 +1,18 @@
+# Companion anchors of guidelines/UIPhone.md, pre-cut
+
+## guidelines/UIPhone.why.md (8018 B)
+## §7a The re-center button's thresholds and dwell        -> MAP half
+## §7b The route-planning card's history                   -> MAP half
+## §8b The tap-target fold and the card-height measurements-> MAP half
+## §8c The overlay controls' derivations                    -> MAP half
+## §8a The daylight palette's contrast derivations          -> MAP half
+## §12 The empty-group and management deviations            -> SURFACE half (stays in UIPhone.why.md)
+## §18 Why the car shows a hint and not a shade notice      -> SURFACE half (stays)
+
+## guidelines/UIPhone.recipes.md (1535 B)
+## §16 The drag-surface test recipes                       -> SURFACE half (stays)
+
+Every anchor names a section the baseline set carries. The MAP half's five anchors move to
+guidelines/UIPhoneMap.why.md; the SURFACE half's anchors stay. No recipe anchor belongs to the
+map half, so guidelines/UIPhoneMap.recipes.md is NOT created (a companion that anchors to no
+rule is a file a reader must skip).

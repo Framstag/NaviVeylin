@@ -1,0 +1,4 @@
+$ bash tools/mutate.sh --mutations tools/portability-mutations.json --list
+6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
+7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)
+EXIT_CODE=0

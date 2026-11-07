@@ -1,0 +1,21 @@
+# Green after the fix: the scan skips a database whose data format this build does not read
+
+Command (in `app/src/main/cpp/libosmscout`), the fix restored by `git stash pop` and its md5 read back
+as `0138c6880e7b0120c74eebb9937b5cbc` — identical to the value before the stash cycle:
+
+    meson test -C hostbuild "Check map manager" --verbose
+
+Exit status 0. The two skipped directories are named once each, by directory, with both versions:
+
+    skipping map directory whose data format version is 28, this build reads 27: /tmp/osmscout-mapmanager-format-version-6/db-newer-version
+    skipping map directory whose data format version is 26, this build reads 27: /tmp/osmscout-mapmanager-format-version-6/db-older-version
+
+Run verdict:
+
+    All tests passed (43 assertions in 9 test cases)
+    1/1 libosmscout:Check map manager OK              0.24s
+    Ok:                1
+    Fail:              0
+
+The directory whose version cannot be read stays published (its own case), and every case that existed
+before the change is unchanged: 9 cases, 43 assertions, 0 failures.

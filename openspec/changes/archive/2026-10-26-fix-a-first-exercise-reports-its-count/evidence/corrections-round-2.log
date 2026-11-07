@@ -1,0 +1,28 @@
+## corrections round 2 — focused verification (2026-10-26T22:32:12Z)
+--- bash tools/sensor-selftest.sh --case 'run#aFirstExerciseOnATickReportsInsteadOfFiling'
+PASS run#aFirstExerciseOnATickReportsInsteadOfFiling
+exit=0
+--- bash tools/sensor-selftest.sh --case 'run#aDispatchedFirstExerciseRecordsItsMeasurement'
+PASS run#aDispatchedFirstExerciseRecordsItsMeasurement
+exit=0
+--- bash tools/check-doc-routes.sh
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+exit=0
+--- bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+--- openspec validate backlog-sensors --type spec
+Specification 'backlog-sensors' is valid
+⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+exit=0
+--- body characters (merged spec)
+322
+--- bash tools/check-todo-references.sh (2026-10-26T22:33:18Z)
+check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
+check-todo-references: 63 citation(s) resolve through the recorded table; 5703 file(s) excluded by the allowlist above
+exit=0
+--- bash tools/check-openspec-hygiene.sh (re-run after tasks.md round-2 task)
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0

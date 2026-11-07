@@ -1,12 +1,15 @@
 package com.naviveylin.ui.map
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -30,6 +33,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,19 +42,27 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.DescriptionEntry
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.R
+import com.naviveylin.core.details.ContactLink
+import com.naviveylin.core.details.ContactLinks
 import com.naviveylin.core.details.DetailsInput
 import com.naviveylin.core.details.DetailsResolver
 import com.naviveylin.core.formatCoordinatePair
+import com.naviveylin.ui.attribution.launchContactLink
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -65,6 +78,13 @@ import kotlinx.coroutines.withContext
  * @param client shared OSMScoutClient for the embedded [MiniMap]
  * @param initialMag magnification the mini map starts at (main map's, clamped)
  * @param objectDescription structured native description, null when unavailable
+ * @param isDarkPresentation the app's resolved dark presentation (preference resolved with its
+ *   environment signal, never `isSystemInDarkTheme()` — see [CompassButton]): the mini map's
+ *   current-position marker palette branches on it (spec: mini-map)
+ * @param onLaunch launches one resolved contact link and reports whether an installed app took
+ *   the intent; null (the default) is the real browser/dialer launch, and a test injects `false`
+ *   to reach the unhandled-link hint (spec: enhanced-details-sheet — Contact values are
+ *   actionable)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,10 +97,14 @@ fun LocationDetailsDialog(
     groupNames: List<String>,
     /** Current position for the mini map (blue dot); null when no GPS fix. */
     currentPosition: Pair<Double, Double>? = null,
+    isDarkPresentation: Boolean,
+    onLaunch: ((ContactLink) -> Boolean)? = null,
     onAddToFavorites: (groupName: String, favName: String, isNewGroup: Boolean) -> Unit,
     onRemoveFromFavorites: () -> Unit,
     onRouteToLocation: (() -> Unit)? = null,
     onShowOnMap: (() -> Unit)? = null,
+    /** Message sink for a rejected stylesheet-variant reload of the mini map (spec: map-styles). */
+    onStyleLoadFailure: ((String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var showGroupPicker by remember { mutableStateOf(false) }
@@ -88,6 +112,17 @@ fun LocationDetailsDialog(
     var newGroupName by remember { mutableStateOf("") }
     var favName by remember { mutableStateOf(entry.label) }
     var dropdownExpanded by remember { mutableStateOf(false) }
+
+    // Unhandled contact link: the dialog stays open and reports the failure with
+    // its own transient hint (spec: enhanced-details-sheet — An unhandled contact
+    // link shows a hint; design D5).
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val unhandledLinkHint = stringResource(R.string.details_contact_link_unhandled)
+    // The production launch, unless a test injects the failure path (design D6).
+    val context = LocalContext.current
+    val launchLink: (ContactLink) -> Boolean =
+        onLaunch ?: { link -> launchContactLink(context, link) }
 
     // Reverse-lookup the address at the object's position via the location
     // index — covers objects whose own tags lack addr:street (the index knows
@@ -136,349 +171,409 @@ fun LocationDetailsDialog(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surface
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-        ) {
-            // Object name (top of the dialog): the object's name if it has one,
-            // otherwise its address, otherwise the search label.
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
-            )
-
-            // Interactive mini map of the object's surroundings
-            MiniMap(
-                client = client,
-                lat = entry.lat,
-                lon = entry.lon,
-                initialMag = initialMag,
-                currentPosition = currentPosition,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
-
-            // Scrollable description content
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Coordinates — locale-stable (spec: i18n-l10n — Coordinate
-                // string is locale-stable): the pair layout stays the
-                // `coordinates_format` resource, the locale does not follow the
-                // device, so the pair cannot read "51,51391, 7,47434".
+                // Object name (top of the dialog): the object's name if it has one,
+                // otherwise its address, otherwise the search label.
                 Text(
-                    text = formatCoordinatePair(
-                        lat = entry.lat,
-                        lon = entry.lon,
-                        pattern = stringResource(R.string.coordinates_format)
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
                 )
 
-                // Address as a top-level list entry (street + house number +
-                // postal code + city), same row as the AA details list.
-                if (fullAddress != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.address_label),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(120.dp)
-                        )
-                        Text(
-                            text = fullAddress,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
+                // Interactive mini map of the object's surroundings
+                MiniMap(
+                    client = client,
+                    lat = entry.lat,
+                    lon = entry.lon,
+                    initialMag = initialMag,
+                    isDarkPresentation = isDarkPresentation,
+                    currentPosition = currentPosition,
+                    onStyleLoadFailure = onStyleLoadFailure,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
 
-                // Area as a structured list entry (admin region hierarchy, or the
-                // description's admin-level "IsIn" for results without one)
-                if (area != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.area_label),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(120.dp)
-                        )
-                        Text(
-                            text = area,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-
-                // Structured description sections (native DescriptionService
-                // entries), filtered by the shared resolver (blank skip +
-                // street/address dedup — the Address row above covers them).
-                val displayEntries = data.displayEntries
-                if (displayEntries.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider()
+                // Scrollable description content
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Group entries by sectionKey, preserving order
-                    val sections = mutableListOf<Pair<String, List<DescriptionEntry>>>()
-                    val sectionOrder = mutableListOf<String>()
-                    val sectionMap = linkedMapOf<String, MutableList<DescriptionEntry>>()
-                    for (entry in displayEntries) {
-                        val section = sectionMap.getOrPut(entry.sectionKey) { mutableListOf() }
-                        if (section.isEmpty()) {
-                            sectionOrder.add(entry.sectionKey)
-                        }
-                        section.add(entry)
-                    }
-                    for (key in sectionOrder) {
-                        sections.add(key to (sectionMap[key] ?: emptyList()))
-                    }
-
-                    for ((sectionKey, sectionEntries) in sections) {
-                        // Section header
-                        Text(
-                            text = sectionKey,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
-
-                        var currentSubsection: String? = null
-                        var subsectionIndex = -1
-
-                        for (descEntry in sectionEntries) {
-                            // Subsection header (if different from current)
-                            if (descEntry.subsectionKey.isNotEmpty() &&
-                                descEntry.subsectionKey != currentSubsection
-                            ) {
-                                currentSubsection = descEntry.subsectionKey
-                                subsectionIndex = if (descEntry.hasIndex) descEntry.index else -1
-                                val subsectionLabel = if (subsectionIndex >= 0) {
-                                    "$currentSubsection $subsectionIndex"
-                                } else {
-                                    currentSubsection
-                                }
-                                Text(
-                                    text = subsectionLabel,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 2.dp)
-                                )
-                            }
-
-                            // Label/value row
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .then(
-                                        if (currentSubsection != null) Modifier.padding(start = 16.dp)
-                                        else Modifier
-                                    )
-                                    .padding(vertical = 1.dp)
-                            ) {
-                                Text(
-                                    text = descEntry.labelKey + ":",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.width(120.dp)
-                                )
-                                Text(
-                                    text = descEntry.value,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Show on map action (shown when the details dialog was opened
-                // from POI search): closing via this selective action also keeps
-                // the POI sheet closed (spec: show action closes both dialogs).
-                if (onShowOnMap != null) {
-                    OutlinedButton(
-                        onClick = {
-                            onShowOnMap()
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Place,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(stringResource(R.string.show))
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // Navigate to button (opens the route panel with the
-                // destination prefilled, start = current position; label
-                // aligned with the AA details screen).
-                if (onRouteToLocation != null) {
-                    Button(
-                        onClick = {
-                            onRouteToLocation()
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Directions,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(stringResource(R.string.calculate_route))
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                if (isFavorite) {
-                    // Remove from favorites
-                    Button(
-                        onClick = onRemoveFromFavorites,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                    // Coordinates — locale-stable (spec: i18n-l10n — Coordinate
+                    // string is locale-stable): the pair layout stays the
+                    // `coordinates_format` resource, the locale does not follow the
+                    // device, so the pair cannot read "51,51391, 7,47434".
+                    Text(
+                        text = formatCoordinatePair(
+                            lat = entry.lat,
+                            lon = entry.lon,
+                            pattern = stringResource(R.string.coordinates_format)
                         ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(stringResource(R.string.remove_from_favorites))
-                    }
-                } else if (!showGroupPicker) {
-                    // Add to favorites (secondary action — the primary action
-                    // is "Navigate to")
-                    OutlinedButton(
-                        onClick = { showGroupPicker = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(stringResource(R.string.add_to_favorites))
-                    }
-                }
-
-                if (showGroupPicker && !isFavorite) {
-                    // Favorite name
-                    OutlinedTextField(
-                        value = favName,
-                        onValueChange = { favName = it },
-                        label = { Text(stringResource(R.string.favorite_name)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Group picker dropdown
-                    ExposedDropdownMenuBox(
-                        expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = if (newGroupName.isNotEmpty()) stringResource(R.string.new_group_prefix, newGroupName) else selectedGroup,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text(stringResource(R.string.group)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                    // Address as a top-level list entry (street + house number +
+                    // postal code + city), same row as the AA details list.
+                    if (fullAddress != null) {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = dropdownExpanded,
-                            onDismissRequest = { dropdownExpanded = false }
+                                .padding(top = 4.dp)
                         ) {
-                            groupNames.forEach { name ->
+                            Text(
+                                text = stringResource(R.string.address_label),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.width(120.dp)
+                            )
+                            Text(
+                                text = fullAddress,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    // Area as a structured list entry (admin region hierarchy, or the
+                    // description's admin-level "IsIn" for results without one)
+                    if (area != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.area_label),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.width(120.dp)
+                            )
+                            Text(
+                                text = area,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    // Structured description sections (native DescriptionService
+                    // entries), filtered by the shared resolver (blank skip +
+                    // street/address dedup — the Address row above covers them).
+                    val displayEntries = data.displayEntries
+                    if (displayEntries.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Group entries by sectionKey, preserving order
+                        val sections = mutableListOf<Pair<String, List<DescriptionEntry>>>()
+                        val sectionOrder = mutableListOf<String>()
+                        val sectionMap = linkedMapOf<String, MutableList<DescriptionEntry>>()
+                        for (entry in displayEntries) {
+                            val section = sectionMap.getOrPut(entry.sectionKey) { mutableListOf() }
+                            if (section.isEmpty()) {
+                                sectionOrder.add(entry.sectionKey)
+                            }
+                            section.add(entry)
+                        }
+                        for (key in sectionOrder) {
+                            sections.add(key to (sectionMap[key] ?: emptyList()))
+                        }
+
+                        for ((sectionKey, sectionEntries) in sections) {
+                            // Section header
+                            Text(
+                                text = descriptionLabel(sectionKey),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            )
+
+                            var currentSubsection: String? = null
+                            var subsectionIndex = -1
+
+                            for (descEntry in sectionEntries) {
+                                // Subsection header (if different from current)
+                                if (descEntry.subsectionKey.isNotEmpty() &&
+                                    descEntry.subsectionKey != currentSubsection
+                                ) {
+                                    currentSubsection = descEntry.subsectionKey
+                                    subsectionIndex = if (descEntry.hasIndex) descEntry.index else -1
+                                    // The word and its ordinal index are one translatable string, read
+                                    // through positional arguments so a translator can reorder them
+                                    // (`UI.md` §10, "positional format args are used so translators can
+                                    // reorder"); the ordinal itself stays data, taken from the entry.
+                                    val subsectionLabel = if (subsectionIndex >= 0) {
+                                        stringResource(
+                                            R.string.description_subsection_index,
+                                            descriptionLabel(descEntry.subsectionKey),
+                                            subsectionIndex
+                                        )
+                                    } else {
+                                        descriptionLabel(descEntry.subsectionKey)
+                                    }
+                                    Text(
+                                        text = subsectionLabel,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 2.dp)
+                                    )
+                                }
+
+                                // Label/value row
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (currentSubsection != null) Modifier.padding(start = 16.dp)
+                                            else Modifier
+                                        )
+                                        .padding(vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = descriptionLabel(descEntry.labelKey) + ":",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.width(120.dp)
+                                    )
+                                    // The two `Contact` label keys resolve to targets and render
+                                    // as links; every other entry, and every part of a contact
+                                    // value the allow-list refuses, keeps its plain text row
+                                    // (spec: enhanced-details-sheet — Contact values are
+                                    // actionable). One node per ';'-separated part, so a tap
+                                    // names one target.
+                                    val contactLinks = remember(descEntry) { ContactLinks.resolve(descEntry) }
+                                    if (contactLinks.isEmpty()) {
+                                        Text(
+                                            text = descEntry.value,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    } else {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            for (part in ContactLinks.parts(descEntry.value)) {
+                                                val link = contactLinks.firstOrNull { it.display == part }
+                                                if (link == null) {
+                                                    Text(
+                                                        text = part,
+                                                        style = MaterialTheme.typography.bodyMedium
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = link.display,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        textDecoration = TextDecoration.Underline,
+                                                        modifier = Modifier
+                                                            .heightIn(min = 48.dp)
+                                                            .clickable {
+                                                                if (!launchLink(link)) {
+                                                                    scope.launch {
+                                                                        snackbarHostState.showSnackbar(
+                                                                            unhandledLinkHint
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                            .padding(vertical = 12.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Show on map action (shown when the details dialog was opened
+                    // from POI search): closing via this selective action also keeps
+                    // the POI sheet closed (spec: show action closes both dialogs).
+                    if (onShowOnMap != null) {
+                        OutlinedButton(
+                            onClick = {
+                                onShowOnMap()
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Place,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(stringResource(R.string.show))
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Navigate to button (opens the route panel with the
+                    // destination prefilled, start = current position; label
+                    // aligned with the AA details screen).
+                    if (onRouteToLocation != null) {
+                        Button(
+                            onClick = {
+                                onRouteToLocation()
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Directions,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(stringResource(R.string.calculate_route))
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    if (isFavorite) {
+                        // Remove from favorites
+                        Button(
+                            onClick = onRemoveFromFavorites,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(stringResource(R.string.remove_from_favorites))
+                        }
+                    } else if (!showGroupPicker) {
+                        // Add to favorites (secondary action — the primary action
+                        // is "Navigate to")
+                        OutlinedButton(
+                            onClick = { showGroupPicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FavoriteBorder,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(stringResource(R.string.add_to_favorites))
+                        }
+                    }
+
+                    if (showGroupPicker && !isFavorite) {
+                        // Favorite name
+                        OutlinedTextField(
+                            value = favName,
+                            onValueChange = { favName = it },
+                            label = { Text(stringResource(R.string.favorite_name)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Group picker dropdown
+                        ExposedDropdownMenuBox(
+                            expanded = dropdownExpanded,
+                            onExpandedChange = { dropdownExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = if (newGroupName.isNotEmpty()) stringResource(R.string.new_group_prefix, newGroupName) else selectedGroup,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(R.string.group)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = dropdownExpanded,
+                                onDismissRequest = { dropdownExpanded = false }
+                            ) {
+                                groupNames.forEach { name ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
+                                        onClick = {
+                                            selectedGroup = name
+                                            newGroupName = ""
+                                            dropdownExpanded = false
+                                        }
+                                    )
+                                }
                                 DropdownMenuItem(
-                                    text = { Text(name) },
+                                    text = { Text(stringResource(R.string.new_group)) },
                                     onClick = {
-                                        selectedGroup = name
+                                        selectedGroup = ""
                                         newGroupName = ""
                                         dropdownExpanded = false
                                     }
                                 )
                             }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.new_group)) },
-                                onClick = {
-                                    selectedGroup = ""
-                                    newGroupName = ""
-                                    dropdownExpanded = false
-                                }
+                        }
+
+                        // New group name input (shown when "+ New group..." selected)
+                        if (selectedGroup.isEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = newGroupName,
+                                onValueChange = { newGroupName = it },
+                                label = { Text(stringResource(R.string.new_group_name)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
-                    }
 
-                    // New group name input (shown when "+ New group..." selected)
-                    if (selectedGroup.isEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = newGroupName,
-                            onValueChange = { newGroupName = it },
-                            label = { Text(stringResource(R.string.new_group_name)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { showGroupPicker = false },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                val group = if (newGroupName.isNotEmpty()) newGroupName else selectedGroup
-                                if (group.length >= 2 && favName.isNotEmpty()) {
-                                    onAddToFavorites(group, favName, selectedGroup.isEmpty())
-                                    showGroupPicker = false
-                                }
-                            },
-                            enabled = favName.isNotEmpty() && (selectedGroup.isNotEmpty() || newGroupName.length >= 2),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.save))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = { showGroupPicker = false },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    val group = if (newGroupName.isNotEmpty()) newGroupName else selectedGroup
+                                    if (group.length >= 2 && favName.isNotEmpty()) {
+                                        onAddToFavorites(group, favName, selectedGroup.isEmpty())
+                                        showGroupPicker = false
+                                    }
+                                },
+                                enabled = favName.isNotEmpty() && (selectedGroup.isNotEmpty() || newGroupName.length >= 2),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(stringResource(R.string.save))
+                            }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+            // The unhandled-link hint sits at the dialog's bottom, independent of the
+            // description's scroll position (design D5).
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            )
         }
     }
 }

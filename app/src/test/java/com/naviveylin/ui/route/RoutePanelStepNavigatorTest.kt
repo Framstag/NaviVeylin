@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
-import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -71,23 +71,16 @@ class RoutePanelStepNavigatorTest {
                 LocationEntry().apply { label = "Start"; lat = 48.0; lon = 2.0; matchQuality = "coordinate" },
                 LocationEntry().apply { label = "Destination"; lat = 49.0; lon = 2.6; matchQuality = "coordinate" }
             )
-            client.routeToDeliver = RouteEntry().apply {
-                routeHandle = 1L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 120_000.0
-                duration = 5_400.0
+            client.routeToDeliver = routeWithSteps(
+                startStep(lat = 48.0, lon = 2.0),
                 // The native start line owns a zero-length leg, so it carries no values: the route
-                // starts on the first step that has one (spec: route-analysis — Step values describe
+                // starts on the first row that has one (spec: route-analysis — Step values describe
                 // the step's own leg).
-                descriptions = arrayOf(
-                    "Start: A  []",
-                    "Right onto B  [120.0 km]",
-                    "Left onto C  [5.0 km]"
-                )
-                instructionLats = doubleArrayOf(48.0, 48.5, 49.0)
-                instructionLons = doubleArrayOf(2.0, 2.3, 2.6)
-            }
+                turnStep(TurnType.RIGHT, lat = 48.5, lon = 2.3, legDistance = 120_000.0, legTime = 4_800.0, name = "B"),
+                turnStep(TurnType.LEFT, lat = 49.0, lon = 2.6, legDistance = 5_000.0, legTime = 600.0, name = "C"),
+                distance = 120_000.0,
+                duration = 5_400.0
+            )
             viewModel.calculateRoute()
         }
         // MIN (the session lands in MAX while editing and the selection collapses to MIN).
@@ -116,13 +109,13 @@ class RoutePanelStepNavigatorTest {
 
         // A calculated route starts on its first step that carries a leg (owner finding, 2026-10-03).
         assertEquals(1, viewModel.uiState.value.analysedStepIndex)
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Right onto B")
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Turn right into B")
         composeRule.onNodeWithTag("analysedStepName").assertTextContains("2 / 3")
 
         composeRule.onNodeWithTag("routeStepNext").performClick()
         composeRule.waitForIdle()
         assertEquals(2, viewModel.uiState.value.analysedStepIndex)
-        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Left onto C")
+        composeRule.onNodeWithTag("analysedStepName").assertTextContains("Turn left into C")
         composeRule.onNodeWithTag("analysedStepName").assertTextContains("3 / 3")
     }
 

@@ -1,0 +1,15 @@
+# Re-run on the rebased tip 1723c0d1 (base origin/main 0f366176)
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+exit=0
+PASS clean#interruptedSuiteEndsItsProcessGroup
+exit=0
+PASS clean#endsARunWhoseTreeIsAlreadyDeleted
+exit=0
+PASS clean#interruptedSuiteRemovesItsScratchTree
+exit=0
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0
+loop-mutations: selected 1 of 133 records (labels: 53.11)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/issue233/.pi/tmp/loop-mutations.g6shOd
+loop-mutations: all 1 cases passed — every selected record applies to the file it names
+check exit=0

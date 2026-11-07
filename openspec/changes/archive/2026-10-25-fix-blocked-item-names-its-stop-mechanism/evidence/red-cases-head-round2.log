@@ -1,0 +1,9 @@
+== 2026-10-25T00:06:06Z — pre-correction tree: round-1 record and round-1 column restored
+== 2026-10-25T00:06:06Z — state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+== 2026-10-25T00:06:08Z — state#aBlockedItemNamesTheMechanismThatStoppedIt exit=0
+== 2026-10-25T00:06:08Z — report#wallTimeAndReasonInTheTable
+  while a closure's stop column prints -: expected '-', got ''
+FAIL report#wallTimeAndReasonInTheTable
+loop-selftest: 1 of 1 cases failed
+== 2026-10-25T00:06:09Z — report#wallTimeAndReasonInTheTable exit=1

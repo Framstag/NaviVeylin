@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.AvailableMapEntryTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-27T01:53:45.979Z" hostname="dingens" time="0.159">
+  <properties/>
+  <testcase name="aMissingPathIsTheEmptyPath()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.053"/>
+  <testcase name="anEntryNamesItselfAndWhetherItIsADirectory()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.009"/>
+  <testcase name="aDirectoryEntryCarriesItsPathAndNoDownloadTarget()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.001"/>
+  <testcase name="anEntryFindsItselfByNameAndNothingElse()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.002"/>
+  <testcase name="aLeafEntryCarriesWhatTheDownloadNeeds()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.003"/>
+  <testcase name="aProviderNamesItself()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.007"/>
+  <testcase name="aBasemapArchiveNamesItsVariantAndItsVersionDate()" classname="com.framstag.libosmscout.client.AvailableMapEntryTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

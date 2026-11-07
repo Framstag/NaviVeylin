@@ -1,0 +1,125 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build.gradle.kts:291:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build.gradle.kts:679:25: 'constructor(p0: String!): URL' is deprecated. Deprecated in Java.
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+:osmscout-client-java:compileJava SKIPPED
+:osmscout-client-java:processResources SKIPPED
+:osmscout-client-java:classes SKIPPED
+:osmscout-client-java:jar SKIPPED
+:app:checkCleartextTransportPolicy SKIPPED
+:app:checkHardcodedStrings SKIPPED
+:app:checkNativeParity SKIPPED
+:app:checkNoCoordinatesInLogs SKIPPED
+:app:checkNoWallClockWaits SKIPPED
+:app:checkSubmoduleIcons SKIPPED
+:app:checkSubmoduleStylesheets SKIPPED
+:app:syncSubmoduleIcons SKIPPED
+:app:syncSubmoduleStylesheets SKIPPED
+:app:preBuild SKIPPED
+:app:preMobileDebugBuild SKIPPED
+:app:generateMobileDebugBuildConfig SKIPPED
+:app:generateMobileDebugResources SKIPPED
+:app:packageMobileDebugResources SKIPPED
+:auto:checkHardcodedStrings SKIPPED
+:auto:checkNoWallClockWaits SKIPPED
+:auto:preBuild SKIPPED
+:auto:preDebugBuild SKIPPED
+:auto:processDebugNavigationResources SKIPPED
+:core:checkHardcodedStrings SKIPPED
+:core:checkNoWallClockWaits SKIPPED
+:core:preBuild SKIPPED
+:core:preDebugBuild SKIPPED
+:core:processDebugNavigationResources SKIPPED
+:app:processMobileDebugNavigationResources SKIPPED
+:app:parseMobileDebugLocalResources SKIPPED
+:app:generateMobileDebugRFile SKIPPED
+:auto:generateDebugResources SKIPPED
+:auto:packageDebugResources SKIPPED
+:auto:parseDebugLocalResources SKIPPED
+:auto:generateDebugRFile SKIPPED
+:core:generateDebugResources SKIPPED
+:core:packageDebugResources SKIPPED
+:core:parseDebugLocalResources SKIPPED
+:core:generateDebugRFile SKIPPED
+:core:kspDebugKotlin SKIPPED
+:core:compileDebugKotlin SKIPPED
+:core:javaPreCompileDebug SKIPPED
+:core:compileDebugJavaWithJavac SKIPPED
+:core:transformDebugClassesWithAsm SKIPPED
+:core:bundleLibCompileToJarDebug SKIPPED
+:auto:compileDebugKotlin SKIPPED
+:auto:javaPreCompileDebug SKIPPED
+:auto:compileDebugJavaWithJavac SKIPPED
+:auto:bundleLibCompileToJarDebug SKIPPED
+:app:kspMobileDebugKotlin SKIPPED
+:app:compileMobileDebugKotlin SKIPPED
+:app:javaPreCompileMobileDebug SKIPPED
+:app:compileMobileDebugJavaWithJavac SKIPPED
+:core:bundleLibRuntimeToJarDebug SKIPPED
+:core:processDebugJavaRes SKIPPED
+:core:createFullJarDebug SKIPPED
+:auto:bundleLibRuntimeToJarDebug SKIPPED
+:auto:processDebugJavaRes SKIPPED
+:auto:createFullJarDebug SKIPPED
+:app:hiltSyncMobileDebug SKIPPED
+:app:hiltAggregateDepsMobileDebug SKIPPED
+:app:hiltJavaCompileMobileDebug SKIPPED
+:auto:writeDebugAarMetadata SKIPPED
+:core:writeDebugAarMetadata SKIPPED
+:app:checkMobileDebugAarMetadata SKIPPED
+:app:mapMobileDebugSourceSetPaths SKIPPED
+:app:compileMobileDebugNavigationResources SKIPPED
+:app:mergeMobileDebugResources SKIPPED
+:app:createMobileDebugCompatibleScreenManifests SKIPPED
+:app:extractDeepLinksMobileDebug SKIPPED
+:auto:extractDeepLinksDebug SKIPPED
+:auto:processDebugManifest SKIPPED
+:core:extractDeepLinksDebug SKIPPED
+:core:processDebugManifest SKIPPED
+:app:processMobileDebugMainManifest SKIPPED
+:app:processMobileDebugManifest SKIPPED
+:app:processMobileDebugManifestForPackage SKIPPED
+:auto:mapDebugSourceSetPaths SKIPPED
+:auto:compileDebugLibraryResources SKIPPED
+:core:mapDebugSourceSetPaths SKIPPED
+:core:compileDebugLibraryResources SKIPPED
+:app:processMobileDebugResources SKIPPED
+:app:transformMobileDebugClassesWithAsm SKIPPED
+:app:bundleMobileDebugClassesToRuntimeJar SKIPPED
+:app:generateMobileDebugAssets SKIPPED
+:auto:generateDebugAssets SKIPPED
+:auto:mergeDebugAssets SKIPPED
+:core:generateDebugAssets SKIPPED
+:core:mergeDebugAssets SKIPPED
+:app:mergeMobileDebugAssets SKIPPED
+:app:preMobileDebugUnitTestBuild SKIPPED
+:app:packageMobileDebugUnitTestForUnitTest SKIPPED
+:app:mergeMobileDebugUnitTestManifest SKIPPED
+:app:processMobileDebugUnitTestManifest SKIPPED
+:app:generateMobileDebugUnitTestConfig SKIPPED
+:app:koverFindJar SKIPPED
+:app:processMobileDebugJavaRes SKIPPED
+:app:bundleMobileDebugClassesToCompileJar SKIPPED
+:app:kspMobileDebugUnitTestKotlin SKIPPED
+:app:compileMobileDebugUnitTestKotlin SKIPPED
+:app:processMobileDebugUnitTestJavaRes SKIPPED
+:app:javaPreCompileMobileDebugUnitTest SKIPPED
+:app:compileMobileDebugUnitTestJavaWithJavac SKIPPED
+:app:hiltSyncMobileDebugUnitTest SKIPPED
+:app:hiltAggregateDepsMobileDebugUnitTest SKIPPED
+:app:hiltJavaCompileMobileDebugUnitTest SKIPPED
+:app:transformMobileDebugUnitTestClassesWithAsm SKIPPED
+:app:testMobileDebugUnitTest SKIPPED
+
+BUILD SUCCESSFUL in 9s
+3 actionable tasks: 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

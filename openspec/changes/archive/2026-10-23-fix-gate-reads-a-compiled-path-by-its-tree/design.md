@@ -1,0 +1,171 @@
+# Design — fix-gate-reads-a-compiled-path-by-its-tree
+
+## The shape of the defect
+
+The gate answers "is this path compiled?" with one call, and that call only ever sees a file name:
+
+```
+tools/loop/loop.conf:140  LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+                          (at HEAD: "*.kt … *.xml … app/src/main/cpp/* app/src/main/res/*")
+tools/loop/gate.sh:68-77  matches() { case $- in *f*) was_f=1 ;; *) set -f ;; esac; for glob in $1; do …
+tools/loop/gate.sh:83     if matches "$compiled_patterns" "$p"; then owed=compiled_cmd
+```
+
+Two things are wrong inside that call, and the second was invisible until the first was measured.
+
+1. **The list is matched anywhere in the tree.** `*.xml` is not a claim about a build input, it is a claim about an
+   extension, so `openspec/changes/archive/<x>/evidence/gate-tallies/a.xml`, a gate-timings fixture that mimics a
+   test report and a `tools/issues/core/*.java` the shell suites compile are all "compiled" to the gate. Measured
+   on HEAD (`evidence/probes.log` probe 1): the diff carries 0 compiled-extension paths and 4 `.xml`, and the plan
+   still names `./gradlew test -PforceTests --no-build-cache`.
+2. **The list is expanded before it is matched.** `for glob in $1` is unquoted, so the shell performs pathname
+   expansion on the *pattern list* against the directory the gate runs in; a pattern that names a tree is replaced
+   by the names it happened to match, and then compared literally. Measured 2026-10-23
+   (`evidence/probes.log` probes 1–2; probe 1 carries the run's `date=` line): with `LOOP_GATE_COMPILED_PATTERNS="app/src/main/res/*"` — a shape the profile
+   already declares twice — and a new `app/src/main/res/values/colors.xml`, the plan says
+   `LOOP-GATE: nothing owed — no path this profile gates changed`; the same tree with `set -f` in the matcher owes
+   `fake-build`.
+
+Both are one invariant: **a pattern is data, and what makes a path compiled is where it sits.**
+
+## D1 — a compiled path is one a tree the build reads holds
+
+**Chosen: bound the profile's patterns to the trees the build reads, and read them as patterns.**
+
+```
+LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+```
+
+`*/src/*` is a module's source tree whatever the module is called — sources, resources, manifests, the native
+`cpp/` tree are all under a module's `src/` — so a module added later is gated without this line being edited.
+`*/lint.xml` is a module's lint configuration, which the build reads. `*.gradle.kts`, `*.gradle`, `*.toml` and
+`CMakeLists.txt` stay name-based on purpose: a Gradle build script, a toolchain file and a CMake list are read by
+convention, and the convention is a closed list rather than an extension.
+
+**The residual that keeps, stated rather than claimed away.** Two files in this tree are classified compiled by
+their name alone: `tools/gate-timings.init.gradle.kts`, a Gradle init script beside the build, and `hmm_mise.toml`,
+the mise toolchain file at the repository root (measured 2026-10-23, `evidence/counts.log`). Both configure the
+toolchain the build runs on, so a delta touching either owes the build and that is defensible — but the rule behind
+it is a closed list of build-input names, not an extension test: `*.toml` and `*.gradle` classify **any** file with
+that name wherever it sits (`docs/notes.toml` owes the build too; `evidence/counts.log` prints
+`hmm_mise.toml -> compiled`). The requirement states that list rather than an absolute no name can satisfy, and the
+name-based half is deliberately kept: narrowing `*.toml` to a toolchain name was eliminated rather than chosen,
+because it would stop gating the file that decides which JDK the build runs on, while the defect this item measured
+— an archived evidence tally, a fixture that mimics build output — is reached by no name-based pattern. `*.gradle` matches no tracked
+file today (`git ls-files '*.gradle'` → 0) and stays so a Groovy build script would be gated.
+
+The matcher gains the guard that makes any anchored pattern work at all:
+
+```
+matches() {
+  local glob was_f=0
+  case $- in *f*) was_f=1 ;; *) set -f ;; esac
+  for glob in $1; do case "$2" in $glob) [ "$was_f" -eq 1 ] || set +f; return 0 ;; esac; done
+  [ "$was_f" -eq 1 ] || set +f
+  return 1
+}
+```
+
+Saved and restored rather than set for the whole script: `gate.sh`'s other loops read `git` and the suites' own
+output and are none of this function's business. `measure.sh` needs no change at all — it asks `gate.sh --plan`
+for what a delta owes (`tools/loop/measure.sh:70`), so the two can never disagree.
+
+## Alternatives the evidence eliminated
+
+**A — keep the basename patterns and put the evidence out of their reach** (an exclusion for `**/evidence/**`,
+mirroring the `LOOP_REVIEW_EXCLUDE_PATHSPEC` the profile already records). Eliminated by the tree, not by
+preference: the same false positive exists in two other trees an evidence exclusion cannot name —
+`tools/fixtures/gate-timings/root/app/build/test-results/*.xml` (3 files that *mimic* build output) and
+`tools/issues/core/*.java` (10 files the shell suites compile with `javac`) — so the exclusion would have to grow
+one entry per tree, and the item's own claim, "a delta that touches no compiled file owes the full build", would
+stay false for both. The rule stays wrong; only one instance of it would be hidden.
+
+**B — narrow the patterns to the module trees by name** (`app/src/* auto/src/* core/src/* buildSrc/src/*
+osmscout-client-java/src/*`). Eliminated by what it costs the next module: adding one touches
+`settings.gradle.kts` — which the build gate still catches — and after that every change inside the new module's
+`src/` owes nothing, because the pattern list was not edited. A rule that needs a hand edit to stay true is a rule
+no case can hold. `*/src/*` states the same intent without the enumeration.
+
+**C — move a change's evidence out of the versioned tree** (into `.pi/`, which is gitignored). Eliminated by the
+run's own rule: `<change>/evidence/` is the versioned half of a change's record and the reason an item cannot
+close on a test result it does not carry; an archived change's numbers are read from there by later items.
+
+## Blast radius
+
+| file | change |
+|---|---|
+| `tools/loop/loop.conf` | the pattern line and the comment that states the rule behind it |
+| `tools/loop/gate.sh` | `matches()` reads the list with pathname expansion off, saved and restored |
+| `tools/loop-cases.sh` | `gate#anArchivedArtefactOwesNoBuild`, `gate#aModuleResourceOwesTheBuild`, helper `profile_value` |
+| `tools/loop-mutations.sh` | records `50.1` (the profile line) and `50.2` (the matcher's `set -f`) |
+
+What this delta makes the gate *stop* gating, by tree, is exactly what `guidelines/Build.md` §2a line 114 already
+declares uncompiled: `openspec/**`, `tools/**`. What it makes the gate *start* gating is the one thing it should
+have gated: a module's `src/` and `lint.xml`, through patterns that now mean what they say. No suite pair changes,
+so the shell suites a delta owes are untouched; the three cases that build a profile of their own
+(`gate#theDeltaSelectsTheSuitesItTouches`, `measure#namesTheOwedChecksInOneBlock`,
+`measure#printsTheNumbersTheReviewerAsksFor`) assert the engine's use of *a* pattern list and pass unchanged.
+
+## Rollback
+
+Revert four files: the profile line, the matcher guard, the two cases and the two records. Nothing is persisted —
+no state file, label, archive shape or evidence convention moves — and the change's archive carries the red run,
+so a revert reintroduces exactly the defect `gate#anArchivedArtefactOwesNoBuild` names.
+
+## Round 2 — the wording correction the review asked for
+
+Review 1 refused the change on one blocking finding: the shipped requirement promised that a compiled path is
+decided "never from a file name alone", while the profile it ships keeps `*.gradle.kts`, `*.gradle` and `*.toml`
+matched by name — so `tools/gate-timings.init.gradle.kts` and `hmm_mise.toml` are compiled to the gate. The
+correction narrows the contract to what the profile does, renames the requirement to match, and states the residual
+here instead of leaving design's untrue justification ("no artefact or fixture carries one") in its place. Two
+alternatives were eliminated rather than chosen: dropping `*.toml` would stop gating `hmm_mise.toml`, the file that
+decides which JDK the build runs on, so the gate would miss a toolchain change; re-scoping the patterns further
+would re-open the change and add a case for a defect the item did not measure. What the item measured — an archived
+evidence tally, a fixture that mimics build output — no name-based pattern reaches, and
+`gate#anArchivedArtefactOwesNoBuild` still holds it.
+
+## Round 3 — the sentence that promised more than the profile keeps
+
+Review 2 refused the change on one blocking finding: round 2's requirement still carried an absolute its own
+profile contradicts. "Never from an extension alone" was gone, but the replacement still said a compiled path is
+decided "from a build input's naming convention (a Gradle script, a toolchain `.toml`, `CMakeLists.txt`)", while
+`matches()` binds `*.toml` and `*.gradle` to no tree and no name — `docs/notes.toml` is compiled to the gate, which
+is the extension-alone clause in another word. The correction is subtractive and nothing else: the requirement now
+states the rule the profile implements — a name that is the convention for a build input classifies wherever it
+sits, and an extension that names anything else is not enough — and the residual above is its reason. No case,
+assertion or profile line changed, and no `WHEN` clause moved; the one scenario `THEN` that promised an owed check on
+both halves now names the half that owes one. The alternative — scoping `*.toml`/`*.gradle` in the
+profile — is the elimination recorded above, and it would add a case this item did not measure.
+
+## Verification
+
+The change touches no compiled file (`*.sh`, `*.conf` and `openspec/**`), so it owes no build: the structural
+checks are `tools/loop/gate.sh` — whose profile maps `tools/loop/**` to `tools/loop-selftest.sh`, the record check
+and `tools/check-doc-routes.sh`, and `openspec/*` to `tools/gen-feature-list.sh --check-classification` — plus
+`openspec validate agent-issue-loop --strict`. Three of the five — the `validate`, the classification check and the
+doc-route check — are rerun after the archive move in `evidence/post-archive-checks.log`; the two suite tallies are
+the pre-move gate's, in `evidence/gate-round2.log` with its tallies under `evidence/gate-tallies-round2/`, and the
+move compiles nothing. Round 3's wording correction re-ran the three prose checks
+(`evidence/post-archive-checks-round3.log`) and the gate over the corrected tree with the profile pinned to that
+tree — `LOOP_CONF=<tree>/tools/loop/loop.conf`, `evidence/gate-round3-pinned.log` — which names the five checks
+and no build, `exit=0`, its tallies under `evidence/gate-tallies-round3-pinned/` (176 + 98 + 34 + 0 + 0, the gate's
+record summing them to 308 cases and 0 failures). `evidence/gate-round3.log` and `evidence/gate-tallies-round3/` are the earlier **unpinned**
+run of the same tree: it inherits `LOOP_CONF` from the run, so it reads the project's profile — the one this change
+replaces — and names `./gradlew test -PforceTests --no-build-cache` first, with a sixth tally
+(`._gradlew_test_-PforceTests_--no-build-cache.xml`, `tests="0"`). Both are kept because that contrast is this
+change's own measurement: the profile it replaces owes the build for this delta, the one it ships owes none. The
+sixth tally is also a dotfile — `gate.sh` derives a tally's name from the command with `tr '/ ' '__'` and
+`./gradlew`'s leading `.` survives — so a plain `ls` shows five where the directory holds six; the pointer check
+reads them with `grep -r` and sees all six. The pointer check, the doc-route check and the classification check
+are re-run on the corrected bytes in `evidence/post-archive-checks-round3-correction.log`. The two cases are falsified by records `50.1` and `50.2` (each mutates
+the half its case asserts), and a gate run after the fix must still name the five checks this tree's own delta owes.
+
+## The merge
+
+The change landed after #272's detached-process sweep, and both branches declared record `44.1`. A mutation label
+names one invariant for good, so this change's two records were renumbered `50.1` and `50.2` when the branches
+met — the same `sed` expressions, the same cases, a new number — and `tools/loop-mutations.sh` states why above
+them. It is a label and nothing else: `evidence/mutations-44.log` and `evidence/mutations-44-round3.log` still
+print `RED 44.1` and `RED 44.2`, because a dated log reports the labels the run it measured carried, and the
+records' own `--check` is what reads the numbers a reader acts on today.

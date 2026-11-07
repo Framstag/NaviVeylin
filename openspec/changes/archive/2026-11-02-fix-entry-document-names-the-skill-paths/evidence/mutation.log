@@ -1,0 +1,14 @@
+# routed-read#theEntryDocumentNamesTheLoopSkillsByPath — mutate the entry document once, restore it
+# 2026-11-02T04:37:41Z
+
+# mutated: 0 path(s) named in AGENTS.md
+FAIL  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both
+        the entry document names no path for .pi/skills/create-issue .pi/skills/device-check — a reader reaches those skills only by listing .pi/skills/
+check-doc-routes-selftest: 1 of 1 cases failed
+MUTATION exit=1 (expected 1)
+
+# restored: 2 path(s) named in AGENTS.md
+        the entry document names .pi/skills/create-issue .pi/skills/device-check; check-doc-routes: all 328 section references resolve, all 4 skill references resolve
+PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both
+check-doc-routes-selftest: all 1 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+RESTORED exit=0 (expected 0)

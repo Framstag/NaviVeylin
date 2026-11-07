@@ -1,0 +1,39 @@
+# The gate, as it printed — the run that backs this archive, 2026-11-05
+
+# Source: this session's own `./tools/loop/gate.sh --base 122cc2f9` in the item's worktree, its log copied here
+# verbatim as `evidence/gate.log`. The tallies under `evidence/gate-tallies/` are the gate's own step tallies, one
+# per suite it ran. This file is the copy plus its excerpts; no number here is re-derived.
+
+## Why there are two gate logs' worth of history, and which one counts
+
+The run that took this item gated an earlier tree — the one before the pre-gate round answered `VERDICT: FAIL`
+(`evidence/pre-gate-review.md`). That round's one blocking finding and its notes were applied afterwards
+(`evidence/review-corrections.md`), so the archive rests on the gate below, run on the corrected tree. No build is
+owed and none ran: this change touches no compiled file, so `LOOP_GATE_COMPILED_PATTERNS` selects nothing and the
+roll-up names the shell suites alone (`guidelines/Build.md` §2, the scope block).
+
+## The gate's roll-up (gate.log:1375), verbatim
+
+LOOP-GATE: tests=772 failures=2 errors=0 (tools/loop-selftest.sh --from-git 122cc2f9 1012s, bash tools/loop-mutations.sh --check 8s, tools/check-doc-routes.sh 3s, tools/check-doc-routes-selftest.sh 22s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 3s, tools/check-portability.sh 2s, tools/check-portability-selftest.sh 74s, tools/mutate-selftest.sh 2s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 322s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s) — failing: tools/loop-selftest.sh --from-git 122cc2f9
+
+## The failing step's tally (evidence/gate-tallies/tools_loop-selftest.sh_--from-git_122cc2f9.xml)
+
+tests="316" failures="2" errors="0" time="1012"
+system-out: PASS run#childPastItsContextBoundIsBlocked PASS run#theRecordedZeroKeepsTheContextBoundOff loop-selftest: 2 of 316 cases failed
+
+## The two failing cases (gate.log:374, :499, :907)
+
+gate#theMapCoversEveryPipelineStep|   the suite map carries none of these commands the pipeline's Check steps run: tools/loop-selftest.sh --group "$g"
+run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 1908523 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none
+
+Both are attributed in `evidence/gate-attribution.md`: the first is red on the base commit's own inputs, the second
+passed four times in isolation on the same tree and failed once inside a 1 012 s suite (2.5× the same suite's
+402 s run earlier that day), which is a load-induced timing flake in a case this change does not touch.
+
+## The cases this change answers for, in the same run (gate.log:471, :903-906)
+
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#childPastItsTurnBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheTurnBoundOff
+PASS run#childPastItsContextBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheContextBoundOff

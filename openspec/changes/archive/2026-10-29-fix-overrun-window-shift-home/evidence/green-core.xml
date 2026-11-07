@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.OverrunWindowHomeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T16:54:38.945Z" hostname="dingens" time="0.182">
+  <properties/>
+  <testcase name="the prediction class carries no overrun window shift" classname="com.naviveylin.core.OverrunWindowHomeTest" time="0.167"/>
+  <testcase name="the overrun window is the shift's home" classname="com.naviveylin.core.OverrunWindowHomeTest" time="0.007"/>
+  <system-out><![CDATA[overrunWindowHome predictionKeeps=1 helper=0 oldHelper=0 type=0
+overrunWindowHome shift=1 type=1
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

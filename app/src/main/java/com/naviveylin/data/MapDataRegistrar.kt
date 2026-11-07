@@ -1,10 +1,10 @@
 package com.naviveylin.data
 
 import android.util.Log
-import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.mapsource.MapTreeDiscovery
 import com.naviveylin.core.mapsource.RepositoryUrlPlanner
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,10 +41,12 @@ class MapDataRegistrar @Inject constructor(
     fun apply() {
         try {
             val mapsRoot = storageManager.mapsRootDir
-            val installed = InstalledMaps.findDatabaseDirectories(
-                mapsRoot.toString(),
-                mapsRoot.resolve(RepositoryUrlPlanner.BASEMAP_DIRECTORY_NAME).toString()
-            )
+            // The installations only: a leftover staging directory of a failed swap holds a `types.dat`
+            // too, and re-opening it would register a database the app must not render.
+            val installed = MapTreeDiscovery.under(
+                mapsRoot,
+                mapsRoot.resolve(RepositoryUrlPlanner.BASEMAP_DIRECTORY_NAME)
+            ).installed.map { it.toString() }
             if (installed.isEmpty()) {
                 return
             }

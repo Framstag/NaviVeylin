@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git 2f954a04b3f75e138c529fffe7985ca011375866" tests="287" failures="1" errors="0" time="458">
+  <system-out>PASS gate#theBlockStaysInsideTheRecordedBound PASS gate#theStepBoundIsClampedByTheCeilingTheCallerNamed loop-selftest: 1 of 287 cases failed</system-out>
+</testsuite>

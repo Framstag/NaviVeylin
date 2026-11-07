@@ -1,5 +1,5 @@
 {
-  "comment": "THE CITATION RULES — what counts as a file citation in an issue body, and which names are artefacts rather than files. Data, so a project adapts it here rather than editing the classifier's logic (`stale-citation-resolution` D2/D3, task 1.3). `extensions` is what makes a token look like a source file; `headerExtensions` are the extensions that are only a citation when the token is written as a path (a bare `jni.h` is a mention, and `-Dorg.gradle.java.home` cut at `.h` is a fragment); `mentionOnlyExtensions` are the extensions where a token counts as a citation only when it *resolves* — an unresolvable `db.json`, `files/favorites.json` or `org.gradle.java.home` is a runtime property or an on-device path, not a source citation; `externalPrefixes` are the namespaces that belong to a library rather than to this repository (`androidx/car/app/Screen.java` is a mention); `generated` names artefacts the project produces rather than tracks, so their absence from the tree is not staleness. Read by `issues_citations_of` / `issues_citation_class` in `tools/issues/lib.sh`, used by the loop's pre-screen and by `tools/issues/resolve-stale.sh`.",
+  "comment": "THE CITATION RULES — what counts as a file citation in an issue body, and which names are artefacts rather than files. Data, so a project adapts it here rather than editing the classifier's logic (`stale-citation-resolution` D2/D3, task 1.3). `extensions` is what makes a token look like a source file; `headerExtensions` are the extensions that are only a citation when the token is written as a path (a bare `jni.h` is a mention, and `-Dorg.gradle.java.home` cut at `.h` is a fragment); `mentionOnlyExtensions` are the extensions where a token counts as a citation only when it *resolves* — an unresolvable `db.json`, `files/favorites.json` or `org.gradle.java.home` is a runtime property or an on-device path, not a source citation; `externalPrefixes` are the namespaces that belong to a library rather than to this repository (`androidx/car/app/Screen.java` is a mention); `generated` names artefacts the project produces rather than tracks, so their absence from the tree is not staleness, and an entry may carry a shell glob where the artefact is written once per run (`reviewer-report-*.md`), matched against the token and against its basename. Read by `issues_citations_of` / `issues_citation_class` / `issues_citation_is_generated` in `tools/issues/lib.sh`, used by the loop's pre-screen and by `tools/issues/resolve-stale.sh`.",
   "extensions": [
     "kt",
     "kts",
@@ -40,6 +40,10 @@
     "local.properties",
     "gate-timings.json",
     "gate-result.json",
-    "coverage.json"
+    "coverage.json",
+    "reviewer-report-*.md",
+    "reviewer-prompt-*.md",
+    "worker-report*.md",
+    "worker-prompt*.md"
   ]
 }

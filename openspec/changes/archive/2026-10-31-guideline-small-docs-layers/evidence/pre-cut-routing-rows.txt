@@ -1,0 +1,6 @@
+=== routing rows (AGENTS.md) ===
+36:| logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `BuildNative.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
+46:| what one project metrics report run measures, its metric definitions, its excluded classes, its surface rule | `Metrics.md` §1 "Invocation and exit status", §2 "What one run measures, and what it does not", §3, §4, §5, §6 "Surface convention" |
+47:| legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
+54:| the feature catalogue or the release notes, or how they are generated | `FeatureList.md` §1 "What the two documents are", §3 "One capability key identifies one requirement", §4 "The classification is the only human judgement, and an unclassified spec stops the run", §6 "The prose gates, not a reviewer's memory", §8 "The version is an input" — those 5 sections are 9 268 of the document's 13 162 chars, ~2.6 k tokens against ~3.7 k for the whole document (measured 2026-10-08) |
+127:`guidelines/Logging.md`, and the on-device logcat recipes are `guidelines/Build.md` §10.

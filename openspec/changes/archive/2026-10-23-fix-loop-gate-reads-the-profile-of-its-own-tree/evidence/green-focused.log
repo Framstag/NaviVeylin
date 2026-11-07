@@ -1,0 +1,18 @@
+# bash tools/loop-selftest.sh --case gate#the*Profile* — 2026-10-23T14:21:33Z
+PASS gate#theGateNamesTheProfileItRead
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142135')
+HEAD ist jetzt bei f416a06 an engine of its own
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (31d63a8)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (73161b1)
+HEAD ist jetzt bei 73161b1 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 73161b1).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case gate#the*Profile*
+exit=0

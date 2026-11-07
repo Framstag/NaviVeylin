@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -74,15 +75,12 @@ class RoutePanelNavigationReviewTest {
                     label = "Destination"; lat = 49.0; lon = 2.6; matchQuality = "coordinate"
                 }
             )
-            client.routeToDeliver = RouteEntry().apply {
-                routeHandle = 1L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 120_000.0
-                descriptions = arrayOf("Start: A  [0.0 km]", "Right onto B  [120.0 km]")
-                instructionLats = doubleArrayOf(48.0, 48.5)
-                instructionLons = doubleArrayOf(2.0, 2.3)
-            }
+            client.routeToDeliver = routeWithSteps(
+                startStep(lat = 48.0, lon = 2.0),
+                turnStep(TurnType.RIGHT, lat = 48.5, lon = 2.3, legDistance = 120_000.0, legTime = 5_400.0, name = "B"),
+                distance = 120_000.0,
+                duration = 5_400.0
+            )
             viewModel.calculateRoute()
         }
         viewModel.setNavigating(true)
@@ -114,7 +112,7 @@ class RoutePanelNavigationReviewTest {
         // there is no field to edit at all during navigation (spec: route-planning-session —
         // Reviewing a route during navigation is read-only).
         composeRule.onNodeWithTag("routeBar").assertExists()
-        composeRule.onNodeWithText("Start").assertDoesNotExist()
+        composeRule.onNodeWithText("Start location").assertDoesNotExist()
         composeRule.onNodeWithText("Destination").assertDoesNotExist()
     }
 
@@ -226,15 +224,12 @@ class RoutePanelNavigationReviewTest {
         // The route navigation runs on, adopted synchronously (no pending calculation that could
         // land after the assertions).
         viewModel.adoptRoute(
-            RouteEntry().apply {
-                routeHandle = 1L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 120_000.0
-                descriptions = arrayOf("Start: A  [0.0 km]", "Right onto B  [120.0 km]")
-                instructionLats = doubleArrayOf(48.0, 48.5)
-                instructionLons = doubleArrayOf(2.0, 2.3)
-            },
+            routeWithSteps(
+                startStep(lat = 48.0, lon = 2.0),
+                turnStep(TurnType.RIGHT, lat = 48.5, lon = 2.3, legDistance = 120_000.0, legTime = 5_400.0, name = "B"),
+                distance = 120_000.0,
+                duration = 5_400.0
+            ),
             com.framstag.libosmscout.client.Vehicle.CAR
         )
         viewModel.setNavigating(true)

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --group adapter" tests="2" failures="2" errors="0" time="2">
+  <system-out>FAIL adapter#modeFlagIsItsOwnArgument FAIL adapter#theChildIsStartedWithoutContextFiles loop-selftest: 2 of 2 cases failed (2026-10-26T23:32:26Z)</system-out>
+</testsuite>

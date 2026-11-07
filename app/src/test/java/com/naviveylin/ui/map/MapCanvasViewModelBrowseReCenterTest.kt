@@ -16,7 +16,9 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.test.DefaultLocaleRule
 import com.naviveylin.test.MainDispatcherRule
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -33,6 +35,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 /**
  * Verifies the derived BROWSE re-center rule (spec: map-modes — Browse
@@ -232,6 +235,36 @@ class MapCanvasViewModelBrowseReCenterTest {
         emitFix()
         awaitDwellAndRefresh()
     }
+
+    // --- the evidence line's locale (spec: i18n-l10n — Log and diagnostic numbers are
+    // locale-independent, issue #44) ---
+
+    @Test
+    fun theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // The case runs on the decimal-comma locale the rule is about; the rule puts it back
+            // whatever the outcome (spec: i18n-l10n — Log and diagnostic numbers are
+            // locale-independent, issue #44).
+            DefaultLocaleRule.withLocale(Locale.GERMANY) {
+                ShadowLog.clear()
+                moveViewportBy(400.0, 0.0)
+                emitFix()
+                advanceUntilIdle()
+                fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+                assertTrue("the reveal is what publishes the evidence line", awaitReveal())
+
+                // Both sinks of [MapCanvasViewModel.logBrowseReCenter] reach logcat, the file-backed
+                // one under the `Diag/RECENTER` tag — the exported line a German install would
+                // otherwise write as `off=400,0px ... mag=15,00`.
+                val line = ShadowLog.getLogs().map { it.msg }.firstOrNull { it.startsWith("off=") }
+                assertTrue(
+                    "the re-center evidence line must print its numbers with a dot: $line",
+                    line != null &&
+                        Regex("""off=-?\d+\.\d+px vis=(true|false) mag=\d+\.\d+$""")
+                            .containsMatchIn(line)
+                )
+            }
+        }
 
     // --- projection helper (task 2.2) ---
 
@@ -835,6 +868,39 @@ class MapCanvasViewModelBrowseReCenterTest {
                 viewModel.uiState.value.browseReCenterVisible
             )
         )
+    }
+
+    /**
+     * The canvas metrics are an input of the derivation, so a change that moves
+     * only them must re-derive it (spec: map-modes — Browse re-center, "A canvas
+     * size change re-derives the offset"). The reachable path is the first
+     * layout: the viewport was restored and the fix is already in state while the
+     * canvas has not been measured, so the offset is unmeasurable (NaN) and no
+     * dwell is armed; nothing else emits afterwards at a standstill.
+     */
+    @Test
+    fun aCanvasSizeChangeAloneReDerivesTheOffset() = runTest(mainDispatcherRule.dispatcher) {
+        // Before the first onSizeChanged: the VM holds the unmeasured canvas.
+        viewModel.setScreenSize(0, 0)
+        moveViewportBy(400.0, 0.0)
+        emitFix()
+        advanceUntilIdle()
+        assertFalse(
+            "the offset is unmeasurable while the canvas is not measured",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+
+        // The first layout, and nothing else: only the canvas metrics change.
+        viewModel.setScreenSize(SCREEN_W, SCREEN_H)
+        advanceUntilIdle()
+
+        assertTrue(
+            "a canvas size change alone must re-derive the offset and arm the dwell",
+            pumpUntil(maxSpins = 2_000) { viewModel.browseReCenterBeyondSinceMs != 0L }
+        )
+
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        assertTrue("the armed dwell must complete", awaitReveal())
     }
 
     private companion object {

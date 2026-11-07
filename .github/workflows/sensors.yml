@@ -11,10 +11,10 @@ name: Sensors
 # skipped run, not four failed checks. The tick's minutes must cover every minute the registry's rows
 # declare, which `workflow#tickMinutesCoverTheRegistryCrons` asserts.
 #
-# Each scheduled step passes `--within 30`: the window a tick selects over, as wide as the tick's own
-# cadence, so a run GitHub fires minutes late still measures the rows it was scheduled for, while two
-# consecutive ticks' windows tile the hour and select no row twice
-# (`workflow#theTickDeclaresItsWindow`).
+# Each scheduled step passes `--since` the previous tick's start time: the interval a tick selects over,
+# so a run GitHub fires minutes late still measures the rows it was scheduled for, and a tick GitHub
+# skipped leaves its minutes in the next tick's interval rather than losing them (#256). Two consecutive
+# ticks' intervals tile the hour and select no row twice (`workflow#theTickDeclaresItsWindow`).
 #
 # `schedule` only fires from the default branch; a dispatch can select any ref, so the first step is a
 # runtime guard rather than a line of YAML to be trusted (design D1, D3).
@@ -41,7 +41,7 @@ concurrency:
 jobs:
   sensors:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       # The record itself is read from the build pipeline's artifact of this commit — the workflow's own
@@ -55,6 +55,10 @@ jobs:
     # number and the string to NaN), which would silently turn every dispatch into a dry run.
     env:
       SENSORS_MODE: ${{ (github.event_name == 'schedule' || inputs.apply == true) && '--apply' || '--dry-run' }}
+      # The trigger, so the engine can tell the unattended tick from a run a person started: a row with no
+      # measurement on record is reported by a tick, and the first exercise is spent by a dispatched
+      # `apply=true` — the acknowledgement that records the row's first measurement (issue #667).
+      SENSORS_TRIGGER: ${{ github.event_name }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -78,12 +82,19 @@ jobs:
       # from the build pipeline's artifact, with the conclusion the build's run ended with reported beside it.
       # `ready=false` (exit 3) means the build has not finished yet — a skipped run that writes nothing and
       # reports no failed check, rather than four `error` rows.
+      #
+      # `--jobs-record` adds one thing the artifact cannot carry: the wall time of the run's own jobs and steps,
+      # which only GitHub's post-run jobs API answers — a running job cannot read its own step durations. The
+      # record is written for exactly the run restored here, which is what lets `build-duration` measure the
+      # pipeline instead of one Gradle invocation inside it (issue #778). The scan's fetch below does not pass
+      # the flag: its run's jobs are not the build's.
       - name: Fetch this commit's build record
         id: record
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --jobs-record build/job-timings.json \
                --conclusion-file "$RUNNER_TEMP/build-conclusion"; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "conclusion=$(cat "$RUNNER_TEMP/build-conclusion")" >> "$GITHUB_OUTPUT"
@@ -95,6 +106,30 @@ jobs:
               exit "$status"
             fi
           fi
+          # The scan's own record comes from a pipeline of its own (`.github/workflows/sonar.yml`), whose
+          # artifact is fetched the same way — with the same read-only token, so the workflow's own token is
+          # still used for exactly one thing. Its ready-ness is reported apart from the build's: the scan of
+          # this commit may still be running, and `broken-scan` is then selected by no tick rather than
+          # reported as a failed check (exit 3 = no completed scan carries the record yet).
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --workflow sonar.yml --artifact scan-inputs; then
+            echo "scan-ready=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "scan-ready=false" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
+          # The previous Sensors run's start time: the lower bound this tick's interval reaches back to.
+          # A tick GitHub skipped leaves its minutes in this interval, so the row whose cadence fell into
+          # the gap is selected by the next tick that runs, whatever the gap (issue #256). With no previous
+          # run — the first tick — the interval is the schedule's own cadence.
+          prev=$(gh run list --workflow sensors.yml --branch main --status completed --limit 1 \
+            --json createdAt --jq '.[0].createdAt // empty' 2>/dev/null || true)
+          [ -n "$prev" ] || prev=$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          echo "since=$prev" >> "$GITHUB_OUTPUT"
 
       # The labels the checks file under are declared by the registry (`sensor/<id>`) and by the profile,
       # so they are created from that declaration before anything files: a filing under a label the tracker
@@ -107,10 +142,12 @@ jobs:
         run: bash tools/issues/labels.sh --apply
 
       # The repair, before the rows: it makes an authorised item workable again by writing the full tracked
-      # path of a citation whose target the tree does hold, and parking what nothing accounts for — with the
-      # attempts recorded, so the item leaves the eligible queue visibly instead of being re-excluded every run
-      # (`stale-citation-resolution` D4/D5/D6). Bounded, and idempotent: a canonical citation is `exact`, a
-      # parked item is skipped, so a second run posts nothing.
+      # path of a citation whose target the tree does hold, and reporting what nothing accounts for — the token
+      # in the run's own output, the item's state and labels untouched, because a path the tree does not hold
+      # may be one the change itself creates (#281, `stale-citation-resolution` D4/D5/D6). Bounded, and
+      # idempotent: a canonical citation is `exact`, an unresolved one is written for nowhere, so a second run
+      # posts nothing. It does not pass `--revisit-parked`, so a park written before #281 is left for a person
+      # to reverse.
       - name: Repair the stale citations
         if: steps.record.outputs.ready == 'true'
         env:
@@ -144,17 +181,35 @@ jobs:
         if: steps.record.outputs.ready == 'true' && steps.record.outputs.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --within 30 --rows build-duration,package-size,coverage "$SENSORS_MODE"
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows build-duration,package-size,coverage "$SENSORS_MODE"
 
       # Every other row runs for any record, none of them reading an output a red build cannot produce:
-      # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`
-      # and `source-size` the repository's own files and its history, and `stale-citations` the tracker. This
-      # is also the half that keeps a red build visible as exactly one row's verdict.
+      # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`,
+      # `source-size` and the documentation-context rows (`routed-section-size`, `entry-document-size`,
+      # `document-size`, `normative-purity`) the repository's own files and its history,
+      # `stale-citations` the tracker, and `metadata-invariant` the tracker's own priority pair. `loop-spend`
+      # reads the loop's spend archive, which is machine-local: this checkout has none, and the row states that
+      # absence on its own record rather than reporting a failed check for it (issue #690). This is also the half
+      # that keeps a red build visible as exactly one row's verdict.
       - name: Run the condition rows and the repository rows
         if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --within 30 --rows broken-main,pr-conflicts,hotspot,source-size,stale-citations "$SENSORS_MODE"
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend,libosmscout-lag "$SENSORS_MODE"
+
+      # The scan's row, and only for a commit whose scan has finished: the scan is a pipeline of its own, so
+      # its record exists minutes after the build's, and a tick that read too early would report a failed check
+      # for a scan that is still running (spec `backlog-sensors`, "No record yet is not a failed check"). It runs
+      # for a red build as well — the scan measures the commit, not the build's verdict — and it reads only the
+      # record the scan published, so a red main is still exactly one row's verdict.
+      - name: Run the scan's condition row
+        if: steps.record.outputs.ready == 'true' && steps.record.outputs.scan-ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-scan "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

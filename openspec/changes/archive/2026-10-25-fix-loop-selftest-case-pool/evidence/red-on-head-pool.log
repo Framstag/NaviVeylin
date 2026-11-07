@@ -1,0 +1,13 @@
+# tools/loop-selftest.sh at HEAD (a2489ca7), the driver before the pool, the case added by this change
+# date: 2026-10-25T00:57:40Z
+  the suite ran its cases one after another (at most 1 was running at any moment): start stub#one
+stop stub#one
+start stub#two
+stop stub#two
+start stub#three
+stop stub#three
+start stub#four
+stop stub#four
+FAIL driver#theSuiteRunsItsCasesInAPool
+loop-selftest: 1 of 1 cases failed
+status=1

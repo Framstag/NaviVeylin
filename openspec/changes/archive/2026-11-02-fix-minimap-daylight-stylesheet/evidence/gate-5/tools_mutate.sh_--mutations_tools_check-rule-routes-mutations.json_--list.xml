@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>glob-matches-the-tree	routes#aGlobMatchingNoTrackedPathIsReported	every glob is matched against the tree's tracked paths, so a glob that matches nothing is reported instead of silently orphaning the rules a reader is told to read rule-is-reached	routes#aRuleNoGlobReachesIsReported	every named rule under guidelines/ is compared with the rules the map reaches, so a rule no glob reaches is reported b</system-out>
+</testsuite>

@@ -1,0 +1,64 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=2f954a04b3f75e138c529fffe7985ca011375866 paths=33 insertions=850 deletions=12
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/green-after-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/green-after-archive.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/measure-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/phase-a.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/red-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/revert-check.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-doc-routes-mutations.json
+LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=284 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=22 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=9 suites=7
+LOOP-MEASURE-CHANGE 2026-10-30-fix-routed-read-numbers-verbatim-cases scenarios=9 cases=7 unnamed=2
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-summary.xml tests=28 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=22 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/green-after-archive.xml tests=1 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/red-on-head.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 case added (`routed-read#numbers`), 1 mutation record added (`guideline-body-reference`), 2 spec Case lines restated (`#numbers`, `#verbatim`), 0 cases rewritten, 0 fixtures realigned, 0 compiled files — `grep -rn 'routed-read#numbers\|routed-read#verbatim' --include='*.md' --include='*.sh' --include='*.json' . | grep -v openspec/changes/archive` (`2 lines in 1 file` on the base tree) and `grep -n 'echo_case routed-read#' tools/check-doc-routes-selftest.sh` (`2 cases` on the base tree)
+LOOP-MEASURE-END

@@ -1,0 +1,6 @@
+  the state names the item while it is being worked: expected '21', got 'null'
+FAIL run#stateNamesTheItemInProgress
+ended 2933114 — its working directory is inside loop-selftest.HwDAo0
+ended 2935788 — its working directory is inside loop-selftest.HwDAo0
+ended 2935790 — its working directory is inside loop-selftest.HwDAo0
+ended 2935796 — its working directory is inside loop-selftest.HwDAo0

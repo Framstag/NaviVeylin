@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/create-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create 1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189) 1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as</system-out>
+</testsuite>

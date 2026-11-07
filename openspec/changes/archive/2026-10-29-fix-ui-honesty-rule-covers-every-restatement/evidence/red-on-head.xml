@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/red-probe.sh" tests="3" failures="1" errors="0" timestamp="2026-10-29T11:00:30Z">
+  <system-out>red-probe: 1 of 3 cases failed (guidelines/UI.md "Keeping this document honest")</system-out>
+</testsuite>

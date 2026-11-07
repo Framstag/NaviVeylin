@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.VehicleMarkerGeometryTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:00.946Z" hostname="dingens" time="0.041">
+  <properties/>
+  <testcase name="darkCoreIsLighterThanDarkCasingAndNotWhite" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.028"/>
+  <testcase name="roundedCapIsSymmetricAndSetBackFromTip" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.001"/>
+  <testcase name="sizeIs38dpDensityAwareAnchor" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.001"/>
+  <testcase name="gradientColorsSelectsPaletteOnly" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.0"/>
+  <testcase name="dayPaletteValuesUnchanged" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.001"/>
+  <testcase name="gradientIsVerticalLightFromAbove" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.0"/>
+  <testcase name="geometryIsPaletteIndependent" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.001"/>
+  <testcase name="darkCasingIsDarkAndDarkerThanDayCasing" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.0"/>
+  <testcase name="scaledVerticesMultiplyByH" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.0"/>
+  <testcase name="outlineHasSevenVerticesForPathContract" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.001"/>
+  <testcase name="bodyTailExtentMatchesConstants" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.006"/>
+  <testcase name="paletteConsistent" classname="com.naviveylin.core.VehicleMarkerGeometryTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

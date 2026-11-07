@@ -1,12 +1,15 @@
 package com.naviveylin.service
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.exitOrdinal
+import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.turnTypeFor
 import com.naviveylin.core.FreeDrivingStatus
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.R
 import com.naviveylin.core.StringResolver
-import com.naviveylin.core.TurnInstructionLocalizer
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.ui.navigation.formatRemainingTime
@@ -142,34 +145,48 @@ object NavigationNotificationContentFormatter {
         locale: Locale = Locale.getDefault()
     ): CarHintContent? {
         if (!state.isNavigating) return null
-        // Same instruction source as the phone path: the live next instruction
-        // when the engine emits one, otherwise the frozen route list entry.
-        val instruction = state.nextInstruction
-            ?: state.instructions.getOrNull(state.currentStepIndex)
+        // Same step source as the phone path: the live step ahead when the engine emits one,
+        // otherwise the frozen route list entry.
+        val step = state.nextStep
+            ?: state.steps.getOrNull(state.currentStepIndex)
         val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else ETA_UNKNOWN
-        val distance = formatDistanceCompact(
-            instruction?.distanceTo ?: state.remainingDistance,
-            locale
-        )
+        val distance = if (step != null) {
+            // A step whose progress the engine has not published is unknown, never a zero.
+            formatDistanceCompact(step.remainingDistance, locale)
+        } else {
+            // No step known: the route's remaining distance is the hint's best available value.
+            formatDistanceCompact(state.remainingDistance, locale)
+        }
+        val manoeuvre = step?.let(::manoeuvreFromStep)
+        val secondary = resolver.get(R.string.nav_hint_distance_eta, distance, eta)
+        // The hint's primary text stays the manoeuvre alone. A motorway enter or change that carries
+        // a signposted destination joins it to the secondary text, worded by the same `:core`
+        // function the overlay and the car's instruction panel read, so the hint cannot drift from
+        // them (spec: `auto-navigation-hints` — The car hint names the signposted destination).
+        // Every other hint keeps exactly the text it shows today.
+        val target = if (manoeuvre != null && ManoeuvreLabels.carriesDestination(manoeuvre)) {
+            ManoeuvreLabels.leadsOnto(resolver, manoeuvre)
+        } else {
+            null
+        }
         return CarHintContent(
-            title = instructionText(instruction, resolver),
-            text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),
-            turnType = instruction?.turnType,
-            roundaboutExitNumber = instruction?.roundaboutExitNumber ?: 0
+            title = stepText(step, resolver),
+            text = if (target.isNullOrBlank()) secondary else "$secondary · $target",
+            turnType = step?.let(::turnTypeFor),
+            roundaboutExitNumber = step?.exitOrdinal ?: 0
         )
     }
 
     /**
-     * The maneuver instruction in the wording of the on-screen next-turn
-     * display ([com.naviveylin.ui.navigation.splitInstruction]'s generic line):
-     * the localized short description, falling back to the native description
-     * and finally to the neutral text while no maneuver is known.
+     * The manoeuvre in the wording of the on-screen next-turn display: the localized short
+     * description of the step's own manoeuvre, and the neutral text while no manoeuvre is known.
+     * The native layer publishes no text, so there is nothing to fall back to
+     * (spec: `turn-instruction-localization`).
      */
-    private fun instructionText(instruction: RouteInstruction?, resolver: StringResolver): String {
-        if (instruction == null) return resolver.get(R.string.nav_hint_neutral)
-        return TurnInstructionLocalizer.shortDescription(resolver, instruction)
+    private fun stepText(step: RouteStep?, resolver: StringResolver): String {
+        if (step == null) return resolver.get(R.string.nav_hint_neutral)
+        return ManoeuvreLabels.short(resolver, manoeuvreFromStep(step))
             .takeIf { it.isNotBlank() }
-            ?: instruction.description.takeIf { it.isNotBlank() }
             ?: resolver.get(R.string.nav_hint_neutral)
     }
 
@@ -179,16 +196,14 @@ object NavigationNotificationContentFormatter {
         etaClock: (Long) -> String,
         locale: Locale
     ): NavigationNotificationContent {
-        val instruction = state.nextInstruction
-        val manoeuvre = instruction?.description
-            ?.takeIf { it.isNotBlank() }
-            ?: instruction?.shortDescription?.takeIf { it.isNotBlank() }
-            ?: ""
+        val step = state.nextStep
+        val manoeuvre = step?.let { ManoeuvreLabels.description(resolver, manoeuvreFromStep(it)) }
+            .orEmpty()
 
         val title = state.destinationName?.takeIf { it.isNotBlank() }
             ?: resolver.get(R.string.nav_hint_neutral)
 
-        val distanceToTurn = formatDistanceCompact(instruction?.distanceTo ?: 0.0, locale)
+        val distanceToTurn = formatDistanceCompact(step?.remainingDistance, locale)
         val remainingDistance = formatDistanceCompact(state.remainingDistance, locale)
         val remainingTime = formatRemainingTime(state.etaMillis)
         val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else "--:--"
@@ -247,11 +262,12 @@ object NavigationNotificationContentFormatter {
         )
     }
 
-    /** Compact distance like the on-screen displays: "350 m" / "1.2 km". */
-    private fun formatDistanceCompact(meters: Double, locale: Locale): String {
-        if (meters.isNaN() || meters <= 0.0) return "--"
-        val number = formatDistanceNumber(meters, locale)
-        return if (distanceUsesKilometers(meters)) "$number km" else "$number m"
+    /** Compact distance like the on-screen displays: "350 m" / "1.2 km"; null is unknown, zero is known. */
+    private fun formatDistanceCompact(meters: Double?, locale: Locale): String {
+        if (meters == null || meters.isNaN()) return "--"
+        val knownMeters = meters.coerceAtLeast(0.0)
+        val number = formatDistanceNumber(knownMeters, locale)
+        return if (distanceUsesKilometers(knownMeters)) "$number km" else "$number m"
     }
 
     /** Wall-clock arrival time, device locale ("14:32"). */

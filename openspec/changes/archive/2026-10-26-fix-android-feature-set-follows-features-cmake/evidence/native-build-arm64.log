@@ -1,0 +1,7 @@
+[1/7] Building CXX object libosmscout/libosmscout-map-cairo/CMakeFiles/OSMScoutMapCairo.dir/src/osmscoutmapcairo/LoaderPNG.cpp.o
+[2/7] Building CXX object libosmscout/libosmscout-map-cairo/CMakeFiles/OSMScoutMapCairo.dir/src/osmscoutmapcairo/SymbolRendererCairo.cpp.o
+[3/7] Building CXX object libosmscout/libosmscout-map-cairo/CMakeFiles/OSMScoutMapCairo.dir/src/osmscoutmapcairo/MapPainterCairo.cpp.o
+[4/7] Linking CXX shared library /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscout_map_cairod.so
+[5/7] Building CXX object libosmscout/libosmscout-client-java/CMakeFiles/osmscout_client_java.dir/src/OSMScoutClient.cpp.o
+[6/7] Linking CXX shared library /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscout_client_javad.so
+[7/7] Linking CXX shared library /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libnaviveylin_log_bridge.so

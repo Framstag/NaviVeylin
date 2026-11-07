@@ -31,21 +31,23 @@ import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.formatDurationText
 import com.naviveylin.core.formatStepDurationText
-import com.naviveylin.ui.navigation.NavSymbol
 import com.naviveylin.ui.navigation.NavigationArrow
+import com.naviveylin.ui.navigation.navSymbolFor
 
 /**
  * Reusable route summary: total distance, estimated duration, and the
- * turn-by-turn step list. Embedded in the route panel after calculation and
+ * turn-by-turn row list. Embedded in the route panel after calculation and
  * reused by the session overlay's summary (spec: routing-summary). The phone card passes
  * [showStats] = false because its header already carries the two numbers (keeping the card's
  * height for the list); the docked panel and the other surfaces use the default headline.
  *
- * A row's distance and duration are the step's **own leg** and come from the route's per-step
- * values, formatted here by the app (`formatDistanceNumber`, `formatStepDurationText`) — never the
- * native description's `[x km, y min]` text, which is only the fallback the view model applies when
- * a route carries no per-step values (spec: `osmscout-jni` — Per-step leg values on a calculated
- * route; see `RouteStepValues.kt`).
+ * The list is the route's **rows**: derived from the structured steps (spec: `route-analysis` — Rows
+ * are derived from the route's steps), worded from the manoeuvre's own values in the device language
+ * (spec: `turn-instruction-localization` — Route analysis rows are localized from the step model).
+ *
+ * A row's distance and duration are its **own run** — its own leg plus the legs of every step it
+ * absorbed — formatted here by the app (`formatDistanceNumber`, `formatStepDurationText`), never a
+ * native description's `[x km, y min]` text.
  *
  * The step list carries two independent markings (spec: `route-analysis` — the
  * analysed step is distinguishable from the navigation step): [activeStepIndex] is
@@ -115,6 +117,18 @@ fun RouteSummary(
             .padding(horizontal = 12.dp)
     }
     Column(modifier = stepListModifier) {
+        if (steps.isEmpty()) {
+            // A route without structured steps has no rows (spec: `route-analysis` — A route without
+            // per-step values still lists its steps): the list says so instead of inventing one.
+            Text(
+                stringResource(R.string.route_steps_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
+                    .testTag("routeStepsEmpty")
+            )
+        }
         steps.forEachIndexed { index, step ->
             val isActive = activeStepIndex == index
             val isAnalysed = analysedStepIndex == index
@@ -143,14 +157,12 @@ fun RouteSummary(
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     NavigationArrow(
-                        // Deliberately not the numbered roundabout-exit symbol: this step list is built
-                        // from the route's description lines, whose roundabout text is the bare
-                        // "Leave roundabout" (RouteDescription::RoundaboutLeaveDescription::GetDebugString)
-                        // - it carries no exit ordinal, and no requirement asks this icon for one. The
-                        // surfaces that show the number are the next-turn overlay, the expanded route
-                        // description, the car instruction panel and the car hint, all of which have a
-                        // RouteInstruction (change `fix-roundabout-exit-number`).
-                        symbol = NavSymbol.TurnArrow(step.turnType),
+                        // The glyph comes from the manoeuvre's kind and move, never from the row's
+                        // text (spec: `turn-instruction-localization` — The row icon follows the
+                        // manoeuvre, not the text). A roundabout leave therefore carries its exit
+                        // ordinal, which the structured step publishes and the old description line
+                        // never did.
+                        symbol = navSymbolFor(step.turnType, step.roundaboutExit ?: 0),
                         size = 28.dp,
                         color = MaterialTheme.colorScheme.onSurface
                     )

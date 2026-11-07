@@ -1,0 +1,27 @@
+guideline-small-docs-layers — conditions cleared (task 6.1)
+
+Byte counts (bound 48 000 B/document, 12 000 B/section)
+  Regulatory.md  24 942 -> 19 068
+  FeatureList.md 17 221 -> 17 321
+  Metrics.md      9 551 ->  9 731
+  Logging.md      7 033 ->  7 500
+All four under 48 000; no section over 12 000 (see evidence/pre-cut-section-costs.txt).
+
+normative-purity metric (SENSORS_ROW='{"scope":"normative-purity"}' SENSORS_THRESHOLD=0 SENSORS_ROOT=.)
+  verdict: clear
+  output: {"document":"none","token":"none","measurement":"none","verdict":"clear",
+           "title":"no normative document carries rationale or procedure", ...}
+  vs evidence/pre-cut-purity.txt (3 conditions: FeatureList.md:113, FeatureList.md:191,
+  Logging.md:33 — all token `issue`): every listed condition is gone.
+
+check-doc-routes.sh            exit 0   all 307 section references resolve, all 2 skill references resolve
+check-rule-routes.sh           exit 0   every glob matches the tree and all 574 named rule(s) are reached
+check-doc-routes-selftest.sh   exit 0   all 32 cases passed
+check-todo-references.sh       exit 0   66 citation(s) resolve through the recorded table
+gen-feature-list.sh --check-classification  exit 0  (specs 180, classified 185, unclassified 0, stale 5 — unchanged)
+openspec validate guideline-small-docs-layers --strict  exit 0  valid
+check-openspec-hygiene.sh      exit 0
+
+Heading-number sets unchanged (task 6.2): Regulatory §1–§10, FeatureList §1–§9, Metrics §1–§7, Logging §1–§3.
+Rule: markers in companions (task 6.3): 0 in every *.why.md and *.recipes.md.
+Duplicate rule names across guidelines/*.md (task 4.2/5.3): none.

@@ -1,0 +1,18 @@
+$ bash tools/check-doc-routes.sh --root . --sizes | grep "^check-doc-routes: section-cost " | awk '$9=="routed" \&\& $5+0 > 12000 {print}' | wc -l
+8
+
+$ bash tools/check-doc-routes.sh --root . --sizes | grep "^check-doc-routes: section-cost " | awk '$9=="routed" \&\& $5+0 > 12000 {print}'
+check-doc-routes: section-cost Backlog.md §9 15389 bytes 167 lines routed
+check-doc-routes: section-cost Build.md §7 12052 bytes 161 lines routed
+check-doc-routes: section-cost Design.md §5 12781 bytes 146 lines routed
+check-doc-routes: section-cost Design.md §8 12058 bytes 156 lines routed
+check-doc-routes: section-cost MapRendering.md §1 22592 bytes 249 lines routed
+check-doc-routes: section-cost UI.md §1 25206 bytes 257 lines routed
+check-doc-routes: section-cost UI.md §7a 13102 bytes 158 lines routed
+check-doc-routes: section-cost UI.md §8 19681 bytes 245 lines routed
+
+$ bash tools/check-doc-routes-selftest.sh --case routed-read#bound
+        146 section(s) printed, 116 routed pair(s), each equal to the ruler's own sed count
+PASS  routed-read#bound — every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed
+check-doc-routes-selftest: all 1 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+exit=0

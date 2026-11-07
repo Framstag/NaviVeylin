@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The green run of the two new cases against the tree this change leaves (2026-10-23T10:33:31Z), one `--case`
+     invocation each, transcript in green-fix.log beside this file: `bash tools/loop-selftest.sh --case
+     'driver#aCaseThatAsksForNoCoreCompilesNothing'` → PASS, exit 0, and the same for
+     `driver#aCaseThatAsksForTheCoreGetsItOrRefuses`. A single-case run prints no suite summary line, so the tally
+     is the two cases and none failed. -->
+<testsuite name="loop-selftest --case (the two driver cases)" tests="2" failures="0" errors="0">
+  <testcase name="driver#aCaseThatAsksForNoCoreCompilesNothing"/>
+  <testcase name="driver#aCaseThatAsksForTheCoreGetsItOrRefuses"/>
+</testsuite>

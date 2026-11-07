@@ -1,0 +1,8 @@
+# the two cases of this change against the check base 2f954a04b3f75e138c529fffe7985ca011375866 carries, 2026-10-30T06:59:57Z
+$ git show 2f954a04b3f75e138c529fffe7985ca011375866:tools/check-doc-routes.sh > <tmp>/tools/check-doc-routes.sh
+$ bash openspec/changes/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-probe.sh   # from <tmp>
+$ git show 2f954a04b3f75e138c529fffe7985ca011375866:tools/check-doc-routes.sh | grep -c "presence and"
+1
+FAIL routed-read#figure — a row stating 0.1 kB for a 1065-byte section was not reported: exit 0: check-doc-routes: all 1 section references resolve
+FAIL routed-read#range — a row stating the range 1.2–2.0 kB for sections measuring 1.1–3.1 kB was not reported: exit 0: check-doc-routes: all 2 section references resolve
+red-probe: 2 of 2 cases failed

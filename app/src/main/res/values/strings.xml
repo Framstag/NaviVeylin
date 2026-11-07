@@ -106,13 +106,24 @@
     <string name="auto_zoom">Auto zoom</string>
     <string name="keep_screen_on">Keep screen on</string>
     <string name="lane_instructions">Lane instructions</string>
+    <!-- Spoken guidance switches (spec: voice-guidance — The phone offers both switches in its
+         settings sheet). "Voice guidance" is the phone's own switch; "GPS announcements" is the one
+         value both surfaces share and is off by default. -->
+    <string name="voice_guidance_switch">Voice guidance</string>
+    <string name="gps_announcements_switch">GPS announcements</string>
     <string name="overspeed_warning_delta">Overspeed warning</string>
     <string name="vehicle_position">Vehicle position</string>
     <string name="vehicle_position_routing">Vehicle position (navigation)</string>
     <string name="vehicle_position_free_driving">Vehicle position (free driving)</string>
     <string name="overspeed_delta_value">+%1$d km/h</string>
+    <string name="long_press_timeout">Long-press delay</string>
+    <string name="long_press_timeout_value">%1$d ms</string>
     <string name="max_speed_section">Routing speed</string>
     <string name="max_speed_value">%1$d km/h</string>
+    <string name="avoidance_section">Routing avoidance</string>
+    <string name="avoid_tolls">Avoid toll roads</string>
+    <string name="avoid_ferries">Avoid ferry routes</string>
+    <string name="avoid_unpaved">Avoid unpaved roads</string>
     <string name="dark_mode">Dark mode</string>
     <string name="ambient_light_dark_mode">Adaptive by ambient light</string>
     <string name="on">On</string>
@@ -156,6 +167,24 @@
     <string name="calculating_route">Calculating route...</string>
     <string name="calculating_route_percent">Calculating route… %1$d%%</string>
     <string name="stop_navigation">Stop Navigation</string>
+    <!-- Spoken turn-by-turn guidance (spec: voice-guidance). A sentence is composed from these
+         fragments in the order the native voice agent emits its samples. -->
+    <string name="voice_after_distance_meters">after %1$d meters</string>
+    <string name="voice_after_distance_yards">after %1$d yards</string>
+    <string name="voice_then">then</string>
+    <string name="voice_turn_left">turn left</string>
+    <string name="voice_turn_right">turn right</string>
+    <string name="voice_sharp_left">turn sharp left</string>
+    <string name="voice_sharp_right">turn sharp right</string>
+    <string name="voice_straight">continue straight</string>
+    <string name="voice_roundabout">at the roundabout</string>
+    <string name="voice_roundabout_exit">take exit %1$d</string>
+    <string name="voice_motorway_exit">leave the motorway</string>
+    <string name="voice_motorway_exit_left">leave the motorway to the left</string>
+    <string name="voice_motorway_exit_right">leave the motorway to the right</string>
+    <string name="voice_arrive">you have arrived</string>
+    <string name="voice_gps_found">GPS signal restored</string>
+    <string name="voice_gps_lost">GPS signal lost</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
     <!-- Free-driving notification title (spec: i18n-l10n — All user-facing text is
@@ -186,6 +215,10 @@
     <string name="clear">Clear</string>
     <string name="route_summary">Route Summary</string>
     <string name="steps">Steps</string>
+    <!-- A calculated route that carries no structured steps: the list states why it is empty
+         instead of inventing rows (spec: `route-analysis` — A route without per-step values still
+         lists its steps). -->
+    <string name="route_steps_unavailable">This route carries no steps.</string>
     <string name="route_overlay_expand">Expand route panel</string>
     <string name="route_overlay_collapse">Collapse route panel</string>
     <string name="close">Close</string>
@@ -220,6 +253,7 @@
     <string name="basemap_unavailable">Basemap unavailable</string>
     <string name="basemap_delete_failed">Failed to delete basemap</string>
     <string name="basemap_repository_version">Basemap version %1$d on this repository</string>
+    <string name="basemap_outdated_format">Installed data format %1$d, this build reads %2$d — delete the basemap and download it again</string>
     <string name="installed_from_source">from %1$s</string>
     <string name="source_repository_label">Repository</string>
     <string name="repository_url_label">Repository URL</string>
@@ -350,4 +384,87 @@
          coordinate label. Owned by the surface, not by the shared :core resolver
          (spec: i18n-l10n — shared module owns no wording). -->
     <string name="location_title_generic">Location</string>
+    <!-- Shown when no installed app handles a tapped contact link (phone/website row of the
+         details dialog). Transient; the dialog stays open. -->
+    <string name="details_contact_link_unhandled">No app can open this link</string>
+
+    <!-- Description vocabulary of the native description service (libosmscout DescriptionService):
+         the section names, subsection names and label keys it publishes as English constants.
+         Keyed on the value that crosses the bridge, which is what the row carries
+         (spec: i18n-l10n — Native description labels are localized at the frontend). -->
+    <string name="description_label_access">Access</string>
+    <string name="description_label_access_restricted">AccessRestricted</string>
+    <string name="description_label_address">Address</string>
+    <string name="description_label_admin_level">AdminLevel</string>
+    <string name="description_label_bicycle">Bicycle</string>
+    <string name="description_label_bounding_box">BoundingBox</string>
+    <string name="description_label_brand">Brand</string>
+    <string name="description_label_bridge">Bridge</string>
+    <string name="description_label_capacity">Capacity</string>
+    <string name="description_label_car">Car</string>
+    <string name="description_label_carriageway_ref">CarriagewayRef</string>
+    <string name="description_label_cell_level">CellLevel</string>
+    <string name="description_label_center">Center</string>
+    <string name="description_label_charging_station">ChargingStation</string>
+    <string name="description_label_clockwise">Clockwise</string>
+    <string name="description_label_commercial">Commercial</string>
+    <string name="description_label_condition">Condition</string>
+    <string name="description_label_construction_year">ConstructionYear</string>
+    <string name="description_subsection_index">%1$s %2$d</string>
+    <string name="description_label_contact">Contact</string>
+    <string name="description_label_coordinate">Coordinate</string>
+    <string name="description_label_cycle_lane">CycleLane</string>
+    <string name="description_label_cycle_track">CycleTrack</string>
+    <string name="description_label_destination">Destination</string>
+    <string name="description_label_destination_backward">DestinationBackward</string>
+    <string name="description_label_destination_forward">DestinationForward</string>
+    <string name="description_label_distance">Distance</string>
+    <string name="description_label_embankment">Embankment</string>
+    <string name="description_label_fee">Fee</string>
+    <string name="description_label_foot">Foot</string>
+    <string name="description_label_from">From</string>
+    <string name="description_label_general">General</string>
+    <string name="description_label_geometry">Geometry</string>
+    <string name="description_label_grade">Grade</string>
+    <string name="description_label_highway_milestone">HighwayMilestone</string>
+    <string name="description_label_id">Id</string>
+    <string name="description_label_is_in">IsIn</string>
+    <string name="description_label_kind">Kind</string>
+    <string name="description_label_lanes">Lanes</string>
+    <string name="description_label_lanes_backward">LanesBackward</string>
+    <string name="description_label_lanes_forward">LanesForward</string>
+    <string name="description_label_layer">Layer</string>
+    <string name="description_label_level">Level</string>
+    <string name="description_label_location">Location</string>
+    <string name="description_label_marker">Marker</string>
+    <string name="description_label_max_speed">MaxSpeed</string>
+    <string name="description_label_max_stay">MaxStay</string>
+    <string name="description_label_name">Name</string>
+    <string name="description_label_name_alt">NameAlt</string>
+    <string name="description_label_name_ref">NameRef</string>
+    <string name="description_label_name_short">NameShort</string>
+    <string name="description_label_navigation">Navigation</string>
+    <string name="description_label_network">Network</string>
+    <string name="description_label_oneway">Oneway</string>
+    <string name="description_label_opening_hours">OpeningHours</string>
+    <string name="description_label_operator">Operator</string>
+    <string name="description_label_output">Output</string>
+    <string name="description_label_payment">Payment</string>
+    <string name="description_label_phone">Phone</string>
+    <string name="description_label_postal_code">PostalCode</string>
+    <string name="description_label_presence">Presence</string>
+    <string name="description_label_ref">Ref</string>
+    <string name="description_label_roundabout">Roundabout</string>
+    <string name="description_label_sideways">Sideways</string>
+    <string name="description_label_socket">Socket</string>
+    <string name="description_label_to">To</string>
+    <string name="description_label_tunnel">Tunnel</string>
+    <string name="description_label_turn_backward">TurnBackward</string>
+    <string name="description_label_turn_forward">TurnForward</string>
+    <string name="description_label_type">Type</string>
+    <string name="description_label_value">Value</string>
+    <string name="description_label_walk_track">WalkTrack</string>
+    <string name="description_label_way">Way</string>
+    <string name="description_label_website">Website</string>
+    <string name="description_label_width">Width</string>
 </resources>

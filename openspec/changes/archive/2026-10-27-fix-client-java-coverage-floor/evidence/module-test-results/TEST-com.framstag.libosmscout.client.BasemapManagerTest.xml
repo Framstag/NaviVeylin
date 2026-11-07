@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.BasemapManagerTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-10-27T01:53:46.206Z" hostname="dingens" time="0.355">
+  <properties/>
+  <testcase name="testParseDirectoryListingDates()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.012"/>
+  <testcase name="testParseDirectoryListingNames()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.003"/>
+  <testcase name="testParseDirectoryListingSizes()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.003"/>
+  <testcase name="testSortOrderNewestFirst()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.005"/>
+  <testcase name="testFetchAvailableBasemapsYieldsNothingWhenTheServerFails()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.161"/>
+  <testcase name="testDownloadOfAWrappedArchiveFlattensTheSubdirectory()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.036"/>
+  <testcase name="testVersionDateParsing()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.003"/>
+  <testcase name="testDeleteBasemapRemovesDirectory()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.002"/>
+  <testcase name="testLiveServerListingIncludesNewNaming()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.008"/>
+  <testcase name="testArchiveLabel()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.008"/>
+  <testcase name="testFetchAvailableBasemapsReadsTheDirectoryListing()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.016"/>
+  <testcase name="testParseEmptyListing()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testDownloadFailureCleansUpAndKeepsExisting()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.012"/>
+  <testcase name="testIsUpdateAvailableNoBasemap()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testParseListingWithNoTarGz()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.002"/>
+  <testcase name="testGetBasemapDirectory()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testParseDirectoryListingReturnsTarGzOnly()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.002"/>
+  <testcase name="testArchiveSizeHuman()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.003"/>
+  <testcase name="testArchiveIsMinimal()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.003"/>
+  <testcase name="testIsBasemapInstalledNoDir()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testCancelDownloadCleansUp()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.023"/>
+  <testcase name="testDeleteBasemap()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testExtractTarGzWithDirectory()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.002"/>
+  <testcase name="testGetBasemapBaseUrl()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testExtractTarGz()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.001"/>
+  <testcase name="testSuccessfulDownloadInstallsTheBasemap()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.009"/>
+  <testcase name="testFetchAvailableBasemapsYieldsNothingWhenTheServerIsUnreachable()" classname="com.framstag.libosmscout.client.BasemapManagerTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[[BasemapManager] Server returned 500 for http://127.0.0.1:41465/basemap/
+[BasemapManager] Server returned 500 for http://127.0.0.1:41465/basemap/
+[BasemapManager] Starting download: http://127.0.0.1:40871/basemap/basemap-260803-dist.tar.gz
+[BasemapManager] Temp file: /tmp/basemap-4378379249089603204.tar.gz
+[BasemapManager] Final dir: /tmp/basemap-wrapped149789256726116390/basemap
+[BasemapManager] Download complete: 104 bytes
+[BasemapManager] Extracting to: /tmp/basemap-extract-6585747931522475700
+[BasemapManager] Extraction complete
+[BasemapManager] Flattening single subdirectory: BaseMap-2026-02-23
+[BasemapManager] Basemap installed at: /tmp/basemap-wrapped149789256726116390/basemap
+[BasemapManager] Starting download: http://127.0.0.1:35631/basemap/BaseMap-2026-02-23.tar.gz
+[BasemapManager] Temp file: /tmp/basemap-10291789147451705153.tar.gz
+[BasemapManager] Final dir: /tmp/basemap-maps12100380997357755312/basemap
+[BasemapManager] Server returned HTTP 404 for http://127.0.0.1:35631/basemap/BaseMap-2026-02-23.tar.gz
+[BasemapManager] Download failed: Server returned HTTP 404 for http://127.0.0.1:35631/basemap/BaseMap-2026-02-23.tar.gz
+[BasemapManager] Starting download: http://127.0.0.1:36659/basemap/BaseMap-2026-02-23.tar.gz
+[BasemapManager] Temp file: /tmp/basemap-9243380900934383548.tar.gz
+[BasemapManager] Final dir: /tmp/basemap-maps4981431821035718367/basemap
+[BasemapManager] Download cancelled
+[BasemapManager] Download failed: Download cancelled
+[BasemapManager] Starting download: http://127.0.0.1:45575/basemap/BaseMap-2026-02-23.tar.gz
+[BasemapManager] Temp file: /tmp/basemap-16696753459518889278.tar.gz
+[BasemapManager] Final dir: /tmp/basemap-maps6200069344779351650/basemap
+[BasemapManager] Download complete: 65 bytes
+[BasemapManager] Extracting to: /tmp/basemap-extract-4063889692868944995
+[BasemapManager] Extraction complete
+[BasemapManager] Basemap installed at: /tmp/basemap-maps6200069344779351650/basemap
+[BasemapManager] Error probing basemap at http://127.0.0.1:1/basemap/: Verbindungsaufbau abgelehnt
+]]></system-err>
+</testsuite>

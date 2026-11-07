@@ -1,0 +1,46 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=42d3e0004206ebfee39e11942db0bef375e1909e paths=28 insertions=617 deletions=4
+LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt
+LOOP-MEASURE-PATH core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt
+LOOP-MEASURE-PATH guidelines/UI.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/green-after-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/green-after-fix.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/red-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/tasks.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=276 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-diagnostics-read-retries-a-missed-drain scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-diagnostics-read-retries-a-missed-drain/evidence/green-after-fix.xml tests=11 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-diagnostics-read-retries-a-missed-drain/evidence/red-on-head.xml tests=11 failures=1
+LOOP-MEASURE-TALLY openspec/changes/fix-diagnostics-read-retries-a-missed-drain/evidence/revert-check-mutated.xml tests=11 failures=1
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 0 fixtures — grep -rn 'readEntries\|readEntriesAsync' --include=*.kt
+LOOP-MEASURE-END

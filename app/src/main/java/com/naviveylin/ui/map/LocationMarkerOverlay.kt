@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.naviveylin.core.GpsMarkerPalette
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleMarkerGeometry
 import android.graphics.Paint as AndroidPaint
@@ -84,7 +85,15 @@ fun LocationMarkerOverlay(
         val bearingDegrees = ProjectionUtils.screenBearing(rawBearing, viewport.angle).toFloat()
 
         if (accuracyRadiusPx >= POOR_ACCURACY_THRESHOLD_PX) {
-            drawAccuracyCircle(center, accuracyRadiusPx)
+            // The ring dims with the presentation (spec: gps-location-marker — "Accuracy circle follows
+            // the resolved presentation"): one shared value for phone and Android Auto, while the radius
+            // and the stroke width below stay presentation-independent.
+            drawAccuracyCircle(
+                center = center,
+                radiusPx = accuracyRadiusPx,
+                fillColor = Color(GpsMarkerPalette.accuracyFill(dark)),
+                borderColor = Color(GpsMarkerPalette.accuracyBorder(dark))
+            )
         }
 
         drawCompassArrowWithShadow(center, bearingDegrees, dark)
@@ -132,14 +141,19 @@ internal fun applyZoomAnchorScale(pos: Offset, zoomScale: Float, zoomAnchor: Off
 
 private var markerLogCount: Int = 0
 
-private fun DrawScope.drawAccuracyCircle(center: Offset, radiusPx: Float) {
+private fun DrawScope.drawAccuracyCircle(
+    center: Offset,
+    radiusPx: Float,
+    fillColor: Color,
+    borderColor: Color
+) {
     drawCircle(
-        color = ACCURACY_FILL_COLOR,
+        color = fillColor,
         radius = radiusPx,
         center = center
     )
     drawCircle(
-        color = ACCURACY_BORDER_COLOR,
+        color = borderColor,
         radius = radiusPx,
         center = center,
         style = Stroke(width = 2.dp.toPx())
@@ -236,8 +250,6 @@ private fun DrawScope.drawBlurredPath(path: Path, blurPx: Float, color: Color) {
     }
 }
 
-private val ACCURACY_FILL_COLOR = Color(0x1A4A90D9)   // ~10% blue
-private val ACCURACY_BORDER_COLOR = Color(0x664A90D9) // ~40% blue
 private val MIN_RADIUS_DP: Dp = 4.dp
 internal const val MARGIN_PX = 100
 private const val POOR_ACCURACY_THRESHOLD_PX = 20f

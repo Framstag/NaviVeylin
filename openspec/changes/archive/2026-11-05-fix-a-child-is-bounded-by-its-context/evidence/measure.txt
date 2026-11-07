@@ -1,0 +1,71 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=122cc2f9 paths=6 insertions=289 deletions=11
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH guidelines/BacklogTooling.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 122cc2f9
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=316 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=235 failures=0 time=8s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=272s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs.sh_--check.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=15 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=22s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=74s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-sonar-workflow-selftest.sh.xml tests=11 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-sonar-workflow.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_ci-vcpkg-cache-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 16 of 36 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=2216 suites=36
+LOOP-MEASURE-CHANGE fix-a-child-is-bounded-by-its-context scenarios=25 cases=23 unnamed=2
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=235 failures=0 time=8s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs.sh_--check.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-action-runtimes-selftest.sh.xml tests=15 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=22s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=74s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-sonar-workflow-selftest.sh.xml tests=11 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-sonar-workflow.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_ci-vcpkg-cache-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_gen-feature-list-selftest.sh.xml tests=119 failures=0 time=13s
+LOOP-MEASURE-TALLY-MORE 15 of 35 tally files not shown — at most 20 per directory (openspec/changes/fix-a-child-is-bounded-by-its-context/evidence)
+LOOP-MEASURE-SURFACE surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 1 engine function added and 1 read added to `run_child`'s
+LOOP-MEASURE-END

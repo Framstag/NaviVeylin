@@ -24,6 +24,7 @@ import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.CarSurfaceOwner
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.ProjectionUtils
+import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.details.DetailsInput
 import com.naviveylin.core.details.DetailsResolver
 import com.naviveylin.core.formatCoordinatePair
@@ -325,7 +326,12 @@ class DetailsScreen(
     private fun buildTemplate(): Template {
         val onNavigate: () -> Unit = {
                 Log.d(TAG, "Navigate to: destination='${destinationName() ?: "-"}'")
-            navigationViewModel.navigateTo(lat, lon, destinationName())
+            navigationViewModel.navigateTo(
+                lat,
+                lon,
+                destinationName(),
+                SurfaceOrigin.CAR
+            )
         }
 
         val onShow: () -> Unit = {

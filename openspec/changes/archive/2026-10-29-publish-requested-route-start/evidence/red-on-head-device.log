@@ -1,0 +1,34 @@
+# Red on HEAD — RouteStartPositionDeviceTest, emulator-5554 (API 37, x86_64), Andorra map
+# date: 2026-10-29T17:30:41Z  HEAD: e22eec7e  submodule: ac405ff49
+
+$ adb shell run-as com.framstag.naviveylin ls files/maps
+andorra
+
+$ adb logcat -c; adb shell am instrument -w -e class com.naviveylin.route.RouteStartPositionDeviceTest com.framstag.naviveylin.test/androidx.test.runner.AndroidJUnitRunner
+
+com.naviveylin.route.RouteStartPositionDeviceTest:.
+Error in publishedStartIsTheRequestedStartPosition(com.naviveylin.route.RouteStartPositionDeviceTest):
+java.lang.AssertionError: the published polyline starts 80 m from the requested start (hillside above Andorra la Vella); it must start where the caller asked to depart
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.naviveylin.route.RouteStartPositionDeviceTest.publishedStartIsTheRequestedStartPosition(RouteStartPositionDeviceTest.kt:204)
+..
+
+Time: 1.24
+There was 1 failure:
+1) publishedStartIsTheRequestedStartPosition(com.naviveylin.route.RouteStartPositionDeviceTest)
+java.lang.AssertionError: the published polyline starts 80 m from the requested start (hillside above Andorra la Vella); it must start where the caller asked to depart
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.naviveylin.route.RouteStartPositionDeviceTest.publishedStartIsTheRequestedStartPosition(RouteStartPositionDeviceTest.kt:204)
+
+FAILURES!!!
+Tests run: 4,  Failures: 1
+
+
+
+$ adb logcat -d -s RouteStartPosition
+10-29 18:30:43.409  6771  6786 I RouteStartPosition: on-network start: published first point 0 m from the request, first segment 67 m
+10-29 18:30:43.558  6771  6786 I RouteStartPosition: requested start vs published first point 80 m, vs first step 80 m, first segment 120 m, total 8897 m
+10-29 18:30:43.736  6771  6786 I RouteStartPosition: first step is 0 m from the nearest polyline vertex
+10-29 18:30:43.896  6771  6786 I RouteStartPosition: lengths: total 8897 m, step legs 8897 m, last step from start 8897 m, drawn polyline 8912 m

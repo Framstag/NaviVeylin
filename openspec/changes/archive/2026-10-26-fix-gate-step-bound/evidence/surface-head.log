@@ -1,0 +1,24 @@
+== base abb6a8c4: the rule's places ==
+$ git show abb6a8c4:tools/loop-mutations.sh | grep -c "@-@tools/loop/gate.sh@"
+9
+$ git show abb6a8c4:tools/loop-cases.sh | grep -c "^case_gate_"
+16
+$ git show abb6a8c4:tools/loop-cases.sh | grep -n "^case_gate_aStepEnds\|^case_gate_theSuitesOutput\|^case_gate_aFailingSuite\|^case_gate_theSummaryNames"
+3090:case_gate_theSuitesOutputReachesTheConsoleWhileItRuns() {
+3143:case_gate_aStepEndsWithItsCommandNotWithItsWatchers() {
+3199:case_gate_aFailingSuiteIsReadFromTheSameStream() {
+3242:case_gate_aFailingSuiteWithNoSummaryInventsNoTest() {
+3326:case_gate_theSummaryNamesWhatEachSuiteCost() {
+$ git show abb6a8c4:tools/loop/loop.conf | grep -n "LOOP_CASE_MAX_SECONDS\|LOOP_GATE_STEP_MAX_SECONDS\|LOOP_CHILD_MAX_SECONDS"
+52:LOOP_CHILD_MAX_SECONDS=2700
+62:# because a Gradle gate plus its daemons needs more than that to finish inside `LOOP_CHILD_MAX_SECONDS`. `0`
+99:# worker that ran that gate was then ended by its own `LOOP_CHILD_MAX_SECONDS`, and the item it was working on was
+104:LOOP_CASE_MAX_SECONDS=900
+138:# outlasts `LOOP_CHILD_MAX_SECONDS` blocks the item instead of being retried (issue #203).
+$ git show abb6a8c4:tools/loop/gate.sh | grep -n "run_step\|wait \"\$step\"\|tee "\$stream""
+56:# A step's output is followed in its file, not carried on a pipe (issue #315). `$cmd 2>&1 | tee "$stream"` reads to EOF,
+184:run_step() { # <command> → the command's status
+195:  wait "$step"
+212:  run_step "$cmd"
+$ grep -rn "LOOP_GATE_STEP_MAX_SECONDS" guidelines/ openspec/specs/ | wc -l
+0

@@ -1,0 +1,30 @@
+== 2026-10-25T00:09:08Z — 58.1 run#reviewRoundsCapAtTwo (the refusing last round named as the mechanism that stopped the item (issue #280))
+  and the record names the refusing round as the mechanism that stopped it (issue #280): expected 'refused', got 'null'
+FAIL run#reviewRoundsCapAtTwo
+loop-selftest: 1 of 1 cases failed
+   case exit=1
+   restored
+== 2026-10-25T00:09:23Z — 58.2 run#doesNotCloseOnAMergeTheBaseCannotTake (a base that would not take the branch named as the other mechanism (issue #280))
+  and the record names the base's refusal as the mechanism that stopped it (issue #280): expected 'unmergeable', got 'null'
+FAIL run#doesNotCloseOnAMergeTheBaseCannotTake
+loop-selftest: 1 of 1 cases failed
+   case exit=1
+   restored
+== 2026-10-25T00:09:33Z — 58.3 state#aBlockedItemNamesTheMechanismThatStoppedIt (the mechanism written into the item record (issue #280))
+  the refusing round is recorded as its own mechanism: expected 'refused', got 'null'
+FAIL state#aBlockedItemNamesTheMechanismThatStoppedIt
+loop-selftest: 1 of 1 cases failed
+   case exit=1
+   restored
+== 2026-10-25T00:09:35Z — 58.4 report#wallTimeAndReasonInTheTable (the mechanism printed in a column of its own, beside the spend (issue #280))
+  the mechanism that stopped the block is in a column of its own: expected 'refused', got '-'
+FAIL report#wallTimeAndReasonInTheTable
+loop-selftest: 1 of 1 cases failed
+   case exit=1
+   restored
+== 2026-10-25T00:09:37Z — 58.5 report#wallTimeAndReasonInTheTable (`-` in the stop column of a row no mechanism stopped (issue #280))
+  while a closure's stop column prints -: expected '-', got ''
+FAIL report#wallTimeAndReasonInTheTable
+loop-selftest: 1 of 1 cases failed
+   case exit=1
+   restored

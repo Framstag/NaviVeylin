@@ -1,0 +1,4 @@
+body: a prose line that ends at the close delimiter
+  unmutated (column 0 required): []
+  mutated   (anywhere in the line): [the record is written on a line of its own, and the grammar reads: <!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->]
+noticed: the column-0 clause is what makes a prose line ending at the close a quotation

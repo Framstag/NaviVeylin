@@ -1,0 +1,24 @@
+adapter#modeFlagIsItsOwnArgument|   the child sees the mode flag as two arguments, then the context switch, then the prompt: expected '--mode
+adapter#modeFlagIsItsOwnArgument| json
+adapter#modeFlagIsItsOwnArgument| --no-context-files
+adapter#modeFlagIsItsOwnArgument| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.NS6D2c/cases/0/tree/case.vug2TX/prompt.md', got '--mode
+adapter#modeFlagIsItsOwnArgument| json
+adapter#modeFlagIsItsOwnArgument| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.NS6D2c/cases/0/tree/case.vug2TX/prompt.md'
+adapter#theChildIsStartedWithoutContextFiles|   the child is started without the project's context files (issue #661): '--no-context-files' not found in: --mode
+adapter#theChildIsStartedWithoutContextFiles| json
+adapter#theChildIsStartedWithoutContextFiles| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.NS6D2c/cases/1/tree/case.QYlr44/prompt.md
+--- adapter#modeFlagIsItsOwnArgument[0] (exit 1)
+  the child sees the mode flag as two arguments, then the context switch, then the prompt: expected '--mode
+json
+--no-context-files
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.NS6D2c/cases/0/tree/case.vug2TX/prompt.md', got '--mode
+json
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.NS6D2c/cases/0/tree/case.vug2TX/prompt.md'
+FAIL adapter#modeFlagIsItsOwnArgument
+--- [1] (exit 1)
+  the child is started without the project's context files (issue #661): '--no-context-files' not found in: --mode
+json
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.NS6D2c/cases/1/tree/case.QYlr44/prompt.md
+FAIL adapter#theChildIsStartedWithoutContextFiles
+loop-selftest: 2 of 2 cases failed
+EXIT=1

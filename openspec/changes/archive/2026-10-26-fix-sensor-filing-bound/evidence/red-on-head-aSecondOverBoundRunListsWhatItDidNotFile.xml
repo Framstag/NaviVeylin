@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/sensor-selftest.sh --case run#aSecondOverBoundRunListsWhatItDidNotFile" tests="1" failures="1" errors="0" time="3">
+  <system-out>  the bound's worth of conditions is filed: expected '2', got '3'
+FAIL run#aSecondOverBoundRunListsWhatItDidNotFile (2026-10-26T18:13:59Z)</system-out>
+</testsuite>

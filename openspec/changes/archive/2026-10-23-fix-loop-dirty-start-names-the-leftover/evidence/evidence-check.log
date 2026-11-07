@@ -1,0 +1,17 @@
+$ bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/archive/2026-10-23-fix-loop-dirty-start-names-the-leftover --root .
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 9 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 353 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit 0
+
+$ openspec validate agent-issue-loop --type spec --strict
+8
+Next steps:
+  - Ensure spec includes ## Purpose and ## Requirements sections
+  - Each requirement MUST include at least one #### Scenario: block
+  - Re-run with --json to see structured report
+exit 1 (the eight warnings above; the requirement this delta adds is not one of them)

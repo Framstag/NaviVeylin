@@ -3,6 +3,7 @@ package com.naviveylin.auto
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.core.AutoFavoritesProvider
+import com.naviveylin.core.FavoritesSnapshot
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -11,6 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
@@ -89,6 +93,14 @@ class FavoritesScreenObservationsTest {
         override suspend fun init(filePath: String): Boolean = false
         override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean = false
         override suspend fun removeFavorite(lat: Double, lon: Double): Boolean = false
+
+        /**
+         * The state a provider that has already resolved the store hands out without a dispatch; null
+         * until a case says otherwise (issue #110).
+         */
+        var snapshot: FavoritesSnapshot? = null
+
+        override fun snapshotIfResolved(): FavoritesSnapshot? = snapshot
     }
 
     private val provider = FakeFavoritesProvider()
@@ -258,5 +270,49 @@ class FavoritesScreenObservationsTest {
 
         assertEquals("the current order is applied exactly once", 1, applied.size - before)
         assertEquals(listOf("Zweite", "Default"), applied.last().second)
+    }
+
+    /**
+     * Issue #110 (spec: auto-favorites — A ready store's state is published without waiting for the
+     * hop): on a cold session the map's first frame holds the background threads and the CPU, so the
+     * `withContext` that resolves the provider arrived 623–1715 ms after the observation started while
+     * the store had been ready for seconds — the loading row stayed on screen although the list was
+     * known. A resolved store's state therefore reaches the screen from the start of the period, not
+     * from the hop.
+     *
+     * The hop's dispatcher is a dispatcher on its own, never-advanced scheduler, so only the synchronous
+     * publish can have happened — no wait, no proxy for the state the case asserts.
+     */
+    @Test
+    fun aResolvedStoresStateReachesTheScreenBeforeTheBackgroundHop() = runTest(mainDispatcher.dispatcher) {
+        val observations = CarScreenObservations(UnconfinedTestDispatcher(testScheduler))
+        provider.snapshot = FavoritesSnapshot(
+            favorites = favorite("Home"),
+            groupOrder = listOf("Default"),
+            starredOrder = emptyList(),
+            storeReady = true
+        )
+
+        wiring(observations, backgroundDispatcher = StandardTestDispatcher(TestCoroutineScheduler())).start()
+
+        assertEquals("the resolved store's state reaches the screen without the hop", 1, applied.size)
+        assertEquals("Home", applied.single().first.values.flatten().single().name)
+        assertEquals(listOf("Default"), applied.single().second)
+        assertTrue("the state carries the store's readiness", readiness.single())
+    }
+
+    /**
+     * The guard on the case above: a provider that has not resolved the store answers null, so the
+     * screen invents no state and the loading row stands until the hop publishes (spec: auto-favorites
+     * — An uninitialised store is not reported as empty).
+     */
+    @Test
+    fun anUnresolvedProviderPublishesNothingBeforeTheHop() = runTest(mainDispatcher.dispatcher) {
+        val observations = CarScreenObservations(UnconfinedTestDispatcher(testScheduler))
+        provider.snapshot = null
+
+        wiring(observations, backgroundDispatcher = StandardTestDispatcher(TestCoroutineScheduler())).start()
+
+        assertEquals("nothing is published before the resolution", 0, applied.size)
     }
 }

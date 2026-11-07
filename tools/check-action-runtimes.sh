@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Every workflow pin must be a major whose committed action metadata declares `runs.using: node24`.
+# Every workflow pin must be a major whose committed action metadata declares `runs.using: node24`, and every
+# `runs-on:` that names a hosted image must name a released one rather than a `-latest` label.
 #
 # GitHub's runner has deprecated Node 20 (`actions/*` migrations to Node 24 ran through the fall of 2025) and
 # forces a Node 20 action onto Node 24 with a warning on every step it runs. The runtime is a property of the
@@ -20,7 +21,15 @@
 # commit SHA cannot be resolved offline, so it is reported instead of assumed to be current.
 #
 # Reads text files only: no build, no device, no network. Exit 0 when every pin is at or above its action's
-# Node 24 floor, 1 when a pin is below it or cannot be resolved, 2 on a usage or layout error.
+# Node 24 floor and no `runs-on:` names a `-latest` label, 1 when one does not, 2 on a usage or layout error.
+#
+# The runner image is the second pin this check reads, and it is a pin for the same reason an action's major is:
+# a label's contents change without this repository's knowledge. Measured 2026-11-03 (issue #761): `ubuntu-latest`
+# began handing out `ubuntu-26.04`, where the vcpkg binary cache's client — `nuget.exe` under `mono` — cannot
+# complete its TLS handshake, so `Install vcpkg dependencies` went from 1–2 minutes to 62 and 73 minutes in the
+# two runs that landed there: 15 restore attempts all `Restored 0 package(s)`, 73 ports compiled from source, and
+# 99 failed pushes spanning 62 minutes. A released image (`ubuntu-24.04`) is a value this repository bumps on
+# purpose; `-latest` is a value GitHub bumps for it.
 #
 # Usage: check-action-runtimes.sh [--root <dir>]   # default root: the repository this script lives in
 set -uo pipefail
@@ -29,7 +38,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,27p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-action-runtimes: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -49,6 +58,7 @@ actions/cache 5 https://raw.githubusercontent.com/actions/cache/v5/action.yml
 actions/checkout 5 https://raw.githubusercontent.com/actions/checkout/v5/action.yml
 actions/setup-java 5 https://raw.githubusercontent.com/actions/setup-java/v5/action.yml
 actions/upload-artifact 6 https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml
+SonarSource/sonarqube-scan-action 7 https://raw.githubusercontent.com/SonarSource/sonarqube-scan-action/v7/action.yml
 '
 
 floor_of() { # floor_of <action> -> first node24 major, empty when unrecorded
@@ -76,6 +86,7 @@ evidence_of() { # evidence_of <action> -> the URL its floor was read from
 fail=0
 pins=0
 files=0
+images=0
 for file in "$workflows"/*.yml "$workflows"/*.yaml; do
   [ -e "$file" ] || continue
   files=$((files + 1))
@@ -141,6 +152,35 @@ for file in "$workflows"/*.yml "$workflows"/*.yaml; do
       fail=1
     fi
   done < "$file"
+  # the runner image, in the same file and the same pass count: a `runs-on:` that names a hosted image must name a
+  # released one. An expression (`${{ matrix.os }}`) and `self-hosted` are skipped — the first is resolved from a
+  # value the workflow itself pins, and the second runs on hardware this repository owns.
+  lineno=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
+    case "${line#"${line%%[![:space:]]*}"}" in
+      'runs-on:'*) ;;
+      *) continue ;;
+    esac
+    value=${line#*runs-on:}
+    value=${value%%#*}
+    value=$(printf '%s' "$value" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+    value=${value#\'}; value=${value%\'}
+    value=${value#\"}; value=${value%\"}
+    [ -n "$value" ] || continue
+    case "$value" in
+      *'${{'*) continue ;;   # an expression: the workflow pins the value it resolves from
+      self-hosted*) continue ;;
+    esac
+    images=$((images + 1))
+    rel=${file#"$root"/}
+    case "$value" in
+      *-latest)
+        echo "::error file=$rel,line=$lineno::'runs-on: $value' is a moving label — pin a released image, because the label's contents change without this repository's knowledge (a runner-image change cost 62 minutes of a 109-minute job when the vcpkg binary cache's client stopped working on the new image)"
+        fail=1
+        ;;
+      esac
+  done < "$file"
 done
 
 if [ "$files" -eq 0 ]; then
@@ -148,6 +188,6 @@ if [ "$files" -eq 0 ]; then
   exit 2
 fi
 if [ "$fail" -eq 0 ]; then
-  echo "action runtimes: $pins action pins across $files workflow files target Node 24."
+  echo "action runtimes: $pins action pins across $files workflow files target Node 24, and their $images hosted runner image(s) are pinned."
 fi
 exit "$fail"

@@ -1,0 +1,17 @@
+2026-11-06T18:49:22Z
+clean#reportsAnAgedItemDirectory|   a 0 retention releases nothing: 'kept every item' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/head-802/.pi/tmp/loop-selftest.b8e5Td/cases/0/tree/case.WSqh8i/repo/.pi/worktrees/loop — no build output of the loop's to remove
+clean#reportsAnAgedItemDirectory| loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+clean#reportsAnAgedItemDirectory| loop-clean: branches of the loop whose patches are in the base
+clean#reportsAnAgedItemDirectory| loop-clean: worktrees under .pi/worktrees that the run does not keep
+clean#reportsAnAgedItemDirectory| loop-clean: change sources the landed items consumed
+clean#reportsAnAgedItemDirectory| loop-clean: nothing to remove — 0 path(s) kept
+--- clean#reportsAnAgedItemDirectory[0] (exit 1)
+  a 0 retention releases nothing: 'kept every item' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/head-802/.pi/tmp/loop-selftest.b8e5Td/cases/0/tree/case.WSqh8i/repo/.pi/worktrees/loop — no build output of the loop's to remove
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+loop-clean: branches of the loop whose patches are in the base
+loop-clean: worktrees under .pi/worktrees that the run does not keep
+loop-clean: change sources the landed items consumed
+loop-clean: nothing to remove — 0 path(s) kept
+FAIL clean#reportsAnAgedItemDirectory
+loop-selftest: 1 of 1 cases failed
+2026-11-06T18:49:24Z

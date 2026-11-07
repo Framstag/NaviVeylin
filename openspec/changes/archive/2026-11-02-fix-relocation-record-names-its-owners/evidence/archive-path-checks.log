@@ -1,0 +1,55 @@
+# the checks the archived delta's own path owes — 2026-11-02T04:27:23Z
+# command: ./tools/loop/gate.sh --plan, run after the archive moved the delta into openspec/specs/
+# (the gate itself was run once, before the archive, over the two paths the delta edited)
+
+## bash tools/gen-feature-list.sh --check-classification
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1
+
+## tools/check-doc-routes.sh
+check-doc-routes: all 328 section references resolve, all 2 skill references resolve
+exit=0
+
+## tools/check-doc-routes-selftest.sh
+PASS  routed-read#range — a range a row states is the span of the lettered sections it names, and a past measurement in the same row is not compared
+PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
+check-doc-routes-selftest: all 33 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+exit=0
+
+## bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory
+rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry
+rule-with-no-name	rules#aRuleWithNoNameIsReported	a rule with no name is reported with its file and line instead of being skipped by the extraction, so the empty case cannot pass as a rule the tree does not count
+exit=0
+
+## tools/check-todo-references.sh
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 8001 file(s) excluded by the allowlist above
+exit=0
+
+## tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 3 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+## tools/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
+exit=0
+
+
+## note on the one red above
+gen-feature-list --check-classification is red for two other open changes' debt, not for this one:
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 182
+
+# this change adds a requirement to documentation-ownership, which is already classified; it introduces
+# no spec id, so it cannot move either number.

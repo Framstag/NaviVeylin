@@ -1,0 +1,3 @@
+after the fix 2026-10-25T12:18Z — bash tools/loop-selftest.sh --case 'driver#aCaseInsideItsBoundKeepsItsOwnVerdict'
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+status=0

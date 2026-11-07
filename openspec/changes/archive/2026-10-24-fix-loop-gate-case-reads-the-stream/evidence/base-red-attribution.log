@@ -1,0 +1,26 @@
+# The one case this change's gate reports red, and whose it is. Measured 2026-10-24.
+#
+# 1. The gate, in this change's tree (`gate.log`), after the fix:
+#      tests=209 failures=1 errors=0 (tools/loop-selftest.sh --from-git 0f366176 1111s)
+#      FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+#
+# 2. The same case, alone, on the base the gate measured — `.pi/worktrees/i296-base`, detached at 0f366176
+#    (main), with nothing of this change in it — the ritual of guidelines/Build.md §4d, step 1:
+$ bash tools/loop-selftest.sh --case 'run#aWriterTheRunCanPlaceBlocksTheItem'   # in .pi/worktrees/i296-base
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+#
+#    The message is byte-identical to the one the gate printed in this change's tree, and the reading is taken
+#    with the case running alone — so the red is neither this delta's nor the suite's own serial load.
+#
+# 3. It is already on record as the base's: `openspec/changes/archive/2026-10-23-fix-loop-label-write-failure-is-recorded/evidence/baseline-main-red.log`
+#    (`baseline279`, detached at main `d02b9d40`, 2026-10-23) carries the same three lines under
+#    "## run#aWriterTheRunCanPlaceBlocksTheItem — red on the base too, not this change". Item #288 is the
+#    change that owns it (writer attribution in `tools/loop/run.sh`), and #295 records it as the one stable
+#    intersection of two flapping suites.
+#
+# 4. This delta cannot reach it: the diff is `tools/loop-cases.sh` — the comment and the reading of
+#    `case_gate_theSuitesOutputReachesTheConsoleWhileItRuns` — and it touches no engine file, no mutation record
+#    and not that case. The gate reports no other failure, so the suite's own flappers (#295's `prompt#` cases and
+#    `run#childOutlastingTheWallClockIsBlocked`) did not fire in this run either.

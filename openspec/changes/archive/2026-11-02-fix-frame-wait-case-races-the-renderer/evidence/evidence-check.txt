@@ -1,0 +1,12 @@
+# Round 2 (issue #743, review round 1 corrections): the archive moved and the strict assertion landed,
+# so the pointer check was run again, from the change root.
+# Command: bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer --root .
+# Taken: 2026-11-02, after evidence/review-round-2-corrections.md.
+ok   C1 §references: 5 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 11 pairs confirmed, 2 exempted (not retained), 1 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 386 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0

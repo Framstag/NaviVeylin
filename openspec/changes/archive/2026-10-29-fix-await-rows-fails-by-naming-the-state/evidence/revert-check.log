@@ -1,0 +1,32 @@
+# One revert-check mutation: the swallowed window restored (the assertNotNull commented out, marked
+# `REVERT-CHECK MUTATION`), then restored to the fix.
+
+## mutated — the case goes red again
+
+./gradlew --offline :auto:testDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.auto.StartupScreensTest"
+
+StartupScreensTest > awaitRowsNamesTheStateThatNeverArrived FAILED
+    java.lang.AssertionError: awaitRows returned rows for a state that never arrived, so the case fails later on a count
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.assertTrue(Assert.java:42)
+        at org.junit.Assert.assertNotNull(Assert.java:713)
+        at com.naviveylin.auto.StartupScreensTest.awaitRowsNamesTheStateThatNeverArrived(StartupScreensTest.kt:160)
+
+7 tests completed, 1 failed
+> Task :auto:testDebugUnitTest FAILED
+BUILD FAILED in 12s
+60 actionable tasks: 6 executed, 54 up-to-date
+
+# revert-check-mutated.xml: tests="7" failures="1" errors="0" timestamp="2026-10-29T08:10:46.519Z"
+
+## restored — the fix back, the class green, nothing left marked
+
+grep -c 'REVERT-CHECK MUTATION' auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt
+0
+
+./gradlew --offline :auto:testDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.auto.StartupScreensTest" --rerun-tasks
+
+BUILD SUCCESSFUL in 33s
+60 actionable tasks: 60 executed
+
+# revert-check-restored.xml: tests="7" failures="0" errors="0" timestamp="2026-10-29T08:11:29.442Z"

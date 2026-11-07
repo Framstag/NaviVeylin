@@ -11,17 +11,26 @@
 #
 #   pick                                    + agent/in-progress
 #   unpick                                  − agent/in-progress          (every exit path, incl. a signal)
-#   stale · unspecifiable · too-wide         + status/on-hold            (on the same issue; no new issue,
+#   unspecifiable · too-wide                 + status/on-hold            (on the same issue; no new issue,
 #     · not-spec-shaped · needs-target           and a comment that names the verdict and its one clause
 #                                                of evidence — a state change nobody can read is the
 #                                                defect #192, so the reason travels with the hold)
+#   (a verdict the profile's `roles.shapingVerdicts` names — `unspecifiable`, `too-wide`,
+#    `not-spec-shaped`, `needs-diagnosis` in this project — additionally takes `agent/needs-shaping`, in the
+#    same write, and its comment opens with the verdict word. That state is neither a hold nor a decision:
+#    it states that a person must reshape the item, and `tools/issues/shaping.sh` is its queue. The decision
+#    ceiling counts the decision label only, so nothing on this path can stop a run — capability
+#    `shaping-inbox`.)
+#   (the pre-screen no longer has `exclude-stale`: a citation the tree does not hold is reported and refuses
+#    nothing, #281. The worker's `stale` sub-verdict is not one of these holds any more either: a stale claim
+#    leaves a question, so the run escalates it and this writer has no `stale` verdict to write — issue #682)
 #   … and the improvement verdicts
 #   needs-device                            + agent/needs-device + status/on-hold
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold
-#   exclude-stale · exclude-feature ·
-#   exclude-settled                         + agent/<verdict>, status and the opt-in untouched — the
+#   exclude-feature · exclude-settled       + agent/<verdict>, status and the opt-in untouched — the
 #                                           pre-screen's own refusal, which a person clears
-#   close                                   − agent/in-progress, + status/fixed-by, then the closure
+#   close                                   − agent/in-progress, + status/fixed-by naming the transition, then the
+#                                           closure
 #   escalate                                + agent/needs-decision + status/on-hold, and a comment that
 #                                           names the root cause, the failing case and the branch
 #
@@ -64,6 +73,11 @@ separator="${separator:-/}"
 in_progress="agent${separator}$(loop_role inProgressAgent)"
 needs_device="agent${separator}$(loop_role deviceAgent)"
 needs_decision="agent${separator}$(loop_role decisionAgent)"
+# The shaping label (capability `shaping-inbox`): the value is the profile's, and a profile that declares no
+# shaping verdict writes none of it — the list answers which verdicts carry it, so no verdict is named here.
+shaping_agent=$(loop_role shapingAgent)
+shaping_label=""
+[ -z "$shaping_agent" ] || shaping_label="agent${separator}${shaping_agent}"
 hold_status=$(loop_role holdStatus)
 close_status=$(loop_role closeStatus)
 
@@ -83,13 +97,12 @@ case "$verdict" in
   unpick)
     remove_labels=("$in_progress")
     ;;
-  stale|unspecifiable|too-wide|not-spec-shaped|needs-target)
+  unspecifiable|too-wide|not-spec-shaped|needs-target)
     # The item is not thrown away and no new issue is filed for it: the verdict and its one clause of
     # evidence are what the run produces, and they are attached to the item itself (D6, #192).
     status_value="$hold_status"
     comment_only=1
     ;;
-  exclude-stale) add_labels=("agent${separator}$(loop_role excludedStaleAgent)") ;;
   exclude-feature) add_labels=("agent${separator}$(loop_role excludedFeatureAgent)") ;;
   exclude-settled) add_labels=("agent${separator}$(loop_role excludedSettledAgent)") ;;
   # The pre-screen's refusals the item cannot escape by itself (#163): the label is a refusal, so the
@@ -124,14 +137,34 @@ case "$verdict" in
     close_issue=1
     ;;
   *)
-    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, stale, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-stale, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
+    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
     ;;
 esac
 
 args=("$issue")
-if [ "${#add_labels[@]}" -gt 0 ]; then args+=(--label "${add_labels[@]}"); fi
+# A verdict the profile names as a shaping verdict carries the shaping label in the same write that records the
+# hold (or, for `needs-diagnosis`, the decision): one `update.sh` call, so there is no window in which the item
+# is held and nameless to the queue that exists for it (capability `shaping-inbox`, D5).
+wrote_shaping=0
+if [ -n "$shaping_label" ] && loop_shaping_verdicts "$verdict"; then
+  add_labels+=("$shaping_label")
+  wrote_shaping=1
+fi
+if [ "${#add_labels[@]}" -gt 0 ]; then
+  # One `--label` per label: the flag takes one value, and a second one would be read as an argument.
+  for label in "${add_labels[@]}"; do args+=(--label "$label"); done
+fi
 if [ "${#remove_labels[@]}" -gt 0 ]; then args+=(--remove-label "${remove_labels[@]}"); fi
-if [ -n "$status_value" ]; then args+=(--status "$status_value"); fi
+if [ -n "$status_value" ]; then
+  args+=(--status "$status_value")
+  # The `close` verdict's write IS the closure's transition, exactly as `close.sh`'s own is
+  # (`tools/issues/close.sh`): the item it closes may carry the *other* settled value of the profile — a fixed
+  # item a person retires, a retired entry a fix closes — and a write that records a settled state without
+  # naming the transition is refused by the guard every routine writer meets (exit 3, `status-settled`, #684).
+  # Naming it here is what lets the closure land and report the value it displaced instead of leaving the
+  # item half attempted between the two writes (#699).
+  [ "$close_issue" -eq 0 ] || args+=(--displace-settled)
+fi
 
 # Both arguments are required *before* anything is written: a call that forgets them used to leave the state
 # written and the reason missing, which is the half-written item the closure path already refuses to risk
@@ -146,7 +179,17 @@ if [ "${#add_labels[@]}" -gt 0 ] || [ "${#remove_labels[@]}" -gt 0 ] || [ -n "$s
 fi
 
 if [ "$close_issue" -eq 1 ] || [ "$escalate" -eq 1 ] || [ "$comment_only" -eq 1 ]; then
-  close_args=("$issue" --reason "$reason" --evidence "$evidence")
+  # A shaping verdict's comment states the verdict before the clause, because the queue prints the item's own
+  # record and a reader who is handed a clause without its verdict cannot tell what the run found (#243 is the
+  # same defect on the decision queue). `too-wide` states what the verdict means for the reader: the item wants
+  # splitting, and no verb here can split it.
+  comment_reason="$reason"
+  if [ "$wrote_shaping" -eq 1 ] && [ "$close_issue" -eq 0 ]; then
+    shaping_line="$verdict"
+    [ "$verdict" != "too-wide" ] || shaping_line="$verdict: the item wants splitting into children"
+    comment_reason="$shaping_line"$'\n\n'"**The shaping:** $reason"
+  fi
+  close_args=("$issue" --reason "$comment_reason" --evidence "$evidence")
   # `--may-close no` keeps the item open and still posts the comment: the deliverable is the evidence,
   # and whether the item is done is then a person's decision (D8). An escalation always leaves it open
   # for the same reason — the decision is the owner's.
@@ -157,5 +200,6 @@ fi
 if [ "$close_issue" -eq 1 ] && [ "$may_close" -eq 0 ]; then
   printf '%s #%s — status%s%s kept, item left open\n' "$verdict" "$issue" "$separator" "$status_value"
 else
-  printf '%s #%s\n' "$verdict" "$issue"
+  # The label the call wrote is named on stdout, so a run's own log states what the tracker now carries.
+  printf '%s #%s%s\n' "$verdict" "$issue" "$([ "$wrote_shaping" -eq 1 ] && printf ' + %s' "$shaping_label")"
 fi

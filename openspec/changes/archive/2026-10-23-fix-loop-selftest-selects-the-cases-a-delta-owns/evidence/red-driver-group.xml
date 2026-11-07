@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --group driver (HEAD driver)" tests="10" failures="4" errors="0" time="0">
+  <system-out>  the driver could not print the declared file set: loop-selftest: unknown argument --case-files FAIL driver#everyCaseDeclaresTheFilesItCanReach loop-selftest: 4 of 10 cases failed </system-out>
+</testsuite>

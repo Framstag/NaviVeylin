@@ -8,7 +8,7 @@ import android.content.Intent
 import androidx.car.app.notification.CarAppExtender
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.MainActivity
 import com.naviveylin.core.ManeuverSymbols
@@ -40,7 +40,7 @@ class NavigationNotificationBuilderTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val resolver = context.stringResolver()
 
-    private val instruction = RouteInstruction(
+    private val instruction = stepOf(
         250.0,
         TurnType.LEFT,
         "Hauptstrasse",
@@ -50,7 +50,7 @@ class NavigationNotificationBuilderTest {
 
     private val navigationState = NavigationState(
         isNavigating = true,
-        nextInstruction = instruction,
+        nextStep = instruction,
         destinationName = "Home",
         remainingDistance = 12_400.0,
         etaMillis = 1_700_000_000_000L
@@ -209,12 +209,12 @@ class NavigationNotificationBuilderTest {
     @Test
     fun `the car hint carries the manoeuvre's own roundabout exit number`() {
         // The formatter is what puts the number into the hint the builder reads.
-        val instruction = RouteInstruction(
+        val instruction = stepOf(
             350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
             "Take exit 3 onto Bahnhofstraße", "Exit 3",
             0.0, TurnType.STRAIGHT_ON, "", "", 3, true, 0
         )
-        val state = NavigationState(isNavigating = true, nextInstruction = instruction)
+        val state = NavigationState(isNavigating = true, nextStep = instruction)
 
         assertEquals(3, NavigationNotificationContentFormatter.carHint(state, resolver)!!.roundaboutExitNumber)
     }

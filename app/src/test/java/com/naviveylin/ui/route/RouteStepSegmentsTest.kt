@@ -1,5 +1,7 @@
 package com.naviveylin.ui.route
 
+import com.naviveylin.core.routeRows
+import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -58,19 +60,23 @@ class RouteStepSegmentsTest {
     }
 
     @Test
-    fun `a single step owns the leg from the route start to its manoeuvre`() {
+    fun `a single row covers the whole polyline`() {
+        // One row is the start and the arrival at once: it owns the polyline from its own boundary,
+        // the route's first vertex, to the route's last.
         assertEquals(
-            listOf(0..1),
+            listOf(0..3),
             stepSegments(straightLats, straightLons, 1, listOf(StepAnchor(0.0, 0.0009)))
         )
     }
 
     @Test
-    fun `two manoeuvres on the same vertex leave the later step without a leg`() {
+    fun `two manoeuvres on the same vertex leave the later row with the tail`() {
         val anchors = listOf(StepAnchor(0.0, 0.0009), StepAnchor(0.0, 0.0009))
 
+        // The later row is the arrival: its own boundary does not move, but the route's tail still
+        // belongs to it, so the rows tile the polyline to its end.
         assertEquals(
-            listOf(0..1, IntRange.EMPTY),
+            listOf(0..1, 1..3),
             stepSegments(straightLats, straightLons, 2, anchors)
         )
     }
@@ -115,5 +121,41 @@ class RouteStepSegmentsTest {
     @Test
     fun `no steps yields no ranges`() {
         assertTrue(stepSegments(straightLats, straightLons, 0, emptyList()).isEmpty())
+    }
+
+    /**
+     * The shape the bridge publishes for a snapped start (change `publish-requested-route-start`): the
+     * polyline's first vertex is the **requested** start and the second is the snapped node, so the start
+     * line's own row is anchored on vertex 0 and the first turn's leg begins there too.
+     *
+     * The anchors come from the real row pipeline ([routeRows] → [rowAnchors]) rather than from a hand-made
+     * list, because the row that has to line up with vertex 0 is the one that pipeline produces.
+     */
+    @Test
+    fun `aPrependedStartAnchorsStepZeroAndOwnsNoLeg`() {
+        // Vertex 0 is the prepended requested start, vertex 1 the snapped node the router chose, then the
+        // routed geometry to the manoeuvre and the arrival.
+        val lats = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0)
+        val lons = doubleArrayOf(0.0, 0.0002, 0.001, 0.002, 0.003)
+
+        val steps = listOf(
+            startStep(lat = 0.0, lon = 0.0),
+            turnStep(TurnType.RIGHT, lat = 0.0, lon = 0.002, legDistance = 200.0),
+            targetStep(lat = 0.0, lon = 0.003, legDistance = 100.0)
+        )
+        val anchors = rowAnchors(routeRows(steps))
+
+        // The derived rows are the start line, the turn and the arrival — index-aligned with the anchors,
+        // and the first anchor is the published start (vertex 0), not the snapped node.
+        assertEquals(3, anchors.size)
+        assertEquals(0.0, anchors[0].lat, 0.0)
+        assertEquals(0.0, anchors[0].lon, 0.0)
+
+        // Step 0 owns no leg; the first turn's leg starts at the prepended start, so its segment covers
+        // the approach together with the routed run to its own manoeuvre.
+        assertEquals(
+            listOf(IntRange.EMPTY, 0..3, 3..4),
+            stepSegments(lats, lons, anchors.size, anchors)
+        )
     }
 }

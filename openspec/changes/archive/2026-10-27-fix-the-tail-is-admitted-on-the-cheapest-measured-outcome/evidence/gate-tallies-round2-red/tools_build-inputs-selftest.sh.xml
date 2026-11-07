@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/build-inputs-selftest.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>PASS inputs#refusesAnotherCommitsRecord PASS inputs#noRecordExitsThree 11 cases, 0 failed</system-out>
+</testsuite>

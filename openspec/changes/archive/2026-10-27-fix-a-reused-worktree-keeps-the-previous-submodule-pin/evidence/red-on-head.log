@@ -1,0 +1,5 @@
+worktree#checksOutTheNewPinWhenItReusesTheWorktree|   the reused worktree is the tree the new base records: expected '', got ' M app/src/main/cpp/libosmscout'
+--- worktree#checksOutTheNewPinWhenItReusesTheWorktree[0] (exit 1)
+  the reused worktree is the tree the new base records: expected '', got ' M app/src/main/cpp/libosmscout'
+FAIL worktree#checksOutTheNewPinWhenItReusesTheWorktree
+loop-selftest: 1 of 1 cases failed

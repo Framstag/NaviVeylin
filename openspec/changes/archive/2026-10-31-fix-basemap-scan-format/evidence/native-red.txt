@@ -1,0 +1,33 @@
+# Red on HEAD: the scan registers a database whose data format this build does not read
+
+Command (in `app/src/main/cpp/libosmscout`, the submodule), with the two new cases in
+`Tests/src/MapManagerTest.cpp` and the fix stashed
+(`git stash push -- libosmscout-client/src/osmscoutclient/MapManager.cpp`, md5 before and after the
+cycle `0138c6880e7b0120c74eebb9937b5cbc`):
+
+    meson test -C hostbuild "Check map manager" --print-errorlogs
+
+Exit status 1. The failing assertion:
+
+    ../Tests/src/MapManagerTest.cpp:273: FAILED:
+      REQUIRE( manager->GetDatabaseDirectories().size()==1 )
+    with expansion:
+      3 == 1
+
+The scan published all three directories of the case's tree — the two whose `types.dat` names
+another data format version (26 and 28) beside the one whose version cannot be read:
+
+    Scanning maps lookup directory: /tmp/osmscout-mapmanager-format-version-2
+      found valid map 'db-newer-version' at /tmp/osmscout-mapmanager-format-version-2/db-newer-version (no metadata)
+      found valid map 'db-older-version' at /tmp/osmscout-mapmanager-format-version-2/db-older-version (no metadata)
+      found valid map 'db-unreadable-version' at /tmp/osmscout-mapmanager-format-version-2/db-unreadable-version (no metadata)
+    Lookup directory /tmp/osmscout-mapmanager-format-version-2 scan complete: 3 candidates, 3 valid, 0 invalid
+
+Run verdict:
+
+    test cases:  9 |  8 passed | 1 failed
+    assertions: 41 | 40 passed | 1 failed
+
+The second new case (`A database whose data format version cannot be read stays published`) passed
+on HEAD too: an empty or truncated `types.dat` is already admitted, and the fix must not change that
+— its scan line reads `2 candidates, 2 valid, 0 invalid`. 41 of the run's 43 assertions were reached.

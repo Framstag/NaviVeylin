@@ -1,0 +1,8 @@
+# The same command three more times, in this change root, each with the host as it stands.
+
+$ bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'   # 2026-10-24T10:27:51Z
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+$ bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'   # 2026-10-24T10:28:00Z
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+$ bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'   # 2026-10-24T10:28:10Z
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns

@@ -1,0 +1,16 @@
+# The gate's own start-up, and when its first two console lines appear. The harness is timing-probe.sh beside
+# this file, polled every 10 ms — the window HEAD's case used is printed beside each reading, and the host's
+# load is printed by the harness itself.
+
+host: 16 cpus, load 2.24 2.72 5.55
+run 1: `gate: bash` at 44 ms, the suite's first line at 44 ms, the window the case used was 1500 ms
+run 2: `gate: bash` at 45 ms, the suite's first line at 45 ms, the window the case used was 1500 ms
+run 3: `gate: bash` at 43 ms, the suite's first line at 43 ms, the window the case used was 1500 ms
+run 4: `gate: bash` at 44 ms, the suite's first line at 44 ms, the window the case used was 1500 ms
+
+# The same probe while 20 spinning shells at nice 0 hold the host: the start-up moves with the host,
+# and the case's window does not.
+host: 16 cpus, load 1.88 2.60 5.43
+run 1: `gate: bash` at 115 ms, the suite's first line at 115 ms, the window the case used was 1500 ms
+run 2: `gate: bash` at 141 ms, the suite's first line at 141 ms, the window the case used was 1500 ms
+run 3: `gate: bash` at 127 ms, the suite's first line at 127 ms, the window the case used was 1500 ms

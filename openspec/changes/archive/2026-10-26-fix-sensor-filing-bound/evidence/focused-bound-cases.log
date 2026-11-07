@@ -1,0 +1,21 @@
+===== bash tools/sensor-selftest.sh --case run#aRowPastItsBoundFilesItsBoundAndOneSummary  (2026-10-26T18:15:13Z)
+PASS run#aRowPastItsBoundFilesItsBoundAndOneSummary
+exit=0
+===== bash tools/sensor-selftest.sh --case run#aRowUnderItsBoundFilesNoSummary  (2026-10-26T18:15:19Z)
+PASS run#aRowUnderItsBoundFilesNoSummary
+exit=0
+===== bash tools/sensor-selftest.sh --case run#aRowDeclaresItsOwnBound  (2026-10-26T18:15:22Z)
+PASS run#aRowDeclaresItsOwnBound
+exit=0
+===== bash tools/sensor-selftest.sh --case run#theSummaryClearsWhenTheRowIsBackUnderItsBound  (2026-10-26T18:15:29Z)
+PASS run#theSummaryClearsWhenTheRowIsBackUnderItsBound
+exit=0
+===== bash tools/sensor-selftest.sh --case run#aSummaryClosedByAPersonIsNotReopened  (2026-10-26T18:15:32Z)
+PASS run#aSummaryClosedByAPersonIsNotReopened
+exit=0
+===== bash tools/sensor-selftest.sh --case run#aSecondOverBoundRunListsWhatItDidNotFile  (2026-10-26T18:15:35Z)
+PASS run#aSecondOverBoundRunListsWhatItDidNotFile
+exit=0
+===== bash tools/sensor-selftest.sh --case run#aFailedCheckDoesNotClearTheSummary  (2026-10-26T18:15:41Z)
+PASS run#aFailedCheckDoesNotClearTheSummary
+exit=0

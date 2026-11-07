@@ -1,0 +1,9 @@
+affected cases, after the fix 2026-10-25T01:31:40Z
+PASS run#childWriteOutsideTheWorktreeIsNoted
+status=0 run#childWriteOutsideTheWorktreeIsNoted
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+status=0 run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+status=0 run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+PASS run#recordsAFailedReviewOnTheBranch
+status=0 run#recordsAFailedReviewOnTheBranch

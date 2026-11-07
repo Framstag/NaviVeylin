@@ -36,6 +36,13 @@ public class OSMScoutClientBuilder {
     private String[] customPoiTypes;
     /** Default directory for downloaded maps. */
     private String mapsDirectory;
+    /**
+     * Language of the descriptions the client reports for the type of a found object.
+     * <p>
+     * The native build reads this field by name, so it has to stay a field on this class, not a
+     * parameter the caller passes through some other route.
+     */
+    private String descriptionLanguage = "en";
 
     /** Constructor. */
     public OSMScoutClientBuilder() {
@@ -165,6 +172,25 @@ public class OSMScoutClientBuilder {
      */
     public OSMScoutClientBuilder withMapsDirectory(String mapsDirectory) {
         this.mapsDirectory = mapsDirectory;
+        return this;
+    }
+
+    /**
+     * Set the language of the descriptions the client reports for the type of a found object.
+     * <p>
+     * A search result carries the description of its object type in this language when the
+     * database carries one. When the database does not carry that language, the English
+     * description answers; when the type carries no description at all, the description is
+     * empty, and the caller shows the technical type name (e.g. {@code amenity_bank}) instead.
+     * <p>
+     * Defaults to {@code "en"}. A running client changes it with
+     * {@link OSMScoutClient#setDescriptionLanguage(String)}.
+     *
+     * @param languageCode language code of the description, e.g. {@code "de"} or {@code "en"}
+     * @return this builder for chaining
+     */
+    public OSMScoutClientBuilder withDescriptionLanguage(String languageCode) {
+        this.descriptionLanguage = languageCode;
         return this;
     }
 

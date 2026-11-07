@@ -1,6 +1,9 @@
 package com.naviveylin.ui.map
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,7 +20,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.math.pow
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +44,19 @@ class MiniMapComposeTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    /**
+     * The applier's record is keyed on the client, so a fresh client starts clean; clearing it anyway
+     * keeps a case from inheriting a value another case recorded on a reused instance.
+     */
+    @Before
+    fun resetDaylightRecord() {
+        MapDaylightApplier.reset()
+    }
+
+    /** The index of the first native render in [FakeOSMScoutClient.variantCalls], or -1. */
+    private fun firstRenderIndex(client: FakeOSMScoutClient): Int =
+        client.variantCalls.indexOfFirst { it == "render" }
+
     /** Wait until the fake client saw a render at zoom level [expected] — the JNI
      *  boundary takes the scale factor 2^z; the fake stores it raw (continuous-pinch-zoom). */
     private fun awaitMag(client: FakeOSMScoutClient, expectedLevel: Double) = runBlocking {
@@ -55,7 +73,9 @@ class MiniMapComposeTest {
         lat: Double = 51.5,
         lon: Double = 7.4,
         mag: Double = 12.0,
-        onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
+        isDarkPresentation: Boolean = false,
+        onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null,
+        onStyleLoadFailure: ((String) -> Unit)? = null
     ) {
         composeRule.setContent {
             MiniMap(
@@ -64,7 +84,9 @@ class MiniMapComposeTest {
                 lon = lon,
                 initialMag = mag,
                 modifier = Modifier.size(200.dp),
-                onViewportChanged = onViewportChanged
+                isDarkPresentation = isDarkPresentation,
+                onViewportChanged = onViewportChanged,
+                onStyleLoadFailure = onStyleLoadFailure
             )
         }
     }
@@ -156,5 +178,184 @@ class MiniMapComposeTest {
 
         // A frame reached the widget (bitmap drawn, marker projected on top).
         assertTrue(client.renderWithRouteAndPoisCount.get() > 0 || client.renderCount.get() > 0)
+    }
+
+    @Test
+    fun darkPresentationPushesTheDarkDaylightFlag() {
+        val client = FakeOSMScoutClient()
+        launch(client, isDarkPresentation = true)
+
+        awaitMag(client, 12.0)
+
+        assertEquals(
+            "the first frame is rendered under the pushed dark variant",
+            listOf<Boolean?>(false),
+            client.daylightAtRender.distinct()
+        )
+        assertEquals(
+            "the mini map pushes the dark stylesheet variant",
+            listOf(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to false),
+            client.styleFlags.toList()
+        )
+        assertEquals(
+            "the push is the widget's first native call",
+            "flag:${MapCanvasViewModel.STYLE_FLAG_DAYLIGHT}=false",
+            client.variantCalls.firstOrNull()
+        )
+    }
+
+    @Test
+    fun lightPresentationPushesTheDaylightFlag() {
+        val client = FakeOSMScoutClient()
+        launch(client, isDarkPresentation = false)
+
+        awaitMag(client, 12.0)
+
+        // The ordering half, and the reason these two cases exist: the first frame the widget
+        // renders has to be rendered under the pushed variant. The renderer requests frames
+        // asynchronously, so native call order alone cannot show it — the fake records the flag
+        // value in effect at each render, and a push that lands after the first frame leaves a null
+        // (or previous) entry there.
+        assertEquals(
+            "every frame is rendered under the pushed light variant",
+            listOf<Boolean?>(true),
+            client.daylightAtRender.distinct()
+        )
+        assertEquals(
+            "the mini map pushes the light stylesheet variant, once",
+            listOf(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to true),
+            client.styleFlags.toList()
+        )
+        assertEquals(
+            "the push is the widget's first native call",
+            "flag:${MapCanvasViewModel.STYLE_FLAG_DAYLIGHT}=true",
+            client.variantCalls.firstOrNull()
+        )
+    }
+
+    @Test
+    fun aClientThatAlreadyCarriesTheVariantIsNotReloaded() {
+        // The main map (or an earlier mount of this widget) already applied the dark variant: the
+        // applier's record says so, so mounting the widget must not reload the stylesheet set —
+        // that reload is the cost guidelines/MapStyling.md §15 budgets (one per changed value).
+        val client = FakeOSMScoutClient()
+        MapDaylightApplier.record(client, true)
+
+        launch(client, isDarkPresentation = true)
+        awaitMag(client, 12.0)
+
+        assertEquals(
+            "no variant push for a value the client already carries",
+            emptyList<Pair<String, Boolean>>(),
+            client.styleFlags.toList()
+        )
+        assertTrue("the widget still requested a frame", firstRenderIndex(client) >= 0)
+    }
+
+    @Test
+    fun aRejectedVariantReloadIsReported() {
+        val client = FakeOSMScoutClient()
+        client.styleLoadSuccessful = false
+        val reported = java.util.concurrent.CopyOnWriteArrayList<String>()
+
+        launch(client, isDarkPresentation = true, onStyleLoadFailure = { reported.add(it) })
+        awaitMag(client, 12.0)
+
+        assertEquals(
+            "a rejected variant reload is reported once per attempt (spec: map-styles — \"Failure is " +
+                "reported once per attempt\")",
+            1,
+            reported.size
+        )
+        assertTrue(
+            "the message names the stylesheet that failed, got ${reported.firstOrNull()}",
+            reported.single().isNotBlank()
+        )
+    }
+
+    @Test
+    fun aValueAnotherWriterAppliedStillReRendersTheWidget() {
+        // The main map pushes first on a presentation flip (its collector runs before Compose
+        // recomposes the dialog), so the applier answers UNCHANGED here. The widget's own tile cache
+        // and front buffer are still its own to invalidate — otherwise the mini map keeps the old
+        // variant until the user pans or zooms, which is the second half of this item.
+        val client = FakeOSMScoutClient()
+        var dark by mutableStateOf(false)
+        composeRule.setContent {
+            MiniMap(
+                client = client,
+                lat = 51.5,
+                lon = 7.4,
+                initialMag = 12.0,
+                isDarkPresentation = dark,
+                modifier = Modifier.size(200.dp)
+            )
+        }
+        awaitMag(client, 12.0)
+        composeRule.waitForIdle()
+        runBlocking { delay(300) }
+        val rendersBefore = client.renderCount.get() + client.renderWithRouteAndPoisCount.get()
+        val pushesBefore = client.styleFlags.size
+
+        // What the main map does first: apply the dark variant on the shared client.
+        assertEquals(MapDaylightPush.APPLIED, MapDaylightApplier.push(client, true))
+        composeRule.runOnIdle { dark = true }
+        composeRule.waitForIdle()
+
+        runBlocking {
+            withTimeout(10_000) {
+                while (client.renderCount.get() + client.renderWithRouteAndPoisCount.get() <= rendersBefore) {
+                    delay(10)
+                }
+            }
+        }
+        assertEquals(
+            "the widget paid no second native push for a value the client already carried",
+            pushesBefore + 1,
+            client.styleFlags.size
+        )
+        assertEquals(
+            "the frame the widget rendered after the flip carries the dark variant",
+            false,
+            client.daylightAtRender.last()
+        )
+    }
+
+    @Test
+    fun presentationChangeReRendersTheMiniMap() {
+        val client = FakeOSMScoutClient()
+        var dark by mutableStateOf(false)
+        composeRule.setContent {
+            MiniMap(
+                client = client,
+                lat = 51.5,
+                lon = 7.4,
+                initialMag = 12.0,
+                isDarkPresentation = dark,
+                modifier = Modifier.size(200.dp)
+            )
+        }
+        awaitMag(client, 12.0)
+        // Let the first frame's render calls drain before sampling: only a render caused by
+        // the presentation change may raise the count past this value.
+        composeRule.waitForIdle()
+        runBlocking { delay(300) }
+        val rendersBefore = client.renderCount.get() + client.renderWithRouteAndPoisCount.get()
+
+        composeRule.runOnIdle { dark = true }
+        composeRule.waitForIdle()
+        assertEquals(
+            "the presentation change pushes the dark variant",
+            MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to false,
+            client.styleFlags.last()
+        )
+
+        runBlocking {
+            withTimeout(10_000) {
+                while (client.renderCount.get() + client.renderWithRouteAndPoisCount.get() <= rendersBefore) {
+                    delay(10)
+                }
+            }
+        }
     }
 }

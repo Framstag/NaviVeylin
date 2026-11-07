@@ -1,0 +1,17 @@
+Companion anchors before the cut, with the byte span of the material under each.
+Measured 2026-10-31 with `grep -n '^## §'` and line-range byte counts.
+
+guidelines/UI.why.md — 15551 B total, preamble 266 B, 5 anchor(s)
+  §1     14061 B  lines   7-88   ## §1 The parity decisions, and why
+  §3a      435 B  lines  89-95   ## §3a The wait that is not the loading row's deadline
+  §3c      180 B  lines  96-100  ## §3c The route-calculation notice's dwell
+  §8d      308 B  lines 101-106  ## §8d The car search distance reference
+  §9       301 B  lines 107-111  ## §9 Why the dark chrome is not app-themed
+
+guidelines/UI.recipes.md — 1032 B total, preamble 179 B, 1 anchor(s)
+  §3       853 B  lines   6-16   ## §3 Reading the car-list capacity
+
+Assignment: §3a and §3c move with their sections to UICar.why.md; §1, §8d and §9 stay
+(their sections stay). UI.recipes.md's only anchor names §3, a car section, so the whole
+companion moves — renamed UICar.recipes.md, because a procedure layer whose one anchor moved
+is no longer this document's layer.

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-selftest.sh" tests="70" failures="3" errors="0" timestamp="2026-10-29T10:18:08Z">
+  <testcase name="sensors#routedSectionSizeRow"><failure message="the registry declares no routed-section-size row"/></testcase>
+  <testcase name="sensors#routedSectionSizeSkipsUnrouted"><failure message="the registry declares no routed-section-size row"/></testcase>
+  <testcase name="sensors#entryDocumentSizeRow"><failure message="the registry declares no entry-document-size row"/></testcase>
+  <system-out>sensor-selftest: 3 of 70 cases failed</system-out>
+</testsuite>

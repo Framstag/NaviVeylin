@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.R
+import com.naviveylin.core.GpsMarkerPalette
 import com.naviveylin.core.ProjectionUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +63,10 @@ import kotlinx.coroutines.SupervisorJob
  * @param lat object latitude (marker + initial center)
  * @param lon object longitude (marker + initial center)
  * @param initialMag initial magnification, clamped to the app range [MIN_MAG, MAX_MAG]
+ * @param isDarkPresentation resolved dark presentation (the dark-mode preference resolved with its
+ *   environment signal — never `isSystemInDarkTheme()`, see [CompassButton]): the current-position
+ *   marker's palette branches on it (spec: mini-map — "Current-position marker palette and
+ *   distinctness"), and the widget's map bitmap must follow the same value
  * @param additionalMarkers extra object locations drawn as secondary pins
  *   (spec: mini-map Multiple object markers)
  * @param selectedMarker an additional marker to highlight distinctly (e.g.
@@ -70,6 +76,10 @@ import kotlinx.coroutines.SupervisorJob
  *   current-position marker)
  * @param onViewportChanged optional callback fired after every viewport change
  *   (initial render, pan, zoom) with the widget's center/magnification
+ * @param onStyleLoadFailure optional sink for the message of a rejected stylesheet-variant reload
+ *   (spec: map-styles — "Style flag change fails"). The report itself is written to the diagnostics
+ *   log by `MapStyleLoadReporter` whether or not a sink is given; a surface that shows messages
+ *   passes one, so the user learns that the widget's bitmap is still the other variant.
  */
 @Composable
 fun MiniMap(
@@ -77,18 +87,20 @@ fun MiniMap(
     lat: Double,
     lon: Double,
     initialMag: Double,
+    isDarkPresentation: Boolean,
     modifier: Modifier = Modifier,
     additionalMarkers: List<Pair<Double, Double>> = emptyList(),
     selectedMarker: Pair<Double, Double>? = null,
     currentPosition: Pair<Double, Double>? = null,
-    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
+    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null,
+    onStyleLoadFailure: ((String) -> Unit)? = null
 ) {
-    val densityDpi = LocalContext.current.resources.displayMetrics.densityDpi.toDouble()
+    val context = LocalContext.current
+    val densityDpi = context.resources.displayMetrics.densityDpi.toDouble()
     val surfaceColor = MaterialTheme.colorScheme.surface
     val markerColor = MaterialTheme.colorScheme.primary
     val additionalMarkerColor = MaterialTheme.colorScheme.secondary
     val selectedMarkerColor = MaterialTheme.colorScheme.tertiary
-    val gpsMarkerColor = Color(0xFF1A73E8)
 
     // Own renderer + scope; never touches the main map's renderer/viewport.
     val renderer = remember(client) {
@@ -103,6 +115,42 @@ fun MiniMap(
     }
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // The bitmap follows the resolved presentation (spec: mini-map — "The mini map renders the
+    // resolved presentation's stylesheet variant"; guidelines/MapStyling.md §15). The push goes
+    // through the shared applier, so this widget is the same value-keyed writer as the main map:
+    // a client that already carries the value costs no native call and no stylesheet reload. It is
+    // made before the size/location effect below requests the first frame, and the widget's own
+    // native-call order is what `darkPresentationPushesTheDarkDaylightFlag` asserts.
+    //
+    // The *re-render* is this widget's own fact, not the push's outcome: on a presentation flip the
+    // main map usually pushes first, so the applier answers UNCHANGED here — and this widget's tile
+    // cache and front buffer are still its own to invalidate. It follows the variant the client
+    // actually carries (`applied`), so a rejected reload cannot mark the other variant as drawn.
+    var renderedDark by remember(renderer) { mutableStateOf(isDarkPresentation) }
+    var appliedDark by remember(renderer) { mutableStateOf(isDarkPresentation) }
+    LaunchedEffect(renderer, isDarkPresentation) {
+        val hadFrame = renderer.frameFlow.value.bitmap != null
+        when (MapDaylightApplier.push(client, isDarkPresentation)) {
+            MapDaylightPush.UNCHANGED, MapDaylightPush.APPLIED, MapDaylightPush.ERROR -> Unit
+            // A rejected variant load is this widget's load path too (guidelines/MapStyling.md
+            // §15a — every load path reports once; spec: map-styles — "Style flag change fails").
+            MapDaylightPush.FAILED ->
+                rejectedVariantMessage(context, client)?.let { message ->
+                    if (onStyleLoadFailure != null) onStyleLoadFailure(message)
+                    else Log.w("MiniMap", message)
+                }
+        }
+        // The palette follows the variant the client carries, not the one that was requested
+        // (guidelines/UI.md §9): after a rejected reload the two differ. The re-render compares the
+        // *requested* value, because that is the value this effect was restarted for; the variant the
+        // bitmap ends up in is the client's, and a rejected reload leaves both unchanged.
+        appliedDark = MapDaylightApplier.applied(client) ?: isDarkPresentation
+        if (renderedDark != isDarkPresentation) {
+            renderedDark = isDarkPresentation
+            if (hadFrame) renderer.invalidateStyle()
+        }
+    }
 
     // Size change or new object location → (re)render. North-locked: angle 0.
     LaunchedEffect(canvasSize, lat, lon, initialMag) {
@@ -230,6 +278,7 @@ fun MiniMap(
             }
 
             // Current-position marker: blue dot with a soft accuracy halo.
+            val markerColors = miniMapMarkerColors(appliedDark)
             currentPosition?.let { (clat, clon) ->
                 val (gx, gy) = ProjectionUtils.geoToScreen(
                     clat, clon,
@@ -238,15 +287,11 @@ fun MiniMap(
                     densityDpi
                 )
                 if (inView(gx, gy)) {
-                    val center = Offset(gx.toFloat(), gy.toFloat())
-                    drawCircle(
-                        color = gpsMarkerColor.copy(alpha = 0.2f),
-                        radius = markerRadiusPx * 2f,
-                        center = center
+                    drawCurrentPositionMarker(
+                        center = Offset(gx.toFloat(), gy.toFloat()),
+                        markerRadiusPx = markerRadiusPx,
+                        colors = markerColors
                     )
-                    drawCircle(color = Color.White, radius = markerRadiusPx * 0.9f, center = center)
-                    drawCircle(color = gpsMarkerColor, radius = markerRadiusPx * 0.7f, center = center)
-                    drawCircle(color = Color.White, radius = markerRadiusPx * 0.3f, center = center)
                 }
             }
         }
@@ -295,4 +340,46 @@ fun MiniMap(
             }
         }
     }
+}
+
+/**
+ * The current-position marker's four colours for one presentation (spec: `mini-map` —
+ * "Current-position marker palette and distinctness"): the dot and its inner highlight, the soft halo
+ * and the casing ring, all read from the `:core` [GpsMarkerPalette].
+ */
+internal data class MiniMapMarkerColors(
+    val dot: Color,
+    val core: Color,
+    val halo: Color,
+    val casing: Color
+)
+
+/**
+ * Resolves the current-position marker's palette for the app's resolved dark presentation — the
+ * widget's only colour decision, so a test can pin the mapping without a renderer (the widget itself
+ * cannot be composed in a test that pins a graphics mode: it loads the JNI stub, see
+ * `guidelines/Build.md` §6 and `JniStubSandboxRuleTest`).
+ */
+internal fun miniMapMarkerColors(isDarkPresentation: Boolean): MiniMapMarkerColors =
+    MiniMapMarkerColors(
+        dot = Color(GpsMarkerPalette.positionDot(isDarkPresentation)),
+        core = Color(GpsMarkerPalette.positionDotCore(isDarkPresentation)),
+        halo = Color(GpsMarkerPalette.positionDotHalo(isDarkPresentation)),
+        casing = Color(GpsMarkerPalette.positionDotCasing(isDarkPresentation))
+    )
+
+/**
+ * Draws the current-position marker: the soft halo, the casing ring, the dot and its inner highlight,
+ * outer to inner so the dot stays the marker's brightest part. Extracted from the widget's `Canvas` so
+ * the drawn colours are measurable in a test that needs no [OSMScoutClient] and no JNI stub.
+ */
+internal fun DrawScope.drawCurrentPositionMarker(
+    center: Offset,
+    markerRadiusPx: Float,
+    colors: MiniMapMarkerColors
+) {
+    drawCircle(color = colors.halo, radius = markerRadiusPx * 2f, center = center)
+    drawCircle(color = colors.casing, radius = markerRadiusPx * 0.9f, center = center)
+    drawCircle(color = colors.dot, radius = markerRadiusPx * 0.7f, center = center)
+    drawCircle(color = colors.core, radius = markerRadiusPx * 0.3f, center = center)
 }

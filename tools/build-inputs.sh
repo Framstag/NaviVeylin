@@ -10,11 +10,18 @@
 # which is the bound that keeps a row from naming a file no pipeline produces; `--manifest` prints the set,
 # so the bound and the producer cannot drift apart.
 #
+# One declared path is published by a pipeline the build does not own: the scan's record, written by
+# `--scan-result` inside `.github/workflows/sonar.yml` and read by the `broken-scan` row (issue #751).
+# `--check` counts it like any other declared input, and `--write` neither writes it nor waits for it — the
+# build and the scan run beside each other, so a build that required the scan's record would fail on every
+# commit whose scan has not finished yet.
+#
 # The publisher is project-side on purpose: the paths and the module names below are this project's, and the
 # sensor engine (`tools/sensors/**`) declares them nowhere (design D1, D2).
 #
 # Usage: bash tools/build-inputs.sh --manifest
 #        bash tools/build-inputs.sh --write
+#        bash tools/build-inputs.sh --scan-result --status <conclusion> [--steps <json>]
 #        bash tools/build-inputs.sh --check [--registry <file>]
 #        [--root <dir>]  the workspace it reads and writes (default: the repository; a case passes a
 #                        throwaway tree, so the producer is testable without touching the build output)
@@ -24,15 +31,20 @@ set -uo pipefail
 root="${BUILD_INPUTS_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 registry="tools/sensors/sensors.json"
 mode=""
+scan_status=""
+scan_steps=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --manifest) mode=manifest; shift ;;
     --write) mode=write; shift ;;
+    --scan-result) mode=scan; shift ;;
+    --status) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; scan_status="${2:-}"; shift 2 ;;
+    --steps) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; scan_steps="${2:-}"; shift 2 ;;
     --check) mode=check; shift ;;
     --registry) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; registry="${2:-}"; shift 2 ;;
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
     *) printf 'build-inputs: unknown argument %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -54,11 +66,36 @@ result_record="app/build/gate-result.json"
 # The package the `package-size` row measures. The build pipeline assembles the debug APK; the shipped
 # release artifact is produced by the release pipeline only (design D4).
 package_apk="app/build/outputs/apk/mobile/debug/app-mobile-debug.apk"
+# The build pipeline's own job and step wall times. A running job cannot read its own step durations, so the
+# record comes from GitHub's post-run jobs API, and the checks' fetcher writes it for the run of the commit under
+# test (`tools/fetch-build-inputs.sh --jobs-record`, `build-duration`'s input since issue #778). It is published
+# by no step of the build, so it is foreign here exactly as the scan's record is — but it is written in the
+# checks' own pipeline, so a build neither waits for it nor carries a placeholder for it.
+#
+# The scan's own record, written by `--scan-result` in the scan pipeline and read by the `broken-scan` row:
+# the job, the step and the command that failed, and the run's result. The scan publishes it, so it is in the
+# manifest `--check` compares the registry against and in no `--write` of the build's.
+#
+# The path carries no directory on purpose. `actions/upload-artifact` roots the archive at the least common
+# ancestor of the upload's `path:` list, so a single explicit file is carried under its *basename*: an upload
+# of `app/build/scan-result.json` lands at `scan-result.json` in the artifact, and `fetch-build-inputs.sh
+# --dest .` then unpacks it at the workspace root — a row declaring the directory would read nothing. A
+# root-level record is the path the upload root can carry, so writer, upload and row agree by construction
+# (issue #751, review round 1).
+scan_result="scan-result.json"
+# The job and step wall times the checks' fetcher writes (`--jobs-record`), read by the `build-duration` row.
+# The path sits under `build/` because the build pipeline's own outputs do, and the fetcher is handed it
+# explicitly, so the row and the producer are one string in one place.
+job_timings="build/job-timings.json"
 
-# The per-module Kover XML reports the coverage summary is derived from, and the pure-Java module's JaCoCo
-# report. `:koverXmlReport` merges the three Android modules, so each module is measured from its own.
+# The per-module Kover XML reports the coverage summary is derived from, and the pure-Java module's two JaCoCo
+# reports. `:koverXmlReport` merges the three Android modules, so each module is measured from its own.
+# The Java module compiles two provenances — its own local overrides and the vendored libosmscout Java client API
+# beside them — and each report measures one of them, so the row carries one key per provenance instead of one
+# number for both.
 kover_modules="app auto core"
 jacoco_xml="osmscout-client-java/build/reports/jacoco/test/jacocoTestReport.xml"
+jacoco_vendored_xml="osmscout-client-java/build/reports/jacoco/vendored/jacocoVendoredTestReport.xml"
 
 # The test-result directories the result record's failing case is read from — the same directories the build
 # pipeline names in its "Report executed test suites" step.
@@ -79,9 +116,23 @@ produced_paths() {
   printf '%s\n' "$timing_record" "$package_apk"
 }
 
-published_paths() {
+# The paths a pipeline this script does not run publishes. They are declared here because this file is the
+# one place the registry's inputs are paired with their producers, and they are written by nobody here: the
+# scan's workflow writes its record itself (`--scan-result`), and only while it scans.
+foreign_paths() {
+  printf '%s\n' "$scan_result" "$job_timings"
+}
+
+# What the build job of this pipeline must find in the tree when `--write` ends: exactly the paths this run
+# produces, never a foreign pipeline's.
+local_paths() {
   written_paths
   produced_paths
+}
+
+published_paths() {
+  local_paths
+  foreign_paths
 }
 
 die() { printf 'build-inputs: %s\n' "$*" >&2; exit 1; }
@@ -143,6 +194,7 @@ write_coverage_summary() {
     lines="$lines$module	$(xml_instruction_percentage "$xml")"$'\n'
   done
   lines="${lines}osmscout-client-java	$(xml_instruction_percentage "$jacoco_xml")"$'\n'
+  lines="${lines}osmscout-client-java-vendored	$(xml_instruction_percentage "$jacoco_vendored_xml")"$'\n'
   mkdir -p "$(dirname "$coverage_summary")"
   printf '%s' "$lines" | jq -Rn \
     '[inputs | split("\t")] | map({key: .[0], value: (.[1] | tonumber)}) | from_entries | {modules: .}' \
@@ -166,6 +218,32 @@ write_result_record() {
     || die "cannot write $result_record"
 }
 
+# The scan's record, from the outcomes the scan workflow hands it: the run's own conclusion and one entry per
+# step, in the order the steps ran, each carrying the command it ran (a `run:` line or a `uses:` ref). The first
+# step that neither succeeded nor was skipped is the cause, so the identity of a red scan is the step that
+# broke — not the run, whose conclusion says only that something did (issue #751). A step that never ran has no
+# outcome and is not a cause: a run that broke before the first named step is attributed to the run itself.
+write_scan_result() {
+  local status steps_json record
+  status="$1"
+  steps_json="${2:-[]}"
+  [ -n "$status" ] || die "--scan-result needs --status (the scan run's conclusion)"
+  case "$steps_json" in
+    '['*) : ;;
+    *) die "--steps is not a JSON array" ;;
+  esac
+  status=$(printf '%s' "$status" | tr '[:upper:]' '[:lower:]')
+  record=$(jq -nc --arg status "$status" --argjson steps "$steps_json" '
+    ([$steps[] | select((.outcome // "") as $o | $o != "success" and $o != "skipped" and $o != "")] | .[0]) as $failed
+    | {job: "sonar",
+       step: (if $status == "success" then "" else ($failed.id // "the-run") end),
+       command: (if $status == "success" then "" else ($failed.command // "") end),
+       result: $status}') || die "cannot shape the scan's record from --steps"
+  mkdir -p "$(dirname "$scan_result")"
+  printf '%s\n' "$record" > "$scan_result" || die "cannot write $scan_result"
+  printf 'build-inputs: wrote the scan record %s\n' "$scan_result"
+}
+
 # The per-module reports the coverage summary needs; a red test run leaves them absent, so the publisher
 # reports that instead of dying before the result record is written.
 coverage_inputs_present() {
@@ -174,12 +252,17 @@ coverage_inputs_present() {
     [ -f "$module/build/reports/kover/report.xml" ] || return 1
   done
   [ -f "$jacoco_xml" ] || return 1
+  [ -f "$jacoco_vendored_xml" ] || return 1
   return 0
 }
 
 # --------------------------------------------------------------------------- the verbs
 
 case "$mode" in
+  scan)
+    write_scan_result "$scan_status" "$scan_steps"
+    ;;
+
   manifest)
     published_paths
     ;;
@@ -192,7 +275,8 @@ case "$mode" in
     missing=""
     add_missing() { missing="${missing}${missing:+; }$1"; }
     write_result_record
-    coverage_inputs_present || add_missing "$coverage_summary (the per-module Kover XMLs are missing — the coverage step did not run, which a red test run explains)"
+    coverage_inputs_present || add_missing "$coverage_summary (the per-module coverage XMLs are missing — the coverage step did not run, which a red test run explains)"
+    [ -f "$jacoco_vendored_xml" ] || add_missing "$jacoco_vendored_xml (the JaCoCo step that measures the vendored client API did not run)"
     [ -f "$timing_record" ] || add_missing "$timing_record (the Gradle steps must run with -I tools/gate-timings.init.gradle.kts)"
     [ -f "$package_apk" ] || add_missing "$package_apk (the step that assembles :app:assembleDebug did not run)"
     if [ -n "$missing" ]; then
@@ -202,7 +286,7 @@ case "$mode" in
     write_coverage_summary
     jq -e '.durationMs' "$timing_record" >/dev/null 2>&1 \
       || die "$timing_record carries no durationMs — the build-duration row would report an error"
-    for path in $(published_paths); do
+    for path in $(local_paths); do
       [ -f "$path" ] || die "$path is missing after the write — the uploaded record would be incomplete"
     done
     printf 'build-inputs: wrote the record for %s\n' "$root"

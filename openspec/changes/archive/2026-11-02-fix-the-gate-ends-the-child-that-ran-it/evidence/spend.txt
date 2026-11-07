@@ -1,0 +1,18 @@
+# python3 tools/loop-spend.py --quiet, re-run on 2026-11-02 while this change was written.
+# The archive grew after the item was filed (218 items / 534 sessions here, 213 / 524 in the item text), so the
+# absolute figures differ from the ones quoted in proposal.md and design.md; every line the change quotes is the
+# item own measurement, and the shape these lines confirm is the one the change is about:
+#   LOOP-SPEND-BASELINE tokens=17056 charged=458833464   — what a session costs before it has read anything
+#   LOOP-SPEND-GATE after=1481801903                    — the tokens charged after the first LOOP-GATE line
+
+LOOP-SPEND-ITEMS n=218
+LOOP-SPEND-SESSIONS n=534
+LOOP-SPEND-TURNS n=31779
+LOOP-SPEND-TOKENS input=65669606 cacheRead=2395959484 output=19474470 total=2481103560
+LOOP-SPEND-COST total=-
+LOOP-SPEND-BASELINE tokens=17056 charged=458833464
+LOOP-SPEND-READS calls=7795 duplicate=3716
+LOOP-SPEND-GATE after=1481801903
+LOOP-SPEND-CAP4K saved=645919762
+LOOP-SPEND-CAP8K saved=257277270
+LOOP-SPEND-CAP16K saved=30252922

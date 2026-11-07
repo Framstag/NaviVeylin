@@ -7,9 +7,22 @@
 #
 # It answers the three questions a finished run has to answer on its own (#208): which items were handled
 # and how each ended (the table, with the item's own reason when the outcome is not a closure), what each
-# one cost (the table's `wall`, `tools`, `tokens` and `context` columns — the last three summed from the
-# child's own event stream, `-` where nothing was reported — and the run-level `spent`), and what the caller
-# must now do — the named action list at the end, built from the state and from git, never from a count.
+# one cost (the table's `wall`, `tools`, `tokens`, `context` and `calls` columns — the middle three summed from the
+# child's own event stream, the last a ratio of two of them, `-` where nothing was reported — and the run-level
+# `spent`), and what the caller must now do — the named action list at the end, built from the state and from git,
+# never from a count.
+#
+# Beside those three, and about the loop rather than about one run, it says whether the loop is getting better
+# (#247): the review round-1 pass rate, the item wall median, minimum and maximum, and — since issue #757 — the
+# run's tool calls per turn beside the items below the recorded floor, totalled from the same
+# state, and the one figure that state does not hold — the landings that reddened `main` — named where it lives
+# rather than fetched, because the report reads the state and git and never the tracker.
+#
+# Since issue #759 it also says where the spend went: the clock split by the phase that spent it (the model time,
+# the project's gate, every other tool), the tokens split by the role that spent them (worker, reviewer, tail), and
+# the share of the tokens spent after an item's first gate. All three are read from the state, which records them
+# when the item's stream is read — a run that paid two thirds of its clock inside the gate and one that paid it
+# reading printed the same shapes before these lines existed.
 #
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
@@ -61,6 +74,9 @@ closed=$(jq -r '[.items[] | select(.result == "done")] | length' "$state_file")
 misdiagnosed=$(jq -r '[.items[] | select(.result == "falsified")] | length' "$state_file")
 skipped=$(jq -r '[.items[] | select(.result == "skipped")] | length' "$state_file")
 blocked=$(jq -r '[.items[] | select(.result == "blocked")] | length' "$state_file")
+# The item a bound cut is counted apart from one that blocked (issue #785): it spent budget, so the budget left
+# subtracts it, and it is no question — the next run resumes the phase the run's own clock ended.
+cut=$(jq -r '[.items[] | select(.result == "cut")] | length' "$state_file")
 
 printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · review rounds %s · may-close %s · max-decisions %s · base %s)\n\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$items" "$minutes" \
@@ -77,7 +93,7 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
 is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
 # Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
-# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
+# two consecutive refusals, the remaining-time floor) and the run records it, so the report and the state
 # file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
 # printed while it is still going.
 stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
@@ -107,20 +123,43 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
   fi
 fi
 if [ "$owner_gone" -eq 1 ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$owner_pid"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$owner_pid"
 elif [ -n "$spent_min" ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" \
-    "$((items - closed - misdiagnosed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left %s items / %s min · spent %s min\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" \
+    "$((items - closed - misdiagnosed - skipped - blocked - cut))" "$((minutes - spent_min))" "$spent_min"
 else
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$deadline_at"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$deadline_at"
 fi
 
 printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
   elif [ "$owner_gone" -eq 1 ]; then printf 'the run that wrote this state is gone — its process (pid %s) is not running and it recorded no reason' "$owner_pid";
   else printf 'not stopped — the run is still going, or it ended without recording a reason'; fi)"
+
+# What each item spent, read against a recorded band (issue #662). The spend was printed beside nothing: the row
+# carried the item's tokens, the table a column, and the run a total, so a run that cost twice what the one before
+# it cost printed the same shapes as a healthy one. The bound is a recorded value (`LOOP_ITEM_TOKENS_WARN`,
+# beside the two clocks in loop.conf) and this line names the items above it, because the column's ratio is read
+# against it. It is a **warning, never a stop**: nothing below changes an item's outcome, so the line says what
+# was measured and the caller decides. A configuration that records `0` — or no key at all, which is what a ported
+# project's loop.conf is — flags nothing, and the line says the flag is off rather than `none`, which would read as
+# a measurement nobody made (the rule the spend columns already follow for an unreported figure).
+item_tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
+case "$item_tokens_warn" in ''|*[!0-9]*) item_tokens_warn=0 ;; esac
+if [ "$item_tokens_warn" -gt 0 ]; then
+  printf 'over the item token bound (%s tokens): %s\n' "$item_tokens_warn" "$(jq -r --argjson b "$item_tokens_warn" '
+    [ .items[]
+      | ((.metrics.tokens // null) as $t
+         | if $t == null then null
+           else (($t.input // 0) + ($t.output // 0) + ($t.cacheRead // 0) + ($t.cacheWrite // 0)) end) as $tot
+      | select($tot != null and $tot > $b)
+      | "#\(.issue) \(((($tot / $b) * 10) | round) / 10)x" ]
+    | if length == 0 then "none" else join(" · ") end' "$state_file")"
+else
+  printf 'over the item token bound: off — LOOP_ITEM_TOKENS_WARN records %s, so no item is flagged\n' "$item_tokens_warn"
+fi
 
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.
 LOOP_STATE_FILE="$state_file" bash "$LOOP_DIR/state.sh" report
@@ -130,14 +169,23 @@ printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#
 # named apart from the closures so a run that only falsified does not read as a run that delivered (openspec
 # change `falsified-items-close-in-the-loop`).
 printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified") | "#\(.issue) \(.metrics.rootCause // "")"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
-printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)\(if (.mechanism // "") == "" then "" else " (\(.mechanism))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# The items a bound cut are named apart from the blocks, in the reader's own language: a phase the run ended at
+# its own bound asked nobody a question, so the line says which phase was cut and what the next run resumes
+# (issues #785, #790). The row reads the item's own `result` and nothing else — the mechanism vocabulary is what
+# a state carries for a reader who asks *which* bound it was, not a second predicate the report needs to tell work
+# from a refusal. A state a tree wrote before `cut` carried a bound keeps its two `blocked` items in the block
+# tally, exactly as that tree counted them. Empty for a run with none, exactly as the other named lists are.
+printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the
-# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177).
+# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177). An exclusion that
+# carries the adoption's own mechanism is the run's own result, not the owner's question (issue #794): the
+# mechanism is what `run.sh` writes when the branch is admissible and the merge's inputs refused it.
 printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAgent)" '
   [.items[] | select((.escalatedLabel // "") != "") | "#\(.issue)"]
-  + [.excluded[] | select(.verdict == $d) | "#\(.issue)"]
+  + [.excluded[] | select(.verdict == $d and (.mechanism // "") != "unmergeable") | "#\(.issue)"]
   | if length == 0 then "none" else join(" · ") end' "$state_file")"
 
 # The branches are read from git, not from a child's report: the run's own script created them. What each
@@ -168,6 +216,166 @@ else
 fi
 printf 'state: %s\n' "$state_file"
 
+# ── whether the loop is getting better ───────────────────────────────────────────────────────────
+# The report answers three questions about *one run* (#208) and none of them about the loop: a run that cost what
+# the last one cost prints the same shapes as a run that is improving, so a person judged the loop's speed by hand
+# from `run.json` and `items/*/reviewer-report-1.md` (issue #247). Two of the three figures are already in the
+# state this report reads — `metrics.wallSeconds` and `metrics.reviewRounds`, recorded at `state.sh:494` and
+# printed only per item — and this line is the run-level answer to them.
+#
+# The third, the landings that reddened `main`, is a number the state now holds (issue #709 — the change §D4 of
+# `run-report-trend-figures` deferred it to): a landing records the commit its merge made, and `state.sh
+# score-landings` reads the push run that commit caused once per landing and stores `landedReddenedMain`. This report
+# still reads nothing but the state file and git: the network read happens at the landing rather than in every
+# report, and a landing nobody has read yet prints as unscored rather than as a landing that did not break the base.
+#
+# A rate is not settled by one run, and the lines say the run they describe. A figure nobody measured prints `-`
+# with its reason, never a zero — the rule the spend columns already keep.
+#
+# The pass rate is counted from the **verdict** a round ended on, never from `reviewRounds` alone (issue #247,
+# review round 1): `reviewRounds` is the round the loop *attempted* — `run.sh:1680` sets it before the reviewer
+# runs — so an item whose round 1 refused and then blocked records `1` exactly as one whose round 1 passed. The
+# state records the verdict beside the count (`done --review-verdict`), and the three buckets below are the three
+# things a reader has to tell apart: a round 1 that passed, a round that ended without a verdict (the reviewer's
+# answer was cut, the run's clock ended it, it wrote, or the state predates the field), and an item no round ran
+# for. A round that ended without a verdict is neither a refusal nor a pass, so it is named apart and is in no
+# rate; a refused round 1 is a refusal even when it is also the last round the item got.
+#
+# The third figure the trend prints is the shape the spend was made in (issue #757): an item tool calls per
+# turn. Every cost in this loop is turns times context, so a session that spent its budget in a chain of
+# single-call turns is the defect no other line of the report can show — the archive reads 36 825 calls in
+# 33 183 turns (1.11 per turn) at 78 k tokens a turn and 97 % cache read, and halving the calls per turn is worth
+# about a third of it. The rate is derived from the two counts the state records (`metrics.calls`,
+# `metrics.turns`), and an item below the floor `LOOP_ITEM_CALLS_PER_TURN_MIN` records is named beside the run
+# own rate, the way the token line names an item above its band. It is a **warning, never a stop**: nothing in the
+# run reads the key, and `0` — or a configuration that records no key at all — prints the floor as off rather than
+# as `none`, which would read as a measurement nobody made.
+# A value that is not a decimal number is no floor, and it is refused here rather than handed to jq: `--argjson` on a
+# malformed value fails the whole program, and a report whose `calls:` line silently disappears is worse than one
+# that says the floor is off. `1.` and `.` are refused; a leading zero (`05`) is read as 5, as jq reads it.
+calls_floor=$(loop_conf_value LOOP_ITEM_CALLS_PER_TURN_MIN)
+printf '%s' "$calls_floor" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || calls_floor=0
+trend=$(jq -r --argjson floor "$calls_floor" '
+  def median:
+    if length == 0 then null
+    elif (length % 2) == 1 then .[(length / 2) | floor]
+    else ((.[(length / 2) - 1] + .[length / 2]) / 2)
+    end;
+  def decided: . == "PASS" or . == "NOTES" or . == "FAIL" or . == "round2-ended";
+  # Three figures about where the spend went (issue #759), each a count the state records: a duration in
+  # milliseconds, printed in seconds below an hour and in hours above it, and a token count printed in Mtok to the
+  # one decimal the per-item columns are read at.
+  def dur: (. / 1000) | if . >= 3600 then ((. / 3600 * 10 | round) / 10 | "\(.) h")
+                       else ((. * 10 | round) / 10 | "\(.) s") end;
+  def mtok_n: ((. / 1000000 * 10 | round) / 10);
+  def mtok: (. | mtok_n | "\(.) Mtok");
+  def items_n: if . == 1 then "1 item" else "\(.) items" end;
+  ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0)}]) as $it
+  | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
+  | [$it[] | select(.v | decided)] as $decided
+  | [$it[] | select((.v == "PASS" or .v == "NOTES") and .r == 1)] as $first
+  | [$it[] | select((.r >= 1) and ((.v | decided) | not))] as $undecided
+  | [$it[] | select(.r == 0)] as $never
+  | ([$it[] | select(.v != "")] | length) as $withVerdict
+  | ( if $withVerdict == 0 and ([$it[] | select(.r >= 1)] | length) > 0
+        then "- · this state records no review verdict — it was written before the report read one"
+      elif ($decided | length) == 0
+        then "- · no round of this run ended in a verdict · \($undecided | length) undecided · \($never | length) never reviewed"
+      else "\($first | length)/\($decided | length) first rounds passed · \($undecided | length) undecided · \($never | length) never reviewed" end ) as $review
+  | ( if ($walls | length) == 0 then "- · no item recorded a wall time"
+      else "median \(($walls | median) | round) s (min \(($walls[0]) | round), max \(($walls[-1]) | round)) · \($walls | length) items" end ) as $wall
+  | ([.items[]
+      | select((.metrics.calls // null) != null and (.metrics.turns // 0) > 0)
+      | {i: .issue, c: .metrics.calls, t: .metrics.turns,
+         r: ((.metrics.calls / .metrics.turns) * 100 | round | . / 100)}]) as $calls
+  | ( if ($calls | length) == 0 then
+        # A state written before this figure existed records tokens for its items and no counts, and a dash with
+        # the wrong reason would read as a run of items that answered without a tool — the distinction the review
+        # rate dash already makes between "nobody measured" and "this state predates the field".
+        if ([.items[] | select(.metrics.tokens != null)] | length) > 0
+          then "- · this state records no calls or turns — it was written before the report read them"
+          else "- · no item recorded a turn" end
+      else ([$calls[].c] | add) as $tc
+        | ([$calls[].t] | add) as $tt
+        | (((($tc / $tt) * 100) | round | . / 100)) as $ratio
+        | ( if $floor > 0
+              then ([$calls[] | select(.r < $floor) | "#\(.i) \(.r)"]) as $below
+                | "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · "
+                  + (if ($below | length) == 0
+                       then "none below the recorded floor of \($floor) per turn"
+                       else "below the recorded floor of \($floor) per turn: \($below | join(" · "))" end)
+              else "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · floor off — LOOP_ITEM_CALLS_PER_TURN_MIN records \($floor), so no item is flagged"
+              end )
+      end ) as $callline
+  # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so
+  # the line names how many items it is over — a rate over 3 items and one over 227 are not the same claim. A bucket
+  # nobody spent time in is left out of the phase line rather than printed as `0 s`, because a zero there reads as a
+  # measurement that was made; the line below says when no gate ran at all.
+  | ([.items[] | .metrics.phases | select(. != null)]) as $phs
+  | ([.items[] | .metrics.roles | select(. != null)]) as $rol
+  | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
+  # What a state written before this figure existed holds instead: some spend and no split at all. That is a
+  # different answer from a run whose items measured nothing, the distinction the calls line already makes.
+  | ([.items[] | select(.metrics.tokens != null or (.metrics.roles // null) != null)] | length) as $hasSpend
+  | ([.items[] | select((.metrics.phases // null) != null or (.metrics.roles // null) != null)] | length) as $splitAny
+  | ( if ($phs | length) == 0 then
+        (if $hasSpend > 0
+          then "- · this state records no phase durations — it was written before the report read them"
+          else "- · no item recorded a phase duration" end)
+      else ([{n: "model", ms: ([$phs[].modelMs] | add)},
+             {n: "gate", ms: ([$phs[].gateMs] | add)},
+             {n: "other", ms: ([$phs[].otherMs] | add)}]
+            | map(select(.ms > 0))) as $b
+        | ([$b[].ms] | add) as $total
+        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)"
+          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)"
+          end
+      end ) as $phaseline
+  | ( if ($rol | length) == 0 then
+        (if $hasSpend > 0
+          then "- · this state records no role split — it was written before the report read one"
+          else "- · no item recorded a session role" end)
+      else (["worker", "reviewer", "tail"]
+            | map(. as $r | {role: $r, tok: ([$rol[] | .[$r] | select(. != null)] | add)})
+            | map(select(.tok != null))) as $by
+        | if ($by | length) == 0 then "- · no item recorded a session that reported tokens"
+          elif ($by | length) == 1 then "\($by[0].role) \($by[0].tok | mtok) over \($rol | length | items_n)"
+          else "\($by | map("\(.role) \(.tok | mtok)") | join(" · ")) · \(([$by[].tok] | add) | mtok) over \($rol | length | items_n)"
+          end
+      end ) as $roleline
+  # The share after the first gate has both halves in the state (`tokens` and `total`, over the sessions that ran a
+  # gate), so the line prints the percentage with the two numbers it is a percentage of — the rule the review rate
+  # keeps for its own figures.
+  | ( if ($gt | length) == 0 then
+        (if $splitAny == 0 and $hasSpend > 0
+          then "- · this state records no gate share — it was written before the report read one"
+          else "- · no item of this run ran a gate in its stream" end)
+      else ([$gt[].tokens] | add // 0) as $a
+        | ([$gt[].total] | add // 0) as $tot
+        | ([$gt[].sessions] | add // 0) as $n
+        | if $tot == 0 then "- · the items that ran a gate reported no tokens"
+          else "\((($a / $tot) * 100) | round) % — \($a | mtok_n) of \($tot | mtok_n) Mtok, from the first gate of \($n) session\(if $n == 1 then "" else "s" end)"
+          end
+      end ) as $gateline
+  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
+' "$state_file")
+printf '\n'
+printf "trend — this run's own items; no rate is green or red in one run:\n"
+printf '%s\n' "$trend"
+landings=$(jq -r '
+  [ .items[] | select((.merged.branch // "") != "") ] as $l
+  | ([ $l[] | select(.landedReddenedMain != null) ]) as $scored
+  | ([ $l[] | select(.landedReddenedMain == true) ] | length) as $red
+  | ([ $l[] | select((.merged.sha // "") != "" and .landedReddenedMain == null) ] | length) as $unscored
+  | ([ $l[] | select((.merged.sha // "") == "" and .landedReddenedMain == null) ] | length) as $noCommit
+  | ( if $unscored > 0 then " · \($unscored) unscored" else "" end ) as $u
+  | ( if $noCommit > 0 then " · \($noCommit) records no commit" else "" end ) as $n
+  | if ($l | length) == 0 then "- · no item of this run landed"
+    elif ($scored | length) == 0 then "- · no landing is scored yet\($u)\($n)"
+    else "\($red) of \($scored | length) reddened main\($u)\($n)" end
+' "$state_file")
+printf '  landings: %s\n' "$landings"
+
 # ── the actions the caller owes ───────────────────────────────────────────────────────────────────
 # The report's third answer (#208). A count is not an answer: the caller has to know *which* decision is
 # owed and what it asks, *which* branch carries work the base does not have and *whose* item it is, where
@@ -179,7 +387,7 @@ decisions() {
   jq -r --arg d "$(loop_role decisionAgent)" '
     (.items[] | select((.escalatedLabel // "") != "")
       | ["item", (.issue | tostring), .verdict, (.note // ""), (.metrics.rootCause // "")]),
-    (.excluded[] | select($d != "" and .verdict == $d)
+    (.excluded[] | select($d != "" and .verdict == $d and (.mechanism // "") != "unmergeable")
       | ["excluded", (.issue | tostring), .verdict, (.reason // ""), (.evidence // "")])
     | @tsv' "$state_file"
 }
@@ -225,22 +433,40 @@ while IFS=$'\t' read -r branch ahead; do
   fi
 done <<< "$branch_table"
 
+# A label write the tracker refused is an obligation no other source can discharge: the run recorded it, and the
+# item's state on the tracker is stale in a way a reader who trusts only the tracker cannot see — an item with no
+# decision at all where the run recorded one, or an in-progress mark on an item nothing is working (issue #279).
+while IFS=$'\t' read -r issue failed; do
+  [ -n "${issue:-}" ] || continue
+  [ -n "${failed:-}" ] || continue
+  actions[${#actions[@]}]="set #$issue's tracker state by hand — the run could not write $failed, so the item's state there is stale — gh issue view $issue"
+done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
+  | [(.issue | tostring), ((.labelFailures // []) | join(" "))] | @tsv' "$state_file")
+
 # An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
-# the transcript beside its id says how far the item got.
+# the transcript beside its id says how far the item got. A `cut` is not that (issue #788): a gate of its own was
+# never owed, because the run ended its child first, and the block below names it as the item to take up again.
 while IFS=$'\t' read -r issue; do
   [ -n "${issue:-}" ] || continue
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
-done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
+done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select(.result != "cut") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
-# A citation the pre-screen still refuses is work a person can do and the run cannot: the repair path is
-# the tooling's own, and it is named with the item.
-stale_role=$(loop_role excludedStaleAgent)
-if [ -n "$stale_role" ]; then
-  while IFS=$'\t' read -r issue reason; do
-    [ -n "${issue:-}" ] || continue
-    actions[${#actions[@]}]="repair the citation in #$issue — the pre-screen refused it as $stale_role: $reason — tools/issues/resolve-stale.sh --id $issue"
-  done < <(jq -r --arg s "$stale_role" '.excluded[] | select(.verdict == $s) | [(.issue | tostring), (.reason // "a citation no record accounts for")] | @tsv' "$state_file")
-fi
+# The item a bound ended is work and not a question (issue #788): it carries no decision label, so this is where a
+# caller learns it is waiting — with the phase that was cut and the branch the attempt left, which the next run
+# takes up.
+while IFS=$'\t' read -r issue note; do
+  [ -n "${issue:-}" ] || continue
+  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable} · transcript $state_dir/items/$issue"
+done < <(jq -r '.items[] | select(.result == "cut") | [(.issue | tostring), (.note // "")] | @tsv' "$state_file")
+
+# The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An
+# item the run's deadline cut carries no decision label, so this line is the only place the report tells a caller
+# that the run, not the item, ended it — and where the work it left is.
+while IFS=$'\t' read -r issue patch; do
+  [ -n "${issue:-}" ] || continue
+  [ -n "${patch:-}" ] || continue
+  actions[${#actions[@]}]="recover #$issue — the run's clock ended it and its work is kept at $patch"
+done < <(jq -r '.items[] | select((.leftover // "") != "") | [(.issue | tostring), .leftover] | @tsv' "$state_file")
 
 if [ -d "$LOOP_WORKTREE" ]; then
   actions[${#actions[@]}]="keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"
@@ -248,8 +474,8 @@ fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the five sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation\n'
+  # Empty only when every one of the seven sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no item ended at a bound, no leftover patch, no label write the tracker refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

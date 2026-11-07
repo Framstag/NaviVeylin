@@ -1,0 +1,6 @@
+$ bash tools/issue-tooling-selftest.sh --case surface#theStubRefusesAnEditWithNoField
+
+  the stub recorded a fieldless stub gh: recorded `gh issue edit`, which the real CLI refuses: stub gh: recorded `gh issue edit`
+FAIL surface#theStubRefusesAnEditWithNoField
+
+exit: non-zero (red on HEAD, base 1abb81f) — 2026-10-29T05:23:24Z

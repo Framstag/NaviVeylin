@@ -1,0 +1,41 @@
+# The report, as the change's driver prints it — base 0fb7a80, change root, 2026-11-06
+
+Every line below is a command's own output; the command is above it.
+
+## A suite, one group at --jobs 4
+
+    $ bash tools/loop-selftest.sh --group driver --jobs 4
+    …
+    loop-selftest: driver 22 cases 98.87 s
+    loop-selftest: all 22 cases passed (JDK 27, offline, no token, no sandbox) — 32.28 s, selection: --group driver
+
+A group's figure is the sum of its cases' own elapsed times; the selection's is the run's wall clock. At `--jobs 4`
+the 22 cases paid 98.87 s of case time inside 32.28 s of wall clock.
+
+## A suite, one group at --jobs 1 (one case at a time)
+
+    $ bash tools/loop-selftest.sh --group state --jobs 1
+    loop-selftest: state 24 cases 39.47 s
+    loop-selftest: all 24 cases passed (JDK 27, offline, no token, no sandbox) — 54.96 s, selection: --group state
+
+## A passing case's line, without and with --times
+
+    $ bash tools/loop-selftest.sh --case 'driver#theListIsFilteredTheSameWayASuiteRunIs'
+    PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+
+…and nothing else: one named `--case` with no pattern keeps the shape the mutation harness and the leftovers cases
+parse — the `PASS` line and the exit status, no summary.
+
+    $ bash tools/loop-selftest.sh --group driver --case 'driver#theList*' --times
+    PASS driver#theListIsFilteredTheSameWayASuiteRunIs (1.22 s)
+    loop-selftest: driver 1 cases 1.22 s
+    loop-selftest: all 1 cases passed (JDK 27, offline, no token, no sandbox) — 1.85 s, selection: --group driver --case driver#theList*
+
+With `--times` the figure is added to the case's own line and the name the line is read for is unchanged.
+
+## The gate's tally
+
+`tools/loop/gate.sh` already carries each step's wall clock at this base — `ran_entries` names every suite beside its
+seconds (`:298`), the tally's `time` attribute is that number (`:330-331`), and the `LOOP-GATE:` line prints the
+entries beside the counts (`:338`, `:341`) — so this change wrote no line of `gate.sh` (task 2.3). The gate is the
+gate child's, and the two figures are read side by side there.

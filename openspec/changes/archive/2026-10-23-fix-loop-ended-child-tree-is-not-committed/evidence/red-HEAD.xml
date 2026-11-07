@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one new case, against the engine's own `tools/loop/run.sh` at
+     214e62e0d4d3b74ef8b12d65eda5ad689b51e480 (2026-10-23T08:22Z, ~20 s wall clock): the case file from this
+     change, `tools/loop/run.sh` restored from HEAD (`git show HEAD:tools/loop/run.sh`), then
+     `bash tools/loop-selftest.sh --case 'run#treeOfAChildTheCapEndedIsNotCommitted'` — FAIL, exit 1, because
+     `end-item` committed the tree the ended child left and the branch moved off the base. A single-case run
+     prints no suite summary line, so the tally below is one case and the one failure; the transcript is
+     evidence/red-HEAD.log. -->
+<testsuite name="loop-selftest --case run#treeOfAChildTheCapEndedIsNotCommitted" tests="1" failures="1" errors="0">
+  <testcase name="run#treeOfAChildTheCapEndedIsNotCommitted">
+    <failure>the tree a child the run ended left behind is not committed — the branch stays at the base: expected 'ffd482d56819939e9170cc035d64ea761930137a', got '3cab8fb3abc5263ccda786c3e0873bb182098d98'</failure>
+  </testcase>
+  <system-out>FAIL run#treeOfAChildTheCapEndedIsNotCommitted</system-out>
+</testsuite>

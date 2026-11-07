@@ -1,0 +1,5 @@
+# 2026-11-04T16:19:27Z
+# bash tools/sensor-selftest.sh --case lib#aRowBoundIsACount (HEAD, before tools/sensors/lib.sh validates k)
+  a bound of zero is refused by name: : 'fixture-emit: row-k-not-a-count: 0' not found in: 
+FAIL lib#aRowBoundIsACount
+exit=1

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CarDaylightApplierTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T14:47:49.951Z" hostname="dingens" time="0.007">
+  <properties/>
+  <testcase name="failedPushRetriesOnNextApply" classname="com.naviveylin.auto.CarDaylightApplierTest" time="0.002"/>
+  <testcase name="firstApplyPushesHostState" classname="com.naviveylin.auto.CarDaylightApplierTest" time="0.001"/>
+  <testcase name="needsPushReportsWhetherAPushWouldHappen" classname="com.naviveylin.auto.CarDaylightApplierTest" time="0.001"/>
+  <testcase name="stateChangePushesAgain" classname="com.naviveylin.auto.CarDaylightApplierTest" time="0.0"/>
+  <testcase name="repeatedApplyOfSameStateIsDeduped" classname="com.naviveylin.auto.CarDaylightApplierTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

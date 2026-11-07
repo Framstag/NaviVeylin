@@ -1,0 +1,24 @@
+# red-HEAD — the four cases of this change against the driver and gate of the base commit abeffcad
+# captured 2026-10-23T10:48:44Z in /home/tim/projects/NaviVeylin/.pi/worktrees/selftest-select
+# method: git stash push -- tools/loop-selftest.sh tools/loop/gate.sh ; run each case ; git stash pop
+
+FAIL driver#aGroupFilterRunsOnlyItsOwnCases
+---
+  the group's two cases pass: loop-selftest: unknown argument --group: expected '0', got '2'
+
+FAIL driver#aFilterThatNamesNoCaseRefuses
+---
+  and it names the group it could not find: loop-selftest: unknown argument --group: 'no case carries the group: nope' not found in: loop-selftest: unknown argument --group
+
+FAIL driver#theListIsFilteredTheSameWayASuiteRunIs
+---
+  the list is the group's cases and only them: alpha#one
+alpha#two
+beta#three: expected 'alpha#one
+
+FAIL gate#theSummaryNamesWhatEachSuiteCost
+---
+  the suite's own line names how long it ran: gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/selftest-select/.pi/tmp/loop-selftest.YAb2UZ/case.FP1sCT/suite.sh
+notes: all 1 cases passed
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/selftest-select/.pi/tmp/loop-selftest.YAb2UZ/case.FP1sCT/suite.sh): no line matching /gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/selftest-select/.pi/tmp/loop-selftest.YAb2UZ/case.FP1sCT/suite\.sh — [0-9]+s/ in: gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/selftest-select/.pi/tmp/loop-selftest.YAb2UZ/case.FP1sCT/suite.sh
+

@@ -5,12 +5,14 @@ import androidx.car.app.CarContext
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
+import androidx.lifecycle.Lifecycle
 import com.naviveylin.core.DiagnosticsLog
 import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -102,19 +104,38 @@ class StartupScreensTest {
             DiagnosticsLog.log("A", "first")
             DiagnosticsLog.log("B", "second")
             DiagnosticsLog.log("C", "third")
+            // Kept as the reproduction the red run used (change
+            // `2026-10-27-fix-a-red-diagnostics-count-awaits-its-capacity`): the screen's own capacity
+            // measurement is a diagnostics line too, it is written after this case's entries, and a line
+            // another case's unreleased screen wrote lands in this file as well — so the window holds
+            // lines this case did not write and must not be counted as a total.
+            DiagnosticsLog.log("SCREEN", "list capacity 6 rows (library default, below car API 2)")
 
             val screen = DiagnosticsScreen(carContext)
-            // The log is read on a background dispatcher (spec: auto-diagnostics —
-            // Reading diagnostics does not block the UI), so wait for the load.
-            val titles = awaitRows(screen) { it.size == 4 }
+            try {
+                // The log is read on a background dispatcher (spec: auto-diagnostics —
+                // Reading diagnostics does not block the UI), so wait for the load.
+                val titles = awaitRows(screen, "3 log rows") { it.count { title -> ENTRY_NAME.containsMatchIn(title) } == 3 }
 
-            // Row 0 is the disclosure (spec: auto-diagnostics — Export and viewers
-            // disclose the log contents); the entries follow newest first, inside the
-            // host's row capacity (spec: car-list-row-limit).
-            assertTrue(titles.size <= 21)
-            assertEquals(4, titles.size)
-            assertTrue("newest first: ${titles[1]}", titles[1].contains("third"))
-            assertTrue(titles[3].contains("first"))
+                // The entries this case wrote, in row order: the log holds 3 entries plus the screen's own
+                // measurement line, and the entries follow newest first, inside the host's row capacity
+                // (spec: car-list-row-limit).
+                val entries = titles.filter { ENTRY_NAME.containsMatchIn(it) }
+                assertTrue(
+                    "the disclosure opens the list: $titles",
+                    titles.first().contains(carContext.getString(com.naviveylin.core.R.string.diagnostics_disclosure))
+                )
+                assertEquals(3, entries.size)
+                assertTrue("newest first: ${entries[0]}", entries[0].contains("third"))
+                assertTrue(entries[1].contains("second"))
+                assertTrue("oldest last: ${entries[2]}", entries[2].contains("first"))
+            } finally {
+                // Release the screen the way the host ends one, before the log target goes
+                // (spec: unit-test-suite-runtime — Test-created components release their background work).
+                screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+                screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+                screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            }
         } finally {
             DiagnosticsLog.reset()
             file.delete()
@@ -122,27 +143,76 @@ class StartupScreensTest {
     }
 
     /**
-     * Template row titles, driving the main looper until the screen's background load is published
-     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline: no wall-clock window, no sleep).
+     * An awaited state that never arrives fails the case by naming the state, not with a row count that the
+     * missing load happens to produce (spec `unit-test-suite-runtime` — A helper that awaits a state fails by
+     * naming it). The window is forced to zero so the expiry path is taken without waiting for it.
+     */
+    @Test
+    fun awaitRowsNamesTheStateThatNeverArrived() {
+        val screen = DiagnosticsScreen(carContext)
+        try {
+            val failure = try {
+                awaitRows(screen, what = "three log rows", windowMs = 0L) { false }
+                null
+            } catch (e: AssertionError) {
+                e
+            }
+            assertNotNull(
+                "awaitRows returned rows for a state that never arrived, so the case fails later on a count",
+                failure
+            )
+            assertTrue(
+                "the failure names the state that did not arrive: ${failure!!.message}",
+                (failure.message ?: "").contains("three log rows")
+            )
+        } finally {
+            // Release the screen the way the host ends one (spec: unit-test-suite-runtime —
+            // Test-created components release their background work).
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        }
+    }
+
+    /**
+     * Template row titles, awaiting the observable state: the main looper is driven until [ready] holds of the
+     * rows the screen publishes, so no sleep and no deadline decides the outcome
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     *
+     * [windowMs] only ends a genuine hang: when it expires the case fails naming [what] and the rows it saw,
+     * rather than returning a list its call site compares as if the load had arrived
+     * (spec `unit-test-suite-runtime` — A helper that awaits a state fails by naming it).
      */
     private fun awaitRows(
         screen: DiagnosticsScreen,
+        what: String,
+        windowMs: Long = 5_000,
         ready: (List<String>) -> Boolean
     ): List<String> {
-        var titles: List<String> = emptyList()
-        runBlocking {
-            withTimeoutOrNull<Boolean>(5_000) {
-                var done = false
-                while (!done) {
+        var titles = rowTitles(screen)
+        val arrived = runBlocking {
+            withTimeoutOrNull<Boolean>(windowMs) {
+                while (!ready(titles)) {
                     shadowOf(Looper.getMainLooper()).idle()
-                    titles = (screen.onGetTemplate() as ListTemplate).singleList!!.items
-                        .filterIsInstance<Row>().map { it.title.toString() }
-                    done = ready(titles)
-                    if (!done) yield()
+                    titles = rowTitles(screen)
+                    if (!ready(titles)) yield()
                 }
                 true
             }
         }
+        shadowOf(Looper.getMainLooper()).idle()
+        titles = rowTitles(screen)
+        assertNotNull("the startup screen never published $what: $titles", arrived)
         return titles
+    }
+
+    /** The screen's row titles as the host would read them. */
+    private fun rowTitles(screen: DiagnosticsScreen): List<String> =
+        (screen.onGetTemplate() as ListTemplate).singleList!!.items
+            .filterIsInstance<Row>().map { it.title.toString() }
+
+    private companion object {
+        /** One window entry's tag and message in a row title (`A first`, `B second`, `C third`). */
+        val ENTRY_NAME = Regex("\\b[ABC] (?:first|second|third)\\b")
     }
 }

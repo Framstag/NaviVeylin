@@ -1,0 +1,47 @@
+# Group 7.1 — the shell suites this change owes (each behind `timeout`; the 900 s tool cap)
+# date: 2026-10-31T09:41:41Z
+
+$ timeout 120 bash tools/check-doc-routes.sh
+check-doc-routes: all 169 section references resolve, all 4 skill references resolve
+exit=0
+
+$ timeout 300 bash tools/check-doc-routes-selftest.sh
+check-doc-routes-selftest: all 32 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+exit=
+
+$ timeout 120 bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 5 named rule(s) are reached
+exit=0
+
+$ timeout 200 bash tools/check-rule-routes-selftest.sh
+check-rule-routes-selftest: all 6 cases passed (throwaway fixtures, no Gradle, no device, no network)
+exit=
+
+$ timeout 200 bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry
+exit=
+
+$ timeout 200 bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
+change-names-the-derived-set	routes#theReadingSetFollowsTheDiff	a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported
+exit=
+
+$ timeout 200 bash tools/check-portability.sh
+check-portability: OK — 53 engines and 2 templates name no project value (111 value(s) read from the project)
+exit=
+
+$ timeout 300 bash tools/check-todo-references.sh
+check-todo-references: 64 citation(s) resolve through the recorded table; 7733 file(s) excluded by the allowlist above
+exit=
+
+# --- exit codes re-captured (the  after a ';' read empty above) ---
+check-doc-routes-selftest exit=0
+check-rule-routes-selftest exit=0
+check-doc-routes-mutations --list exit=0
+check-rule-routes-mutations --list exit=0
+check-portability exit=0
+check-todo-references exit=0
+
+# --- the sensor suites this change's group 3 owes ---
+sensor-selftest (75 cases) exit=0
+sensor-mutations --list exit=0
+build-inputs.sh --check exit=0

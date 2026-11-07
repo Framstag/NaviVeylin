@@ -1,0 +1,148 @@
+loop spend — what the loop's children were charged, and on what
+----------------------------------------------------------------------------------------------------
+137 items, 365 child sessions, 20648 turns (19.5 h of model time)
+
+  cacheRead (context re-read)       1.6B     97%
+  input (uncached)                 40.3M      2%
+  output (thinking + text)         13.2M      1%
+  total                             1.7B
+
+Prompt baseline (first turn of a session = system prompt + phase prompt), median: 17234 tok/turn
+  charged once per turn    357.3M    21% of all tokens
+  tool results             876.4M    53%   59.2M chars injected once -> 21.1M tok, re-read x41
+  model output             417.0M    25%
+
+Reads: 4798 file reads, 2174 of them a second read of a path the session already had (45%)
+Spend by position, in the 182 sessions that ran a gate: 923.4M (77% of them) after the first gate/suite call — 8764 turns at 105k/turn, against 4904 turns at 57k/turn before it
+
+The baseline and the two growth parts are a model, not a ledger (chars->tokens is calibrated at 2.8/tok):
+  tokens ~ T x B + sum_k (T-1-k) x delta_k — early content is re-read far more often than late
+
+LOOP-SPEND-ITEMS n=137
+LOOP-SPEND-SESSIONS n=365
+LOOP-SPEND-TURNS n=20648
+LOOP-SPEND-TOKENS input=40298231 cacheRead=1610329592 output=13226175 total=1663853998
+LOOP-SPEND-COST total=-
+LOOP-SPEND-BASELINE tokens=17234 charged=357258120
+LOOP-SPEND-READS calls=4798 duplicate=2174
+LOOP-SPEND-GATE after=923446289
+LOOP-SPEND-CAP4K saved=453282909
+LOOP-SPEND-CAP8K saved=228988001
+LOOP-SPEND-CAP16K saved=29640189
+
+Per day (averages per item; dup% is the share of that day's file reads that repeated a path)
+  day        items  turns ctx/turn Mtok/item  max ctx  dup
+  2026-10-20    28    149      70k     10.65   175.7k  41%
+  2026-10-21    28    150      70k     10.74   191.7k  49%
+  2026-10-22    32    132      70k      9.51   187.7k  44%
+  2026-10-23    16    154      85k     13.38   187.2k  49%
+  2026-10-24     8    167      86k     14.84   219.9k  39%
+  2026-10-25     6    173     104k     18.30   219.0k  46%
+  2026-10-26    19    170      92k     16.03   244.8k  46%
+
+Per session role
+  role       sessions   turns     Mtok  Mtok/session  ctx/turn
+  worker          207   16038   1397.7          6.75       87k
+  reviewer        158    4610    252.9          1.60       55k
+
+Cost per item against its turn count (the multiplier, measured)
+  turns 0-20     items= 13 avg turns=    15 avg Mtok/item=   0.48 avg ctx/turn=   33k
+  turns 20-50    items= 21 avg turns=    31 avg Mtok/item=   1.41 avg ctx/turn=   46k
+  turns 50-100   items= 13 avg turns=    79 avg Mtok/item=   6.13 avg ctx/turn=   78k
+  turns 100-150  items= 22 avg turns=   121 avg Mtok/item=   9.88 avg ctx/turn=   82k
+  turns 150-250  items= 41 avg turns=   203 avg Mtok/item=  16.98 avg ctx/turn=   84k
+  turns 250+     items= 27 avg turns=   289 avg Mtok/item=  23.02 avg ctx/turn=   80k
+
+What the levers would save, on this archive (model, not a promise)
+  tool result capped at 4k chars     - 453.3M ( 27%)
+  tool result capped at 8k chars     - 229.0M ( 14%)
+  tool result capped at 16k chars    -  29.6M (  2%)
+  15% fewer turns                    - 378.4M ( 23%)
+  30% fewer turns                    - 705.9M ( 42%)
+  50% fewer turns                    -   1.1B ( 65%)
+  baseline trimmed by 30%            - 107.2M (  6%)
+
+Tool traffic
+  tool               calls  result chars  per call
+  ctx_shell          13545         25.0M      1.8k
+  ctx_read            4796         32.2M      6.7k
+  edit                2235        356.7k       160
+  write               1035        119.1k       115
+  shell                679        774.8k      1.1k
+  ctx_ls               251        195.5k       779
+  ctx_grep             231        320.1k      1.4k
+  ctx_patch             45        106.2k      2.4k
+  ctx_search            17         22.0k      1.3k
+  ctx_find              11          5.4k       490
+  subagent               8          7.6k       953
+  get_search_content       8          7.7k       956
+  fetch_content          7          7.4k      1.1k
+  bg_wait                6          2.5k       422
+  ctx_call               5          1.5k       296
+  web_search             4         33.0k      8.3k
+  ctx_edit               3          6.1k      2.0k
+  ctx_glob               3           274        91
+  read                   2            38        19
+  context_info           1            70        70
+  ctx_l s                1            22        22
+  ctx_write              1            24        24
+  subagent_supervisor       1            31        31
+  ctx_sheet              1            24        24
+  ctx_rp                 1            21        21
+
+The 20 most-read paths (a path read by 40 items is a prompt or a doc, not an incident)
+   194x  worktree/…/tools/loop-cases.sh
+   131x  worktree/…/tools/loop/run.sh
+    96x  worktree/…/tools/loop/gate.sh
+    81x  worktree/…/guidelines/Build.md
+    80x  worktree/…/openspec/specs/agent-issue-loop/spec.md
+    79x  worktree/…/tools/loop-mutations.sh
+    63x  worktree/…/guidelines/Backlog.md
+    43x  worktree/…/tools/loop-selftest.sh
+    35x  worktree/…/tools/loop/loop.conf
+    33x  worktree/…/tools/sensor-cases.sh
+    32x  worktree/…/tools/loop/lib.sh
+    31x  worktree/…/tools/loop/worktree.sh
+    28x  worktree/…/tools/sensors/run.sh
+    23x  worktree/…/tools/gen-feature-list.sh
+    22x  worktree/…/tools/issues/resolve-stale.sh
+    21x  worktree/…/tools/sensors/lib.sh
+    21x  worktree/…/tools/loop/state.sh
+    21x  worktree/…/.pi/skills/fix-loop/scripts/evidence-check.sh
+    20x  worktree/…/guidelines/FeatureList.md
+    20x  worktree/…/tools/gen-feature-list-selftest.sh
+
+The 10 heaviest single tool results (each is re-read by every later turn)
+    116.6k ctx_read       #78
+     59.9k ctx_read       #260
+     51.3k ctx_shell      #190
+     51.2k ctx_shell      #673
+     51.1k ctx_shell      #103
+     51.1k ctx_shell      #55
+     51.0k ctx_shell      #10
+     51.0k ctx_shell      #241
+     50.9k ctx_shell      #224
+     50.4k ctx_shell      #133
+
+Per item, most expensive first (top 20; res/item is the characters the item's tool results injected, which the turns after each of them re-read)
+  issue day        turns   Mtok ctx/turn  max ctx reads  dup res/item
+    673 2026-10-26   433   43.9     101k   244.8k    90  64%     1.1M
+    666 2026-10-26   219   35.6     162k   239.9k    30  47%   378.0k
+    118 2026-10-21   286   28.9     101k   191.7k    73  60%   700.2k
+    246 2026-10-21   279   27.5      99k   185.5k    53  49%   833.3k
+    116 2026-10-22   358   26.9      75k   124.1k    38  39%   759.8k
+    297 2026-10-24   210   26.8     127k   219.9k    25   8%   517.6k
+    260 2026-10-25   231   26.4     114k   219.0k    56  57%   674.2k
+    261 2026-10-23   267   24.9      93k   173.6k    59  47%   721.2k
+    298 2026-10-25   224   24.1     107k   192.2k    41  61%   463.5k
+    242 2026-10-22   309   23.9      77k   172.9k   109  57%     1.0M
+    190 2026-10-20   285   23.9      84k   151.0k    40  40%   711.0k
+    284 2026-10-23   277   23.7      85k   187.2k    87  55%   757.6k
+    293 2026-10-24   307   23.6      77k   146.3k    70  40%   925.0k
+    228 2026-10-21   284   23.6      83k   154.1k    87  54%   732.1k
+    671 2026-10-26   286   23.4      82k   173.4k    91  56%   790.1k
+    273 2026-10-23   312   23.3      75k   161.6k    71  45%   791.3k
+     78 2026-10-20   273   22.8      83k   161.6k    67  49%   913.4k
+     42 2026-10-22   277   22.8      82k   145.5k    73  47%   933.2k
+    280 2026-10-24   247   22.7      92k   154.8k    66  52%   809.7k
+     98 2026-10-21   340   22.5      66k   126.1k    74  53%   864.0k

@@ -43,6 +43,7 @@ MUTATIONS=(
   '5.11@.github/workflows/sensors.yml@s/if: steps.record.outputs.ready == '\''true'\''/if: true/@sensor:workflow#onlyTwoTriggers@every tracker write waits for the record'
   '5.12@.github/workflows/sensors.yml@s/inputs.apply == true/inputs.apply == '\''true'\''/@sensor:workflow#onlyTwoTriggers@the dispatch apply is compared as the boolean it is declared to be'
   '5.13@tools/fetch-build-inputs.sh@s/^conclusion=.*/conclusion=success/@inputs#reportsTheRunsConclusion@the conclusion the caller gates its rows on is the run'"'"'s own'
+  '5.14@tools/build-inputs.sh@s/xml_instruction_percentage "\$jacoco_vendored_xml"/xml_instruction_percentage "$jacoco_xml"/@inputs#splitsTheJavaModulesCoverageByProvenance@the vendored provenance is read from its own report, not from the module'"'"'s own one'
 )
 
 if [ "$mode" = "list" ]; then

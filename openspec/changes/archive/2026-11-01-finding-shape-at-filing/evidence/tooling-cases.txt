@@ -1,0 +1,36 @@
+# The issue-tooling suite, before and after the finding-shape change
+#
+# Measured 2026-11-01T08:45:50Z on 0dd05ba6. "before" counts the shell case ids the
+# committed case file declares at HEAD; "after" counts what the suite lists now. (The suite's own total is
+# larger by the Java core cases, which neither count covers: 146 = 123 shell + 23 run through `Cases`.)
+#
+$ git show HEAD:tools/issue-tooling-cases.sh | grep -cE "^  '<group>#"      # before
+  107
+$ bash tools/issue-tooling-selftest.sh --list | grep -cE "^(<group>)#"                          # after
+  123
+  added                                             16
+
+$ bash tools/issue-tooling-selftest.sh
+issue-tooling-selftest: all 146 cases passed (JDK 27, offline, no token, HEAD 0dd05ba6, tools 965edb5f4592, 2026-11-01T08:47:16Z)
+
+$ bash tools/issues/metadata-mutations.sh --list
+the-writer-skips-the-marker      no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671)
+settled-record-not-checked       an item whose body keeps a settled state must carry a settled label, or the displaced state is invisible (#683)
+
+# The cases this change adds, each of which the delta or the task list names:
+  create#aShapelessFindingIsRefused
+  create#aFindingWithBothShapesIsRefused
+  create#aCauseWithAResolvingPointerIsFiled
+  create#aCauseWhosePointerIsGoneIsRefused
+  create#aCauseWithoutACaseIsRefused
+  create#aNamedChangeThatDoesNotExistIsRefused
+  create#aChangeThatIsNotReadyIsRefused
+  create#aTierBWithNoDecisionIsRefused
+  create#anEmptyGatePathRefusesTierB
+  create#theDeclaredGatePathIsTheOneRun
+  create#aTierBIsFiledWithItsDecisions
+  create#theShapeIsInTheBodyRecord
+  create#aTierAIsFiled
+  create#aTierBIsFiled
+  create#aSensorFindingIsExemptFromTheShape
+  import#theImportedItemNamesItsExemption

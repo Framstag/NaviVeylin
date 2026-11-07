@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/gate.sh (pre-merge tree, 49dfd7db)" tests="377" failures="1" errors="0" time="1504">
+  <system-out>LOOP-GATE: tests=377 failures=1 errors=0 (tools/loop-selftest.sh --from-git 49dfd7db13a763bf6674471dedbbb56bdd9e4b52 1317s, bash tools/loop-mutations.sh --check 1s, tools/loop-mutations-selftest.sh 183s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s) — failing: tools/loop-selftest.sh</system-out>
+</testsuite>

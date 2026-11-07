@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-mutations.sh --only &quot;14.6 14.7 14.8&quot;" tests="3" failures="0" errors="0" time="45">
+  <system-out>red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0</system-out>
+</testsuite>

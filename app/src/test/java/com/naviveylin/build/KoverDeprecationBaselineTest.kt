@@ -26,7 +26,9 @@ class KoverDeprecationBaselineTest {
 
     private val repoRoot = File("..").canonicalFile
     private val rootBuild = File(repoRoot, "build.gradle.kts")
-    private val buildGuideline = File(repoRoot, "guidelines/Build.md")
+    // §7 moved to `BuildEvidence.md` when the corpus was split into three layers; `Build.md` §7 is only
+    // the pointer a routed reader follows, so the assertion reads the document that owns the text.
+    private val coverageGuideline = File(repoRoot, "guidelines/BuildEvidence.md")
 
     /**
      * The first Kover release whose plugin-apply path does not add a `Project`-object dependency:
@@ -53,11 +55,11 @@ class KoverDeprecationBaselineTest {
         val section = coverageSection()
         println("koverDeclared=$declared §7 states it: ${section.contains("Kover $declared")}")
         assertTrue(
-            "guidelines/Build.md §7's engine table must state the pinned Kover version $declared",
+            "guidelines/BuildEvidence.md §7's engine table must state the pinned Kover version $declared",
             section.contains("Kover $declared")
         )
         assertFalse(
-            "guidelines/Build.md §7 must not keep the Project-object deprecation as an open " +
+            "guidelines/BuildEvidence.md §7 must not keep the Project-object deprecation as an open " +
                 "upstream issue once the pinned version clears it",
             section.contains("Known upstream issue")
         )
@@ -75,13 +77,13 @@ class KoverDeprecationBaselineTest {
         return KoverVersion.parse(match!!.groupValues[1])
     }
 
-    /** `guidelines/Build.md` §7 — the coverage section, up to the next `## ` heading. */
+    /** `guidelines/BuildEvidence.md` §7 — the coverage section, up to the next `## ` heading. */
     private fun coverageSection(): String {
-        assertTrue("the guideline must exist at ${buildGuideline.absolutePath}", buildGuideline.isFile)
-        val text = buildGuideline.readText()
+        assertTrue("the guideline must exist at ${coverageGuideline.absolutePath}", coverageGuideline.isFile)
+        val text = coverageGuideline.readText()
         val start = text.indexOf("## 7. Code coverage")
         assertTrue(
-            "guidelines/Build.md must carry the section \"## 7. Code coverage\": ${buildGuideline.absolutePath}",
+            "guidelines/BuildEvidence.md must carry the section \"## 7. Code coverage\": ${coverageGuideline.absolutePath}",
             start >= 0
         )
         val end = text.indexOf("\n## ", start + 1)

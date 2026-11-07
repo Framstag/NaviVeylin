@@ -1,0 +1,1 @@
+check-gate-artifacts-selftest: all 3 cases passed (Gradle invocations, a real asset source, the mutation restored)

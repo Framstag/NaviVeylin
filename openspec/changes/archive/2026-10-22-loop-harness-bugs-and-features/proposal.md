@@ -36,9 +36,10 @@ and features should be planned and applied by the loop.
   code. The gate table is read per class; a feature names a missing capability rather than a root cause.
 - `tools/loop/prompts/reviewer.md`: item 2 accepts a named missing capability as well as a root cause.
 - `tools/loop/loop.conf`: the worker is told about `openspec-propose` as well as `openspec-apply-change`.
-- `.pi/skills/fix-loop/SKILL.md`, `REFERENCE.md`: reduced to pointers — the eligibility table the worker
-  applies is `tools/loop/prompts/worker.md`, the ranking rule is the spec delta below, and the skill keeps the
-  measurements and the evidence script.
+- ~~`.pi/skills/fix-loop/SKILL.md`, `REFERENCE.md`: reduced to pointers~~ — **the skill is gone** (issue #255,
+  change `2026-10-25-fix-retired-loop-skill-still-shipped`): the eligibility table the worker applies is
+  `tools/loop/prompts/worker.md`, the ranking rule is the spec delta below, the measurements moved into
+  `guidelines/Backlog.md` §7 and the evidence script moved to `tools/loop/evidence-check.sh`.
 - `openspec/specs/agent-issue-loop`: the queue requirement is modified, and a feature requirement is added,
   each with its cases.
 - `tools/loop-cases.sh` and its fixtures: the ranking, the mixing interval, a refused class, a feature's

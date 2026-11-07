@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gradle half of the round-2 gate, summed from the run's own JUnit XML (the gate's own tally for that
+     step carries `tests="0"`, because it reads a suite's count from an `all N cases passed` summary line and
+     Gradle prints none). One line per module and flavour, each number read from that directory's XML after
+     the gate's `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache` step
+     (`BUILD SUCCESSFUL in 6m 36s`, 397 s). Derived, never invented. -->
+<testsuites tests="6070" failures="0" errors="0" skipped="0">
+  <testsuite name=":app:testMobileDebugUnitTest" tests="2138" failures="0" errors="0"/>
+  <testsuite name=":app:testAutomotiveDebugUnitTest" tests="2138" failures="0" errors="0"/>
+  <testsuite name=":auto:testDebugUnitTest" tests="887" failures="0" errors="0"/>
+  <testsuite name=":core:testDebugUnitTest" tests="643" failures="0" errors="0"/>
+  <testsuite name=":osmscout-client-java:test" tests="112" failures="0" errors="0"/>
+  <testsuite name=":buildSrc:test" tests="152" failures="0" errors="0"/>
+</testsuites>

@@ -1,0 +1,16 @@
+loop-mutations: selected 6 of 134 records (labels: 12.3 12.4 12.9 12.10 12.11 12.12)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/i288-final/.pi/tmp/loop-mutations.Kpeu4p
+RED    12.3  run#childWriteOutsideTheWorktreeIsNoted   (the run recording a child write left outside the worktree)
+restore 12.3 run#childWriteOutsideTheWorktreeIsNoted green again
+RED    12.4  run#strictOutsideWriteDiscardsTheReviewRound   (the round discarded on a difference the run can place or was told to judge)
+restore 12.4 run#strictOutsideWriteDiscardsTheReviewRound green again
+RED    12.9  run#strictOutsideWriteBlocksTheItem   (the strict run turning the difference into a verdict about the item)
+restore 12.9 run#strictOutsideWriteBlocksTheItem green again
+RED    12.10  run#aWriterTheRunCanPlaceBlocksTheItem   (the reading taken while the child runs, which is what ties a write to it)
+restore 12.10 run#aWriterTheRunCanPlaceBlocksTheItem green again
+RED    12.11  run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem   (the child chain the run itself started in the project not being a writer)
+restore 12.11 run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem green again
+RED    12.12  run#aWriterTheRunCanPlaceBlocksTheItem   (the candidates read from the child tree instead of from the sweep that has moved on)
+restore 12.12 run#aWriterTheRunCanPlaceBlocksTheItem green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0

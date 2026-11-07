@@ -5,7 +5,9 @@ import android.graphics.Canvas
 import androidx.car.app.model.CarIcon
 import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
+import com.naviveylin.core.exitOrdinal
+import com.naviveylin.core.turnTypeFor
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.ManeuverSymbols
 
@@ -37,11 +39,11 @@ object ManeuverGlyphs {
     fun forTurnType(type: TurnType): CarIcon = forTurnTypeAndExit(type, 0)
 
     /**
-     * CarIcon for [instruction], carrying the roundabout exit number when the instruction has one
+     * CarIcon for [step], carrying the roundabout exit number when the manoeuvre has one
      * (spec: roundabout-renderer — Roundabout exit symbol shows the exit number).
      */
-    fun forInstruction(instruction: RouteInstruction): CarIcon =
-        forTurnTypeAndExit(instruction.turnType, instruction.roundaboutExitNumber)
+    fun forStep(step: RouteStep): CarIcon =
+        forTurnTypeAndExit(turnTypeFor(step), step.exitOrdinal)
 
     /** CarIcon for [type] at [roundaboutExitNumber]; an ordinal on a non-exit is ignored. */
     fun forTurnTypeAndExit(type: TurnType, roundaboutExitNumber: Int): CarIcon {

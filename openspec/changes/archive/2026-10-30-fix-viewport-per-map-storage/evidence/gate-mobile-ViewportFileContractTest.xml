@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.ViewportFileContractTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:51:30.946Z" hostname="dingens" time="0.074">
+  <properties/>
+  <testcase name="the spec states the escaping the storage applies" classname="com.naviveylin.data.ViewportFileContractTest" time="0.026"/>
+  <testcase name="the spec states the per-map file the storage writes" classname="com.naviveylin.data.ViewportFileContractTest" time="0.025"/>
+  <testcase name="the spec states the key derivation the storage applies" classname="com.naviveylin.data.ViewportFileContractTest" time="0.021"/>
+  <system-out><![CDATA[viewportEscape spec=[[A-Za-z0-9._-, _]]
+viewportEscape example=[Europe map.osm -> viewport-Europe_map.osm.json] written=[viewport-Europe_map.osm.json]
+viewportFile spec=[viewport-<key>.json] written=[viewport-germany.json]
+viewportKey spec=[[/data/maps/germany.osm, germany.osm]]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

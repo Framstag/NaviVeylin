@@ -1,0 +1,9 @@
+=== the loop's gate invokes this suite directly (loop.conf LOOP_GATE_SUITES: '.github/workflows/*|tools/check-action-runtimes.sh'), and on main the file is committed 100644:
+  base mode: 100644  (main, 2026-10-24)
+  sibling suites: 100755 100755 
+  -> direct invocation on the base tree:
+  $( tools/check-action-runtimes.sh )  →  tools/loop/gate.sh: Zeile 166: tools/check-action-runtimes.sh: Keine Berechtigung
+
+=== after chmod +x (this commit), invoked exactly as the gate does:
+action runtimes: 10 action pins across 2 workflow files target Node 24.
+exit=0

@@ -1,0 +1,11 @@
+2026-11-07T02:51:37Z
+
+$ bash tools/loop-selftest.sh --group driver
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+loop-selftest: driver 22 cases 183.64 s
+loop-selftest: all 22 cases passed (JDK 27, offline, no token, no sandbox) — 20.47 s, selection: --group driver
+
+$ bash tools/loop-selftest.sh --group prompt
+PASS prompt#thePackageCarriesTheChange
+loop-selftest: prompt 16 cases 323.86 s
+loop-selftest: all 16 cases passed (JDK 27, offline, no token, no sandbox) — 29.63 s, selection: --group prompt

@@ -1,6 +1,6 @@
 package com.naviveylin.navigation
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -11,72 +11,72 @@ import org.junit.Test
  * during navigation", next-turn-overlay). Plain JUnit: no native client, no
  * Robolectric sandbox requirement.
  *
- * The lookup must advance monotonically: a repeated description ("Straight
- * on", looped street names) must never re-bind the active step to an
- * earlier, already-passed occurrence.
+ * The lookup matches on the step's distance from the route start **and** its manoeuvre kind (one route
+ * node can describe two manoeuvres — a turn and a motorway entry), and it must advance monotonically: a
+ * repeated manoeuvre must never re-bind the active step to an earlier, already-passed occurrence.
  */
 class StepIndexSelectionTest {
 
-    private fun instr(description: String) =
-        RouteInstruction(100.0, TurnType.LEFT, "Main St", description, "Turn left")
+    private fun step(kind: RouteStep.Kind, distanceFromStart: Double, turn: TurnType? = null) =
+        RouteStep().apply {
+            this.kind = kind
+            this.distanceFromStart = distanceFromStart
+            legDistance = 100.0
+            if (turn != null) this.turn = turn
+        }
+
+    private fun leftTurn(distanceFromStart: Double) =
+        step(RouteStep.Kind.TURN, distanceFromStart, TurnType.LEFT)
 
     @Test
     fun `matches first occurrence at or after current index`() {
-        val list = listOf(instr("start"), instr("Turn left into A"), instr("Straight on"))
-        assertEquals(1, nextStepIndex(list, 0, instr("Turn left into A")))
+        val list = listOf(leftTurn(0.0), leftTurn(100.0), leftTurn(200.0))
+        assertEquals(1, nextStepIndex(list, 0, leftTurn(100.0)))
     }
 
     @Test
-    fun `advances forward with the live instruction`() {
-        val list = listOf(instr("start"), instr("Turn left into A"), instr("Straight on"))
-        // Current step is the left turn; live instruction is the straight-ahead.
-        assertEquals(2, nextStepIndex(list, 1, instr("Straight on")))
+    fun `advances forward with the live step`() {
+        val list = listOf(leftTurn(0.0), leftTurn(100.0), leftTurn(200.0))
+        // Current step is the first turn; the live step is the second.
+        assertEquals(2, nextStepIndex(list, 1, leftTurn(200.0)))
     }
 
     @Test
-    fun `duplicate description does not jump backward`() {
-        // "Turn left into A" appears at index 0 (already passed) and index 2
-        // (the real upcoming step). Starting from index 2, the lookup must NOT
-        // fall back to the passed occurrence at index 0.
+    fun `a repeated manoeuvre does not jump backward`() {
+        // Two identical turns, 400 m apart: starting from the second one, the lookup must not fall
+        // back to the passed occurrence.
+        val list = listOf(leftTurn(100.0), leftTurn(500.0))
+        assertEquals(1, nextStepIndex(list, 1, leftTurn(500.0)))
+    }
+
+    @Test
+    fun `no match ahead keeps the current index`() {
+        val list = listOf(leftTurn(100.0))
+        assertEquals(0, nextStepIndex(list, 0, leftTurn(9_000.0)))
+    }
+
+    @Test
+    fun `a dual node binds to the step with the same kind`() {
+        // One node describes two manoeuvres: a turn and a motorway entry at the same distance from the
+        // start. Distance alone is ambiguous, so the kind decides (design D5 of
+        // `route-steps-live-guidance`).
         val list = listOf(
-            instr("Turn left into A"),
-            instr("Straight on"),
-            instr("Turn left into A")
+            leftTurn(1000.0),
+            step(RouteStep.Kind.MOTORWAY_ENTER, 1000.0),
+            step(RouteStep.Kind.TARGET, 1500.0)
         )
-        assertEquals(2, nextStepIndex(list, 2, instr("Turn left into A")))
+        val liveMotorwayEntry = step(RouteStep.Kind.MOTORWAY_ENTER, 1000.0).apply {
+            motorwayEnter = RouteStep.MotorwayEnter().apply { to = RouteStep.Name("", "A42") }
+        }
+
+        assertEquals(1, nextStepIndex(list, 0, liveMotorwayEntry))
     }
 
     @Test
-    fun `skips passed duplicates and binds to the ahead occurrence`() {
-        val list = listOf(
-            instr("Turn left into A"),
-            instr("Turn left into A"),
-            instr("Straight on")
-        )
-        // First occurrence passed (current = 1): bind to the second one.
-        assertEquals(1, nextStepIndex(list, 1, instr("Turn left into A")))
-    }
-
-    @Test
-    fun `keeps current index when description not found ahead`() {
-        val list = listOf(instr("Turn left into A"), instr("Straight on"))
-        assertEquals(1, nextStepIndex(list, 1, instr("Unknown maneuver")))
-    }
-
-    @Test
-    fun `clamps negative current index to zero`() {
-        val list = listOf(instr("Turn left into A"))
-        assertEquals(0, nextStepIndex(list, -1, instr("Turn left into A")))
-    }
-
-    @Test
-    fun `keeps index when current index beyond list`() {
-        val list = listOf(instr("Turn left into A"))
-        assertEquals(2, nextStepIndex(list, 2, instr("Turn left into A")))
-    }
-
-    @Test
-    fun `empty list keeps current index`() {
-        assertEquals(0, nextStepIndex(emptyList(), 0, instr("Turn left into A")))
+    fun `a snap that moves the published distance still matches`() {
+        // The live step reports its node's distance from the start; the snap moves it by a handful of
+        // metres. The window absorbs that without letting a different manoeuvre match.
+        val list = listOf(leftTurn(100.0), leftTurn(500.0))
+        assertEquals(1, nextStepIndex(list, 0, leftTurn(512.0)))
     }
 }

@@ -1,0 +1,22 @@
+ M libosmscout-client-java/src/OSMScoutClient.cpp
+ M libosmscout-import/include/osmscoutimport/GenRouteDat.h
+ M libosmscout-import/src/osmscoutimport/GenRouteDat.cpp
+ M libosmscout/CMakeLists.txt
+ M libosmscout/include/meson.build
+ M libosmscout/include/osmscout/TypeConfig.h
+ M libosmscout/include/osmscout/routing/RouteNode.h
+ M libosmscout/include/osmscout/routing/RoutingProfile.h
+ M libosmscout/src/meson.build
+ M libosmscout/src/osmscout/TypeConfig.cpp
+ M libosmscout/src/osmscout/routing/RoutingProfile.cpp
+ M stylesheets/map.ost
+ M stylesheets/motorways.ost
+?? libosmscout/include/osmscout/feature/TollFeature.h
+?? libosmscout/src/osmscout/feature/TollFeature.cpp
+?? openspec/changes/client-java-avoid-tolls/
+diff --git a/app/src/main/cpp/libosmscout b/app/src/main/cpp/libosmscout
+--- a/app/src/main/cpp/libosmscout
++++ b/app/src/main/cpp/libosmscout
+@@ -1 +1 @@
+-Subproject commit 000a49346be9810e86a977b9ce5a3a496f127bba
++Subproject commit 000a49346be9810e86a977b9ce5a3a496f127bba-dirty

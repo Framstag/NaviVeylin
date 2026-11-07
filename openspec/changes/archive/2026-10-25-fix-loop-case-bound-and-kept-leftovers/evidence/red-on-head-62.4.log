@@ -1,0 +1,5 @@
+red on HEAD 2026-10-25T07:04Z — bash tools/loop-selftest.sh --case 'run#noProcessOfASignalledRunOutlivesIt'
+  a process of the signalled run outlived it: 2483360 (run said: recorded blocked (#21 unspecified) loop: worker-prompt running 30s — log 223 B, worktree 2 changed file(s), 0 commit(s) since the base )
+FAIL run#noProcessOfASignalledRunOutlivesIt
+loop-selftest: 1 of 1 cases failed
+status=1

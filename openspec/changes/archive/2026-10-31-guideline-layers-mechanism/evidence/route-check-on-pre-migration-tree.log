@@ -1,0 +1,2 @@
+check-doc-routes: all 169 section references resolve, all 4 skill references resolve
+exit=0

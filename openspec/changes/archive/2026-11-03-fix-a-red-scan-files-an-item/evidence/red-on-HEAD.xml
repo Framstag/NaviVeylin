@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="the scan's record — six cases, each run on base 55b5d658" tests="6" failures="6" errors="0" time="14">
+  <testcase name="sensors#aFailedScanIsItsOwnCondition" classname="tools/sensor-selftest.sh" time="1">
+    <failure message="the registry declares no broken-scan row"/>
+  </testcase>
+  <testcase name="sensors#aGreenScanClearsItsCondition" classname="tools/sensor-selftest.sh" time="1">
+    <failure message="the registry declares no row with id 'broken-scan'"/>
+  </testcase>
+  <testcase name="workflow#theScanRecordIsFetchedBeforeItsRowRuns" classname="tools/sensor-selftest.sh" time="1">
+    <failure message="the fetch does not ask the scan workflow"/>
+  </testcase>
+  <testcase name="inputs#theScanRecordIsTheScanPipelinesOwn" classname="tools/build-inputs-selftest.sh" time="1">
+    <failure message="the manifest does not name scan-result.json"/>
+  </testcase>
+  <testcase name="sonar-workflow#theRecordIsPublishedOnEveryOutcome" classname="tools/check-sonar-workflow-selftest.sh" time="1">
+    <failure message="no step writes the scan's record; no step publishes the scan-inputs artifact"/>
+  </testcase>
+  <testcase name="sonar-workflow#theRecordPathIsTheUploadsOwn" classname="tools/check-sonar-workflow-selftest.sh" time="1">
+    <failure message="no broken-scan row declares the scan's record; no upload step to check the artifact root against"/>
+  </testcase>
+</testsuite>

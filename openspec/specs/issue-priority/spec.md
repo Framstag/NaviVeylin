@@ -156,3 +156,47 @@ the moment of reading rather than stored with the priority.
 
 - **WHEN** an item carries a deadline that has the owner's attention
 - **THEN** it is placed above its peers inside the ranking, as the project's existing ordering rule says
+
+### Requirement: The marker is read where the pass writes it
+
+The stored marker SHALL be the block comment the pass writes on a line of its own — at the start of the line and closing at its end, trailing whitespace allowed — outside a fenced code span. Any other occurrence in the body SHALL be prose and SHALL NOT decide whether the item carries a marker or which band it records.
+
+#### Scenario: A quotation of the grammar is prose
+
+- **WHEN** an item's body quotes the marker grammar — inline, in a fenced span that puts it on a line of its own, on a prose line that ends at the close, or on a line that starts at the open and continues past it — and carries no marker of its own
+- **THEN** the item is read as carrying no marker, so a band label without a stored record is reported as such instead of being matched against the quotation
+- **Case**: `check#aQuotationIsNotAMarker`
+
+#### Scenario: The marker's own line is the record
+
+- **WHEN** an item's body quotes the grammar and also carries a marker line
+- **THEN** the marker line is the record and the quotation is not read, so the band, the components and the basis come from what the pass wrote
+- **Case**: `check#aMarkerLineBesideAQuotationIsTheRecord`
+
+#### Scenario: The write replaces the marker's line and nothing else
+
+- **WHEN** the pass stores a marker in a body that quotes the grammar
+- **THEN** the marker line is replaced, or appended when the body carries none, the quotation survives, and the body carries exactly one marker line
+- **Case**: `prioritise#theWriteKeepsAQuotation`
+
+### Requirement: A band label is written only with the body that carries its marker
+
+A write that names a `prio/<band>` label SHALL carry, in the same call, the body whose marker leaves the pair intact — the label added must equal the marker's band, and a call that removes a band label and adds none must carry a body recording no band — and SHALL be refused before any write when it does not. A created item SHALL carry no band label at all, since the body a filing writes holds no marker.
+
+#### Scenario: A band label named with no body is refused
+
+- **WHEN** `update.sh` is asked to add or remove a `prio/<band>` label without a `--body`
+- **THEN** nothing reaches the tracker and the refusal names `band-label-unpaired`
+- **Case**: `update#refusesABandLabelWithoutItsMarker`
+
+#### Scenario: The pair written in one call lands
+
+- **WHEN** a call adds a band label and passes a body whose marker records the same band, removing the band it replaces
+- **THEN** one `gh issue edit` carries the added label, the removed one and the body — and a body whose marker records another band is refused with `band-label-disagrees`, writing nothing, as is a removal that adds no band while its body still records one
+- **Case**: `update#writesABandLabelWithTheBodysMarker`
+
+#### Scenario: A filing names no band
+
+- **WHEN** `create.sh` is asked to file an item carrying a `prio/<band>` label
+- **THEN** nothing is filed and the refusal names `band-label-unpaired`, because the body a filing writes carries no marker for the band to agree with
+- **Case**: `create#refusesABandLabelAtFilingTime`

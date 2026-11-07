@@ -1,0 +1,17 @@
+# what the gate owes on HEAD for the reader paths (issue #289)
+2026-10-25T17:27:23Z
+
+## the four paths of the item (loop.conf, tooling.json, sensors.json, an issue engine)
+tools/loop-selftest.sh --from-git HEAD
+bash tools/loop-mutations.sh --check
+tools/issue-tooling-selftest.sh
+tools/issues/check-metadata.sh
+tools/issues/metadata-mutations.sh --list
+tools/sensor-selftest.sh
+tools/sensor-mutations.sh --list
+rc=0
+
+## an engine the issue tooling's case greps (tools/loop/worktree.sh)
+tools/loop-selftest.sh --from-git HEAD
+bash tools/loop-mutations.sh --check
+rc=0

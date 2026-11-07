@@ -1,0 +1,16 @@
+# The change's suites — each run once, its verdict quoted (2026-10-24, base daa82b21)
+
+Plan: bash tools/loop/gate.sh --plan --base HEAD
+
+loop-selftest:               loop-selftest: all 215 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git HEAD
+loop-mutations-check:        loop-mutations: all 142 cases passed — every selected record applies to the file it names
+action-runtimes:             action runtimes: 10 action pins across 2 workflow files target Node 24.
+action-runtimes-selftest:    check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+gen-feature-list:            highlights: 19
+doc-routes:                  check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+doc-routes-selftest:         check-doc-routes-selftest: 19 passed, 0 failed
+doc-routes-mutations:        skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
+todo-refs:                   check-todo-references: 63 citation(s) resolve through the recorded table; 4515 file(s) excluded by the allowlist above
+hygiene-check:               OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+hygiene-selftest:            check-openspec-hygiene-selftest: all 6 cases passed (throwaway OpenSpec trees, no Gradle)
+gate-artifacts-green:        check-gate-artifacts-selftest: all 3 cases passed (Gradle invocations, a real asset source, the mutation restored)

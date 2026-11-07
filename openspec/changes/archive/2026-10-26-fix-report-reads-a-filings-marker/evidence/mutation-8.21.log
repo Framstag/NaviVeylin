@@ -1,0 +1,3 @@
+MUTATION 8.21: run#aFilingSetsTheBaseline red under the mutation, green after the restore — the baseline is the newest marker the row carries, a filing included (issue #668)
+
+sensor-mutations: 1 behaved, 0 did not

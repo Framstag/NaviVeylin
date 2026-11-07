@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.GestureMappingTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:24.564Z" hostname="dingens" time="0.084">
+  <properties/>
+  <testcase name="geoToScreenRoundTrip" classname="com.naviveylin.auto.GestureMappingTest" time="0.016"/>
+  <testcase name="dragDeltaNoOpForZeroDelta" classname="com.naviveylin.auto.GestureMappingTest" time="0.015"/>
+  <testcase name="dragDeltaMovesCenter" classname="com.naviveylin.auto.GestureMappingTest" time="0.015"/>
+  <testcase name="screenToGeoCenter" classname="com.naviveylin.auto.GestureMappingTest" time="0.013"/>
+  <testcase name="screenToGeoRoundTrip" classname="com.naviveylin.auto.GestureMappingTest" time="0.012"/>
+  <testcase name="zoomAtCursorKeepsCursorFixed" classname="com.naviveylin.auto.GestureMappingTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+# the two document invariants, run against the map this change shipped before the correction round
+# command: bash tools/check-rule-routes.sh   (new check, map at branch tip 5ad97fc5)
+# 2026-11-02T18:39:45Z
+::error file=tools/doc-routes.json::no glob matches guidelines/BacklogTooling.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them
+::error file=tools/doc-routes.json::no glob matches guidelines/MapCar.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them
+::error file=tools/doc-routes.json::no glob matches guidelines/MapFollow.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them
+::error file=tools/doc-routes.json::no glob matches guidelines/MapFrames.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them
+::error file=tools/doc-routes.json::no glob matches guidelines/MapRoute.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them
+::error file=tools/doc-routes.json::no glob matches guidelines/MapStyling.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them
+::error file=tools/doc-routes.json::the glob guidelines/Backlog.* carries a BacklogTooling.md entry it does not match — a guideline route names the document whose sections and rules it carries
+check-rule-routes: 0 glob(s) match no tracked path, 0 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 6 document(s) are matched by no glob, 1 guideline route(s) carry a document their glob does not match
+exit=1

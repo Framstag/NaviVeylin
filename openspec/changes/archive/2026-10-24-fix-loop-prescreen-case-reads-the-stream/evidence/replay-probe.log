@@ -1,0 +1,11 @@
+  and the line it has not printed yet does not: the text is streamed, not replayed: 'pre-screen: second record' should not appear in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=2700 min-free-mib=1024 free-mib=2828 dry-run=0 reset-worktree=0
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/i287/.pi/tmp/loop-selftest.iZ8Msj/case.mvnhsF/repo/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/i287/.pi/tmp/loop-selftest.iZ8Msj/case.mvnhsF/repo/.pi/issue-loop/lock (owner 633112)
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base e92e2e288784
+state: deadline 2026-10-24T10:53:45Z
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/i287/.pi/tmp/loop-selftest.iZ8Msj/case.mvnhsF/repo/.pi/issue-loop/prescreen.log
+pre-screen: first record
+pre-screen: second record
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed
+ended 633112 — its working directory is inside loop-selftest.iZ8Msj

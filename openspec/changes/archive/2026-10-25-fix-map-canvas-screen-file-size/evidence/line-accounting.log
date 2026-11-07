@@ -1,0 +1,36 @@
+$ wc -l the six files (after the split)
+  1109 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt
+   427 app/src/main/java/com/naviveylin/ui/map/MapCanvasFollowDisplay.kt
+   677 app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
+   629 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenChromeBand.kt
+   409 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenModalBands.kt
+   762 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenParts.kt
+  4013 insgesamt
+
+$ git diff --stat
+ .../java/com/naviveylin/ui/map/MapCanvasScreen.kt  | 2725 ++------------------
+ .../naviveylin/ui/map/FollowAnchorFramingTest.kt   |    2 +-
+ .../naviveylin/ui/map/FollowBlitCallSiteTest.kt    |    8 +-
+ .../ui/map/MapCanvasViewModelFixQualityTest.kt     |    7 +-
+ .../naviveylin/ui/map/MapLayerStackComposeTest.kt  |    4 +-
+ .../ui/map/MapNavColumnWidthProbeTest.kt           |    2 +-
+ .../naviveylin/ui/map/RouteSessionCardExitTest.kt  |    4 +-
+ guidelines/MapRendering.md                         |    3 +-
+ guidelines/UI.md                                   |    2 +-
+ 9 files changed, 243 insertions(+), 2514 deletions(-)
+
+$ git status --porcelain
+ M app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt
+ M app/src/test/java/com/naviveylin/ui/map/FollowAnchorFramingTest.kt
+ M app/src/test/java/com/naviveylin/ui/map/FollowBlitCallSiteTest.kt
+ M app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFixQualityTest.kt
+ M app/src/test/java/com/naviveylin/ui/map/MapLayerStackComposeTest.kt
+ M app/src/test/java/com/naviveylin/ui/map/MapNavColumnWidthProbeTest.kt
+ M app/src/test/java/com/naviveylin/ui/map/RouteSessionCardExitTest.kt
+ M guidelines/MapRendering.md
+ M guidelines/UI.md
+?? app/src/main/java/com/naviveylin/ui/map/MapCanvasFollowDisplay.kt
+?? app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
+?? app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenChromeBand.kt
+?? app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenModalBands.kt
+?? app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenParts.kt

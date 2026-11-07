@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issue-tooling-selftest.sh shaping#theConsumer*" tests="3" skipped="0" failures="3" errors="0" timestamp="2026-11-05T10:47:42Z">
+  <testcase name="shaping#theConsumerProposesFromTheItemsOwnStatement"><failure message="the inbox has no reader: .pi/skills/reshape-issue/SKILL.md does not exist"/></testcase>
+  <testcase name="shaping#theConsumerWritesNothingBeforeTheOwnerChooses"><failure message="the inbox has no reader: .pi/skills/reshape-issue/SKILL.md does not exist"/></testcase>
+  <testcase name="shaping#theApprovedReshapeLeavesThroughTheExistingWriters"><failure message="the inbox has no reader: .pi/skills/reshape-issue/SKILL.md does not exist"/></testcase>
+</testsuite>

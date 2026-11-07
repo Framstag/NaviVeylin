@@ -1,0 +1,6 @@
+# the check implemented, the two records NOT yet repaired — it must name exactly them
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.dXSbYi
+MUTATION-PATTERN-STALE 9.9  tools/loop/run.sh (an expression of this record names no line of this file — fix the record, not the case)
+MUTATION-PATTERN-STALE 12.2  tools/loop/run.sh (an expression of this record names no line of this file — fix the record, not the case)
+loop-mutations: 2 of 84 checked records no longer apply — the set is stale
+exit=1

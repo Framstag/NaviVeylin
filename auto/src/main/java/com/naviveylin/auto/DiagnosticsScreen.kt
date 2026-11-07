@@ -33,7 +33,7 @@ import kotlinx.coroutines.withContext
  * capacity stay reachable; design D1/D2/D3). Two measured facts force that shape: a host silently ignores
  * the rows over its list capacity (the library's own contract, and the AAOS host's measured number is
  * 100 while the library's floor is 6), and `PaneTemplate` rows are **not actionable** and do not scroll,
- * so a pane can neither show the 20-entry window nor offer the remainder (`guidelines/UI.md` §3).
+ * so a pane can neither show the 20-entry window nor offer the remainder (`guidelines/UICar.md` §3).
  *
  * The 20-entry window itself is deliberate and unchanged: the diagnostics file holds the full history,
  * and this screen is a bounded recent-entries view of it (`guidelines/Logging.md` §3).

@@ -1,0 +1,6 @@
+# red on HEAD 677a7e6 at 2026-10-23T13:42:30Z — the engine's gate.sh taken from HEAD, the case from this change
+# LOOP_ENGINE=.pi/tmp/head-engine bash tools/loop-selftest.sh --case gate#aCompiledStepsTallyIsNotHidden
+  a plain ls prints the compiled step's tally (the directory holds: ._gradlew_test.xml ): expected '1', got '0'
+FAIL gate#aCompiledStepsTallyIsNotHidden
+loop-selftest: 1 of 1 cases failed
+exit=1

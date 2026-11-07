@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh" tests="180" failures="1" errors="0">
+  <system-out>loop-selftest: 1 of 180 cases failed ended 263761 — its working directory is inside loop-selftest.mhkth0 ended 580998 — its working directory is inside loop-selftest.mhkth0</system-out>
+</testsuite>

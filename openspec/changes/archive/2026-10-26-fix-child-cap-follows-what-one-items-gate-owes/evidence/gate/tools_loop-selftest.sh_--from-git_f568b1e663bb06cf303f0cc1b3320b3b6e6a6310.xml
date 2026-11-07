@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git f568b1e663bb06cf303f0cc1b3320b3b6e6a6310" tests="239" failures="0" errors="0" time="712">
+  <system-out>PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt PASS driver#aSecondSuiteInOneRepositoryIsRefused loop-selftest: all 239 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git f568b1e663bb06cf303f0cc1b3320b3b6e6a6310</system-out>
+</testsuite>

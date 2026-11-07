@@ -678,7 +678,11 @@ class NavigationSession : Session() {
             val first = results.firstOrNull()
             if (first != null) {
                 Log.d(TAG, "Deep link geocoded '${query}' → ${first.label}")
-                navigationViewModel.navigateTo(first.lat, first.lon)
+                navigationViewModel.navigateTo(
+                    first.lat,
+                    first.lon,
+                    origin = SurfaceOrigin.CAR
+                )
             } else {
                 Log.w(TAG, "Deep link geocoding found no match for '$query'")
                 navigationViewModel.reportError(
@@ -722,6 +726,10 @@ class NavigationSession : Session() {
         // session that was created (or restored) mid-navigation.
         tripJob = scope.launch(CoroutineName("trip")) {
             navigationViewModel.state.collect { navState ->
+                // A stopped session does not withdraw this send (spec: car-host-fault-isolation —
+                // Trip metadata publishing is bounded by the navigation period): the cluster and
+                // the heads-up display keep showing guidance while another car app is in front.
+                if (!tripSendAllowed(navState.isNavigating, hostGate.started)) return@collect
                 navigationManagerController().publishTrip(navState) { state ->
                     carTripFor(state, carContext.stringResolver())
                 }
@@ -1349,6 +1357,22 @@ internal fun shouldRestoreFreeDriving(isNavigating: Boolean, freeDrivingActive: 
     freeDrivingActive && !isNavigating
 
 /**
+ * Whether the trip collector may send a host trip update now (spec: `car-host-fault-isolation` —
+ * Trip metadata publishing is bounded by the navigation period).
+ *
+ * The send is bounded by the navigation period alone: `sessionStarted` is deliberately **not**
+ * consulted. A backgrounded car app still drives the vehicle cluster and the heads-up display, so
+ * a stopped session neither defers nor withdraws a trip update — the started/ended pair and the
+ * screen and template mutations are what the session-start bound covers. Do not add the
+ * [SessionHostGate] question the sibling navigation-state observer asks (`allowHostMutation()`):
+ * [NavigationManagerController] already stops publishing at the first host rejection, and gating
+ * here instead would freeze the cluster whenever another car app is in front. Pure seam for unit
+ * testing ([NavigationSession] cannot be constructed in Robolectric).
+ */
+@Suppress("UNUSED_PARAMETER") // `sessionStarted` is not consulted on purpose — see the KDoc above.
+internal fun tripSendAllowed(navigating: Boolean, sessionStarted: Boolean): Boolean = navigating
+
+/**
  * Whether the end of the car session ends the navigation it presented (spec:
  * `auto/navigation-view` — Navigation ends when the car session ends after arrival): the session
  * was driving and had reached its destination. The arrival fact lives in the shared navigation
@@ -1392,7 +1416,7 @@ internal fun sessionEndNavigationDecisionMessage(state: NavigationState, ended: 
  * for unit testing ([NavigationSession] cannot be constructed in Robolectric).
  */
 internal fun carTripFor(state: NavigationState, resolver: StringResolver): Trip? =
-    NavigationTemplateMapper.tripFromState(state, ManeuverGlyphs::forInstruction, resolver)
+    NavigationTemplateMapper.tripFromState(state, ManeuverGlyphs::forStep, resolver)
 
 /**
  * Resolve the car dark presentation from the shared dark mode preference

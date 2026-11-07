@@ -1,0 +1,47 @@
+Relocation proof — guideline-backlog-cut (measured 2026-10-31)
+
+Baseline: guidelines/Backlog.md as carried before the cut, 35887 B, 19 numbered sections.
+
+Baseline heading numbers: §1 §2 §3 §4 §5 §6 §7 §7a §7b §7c §7d §7e §8 §9 §10 §11 §12 §13 §14
+Backlog.md after:        §1 §2 §3 §4 §5 §6 §7 §7a §7b §7c §7d §7e §8 §12 §13 §14
+BacklogTooling.md after: §9 §10 §11
+
+Union equals the baseline set: True (disjoint: True)
+
+section  home                 before B  after B  comparison
+§1      Backlog.md               7050     7070  edited (named refs)
+§2      Backlog.md                310      310  verbatim
+§3      Backlog.md               2066     2106  edited (named refs)
+§4      Backlog.md               5059     5059  verbatim
+§5      Backlog.md               5070     5090  edited (named refs)
+§6      Backlog.md               2783     2783  verbatim
+§7      Backlog.md                396      396  verbatim
+§7a     Backlog.md                165      165  verbatim
+§7b     Backlog.md                177      177  verbatim
+§7c     Backlog.md                154      154  verbatim
+§7d     Backlog.md                195      195  verbatim
+§7e     Backlog.md                140      140  verbatim
+§8      Backlog.md                188      188  verbatim
+§9      BacklogTooling.md        5823     5837  verbatim+retarget
+§10     BacklogTooling.md        2341     2341  verbatim
+§11     BacklogTooling.md        1966     1966  verbatim
+§12     Backlog.md                120      120  verbatim
+§13     Backlog.md                104      104  verbatim
+§14     Backlog.md               1365     1365  verbatim
+
+Edits inside moved text (§9 only): the two references to `Backlog.recipes.md` §9 became
+`BacklogTooling.recipes.md` §9, because that anchor block moved with §9.
+Edits inside kept text (§1, §3, §5): three bare numbers named `BacklogTooling.md`, and change 3's
+row says "§7 of this document, §11 of `BacklogTooling.md` and the spec `agent-issue-loop`".
+
+Byte totals: baseline 35887 B; after the cut Backlog.md 26032 + BacklogTooling.md 10829 = 36861 B (+974,
+the second preamble).
+
+## Companions
+
+Backlog.recipes.md                       61473 B  anchors ## §2, ## §7a, ## §7b, ## §7c, ## §7d, ## §7e, ## §8
+BacklogTooling.recipes.md                11688 B  anchors ## §9, ## §10
+Backlog.why.md                            9145 B  anchors ## §12, ## §13, ## §5, ## §6
+BacklogTooling.why.md                     1962 B  anchors ## §9
+
+Backlog.why.md's `## §9 Checks — why` moved to BacklogTooling.why.md; §5, §6, §12, §13 stay.

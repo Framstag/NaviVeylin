@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-mutations-selftest.sh" tests="34" failures="0" errors="0" time="277">
+  <system-out>ok   and it says the same selection the file set named ok   and the copy is byte-identical to the pristine one again loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched</system-out>
+</testsuite>

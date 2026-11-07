@@ -40,6 +40,9 @@ CASES=(
   'check#neverWritesEligibility'
   'check#incompleteMarkerFails'
   'check#labelWithoutMarkerFails'
+  'check#aQuotationIsNotAMarker'
+  'check#aMarkerLineBesideAQuotationIsTheRecord'
+  'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
 )
@@ -140,6 +143,78 @@ case_labelWithoutMarkerFails() {
   expect "the marker written beside it exits 0" "0" "$CHECK_STATUS"
 }
 
+# Item #292 was refused with three violations naming itself because its body *quoted* the marker grammar — an
+# inline code span and a fenced excerpt — to describe the violation it reported, and the reader took the first
+# span anywhere in the body as the item's own marker (issue #293). The two cases below are the pair that fixes
+# the shape: a quotation is prose, and the marker's own line is still the record beside one.
+case_aQuotationIsNotAMarker() {
+  local body marker
+  run_check --issues "$fixtures/quoted-grammar.json"
+  expect "a body that only quotes the grammar exits non-zero" "1" "$CHECK_STATUS"
+  expect_contains "and the missing record is what is reported" "label-without-marker" "$CHECK_OUT"
+  expect_contains "naming the item" "#31" "$CHECK_OUT"
+  # the quoted band says p3 and the label says p2: on HEAD that disagreement was reported as the item's own
+  expect_not_contains "the quotation is not matched against the label" "band-mismatch" "$CHECK_OUT"
+  expect_not_contains "and the quotation is not read as an incomplete record" "marker-incomplete" "$CHECK_OUT"
+
+  # The shape's two anchors, one body line each, asserted through the reader itself so neither clause can be
+  # dropped without this case going red: the fixture carries a prose line that *ends* at the close (excluded by
+  # the column-0 clause) and a line that *starts* at the open but continues past the close (excluded by the end
+  # anchor). `revert-check-293.sh` mutates each of the two and expects this case to fail. A reader that is not
+  # there at all answers `missing` rather than nothing, so a tree without the predicate cannot read as green.
+  body=$(jq -r '.[0].body' "$fixtures/quoted-grammar.json")
+  expect "the prose line that ends at the close is not the record" "" \
+    "$( ( source "$root/tools/issues/lib.sh"
+          declare -F issues_prio_marker_line >/dev/null 2>&1 || { printf 'missing'; exit 0; }
+          issues_prio_marker_line "$body" ) )"
+  marker=$( ( source "$root/tools/issues/lib.sh"; issues_prio_marker "$body" ) )
+  expect "and the line that starts at the open but does not close is not one either" "" "$marker"
+}
+
+case_aMarkerLineBesideAQuotationIsTheRecord() {
+  local body read_band
+  jq --arg marker '<!-- prio: band=p2 score=9 sev=4 reach=2 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->' \
+    '.[0].body += "\n\n" + $marker' "$fixtures/quoted-grammar.json" > "$tmp/marker-beside.json"
+  run_check --issues "$tmp/marker-beside.json"
+  expect "a marker line beside a quotation exits 0" "0" "$CHECK_STATUS"
+  expect_contains "and nothing is reported" "0 violation(s)" "$CHECK_OUT"
+
+  # the reader itself, not just the check's verdict: the record is the line the pass writes, not the band the
+  # quotation above it names
+  body=$(jq -r '.[0].body' "$tmp/marker-beside.json")
+  read_band=$( ( source "$root/tools/issues/lib.sh"; issues_prio_field "$(issues_prio_marker "$body")" band ) )
+  expect "the reader takes the marker's own line" "p2" "$read_band"
+}
+
+# An item's settled state is stated twice: by the label that makes it settled for the pre-screen
+# (`roles.settledStatuses`) and by the record a tombstone keeps in its own body (`roles.settledRecordMarker`).
+# A park wrote `holdStatus` over the label while the record stayed, and nothing joined the two halves — so the
+# item read as work from then on (issue #683; the live tracker still carries one such item, measured 2026-10-28).
+# The check reads the pair, both directions asserted, so neither a blind check nor an over-eager one passes.
+case_aDisplacedSettledStateIsReported() {
+  local record
+  record=$(jq -r '.roles.settledRecordMarker' "$root/tools/tooling.json")
+  if [ -z "$record" ] || [ "$record" = "null" ]; then
+    echo "  FAIL the committed profile declares no settled-record marker to check against"
+    fail_done=1
+    return 0
+  fi
+
+  run_check --issues "$fixtures/tombstone-displaced.json"
+  expect "a tombstone whose state is not settled exits non-zero" "1" "$CHECK_STATUS"
+  expect_contains "and names the item" "#41" "$CHECK_OUT"
+  expect_contains "and the invariant it breaks" "settled-record-displaced" "$CHECK_OUT"
+  expect_contains "and the state the item carries" "status/on-hold" "$CHECK_OUT"
+  expect_not_contains "an item without the record is no violation" "#42" "$CHECK_OUT"
+
+  # the same tracker, benigned: the tombstone carries the settled state its own record keeps
+  jq '.[0].labels = [{"name": "class/improvement"}, {"name": "status/retired"}]' \
+    "$fixtures/tombstone-displaced.json" > "$tmp/benign.json"
+  run_check --issues "$tmp/benign.json"
+  expect "the settled state exits 0" "0" "$CHECK_STATUS"
+  expect_contains "and nothing is reported" "0 violation(s)" "$CHECK_OUT"
+}
+
 case_unrankedIsNotAViolation() {
   # An issue with no band and no marker is *unranked*, not broken: the check must not fire on the state the
   # whole backlog starts in, or the pass could never be run incrementally.
@@ -166,6 +241,9 @@ if [ -n "$only_case" ]; then
     'check#neverWritesEligibility') case_neverWritesEligibility ;;
     'check#incompleteMarkerFails') case_incompleteMarkerFails ;;
     'check#labelWithoutMarkerFails') case_labelWithoutMarkerFails ;;
+    'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
+    'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
+    'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
     *) echo "check-metadata-selftest: no such case: $only_case" >&2; exit 2 ;;
@@ -183,6 +261,9 @@ for name in "${CASES[@]}"; do
     'check#neverWritesEligibility') case_neverWritesEligibility ;;
     'check#incompleteMarkerFails') case_incompleteMarkerFails ;;
     'check#labelWithoutMarkerFails') case_labelWithoutMarkerFails ;;
+    'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
+    'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
+    'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
   esac

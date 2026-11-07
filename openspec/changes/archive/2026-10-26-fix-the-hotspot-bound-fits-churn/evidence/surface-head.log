@@ -1,0 +1,34 @@
+# surface of the rule this change moves, counted on base 642c0278 (2026-10-26T22:39:15Z)
+$ grep -rn "5000" tools/sensors/ tools/sensor-*.sh guidelines/ openspec/specs/ .github/ | grep -v 50000
+  tools/sensors/sensors.json:50:      "threshold": 5000,
+  tools/sensor-cases.sh:1016:          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
+  tools/sensor-cases.sh:1614:          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
+  tools/sensor-cases.sh:1736:  seq 1 5000 | sed 's/^/\/\/ line /' > "$dir/app/src/main/cpp/native_thing.cpp"
+  guidelines/Build.md:881:  | `:app` | >165 classes per flavor | `1024m` | 512 MB → deterministic `FavoritesSheetReorderComposeTest` failure (`ComposeTimeoutException` after 5000 ms); 1024 MB → green (1m49s, 146 classes / 1054 tests, 2026-09-20); 2048 MB → green (2m06s 2026-09-20); 1024 MB again from 2026-09-26 with the canary bound at 30 s → green twice in a row (3m57s / 3m20s, 1245 tests per flavor, 0 failures) **after the canary's real cause was fixed** |
+$ grep -rn -i "hotspot" tools/sensor-cases.sh tools/sensor-mutations.sh tools/sensors/lib.sh tools/sensors/run.sh guidelines/Backlog.md openspec/specs/backlog-sensors/spec.md .github/workflows/sensors.yml | wc -l
+  tools/sensor-cases.sh:63:  'hotspot#ranksBySizeTimesChanges'
+  tools/sensor-cases.sh:64:  'hotspot#theBoundIsAboveOneChangedFile'
+  tools/sensor-cases.sh:136:    'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
+  tools/sensor-cases.sh:137:    'hotspot#theBoundIsAboveOneChangedFile') case_hotspot_theBoundIsAboveOneChangedFile ;;
+  tools/sensor-cases.sh:1643:case_hotspot_ranksBySizeTimesChanges() {
+  tools/sensor-cases.sh:1659:  out=$(SENSORS_ID=hotspot SENSORS_ROOT="$dir" SENSORS_THRESHOLD=1 SENSORS_CONDITIONS='[]' \
+  tools/sensor-cases.sh:1661:    bash "$SENSORS_ENGINE/hotspot-report.sh" 2>&1)
+  tools/sensor-cases.sh:1662:  first=$(printf '%s\n' "$out" | grep '^hotspot: ' | head -1)
+  tools/sensor-cases.sh:1667:  hits=$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/hotspot-report.sh" || true)
+  tools/sensor-cases.sh:1669:  assert_contains "$(cat "$SENSORS_ENGINE/hotspot-report.sh")" 'SENSORS_THRESHOLD' "the bound comes from the row"
+  tools/sensor-cases.sh:1677:case_hotspot_theBoundIsAboveOneChangedFile() {
+  tools/sensor-cases.sh:1680:  row=$(jq -c '.rows[] | select(.id == "hotspot")' "$SENSORS_ENGINE/sensors.json")
+  tools/sensor-cases.sh:1681:  [ -n "$row" ] || fail "the registry declares no hotspot row"
+  tools/sensor-cases.sh:1701:  out=$(SENSORS_ID=hotspot SENSORS_ROOT="$dir" SENSORS_THRESHOLD="$threshold" SENSORS_CONDITIONS='[]' \
+  tools/sensor-cases.sh:1703:    bash "$SENSORS_ENGINE/hotspot-report.sh" 2>&1)
+  tools/sensor-cases.sh:1705:  assert_not_contains "$out" '"path":"once.txt"' "a path changed once is not a hotspot, whatever its size"
+  tools/sensor-cases.sh:1713:    fail "the row's bound ($threshold) is not above the largest file it watches ($largest bytes), so one change of that file is a hotspot"
+  guidelines/Backlog.md:30:| 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | **applied 2026-10-17** — `tools/sensors/**` (the registry `sensors.json`, the runner, the guards, the report, the hotspot measurement, the four metric rows and the two condition sensors), a fixture harness offline against the stub `gh` with one CI step, the three verbs the runner writes through extended (`create.sh --sensor`, `close.sh --sensor`, the new `reopen.sh`), the isolated pipeline `.github/workflows/sensors.yml` with its CODEOWNERS entry, and `labels.sh` learning the registry's labels; the host dry runs, the falsification run and the not-reproducible CI steps are recorded under the change's `report.md` |
+  guidelines/Backlog.md:777:writes nothing and so leaves the row's first exercise unspent (issue #667: 337 items from one `hotspot` row were
+  guidelines/Backlog.md:840:One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
+  .github/workflows/sensors.yml:165:      # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`
+  .github/workflows/sensors.yml:174:        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,stale-citations,metadata-invariant "$SENSORS_MODE"
+$ grep -c -i hotspot openspec/specs/backlog-sensors/spec.md   # the shipped spec names the row
+0
+$ ls tools/sensors/fixtures/registry*.json | wc -l   # fixture registries that would carry a row bound
+5

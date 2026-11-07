@@ -1,0 +1,12 @@
+$ grep -c "reset-worktree" tools/loop-cases.sh
+11
+$ grep -c "@-@tools/loop/run.sh@" tools/loop-mutations.sh
+67
+$ grep -c "reset-worktree" openspec/specs/agent-issue-loop/spec.md
+4
+$ grep -c "reset-worktree" guidelines/Backlog.md
+3
+$ grep -c "^case_run_" tools/loop-cases.sh
+87
+$ grep -n "reset-worktree" tools/loop-mutations.sh
+133:  '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^    git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|    : # the mutation discards no tracked change|;;s|^    git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|    : # the mutation discards no untracked file|'

@@ -1,0 +1,5 @@
+## mutated — the split scenario names `routed-read#bound` alone, as HEAD had it
+FAIL routed-read#the-case-line-names-both-halves — the scenario does not state: [`sensors#routedSectionSizeRow`] [ruler] [check's condition] (2026-10-30T07:15:18Z)
+
+## restored — the archived restatement back in place
+PASS routed-read#the-case-line-names-both-halves — the scenario names the ruler case and the sensor case, and says the split is a check condition (2026-10-30T07:15:18Z)

@@ -1,0 +1,139 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=741603aaab8efc1382ea5859cfec38a548459272 paths=61 insertions=3742 deletions=45
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererFrameWaitTest.kt
+LOOP-MEASURE-PATH .github/workflows/build.yml
+LOOP-MEASURE-PATH .github/workflows/sonar.yml
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH guidelines/BuildEvidence.md
+LOOP-MEASURE-PATH guidelines/Build.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/evidence-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/gate.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/loop-mutations.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/loop-selftest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/openspec-validate.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/red-on-HEAD.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/refused-provider-shape.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/case-repeat.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/class.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/clock-race-diagnostic.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/evidence-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/gate.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/measure-round2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/mutation.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/readiness-round2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/red-case.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/repeat-runs.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-2-corrections.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/second-watchdog-diagnostic.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/specs/auto-map-renderer/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-integrate-sonar-analysis/
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/auto-map-renderer/spec.md
+LOOP-MEASURE-PATH openspec/specs/sonar-analysis/
+LOOP-MEASURE-PATH README.md
+LOOP-MEASURE-PATH sonar-project.properties
+LOOP-MEASURE-PATH tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-PATH tools/check-action-runtimes.sh
+LOOP-MEASURE-PATH tools/check-sonar-workflow-selftest.sh
+LOOP-MEASURE-PATH tools/check-sonar-workflow.sh
+LOOP-MEASURE-PATH tools/doc-routes.json
+LOOP-MEASURE-PATH tools/feature-list/specs.json
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 741603aaab8efc1382ea5859cfec38a548459272
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/gen-feature-list-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-rule-routes.sh
+LOOP-MEASURE-CHECK tools/check-rule-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-sonar-workflow.sh
+LOOP-MEASURE-CHECK tools/check-sonar-workflow-selftest.sh
+LOOP-MEASURE-SUITE cases=306 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=224 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=317s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=8s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=23s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-rule-routes-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-rule-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-sonar-workflow-selftest.sh.xml tests=8 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-sonar-workflow.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_gen-feature-list-selftest.sh.xml tests=119 failures=0 time=15s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=155 failures=0 time=94s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=221s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_741603aaab8efc1382ea5859cfec38a548459272.xml tests=306 failures=0 time=411s
+LOOP-MEASURE-TALLY-MORE 9 of 29 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=1101 suites=29
+LOOP-MEASURE-CHANGE 2026-11-02-integrate-sonar-analysis scenarios=15 cases=15 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=224 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=317s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=8s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=23s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-rule-routes-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-rule-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-sonar-workflow-selftest.sh.xml tests=8 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-sonar-workflow.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_gen-feature-list-selftest.sh.xml tests=119 failures=0 time=15s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=155 failures=0 time=94s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=221s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_741603aaab8efc1382ea5859cfec38a548459272.xml tests=306 failures=0 time=411s
+LOOP-MEASURE-TALLY-MORE 10 of 30 tally files not shown — at most 20 per directory (openspec/changes/archive/2026-11-02-integrate-sonar-analysis/evidence)
+LOOP-MEASURE-SURFACE surface: 7 requirements and 15 scenarios added, 2 new files (the scan workflow and `sonar-project.properties`),
+LOOP-MEASURE-END

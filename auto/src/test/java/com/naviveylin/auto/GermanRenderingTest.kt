@@ -35,18 +35,27 @@ class GermanRenderingTest {
     @Test
     fun diagnosticsScreenRendersTheGermanDisclosure() {
         val screen = DiagnosticsScreen(testCarContext())
-        // The diagnostics screen is a car list (spec: car-list-row-limit), so the disclosure is its
-        // first item; the entries follow inside the host's row capacity.
-        val template = screen.onGetTemplate() as ListTemplate
-        val disclosure = testCarContext().getString(
-            com.naviveylin.core.R.string.diagnostics_disclosure
-        )
+        try {
+            // The diagnostics screen is a car list (spec: car-list-row-limit), so the disclosure is its
+            // first item; the entries follow inside the host's row capacity.
+            val template = screen.onGetTemplate() as ListTemplate
+            val disclosure = testCarContext().getString(
+                com.naviveylin.core.R.string.diagnostics_disclosure
+            )
 
-        assertEquals(
-            "the car disclosure is German too (spec: auto-diagnostics — Disclosure is localized)",
-            disclosure,
-            template.singleList!!.items.filterIsInstance<Row>().first().title.toString()
-        )
+            assertEquals(
+                "the car disclosure is German too (spec: auto-diagnostics — Disclosure is localized)",
+                disclosure,
+                template.singleList!!.items.filterIsInstance<Row>().first().title.toString()
+            )
+        } finally {
+            // A screen owns a coroutine scope (spec: unit-test-suite-runtime — Test-created components
+            // release their background work); an unreleased one writes its capacity line into a later
+            // case's log file.
+            screen.dispatchLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_CREATE)
+            screen.dispatchLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_START)
+            screen.dispatchLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_DESTROY)
+        }
     }
 
     @Test

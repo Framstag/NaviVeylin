@@ -1,0 +1,30 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=2f954a04b3f75e138c529fffe7985ca011375866 paths=7 insertions=260 deletions=37
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-doc-routes-mutations.json
+LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-PATH tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=284 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=23 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=5 suites=4
+LOOP-MEASURE-CHANGE 2026-10-30-fix-routing-row-figure-is-measured scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=23 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-on-head.xml tests=2 failures=2
+LOOP-MEASURE-SURFACE surface: 2 cases added, 1 case realigned (`routed-read#route`'s fixture priced its section at a made-up 1.2 kB
+LOOP-MEASURE-END

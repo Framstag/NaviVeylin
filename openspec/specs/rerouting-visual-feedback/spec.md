@@ -7,14 +7,17 @@ Shows visual feedback on the navigation status card when the vehicle leaves the 
 ## Requirements
 
 ### Requirement: Rerouting state is exposed in navigation state
-The system SHALL expose an `isRerouting` boolean in the navigation state that is `true` while a reroute is being calculated and `false` otherwise. Every terminal outcome of a reroute attempt — new instructions, failure, cancellation — SHALL leave `isRerouting` `false`.
+
+The system SHALL expose an `isRerouting` boolean in the navigation state that is `true` while a reroute is being
+calculated and `false` otherwise. Every terminal outcome of a reroute attempt — the new route's steps arriving,
+failure, cancellation — SHALL leave `isRerouting` `false`.
 
 #### Scenario: Rerouting begins
 - **WHEN** the navigation engine fires `onRerouteRequest`
 - **THEN** `isRerouting` SHALL be set to `true`
 
 #### Scenario: Rerouting completes
-- **WHEN** new route instructions arrive via `onRouteInstructions`
+- **WHEN** the new route's steps arrive via `onRouteSteps`
 - **THEN** `isRerouting` SHALL be set to `false`
 
 #### Scenario: Navigation stops during rerouting

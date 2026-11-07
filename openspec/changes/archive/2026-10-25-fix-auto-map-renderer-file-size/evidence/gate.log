@@ -1,0 +1,390 @@
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:koverFindJar UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :core:preDebugUnitTestBuild
+> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
+> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
+> Task :core:koverFindJar
+> Task :core:javaPreCompileDebugUnitTest
+> Task :app:checkHardcodedStrings
+> Task :core:generateDebugUnitTestStubRFile
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons
+> Task :app:syncSubmoduleStylesheets
+> Task :app:preBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig
+> Task :app:generateAutomotiveDebugResources
+> Task :osmscout-client-java:compileTestJava
+> Task :app:packageAutomotiveDebugResources
+> Task :osmscout-client-java:processTestResources
+> Task :osmscout-client-java:testClasses
+> Task :app:processAutomotiveDebugNavigationResources
+> Task :app:javaPreCompileAutomotiveDebug
+> Task :app:mapAutomotiveDebugSourceSetPaths
+> Task :app:checkAutomotiveDebugAarMetadata
+> Task :app:compileAutomotiveDebugNavigationResources
+> Task :app:parseAutomotiveDebugLocalResources
+> Task :app:createAutomotiveDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksAutomotiveDebug
+> Task :app:generateAutomotiveDebugRFile
+> Task :app:mergeAutomotiveDebugResources
+> Task :app:processAutomotiveDebugMainManifest
+> Task :app:processAutomotiveDebugManifest
+> Task :app:generateAutomotiveDebugAssets UP-TO-DATE
+> Task :app:mergeAutomotiveDebugAssets
+> Task :app:preAutomotiveDebugUnitTestBuild
+
+> Task :app:mergeAutomotiveDebugUnitTestManifest
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/intermediates/tmp/manifest/test/automotive/debug/tempFile2ProcessTestManifest369431380311414179.xml:83:9-85:35 Warning:
+	meta-data#com.google.android.gms.car.application was tagged at tempFile2ProcessTestManifest369431380311414179.xml:83 to remove other declarations but no other declaration present
+
+> Task :app:processAutomotiveDebugUnitTestManifest
+> Task :app:koverFindJar
+> Task :app:preMobileDebugBuild
+> Task :app:javaPreCompileAutomotiveDebugUnitTest
+> Task :app:generateMobileDebugBuildConfig
+> Task :app:generateMobileDebugResources
+> Task :app:packageMobileDebugResources
+> Task :app:processMobileDebugNavigationResources
+> Task :app:javaPreCompileMobileDebug
+> Task :app:mapMobileDebugSourceSetPaths
+> Task :app:parseMobileDebugLocalResources
+> Task :app:checkMobileDebugAarMetadata
+> Task :app:compileMobileDebugNavigationResources
+> Task :app:generateMobileDebugRFile
+> Task :osmscout-client-java:test
+> Task :app:createMobileDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksMobileDebug
+> Task :app:processMobileDebugMainManifest
+> Task :app:processAutomotiveDebugManifestForPackage
+> Task :app:mergeMobileDebugResources
+> Task :app:processMobileDebugManifest
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:mergeMobileDebugAssets
+> Task :app:preMobileDebugUnitTestBuild
+
+> Task :app:mergeMobileDebugUnitTestManifest
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/debug/AndroidManifest.xml Warning:
+	uses-feature#android.hardware.type.automotive was tagged at AndroidManifest.xml:0 to remove other declarations but no other declaration present
+
+> Task :app:processMobileDebugUnitTestManifest
+> Task :app:javaPreCompileMobileDebugUnitTest
+> Task :app:processMobileDebugManifestForPackage
+> Task :app:processMobileDebugResources
+> Task :app:processAutomotiveDebugResources
+> Task :app:packageMobileDebugUnitTestForUnitTest
+> Task :app:packageAutomotiveDebugUnitTestForUnitTest
+> Task :app:generateAutomotiveDebugUnitTestConfig
+> Task :app:generateMobileDebugUnitTestConfig
+> Task :core:kspDebugKotlin
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug
+> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug
+> Task :core:kspDebugUnitTestKotlin
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :core:compileDebugUnitTestKotlin
+> Task :core:processDebugUnitTestJavaRes
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:hiltSyncDebugUnitTest
+> Task :core:hiltAggregateDepsDebugUnitTest
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :core:transformDebugUnitTestClassesWithAsm
+> Task :app:kspAutomotiveDebugKotlin
+> Task :app:kspMobileDebugKotlin
+> Task :core:testDebugUnitTest
+> Task :core:test
+> Task :auto:testDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:compileAutomotiveDebugKotlin
+> Task :app:compileMobileDebugKotlin
+> Task :app:compileAutomotiveDebugJavaWithJavac
+> Task :app:hiltSyncAutomotiveDebug
+> Task :app:processAutomotiveDebugJavaRes
+> Task :app:hiltAggregateDepsAutomotiveDebug
+> Task :app:compileMobileDebugJavaWithJavac
+> Task :app:hiltJavaCompileAutomotiveDebug
+> Task :app:bundleAutomotiveDebugClassesToCompileJar
+> Task :app:hiltSyncMobileDebug
+> Task :app:transformAutomotiveDebugClassesWithAsm
+> Task :app:hiltAggregateDepsMobileDebug
+> Task :app:processMobileDebugJavaRes
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar
+> Task :app:hiltJavaCompileMobileDebug
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:transformMobileDebugClassesWithAsm
+> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :auto:test
+> Task :app:kspMobileDebugUnitTestKotlin
+
+> Task :app:compileMobileDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:131:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+
+> Task :app:processMobileDebugUnitTestJavaRes
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:131:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+
+> Task :app:hiltSyncMobileDebugUnitTest
+> Task :app:processAutomotiveDebugUnitTestJavaRes
+> Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncAutomotiveDebugUnitTest
+> Task :app:hiltAggregateDepsAutomotiveDebugUnitTest
+> Task :app:hiltJavaCompileAutomotiveDebugUnitTest NO-SOURCE
+> Task :app:hiltAggregateDepsMobileDebugUnitTest
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm
+> Task :app:transformMobileDebugUnitTestClassesWithAsm
+> Task :app:testAutomotiveDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:testMobileDebugUnitTest
+
+NavigationEngineRerouteTest > aConfirmedRerouteWritesTheLatencyDiagnosticLine FAILED
+    java.lang.AssertionError: no coordinate reaches the line
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.assertTrue(Assert.java:42)
+        at org.junit.Assert.assertFalse(Assert.java:65)
+        at com.naviveylin.navigation.NavigationEngineRerouteTest$aConfirmedRerouteWritesTheLatencyDiagnosticLine$1.invokeSuspend(NavigationEngineRerouteTest.kt:501)
+        at com.naviveylin.navigation.NavigationEngineRerouteTest$aConfirmedRerouteWritesTheLatencyDiagnosticLine$1.invoke(NavigationEngineRerouteTest.kt)
+        at com.naviveylin.navigation.NavigationEngineRerouteTest$aConfirmedRerouteWritesTheLatencyDiagnosticLine$1.invoke(NavigationEngineRerouteTest.kt)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+        at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+        at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+        at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+        at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+        at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+        at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+        at com.naviveylin.navigation.NavigationEngineRerouteTest.aConfirmedRerouteWritesTheLatencyDiagnosticLine(NavigationEngineRerouteTest.kt:468)
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:testMobileDebugUnitTest
+
+BasemapSectionComposeTest > installedShowsDeleteButton FAILED
+    android.view.ViewRootImpl$CalledFromWrongThreadException: Only the original thread that created a view hierarchy can touch its views. Expected: SDK 36 Main Thread Calling: DefaultDispatcher-worker-16 @coroutine#15918
+        at android.view.ViewRootImpl.checkThread(ViewRootImpl.java:11357)
+        at android.view.ViewRootImpl.requestLayout(ViewRootImpl.java:2602)
+        at android.view.View.requestLayout(View.java:28315)
+        at java.base@21.0.12.1/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at org.robolectric.shadows.ShadowView$ViewReflector$$Reflector47.requestLayout(Unknown Source)
+        at org.robolectric.shadows.ShadowView.requestLayout(ShadowView.java:268)
+        at android.view.View.requestLayout(View.java)
+        at android.view.View.requestLayout(View.java:28315)
+        at java.base@21.0.12.1/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at org.robolectric.shadows.ShadowView$ViewReflector$$Reflector47.requestLayout(Unknown Source)
+        at org.robolectric.shadows.ShadowView.requestLayout(ShadowView.java:268)
+        at android.view.View.requestLayout(View.java)
+        at android.view.View.requestLayout(View.java:28315)
+        at java.base@21.0.12.1/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at org.robolectric.shadows.ShadowView$ViewReflector$$Reflector47.requestLayout(Unknown Source)
+        at org.robolectric.shadows.ShadowView.requestLayout(ShadowView.java:268)
+        at android.view.View.requestLayout(View.java)
+        at android.view.View.requestLayout(View.java:28315)
+        at java.base@21.0.12.1/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at org.robolectric.shadows.ShadowView$ViewReflector$$Reflector47.requestLayout(Unknown Source)
+        at org.robolectric.shadows.ShadowView.requestLayout(ShadowView.java:268)
+        at android.view.View.requestLayout(View.java)
+        at android.view.View.requestLayout(View.java:28315)
+        at java.base@21.0.12.1/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at org.robolectric.shadows.ShadowView$ViewReflector$$Reflector47.requestLayout(Unknown Source)
+        at org.robolectric.shadows.ShadowView.requestLayout(ShadowView.java:268)
+        at android.view.View.requestLayout(View.java)
+        at androidx.compose.ui.platform.AndroidComposeView.scheduleMeasureAndLayout(AndroidComposeView.android.kt:1237)
+        at androidx.compose.ui.platform.AndroidComposeView.onRequestMeasure(AndroidComposeView.android.kt:1317)
+        at androidx.compose.ui.node.Owner.onRequestMeasure$default(Owner.kt:177)
+        at androidx.compose.ui.node.LayoutNode.requestRemeasure$ui_release(LayoutNode.kt:1082)
+        at androidx.compose.ui.node.LayoutNode.requestRemeasure$ui_release$default(LayoutNode.kt:1075)
+        at androidx.compose.ui.node.LayoutNode.invalidateMeasurements$ui_release(LayoutNode.kt:1128)
+        at androidx.compose.ui.node.LayoutNode.attach$ui_release(LayoutNode.kt:508)
+        at androidx.compose.ui.node.LayoutNode.insertAt$ui_release(LayoutNode.kt:315)
+        at androidx.compose.ui.node.UiApplier.insertBottomUp(UiApplier.android.kt:31)
+        at androidx.compose.ui.node.UiApplier.insertBottomUp(UiApplier.android.kt:21)
+        at androidx.compose.runtime.changelist.Operation$PostInsertNodeFixup.execute(Operation.kt:621)
+        at androidx.compose.runtime.changelist.Operations.executeAndFlushAllPendingOperations(Operations.kt:310)
+        at androidx.compose.runtime.changelist.FixupList.executeAndFlushAllPendingFixups(FixupList.kt:50)
+        at androidx.compose.runtime.changelist.Operation$InsertSlotsWithFixups.execute(Operation.kt:552)
+        at androidx.compose.runtime.changelist.Operations.executeAndFlushAllPendingOperations(Operations.kt:310)
+        at androidx.compose.runtime.changelist.ChangeList.executeAndFlushAllPendingChanges(ChangeList.kt:81)
+        at androidx.compose.runtime.CompositionImpl.applyChangesInLocked(Composition.kt:984)
+        at androidx.compose.runtime.CompositionImpl.applyChanges(Composition.kt:1013)
+        at androidx.compose.runtime.Recomposer$runRecomposeAndApplyChanges$2$1.invoke(Recomposer.kt:685)
+        at androidx.compose.runtime.Recomposer$runRecomposeAndApplyChanges$2$1.invoke(Recomposer.kt:585)
+        at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$1.invoke(TestMonotonicFrameClock.jvm.kt:104)
+        at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$1.invoke(TestMonotonicFrameClock.jvm.kt:103)
+        at androidx.compose.ui.test.TestMonotonicFrameClock$performFrame$1.invoke(TestMonotonicFrameClock.jvm.kt:149)
+        at androidx.compose.ui.test.TestMonotonicFrameClock$performFrame$1.invoke(TestMonotonicFrameClock.jvm.kt:132)
+        at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvm.kt:60)
+        at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvm.kt:132)
+        at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvm.kt:53)
+        at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvm.kt:110)
+        at app//kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:359)
+        at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:26)
+        at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:358)
+        at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:124)
+        at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:52)
+        at kotlinx.coroutines.BuildersKt.launch(Unknown Source)
+        at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch$default(Builders.common.kt:43)
+        at kotlinx.coroutines.BuildersKt.launch$default(Unknown Source)
+        at androidx.compose.ui.test.TestMonotonicFrameClock.withFrameNanos(TestMonotonicFrameClock.jvm.kt:108)
+        at androidx.compose.runtime.Recomposer$runRecomposeAndApplyChanges$2.invokeSuspend(Recomposer.kt:585)
+        at app//kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at androidx.compose.ui.test.ApplyingContinuationInterceptor$SendApplyContinuation.resumeWith(ApplyingContinuationInterceptor.kt:65)
+        at androidx.compose.ui.test.FrameDeferringContinuationInterceptor$FrameDeferredContinuation.resumeWith(FrameDeferringContinuationInterceptor.jvm.kt:194)
+        at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:165)
+        at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+        at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+        at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+        at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+        at kotlinx.coroutines.CancellableContinuationImpl.resumeWith(CancellableContinuationImpl.kt:359)
+        at androidx.compose.runtime.Recomposer$recompositionRunner$2$unregisterApplyObserver$1.invoke(Recomposer.kt:1042)
+        at androidx.compose.runtime.Recomposer$recompositionRunner$2$unregisterApplyObserver$1.invoke(Recomposer.kt:1026)
+        at androidx.compose.runtime.snapshots.SnapshotKt.advanceGlobalSnapshot(Snapshot.kt:1945)
+        at androidx.compose.runtime.snapshots.SnapshotKt.advanceGlobalSnapshot(Snapshot.kt:1960)
+        at androidx.compose.runtime.snapshots.SnapshotKt.access$advanceGlobalSnapshot(Snapshot.kt:1)
+        at androidx.compose.runtime.snapshots.Snapshot$Companion.sendApplyNotifications(Snapshot.kt:692)
+        at androidx.compose.ui.test.ApplyingContinuationInterceptor$SendApplyContinuation.resumeWith(ApplyingContinuationInterceptor.kt:66)
+        at androidx.compose.ui.test.FrameDeferringContinuationInterceptor$FrameDeferredContinuation.resumeWith(FrameDeferringContinuationInterceptor.jvm.kt:194)
+        at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:165)
+        at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+        at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+        at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+        at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+        at kotlinx.coroutines.CancellableContinuationImpl.resumeWith(CancellableContinuationImpl.kt:359)
+        at kotlinx.coroutines.flow.StateFlowSlot.makePending(StateFlow.kt:290)
+        at kotlinx.coroutines.flow.StateFlowImpl.updateState(StateFlow.kt:354)
+        at kotlinx.coroutines.flow.StateFlowImpl.setValue(StateFlow.kt:321)
+        at com.naviveylin.ui.mapmanager.BasemapViewModel$refresh$1.invokeSuspend(BasemapViewModel.kt:128)
+        at app//kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)
+        at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+        at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+        at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)
+        at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+        at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:testMobileDebugUnitTest
+
+2109 tests completed, 2 failed
+
+> Task :app:testMobileDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testMobileDebugUnitTest'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/reports/tests/testMobileDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 6m 17s
+165 actionable tasks: 116 executed, 49 up-to-date
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 378s
+LOOP-GATE: tests=0 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 378s) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache

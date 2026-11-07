@@ -1,0 +1,9 @@
+== fixed run.sh (deadline lines: 1)
+loop-selftest: 1 of 1 cases failed
+ended 86821 — its working directory is inside loop-selftest.0vn1vb
+== HEAD run.sh (deadline lines: 0)
+loop-selftest: 1 of 1 cases failed
+ended 91555 — its working directory is inside loop-selftest.gGkwW5
+== restored (deadline lines: 1)
+ 11:10:59 up 16 days,  5:09,  2 users,  load average: 5,38, 6,19, 7,02
+DONE

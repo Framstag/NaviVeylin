@@ -1,0 +1,18 @@
+# Compile check of the changed JNI translation unit, both #ifdef configurations (issue #19)
+# 2026-10-29T16:15:56Z
+# NDK 27 clang 18, arm64 Debug include set of the project's own CMake configure,
+# -fsyntax-only -Wall -Wextra. The compile command is the one AGP generated for
+# OSMScoutClient.cpp (read with 'ninja -t commands'), with the source path and the
+# generated include dirs adjusted; 'no-marisa' is a copy of the file with
+# '#undef OSMSCOUT_HAVE_LIB_MARISA' inserted after its include block (TODO §40.47);
+# 'head-marisa' is the same check of the pre-change tip 5188f2138.
+
+this-tree-marisa       exit=0 warnings=2
+    /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/__memory/construct_at.h:67:3: warning: destructor called on non-final 'InMemorySettingsStorage' that has virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]
+    /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/__memory/construct_at.h:67:3: warning: destructor called on non-final 'InMemorySettingsStorage' that has virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]
+this-tree-no-marisa    exit=0 warnings=2
+    /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/__memory/construct_at.h:67:3: warning: destructor called on non-final 'InMemorySettingsStorage' that has virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]
+    /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/__memory/construct_at.h:67:3: warning: destructor called on non-final 'InMemorySettingsStorage' that has virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]
+head-marisa            exit=0 warnings=2
+    /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/__memory/construct_at.h:67:3: warning: destructor called on non-final 'InMemorySettingsStorage' that has virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]
+    /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/__memory/construct_at.h:67:3: warning: destructor called on non-final 'InMemorySettingsStorage' that has virtual functions but non-virtual destructor [-Wdelete-non-abstract-non-virtual-dtor]

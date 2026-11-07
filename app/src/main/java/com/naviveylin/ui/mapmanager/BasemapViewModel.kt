@@ -19,6 +19,8 @@ import com.naviveylin.core.mapsource.MapSource
 import com.naviveylin.core.mapsource.MapSourceKind
 import com.naviveylin.core.mapsource.MapSourceMarker
 import com.naviveylin.core.mapsource.MapSourceRecord
+import com.naviveylin.data.BasemapAdmission
+import com.naviveylin.data.BasemapDataFormat
 import com.naviveylin.data.BasemapRegistrar
 import com.naviveylin.data.MapSourceRegistry
 import com.naviveylin.service.MapDownloadService
@@ -46,6 +48,11 @@ data class BasemapUiState(
     /** Newest archive per variant (full/minimal) for display. */
     val variants: List<BasemapManager.BasemapArchive> = emptyList(),
     val installedInfo: BasemapManager.BasemapInfo? = null,
+    /**
+     * The installed basemap's data format version, when this build cannot read it. The basemap is then not
+     * registered with the native client, so the section says why and what fixes it (issue #23).
+     */
+    val outdatedFormat: BasemapAdmission.Rejected? = null,
     val isDownloading: Boolean = false,
     val progress: Int = 0,
     val updateAvailable: Boolean = false,
@@ -124,6 +131,7 @@ class BasemapViewModel @Inject constructor(
             val archives = basemapManager.fetchAvailableBasemaps()
             val updateAvailable = installed != null && basemapManager.isUpdateAvailable()
             val variants = newestPerVariant(archives)
+            val outdated = outdatedFormat()
             if (registryHasMovedOn(source)) return@launch
             _uiState.value = BasemapUiState(
                 availability = if (archives.isEmpty()) {
@@ -134,6 +142,7 @@ class BasemapViewModel @Inject constructor(
                 archives = archives,
                 variants = variants,
                 installedInfo = installed,
+                outdatedFormat = outdated,
                 updateAvailable = updateAvailable,
                 source = source
             )
@@ -151,6 +160,7 @@ class BasemapViewModel @Inject constructor(
         // The comparison base is the installed slot's own metadata; a basemap that is not installed yet has
         // nothing to compare, so it reports no update (spec `basemap-discovery` — "No basemap installed").
         val installedMetadata = if (installed != null) installedBasemapMetadata() else null
+        val outdated = outdatedFormat()
         _uiState.value = BasemapUiState(
             availability = when (availability) {
                 is RepositoryAvailability.Available -> BasemapAvailability.Available
@@ -158,12 +168,25 @@ class BasemapViewModel @Inject constructor(
                     BasemapAvailability.Unavailable
             },
             installedInfo = installed,
+            outdatedFormat = outdated,
             updateAvailable = offered != null && installedMetadata != null &&
                 BasemapUpdate.isNewer(offered, installedMetadata),
             source = source,
             repositoryVersion = offered
         )
     }
+
+    /**
+     * The installed basemap's data format version when this build cannot read it, else null.
+     *
+     * The same decision the startup path and the registrar take ([BasemapDataFormat]), so the section never
+     * claims a basemap is in use that the native client refuses to open (issue #23).
+     */
+    private fun outdatedFormat(): BasemapAdmission.Rejected? =
+        BasemapDataFormat.admit(
+            basemapManager.getBasemapDirectory(),
+            sourceRegistry.databaseFormatVersion
+        ) as? BasemapAdmission.Rejected
 
     /**
      * The metadata the installed basemap carries, or null when none is installed or it is unreadable.

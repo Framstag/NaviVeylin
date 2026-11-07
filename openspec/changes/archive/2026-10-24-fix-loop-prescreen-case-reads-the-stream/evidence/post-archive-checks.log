@@ -1,0 +1,29 @@
+# The checks the *archived* delta owes, taken 2026-10-24T09:59:50Z
+# The delta now carries openspec/** and *.md paths, so the profile gates them with the classification check
+# and the doc routes; the loop suite is not re-run for this commit (tools/loop-cases.sh is byte-identical to
+# the file evidence/gate.log measured — named as an exclusion in the change tasks and in the closure).
+
+$ bash tools/gen-feature-list.sh --check-classification
+stale: 3
+car-only areas: 1
+highlights: 19
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+
+$ openspec validate --changes --strict
+No items found to validate.
+
+$ openspec validate agent-issue-loop --type spec
+⚠ [WARNING] requirements[36]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[37]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[38]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+
+$ bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/archive/2026-10-24-fix-loop-prescreen-case-reads-the-stream --root .
+ok   C1 §references: 4 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 440 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS

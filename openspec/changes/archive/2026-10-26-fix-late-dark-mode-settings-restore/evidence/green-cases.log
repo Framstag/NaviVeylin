@@ -1,0 +1,7 @@
+=== mobile: DarkModeLateRestoreTest + MapCanvasViewModelDarkModeTest (2026-10-26T06:24:30Z)
+BUILD SUCCESSFUL in 11s
+app/build/test-results/testMobileDebugUnitTest/TEST-com.naviveylin.ui.map.DarkModeLateRestoreTest.xml: tests="2" skipped="0" failures="0" errors="0"
+app/build/test-results/testMobileDebugUnitTest/TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml: tests="9" skipped="0" failures="0" errors="0"
+=== automotive: *.DarkModeTest
+BUILD SUCCESSFUL in 12s
+app/build/test-results/testAutomotiveDebugUnitTest/TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml: tests="9" skipped="0" failures="0" errors="0"

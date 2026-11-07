@@ -1,0 +1,11 @@
+# green — the new case and its neighbours on the fixed tree (issue #289)
+2026-10-25T17:27:28Z
+
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+rc=0
+PASS gate#theMapCoversEveryPipelineStep
+rc=0
+PASS gate#aPipelineCheckIsOwedByItsPaths
+rc=0
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+rc=0

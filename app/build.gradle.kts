@@ -1,5 +1,6 @@
 import com.naviveylin.build.testing.CoverageInstrumentation
 import com.naviveylin.build.testing.ForcedTestExecution
+import com.naviveylin.build.testing.JvmOnlyTestRun
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -168,6 +169,19 @@ val forceTests: Boolean =
 // `-PnoCoverage` detaches the Kover agent for an iteration run (spec `test-coverage`).
 val noCoverage: Boolean =
     CoverageInstrumentation.isDisabled(providers.gradleProperty(CoverageInstrumentation.PROPERTY).orNull)
+// A JVM-only test run carries no licence inventory (change `fix-jvm-test-run-needs-no-native-tree`,
+// spec `build-sbom` — "A JVM-only test run does not require the native tree"): `-PjvmTestsOnly`
+// leaves the inventory's asset source unwired, and with it generateLicenseAssets → generateSbom →
+// mergeNativeSbom drops out of the variant graph, so a tree without a vcpkg checkout can run the
+// suite. The same invocation packaging is a misuse, not a variant: an artifact built that way ships
+// without its licenses/ assets, which guidelines/Build.md §9 makes strict — so it is refused here,
+// before any task runs.
+val jvmTestsOnly: Boolean =
+    JvmOnlyTestRun.isRequested(providers.gradleProperty(JvmOnlyTestRun.PROPERTY).orNull)
+if (jvmTestsOnly) {
+    val misuse = JvmOnlyTestRun.refusalFor(gradle.startParameter.taskNames)
+    if (misuse != null) throw GradleException(misuse)
+}
 
 android {
     namespace = "com.naviveylin"
@@ -403,13 +417,32 @@ tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 // its logic and fixtures live in buildSrc
 // (`com.naviveylin.build.diagnostics`). A message that only mentions a coordinate
 // word in prose must be reworded — the gate has no allowlist on purpose.
+//
+// Native sources are gated too (issue #125, change `fix-native-coordinate-log-gate`):
+// `osmscout::log` is a stream, so a position reaches a native line through an
+// accessor (`coord.GetDisplayText()`, `fix.GetLat()`), and `NativeCoordinateLogScanner`
+// reads those statements up to their `;`. The native roots are named rather than
+// walked from `src/main/cpp`, because the libosmscout submodule lives there: a
+// recursive walk would hand upstream library logging (1 100 files, its own habit
+// of printing boxes and tiles) to a policy this project does not own. Gated are the
+// app's own C++ beside that directory and the JNI translation unit — the files this
+// project writes.
 val checkNoCoordinatesInLogs = tasks.register("checkNoCoordinatesInLogs") {
     val sourceDirs = listOf(
         file("src/main/java"),
         rootProject.file("auto/src/main/java"),
         rootProject.file("core/src/main/java")
     )
+    val nativeRoot = file("src/main/cpp")
+    val nativeFiles =
+        (nativeRoot.listFiles { candidate -> candidate.isFile && candidate.extension in setOf("cpp", "h") }
+            ?: emptyArray()) +
+            file("src/main/cpp/libosmscout/libosmscout-client-java/src")
+                .walkTopDown()
+                .filter { it.isFile && it.extension in setOf("cpp", "h") }
+                .toList()
     inputs.files(sourceDirs)
+    inputs.files(nativeFiles)
     doLast {
         val findings = sourceDirs.flatMap { dir ->
             dir.walkTopDown()
@@ -425,6 +458,17 @@ val checkNoCoordinatesInLogs = tasks.register("checkNoCoordinatesInLogs") {
         if (findings.isNotEmpty()) {
             throw GradleException(
                 com.naviveylin.build.diagnostics.CoordinateLogScanner.report(findings)
+            )
+        }
+        val nativeFindings = nativeFiles.flatMap { file ->
+            com.naviveylin.build.diagnostics.NativeCoordinateLogScanner.scan(
+                file.relativeTo(rootProject.projectDir).path,
+                file.readText()
+            )
+        }
+        if (nativeFindings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.diagnostics.NativeCoordinateLogScanner.report(nativeFindings)
             )
         }
     }
@@ -538,6 +582,45 @@ val checkNativeParity = tasks.register("checkNativeParity") {
 }
 tasks.named("preBuild") { dependsOn(checkNativeParity) }
 
+// ── The JNI bridge's Java classes in the packaged dex ──────────────────
+// `:osmscout-client-java` compiles two provenances into two classes directories — the six local overrides and the
+// submodule's client API beside them (#678) — and an Android consumer dexes `main`'s classes directories, not the
+// jar that carries both. The packaged APK therefore had no `com.framstag.libosmscout.client` class at all and died
+// at startup with `ClassNotFoundException: MapProvider`: a green build, a complete jar, no app (issue #691). Nothing
+// in the build read the dex, so this gate does, once per variant, beside the packaging it guards — the required
+// classes come from the two source roots, so it cannot shrink with the defect. The reader and its report live in
+// buildSrc (`com.naviveylin.build.dex`), and each variant's `assemble`/`bundle` depends on its own gate.
+val clientApiDexVariants = listOf("MobileDebug", "MobileRelease", "AutomotiveDebug", "AutomotiveRelease")
+clientApiDexVariants.forEach { variant ->
+    val dexVariant = variant.replaceFirstChar { it.lowercase() }
+    // Which task writes this variant's dex, per AGP's two shapes: a plain variant runs the dex builder and the three
+    // merge steps, a minified one (both `release` builds) runs neither and R8 writes the only dex of the variant —
+    // under the same `intermediates/dex/<variant>` tree, in `minify<Variant>WithR8/`. Naming only the merge tasks left
+    // the gate without a producer on the release variants, so `./gradlew release` failed on an empty dex tree before
+    // any dex was built. The set is a superset filtered against the tasks that exist; `tasks.matching` keeps the
+    // reference lazy, so the AGP-registered names are matched whenever the graph is built.
+    val dexProducers = setOf(
+        "dexBuilder$variant",
+        "mergeProjectDex$variant",
+        "mergeLibDex$variant",
+        "mergeExtDex$variant",
+        "minify${variant}WithR8"
+    )
+    val checkClientApiInDex = tasks.register<com.naviveylin.build.dex.CheckClientApiInDex>("checkClientApiInDex$variant") {
+        // The variant's whole dex tree, so a producer added later is scanned without naming it here.
+        dexArchives.from(layout.buildDirectory.dir("intermediates/dex/$dexVariant"))
+        dependsOn(tasks.matching { it.name in dexProducers })
+        submoduleSourceRoot.set(
+            rootProject.layout.projectDirectory.dir(
+                "app/src/main/cpp/libosmscout/libosmscout-client-java/java"
+            )
+        )
+        overrideSourceRoot.set(rootProject.layout.projectDirectory.dir("osmscout-client-java/src/main/java"))
+    }
+    tasks.matching { it.name == "assemble$variant" || it.name == "bundle$variant" }
+        .configureEach { dependsOn(checkClientApiInDex) }
+}
+
 // Stylesheets are sourced from the libosmscout submodule at build time. Copy the
 // submodule stylesheet directory into a generated assets root so the APK packages
 // exactly the current submodule state — "stylesheets/..." in the APK, matching the
@@ -586,10 +669,27 @@ tasks.register("checkSubmoduleIcons") {
     }
 }
 
+// libosmscout renders four `*Features.h` from the tracked `.cmake` templates beside them, and every module's
+// target lists its own source tree *before* its binary include directory (`cmake/ProjectConfig.cmake`). A
+// generated header left in the submodule source tree therefore wins over the one a build generates, in *every*
+// build of this working tree — a host build included, which then compiles libosmscout-map* against the Android
+// configuration's feature macros and reports false failures and false passes for every test keyed on them
+// (§202, issue #136: with Pango disabled, the Cairo text test measured the substituted family as the configured
+// font file and failed `REQUIRE(differs)`). The native build renders them into the app's CMake build tree and
+// removes a stale copy on configure (`app/src/main/cpp/CMakeLists.txt`); the gate over the source tree removes
+// what it finds and fails once naming it, so a working tree configured before the rule repairs itself instead of
+// blocking the configure that writes the build-tree headers. The scanner and its fixtures live in buildSrc
+// (`com.naviveylin.build.native`), and the task is a typed one, so it adds none of the configuration-cache
+// problems guidelines/Build.md §7 records for the script-level gates.
+tasks.register<com.naviveylin.build.native.CheckSubmoduleFeatureHeaders>("checkSubmoduleFeatureHeaders") {
+    submoduleDir.set(rootProject.layout.projectDirectory.dir("app/src/main/cpp/libosmscout"))
+}
+
 tasks.named("preBuild") {
     dependsOn(
         "checkSubmoduleStylesheets", "syncSubmoduleStylesheets",
-        "checkSubmoduleIcons", "syncSubmoduleIcons"
+        "checkSubmoduleIcons", "syncSubmoduleIcons",
+        "checkSubmoduleFeatureHeaders"
     )
 }
 
@@ -782,9 +882,17 @@ val mergeNativeSbom = tasks.register("mergeNativeSbom") {
         "Converts every vcpkg package SPDX SBOM (all triplets) to CycloneDX and merges them."
     val vcpkgStatusFile = File(vcpkgRootDir, "installed/vcpkg/status")
     val shareDirs = vcpkgTriplets.map { File(vcpkgRootDir, "installed/$it/share") }
-    inputs.file(vcpkgStatusFile)
-    shareDirs.forEach { inputs.dir(it) }
-    inputs.property("vcpkgPorts", vcpkgTriplets.map { vcpkgPorts(vcpkgStatusFile, it) })
+    // The vcpkg tree is read by the task's own action, so its status file is an input only when it is
+    // there and the port list is a Provider evaluated when the task runs. Reading it eagerly (here, in
+    // the registration block) made a missing checkout fail the *configuration* of every invocation
+    // whose graph happens to include this task — `./gradlew test` among them, because the licence
+    // inventory is a variant asset source (issue #270). A missing tree still fails this task, naming
+    // the file, before its action runs.
+    if (vcpkgStatusFile.isFile) inputs.file(vcpkgStatusFile)
+    shareDirs.forEach { if (it.isDirectory) inputs.dir(it) }
+    inputs.property("vcpkgPorts", providers.provider {
+        vcpkgTriplets.map { vcpkgPorts(vcpkgStatusFile, it) }
+    })
     outputs.file(nativeBomFile)
     dependsOn(downloadSbomCli)
     doLast {
@@ -1493,6 +1601,9 @@ fun ndkNoticeFile(): File? {
 androidComponents {
     onVariants { variant ->
         if (variant.name !in sbomVariants) return@onVariants
+        // `-PjvmTestsOnly`: without the inventory asset source the unit-test asset merge depends on no
+        // SBOM and no native task, which is the whole point of the property (see its definition).
+        if (jvmTestsOnly) return@onVariants
         val variantLabel = variant.name.replaceFirstChar(Char::uppercaseChar)
         val licenseTask = tasks.register(
             "generateLicenseAssets$variantLabel",

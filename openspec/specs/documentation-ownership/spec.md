@@ -117,10 +117,17 @@ stay unarchivable until the block is completed.
 ### Requirement: The routing cost is measured
 
 The cost of a routed read SHALL be measured against reading the documents the route replaces, and the
-measurement SHALL be recorded where the route is documented. A section of `guidelines/Build.md` that a route
-names SHALL cost at most 12 000 bytes and answer one question: a larger or wider section SHALL be split into
-lettered sub-sections under its unchanged number, and the table SHALL route the sub-section that answers the
-question. Bounding the other guidelines is issue #197's.
+measurement SHALL be recorded where the route is documented. A section that a route names SHALL cost at most
+12 000 bytes and answer one question: a larger or wider section SHALL be split into lettered sub-sections under
+its unchanged number, and the table SHALL route the sub-section that answers the question. The always-read entry
+document SHALL cost at most 32 000 bytes. A document that a route names SHALL cost at most 32 000 bytes — the same
+bound as the entry document, so no document a route names costs more than the document a session is handed before it
+reads anything else — and a document past that bound is the document's own condition rather than its sections'.
+document is read by section and its bound is a multiple of the section's, and a document past that bound is the
+document's own condition rather than its sections'. A section, and a document, that the table does not route is not
+part of the start cost and SHALL NOT be bounded by this requirement. Each bound SHALL be the bound of the check that
+measures it, so retuning either one is one edit in the checks' registry, and a section's cost SHALL be the byte
+count of its lines from the `## ` heading through the line before the next `## ` heading.
 
 #### Scenario: Numbers for representative changes
 
@@ -135,35 +142,77 @@ question. Bounding the other guidelines is issue #197's.
 
 #### Scenario: A section carrying more than one question is split
 
-- **WHEN** a section of `guidelines/Build.md` that the routing table names costs more than 12 000 bytes, or
-  answers more than one question
+- **WHEN** a section that the routing table names costs more than 12 000 bytes, or answers more than one question
 - **THEN** the document splits it into lettered sub-sections under its unchanged number, the section's own
   body becomes an index of them, and every resulting sub-section is at most 12 000 bytes
-- **Case**: `routed-read#bound` — the cost of a section is the byte count of its lines from the `## ` heading
-  through the line before the next `## ` heading, and the case prints it for every section of the document
+- **AND** the split is a check's condition, not a case's failure: a routed section still past the bound is the
+  condition `sensors#routedSectionSizeRow` files under the identity of its document and section, and
+  `routed-read#bound` is the ruler and the print the cost is read with — while the second trigger, a section
+  that answers more than one question, is a judgement no case asserts
+- **Case**: `routed-read#bound` — the ruler and the print: the cost of a section is the byte count of its lines
+  from the `## ` heading through the line before the next `## ` heading, printed for every section of the
+  document, and the case fails when a printed cost is not that count; `sensors#routedSectionSizeRow` — the
+  filing: a routed section past the bound is that row's condition, carrying the document and the section, and it
+  closes when the section shrinks under the bound
 
 #### Scenario: A split section keeps its number and its citations
 
 - **WHEN** a section is split into lettered sub-sections
 - **THEN** the section's own number is still a heading of its document, every citation of that number still
   resolves, and the route check accepts the document set
-- **Case**: `routed-read#numbers`
+- **Case**: `routed-read#numbers` — a fixture document keeps `## 1.` beside `## 1a.` and `## 1b.`, its body and
+  the routing table cite all three, and the route check accepts the set; removing either the parent heading or a
+  sub-section heading makes the citation that names it fail
 
 #### Scenario: The route names the sub-section
 
 - **WHEN** the routing table routes a document whose section has been split
 - **THEN** the row names the lettered sub-section that answers the reader's question, and states what the
   sections cost
-- **Case**: `routed-read#route` — every row that routes `guidelines/Build.md` at a lettered sub-section must
-  also carry the cost it states, so a row naming sub-sections and pricing nothing fails the case
+- **Case**: `routed-read#route` — every row that routes a lettered sub-section of a document must also carry the
+  cost it states, so a row naming sub-sections and pricing nothing fails the case
 
 #### Scenario: The split moves text instead of rewriting it
 
 - **WHEN** a section is split
 - **THEN** every line the split stops carrying is either a promoted heading or a line whose only change is a
   retargeted section reference, so no statement is dropped or reworded
-- **Case**: `routed-read#verbatim` — `evidence/red-probe.sh` compares the diff's removed and added lines with
-  the heading level and the section numbers normalised, and names the first five it cannot pair
+- **Case**: none — the split's diff is a one-off judgement made when the split lands, recorded by the change that
+  made it; no harness in the tree can assert it over a later tree, so this scenario names no case rather than a
+  file in an archived change
+
+#### Scenario: A routed section past the bound is a check's condition
+
+- **WHEN** a section the routing table names costs more than the section bound
+- **THEN** a declared check reports it as its own condition, carrying the section's byte count and an identity
+  derived from the document and the section, without a person counting the document by hand — and the condition
+  closes when that section shrinks under the bound
+- **Case**: `sensors#routedSectionSizeRow`
+
+#### Scenario: An unrouted section is not the start cost
+
+- **WHEN** a section larger than the bound is one the routing table does not name, or a document larger than the
+  bound is one no row of the table names
+- **THEN** it is not a condition of the check, because a session does not read it before it works — and a routed
+  section past the bound beside it still is one
+- **Case**: `sensors#routedSectionSizeSkipsUnrouted`
+
+#### Scenario: The entry document is bounded with the sections
+
+- **WHEN** the always-read entry document costs more than its own bound
+- **THEN** it is a condition of a check of its own, identified by its path, and it is not reported against the
+  section bound nor a routed section against its own
+- **Case**: `sensors#entryDocumentSizeRow`
+
+#### Scenario: A routed document past the bound is its own condition
+
+- **WHEN** a document the routing table names costs more than the document bound, while every section of it is
+  under the section bound
+- **THEN** a declared check reports it as the document's own condition, carrying its byte count and its path, and
+  the condition closes when the document shrinks under the bound — it is not reported against the section bound
+  nor against the entry document's
+- **Case**: `sensors#documentSizeRow` — the row beside `routedSectionSizeRow` and `entryDocumentSizeRow`, whose
+  threshold is the bound this requirement states
 
 ### Requirement: The always-read document states facts and references rules
 
@@ -287,7 +336,9 @@ however generally useful it appears.
 
 The route check SHALL resolve references against the documents the repository contains, derived at run
 time rather than from a maintained list. A document added to `guidelines/` SHALL be covered without editing
-the check, and a document that no route names SHALL be reported.
+the check, and a document that no route names SHALL be reported. A companion document is not a document a route
+names: the check SHALL read it, resolve the anchors and the skill paths it carries, and SHALL NOT report it as
+unrouted.
 
 #### Scenario: The document set is derived
 
@@ -310,6 +361,14 @@ the check, and a document that no route names SHALL be reported.
 - **WHEN** the check's self-test runs
 - **THEN** a fixture whose extra guideline holds an unresolvable route fails, and a fixture whose extra
   guideline is named by the table passes
+
+#### Scenario: A companion is read but not routed
+
+- **WHEN** a companion document exists under `guidelines/` that no row of the routing table names
+- **THEN** the check reads it, resolves its anchors and any skill path it carries, and reports nothing — while a
+  normative document under `guidelines/` that no row names is still reported as unrouted
+- **Case**: `routes#aCompanionIsReadAndNotRouted` — a fixture tree with an unrouted `*.why.md` passes and one with
+  an unrouted `<Concern>.md` fails
 
 ### Requirement: A capability spec states what the capability is for
 
@@ -472,3 +531,237 @@ runs before an artifact is finished.
 - **Case**: `probe#theEntryDocumentNamesTheStrictValidationCommand` — the same probe's second case, which
   exits 1 while either form is missing (`evidence/revert-check.log`, the `changes` mutation removed that
   clause and left `1 of 2 cases failed`)
+
+### Requirement: A routing row's cost is the measurement it claims
+
+A routing row that prices a lettered sub-section SHALL state the section's measured cost, in kB of
+bytes/1000 rounded to one decimal: a figure written after the reference SHALL equal that section's cost, and a
+range SHALL state the cheapest and the costliest of the lettered sections the row names. A figure the row writes
+as a past measurement SHALL NOT be compared. A disagreement SHALL be reported with the row, the reference and
+both numbers, without a build, a device or a network.
+
+#### Scenario: A figure beside a reference is the section's measurement
+
+- **WHEN** a routing row states a `kB` figure after a lettered sub-section reference that is not that section's
+  cost under the requirement's ruler
+- **THEN** the check exits non-zero and reports the row, the reference, the stated figure and the measured one,
+  and a row stating the measurement passes
+- **Case**: `routed-read#figure` — over a fixture tree the check reports `0.1 kB` against a section measuring
+  `1.0 kB`, and accepts the same row once it states `1.0 kB`; the project's own table must pass
+
+#### Scenario: A range is the span of the sections the row names
+
+- **WHEN** a routing row states a range over the lettered sub-sections it names, and that range is not the
+  cheapest and the costliest of those sections
+- **THEN** the check exits non-zero and reports the row and the measured span, a row stating the measured span
+  passes, and a figure the row states as a past measurement is not compared
+- **Case**: `routed-read#range` — over a fixture tree the check reports `1.2–2.0 kB each` for sections measuring
+  `1.0–3.1 kB`, accepts `1.0–3.1 kB each`, and leaves the row's `against 23.2 kB for §1 before the split` alone
+
+### Requirement: A guideline document carries one kind of text
+
+A guideline document SHALL carry one kind of text: the normative rules in `<Concern>.md`, their rationale in
+`<Concern>.why.md`, the procedure in `<Concern>.recipes.md`. A rule SHALL be stated in the normative document
+only. Every `## §N <heading>` anchor a companion writes SHALL name a section its base document carries, and a
+companion SHALL NOT carry a section number its base document does not.
+
+#### Scenario: A rule sits in the normative layer and its rationale in the companion
+
+- **WHEN** a rule is stated beside the measurement that proved it and the reversal that preceded it
+- **THEN** the rule and its refusal path are in `<Concern>.md`, the measurement and the reversal are in
+  `<Concern>.why.md` under an anchor naming the rule's section, and the procedure that exercises it is in
+  `<Concern>.recipes.md`
+- **Case**: `layers#aRuleIsNormativeAndItsRationaleIsACompanion` — a fixture concern whose normative document holds
+  one named rule and whose `.why.md` holds the dated measurement, resolved by the route check
+
+#### Scenario: A companion anchors to a section that exists
+
+- **WHEN** a companion writes `## §N <heading>` and the base document carries no section numbered `N`
+- **THEN** the check exits non-zero and names the companion file, the anchor and the base document, so a companion
+  cannot become a document of its own
+- **Case**: `layers#aCompanionAnchorThatNoSectionCarriesIsReported`
+
+#### Scenario: A dropped section is reported in its companion
+
+- **WHEN** a base document stops carrying a section a companion anchors to
+- **THEN** the check reports that companion and anchor rather than the companion silently becoming unreachable
+- **Case**: `layers#aDroppedSectionIsReportedInItsCompanion`
+
+#### Scenario: No section number moves when a layer is cut out
+
+- **WHEN** a concern's rationale or procedure moves into a companion
+- **THEN** the set of `## ` heading numbers its normative document carries is the set it carried before, so every
+  citation of one of its sections still resolves
+- **Case**: none — the per-change comparison is recorded by the change that made the cut, and a change artifact
+  is history the route check does not read, so nothing in the tree can assert it over a later tree; the part of
+  the claim a later tree *can* assert is the split's own number retention, which `routed-read#numbers` exercises
+  over a fixture that keeps its parent number and its citations
+
+### Requirement: A rule is named
+
+A rule SHALL be written `**Rule: <name>** <statement>.` in the normative document, and the name SHALL be unique
+within that document and across `guidelines/*.md`. A document that needs the rule SHALL reference it as
+`see rule <File>.md §N "<name>"` rather than restating it. A name MAY change; a reference that no longer resolves
+SHALL be reported with the file that writes it, and no identifier, alias or migration table SHALL be maintained.
+
+#### Scenario: Two documents do not own one rule name
+
+- **WHEN** two documents under `guidelines/` each state `**Rule: <name>**`
+- **THEN** the check exits non-zero and names both documents and the name, because the second statement is the
+  duplicate the "one normative home" requirement forbids and no reader can find it
+- **Case**: `rules#aNameTwoDocumentsStateIsReported` — the violation of "A rule has one normative home", found by a
+  case instead of by a reader's memory
+
+#### Scenario: A reference resolves to a named rule
+
+- **WHEN** a document writes `see rule <File>.md §N "<name>"` and the section carries a rule of that name
+- **THEN** the reference resolves, and the check reports it as a reference rather than as a second statement
+- **Case**: `rules#aReferenceResolvesToTheNamedRule`
+
+#### Scenario: A renamed rule leaves its references reported
+
+- **WHEN** a rule's name changes and a reference still quotes the old name
+- **THEN** the check reports the reference, its file and the names the section does carry, so a rename is a
+  find-and-replace rather than a silent dangling pointer
+- **Case**: `rules#aStaleRuleReferenceIsReported`
+
+#### Scenario: A name is unique inside the document that states it
+
+- **WHEN** one document states the same rule name in two sections
+- **THEN** the check reports the name and both sections
+- **Case**: `rules#aNameTwiceInOneDocumentIsReported`
+
+#### Scenario: A rule with no name is reported
+
+- **WHEN** a normative document states `**Rule:**` with no name, or with a name that is only whitespace
+- **THEN** the check exits non-zero and names the file, the line and the token `**Rule:**`, so an empty name is
+  reported instead of being skipped in silence
+- **Case**: `rules#aRuleWithNoNameIsReported` — a fixture whose normative document carries `**Rule:**` is reported
+  with its file and line
+
+### Requirement: A normative document carries no rationale and no procedure
+
+A normative document SHALL state rules and their refusal paths, and SHALL NOT carry a command's output, a
+`tests=` or `failures=` tally, a timestamp, a `(measured YYYY-…)` figure, an `issue #N` reference or a `### Why …`
+heading. A declared check SHALL report each such occurrence in a normative document with the file and the line that
+carries it, and SHALL NOT judge prose.
+
+#### Scenario: A measurement inside a rule is a condition
+
+- **WHEN** a normative document carries a dated or measured figure inside a rule's body
+- **THEN** a declared check files that occurrence as a condition naming the file, the line and the token, and the
+  condition closes when the figure is stated in the companion instead
+- **Case**: `layers#aFigureInANormativeDocumentIsACondition` — the condition is the sensor row's, and the case
+  asserts the row's token, file and line over a fixture tree
+
+#### Scenario: A rationale heading in a normative document is a condition
+
+- **WHEN** a normative document carries a `### Why …` heading or a fenced block holding a command's output
+- **THEN** the same condition reports it, so a rationale cannot re-enter the layer it left
+- **Case**: `layers#aWhyHeadingInANormativeDocumentIsACondition`
+
+#### Scenario: A rule that needs a command keeps it
+
+- **WHEN** a rule's own statement is a command a reader must run, with no output and no measurement
+- **THEN** no condition is reported, because the rule is the normative text and only the evidence that proved it is
+  the companion's
+- **Case**: `layers#aCommandThatIsTheRuleIsNotACondition`
+
+### Requirement: The review's reading set is derived from the change's paths
+
+A review's reading set SHALL be derived from the paths a change touched, through a map from a path glob to the
+guideline sections and rule names that own that path's conventions. The map SHALL be a file in the tree, a glob
+that matches no tracked path SHALL be reported, a rule that no glob reaches SHALL be reported, and a normative
+document that no glob matches SHALL be reported. A glob over `guidelines/` SHALL name the document — with its
+companion layers — or the concern family whose sections and rules its route carries, and SHALL NOT be wide enough
+to match the whole corpus, because under the union a review derives, one corpus-wide glob returns every guideline
+route for any guideline edit. A route whose glob sits under `guidelines/` SHALL carry the documents that glob
+matches and no others. A change MAY add a section to its derived set by naming it.
+
+#### Scenario: The reading set follows the diff
+
+- **WHEN** a change touches paths whose globs the map names
+- **THEN** the derived set lists those sections and rule names, and a review is graded against that set rather than
+  against the sections the change's own artifacts name
+- **Case**: `routes#theReadingSetFollowsTheDiff` — `tools/check-rule-routes.sh --diff <range>` over a fixture range
+  prints the sections and rules, and a change naming fewer sections than the map derives is reported
+
+#### Scenario: A glob that matches nothing is reported
+
+- **WHEN** the map names a glob under which the tree holds no file
+- **THEN** the check exits non-zero and names the glob, because a moved package or module otherwise orphans the
+  rules a reader is told to read
+- **Case**: `routes#aGlobMatchingNoTrackedPathIsReported`
+
+#### Scenario: A rule no glob reaches is reported
+
+- **WHEN** a named rule under `guidelines/` is reachable from no glob in the map
+- **THEN** the check reports the rule and its section, so every rule has a reader before it has a violation
+- **Case**: `routes#aRuleNoGlobReachesIsReported`
+
+#### Scenario: A document no glob matches is reported
+
+- **WHEN** a normative document under `guidelines/` is matched by no glob in the map, even though its rules are
+  reached through some other path's route
+- **THEN** the check exits non-zero and names the document, because an edit to that document otherwise derives
+  nothing at all
+- **Case**: `routes#aDocumentNoGlobNamesIsReported` — measured on the map that replaced the corpus-wide globs
+  before this sentence existed: six documents (`MapCar`, `MapFollow`, `MapFrames`, `MapRoute`, `MapStyling`,
+  `BacklogTooling`) matched by no glob with every one of their rules still reached
+
+#### Scenario: A guideline route carries the documents its glob names
+
+- **WHEN** a route's glob sits under `guidelines/` and one of its sections or rules names a document that glob does
+  not match
+- **THEN** the check reports the route and the document, because a document's own route is how an edit to that
+  document is read
+- **Case**: `routes#aGuidelineRouteCarryingAnotherDocumentIsReported` — `guidelines/Backlog.*` carried
+  `BacklogTooling.md`'s nine entries while matching only `guidelines/Backlog.md`
+
+#### Scenario: One guideline edit derives its own document
+
+- **WHEN** a change touches one file under `guidelines/` — a normative document, or one of its companion layers
+- **THEN** the derived set is that document's concern's entries and no other document's, so a one-document edit is
+  never told to read the whole corpus
+- **Case**: `routes#aGuidelineEditDerivesItsOwnDocument` — this tree's own map and guideline corpus are copied into
+  a throwaway git tree, one edit is committed per document, and `--diff` must derive the edited document's entries
+  alone for five documents (one document, one companion layer, one concern family, one `Map*` document and the
+  tooling document of the backlog concern); measured on base `650028bf`: 270 entries naming 10 documents for one
+  `guidelines/Logging.md` edit
+### Requirement: A relocation record names the owners it cites
+
+When a change proves that a rule it removed from the entry document is stated elsewhere, it SHALL cite each owner
+as a path of its own, the way the removed block named them, and SHALL NOT cite a glob — the form a directory's
+complete listing takes — in their place: a reader checks the claim by the owners it names. An archived record SHALL
+NOT be inspected or rewritten, because it is history rather than a defect in the tree.
+
+#### Scenario: An owner cited as a directory listing is reported
+
+- **WHEN** an open change's record proves its owners with an `owner:` line whose citation is a glob — the form a
+  directory's complete listing takes, as `owner: .pi/skills/*/SKILL.md` beside all 35 contracts was
+- **THEN** the check exits non-zero and prints the record's file and line, so the citation is replaced by the owners
+  the removed block named, one path each — a citation quoted inside a fenced block is a quotation rather than a
+  citation, and the same lines under `openspec/changes/archive/` are reported by nothing, because that record is
+  history rather than a defect in the tree
+- **Case**: `artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported` — builds the record above into an open
+  change and into an archived one in a throwaway tree, and requires the checker to report the first with its file
+  and line (`openspec/changes/demo/evidence/relocation.txt:2`) and to name nothing under `archive/`. On base
+  `650028bf` it fails: `an owner cited as a directory listing passed (exit 0)` (tests=1 failures=1,
+  `evidence/red-on-HEAD.log`)
+
+### Requirement: The entry document names the skill a reader needs by its path
+
+The entry document SHALL name, by its path — `.pi/skills/<name>` — the skill that files a finding as one tracker
+item and the skill that turns one on-device verification into evidence, so a reader reaches each skill from the
+document that names the job instead of by listing `.pi/skills/`. A path named this way SHALL be one the tree
+carries, as "A document that names a skill resolves to a skill that exists" requires; this rule adds a pointer, and
+no statement either skill makes moves out of the section that owns it.
+
+#### Scenario: The loop's two ends are reachable by path
+
+- **WHEN** a reader follows the entry document to file a finding as a tracker item, or to turn an on-device
+  verification into evidence
+- **THEN** the entry document names `.pi/skills/create-issue` and `.pi/skills/device-check` by their paths, and the
+  route check resolves both, so a removal of either pointer fails the suite instead of a run
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+

@@ -12,7 +12,7 @@ import java.io.File
  *
  * Why the sources are the surface. `FollowAnchorFramingTest` proves the framing contract with the fractions
  * it is *handed*, so it stayed green while `MapCanvasScreen`'s follow display block passed
- * `ui.activeFollowAnchor` (raw preset ≈ 0.9) to `FollowPrediction.displayOffsetPx` while the render target
+ * `ui.activeFollowAnchor` (raw preset ≈ 0.9) to the shift helper while the render target
  * and the marker used `state.resolvedAnchor` (≈ 0.76) — a `(0.9 − 0.76)·H` content offset plus per-500 ms
  * re-render churn, invisible to the suite (issue #18, `§111`; the same day's `fix-follow-vehicle-jumps`
  * reworked the same pipeline without catching it). Its own regression case asserts the *defect geometry* by
@@ -20,7 +20,9 @@ import java.io.File
  *
  * The seam is the fix: `FollowBlitRules.offsetFor` takes the whole `MapCanvasUiState` and reads
  * `resolvedAnchor` itself, so the anchor is not a parameter a caller can choose, and the screen can no
- * longer name the raw preset on this path. This case reads the two files, the way
+ * longer name the raw preset on this path. The call site is in the follow display loop, which
+ * `2026-10-25-fix-map-canvas-screen-file-size` moved out of `MapCanvasScreen.kt` into
+ * `MapCanvasFollowDisplay.kt` word for word; the case reads that file, the way
  * `QualifierUseSiteTargetTest` reads the module's sources (a unit test cannot compile the module it runs in,
  * and the offset is a local of a `withFrameNanos` loop in a composable — no published state to assert), and
  * the seam's own geometry is driven by
@@ -38,11 +40,11 @@ class FollowBlitCallSiteTest {
 
     private val repoRoot = File("..").canonicalFile
     private val mapPackage = "app/src/main/java/com/naviveylin/ui/map"
-    private val screenFile = File(repoRoot, "$mapPackage/MapCanvasScreen.kt")
+    private val screenFile = File(repoRoot, "$mapPackage/MapCanvasFollowDisplay.kt")
     private val seamFile = File(repoRoot, "$mapPackage/FollowBlitRules.kt")
 
     private val seamCall = "FollowBlitRules" + ".offsetFor("
-    private val inlineCall = "FollowPrediction" + ".displayOffsetPx("
+    private val inlineCall = "OverrunWindow" + ".shiftPx("
     private val rawPreset = "active" + "FollowAnchor"
     private val resolvedAnchor = "resolved" + "Anchor"
 
@@ -72,7 +74,7 @@ class FollowBlitCallSiteTest {
 
     @Test
     fun `the follow blit offset is computed by the seam and not inline in the frame loop`() {
-        assertTrue("the map screen must exist at ${screenFile.absolutePath}", screenFile.isFile)
+        assertTrue("the follow display block must exist at ${screenFile.absolutePath}", screenFile.isFile)
         assertTrue(
             "the follow blit seam must exist at ${seamFile.absolutePath}",
             seamFile.isFile

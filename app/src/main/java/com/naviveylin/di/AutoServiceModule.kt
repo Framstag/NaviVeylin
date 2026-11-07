@@ -1,7 +1,6 @@
 package com.naviveylin.di
 
 import android.util.Log
-import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.auto.SessionCarSurfaceHost
@@ -18,6 +17,7 @@ import com.naviveylin.core.CarSurfaceHost
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.FreeDrivingStatusProvider
+import com.naviveylin.core.mapsource.MapTreeDiscovery
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.core.search.SearchQueryParser
@@ -150,11 +150,13 @@ object AutoServiceModule {
                     // Shared with the phone app (MapCanvasViewModel.initMap):
                     // every database directory under maps/ (any depth), except
                     // the basemap overlay which the client loads via its
-                    // basemap lookup directory.
-                    val databases = InstalledMaps.findDatabaseDirectories(
-                        mapsDir.absolutePath,
-                        File(mapsDir, "basemap").absolutePath
-                    )
+                    // basemap lookup directory — and except the staging
+                    // directories an interrupted update left behind, which are
+                    // reported instead of opened (spec: map-updates).
+                    val databases = MapTreeDiscovery.under(
+                        mapsDir.toPath(),
+                        mapsDir.toPath().resolve("basemap")
+                    ).installed.map { it.toString() }
                     DiagnosticsLog.log(
                         DiagnosticsLog.WARMUP_TAG,
                         "Installed map databases: ${databases.size} under $mapsDir"

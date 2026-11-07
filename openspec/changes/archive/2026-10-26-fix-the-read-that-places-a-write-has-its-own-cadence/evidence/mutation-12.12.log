@@ -1,0 +1,8 @@
+# measured 2026-10-26T20:03:13Z: record 12.12 restored verbatim (the text HEAD carried before this change retired it) for this one run, and removed again afterwards; the shipped set carries 178 records without it.
+loop-mutations: selected 1 of 179 records (labels: 12.12)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.5aLQem
+GREEN  12.12  run#aWriterTheRunCanPlaceBlocksTheItem   <-- the case did not notice the mutation
+restore 12.12 run#aWriterTheRunCanPlaceBlocksTheItem green again
+
+red-when-mutated: 0 · not-noticed: 1 · restore-failures: 0
+exit=1

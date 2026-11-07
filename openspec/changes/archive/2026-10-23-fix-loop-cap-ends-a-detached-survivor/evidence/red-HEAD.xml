@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one new case, against the engine at b1b8de08c6e1673601adf54638fda18c51a51258
+     (2026-10-23T08:00Z, 19 s wall clock): `bash tools/loop-selftest.sh --case
+     'run#detachedProcessInTheWorktreeIsEndedByTheCap'` — FAIL, exit 1, for the reason the log names. A
+     single-case run prints no suite summary line, so the tally below is one case and the one failure; the
+     transcript is evidence/red-HEAD.log. The same failure was reproduced with the sweep removed from a copy of
+     the engine (`--only 44.1`, evidence/revert-check-44.1.log). -->
+<testsuite name="loop-selftest --case run#detachedProcessInTheWorktreeIsEndedByTheCap" tests="1" failures="1" errors="0">
+  <testcase name="run#detachedProcessInTheWorktreeIsEndedByTheCap">
+    <failure>the process the ended child left in the worktree outlived the run — the cap must end what the child started, and a session of its own is not a group the cap reaches</failure>
+  </testcase>
+  <system-out>FAIL run#detachedProcessInTheWorktreeIsEndedByTheCap</system-out>
+</testsuite>

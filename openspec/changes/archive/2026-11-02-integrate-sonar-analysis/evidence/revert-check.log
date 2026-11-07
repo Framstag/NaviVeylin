@@ -1,0 +1,38 @@
+# revert-check for integrate-sonar-analysis (2026-11-02T19:35:30Z)
+
+## 8.1 a scanner pin with no recorded Node runtime is reported
+$ bash tools/check-action-runtimes.sh
+::error file=.github/workflows/sonar.yml,line=126::'SonarSource/sonarqube-scan-action' has no recorded Node runtime — add its first Node 24 major to the floor table in tools/check-action-runtimes.sh, with the action.yml URL you read it from
+exit=1 (expected 1)
+
+$ bash tools/check-action-runtimes.sh
+action runtimes: 16 action pins across 4 workflow files target Node 24.
+exit=0 (expected 0)
+
+## 8.2 a pull_request trigger is reported
+$ bash tools/check-sonar-workflow.sh
+::error file=.github/workflows/sonar.yml,line=22::the 'pull_request' trigger — the scan runs from a push to main and an explicit dispatch only (spec sonar-analysis, 'A pull request produces no scan')
+exit=1 (expected 1)
+
+$ bash tools/check-sonar-workflow.sh
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+exit=0 (expected 0)
+
+## 8.3 a dropped native-tree exclusion is reported
+$ bash tools/check-sonar-workflow.sh
+::error file=sonar-project.properties,line=52::the exclusion 'app/src/main/cpp/**' is missing — the libosmscout submodule's native tree and this repository's own C++ are outside the analysis (spec sonar-analysis, 'The analysis measures this repository's sources and nothing else')
+exit=1 (expected 1)
+
+$ bash tools/check-sonar-workflow.sh
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+exit=0 (expected 0)
+
+## 8.4 a gate wait is reported
+$ bash tools/check-sonar-workflow.sh
+::error file=sonar-project.properties,line=21::the quality-gate wait property is set — the quality gate colours the project and does not gate the build (guidelines/BuildEvidence.md §7, spec sonar-analysis, 'A red gate leaves the workflow green')
+exit=1 (expected 1)
+
+$ bash tools/check-sonar-workflow.sh
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+exit=0 (expected 0)
+

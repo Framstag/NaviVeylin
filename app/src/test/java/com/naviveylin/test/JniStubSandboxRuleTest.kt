@@ -18,8 +18,10 @@ import java.io.File
  * `FakeOSMScoutClient` (item §128).
  *
  * The detector reads **the sources**, the way `ReroutePolicyGuidelineParityTest` reads a guideline, so no
- * copy of the rule is written down twice. A module is scanned when it ships the stub in
- * `src/test/jniLibs` (`:app`, `:auto`), and a file counts as stub-loading when it names the client package.
+ * copy of the rule is written down twice. The rule reaches the two Robolectric modules that ship the stub in
+ * `src/test/jniLibs` (`:app`, `:auto`) — `:osmscout-client-java` ships the same stub and runs plain JUnit 5,
+ * one classloader for the whole suite, so no second sandbox can arise there — and a file counts as
+ * stub-loading when it names the client package.
  * Only an SDK pin and a graphics mode are refused — a `@Config(qualifiers = …)` is applied per test and
  * starts no second sandbox, which is why the locale cases are not violations. Each refused form is
  * measured by its own control, because a branch nothing exercises is a sentence, not a rule.

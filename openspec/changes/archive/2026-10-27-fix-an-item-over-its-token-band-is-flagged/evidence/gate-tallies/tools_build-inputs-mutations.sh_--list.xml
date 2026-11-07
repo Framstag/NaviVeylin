@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/build-inputs-mutations.sh --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>5.11 sensor:workflow#onlyTwoTriggers — every tracker write waits for the record (.github/workflows/sensors.yml) 5.12 sensor:workflow#onlyTwoTriggers — the dispatch apply is compared as the boolean it is declared to be (.github/workflows/sensors.yml) 5.13 inputs#reportsTheRunsConclusion — the conclusion the caller gates its rows on is the run's own (tools/fetch-build-inputs.sh)</system-out>
+</testsuite>

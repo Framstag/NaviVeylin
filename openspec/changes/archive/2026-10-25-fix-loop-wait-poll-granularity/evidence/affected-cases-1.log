@@ -1,0 +1,11 @@
+affected cases, after the fix 2026-10-25T01:30:46Z
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+status=0 driver#everyCaseDeclaresTheFilesItCanReach
+PASS run#childReportsWhileItWaits
+status=0 run#childReportsWhileItWaits
+PASS run#childOutlastingTheWallClockIsBlocked
+status=0 run#childOutlastingTheWallClockIsBlocked
+PASS run#childIsEndedAtTheRunsDeadline
+status=0 run#childIsEndedAtTheRunsDeadline
+PASS run#detachedProcessInTheWorktreeIsEndedByTheCap
+status=0 run#detachedProcessInTheWorktreeIsEndedByTheCap

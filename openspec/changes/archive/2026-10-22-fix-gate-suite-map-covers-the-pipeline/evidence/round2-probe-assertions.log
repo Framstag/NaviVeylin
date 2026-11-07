@@ -1,0 +1,22 @@
+# the two new assertions, red for their own reason (issue #242, review round 1)
+2026-10-22T05:00:19Z
+
+$ mutation 40.3: the pair that owes the build-inputs mutation list (issue #242)
+$ sed -e s#tools/build-inputs\*|tools/build-inputs-mutations.sh --list;##
+  and the mutation set the same step runs: tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check: 'tools/build-inputs-mutations.sh --list' not found in: tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check
+FAIL gate#aPipelineCheckIsOwedByItsPaths
+exit=1
+
+$ mutation 40.4: a pair that reaches another step through a coarse glob (issue #242)
+$ sed -e s#tools/build-inputs\*|tools/build-inputs.sh --check;#tools/build-inputs*|tools/build-inputs.sh --check;tools/build-inputs*|tools/check-portability.sh;#
+  and names no command of another step: tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check
+tools/check-portability.sh
+tools/build-inputs-mutations.sh --list: 'tools/check-portability.sh' should not appear in: tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check
+tools/check-portability.sh
+tools/build-inputs-mutations.sh --list
+FAIL gate#aPipelineCheckIsOwedByItsPaths
+exit=1

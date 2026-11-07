@@ -1,0 +1,45 @@
+# Conditions cleared — guidelines/Backlog.md, post-cut
+
+## Post-change section table
+
+| section | bytes | lines | routed |
+|---|---|---|---|
+| §1 | 7050 | 45 | routed |
+| §2 | 310 | 4 | not-routed |
+| §3 | 2066 | 26 | not-routed |
+| §4 | 5059 | 27 | routed |
+| §5 | 5070 | 60 | routed |
+| §6 | 2783 | 40 | not-routed |
+| §7 | 396 | 6 | routed |
+| §7a | 165 | 4 | routed |
+| §7b | 177 | 5 | routed |
+| §7c | 154 | 5 | routed |
+| §7d | 195 | 5 | routed |
+| §7e | 140 | 4 | routed |
+| §8 | 188 | 4 | not-routed |
+| §9 | 5823 | 68 | routed |
+| §10 | 2341 | 32 | routed |
+| §11 | 1966 | 28 | not-routed |
+| §12 | 120 | 3 | not-routed |
+| §13 | 104 | 3 | not-routed |
+| §14 | 1368 | 16 | not-routed |
+
+Total: 35890 bytes, 19 sections; every section under 12000, total under 48000.
+
+## document-size: violations before vs after
+
+Before (pre-cut): 5 — Build 166383, Backlog 112888, UI 110793, MapRendering 96482, Design 74205.
+
+After:
+"claim":"guidelines/Build.md is 166383 bytes in 2118 lines, past the row's bound of 48000 bytes (~600 lines at 80 bytes/line)"
+"claim":"guidelines/Design.md is 74205 bytes in 968 lines, past the row's bound of 48000 bytes (~600 lines at 80 bytes/line)"
+"claim":"guidelines/MapRendering.md is 96482 bytes in 1202 lines, past the row's bound of 48000 bytes (~600 lines at 80 bytes/line)"
+"claim":"guidelines/UI.md is 111485 bytes in 1426 lines, past the row's bound of 48000 bytes (~600 lines at 80 bytes/line)"
+
+Backlog.md carries no document-size violation: 0
+
+## normative-purity: conditions for guidelines/Backlog.md
+
+total normative-purity conditions: 60
+conditions for Backlog.md: 0
+documents carrying conditions: "document":"Build" "document":"Design" "document":"FeatureList" "document":"Logging" "document":"MapRendering" "document":"UI" 

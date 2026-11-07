@@ -1,0 +1,24 @@
+[
+  {
+    "number": 21,
+    "title": "§21 A retired entry a run's closure means to record as fixed",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/retired"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

@@ -1,0 +1,4 @@
+--- steps in jobs.build: 41
+--- exit code:
+daemon JVM criteria: version 21, no vendor, no package id, no buildSrc toolchain.
+exit=0

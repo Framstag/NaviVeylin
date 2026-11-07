@@ -1,0 +1,5 @@
+# Correction 2 (issue #743, review round 1): design.md now carries the ## Open decisions declaration.
+# Command: bash tools/check-change-readiness.sh openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer
+# Taken: 2026-11-02, after the declaration landed.
+LOOP-CHANGE-READY: ok
+exit=0

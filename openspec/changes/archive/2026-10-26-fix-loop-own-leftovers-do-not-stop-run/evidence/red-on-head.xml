@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#theStartAfterTheRunsOwnEndedChildIsNotRefused" tests="1" failures="1" errors="0" time="11">
+  <system-out>the item after the cap-ended one starts, so one item's cap no longer ends its run: expected '2', got '1' (2026-10-26T09:13:35Z)</system-out>
+</testsuite>

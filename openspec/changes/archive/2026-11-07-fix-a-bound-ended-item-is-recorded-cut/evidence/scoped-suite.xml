@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the scoped suite printed on the applied change: the shell runner writes no JUnit XML, so this file is
+     the carrier of the number the change quotes (tests=276 failures=0), kept beside scoped-suite.log — the runner's
+     own `PASS` lines and its exit status — so the claim has both halves. Selection: the three engine paths this
+     change touches; 276 of the tree's 345 cases declare one of them. -->
+<testsuite name="bash tools/loop-selftest.sh --files &quot;tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh&quot; (applied change, HEAD 6e9319f1)" tests="276" failures="0" errors="0" time="363" timestamp="2026-11-07T00:53:39Z">
+  <system-out>2026-11-07T00:53:39Z → 00:59:43Z all 276 cases passed (JDK 27, offline, no token, no sandbox), selection: --files tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh</system-out>
+</testsuite>

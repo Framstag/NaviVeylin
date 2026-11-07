@@ -3,33 +3,27 @@ package com.naviveylin.ui.route
 import com.naviveylin.core.haversineDistanceMeters
 
 /**
- * Polyline vertex range belonging to one route step (spec: `route-analysis`).
+ * Polyline vertex range belonging to one route row (spec: `route-analysis` — Analysed step is
+ * locatable on the map).
  *
- * The route polyline is a densified point list and the manoeuvres are separate
- * description entries, so nothing links them by index. [stepSegments] closes that
- * gap: each manoeuvre is matched to the polyline vertex it happens at, and a step owns the leg
- * that **leads to** its manoeuvre — from the previous manoeuvre's vertex up to its own
- * (owner finding, 2026-10-03: the highlighted leg used to be the one *after* the manoeuvre
- * named in the card). That orientation matches the step's values: a step's distance and duration are
- * the leg that ends at its own manoeuvre (spec: `osmscout-jni` — Per-step leg values on a calculated
- * route), so the row and the highlight describe the same piece of route. Before that change the
- * native side measured them between two consecutive route **nodes**, which is the last geometry edge
- * before the manoeuvre — a step of a 17,3 km route reported "14 m" and "2 s".
+ * Rows are the route analysis's **boundaries**, not points (design D2 of
+ * `route-panel-from-steps`): row *i* owns the vertices from row *i-1*'s boundary up to its own, the
+ * first row starts at the route's first vertex and the last row ends at the route's last vertex. A
+ * row's values are the legs of exactly that run, so the numbers a row shows and the segment the map
+ * highlights describe the same piece of route.
  *
- * Matching is **monotonic** — a step's vertex is never earlier than the previous
- * step's — because instructions arrive in route order. Without the constraint a
- * manoeuvre near a leg the route visits twice (a spur, a U-turn) could match the
- * earlier visit and highlight the wrong part of the route.
+ * Matching is **monotonic** — a row's vertex is never earlier than the previous row's — because the
+ * rows arrive in route order. Without the constraint a manoeuvre near a leg the route visits twice
+ * (a spur, a U-turn) could match the earlier visit and highlight the wrong part of the route.
  *
- * Returns one range per step, in step order. A step without a position (fewer
- * anchors than steps, no polyline at all) yields [IntRange.EMPTY] rather than a
- * range borrowed from its neighbour, and so does a step whose leg has no length
- * (the start line sits on the route's first vertex).
+ * Returns one range per row, in row order. A row without a position (fewer anchors than rows, no
+ * polyline at all) yields [IntRange.EMPTY] rather than a range borrowed from its neighbour, and so
+ * does a row whose leg has no length (the start line sits on the route's first vertex).
  *
  * @param polylineLats route polyline latitudes, ordered from start to destination
  * @param polylineLons route polyline longitudes, same order
- * @param stepCount number of steps in the route's step list
- * @param anchors per-step manoeuvre positions, index-aligned with the step list
+ * @param stepCount number of rows in the route's row list
+ * @param anchors per-row boundary positions, index-aligned with the row list
  *   (may be shorter than `stepCount` when positions are unavailable)
  */
 fun stepSegments(
@@ -51,21 +45,24 @@ fun stepSegments(
         searchFrom = index
     }
 
-    return List(stepCount) { step -> 
+    return List(stepCount) { step ->
         val own = startIndices[step]
-        // The previous manoeuvre's vertex starts this step's leg; the start line is the
-        // route's first vertex, so the leg before step 0 is empty.
+        // The previous row's boundary starts this row's leg; the first row begins at the route's
+        // first vertex, so the leg before it is empty.
         val from = if (step > 0) startIndices[step - 1] else 0
+        // The last row ends at the route's last vertex, so the arrival owns the tail of the polyline
+        // and the rows tile it without a gap at the far end either.
+        val to = if (step == stepCount - 1) pointCount - 1 else own
         if (own < 0 || from < 0) {
-            // No position for this manoeuvre (or for the one before it): draw nothing rather
+            // No position for this row (or for the one before it): draw nothing rather
             // than highlight a leg whose ends are unknown.
             IntRange.EMPTY
-        } else if (own <= from) {
-            // Both manoeuvres sit on the same vertex, or the step is the start line on the
+        } else if (to <= from) {
+            // Both boundaries sit on the same vertex, or the row is the start line on the
             // route's first vertex: no leg to draw.
             IntRange.EMPTY
         } else {
-            from..own
+            from..to
         }
     }
 }

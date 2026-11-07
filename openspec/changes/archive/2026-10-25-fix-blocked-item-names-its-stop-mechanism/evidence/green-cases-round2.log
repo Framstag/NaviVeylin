@@ -1,0 +1,5 @@
+== 2026-10-25T00:06:20Z — corrected tree
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+== 2026-10-25T00:06:21Z — state#aBlockedItemNamesTheMechanismThatStoppedIt exit=0
+PASS report#wallTimeAndReasonInTheTable
+== 2026-10-25T00:06:23Z — report#wallTimeAndReasonInTheTable exit=0

@@ -29,9 +29,20 @@ subject="$tmp/.github/workflows/probe.yml"
 
 write_workflow() { # write_workflow <uses lines…> — one step per line
   {
-    printf 'name: Probe\non: [push]\njobs:\n  probe:\n    runs-on: ubuntu-latest\n    steps:\n'
+    printf 'name: Probe\non: [push]\njobs:\n  probe:\n    runs-on: ubuntu-24.04\n    steps:\n'
     for ref in "$@"; do
       printf '      - uses: %s\n' "$ref"
+    done
+  } > "$subject"
+}
+
+write_runs_on() { # write_runs_on <runs-on value…> — one job per value, so a label is read on its own line
+  local value n=0
+  {
+    printf 'name: Probe\non: [push]\njobs:\n'
+    for value in "$@"; do
+      n=$((n + 1))
+      printf '  probe%d:\n    runs-on: %s\n    steps:\n      - uses: actions/checkout@v5\n' "$n" "$value"
     done
   } > "$subject"
 }
@@ -57,12 +68,14 @@ expect() { # expect <0|1|2> <label> [<needle in the output>]
   echo "ok: $label"
 }
 
-# The red case of issue #240: this repository's own pins, checked as they stand.
+# The red case of issue #240: this repository's own pins, checked as they stand. It is the case
+# `sonar-analysis` names for the pin this change adds — a workflow pin that no floor row records is what turns
+# this green run red.
 total=$((total + 1))
 if repo_out=$(bash "$checker" --root "$root" 2>&1); then
-  echo "ok: this repository's workflows pin a Node 24 major"
+  echo "ok: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major"
 else
-  echo "FAIL: this repository's workflows pin a Node 24 major"
+  echo "FAIL: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major"
   printf '%s\n' "$repo_out" | sed 's/^/       /'
   failed=$((failed + 1))
 fi
@@ -81,13 +94,29 @@ write_workflow actions/cache/restore@v5
 expect 0 "a subpath of a recorded action resolves to the action's floor"
 
 write_workflow actions/never-heard-of@v1
-expect 1 "an action with no recorded runtime fails" "has no recorded Node runtime"
+expect 1 "action-runtimes#anActionWithNoRecordedRuntimeFails — an action with no recorded runtime fails" "has no recorded Node runtime"
 
 write_workflow actions/checkout@main
 expect 1 "an unverifiable ref fails" "is not a released major"
 
 write_workflow 'docker://alpine:3.20' './.github/actions/local'
 expect 0 "a container action and a local action are skipped"
+
+# The runner image is the second pin this checker reads (issue #761): a released image passes, a `-latest` label
+# is reported where it stands, and the two values the workflow itself resolves — an expression and `self-hosted`
+# — are skipped rather than guessed at.
+write_runs_on ubuntu-24.04 windows-2022 ubuntu-22.04
+expect 0 "runtimes#aHostedRunnerImageIsPinned — released runner images pass"
+
+write_runs_on ubuntu-24.04 ubuntu-latest
+expect 1 "runtimes#aHostedRunnerImageIsPinned — an ubuntu-latest label is reported" "is a moving label"
+expect 1 "runtimes#aHostedRunnerImageIsPinned — the report names the file and line" ".github/workflows/probe.yml,line=9"
+
+write_runs_on macos-latest
+expect 1 "runtimes#aHostedRunnerImageIsPinned — every hosted -latest label is reported" "'runs-on: macos-latest' is a moving label"
+
+write_runs_on '${{ matrix.os }}' self-hosted
+expect 0 "runtimes#aHostedRunnerImageIsPinned — an expression and self-hosted are skipped"
 
 printf 'name: Probe\non: [push]\n' > "$subject"
 expect 0 "a workflow with no action pin passes"

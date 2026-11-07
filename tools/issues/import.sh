@@ -8,6 +8,12 @@
 #
 # Exit: 0 ok/previews, 2 usage, 3 policy, 4 everything already present.
 #
+# The findings an adapter emits are historical records, so they carry neither of `create.sh`'s two shapes; this
+# path passes `--import`, which declares that exemption on every item (`<!-- exempt: import <sourceId> -->`) rather
+# than filing it unchecked or inventing a cause the record does not have (`backlog-source-of-truth`, "A finding is
+# filed in one of two shapes"). The path is kept for a project adopting the tooling; a rewrite is expected rather
+# than promised.
+#
 # Usage: import.sh [--findings <file|->] [--dry-run|--apply] [--json] [--profile <path>]
 set -uo pipefail
 
@@ -70,7 +76,7 @@ while IFS= read -r finding; do
   printf '%s\t%s\t%s\t%s\n' "$source_id" "$title" "$fingerprint" \
     "$(jq -r '[.labels[]?] | join(",")' <<< "$finding")" >> "$previews"
   if [ "$apply" -eq 1 ]; then
-    create_out=$(printf '%s' "$finding" | "$here/create.sh" --profile "$profile" --json 2>&1)
+    create_out=$(printf '%s' "$finding" | "$here/create.sh" --profile "$profile" --import --json 2>&1)
     status=$?
     if [ "$status" -ne 0 ]; then
       # A refusal is reported, not swallowed: the caller must see why nothing was created.

@@ -1,0 +1,6 @@
+LOOP-CHANGE-READY: refused change-unreadable=fix-a-child-is-told-what-its-shell-refuses
+readiness exit=1
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 10 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+hygiene exit=0
+LOOP-CHANGE-READY: ok

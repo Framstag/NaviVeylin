@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
@@ -41,6 +43,7 @@ class MapGestureComposeTest {
     private val centroids = mutableListOf<Offset>()
     private var longPresses = 0
     private var renderRequests = 0
+    private val doubleTaps = mutableListOf<Offset>()
 
     private fun launchMap() {
         composeRule.setContent {
@@ -55,6 +58,7 @@ class MapGestureComposeTest {
                             override fun onRotate(angleDeltaRadians: Double) { rotations.add(angleDeltaRadians) }
                             override fun onZoom(centroid: Offset, zoomFactor: Float) { zooms.add(centroid to zoomFactor) }
                             override fun onLongPress(position: Offset) { longPresses++ }
+                            override fun onDoubleTap(position: Offset) { doubleTaps.add(position) }
                             override fun onRenderRequested() { renderRequests++ }
                         }
                     )
@@ -332,5 +336,67 @@ class MapGestureComposeTest {
         composeRule.waitForIdle()
 
         assertEquals("pan must request exactly one render", 1, renderRequests)
+    }
+
+    /**
+     * Double-tap zoom input (spec: smooth-zoom — Double tap zooms one level at the tap
+     * point): two taps inside the platform's double-tap window and slop are reported as
+     * exactly one double tap, at the point the second tap lifted, and they are not a
+     * long press.
+     */
+    @Test
+    fun twoTapsInsideTheDoubleTapWindowReportOneDoubleTap() {
+        launchMap()
+        val tap = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.center
+        composeRule.onRoot().performTouchInput {
+            doubleClick()
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("one double tap at the tap point", listOf(tap), doubleTaps)
+        assertEquals("a double tap must not read as a long press", 0, longPresses)
+        assertTrue("a double tap must not pan", panDeltas.isEmpty())
+        assertTrue("a double tap must not zoom like a pinch", zooms.isEmpty())
+    }
+
+    @Test
+    fun aSlowSecondTapInsideTheWindowIsStillOneDoubleTap() {
+        // The platform's double-tap timeout runs from the first tap's up to the second tap's
+        // down (ViewConfiguration.getDoubleTapTimeout), so a second press that lasts a while
+        // does not eat the window: 100 ms between the taps and a 250 ms second press are one
+        // double tap, though first-up to second-up is 350 ms (review round 1, finding 2).
+        launchMap()
+        val tap = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.center
+        composeRule.onRoot().performTouchInput {
+            click()
+            advanceEventTime(100)
+            down(0, tap)
+            advanceEventTime(250)
+            up(0)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(
+            "the window is measured up→down, not up→up, got $doubleTaps",
+            listOf(tap), doubleTaps
+        )
+    }
+
+    /**
+     * The double-tap window is the platform's, not "any two taps": taps separated by more
+     * than it are two single taps and request no zoom (spec: smooth-zoom — Double tap zooms
+     * one level at the tap point).
+     */
+    @Test
+    fun twoTapsBeyondTheDoubleTapWindowReportNoDoubleTap() {
+        launchMap()
+        composeRule.onRoot().performTouchInput {
+            click()
+            advanceEventTime(1_000)
+            click()
+        }
+        composeRule.waitForIdle()
+
+        assertTrue("taps beyond the window are not a double tap, got $doubleTaps", doubleTaps.isEmpty())
     }
 }

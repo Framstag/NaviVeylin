@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes-selftest.sh" tests="34" failures="3" errors="0" time="7">
+  <system-out>check-doc-routes: 0 of 328 references do not resolve, 4 stated figure(s) do not equal the section measurement PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case check-doc-routes-selftest: 3 of 34 cases failed</system-out>
+</testsuite>

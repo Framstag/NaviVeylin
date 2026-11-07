@@ -1,0 +1,8 @@
+items=264 events-files=254 total=3483MiB p50=11.84MiB p90=29.88MiB max=63.47MiB
+bound=4MiB kept-sum=891MiB
+bound=8MiB kept-sum=1584MiB
+bound=16MiB kept-sum=2573MiB
+days=7 dirs=215 MiB=2757
+days=14 dirs=105 MiB=1411
+days=30 dirs=0 MiB=0
+all item-dirs MiB=3563

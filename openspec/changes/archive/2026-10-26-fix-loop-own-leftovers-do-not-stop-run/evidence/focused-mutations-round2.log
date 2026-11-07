@@ -1,0 +1,22 @@
+loop-mutations: selected 9 of 177 records (labels: 13.5 13.8 13.9 13.10 13.11 53.1 53.3 62.5 62.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/issue-664/.pi/tmp/loop-mutations.yMVKPr
+RED    13.5  run#resetWorktreeDiscardsWhatItNames   (the start-time repair discarding what it named)
+restore 13.5 run#resetWorktreeDiscardsWhatItNames green again
+RED    13.8  run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard   (the repair syncing the submodule its own verbs cannot reach)
+restore 13.8 run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard green again
+RED    13.9  run#resetWorktreeNamesTheDirtItCannotDiscard   (the repair naming what it could not discard instead of announcing a clean tree)
+restore 13.9 run#resetWorktreeNamesTheDirtItCannotDiscard green again
+RED    13.10  run#theStartAfterTheRunsOwnEndedChildIsNotRefused   (the run discarding the dirt its own ended child left, the record being in place)
+restore 13.10 run#theStartAfterTheRunsOwnEndedChildIsNotRefused green again
+RED    13.11  run#aRetriedStartStopsWithItsOwnReason   (the retry's own refusal written down instead of the dirt it was retried over)
+restore 13.11 run#aRetriedStartStopsWithItsOwnReason green again
+RED    53.1  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the leftovers recorded under the item whose work the tree holds, and escalated (issue #284))
+restore 53.1 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+RED    53.3  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the stop reason naming the item the leftovers belong to and the files it found (issue #284))
+restore 53.3 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+RED    62.5  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch a cap-ended child's tree is kept in (issue #308))
+restore 62.5 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    62.6  run#aRefusedStartKeepsTheLeftoversItFound   (the patch a refused start keeps (issue #308))
+restore 62.6 run#aRefusedStartKeepsTheLeftoversItFound green again
+
+red-when-mutated: 9 · not-noticed: 0 · restore-failures: 0

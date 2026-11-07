@@ -1,0 +1,60 @@
+Taken 2026-10-23T16:23:43Z — the round-1 review correction validated. The change is archived, so `openspec validate <change>` has nothing to validate (it answers "Unknown item"); what the correction has to keep true is the shipped spec, the delta that merged into it, the doc checks and the evidence pointers.
+
+$ openspec validate agent-issue-loop --type spec --strict
+Specification 'agent-issue-loop' has issues
+⚠ requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[19]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[27]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[28]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[36]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[37]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ requirements[38]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+exit=0 (the CLI exits 1 on a WARNING: a requirement body over 500 characters. Eight are, none of them edited here — only a scenario was added, and the body of this requirement is the 630-character MODIFIED text the round-1 review recorded as exempt)
+
+$ openspec doctor
+
+References
+  (none declared)
+exit=0
+
+$ delta requirement block vs shipped requirement block (diff -B; no output = identical)
+exit=0 · the two blocks 54 and 55 lines
+scenarios in the merged requirement, each with its case:
+#### Scenario: The report removes nothing
+- **Case**: `clean#reportsWithoutApplyAndRemovesWithIt`
+#### Scenario: With `--apply` it removes what it reported, and nothing more
+- **Case**: `clean#reportsWithoutApplyAndRemovesWithIt`
+#### Scenario: A second run is a no-op
+- **Case**: `clean#reportsWithoutApplyAndRemovesWithIt`
+#### Scenario: The branches whose work is in the base are removed with it
+- **Case**: `clean#sweepsOnlyWhatIsInTheBase`
+#### Scenario: The kept worktree's own scratch root is scanned beside the invocation's
+- **Case**: `clean#reportsTheWorktreesScratchTreesToo`
+#### Scenario: `--worktree .` scans the one root it names once
+- **Case**: `clean#worktreeDotSweepsTheOneRootOnce`
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+exit=0
+
+$ bash tools/gen-feature-list.sh --check-classification
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 1
+stale: 3
+car-only areas: 1
+highlights: 19
+exit=0
+
+$ bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/archive/2026-10-23-fix-loop-clean-scans-both-scratch-roots --root .
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 9 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+DRIFT C3 /tmp path cited: openspec/changes/archive/2026-10-23-fix-loop-clean-scans-both-scratch-roots/proposal.md:33:loop-clean: self-test scratch trees und
+note C3: 1 line(s) cite a /tmp path — re-runnable only until the next run; the number they carry must also be in this artifact or in a retained XML (C2)
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 353 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0

@@ -1,0 +1,16 @@
+# The strict form of the corrected assertion, run repeatedly (issue #743 review round 1, correction 1).
+# Each line is one real run of that run's own JUnit XML; tests=/failures= and timestamp= are read from it.
+#
+# Class:  ./gradlew :auto:testDebugUnitTest --tests 'com.naviveylin.auto.AutoMapRendererFrameWaitTest' -PforceTests --no-build-cache
+class  fw-class-1.xml  tests="7" failures="0" errors="0"  timestamp="2026-11-02T18:55:32.607Z"
+class  fw-class-2.xml  tests="7" failures="0" errors="0"  timestamp="2026-11-02T18:55:42.535Z"
+class  fw-class-3.xml  tests="7" failures="0" errors="0"  timestamp="2026-11-02T18:55:53.084Z"
+class  fw-class-4.xml  tests="7" failures="0" errors="0"  timestamp="2026-11-02T18:56:05.028Z"
+class  fw-class-5.xml  tests="7" failures="0" errors="0"  timestamp="2026-11-02T18:56:16.611Z"
+#
+# Single case: the same command with --tests 'com.naviveylin.auto.AutoMapRendererFrameWaitTest.theArmedWaitFiresAndRetriesTheFrame'
+case   fw-case-xml-1.xml  tests="1" failures="0" errors="0"  timestamp="2026-11-02T18:56:30.454Z"
+case   fw-case-xml-2.xml  tests="1" failures="0" errors="0"  timestamp="2026-11-02T18:56:39.380Z"
+case   fw-case-xml-3.xml  tests="1" failures="0" errors="0"  timestamp="2026-11-02T18:56:50.448Z"
+case   fw-case-xml-4.xml  tests="1" failures="0" errors="0"  timestamp="2026-11-02T18:57:00.352Z"
+case   fw-case-xml-5.xml  tests="1" failures="0" errors="0"  timestamp="2026-11-02T18:57:11.419Z"

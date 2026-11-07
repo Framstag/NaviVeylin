@@ -141,6 +141,17 @@ sensors_row_max_recurrences() { # <row-json>
   printf '%s\n' "$value"
 }
 
+# The most conditions one run of one row may file. The number is the project's — the registry declares it for every
+# row and a row may declare its own — so the engine names none (design D12). A row that reports more conditions than
+# this files the bound and leaves the rest as one summary item, so a mis-fitted bound costs the tracker one item
+# instead of one per condition it happened to hold (issue #666).
+sensors_row_max_filings() { # <row-json>
+  local value
+  value=$(sensors_row_field "$1" maxFilings)
+  [ -n "$value" ] || value=$(sensors_registry_value '.maxFilings')
+  printf '%s\n' "$value"
+}
+
 SENSORS_REQUIRED_FIELDS="id cmd cron threshold consecutive class category lifecycle fingerprint"
 
 # Every reason a row is not a check — each naming the field or the value at fault, so a row without a
@@ -178,6 +189,22 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
     ''|*[!0-9]*) printf 'row-consecutive-not-a-count: %s\n' "$value" ;;
     0) printf 'row-consecutive-not-a-count: %s\n' "$value" ;;
   esac
+  # A row may bound its own filings below or above the registry's, and the bound is a count of at least one: a row
+  # that may file nothing has no way to report a condition at all (issue #666).
+  value=$(sensors_row_field "$row" maxFilings)
+  case "$value" in
+    '') : ;;
+    *[!0-9]*) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
+    0) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
+  esac
+  # A row whose condition recurs by design declares its own recurrence bound, and that bound is a count of at least
+  # one: a value that is not a count is refused by name rather than compared as a number (issue #769).
+  value=$(sensors_row_field "$row" k)
+  case "$value" in
+    '') : ;;
+    *[!0-9]*) printf 'row-k-not-a-count: %s\n' "$value" ;;
+    0) printf 'row-k-not-a-count: %s\n' "$value" ;;
+  esac
   value=$(sensors_row_field "$row" lifecycle)
   case "$value" in
     file|file+close) : ;;
@@ -203,10 +230,26 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
 # The registry as a whole: every row complete, every id distinct, and the label each row owns inside the
 # taxonomy the profile declares (design D9, task 1.1).
 sensors_registry_problems() {
-  local row id seen="" problems=""
+  local row id seen="" problems="" record_status max_filings
   if ! issues_profile_value namespaces | grep -qx -- "$SENSORS_NAMESPACE"; then
     printf 'namespace-not-declared:%s\n' "$SENSORS_NAMESPACE"
   fi
+  # The state a row's record issue carries is the registry's, and it is validated with the profile's own
+  # reader: a record with no state, or one outside the vocabulary, is one no selector could exclude
+  # (issue #257).
+  record_status=$(sensors_registry_value '.record.status')
+  if [ -z "$record_status" ]; then
+    printf 'registry-record-status-missing\n'
+  elif ! issues_core Policy labels --profile "$SENSORS_PROFILE" "status${SENSORS_SEPARATOR}${record_status}" >/dev/null 2>&1; then
+    printf 'registry-record-status-outside-the-vocabulary:%s\n' "$record_status"
+  fi
+  # The bound on one run's filings is the registry's unless a row declares its own, so a registry that declares no
+  # bound would leave every row unbounded — refused by name rather than read as "no bound" (issue #666).
+  max_filings=$(sensors_registry_value '.maxFilings')
+  case "$max_filings" in
+    '') printf 'registry-max-filings-missing\n' ;;
+    *[!0-9]*|0) printf 'registry-max-filings-not-a-count:%s\n' "$max_filings" ;;
+  esac
   while IFS= read -r row; do
     id=$(sensors_row_field "$row" id)
     case " $seen " in
@@ -292,6 +335,78 @@ sensors_cron_due() { # <cron> <epoch> [<minutes>] → 0 when the expression matc
   return 1
 }
 
+# The minutes a cron's minute field names, newest first, so a backward search stops at the latest match.
+sensors_cron_minutes() { # <minute-field> → the minutes 0-59, one per line, newest first
+  awk -v spec="$1" '
+    function field_match(spec, value, lo, hi, i, n, parts, part, sp, step, range) {
+      if (spec == "*") return 1
+      n = split(spec, parts, ",")
+      for (i = 1; i <= n; i++) {
+        part = parts[i]; step = 1
+        if (index(part, "/") > 0) { split(part, sp, "/"); part = sp[1]; step = sp[2] + 0 }
+        if (part == "*") { lo = 0; hi = 59 }
+        else if (index(part, "-") > 0) { split(part, range, "-"); lo = range[1] + 0; hi = range[2] + 0 }
+        else { lo = part + 0; hi = lo }
+        if (value >= lo && value <= hi && step > 0 && ((value - lo) % step) == 0) return 1
+      }
+      return 0
+    }
+    BEGIN { for (m = 59; m >= 0; m--) if (field_match(spec, m)) print m }'
+}
+
+# The interval a late or a skipped tick selects over: (since, now]. The tick GitHub fires late (or the tick
+# GitHub skipped entirely) measures every row whose cadence fell in the interval since the previous tick,
+# so a missing tick delays a measurement instead of losing it (issue #256). The search walks backwards a
+# day at a time and only enters the hours of a matching day, so a gap of months costs a bounded number of
+# minute conversions rather than one per minute; the lower bound is exclusive, so a row measured by the
+# previous tick's interval is not measured twice. 2 = cannot tell: a malformed expression, or an interval
+# that is not a forward span.
+sensors_cron_since() { # <cron> <since-epoch> <now-epoch> → 0 when the expression matches a minute in (since, now]
+  local cron="$1" since="$2" now="$3" day_cron hour_cron candidates now_day day_limit day_start last_hour h hour_start m epoch
+  # A malformed expression cannot answer; a valid one answers 0 or 1 for this single minute.
+  sensors_cron_minute "$cron" "$now" >/dev/null 2>&1
+  [ $? -ne 2 ] || return 2
+  case "$since" in ''|*[!0-9]*) return 2 ;; esac
+  case "$now" in ''|*[!0-9]*) return 2 ;; esac
+  [ "$since" -le "$now" ] || return 2
+  # Cron names minutes, not seconds.
+  now=$((now - now % 60))
+  since=$((since - since % 60))
+  [ "$since" -lt "$now" ] || return 1
+  # The day-only and day+hour predicates, and the minutes the minute field names, newest first.
+  day_cron=$(printf '%s\n' "$cron" | awk '{$1="*"; $2="*"; print}')
+  hour_cron=$(printf '%s\n' "$cron" | awk '{$1="*"; print}')
+  candidates=$(sensors_cron_minutes "$(printf '%s\n' "$cron" | awk '{print $1}')") || return 2
+  # Walk backwards a day at a time. A five-field expression matches at least once in four years (29 February
+  # is the coarsest day), so the search is bounded by four years and a day.
+  now_day=$((now - now % 86400))
+  day_limit=$((since - since % 86400))
+  day_start=$now_day
+  while [ "$day_start" -ge "$day_limit" ]; do
+    if sensors_cron_minute "$day_cron" "$day_start" >/dev/null 2>&1; then
+      last_hour=$(( (now - day_start) / 3600 ))
+      [ "$last_hour" -gt 23 ] && last_hour=23
+      h=$last_hour
+      while [ "$h" -ge 0 ]; do
+        hour_start=$((day_start + h * 3600))
+        if sensors_cron_minute "$hour_cron" "$hour_start" >/dev/null 2>&1; then
+          while IFS= read -r m; do
+            [ -n "$m" ] || continue
+            epoch=$((hour_start + m * 60))
+            [ "$epoch" -gt "$now" ] && continue
+            [ "$epoch" -le "$since" ] && continue
+            return 0
+          done <<< "$candidates"
+        fi
+        h=$((h - 1))
+      done
+    fi
+    [ $((now_day - day_start)) -ge $((1461 * 86400)) ] && break
+    day_start=$((day_start - 86400))
+  done
+  return 1
+}
+
 # --------------------------------------------------------------------------- a finding
 
 # The condition's identity: the digest of the fields the row declares. A sensor computes it with this
@@ -340,7 +455,9 @@ sensors_finding_problems() { # <row-json> <finding-json>
 sensors_issues_of_row() { # <row-id> → a JSON array
   local label
   label=$(sensors_label "$1")
-  gh issue list --state all --limit 400 --json number,title,body,labels,state,stateReason,author,comments 2>/dev/null |
+  # `createdAt` is the instant a filing's own marker carries, so it is requested with the rest: one write
+  # produces the issue and the marker, so the issue's creation time is the marker's (issue #668).
+  gh issue list --state all --limit 400 --json number,title,body,labels,state,stateReason,author,comments,createdAt 2>/dev/null |
     jq -c --arg label "$label" '[.[]? | select([(.labels // [])[]?.name] | index($label) != null)]'
 }
 
@@ -390,9 +507,45 @@ sensors_body_set() { # <body> <key> <value> → the body with that record entry 
   issues_body_set "$1" "$2" "$3"
 }
 
-# The newest measurement marker of one row, across its issues — what the report prints as "last run".
+# The row's record issue: the one issue per row that carries the measurements taken while the row has no
+# condition to carry them, so a healthy check reaches the tracker as a verdict rather than as silence
+# (issue #257). It is identified by its own marker, never by a fingerprint: no finding a check reports
+# matches it, so the lifecycle never reopens or closes it.
+sensors_record_issue() { # <issues-json> <row-id> → the issue, or empty
+  jq -c --arg marker "<!-- sensor-record: $2 -->" \
+    '[.[]? | select((.body // "") | contains($marker))] | if length > 0 then .[0] else empty end' <<< "$1"
+}
+
+# The newest measurement marker of one row, across its issues — what the report prints as "last run" and what
+# a baseline-multiple row compares against. Sorted by the marker's own instant: the issues arrive
+# newest-first, and a row carries a record issue beside its condition issues, so the last of the unsorted list
+# is the newest marker of the oldest issue rather than the newest marker of the row.
+#
+# A run has two places to write a marker and only one of them is a comment: a run that *files* embeds the same
+# marker in the new issue's body (`sensors_issue_body`). Both are read here, because a row whose newest event is
+# a filing carries no comment at all — and reading comments only made such a row report that it never ran, and
+# handed the next comparison an empty baseline, three minutes after it filed (issue #668). A filing's marker has
+# no instant of its own (the issue and the marker are one write), so the issue's `createdAt` is its instant.
+#
+# The marker's fingerprint is read from the marker, never from the issue: it is a condition's identity, and one
+# issue can carry markers of several conditions (a record issue carries one clear per condition). `previous`
+# selects by that field, so a per-issue fingerprint would compare one condition against another's measurement.
+sensors_markers_json() { # <issues-json> → every marker the row's issues carry, oldest first
+  jq -c '
+    [ .[]? | . as $issue
+      | ( [ (.comments // [])[] | select((.body // "") | contains("verdict="))
+            | {createdAt: (.createdAt // ""), marker: (.body // "")} ]
+          + [ ($issue.body // "") | [scan("<!--[^>]*verdict=[^>]*-->")] | .[0] // empty
+              | {createdAt: ($issue.createdAt // ""), marker: .} ] )
+      | .[]
+      | . + {number: ($issue.number // 0), body: ($issue.body // ""), state: ($issue.state // "OPEN"),
+             fingerprint: ((((.marker // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; ""))}
+    ]
+    | sort_by(.createdAt)' <<< "$1"
+}
+
 sensors_last_marker() { # <issues-json>
-  jq -r '[(.[]? | (.comments // [])[] | .body // "") | select(contains("verdict="))] | last // ""' <<< "$1"
+  sensors_markers_json "$1" | jq -r 'last | .marker // ""'
 }
 
 sensors_marker_field() { # <marker> <name>
@@ -409,7 +562,11 @@ sensors_conditions_json() { # <issues-json> → a JSON array
   # the object between the braces, never everything up to the next `>`: the marker the engine writes carries a
   # ` -->` tail, so a tail-tolerant pattern yields `{"job":"build","case":"apk"} --` and every condition
   # parses to `{}` — which turns a green build's clear into a finding that owns no issue (#230).
-  jq -c '[.[]? | . as $issue | {
+  # The row's own record issue is excluded, and so is its filing summary (issue #666): neither is a condition the
+  # check reported, so no sensor may read one as a condition it can clear.
+  jq -c '[.[]? | select((((.body // "") | contains("<!-- sensor-record:"))
+                        or ((.body // "") | contains("<!-- filing-summary:")))
+                       | not) | . as $issue | {
       number: $issue.number,
       state: ($issue.state // "OPEN"),
       fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; "")),
@@ -458,4 +615,21 @@ sensors_emit_error() { # <fields-json> <reason-token>
   fp=$(sensors_fingerprint "$fields" "$names")
   sensors_emit "$fp" "error-${reason}" error "$fields" "" "" \
     "the check could not determine anything: ${reason}"
+}
+
+# Every condition the row's own issues record, cleared in one call: the identity of each comes from the
+# issue's own body record rather than from the green run, so a clearing finding names the issue it owns and
+# closes nothing it did not open (design D4). `SENSORS_CLEARED` is how many it emitted — a caller that cleared
+# nothing still has to report, because the runner reads a row that printed nothing as a failed check.
+SENSORS_CLEARED=0
+sensors_clear_recorded() { # <field-names> <measurement> <title> <claim>
+  local names="$1" measurement="$2" title="$3" claim="$4" fields fp
+  SENSORS_CLEARED=0
+  while IFS= read -r fields; do
+    [ -n "$fields" ] || continue
+    fp=$(sensors_fingerprint "$fields" "$names")
+    sensors_emit "$fp" "$measurement" clear "$fields" "" "$title" "$claim"
+    SENSORS_CLEARED=$((SENSORS_CLEARED + 1))
+  done < <(jq -c '.[]? | select(.state == "OPEN") | (.condition // {}) | select(length > 0)' \
+    <<< "${SENSORS_CONDITIONS:-[]}")
 }

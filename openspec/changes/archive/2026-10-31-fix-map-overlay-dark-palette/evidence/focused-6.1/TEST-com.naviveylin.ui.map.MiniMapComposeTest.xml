@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:33.933Z" hostname="dingens" time="4.014">
+  <properties/>
+  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="1.255"/>
+  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.819"/>
+  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.346"/>
+  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.556"/>
+  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.555"/>
+  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.115"/>
+  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.353"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

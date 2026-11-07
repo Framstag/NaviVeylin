@@ -17,7 +17,7 @@ When navigation is active, a next-turn overlay SHALL be displayed on the map sho
 - **AND** it SHALL show the street name to turn into
 
 #### Scenario: Overlay updates on each instruction
-- **WHEN** `NavigationListener.onNextRouteInstruction()` is called
+- **WHEN** `NavigationListener.onNextRouteStep()` is called
 - **THEN** the overlay SHALL update with the new turn type, distance, and street name
 
 #### Scenario: Overlay hides on navigation stop
@@ -26,31 +26,32 @@ When navigation is active, a next-turn overlay SHALL be displayed on the map sho
 
 ### Requirement: Turn type icon
 
-The overlay SHALL display a visual icon representing the turn type (left, right, straight, roundabout, etc.).
+The overlay SHALL display a visual icon representing the manoeuvre the step ahead describes (left, right,
+straight, roundabout, motorway, etc.), chosen from that step's manoeuvre kind and move and never from any text.
 For a roundabout exit the icon SHALL additionally identify which exit the route takes: it SHALL show the exit
-ordinal on the symbol whenever the instruction carries one, and SHALL fall back to the plain roundabout icon
-when it does not.
+ordinal on the symbol whenever the step carries one, and SHALL fall back to the plain roundabout icon when it
+does not.
 
 #### Scenario: Left turn icon
 
-- **WHEN** the next instruction has `turnType = LEFT`
+- **WHEN** the step ahead is a left turn
 - **THEN** the overlay SHALL show a left-turn icon
 
 #### Scenario: Roundabout icon
 
-- **WHEN** the next instruction has `turnType = ROUNDABOUT_ENTER`
+- **WHEN** the step ahead enters a roundabout
 - **THEN** the overlay SHALL show a roundabout icon
 
 #### Scenario: Roundabout exit icon carries the exit number
 
-- **WHEN** the next instruction has `turnType = ROUNDABOUT_LEAVE` and carries exit ordinal 3
+- **WHEN** the step ahead leaves a roundabout at exit 3
 - **THEN** the overlay SHALL show a roundabout-exit icon carrying the number 3
 - **AND** the number SHALL be the one the overlay's instruction text names
 - **Case**: `app: NextTurnOverlayTest` "a roundabout exit icon carries the exit number"
 
 #### Scenario: Roundabout exit without an exit number
 
-- **WHEN** the next instruction has `turnType = ROUNDABOUT_LEAVE` and carries no exit ordinal
+- **WHEN** the step ahead leaves a roundabout and carries no exit ordinal
 - **THEN** the overlay SHALL show the plain roundabout icon it showed before the number existed
 - **Case**: `app: NextTurnOverlayTest` "a roundabout exit without an ordinal keeps the plain leave arrow"
 
@@ -60,6 +61,12 @@ when it does not.
 - **THEN** the next-next row SHALL show the exit number of *that* manoeuvre
 - **AND** it SHALL NOT show the number of the next-manoeuvre row
 - **Case**: `app: NextTurnOverlayTest` "the next-next roundabout exit shows its own number"
+
+#### Scenario: A motorway change is not drawn as a plain turn
+
+- **WHEN** the step ahead keeps left onto another motorway
+- **THEN** the overlay SHALL show the motorway-change icon rather than a plain left-turn icon
+- **Case**: `app: NextTurnOverlayTest` "a motorway change is drawn as a keep, not a turn"
 
 ### Requirement: Distance display
 The overlay SHALL show the distance to the next manoeuvre, formatted appropriately (meters or kilometers). The distance SHALL count down as the vehicle approaches and SHALL NOT display 0 m while the manoeuvre is still ahead and the vehicle is moving, including after a reroute; after a reroute the overlay SHALL show the new route's current distance instead of the previous route's value.
@@ -89,15 +96,34 @@ The overlay SHALL show the distance to the next manoeuvre, formatted appropriate
 - **AND** it SHALL either show an up-to-date instruction or clear the distance until valid data is available
 
 ### Requirement: "Next next" hint
-When a following manoeuvre is within 200m of the current one, the overlay SHALL show a second row with the next-next turn hint.
+
+When a following manoeuvre is within 200 m of the manoeuvre the overlay announces, the overlay SHALL show a second row with the next-next turn hint, built from the following manoeuvre the native step builder publishes in that step's nested `nextNext` — never from a facts-only route node and never re-derived by the surface.
 
 #### Scenario: Next next shown
-- **WHEN** `RouteInstruction.hasNextNext()` returns true
-- **THEN** the overlay SHALL display a second row with the next-next turn type and description
+
+- **WHEN** live guidance publishes a manoeuvre whose nested step is a following manoeuvre within 200 m of it
+- **THEN** the overlay SHALL display a second row with that manoeuvre's icon and localized short description
+- **Case**: `core: ManoeuvreAnnouncementTest` "the published step's own hint is announced unchanged"
 
 #### Scenario: Next next hidden
-- **WHEN** `RouteInstruction.hasNextNext()` returns false
+
+- **WHEN** the published step carries no nested following manoeuvre
 - **THEN** the overlay SHALL NOT show a second row
+- **Case**: `core: ManoeuvreAnnouncementTest` "a step without a following manoeuvre announces no hint"
+
+#### Scenario: A facts-only node is never the hint
+
+- **WHEN** the published step ahead is followed by a described route node (a name, a way type) before a manoeuvre
+- **THEN** neither the published step nor its nested hint SHALL be that node
+- **AND** its stated distance SHALL be the gap between the two manoeuvres
+- **Case**: `libosmscout: RouteStepModelTest` "The step ahead is the next manoeuvre, not the next described node"
+
+#### Scenario: A roundabout exit is announced before the ring is entered
+
+- **WHEN** the manoeuvre the overlay announces is a roundabout entry and the route leaves that roundabout at the next manoeuvre, within 200 m
+- **THEN** the second row SHALL show the roundabout leave with the exit ordinal the route takes
+- **AND** the announced row SHALL stay the entry, with its own turn type
+- **Case**: `libosmscout: RouteStepModelTest` "The following manoeuvre is announced before a roundabout is entered"
 
 ### Requirement: Left-aligned layout
 The next-turn overlay SHALL be aligned to the left edge of the screen (was centered).
@@ -175,3 +201,35 @@ The next-turn overlay text SHALL be large enough to read from the driver seat: t
 #### Scenario: Wrapping preserved at larger sizes
 - **WHEN** the instruction description exceeds the available width at the enlarged font sizes
 - **THEN** the text still wraps with an ellipsis on overflow (existing wrapping behavior unchanged)
+
+### Requirement: The second line carries the signposted destination
+
+The next-turn overlay's second line SHALL show the thing the manoeuvre leads onto. For a motorway enter or
+change that carries a signposted destination, that line SHALL include the destination beside the motorway's
+name or reference. The line SHALL keep the overlay's existing wrapping and ellipsis rules, and the value SHALL
+word the manoeuvre the way the car's instruction text words it.
+
+#### Scenario: A motorway change shows the signposted destination
+
+- **WHEN** the manoeuvre ahead is a motorway change onto the A8 whose signposted destination is "München"
+- **THEN** the overlay's second line SHALL read "A8 Richtung München" in German
+- **AND** the first line SHALL remain the manoeuvre alone ("Rechts halten")
+- **Case**: `app: NextTurnOverlayTest` "a motorway change's second line carries the signposted destination"
+
+#### Scenario: The second line is unchanged without a destination record
+
+- **WHEN** the manoeuvre ahead is a motorway change carrying no destination record
+- **THEN** the overlay's second line SHALL read the manoeuvre's target alone, with no destination clause
+- **AND** that target SHALL be the motorway the step names, else its street name — the order `leadsOnto`
+  uses, swapped from the `displayName ?: motorwayTo` order the line used before, so a step that names both now
+  shows the motorway
+- **Case**: `app: NextTurnOverlayTest` "a motorway change without a destination keeps the bare reference"
+
+#### Scenario: The longer line stays in the overlay's own budget
+
+- **WHEN** the second line grows by the destination clause
+- **THEN** the description SHALL carry the whole clause in its one text, so nothing of the value is dropped
+  before the overlay's own wrapping sees it
+- **AND** the wrapping and ellipsis the description applies SHALL stay the ones it already has, untouched by
+  this change — the rendered frame is what the overlay's device pixel case measures, not this unit case
+- **Case**: `app: NextTurnOverlayTest` "the destination clause wraps inside the existing line limit"

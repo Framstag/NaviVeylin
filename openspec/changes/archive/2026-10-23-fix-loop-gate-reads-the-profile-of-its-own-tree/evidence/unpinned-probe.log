@@ -1,0 +1,8 @@
+# The state an operator's shell has: no LOOP_CONF in the environment at all. The self-test cannot reach it — its
+# driver exports one for every case (tools/loop-selftest.sh:57) — so the probe is a six-line script that sources
+# lib.sh, resolves, and runs run.sh:72's `export -n LOOP_CONF` under `set -uo pipefail`.
+#
+# $ LOOP_CONF= bash .pi/issue-loop/items/277/probe-unpinned.sh    (2026-10-23T14:40Z)
+# LOOP_CONF is <unset> before
+# survived export -n; LOOP_CONF_PATH=/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf; LOOP_CONF=<unset>
+# exit=0

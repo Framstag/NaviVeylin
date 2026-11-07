@@ -1,0 +1,14 @@
+[
+  {
+    "number": 41,
+    "title": "§68 a tombstone a park displaced",
+    "body": "## 68. a finding that was retired\n\n- **Retired** ℹ: removed from the backlog by commit `7a6935a` (2026-09-15, \"A cleanup\").  The issue exists so\n  the citation keeps resolving.\n",
+    "labels": [{ "name": "class/improvement" }, { "name": "status/on-hold" }]
+  },
+  {
+    "number": 42,
+    "title": "§85 a finding that is work",
+    "body": "## 85. a finding nobody settled\n\n- **Observed** ✗: the map draws no POI icons.\n",
+    "labels": [{ "name": "class/improvement" }, { "name": "status/open" }]
+  }
+]

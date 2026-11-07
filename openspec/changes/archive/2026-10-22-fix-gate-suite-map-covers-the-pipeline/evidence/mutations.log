@@ -1,0 +1,9 @@
+== date: 2026-10-22T04:43:04Z
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.dciP1n
+RED    40.1  gate#theMapCoversEveryPipelineStep   (the pair that carries the build-inputs step in the map (issue #242))
+restore 40.1 gate#theMapCoversEveryPipelineStep green again
+RED    40.2  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the check over a path the step reads (issue #242))
+restore 40.2 gate#aPipelineCheckIsOwedByItsPaths green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+exit=0

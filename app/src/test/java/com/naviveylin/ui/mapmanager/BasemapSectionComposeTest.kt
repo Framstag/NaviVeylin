@@ -12,6 +12,7 @@ import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.data.BasemapAdmission
 import com.naviveylin.data.BasemapRegistrar
 import com.naviveylin.data.HttpUrlFetcher
 import com.naviveylin.data.MapSourceRegistry
@@ -80,9 +81,9 @@ class BasemapSectionComposeTest {
     private fun manager(port: Int, mapsDir: java.nio.file.Path): BasemapManager =
         BasemapManager(MapProvider("test", "http://127.0.0.1:$port", ""), mapsDir)
 
-    private fun waitForText(text: String) {
+    private fun waitForText(text: String, substring: Boolean = false) {
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -149,6 +150,34 @@ class BasemapSectionComposeTest {
         } finally {
             server.stop(0)
         }
+    }
+
+    @Test
+    fun anOutdatedInstalledBasemapSaysWhyItIsNotUsed() {
+        // The installed basemap carries another data format version, so the native client refused it
+        // (issue #23): the section must name both versions and the remedy instead of showing a
+        // basemap that renders nothing (spec `basemap-ui`).
+        val mapsDir = Files.createTempDirectory("basemap-test")
+        val basemapDir = mapsDir.resolve("basemap")
+        Files.createDirectories(basemapDir)
+        Files.write(basemapDir.resolve("water.idx"), "data".toByteArray())
+        val installed = manager(1, mapsDir).installedBasemapInfo
+
+        val bm = mock<BasemapViewModel>()
+        whenever(bm.uiState).thenReturn(
+            MutableStateFlow(
+                BasemapUiState(
+                    installedInfo = installed,
+                    outdatedFormat = BasemapAdmission.Rejected(basemapDir, 26, 27)
+                )
+            )
+        )
+        composeRule.setContent { BasemapSection(viewModel = bm) }
+
+        waitForText("Installed data format 26", substring = true)
+        composeRule.onNodeWithText("Installed data format 26", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("this build reads 27", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("download it again", substring = true).assertIsDisplayed()
     }
 
     @Test

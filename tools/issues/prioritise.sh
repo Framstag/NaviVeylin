@@ -365,6 +365,27 @@ if [ -z "$scores_file" ] && [ -n "$plan_file" ]; then
 fi
 
 if [ "$json" -eq 1 ]; then
+  # The records and the run's writes are passed through files rather than as command-line arguments: a
+  # tracker with enough issues makes the argument exceed the OS's argument-length limit ("Argument list too
+  # long"), and a `jq` that dies there must fail this run rather than leave an empty report behind (#291).
+  jq -R -s 'split("\n") | map(select(length > 0) | split("|") |
+      {issue: (.[0] | tonumber), band: (if .[1] == "" then null else .[1] end),
+       recordedBand: (if .[2] == "" then null else .[2] end), due: (.[3] == "1"),
+       occurrence: (.[4] | tonumber), bucket: (.[5] | tonumber), basis: .[6],
+       labels: (.[7] | split(",")), unclassified: (.[8] == "1"),
+       title: (.[9] | @base64d)})' "$scratch/records.tsv" > "$scratch/records.json" ||
+    issues_die "prioritise: cannot build the records JSON"
+  if [ -s "$scratch/writes.tsv" ]; then
+    jq -s '.' "$scratch/writes.tsv" > "$scratch/writes.json" || issues_die "prioritise: cannot build the writes JSON"
+  else
+    printf '[]\n' > "$scratch/writes.json"
+  fi
+  if [ -s "$scratch/refusals.tsv" ]; then
+    jq -R -s 'split("\n") | map(select(length > 0) | split("|") | {issue: (.[0] | tonumber), code: .[1]})' \
+      "$scratch/refusals.tsv" > "$scratch/refusals.json" || issues_die "prioritise: cannot build the refusals JSON"
+  else
+    printf '[]\n' > "$scratch/refusals.json"
+  fi
   jq -n \
     --argjson read "$read_count" --argjson skipped "$skipped_count" --argjson due "$due_count" \
     --argjson selected "$selected_count" --argjson scored "$scored" \
@@ -372,21 +393,15 @@ if [ "$json" -eq 1 ]; then
     --argjson waiting "$waiting_count" --argjson unclassified "$unclassified_count" \
     --argjson written "$written" --argjson max "$max_rescore" \
     --arg planFile "${plan_file:-}" --arg range "$range" \
-    --argjson records "$(jq -R -s 'split("\n") | map(select(length > 0) | split("|") |
-        {issue: (.[0] | tonumber), band: (if .[1] == "" then null else .[1] end),
-         recordedBand: (if .[2] == "" then null else .[2] end), due: (.[3] == "1"),
-         occurrence: (.[4] | tonumber), bucket: (.[5] | tonumber), basis: .[6],
-         labels: (.[7] | split(",")), unclassified: (.[8] == "1"),
-         title: (.[9] | @base64d)})' "$scratch/records.tsv")" \
-    --argjson writes "$(if [ -s "$scratch/writes.tsv" ]; then jq -s '.' "$scratch/writes.tsv"; else printf '[]'; fi)" \
-    --argjson refusals "$(if [ -s "$scratch/refusals.tsv" ]; then
-        jq -R -s 'split("\n") | map(select(length > 0) | split("|") | {issue: (.[0] | tonumber), code: .[1]})' "$scratch/refusals.tsv"
-      else printf '[]'; fi)" \
+    --slurpfile records "$scratch/records.json" \
+    --slurpfile writes "$scratch/writes.json" \
+    --slurpfile refusals "$scratch/refusals.json" \
     '{read: $read, skipped: $skipped, due: $due, selected: $selected, scored: $scored, classified: 0,
       transitions: $transitions, batches: $batches, wallMs: $wall, waiting: $waiting,
       unclassified: $unclassified, written: $written, maxRescore: $max, bandRange: $range,
       planFile: (if $planFile == "" then null else $planFile end),
-      records: $records, writes: $writes, refused: $refusals}'
+      records: $records[0], writes: $writes[0], refused: $refusals[0]}' ||
+    issues_die "prioritise: cannot build the JSON report"
 else
   issues_report_line "$read_count" "$skipped_count" "$due_count" "$scored" "0" \
     "$transitions" "$batches" "$wall_ms" "$waiting_count" "$unclassified_count"

@@ -1,0 +1,16 @@
+=== run#aWriterTheRunCanPlaceBlocksTheItem (this tree, isolated, 2026-10-24T10:56:15Z)
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+=== run#prescreenAnnouncesItselfBeforeItReturns (this tree, isolated, 2026-10-24T10:56:28Z)
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed
+ended 3586484 — its working directory is inside loop-selftest.gHipHl
+=== run#childOutlastingTheWallClockIsBlocked (this tree, isolated, 2026-10-24T10:56:32Z)
+PASS run#childOutlastingTheWallClockIsBlocked
+=== run#theBaseAdvancesWithEveryMerge (this tree, isolated, 2026-10-24T10:56:43Z)
+PASS run#theBaseAdvancesWithEveryMerge
+=== run#staleTestResultsAreNotThisChildsGate (this tree, isolated, 2026-10-24T10:57:01Z)
+PASS run#staleTestResultsAreNotThisChildsGate
+=== run#doesNotCloseOnAMergeTheBaseCannotTake (this tree, isolated, 2026-10-24T10:57:16Z)
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake

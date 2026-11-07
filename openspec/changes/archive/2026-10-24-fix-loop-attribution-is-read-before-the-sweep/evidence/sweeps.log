@@ -1,0 +1,18 @@
+# The base's two sweeps, from an instrumented run of the case (temporary, reverted)
+#
+# Instrumentation: at each sweep, every pid whose cwd is under the project, with ppid, pgid, cwd and cmdline.
+# Paths are written by hand as $ROOT (the throwaway project) and $WT ($ROOT/.pi/worktrees/loop).
+# BASE 9e77cd69, 2026-10-24. Raw output follows, $ROOT/$WT substituted for readability.
+
+=== SWEEP1 own=2994210 child=2994209
+  s1 pid=2994209 ppid=2991843 pgid=2994209 cwd=$ROOT cmd=bash /home/tim/projects/NaviVeylin/.pi/worktrees/i288-baseli
+  s1 pid=2994210 ppid=2991843 pgid=2991434 cwd=$ROOT cmd=bash /home/tim/projects/NaviVeylin/.pi/worktrees/i288-baseli
+  s1 pid=2994211 ppid=2994209 pgid=2994209 cwd=$ROOT cmd=bash tools/pi-child-events.sh pi /home/tim/projects/NaviVeyl
+  s1 pid=2994220 ppid=2994211 pgid=2994209 cwd=$WT cmd=bash /home/tim/projects/NaviVeylin/.pi/worktrees/i288-baseli
+  s1 pid=2994221 ppid=2994211 pgid=2994209 cwd=$ROOT cmd=bash tools/pi-child-events.sh pi /home/tim/projects/NaviVeyl
+  s1 pid=2994238 ppid=2994220 pgid=2994209 cwd=$WT cmd=bash /home/tim/projects/NaviVeylin/.pi/worktrees/i288-baseli
+  s1 pid=2994242 ppid= pgid= cwd= cmd=
+  s1 pid=2994243 ppid=2994238 pgid=2994209 cwd=$WT cmd=sleep 3 
+  s1 pid=2995031 ppid= pgid= cwd= cmd=
+  s2 pid=2994210 ppid=2991843 pgid=2991434 cwd=$ROOT cmd=bash /home/tim/projects/NaviVeylin/.pi/worktrees/i288-baseli
+  s2 pid=2999079 ppid= pgid= cwd= cmd=

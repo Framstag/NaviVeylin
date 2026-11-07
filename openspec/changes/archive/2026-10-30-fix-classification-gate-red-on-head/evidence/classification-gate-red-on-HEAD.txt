@@ -1,0 +1,18 @@
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  change-readiness (introduced by the open change change-readiness-gate — classify it in that change, before it archives)
+  shaping-inbox (introduced by the open change shaping-inbox — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 180
+classified: 183
+unclassified: 2
+delta spec ids: 29
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1
+# captured 2026-10-30T15:18:40Z at HEAD ead55b39, tree 0 modified path(s)

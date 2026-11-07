@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.service.CarHintContentTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-06T21:37:39.533Z" hostname="dingens" time="0.024">
+  <properties/>
+  <testcase name="instructionIsThePrimaryCarText" classname="com.naviveylin.service.CarHintContentTest" time="0.019"/>
+  <testcase name="aMotorwayChangesSecondaryTextCarriesTheSignpostedDestination" classname="com.naviveylin.service.CarHintContentTest" time="0.001"/>
+  <testcase name="noCarHintWhileFreeDriving" classname="com.naviveylin.service.CarHintContentTest" time="0.0"/>
+  <testcase name="aMotorwayChangeWithoutADestinationKeepsTodaysSecondaryText" classname="com.naviveylin.service.CarHintContentTest" time="0.0"/>
+  <testcase name="maneuverWithoutStreetNameKeepsInstructionWording" classname="com.naviveylin.service.CarHintContentTest" time="0.0"/>
+  <testcase name="neutralHintWhenInstructionsListHasNoCurrentEntry" classname="com.naviveylin.service.CarHintContentTest" time="0.0"/>
+  <testcase name="neutralHintWhileNoManeuverIsKnown" classname="com.naviveylin.service.CarHintContentTest" time="0.001"/>
+  <testcase name="carTitleMatchesOnScreenNextTurnText" classname="com.naviveylin.service.CarHintContentTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 217 records (labels: 72.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.OfcmnO
+RED    72.6  report#landingsAreTheStoredNumber   (the report making no tracker read of its own, so the number it says the state stores is fetched (issues #247, #709))
+       2026-10-30T08:08:38Z — the report called the tracker: issue list --label broken-main
+restore 72.6 report#landingsAreTheStoredNumber green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

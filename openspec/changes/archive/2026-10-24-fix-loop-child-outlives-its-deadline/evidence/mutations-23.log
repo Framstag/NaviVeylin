@@ -1,0 +1,11 @@
+RED    23.1  run#childOutlastingTheWallClockIsBlocked   (the wall-clock that ends a child instead of waiting for it for ever)
+RESTORE-FAILED 23.1  run#childOutlastingTheWallClockIsBlocked stayed red after the restore
+RED    23.2  run#childIsEndedAtTheRunsDeadline   (the deadline that ends a child outliving the run)
+RED    23.1  run#childOutlastingTheWallClockIsBlocked   (the wall-clock that ends a child instead of waiting for it for ever)
+RESTORE-FAILED 23.1  run#childOutlastingTheWallClockIsBlocked stayed red after the restore
+RED    23.2  run#childIsEndedAtTheRunsDeadline   (the deadline that ends a child outliving the run)
+restore 23.2 run#childIsEndedAtTheRunsDeadline green again
+GREEN  23.3  run#childIsEndedAtTheRunsDeadline   <-- the case did not notice the mutation
+restore 23.3 run#childIsEndedAtTheRunsDeadline green again
+
+red-when-mutated: 2 · not-noticed: 1 · restore-failures: 1

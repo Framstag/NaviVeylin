@@ -455,6 +455,7 @@ and name it, with no exception list. The rule is the counterpart of `guidelines/
 - **THEN** it reports no source — an imported experimental name that is never called is a finding too, so
   such an import is dropped rather than declared — exercised by
   `CoroutinesTestOptInGateTest.everyTestSourceThatUsesTheExperimentalTimeControlDeclaresTheOptIn`
+
 ### Requirement: A test that builds the search-history repository wires its I/O hop
 
 Every unit test or test helper that constructs a `SearchHistoryRepository` SHALL point that repository's I/O hop
@@ -507,3 +508,77 @@ Scope of both requirements, so the claim is not wider than the case: the obligat
 neither sweeps their tests nor reads them, and extending the guard to them is a separate item. The scan reads `*.kt` under each test-bearing module's
 `src/test/java`, so a construction that lives in another module or is reached by reflection is outside it; and
 the check lives in `:app`, so a `:auto`-only run enforces nothing on `:auto` sources.
+
+### Requirement: A row count is read only once the screen's page capacity is known
+
+A case that asserts how many rows a `DiagnosticsScreen` page holds SHALL await the page the connected
+host's capacity builds, never the publication of the entries alone. A case SHALL assert over the rows its own
+case wrote, never over a whole diagnostics window the screen also writes into. A case that builds such a
+screen SHALL release it before it returns.
+
+#### Scenario: The count waits for the host's capacity
+
+- **WHEN** a case asserts how many rows the diagnostics screen's page holds, and the fake host reports a
+  capacity other than the library default
+- **THEN** the case SHALL await the page built from the host's capacity, so the count it reads is the page
+  the host displays and not the default the screen starts from
+- **Case**: `DiagnosticsScreenTest#theDiagnosticsListFitsTheHostsCapacity`
+
+#### Scenario: A page's count waits for its own screen's capacity
+
+- **WHEN** a page row is opened and the case counts the rows of the page it opened
+- **THEN** the case SHALL await that page's host-built rows before asserting them, so the page it counts is
+  the one the host displays
+- **Case**: `DiagnosticsScreenTest#thePageRowOpensTheNextSliceOfTheWindow`
+
+#### Scenario: The newest-first order is asserted over the case's own entries
+
+- **WHEN** the diagnostics window holds the entries the case wrote plus a measurement line the screen wrote
+  after them
+- **THEN** the case SHALL assert the disclosure opens the list and its own entries follow newest-first, and
+  SHALL NOT assert the window's total
+- **Case**: `StartupScreensTest#diagnosticsScreenShowsNewestFirst`
+
+### Requirement: A helper that awaits a state fails by naming it
+
+A test helper that awaits an observable state SHALL NOT return the state it holds when its hang-guard window
+expires: the expiry SHALL fail the case with a message that names the awaited state and the state that was
+observed, so an unmet precondition is never reported at the call site as a count or a value mismatch.
+
+#### Scenario: An awaited state that never arrives fails by name
+
+- **WHEN** a case awaits an observable state through a helper and the helper's hang-guard window expires
+  before the state arrives
+- **THEN** the case fails with a message naming the awaited state and the state observed at expiry, rather
+  than returning a state its call site compares as if the awaited state had arrived
+- **Case**: `StartupScreensTest#awaitRowsNamesTheStateThatNeverArrived`
+
+### Requirement: A coordinate check decides on the record's fields, not on the line's timing numbers
+
+A case that asserts a diagnostics record carries no coordinate SHALL decide it from the fields the record's own
+marker introduces, and SHALL NOT decide it from a substring of the whole line: the reader prefixes every line
+with `[yyyy-MM-dd HH:mm:ss.SSS]`, whose `ss.SSS` field reads `13.412` at second `:13`, and a record also carries
+its own measurements (`duration=13ms`, `deviation_m=40.0`) — so a clock reading or a measurement satisfied the
+check and the case's result was decided by elapsed real time (issue #728).
+
+#### Scenario: A stamp that reads like a coordinate is not one
+
+- **WHEN** the calculation record is read from a file whose stamp is `[2026-11-03 13:41:13.412]` and whose
+  `duration=` field is `13ms`
+- **THEN** the case decides on the record's own key set and on the coordinate shape of each field value, and
+  stays green
+- **Case**: `NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates`
+
+#### Scenario: A distance field is not a position
+
+- **WHEN** the reroute record's `deviation_m=` value is a decimal distance and the line's stamp carries seconds
+  `52` with milliseconds `5xx`
+- **THEN** the case decides on the record's own `offroute_ms`, `confirm_ms` and `deviation_m` fields, and stays
+  green
+- **Case**: `NavigationEngineRerouteTest.aConfirmedRerouteWritesTheLatencyDiagnosticLine`
+
+#### Scenario: A coordinate in the record still fails the case
+
+- **WHEN** a position field is interpolated into the calculation record
+- **THEN** the case fails, naming the field the schema does not allow
+- **Case**: `NavigationEngineCalculationStateTest.theEndOfACalculationIsRecordedWithoutCoordinates`

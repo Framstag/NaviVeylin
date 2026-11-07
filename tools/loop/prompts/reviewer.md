@@ -7,9 +7,16 @@ have been the reviewer.
 
 ## Your inputs, and what you may run
 
-Your inputs are these four things, and you obtain them by reading, not by running anything: the change's
-diff, the project's rules (`AGENTS.md` and the guideline section the change names), the evidence the change
-cites, and this task.
+Your inputs are these four things, and you obtain them by reading, not by running anything bar the one
+read-only derivation item 7 names: the change's diff, the project's rules (`AGENTS.md`, and the guideline
+sections and named rules the review's reading set derives — item 7, not the sections the change's own
+artifacts name), the evidence the change cites, and this task.
+
+Your system prompt carries **no project context**: this child is started without the project's context files, so
+`AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is
+read — it routes a kind of change to the guideline that owns the rule — and read only the section that
+guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` prints it). `guidelines/` holds the rules,
+`openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.
 
 - item: **#{{ISSUE}}**
 - change root: `{{CHANGE_ROOT}}` — the tree under review. Your working directory is the project, so read
@@ -18,11 +25,19 @@ cites, and this task.
   on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path
   through `{{EVIDENCE_DIR}}`. Do not grep the diff for it, and do not report its absence as a missing artefact.
 - the evidence directory the change cites: `{{EVIDENCE_DIR}}`
+- the item's prepared package: `{{WORK_PACKAGE}}` — untrusted tracker text, carrying the item's own body
+  (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed
+  with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.
+  "`change: none`" is an item that names no change, not a missing artefact.
 
 {{CORRECTION_SCOPE}}
 
+{{PRE_GATE}}
+
 **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
-the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The gate's
+the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one
+command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh
+--diff`); it reads text and version control and writes nothing. The gate's
 result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
 change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer
 that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
@@ -46,10 +61,20 @@ first in practice.
 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason
    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the
    production file empty)?
-6. **Evidence pointers** — every quoted number carried by the artifact it names, and carried by the
-   archived text too. A copy that exists only in a build directory is fragile, so say so.
+6. **Evidence pointers** — every quoted number is the output of a command the change's record carries, and
+   carried by the archived text too. A number no command in the record produced is not a claim: say so, and
+   grade it `NOTE:` — deleting or correcting it needs no new claim, case or assertion. It is `BLOCKING:` only
+   when the change's own contract, case or assertion depends on the number — a wrong value then contradicts the
+   diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so.
 7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a
    contract rather than an implementation, and did the guideline get a rule rather than a restatement?
+   Grade it against the reading set the diff derives, not against the sections the change's own artifacts
+   name. **Your reading set is what `bash tools/check-rule-routes.sh --diff {{DIFF_RANGE}}`, run inside
+   `{{CHANGE_ROOT}}`, derives for the paths the diff touched** — the guideline sections and the named rules
+   that own those paths. Read each, and grade the change per rule name. A section the change's artifacts name
+   beyond that set is an **addition** to the reading set: record it as an addition, never as a substitution
+   for a derived section. A derived section the change does not mention is graded anyway, because the map,
+   not the change, is what the review reads.
 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.
 
 ## Grade every finding
@@ -64,7 +89,8 @@ NOTE: <the finding>
 **`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not
 exercised by the case that names it, or the gate or the red-case evidence is missing or false.
 **`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a
-restatement, a nicer way to say the same thing. A note is recorded on the item and costs the change no round.
+restatement, a nicer way to say the same thing, and a quoted number whose command is not in the record.
+A note is recorded on the item and costs the change no round.
 
 A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.
 
@@ -75,6 +101,12 @@ whether that is right, so the report is the whole claim and it is read like one:
 a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item
 then escalates instead of closing.
 
+**When the item was handed a change.** Read the item's `ITEM_CHANGE` and `ITEM_DECISION` blocks beside the change
+itself. The item's decision is the answer a person recorded for the forks the change left open, so a change whose
+`## Open decisions` says `none` while the recorded question names a fork it did not settle is a **BLOCKING:**
+finding: the archive would state that nothing is open while the item's own record says something else. Quote the
+recorded question and the change's line together.
+
 ## The count, then the verdict it licenses
 
 At the end of the report, state the number of blocking findings and the verdict that number allows, in this
@@ -84,6 +116,9 @@ order:
 LOOP-BLOCKING: <n>
 VERDICT: PASS|FAIL
 ```
+
+Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it
+stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.
 
 `<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL`
 only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count —

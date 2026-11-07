@@ -1,0 +1,38 @@
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+rc1=0
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+rc2=0
+PASS driver#theCoreIsCompiledOncePerSuite
+rc3=0
+PASS state#initAndShowRoundTrips
+rc4=0
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-104021')
+HEAD ist jetzt bei 13657e4 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ab6ef8f)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e348223)
+HEAD ist jetzt bei e348223 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e348223).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#oneItemOrderIsFixed
+rc5=0
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-104031')
+HEAD ist jetzt bei e44950a init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4bf9895)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b5d034d)
+HEAD ist jetzt bei b5d034d review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b5d034d).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+rc6=0

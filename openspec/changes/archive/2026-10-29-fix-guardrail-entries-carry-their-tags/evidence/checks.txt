@@ -1,0 +1,84 @@
+# structural checks, 2026-10-29T11:57:46Z
+$ bash tools/check-doc-routes.sh
+EXIT=0
+check-doc-routes: all 155 section references resolve, all 4 skill references resolve
+$ bash tools/check-todo-references.sh
+EXIT=0
+check-todo-references: 199 line(s) scanned, 64 distinct citation(s), 162 in the recorded table
+check-todo-references: 64 citation(s) resolve through the recorded table; 6906 file(s) excluded by the allowlist above
+$ bash tools/check-openspec-hygiene.sh
+EXIT=0
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+$ bash tools/gen-feature-list.sh --check-classification
+EXIT=0
+stale: 3
+car-only areas: 1
+highlights: 19
+$ openspec validate fix-guardrail-entries-carry-their-tags --strict
+EXIT=0
+Change 'fix-guardrail-entries-carry-their-tags' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+
+# post-archive checks, 2026-10-29T12:23:00Z (the archive move renames the change's paths inside the same openspec/* and *.md globs, so no new suite is owed; the documentation suites are re-read on the archived paths)
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags --root .
+EXIT=1
+ok   C5 file:line: 215 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (3)
+$ bash tools/check-doc-routes.sh
+EXIT=0
+check-doc-routes: all 155 section references resolve, all 4 skill references resolve
+$ bash tools/check-openspec-hygiene.sh
+EXIT=0
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+$ bash tools/check-todo-references.sh
+EXIT=0
+check-todo-references: 64 citation(s) resolve through the recorded table; 6940 file(s) excluded by the allowlist above
+$ bash openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags/evidence/red-probe.sh
+EXIT=0
+tests=3 failures=0
+PASS guardrail-tag#eachCarriedEntryCarriesItsRecordTag (exit 0)
+
+# evidence check after the JUnit XMLs were added, 2026-10-29T12:23:22Z
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags --root .
+EXIT=0
+ok   C5 file:line: 215 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+
+# correction round (round 2): the probe's case-state bookkeeping fixed and the red/green XMLs
+# re-captured, 2026-10-29T12:26:53Z
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags --root .
+ok   C1 §references: 66 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 7 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 222 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+EXIT=0
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 155 section references resolve, all 4 skill references resolve
+EXIT=0
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+EXIT=0
+$ bash tools/check-todo-references.sh
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/check-todo-references-selftest.sh                  the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 199 line(s) scanned, 64 distinct citation(s), 162 in the recorded table
+check-todo-references: 64 citation(s) resolve through the recorded table; 6943 file(s) excluded by the allowlist above
+EXIT=0

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>8.31 hotspot#theBoundIsAboveOneChangedFile — a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665) (tools/sensors/sensors.json) 8.32 sensors#routedSectionSizeRow — a routed section past the row bound is a violation (issue #197) (tools/sensors/metrics/doc-context.sh) 8.33 sensors#entryDocumentSizeRow — an entry document pa</system-out>
+</testsuite>

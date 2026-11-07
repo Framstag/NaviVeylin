@@ -1,0 +1,52 @@
+# Pre-change working tree — guideline-layers-mechanism, task 1.4
+# date: 2026-10-31T09:31:36Z
+
+## at my baseline (2026-10-31T08:59Z), before any edit of mine
+$ git status --short
+(empty — the tree was clean at that instant; git status --short and git diff --name-only both printed nothing)
+$ git log --oneline -1
+9ceec64f fix: fix-car-favorites-cold-template — a resolved favourites store's state reaches the first car template before the delayed hop (#110)
+
+## re-checked later in the session (2026-10-31T09:32Z)
+# a peer session wrote into the same tree while this one ran (the loop's one-builder-per-tree rule):
+# the files below are NOT this change's, and this change has left them untouched.
+$ git status --short
+ M .github/workflows/build.yml
+ M .github/workflows/sensors.yml
+ M AGENTS.md
+ M auto/src/test/java/com/naviveylin/auto/AutoMapRendererMarkerDrawCacheTest.kt
+ M tools/check-doc-routes-mutations.json
+ M tools/check-doc-routes-selftest.sh
+ M tools/check-doc-routes.sh
+ M tools/loop/loop.conf
+ M tools/sensor-cases.sh
+ M tools/sensor-mutations.sh
+ M tools/sensors/metrics/doc-context.sh
+ M tools/sensors/sensors.json
+ M tools/tooling.json
+?? app/src/test/java/com/naviveylin/ui/map/LocationMarkerOverlayPaletteTest.kt
+?? osmscout-client-java/bin/
+?? tools/check-rule-routes-mutations.json
+?? tools/check-rule-routes-selftest.sh
+?? tools/check-rule-routes.sh
+?? tools/doc-routes.json
+
+# This change's own writes (originally untracked, now present):
+  tools/check-rule-routes.sh  tools/check-rule-routes-selftest.sh  tools/check-rule-routes-mutations.json  tools/doc-routes.json
+# Modified by this change:
+  .github/workflows/build.yml
+  .github/workflows/sensors.yml
+  AGENTS.md
+  tools/check-doc-routes-mutations.json
+  tools/check-doc-routes-selftest.sh
+  tools/check-doc-routes.sh
+  tools/loop/loop.conf
+  tools/sensor-cases.sh
+  tools/sensor-mutations.sh
+  tools/sensors/metrics/doc-context.sh
+  tools/sensors/sensors.json
+  tools/tooling.json
+# Not this change's (a peer's, left alone):
+ M auto/src/test/java/com/naviveylin/auto/AutoMapRendererMarkerDrawCacheTest.kt
+?? app/src/test/java/com/naviveylin/ui/map/LocationMarkerOverlayPaletteTest.kt
+?? osmscout-client-java/bin/

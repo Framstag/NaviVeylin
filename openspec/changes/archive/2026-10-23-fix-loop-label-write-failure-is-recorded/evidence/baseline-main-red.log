@@ -1,0 +1,21 @@
+# The three cases the full suite reports red on this branch, and what the base does with them
+# Measured 2026-10-23T20:5xZ in .pi/worktrees/baseline279 (detached at main, d02b9d40) and
+# .pi/worktrees/279 (this branch), each case alone, one case per invocation.
+
+## run#prescreenAnnouncesItselfBeforeItReturns — red on the base too, not this change
+baseline279 (main):
+  the phase is announced on the console: 'loop: pre-screen' not found in:
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed
+
+## run#aWriterTheRunCanPlaceBlocksTheItem — red on the base too, not this change
+baseline279 (main):
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+
+## run#childOutlastingTheWallClockIsBlocked — green alone on both trees, red only in the full suite
+baseline279 (main), alone:  PASS run#childOutlastingTheWallClockIsBlocked
+worktrees/279 (branch), alone: PASS run#childOutlastingTheWallClockIsBlocked
+full suite on this branch:      FAIL run#childOutlastingTheWallClockIsBlocked
+# i.e. a wall-clock case that the suite's own serial load costs — the shape issues #259 and #260 own.

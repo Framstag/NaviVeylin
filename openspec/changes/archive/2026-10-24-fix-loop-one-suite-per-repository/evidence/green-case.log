@@ -1,0 +1,4 @@
+=== $ date -u +%Y-%m-%dT%H:%M:%SZ → 2026-10-24T09:50:45Z
+=== bash tools/loop-selftest.sh --case 'driver#aSecondSuiteInOneRepositoryIsRefused'
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+exit=0

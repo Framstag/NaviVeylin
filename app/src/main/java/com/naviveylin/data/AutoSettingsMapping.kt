@@ -21,6 +21,11 @@ internal fun AppSettings.toAutoSettings(): AutoSettings = AutoSettings(
     renderMode = renderMode.name,
     styleSheet = styleSheet,
     overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
+    // The car sees its OWN voice switch (spec: `voice-guidance` — The voice switch is
+    // per surface), while the GPS announcement switch is one value both surfaces
+    // share (spec: `voice-guidance` — GPS announcements are one shared switch).
+    voiceGuidanceEnabled = autoVoiceGuidanceEnabled,
+    announceGpsState = announceGpsState,
     // Per-surface anchors: the car sees its OWN value, falling back to the phone's
     // until an anchor is chosen on the car (spec: auto-map-layout — "Car falls back
     // to the phone value until configured on the car").
@@ -42,6 +47,12 @@ internal fun AutoSettings.toAppSettings(current: AppSettings): AppSettings = cur
     renderMode = RenderMode.valueOf(renderMode),
     styleSheet = styleSheet,
     overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
+    // Only the car's own voice field is written back; the phone's voice switch stays
+    // untouched (spec: settings-persistence — The announcement fields declare
+    // per-surface and shared ownership). The GPS field is shared, so the car's write
+    // is the value the phone reads.
+    autoVoiceGuidanceEnabled = voiceGuidanceEnabled,
+    announceGpsState = announceGpsState,
     // The car's own anchor fields are deliberately NOT written here: they are set
     // only by an explicit anchor selection on the car
     // (AutoSettingsProvider.saveCarAnchor). A generic settings write (dark mode,

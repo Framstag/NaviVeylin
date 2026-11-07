@@ -1,0 +1,14 @@
+Taken 2026-10-23T18:00:22Z — `bash tools/loop-mutations.sh --only "12.3 12.4 12.9"`: the record for the recorded line, the
+record for the strict review reading and the record for the strict worker verdict.
+
+loop-mutations: selected 3 of 115 records (labels: 12.3 12.4 12.9)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.hKFlpK
+RED    12.3  run#childWriteOutsideTheWorktreeIsNoted   (the run recording a child write left outside the worktree)
+restore 12.3 run#childWriteOutsideTheWorktreeIsNoted green again
+RED    12.4  run#strictOutsideWriteDiscardsTheReviewRound   (the strict run reading the project tree during a review round)
+restore 12.4 run#strictOutsideWriteDiscardsTheReviewRound green again
+RED    12.9  run#strictOutsideWriteBlocksTheItem   (the strict run turning the difference into a verdict about the item)
+restore 12.9 run#strictOutsideWriteBlocksTheItem green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+exit=0

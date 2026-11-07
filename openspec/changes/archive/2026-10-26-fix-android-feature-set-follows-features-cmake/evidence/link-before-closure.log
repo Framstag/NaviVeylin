@@ -1,0 +1,107 @@
+[1/1] Linking CXX shared library /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscout_mapd.so
+FAILED: /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscout_mapd.so 
+: && /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ --target=aarch64-none-linux-android29 --sysroot=/home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot -fPIC -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security    -fopenmp=libomp -fno-limit-debug-info  -static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments  -Wl,-z,max-page-size=16384 -shared -Wl,-soname,libosmscout_mapd.so -o /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscout_mapd.so libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/oss/Parser.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/oss/Scanner.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/LabelLayouter.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/LabelLayouterHelper.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/AreaBorderReach.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapPainter.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapPainterStatistics.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapParameter.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/PatternLookup.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapData.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/FontNameResolution.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapService.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/LabelProvider.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/LabelPath.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/Styles.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/StyleDescription.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/StyleConfig.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/StyleProcessor.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/DataTileCache.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapTileCache.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/MapPainterNoOp.cpp.o libosmscout/libosmscout-map/CMakeFiles/OSMScoutMap.dir/src/osmscoutmap/SymbolRenderer.cpp.o  /home/tim/projects/NaviVeylin/app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscoutd.so  /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a  /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libmarisa.a  -pthread  -latomic -lm && :
+ld.lld: error: undefined symbol: BZ2_bzDecompressInit
+>>> referenced by ftbzip2.c:185 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/bzip2/ftbzip2.c:185)
+>>>               ftbzip2.c.o:(FT_Stream_OpenBzip2) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by ftbzip2.c:241 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/bzip2/ftbzip2.c:241)
+>>>               ftbzip2.c.o:(ft_bzip2_stream_io) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: BZ2_bzDecompressEnd
+>>> referenced by ftbzip2.c:229 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/bzip2/ftbzip2.c:229)
+>>>               ftbzip2.c.o:(ft_bzip2_stream_io) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by ftbzip2.c:200 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/bzip2/ftbzip2.c:200)
+>>>               ftbzip2.c.o:(ft_bzip2_stream_close) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: BZ2_bzDecompress
+>>> referenced by ftbzip2.c:312 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/bzip2/ftbzip2.c:312)
+>>>               ftbzip2.c.o:(ft_bzip2_file_fill_output) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: BrotliDecoderDecompress
+>>> referenced by sfwoff2.c:319 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/sfwoff2.c:319)
+>>>               sfnt.c.o:(sfnt_init_face) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: inflateInit2_
+>>> referenced by ftgzip.c:303 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:303)
+>>>               ftgzip.c.o:(FT_Stream_OpenGzip) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by ftgzip.c:738 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:738)
+>>>               ftgzip.c.o:(FT_Gzip_Uncompress) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: inflateEnd
+>>> referenced by ftgzip.c:318 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:318)
+>>>               ftgzip.c.o:(FT_Stream_OpenGzip) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by ftgzip.c:318 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:318)
+>>>               ftgzip.c.o:(ft_gzip_stream_close) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by ftgzip.c:754 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:754)
+>>>               ftgzip.c.o:(FT_Gzip_Uncompress) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced 1 more times
+
+ld.lld: error: undefined symbol: inflateReset
+>>> referenced by ftgzip.c:347 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:347)
+>>>               ftgzip.c.o:(ft_gzip_file_io) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: inflate
+>>> referenced by ftgzip.c:743 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:743)
+>>>               ftgzip.c.o:(FT_Gzip_Uncompress) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by ftgzip.c:427 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/gzip/ftgzip.c:427)
+>>>               ftgzip.c.o:(ft_gzip_file_fill_output) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_create_read_struct
+>>> referenced by pngshim.c:298 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:298)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_create_info_struct
+>>> referenced by pngshim.c:308 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:308)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_set_longjmp_fn
+>>> referenced by pngshim.c:316 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:316)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by pngshim.c:206 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:206)
+>>>               sfnt.c.o:(error_callback) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_destroy_read_struct
+>>> referenced by pngshim.c:312 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:312)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by pngshim.c:444 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:444)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_set_read_fn
+>>> referenced by pngshim.c:322 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:322)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_read_info
+>>> referenced by pngshim.c:324 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:324)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_get_IHDR
+>>> referenced by pngshim.c:325 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:325)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by pngshim.c:391 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:391)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_set_palette_to_rgb
+>>> referenced by pngshim.c:357 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:357)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_set_expand_gray_1_2_4_to_8
+>>> referenced by pngshim.c:363 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:363)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_get_valid
+>>> referenced by pngshim.c:370 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:370)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+>>> referenced by pngshim.c:370 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:370)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_set_tRNS_to_alpha
+>>> referenced by pngshim.c:371 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:371)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: undefined symbol: png_set_strip_16
+>>> referenced by pngshim.c:374 (/home/tim/projects/NaviVeylin/vcpkg/buildtrees/freetype/src/VER-2-14-3-46d5ca34ec.clean/src/sfnt/pngshim.c:374)
+>>>               sfnt.c.o:(Load_SBit_Png) in archive /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+
+ld.lld: error: too many errors emitted, stopping now (use --error-limit=0 to see all errors)
+clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+ninja: build stopped: subcommand failed.

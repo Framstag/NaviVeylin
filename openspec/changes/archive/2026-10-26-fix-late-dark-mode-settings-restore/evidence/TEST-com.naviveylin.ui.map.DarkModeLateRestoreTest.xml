@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.DarkModeLateRestoreTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-26T06:24:33.455Z" hostname="dingens" time="7.645">
+  <properties/>
+  <testcase name="aChangeThatLandsBeforeTheReadKeepsBothFields" classname="com.naviveylin.ui.map.DarkModeLateRestoreTest" time="7.091"/>
+  <testcase name="untouchedFieldsAreStillRestoredFromDisk" classname="com.naviveylin.ui.map.DarkModeLateRestoreTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

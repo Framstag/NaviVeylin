@@ -1,0 +1,3 @@
+MUTATION 8.31: hotspot#theBoundIsAboveOneChangedFile red under the mutation, green after the restore — a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665)
+
+sensor-mutations: 1 behaved, 0 did not

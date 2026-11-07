@@ -1,0 +1,36 @@
+# The shaping inbox, read against the live tracker
+#
+# $ bash tools/issues/labels.sh --dry-run
++ agent/needs-shaping
+1 to create, 62 already present
+# exit status: 0 — the taxonomy gains exactly the one label this change declares
+#
+# $ bash tools/issues/labels.sh --apply
++ agent/needs-shaping
+1 to create, 62 already present
+# exit status: 0
+#
+# $ gh label list --limit 400 --json name,description --jq '.[] | select(.name=="agent/needs-shaping")'
+{"description":"agent — from the project profile","name":"agent/needs-shaping"}
+#
+# $ bash tools/issues/shaping.sh
+no item awaits shaping (agent/needs-shaping)
+LOOP-SHAPING-COUNT 0
+# exit status: 0
+#
+# $ bash tools/issues/shaping.sh --json
+[]
+#
+# The queue is empty because nothing is re-labelled by this change: the label did not exist before it, so no
+# item could carry it, and the proposal's "Not in this change" keeps the population backfill out of scope. What
+# the queue will show once a run writes the label, measured read-only on 2026-11-01 with
+#
+#   $ gh issue list --state open --limit 400 --json number,labels \
+#       --jq '[.[] | select([.labels[].name] | index("status/on-hold"))
+#                    | select(([.labels[].name] | index("agent/needs-decision")) | not)
+#                    | select(([.labels[].name] | index("agent/needs-shaping")) | not)] | length'
+#   32
+#
+# is 32 open items on a bare hold that states no question — the holds the proposal measured at 39 on 2026-10-30,
+# less the ones the loop has closed or reshaped since. That number is the gap this change makes visible; it is
+# not a number this change writes.

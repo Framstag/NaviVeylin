@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>8.25 run#aSummaryClosedByAPersonIsNotReopened — a summary a person closed is annotated, never reopened (issue #666) (tools/sensors/run.sh) 8.26 run#aFailedCheckDoesNotClearTheSummary — a run in which a finding failed clears no summary (issue #666) (tools/sensors/run.sh) 8.27 run#aSecondOverBoundRunListsWhatItDidNotFile — each over-bound run names the conditions it did not file (issue #666) (tools/</system-out>
+</testsuite>

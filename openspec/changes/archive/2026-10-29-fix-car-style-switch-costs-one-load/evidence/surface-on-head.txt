@@ -1,0 +1,32 @@
+2026-10-29T13:32:35Z
+-- grep -rn 'force = styleChanged' auto/src/main/java
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:478:                            pushDark(force = styleChanged)
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:485:                pushDark(force = styleChanged)
+-- grep -rn 'pushedForStyleSheet' auto/src
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:116:    private var pushedForStyleSheet: String? = null
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:469:                        val styleChanged = style != pushedForStyleSheet
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:473:                            pushedForStyleSheet = style
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:476:            val styleChanged = style != pushedForStyleSheet
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:480:                pushedForStyleSheet = style
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:496:    private var pushedForStyleSheet: String? = null
+-- grep -rn 'requestDaylightPush|needsPush|daylightApplier.apply' auto/src/main
+auto/src/main/java/com/naviveylin/auto/CarDaylightApplier.kt:39:    fun needsPush(dark: Boolean, force: Boolean = false): Boolean = force || lastApplied != dark
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:134:        if (!daylightApplier.needsPush(dark, force)) return
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:139:        rendererGate.requestDaylightPush(dark, force)
+auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:442:                    runCatching { daylightApplier.apply(request.dark, request.force) }
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:371:                    runCatching { daylightApplier.apply(request.dark, request.force) }
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:514:        if (!daylightApplier.needsPush(dark, force)) return
+auto/src/main/java/com/naviveylin/auto/MapScreen.kt:519:        rendererGate.requestDaylightPush(dark, force)
+auto/src/main/java/com/naviveylin/auto/RendererGate.kt:112:    fun requestDaylightPush(dark: Boolean, force: Boolean = false) {
+auto/src/main/java/com/naviveylin/auto/FreeDrivingScreen.kt:167:        if (!daylightApplier.needsPush(dark, force)) return
+auto/src/main/java/com/naviveylin/auto/FreeDrivingScreen.kt:171:        rendererGate.requestDaylightPush(dark, force)
+auto/src/main/java/com/naviveylin/auto/FreeDrivingScreen.kt:317:                    runCatching { daylightApplier.apply(request.dark, request.force) }
+-- grep -rn 'force' auto/src/test/.../{CarDaylightApplierTest,RendererGateTest}.kt
+auto/src/test/java/com/naviveylin/auto/CarDaylightApplierTest.kt:71:    fun forceRepushesEvenAfterSuccess() {
+auto/src/test/java/com/naviveylin/auto/CarDaylightApplierTest.kt:74:        // that knows this passes force instead of defeating the dedupe for every later
+auto/src/test/java/com/naviveylin/auto/CarDaylightApplierTest.kt:86:        assertTrue(applier.apply(true, force = true)) // re-pushed despite same value
+auto/src/test/java/com/naviveylin/auto/CarDaylightApplierTest.kt:96:        assertFalse("same value, no force", applier.needsPush(true))
+auto/src/test/java/com/naviveylin/auto/CarDaylightApplierTest.kt:98:        assertTrue("forced", applier.needsPush(true, force = true))
+auto/src/test/java/com/naviveylin/auto/RendererGateTest.kt:79:        assertEquals(false, gate.daylightPush.value?.force)
+auto/src/test/java/com/naviveylin/auto/RendererGateTest.kt:81:        gate.requestDaylightPush(dark = false, force = true)
+auto/src/test/java/com/naviveylin/auto/RendererGateTest.kt:83:        assertEquals(true, gate.daylightPush.value?.force)

@@ -1,0 +1,17 @@
+Falsification — fix-basemap-data-format-admission, 2026-10-30
+Mutation: app/src/main/java/com/naviveylin/data/BasemapDataFormat.kt, `admit()`:
+  `return if (installedVersion == expectedVersion) {`  ->  `return if (true) {`
+  (the admission accepts a basemap of any data format version).
+
+./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.data.BasemapDataFormatTest" \
+  --tests "com.naviveylin.data.BasemapRegistrarTest" \
+  --tests "com.naviveylin.di.MapDownloadModuleBasemapAdmissionTest"
+
+BasemapDataFormatTest > aSlotNestedBasemapOfAnotherFormatIsRejectedAtTheNestedDirectory FAILED
+BasemapDataFormatTest > aFlattenedBasemapOfAnotherFormatIsRejectedWithBothVersions FAILED
+MapDownloadModuleBasemapAdmissionTest > aBasemapOfAnotherFormatIsNotConfiguredAndIsReportedOnce FAILED
+BasemapRegistrarTest > aBasemapThatCarriesAnotherBuildsDataFormatIsNotHandedToTheClient FAILED
+16 tests completed, 4 failed
+BUILD FAILED in 20s
+
+Restored: the comparison is back; the forced re-run is the focused round in `focused-run.txt`.

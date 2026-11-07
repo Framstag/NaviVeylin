@@ -1,0 +1,25 @@
+# Every citation of `Design.md` (files this change may not edit included)
+
+The literal task command `grep -rn 'Design\.md §' AGENTS.md guidelines/*.md .pi/skills/*/SKILL.md openspec/specs` returns 0 — the tree writes the reference as `` `Design.md` §N `` (a backtick before the §).
+The tolerant command below is what was run:
+
+```
+AGENTS.md:23:| module layering, DI, ViewModel/state, threading, the native boundary | `Design.md` §1, §3, §4; `DesignNative.md` §5a 8.0 kB, §5b 5.5 kB (the native boundary) |
+AGENTS.md:48:| engineering principles, and the checklist before an apply pass | `Design.md` §12 "General engineering principles"; the apply checklist is `Design.recipes.md` "Appendix A — Quick checklist (apply phase)" |
+AGENTS.md:50:| the design document set — which of the four documents carries which section of `Design.md` | `Design.md` §1, §3, §4, §12; `DesignStack.md` §2, §9; `DesignNative.md` §5a 8.0 kB, §5b 5.5 kB; `DesignCrossVariant.md` §6, §7, §8a 10.0 kB, §8b 2.9 kB, §10, §11 |
+AGENTS.md:114:- Native calls go through the JNI bridge: C++ side = `libosmscout-client-java` inside the libosmscout submodule; Java side = `:osmscout-client-java` module overrides (see `guidelines/Design.md` §5)
+AGENTS.md:120:pin and the one-session-owns-the-push discipline are `guidelines/Design.md` §5, and CMake and vcpkg (a Cairo
+AGENTS.md:140:guarded**) — are `guidelines/Design.md` §8, `guidelines/UI.md` §3, §3a, §3b and §3c,
+AGENTS.md:224:adding a dependency, a screen, a sheet or a native function are `guidelines/Design.md` §2.
+AGENTS.md:246:  rule in `guidelines/Design.md` §2. Nothing is added here.
+guidelines/Backlog.md:386:  in §12 with what replaced it and why; `Design.md` §13 does the same for the app's superseded decisions.
+guidelines/Backlog.recipes.md:750:this §9 (15 389 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
+guidelines/BuildEvidence.md:134:  dispatcher (`guidelines/Design.md` §4).
+guidelines/BuildEvidence.md:155:  (`guidelines/Design.md` §4), and a test that builds such a component points the seam at its own scheduler —
+guidelines/DesignCrossVariant.md:6:(build & release) and §11 (testing), from the `Design.md` document this cluster was cut out of.
+guidelines/Design.md:5:of change that read them: `Design.md` (this file: §1 module layering, §3 ViewModel & state, §4 threading, §12
+guidelines/DesignStack.md:4:patterns) and §9 (data, persistence & search) from the `Design.md` document this cluster was cut out of. The
+.pi/skills/native-bridge-signature-change/SKILL.md:23:- **Behaviour change behind an unchanged signature** — fix it in Kotlin, or upstream as a minimal patch (`guidelines/Design.md` §5). Changing the signature to fix behaviour is a contract change and needs a spec.
+.pi/skills/native-bridge-signature-change/SKILL.md:118:  (`guidelines/Design.md` §5). A new native therefore needs a line there or a mirror — the same commit as the
+.pi/skills/native-bridge-signature-change/SKILL.md:121:- Cross-references: `AGENTS.md` "Native Integration" and "JNI stub for unit tests"; `guidelines/Design.md` §5 (native boundary, upstreamable patches); `guidelines/Build.md` (build/test skills); the `update-to-current-libosmscout-master` skill (its step 3 checks symbol *presence* — pair it with this audit).
+```

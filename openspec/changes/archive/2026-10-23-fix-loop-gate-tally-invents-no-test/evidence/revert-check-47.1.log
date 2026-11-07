@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 99 records (labels: 47.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.jEiW6N
+RED    47.1  gate#aFailingSuiteWithNoSummaryInventsNoTest   (the error count that keeps a suite which reported no summary from being tallied as one failing test (issue #268))
+restore 47.1 gate#aFailingSuiteWithNoSummaryInventsNoTest green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

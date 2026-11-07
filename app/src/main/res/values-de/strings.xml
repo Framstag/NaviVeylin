@@ -97,13 +97,21 @@
     <string name="auto_zoom">Auto-Zoom</string>
     <string name="keep_screen_on">Bildschirm an lassen</string>
     <string name="lane_instructions">Spurhinweise</string>
+    <string name="voice_guidance_switch">Sprachführung</string>
+    <string name="gps_announcements_switch">GPS-Ansagen</string>
     <string name="overspeed_warning_delta">Geschwindigkeitswarnung</string>
     <string name="vehicle_position">Fahrzeugposition</string>
     <string name="vehicle_position_routing">Fahrzeugposition (Navigation)</string>
     <string name="vehicle_position_free_driving">Fahrzeugposition (freies Fahren)</string>
     <string name="overspeed_delta_value">+%1$d km/h</string>
+    <string name="long_press_timeout">Langdruck-Verzögerung</string>
+    <string name="long_press_timeout_value">%1$d ms</string>
     <string name="max_speed_section">Routentempo</string>
     <string name="max_speed_value">%1$d km/h</string>
+    <string name="avoidance_section">Routenvermeidung</string>
+    <string name="avoid_tolls">Mautstraßen vermeiden</string>
+    <string name="avoid_ferries">Fährverbindungen vermeiden</string>
+    <string name="avoid_unpaved">Unbefestigte Straßen vermeiden</string>
     <string name="dark_mode">Dunkelmodus</string>
     <string name="ambient_light_dark_mode">Adaptiv nach Umgebungslicht</string>
     <string name="on">Ein</string>
@@ -144,6 +152,24 @@
     <string name="calculating_route">Route wird berechnet...</string>
     <string name="calculating_route_percent">Route wird berechnet… %1$d %%</string>
     <string name="stop_navigation">Navigation beenden</string>
+    <!-- Spoken turn-by-turn guidance (spec: voice-guidance). A sentence is composed from these
+         fragments in the order the native voice agent emits its samples. -->
+    <string name="voice_after_distance_meters">nach %1$d Metern</string>
+    <string name="voice_after_distance_yards">nach %1$d Yards</string>
+    <string name="voice_then">dann</string>
+    <string name="voice_turn_left">links abbiegen</string>
+    <string name="voice_turn_right">rechts abbiegen</string>
+    <string name="voice_sharp_left">scharf links abbiegen</string>
+    <string name="voice_sharp_right">scharf rechts abbiegen</string>
+    <string name="voice_straight">geradeaus weiterfahren</string>
+    <string name="voice_roundabout">im Kreisverkehr</string>
+    <string name="voice_roundabout_exit">die %1$d. Ausfahrt nehmen</string>
+    <string name="voice_motorway_exit">die Autobahn verlassen</string>
+    <string name="voice_motorway_exit_left">die Autobahn links verlassen</string>
+    <string name="voice_motorway_exit_right">die Autobahn rechts verlassen</string>
+    <string name="voice_arrive">Sie haben Ihr Ziel erreicht</string>
+    <string name="voice_gps_found">GPS-Signal wiederhergestellt</string>
+    <string name="voice_gps_lost">GPS-Signal verloren</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Zeigt während der Fahrt die aktuelle Navigationsführung an</string>
     <string name="navigation_notification_title_free_driving">Freie Fahrt</string>
@@ -165,6 +191,7 @@
     <string name="clear">Löschen</string>
     <string name="route_summary">Routenzusammenfassung</string>
     <string name="steps">Schritte</string>
+    <string name="route_steps_unavailable">Diese Route enthält keine Schritte.</string>
     <string name="route_overlay_expand">Routenfenster aufklappen</string>
     <string name="route_overlay_collapse">Routenfenster zuklappen</string>
     <string name="close">Schließen</string>
@@ -199,6 +226,7 @@
     <string name="basemap_unavailable">Basiskarte nicht verfügbar</string>
     <string name="basemap_delete_failed">Basiskarte konnte nicht gelöscht werden</string>
     <string name="basemap_repository_version">Basiskarte Version %1$d in diesem Repository</string>
+    <string name="basemap_outdated_format">Installiertes Datenformat %1$d, diese Version liest %2$d — Basiskarte löschen und erneut herunterladen</string>
     <string name="installed_from_source">von %1$s</string>
     <string name="source_repository_label">Repository</string>
     <string name="repository_url_label">Repository-URL</string>
@@ -320,4 +348,84 @@
          coordinate label. Owned by the surface, not by the shared :core resolver
          (spec: i18n-l10n — shared module owns no wording). -->
     <string name="location_title_generic">Standort</string>
+    <!-- Shown when no installed app handles a tapped contact link (phone/website row of the
+         details dialog). Transient; the dialog stays open. -->
+    <string name="details_contact_link_unhandled">Keine App kann diesen Link öffnen</string>
+
+    <!-- Beschreibungsvokabular des nativen Description-Service (siehe values/strings.xml). -->
+    <string name="description_label_access">Zugang</string>
+    <string name="description_label_access_restricted">Zugangsbeschränkung</string>
+    <string name="description_label_address">Adresse</string>
+    <string name="description_label_admin_level">Verwaltungsebene</string>
+    <string name="description_label_bicycle">Fahrrad</string>
+    <string name="description_label_bounding_box">Begrenzungsrahmen</string>
+    <string name="description_label_brand">Marke</string>
+    <string name="description_label_bridge">Brücke</string>
+    <string name="description_label_capacity">Kapazität</string>
+    <string name="description_label_car">Auto</string>
+    <string name="description_label_carriageway_ref">Fahrbahnreferenz</string>
+    <string name="description_label_cell_level">Zellenebene</string>
+    <string name="description_label_center">Mittelpunkt</string>
+    <string name="description_label_charging_station">Ladestation</string>
+    <string name="description_label_clockwise">Im Uhrzeigersinn</string>
+    <string name="description_label_commercial">Gewerblich</string>
+    <string name="description_label_condition">Bedingung</string>
+    <string name="description_label_construction_year">Baujahr</string>
+    <string name="description_subsection_index">%1$s %2$d</string>
+    <string name="description_label_contact">Kontakt</string>
+    <string name="description_label_coordinate">Koordinate</string>
+    <string name="description_label_cycle_lane">Radweg</string>
+    <string name="description_label_cycle_track">Radfahrstreifen</string>
+    <string name="description_label_destination">Ziel</string>
+    <string name="description_label_destination_backward">Ziel rückwärts</string>
+    <string name="description_label_destination_forward">Ziel vorwärts</string>
+    <string name="description_label_distance">Entfernung</string>
+    <string name="description_label_embankment">Damm</string>
+    <string name="description_label_fee">Gebühr</string>
+    <string name="description_label_foot">Fußgänger</string>
+    <string name="description_label_from">Von</string>
+    <string name="description_label_general">Allgemein</string>
+    <string name="description_label_geometry">Geometrie</string>
+    <string name="description_label_grade">Steigung</string>
+    <string name="description_label_highway_milestone">Kilometerstein</string>
+    <string name="description_label_id">ID</string>
+    <string name="description_label_is_in">Liegt in</string>
+    <string name="description_label_kind">Art</string>
+    <string name="description_label_lanes">Spuren</string>
+    <string name="description_label_lanes_backward">Spuren rückwärts</string>
+    <string name="description_label_lanes_forward">Spuren vorwärts</string>
+    <string name="description_label_layer">Ebene</string>
+    <string name="description_label_level">Stufe</string>
+    <string name="description_label_location">Ort</string>
+    <string name="description_label_marker">Markierung</string>
+    <string name="description_label_max_speed">Höchstgeschwindigkeit</string>
+    <string name="description_label_max_stay">Max. Aufenthalt</string>
+    <string name="description_label_name">Name</string>
+    <string name="description_label_name_alt">Name (alternativ)</string>
+    <string name="description_label_name_ref">Name (Referenz)</string>
+    <string name="description_label_name_short">Kurzname</string>
+    <string name="description_label_navigation">Navigation</string>
+    <string name="description_label_network">Netzwerk</string>
+    <string name="description_label_oneway">Einbahnstraße</string>
+    <string name="description_label_opening_hours">Öffnungszeiten</string>
+    <string name="description_label_operator">Betreiber</string>
+    <string name="description_label_output">Leistung</string>
+    <string name="description_label_payment">Zahlung</string>
+    <string name="description_label_phone">Telefon</string>
+    <string name="description_label_postal_code">Postleitzahl</string>
+    <string name="description_label_presence">Anwesenheit</string>
+    <string name="description_label_ref">Referenz</string>
+    <string name="description_label_roundabout">Kreisverkehr</string>
+    <string name="description_label_sideways">Seitenstreifen</string>
+    <string name="description_label_socket">Anschluss</string>
+    <string name="description_label_to">Nach</string>
+    <string name="description_label_tunnel">Tunnel</string>
+    <string name="description_label_turn_backward">Abbiegen rückwärts</string>
+    <string name="description_label_turn_forward">Abbiegen vorwärts</string>
+    <string name="description_label_type">Typ</string>
+    <string name="description_label_value">Wert</string>
+    <string name="description_label_walk_track">Fußweg</string>
+    <string name="description_label_way">Weg</string>
+    <string name="description_label_website">Webseite</string>
+    <string name="description_label_width">Breite</string>
 </resources>

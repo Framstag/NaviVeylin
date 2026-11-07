@@ -1,0 +1,4 @@
+$ bash tools/check-portability-selftest.sh
+PASS porting#statesTheCopyCost
+check-portability-selftest: all 28 cases passed (JDK 27, offline, no token, no Gradle)
+EXIT_CODE=0

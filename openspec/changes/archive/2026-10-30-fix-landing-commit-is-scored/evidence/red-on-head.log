@@ -1,0 +1,5 @@
+FAIL state#doneRecordsTheCommitItLanded — loop: done: unknown argument --merged-sha
+FAIL state#theLandingScoreIsReadOnceAndStored — loop: done: unknown argument --merged-sha
+FAIL state#aLandingWithNoRunIsUnscored — loop: done: unknown argument --merged-sha
+FAIL report#landingsAreTheStoredNumber — loop: done: unknown argument --merged-sha
+tests=4 failures=4

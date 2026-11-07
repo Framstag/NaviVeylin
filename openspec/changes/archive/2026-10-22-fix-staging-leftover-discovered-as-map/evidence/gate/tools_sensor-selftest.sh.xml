@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-selftest.sh" tests="45" failures="0" errors="0">
+  <system-out>PASS sensors#engineNamesNoProjectValue PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow sensor-selftest: all 45 cases passed (JDK 27, offline, no token)</system-out>
+</testsuite>

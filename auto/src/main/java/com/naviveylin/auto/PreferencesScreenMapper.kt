@@ -45,6 +45,18 @@ object PreferencesScreenMapper {
     const val KEY_FREE_DRIVING_ANCHOR = "freeDrivingAnchor"
 
     /**
+     * The car's own spoken-guidance switch (spec: `auto/preferences` — The car offers the announcement
+     * switches; spec: `voice-guidance` — The voice switch is per surface). Flips in place.
+     */
+    const val KEY_VOICE_GUIDANCE = "voiceGuidanceEnabled"
+
+    /**
+     * The shared GPS-announcement switch (spec: `auto/preferences` — The car offers the announcement
+     * switches). One value both surfaces edit, off by default. Flips in place.
+     */
+    const val KEY_GPS_ANNOUNCEMENTS = "announceGpsState"
+
+    /**
      * Fallback style list (the bundled libosmscout top-level `*.oss` set minus
      * the basemap's internal stylesheet, sorted); the production preferences
      * screen passes the live device list.
@@ -62,6 +74,11 @@ object PreferencesScreenMapper {
         PreferenceRow(KEY_NAV_NORTH_UP, "North-up (navigation)", onOff(settings.navNorthUp)),
         PreferenceRow(KEY_DARK_MODE, "Dark mode", darkModeText(settings.darkMode)),
         PreferenceRow(KEY_LANE_HINTS, "Lane hints", onOff(settings.laneHintsEnabled)),
+        // The car's own voice switch, and the GPS switch both surfaces share. The phone's own voice
+        // value has no row here: this surface does not speak by it
+        // (spec: `auto/preferences` — The car offers the announcement switches).
+        PreferenceRow(KEY_VOICE_GUIDANCE, "Voice guidance", onOff(settings.voiceGuidanceEnabled)),
+        PreferenceRow(KEY_GPS_ANNOUNCEMENTS, "GPS announcements", onOff(settings.announceGpsState)),
         PreferenceRow(KEY_RENDER_MODE, "Render mode", renderModeText(settings.renderMode)),
         PreferenceRow(KEY_OVERSPEED_DELTA, "Overspeed warning", "${settings.overspeedWarningDeltaKmh} km/h"),
         PreferenceRow(KEY_ROUTING_ANCHOR, "Vehicle position (navigation)",
@@ -89,6 +106,8 @@ object PreferencesScreenMapper {
         KEY_NAV_NORTH_UP -> settings.copy(navNorthUp = !settings.navNorthUp)
         KEY_DARK_MODE -> settings.copy(darkMode = nextDarkMode(settings.darkMode))
         KEY_LANE_HINTS -> settings.copy(laneHintsEnabled = !settings.laneHintsEnabled)
+        KEY_VOICE_GUIDANCE -> settings.copy(voiceGuidanceEnabled = !settings.voiceGuidanceEnabled)
+        KEY_GPS_ANNOUNCEMENTS -> settings.copy(announceGpsState = !settings.announceGpsState)
         KEY_RENDER_MODE -> settings.copy(renderMode = nextRenderMode(settings.renderMode))
         KEY_STYLE_SHEET -> settings.copy(styleSheet = nextStyle(settings.styleSheet, styles))
         else -> settings

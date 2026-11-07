@@ -21,7 +21,7 @@ actually has.
 - A device run shows a tap landing on the wrong action, or an action that cannot be reached
 - A task asks for a "disjoint hit areas", "at least 48 dp", "stays inside the card", or "is visible"
   case
-- A spec scenario names geometry (`guidelines/UI.md` §8's tap-target rule, `getBoundsInRoot()` in a
+- A spec scenario names geometry (`guidelines/UIPhoneMap.md` §8b's tap-target rule, `getBoundsInRoot()` in a
   task's text)
 
 ## When NOT to use
@@ -95,7 +95,7 @@ Sizes go through `assert*IsAtLeast(Dp)`, which needs no arithmetic at all.
 
 ## References
 
-- `guidelines/UI.md` §8 — the tap-target rule for phone overlays (control never inside its container's
+- `guidelines/UIPhoneMap.md` §8b — the tap-target rule for phone overlays (control never inside its container's
   tap target; ≥48 dp per dimension)
 - `guidelines/Build.md` §6 — test constraints (JNI-stub classloader rule, fork budgets) and the geometry
   constraint this skill implements

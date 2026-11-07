@@ -1,0 +1,4 @@
+RED    255.1  evidence#scansWhatTheProfileNames   (the scan root read from the project configuration — the engine looks at a literal of its own instead (issue #255))
+restore 255.1 evidence#scansWhatTheProfileNames green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

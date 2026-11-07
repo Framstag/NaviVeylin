@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- the suite whose block gains the profile line on the tree this change leaves, 2026-10-23T14:21:51Z: `bash tools/loop-selftest.sh --group measure` —
+     `loop-selftest: all 4 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group measure`.
+     The numbers are that summary line's own; the transcript is green-measure-group.log. -->
+<testsuite name="loop-selftest --group measure" tests="4" failures="0" errors="0">
+  <testcase name="measure#namesTheOwedChecksInOneBlock"/>
+  <testcase name="measure#printsTheNumbersTheReviewerAsksFor"/>
+  <testcase name="measure#refusesToGuessWhichChangeItMeasures"/>
+  <testcase name="measure#saysHowManyTalliesItWithheld"/>
+  <system-out>loop-selftest: all 4 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group measure</system-out>
+</testsuite>

@@ -1,0 +1,534 @@
+diff --git a/app/src/main/java/com/naviveylin/data/ViewportStorage.kt b/app/src/main/java/com/naviveylin/data/ViewportStorage.kt
+index 1a2b40e7..dfddd5da 100644
+--- a/app/src/main/java/com/naviveylin/data/ViewportStorage.kt
++++ b/app/src/main/java/com/naviveylin/data/ViewportStorage.kt
+@@ -20,10 +20,8 @@ class ViewportStorage(
+ 
+     private val json = Json { ignoreUnknownKeys = true }
+ 
+-    private fun fileFor(mapKey: String): File {
+-        val safe = mapKey.replace(Regex("[^A-Za-z0-9._-]"), "_")
+-        return File(context.filesDir, "maps/viewport-$safe.json")
+-    }
++    private fun fileFor(mapKey: String): File =
++        File(context.filesDir, "maps/" + fileNameFor(mapKey))
+ 
+     /** Save viewport state for a map to disk. Runs on [Dispatchers.IO]. */
+     suspend fun save(mapKey: String, state: ViewportState) {
+@@ -61,5 +59,21 @@ class ViewportStorage(
+ 
+     companion object {
+         private const val TAG = "ViewportStorage"
++
++        /**
++         * The viewport key of a map database path: the path's last segment, i.e. the map's file
++         * name (for `/data/maps/germany.osm` the key is `germany.osm`). One rule for load and save,
++         * so the two cannot key different files (spec: viewport-persist).
++         */
++        internal fun keyFor(mapPath: String): String = mapPath.substringAfterLast('/')
++
++        /**
++         * The file a map key is persisted under. Every character outside `A-Za-z0-9._-` becomes
++         * `_`, so the key is always one path segment (spec: viewport-persist — Save viewport state).
++         */
++        internal fun fileNameFor(mapKey: String): String {
++            val safe = mapKey.replace(Regex("[^A-Za-z0-9._-]"), "_")
++            return "viewport-$safe.json"
++        }
+     }
+ }
+diff --git a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+index eccbc80f..b4cf58e4 100644
+--- a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
++++ b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+@@ -199,6 +199,13 @@ class MapCanvasViewModel @Inject constructor(
+ 
+     internal var currentMapKey: String? = null
+ 
++    /**
++     * The key the viewport is persisted under: the current map's file name, or null before [initMap]
++     * has set one. The save paths skip while it is null, so no viewport file is written that no load
++     * path can read (spec: viewport-persist — Save viewport state).
++     */
++    internal fun viewportStorageKey(): String? = currentMapKey
++
+     /**
+      * True once [initMap] has applied the persisted viewport restore to
+      * [_uiState]. [saveViewport] no-ops until then, so a lifecycle save
+diff --git a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelCamera.kt b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelCamera.kt
+index 5d390e4f..63cf8e82 100644
+--- a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelCamera.kt
++++ b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelCamera.kt
+@@ -352,8 +352,13 @@ fun MapCanvasViewModel.saveViewport() {
+         Log.d(MapCanvasViewModel.TAG, "saveViewport: skipped, viewport restore not yet applied")
+         return
+     }
++    val mapKey = viewportStorageKey()
++    if (mapKey == null) {
++        Log.d(MapCanvasViewModel.TAG, "saveViewport: skipped, no map key yet")
++        return
++    }
+     viewModelScope.launch {
+-        viewportStorage.save(currentMapKey ?: "default", _uiState.value.viewport)
++        viewportStorage.save(mapKey, _uiState.value.viewport)
+     }
+ }
+ 
+diff --git a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelMapInit.kt b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelMapInit.kt
+index deaa8617..1d85851d 100644
+--- a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelMapInit.kt
++++ b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelMapInit.kt
+@@ -9,6 +9,7 @@ import com.naviveylin.core.NativeTileDataCache
+ import com.naviveylin.core.StartMapSelection
+ import com.naviveylin.core.TileCacheConfig
+ import com.naviveylin.data.ViewportState
++import com.naviveylin.data.ViewportStorage
+ import kotlin.coroutines.coroutineContext
+ import kotlinx.coroutines.cancel
+ import kotlinx.coroutines.CoroutineScope
+@@ -174,10 +175,10 @@ internal class MapInitResult(
+ /** Initialise with a map database path. Call once from the screen. */
+ fun MapCanvasViewModel.initMap(mapPath: String) {
+     Log.d(MapCanvasViewModel.TAG, "initMap: initialising with path=$mapPath")
+-    currentMapKey = mapPath.substringAfterLast('/')
+-    // Captured synchronously: the off-main section (initializeOffMain) restores the viewport for
+-    // THIS initialization's map even if a re-entry overwrites currentMapKey before it runs.
+-    val mapKey = currentMapKey ?: mapPath
++    // One derivation for the display key and the viewport storage key, so a load and a save cannot
++    // key different files (spec: viewport-persist — Save viewport state).
++    val mapKey = ViewportStorage.keyFor(mapPath)
++    currentMapKey = mapKey
+     // Re-arm the save guard: until the persisted viewport restore is
+     // applied below, a lifecycle save must not write the default viewport.
+     viewportRestored = false
+@@ -277,8 +278,11 @@ fun MapCanvasViewModel.initMap(mapPath: String) {
+                     // A walked step is never persisted (spec: smooth-zoom - Viewport
+                     // records final magnification): while a walk is pending, persist
+                     // the magnification it is heading for.
++                    // The listener persists under the key this initialization captured, not the
++                    // mutable currentMapKey: a re-entry must not retarget a renderer that is still
++                    // shutting down.
+                     viewportStorage.save(
+-                        currentMapKey ?: mapPath,
++                        mapKey,
+                         ViewportState(lat, lon, zoomWalk.persistMag(mag))
+                     )
+                 }
+diff --git a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelRoute.kt b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelRoute.kt
+index 67414c63..882b2b52 100644
+--- a/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelRoute.kt
++++ b/app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelRoute.kt
+@@ -80,10 +80,12 @@ fun MapCanvasViewModel.setNavigationViewModel(vm: com.naviveylin.navigation.Navi
+                         magnification = endMagnification
+                     )
+                 )
+-                viewportStorage.save(
+-                    currentMapKey ?: "default",
+-                    ViewportState(endCenterLat, endCenterLon, endMagnification)
+-                )
++                viewportStorageKey()?.let { mapKey ->
++                    viewportStorage.save(
++                        mapKey,
++                        ViewportState(endCenterLat, endCenterLon, endMagnification)
++                    )
++                }
+                 Log.d(MapCanvasViewModel.TAG, "setNavigationViewModel: navigation ended, " +
+                         "mode restored follow=${_uiState.value.followMode} suspended=${_uiState.value.driveSuspended}, " +
+                         "mag=$endMagnification")
+diff --git a/app/src/test/java/com/naviveylin/data/ViewportFileContractTest.kt b/app/src/test/java/com/naviveylin/data/ViewportFileContractTest.kt
+new file mode 100644
+index 00000000..8f0d435e
+--- /dev/null
++++ b/app/src/test/java/com/naviveylin/data/ViewportFileContractTest.kt
+@@ -0,0 +1,118 @@
++package com.naviveylin.data
++
++import android.content.Context
++import androidx.test.core.app.ApplicationProvider
++import kotlinx.coroutines.test.runTest
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertNotNull
++import org.junit.Before
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import java.io.File
++
++/**
++ * Holds `viewport-persist`'s storage contract to the layout `ViewportStorage` writes
++ * (spec: viewport-persist — Save viewport state / Load viewport state).
++ *
++ * The shipped spec described **one** file (`filesDir/maps/viewport.json`) while the storage has
++ * written one file per map key (`viewport-<key>.json`) since `continuous-pinch-zoom`; nothing compared
++ * the two artefacts, so the divergence survived. This case reads the spec file the way
++ * `FavAutoZoomClampRangeTest` and `MapMenuBackOrderComposeTest` do (an `:app` unit test's working
++ * directory is the module directory) and compares each stated rule with what `save` actually writes:
++ * the file pattern, the key derivation and the escaping of characters outside `A-Za-z0-9._-`.
++ *
++ * Every value is printed before its assertion so the JUnit XML's `system-out` carries the
++ * measurement of the run that made it. Robolectric, default sandbox: no `@Config`.
++ */
++@RunWith(RobolectricTestRunner::class)
++class ViewportFileContractTest {
++
++    private lateinit var context: Context
++    private lateinit var storage: ViewportStorage
++
++    private val specFile = File("../openspec/specs/viewport-persist/spec.md")
++
++    @Before
++    fun setUp() {
++        context = ApplicationProvider.getApplicationContext()
++        storage = ViewportStorage(context)
++    }
++
++    @Test
++    fun `the spec states the per-map file the storage writes`() = runTest {
++        val state = ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0)
++        storage.save("germany", state)
++        val written = writtenFileNames()
++        assertEquals("one save writes one file", 1, written.size)
++
++        val text = specFile.readText()
++        val stated = Regex("`filesDir/maps/(viewport-<key>\\.json)`").find(text)?.groupValues?.get(1)
++        println("viewportFile spec=[$stated] written=[${written.single()}]")
++        assertNotNull(
++            "the spec must state the per-map file `filesDir/maps/viewport-<key>.json`: ${specFile.absolutePath}",
++            stated
++        )
++        assertEquals(
++            "the file the storage writes must be the file the spec names",
++            stated!!.replace("<key>", "germany"),
++            written.single()
++        )
++    }
++
++    @Test
++    fun `the spec states the key derivation the storage applies`() = runTest {
++        val text = specFile.readText()
++        val stated = Regex(
++            "the map database path's last segment \\(for `([^`]+)` the key is `([^`]+)`\\)"
++        ).find(text)
++        println("viewportKey spec=[${stated?.groupValues?.drop(1)}]")
++        assertNotNull(
++            "the spec must state the key derivation (last segment, with one example): ${specFile.absolutePath}",
++            stated
++        )
++        val (mapPath, key) = stated!!.destructured
++        assertEquals(
++            "the key the storage derives from the spec's example path must be the spec's example key",
++            key,
++            ViewportStorage.keyFor(mapPath)
++        )
++    }
++
++    @Test
++    fun `the spec states the escaping the storage applies`() = runTest {
++        val text = specFile.readText()
++        val rule = Regex("outside `([^`]+)` SHALL be replaced by `([^`]+)`").find(text)
++        println("viewportEscape spec=[${rule?.groupValues?.drop(1)}]")
++        assertNotNull(
++            "the spec must state the character rule for the key (\"outside `…` SHALL be replaced by `…`\")",
++            rule
++        )
++        val (characterClass, replacement) = rule!!.destructured
++
++        // The spec's own example, checked against the storage: a key the rule changes must name the
++        // file the storage writes for exactly that key.
++        val example = Regex("for the key `([^`]+)` the file is `([^`]+)`").find(text)
++        assertNotNull("the spec must carry an example key whose file the rule changes", example)
++        val (exampleKey, exampleFile) = example!!.destructured
++        assertEquals(
++            "the spec's rule and its example must agree",
++            "viewport-" + exampleKey.replace(Regex("[^$characterClass]"), replacement) + ".json",
++            exampleFile
++        )
++        storage.save(exampleKey, ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0))
++        println("viewportEscape example=[$exampleKey -> $exampleFile] written=[${writtenFileNames().single()}]")
++        assertEquals(
++            "the file the storage writes for the spec's example key must be the spec's example file",
++            exampleFile,
++            writtenFileNames().single()
++        )
++    }
++
++    /** File names one save left under `filesDir/maps`, asserted to be a populated directory. */
++    private fun writtenFileNames(): List<String> {
++        val names = File(context.filesDir, "maps").listFiles()?.map { it.name }.orEmpty()
++        assertNotNull("the save must create filesDir/maps", names)
++        return names
++    }
++}
+diff --git a/app/src/test/java/com/naviveylin/data/ViewportStorageTest.kt b/app/src/test/java/com/naviveylin/data/ViewportStorageTest.kt
+index 74150d11..97d83eac 100644
+--- a/app/src/test/java/com/naviveylin/data/ViewportStorageTest.kt
++++ b/app/src/test/java/com/naviveylin/data/ViewportStorageTest.kt
+@@ -32,6 +32,37 @@ class ViewportStorageTest {
+         assertEquals(12.0, loaded.magnification, 1e-9)
+     }
+ 
++    @Test
++    fun `save writes the file named by the map key`() = runTest {
++        storage.save("germany", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0))
++        assertTrue(
++            "the map key must name the per-map file (spec: viewport-persist — Save viewport state)",
++            java.io.File(context.filesDir, "maps/viewport-germany.json").isFile
++        )
++    }
++
++    @Test
++    fun `characters outside the safe set are escaped in the file name`() = runTest {
++        storage.save("Europe map.osm", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0))
++        assertTrue(
++            "a space in the key must become `_` (spec: viewport-persist — Save viewport state)",
++            java.io.File(context.filesDir, "maps/viewport-Europe_map.osm.json").isFile
++        )
++        assertTrue(
++            "the unsafe name must not be written verbatim",
++            !java.io.File(context.filesDir, "maps/viewport-Europe map.osm.json").exists()
++        )
++    }
++
++    @Test
++    fun `the key is the map path's last segment`() {
++        assertEquals(
++            "the viewport key must be the map's file name (spec: viewport-persist)",
++            "germany.osm",
++            ViewportStorage.keyFor("/data/maps/germany.osm")
++        )
++    }
++
+     @Test
+     fun loadMissingFileReturnsNull() = runTest {
+         val loaded = storage.load("missing")
+diff --git a/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelNavEndRestoreTest.kt b/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelNavEndRestoreTest.kt
+index 18710581..d9e13f44 100644
+--- a/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelNavEndRestoreTest.kt
++++ b/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelNavEndRestoreTest.kt
+@@ -117,6 +117,9 @@ class MapCanvasViewModelNavEndRestoreTest {
+     fun browseBeforeNavAppliesBrowseRepresentationKeepingViewport() =
+         runTest(mainDispatcherRule.dispatcher) {
+             val navVm = buildNavigationViewModel()
++            // Name the map this simulation runs on: the navigation-end save keys by the current map
++            // (spec: viewport-persist — Save viewport state), and a save with no key is skipped.
++            viewModel.currentMapKey = "testmap"
+             viewModel.setNavigationViewModel(NavigationViewModel(navVm))
+             advanceUntilIdle()
+             assertFalse("start in BROWSE", viewModel.uiState.value.followMode)
+@@ -150,7 +153,7 @@ class MapCanvasViewModelNavEndRestoreTest {
+             // later map restore (app restart, screen recreation) resumes where
+             // routing ended instead of jumping back to the app-start position
+             // (fix: "ending routing resets location and zoom to app-start state").
+-            val saved = viewportStorage.load("default")
++            val saved = viewportStorage.load("testmap")
+             assertEquals("persisted zoom is the routing-end zoom", 13.0, saved?.magnification ?: -1.0, 1e-9)
+             assertEquals("persisted center lat is the routing-end lat",
+                 routedViewport.centerLat, saved?.centerLat ?: Double.NaN, 1e-9)
+diff --git a/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelViewportPreInitSaveTest.kt b/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelViewportPreInitSaveTest.kt
+new file mode 100644
+index 00000000..2ba0c221
+--- /dev/null
++++ b/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelViewportPreInitSaveTest.kt
+@@ -0,0 +1,107 @@
++package com.naviveylin.ui.map
++
++import android.content.Context
++import androidx.test.core.app.ApplicationProvider
++import com.framstag.libosmscout.client.FakeOSMScoutClient
++import com.naviveylin.core.BasemapReloadNotifier
++import com.naviveylin.data.AssetCopier
++import com.naviveylin.data.DarkModeController
++import com.naviveylin.data.FavoriteRepository
++import com.naviveylin.data.SearchHistoryRepository
++import com.naviveylin.data.SettingsStorage
++import com.naviveylin.data.ViewportStorage
++import com.naviveylin.location.LocationService
++import com.naviveylin.share.SharedLocationHandler
++import com.naviveylin.test.MainDispatcherRule
++import kotlinx.coroutines.ExperimentalCoroutinesApi
++import kotlinx.coroutines.test.advanceUntilIdle
++import kotlinx.coroutines.test.runTest
++import org.junit.After
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertFalse
++import org.junit.Before
++import org.junit.Rule
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import java.io.File
++
++/**
++ * A viewport save without a map key writes no file
++ * (spec: viewport-persist — Save viewport state, scenario "Save without a map key is skipped").
++ *
++ * The two save sites that are not gated by `viewportRestored` — `saveViewport`'s lifecycle save and
++ * the navigation-end save — fell back to the literal `"default"`, so a save before a map was known
++ * wrote `viewport-default.json`, which no load path reads (issue #54, residual half of §9). The
++ * decision is to skip such a save, matching the restore-window guard. This case is red on HEAD
++ * because that fallback writes the file.
++ *
++ * Robolectric with the default sandbox so the `FakeOSMScoutClient` JNI stub loads (AGENTS.md
++ * classloader rule).
++ */
++@OptIn(ExperimentalCoroutinesApi::class)
++@RunWith(RobolectricTestRunner::class)
++class MapCanvasViewModelViewportPreInitSaveTest {
++
++    private lateinit var context: Context
++    private lateinit var viewportStorage: ViewportStorage
++    private lateinit var viewModel: MapCanvasViewModel
++
++    @get:Rule
++    val mainDispatcherRule = MainDispatcherRule()
++
++    /** Files the save paths wrote under `filesDir/maps`, empty when the directory does not exist. */
++    private fun viewportFiles(): List<String> =
++        File(context.filesDir, "maps").listFiles()?.map { it.name }.orEmpty()
++
++    @Before
++    fun setUp() {
++        context = ApplicationProvider.getApplicationContext()
++        val client = FakeOSMScoutClient()
++        viewportStorage = ViewportStorage(context).also { it.ioDispatcher = mainDispatcherRule.dispatcher }
++        viewModel = MapCanvasViewModel(
++            viewportStorage = viewportStorage,
++            settingsStorage = SettingsStorage(context).also { it.ioDispatcher = mainDispatcherRule.dispatcher },
++            assetCopier = AssetCopier(context),
++            client = client,
++            favoriteRepository = FavoriteRepository(client),
++            searchHistoryRepository = SearchHistoryRepository(context)
++                .also { it.defaultDispatcher = mainDispatcherRule.dispatcher },
++            locationService = LocationService(context),
++            darkModeController = DarkModeController(SettingsStorage(context)),
++            sharedLocationHandler = SharedLocationHandler(),
++            basemapReloadNotifier = BasemapReloadNotifier(),
++            context = context
++        )
++        viewModel.defaultDispatcher = mainDispatcherRule.dispatcher
++        viewModel.rendererDispatcher = mainDispatcherRule.dispatcher
++    }
++
++    @After
++    fun tearDown() {
++        viewModel.cancelScopeForTest()
++    }
++
++    @Test
++    fun `a lifecycle save without a map key writes no viewport file`() =
++        runTest(mainDispatcherRule.dispatcher) {
++            // The restore guard is not the behaviour under test: hold it open as a completed restore
++            // would, and leave the map key unknown — the state a save before initMap sees.
++            viewModel.viewportRestored = true
++            viewModel.currentMapKey = null
++
++            viewModel.saveViewport()
++            advanceUntilIdle()
++
++            println("viewportPreInit files=[${viewportFiles()}]")
++            assertFalse(
++                "a save with no map key must not write viewport-default.json",
++                File(context.filesDir, "maps/viewport-default.json").exists()
++            )
++            assertEquals(
++                "a save with no map key must leave filesDir/maps empty",
++                0,
++                viewportFiles().size
++            )
++        }
++}
+diff --git a/openspec/specs/viewport-persist/spec.md b/openspec/specs/viewport-persist/spec.md
+index ae9f2de8..64b1439f 100644
+--- a/openspec/specs/viewport-persist/spec.md
++++ b/openspec/specs/viewport-persist/spec.md
+@@ -6,9 +6,11 @@ Persist the map viewport state to a JSON file so the map opens at the same locat
+ 
+ ### Requirement: Save viewport state
+ 
+-The system SHALL save the current viewport state (center latitude, center longitude, magnification) to a JSON file when the map screen is paused or stopped.
++The system SHALL save the current viewport state (center latitude, center longitude, magnification) to a JSON file per map when the map screen is paused or stopped.
+ 
+-- The file SHALL be written to `filesDir/maps/viewport.json`
++- The file SHALL be written to `filesDir/maps/viewport-<key>.json`, where `<key>` is the map database path's last segment (for `/data/maps/germany.osm` the key is `germany.osm`)
++- Every character of `<key>` outside `A-Za-z0-9._-` SHALL be replaced by `_` (for the key `Europe map.osm` the file is `viewport-Europe_map.osm.json`)
++- The system SHALL skip a save while no map key is known, so no viewport file is written that no load path reads
+ - The file SHALL use JSON format with fields: `centerLat`, `centerLon`, `magnification`
+ - The `magnification` field SHALL be a JSON number storing the fractional magnification (e.g. `15.34`); integer levels remain valid values
+ - Saving SHALL use `kotlinx.serialization` for JSON encoding
+@@ -19,18 +21,18 @@ The system SHALL save the current viewport state (center latitude, center longit
+ #### Scenario: Save on pause
+ 
+ - **WHEN** user presses the home button while on the map screen
+-- **THEN** the current viewport state is written to `viewport.json`
++- **THEN** the current viewport state is written to `viewport-<key>.json`
+ - **THEN** the file contains valid JSON with the correct lat, lon, and magnification
+ 
+ #### Scenario: Save after gesture
+ 
+ - **WHEN** user finishes a pan gesture (lifts finger)
+-- **THEN** the current viewport state is written to `viewport.json`
++- **THEN** the current viewport state is written to `viewport-<key>.json`
+ 
+ #### Scenario: Save fractional magnification after pinch
+ 
+ - **WHEN** user finishes a pinch zoom ending at magnification ~15.34
+-- **THEN** `viewport.json` contains `magnification` ≈ 15.34
++- **THEN** `viewport-<key>.json` contains `magnification` ≈ 15.34
+ - **WHEN** the app restarts
+ - **THEN** the map renders at magnification 15.34
+ 
+@@ -40,9 +42,25 @@ The system SHALL save the current viewport state (center latitude, center longit
+ - **THEN** the viewport file is not written or overwritten with the default viewport
+ - **THEN** the persisted viewport file still contains the previously saved center and magnification
+ 
++#### Scenario: Save under the map's key
++
++- **WHEN** the map whose database path ends in `/data/maps/germany.osm` is displayed and its viewport is saved
++- **THEN** the file `filesDir/maps/viewport-germany.osm.json` is written
++
++#### Scenario: Characters outside the safe set are escaped
++
++- **WHEN** the displayed map's database file name is `Europe map.osm` and its viewport is saved
++- **THEN** the file `filesDir/maps/viewport-Europe_map.osm.json` is written
++- **THEN** no file whose name carries the space is written
++
++#### Scenario: Save without a map key is skipped
++
++- **WHEN** a viewport save runs while no map key is known
++- **THEN** no viewport file is written
++
+ ### Requirement: Load viewport state
+ 
+-The system SHALL load the viewport state from `filesDir/maps/viewport.json` when the map screen starts.
++The system SHALL load the viewport state from `filesDir/maps/viewport-<key>.json` when the map screen starts, with `<key>` the map database path's last segment, escaped the same way as on save.
+ 
+ - If the file exists and contains valid JSON, the system SHALL use its values as the initial viewport
+ - If the file does not exist or is malformed, the system SHALL use a default viewport (Dortmund: lat=51.5136, lon=7.4653, magnification=8)
+@@ -51,23 +69,23 @@ The system SHALL load the viewport state from `filesDir/maps/viewport.json` when
+ 
+ #### Scenario: Load saved state on startup
+ 
+-- **WHEN** `viewport.json` exists with valid data
++- **WHEN** `viewport-<key>.json` exists with valid data
+ - **THEN** the map renders at the saved center and magnification
+ 
+ #### Scenario: Load legacy integer magnification
+ 
+-- **GIVEN** a `viewport.json` written by an older version contains `magnification: 14`
++- **GIVEN** a `viewport-<key>.json` written by an older version contains `magnification: 14`
+ - **WHEN** the map screen starts
+ - **THEN** the map renders at magnification 14.0
+ 
+ #### Scenario: No saved state uses default
+ 
+-- **WHEN** `viewport.json` does not exist
++- **WHEN** `viewport-<key>.json` does not exist
+ - **THEN** the map renders at default center (Dortmund: 51.5136, 7.4653) and magnification 8
+ 
+ #### Scenario: Corrupted file uses default
+ 
+-- **WHEN** `viewport.json` contains invalid JSON
++- **WHEN** `viewport-<key>.json` contains invalid JSON
+ - **THEN** the system logs a warning
+ - **THEN** the map renders at default center (Dortmund: 51.5136, 7.4653) and magnification 8
+ 

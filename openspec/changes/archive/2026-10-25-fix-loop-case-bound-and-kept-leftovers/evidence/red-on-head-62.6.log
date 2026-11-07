@@ -1,0 +1,5 @@
+red on HEAD 2026-10-25T07:03Z — bash tools/loop-selftest.sh --case 'run#aRefusedStartKeepsTheLeftoversItFound'
+  the leftovers of a refused start were not kept as a patch (reason: the item could not be started: the worktree is not clean — the leftovers are #21's (branch fix/issue-21-a-bug), so #22 and no item after it can start until they are dealt with: A  demo-fix.txt, ?? openspec/ (repair: --reset-worktree discards them, and names them before it does))
+FAIL run#aRefusedStartKeepsTheLeftoversItFound
+loop-selftest: 1 of 1 cases failed
+status=1

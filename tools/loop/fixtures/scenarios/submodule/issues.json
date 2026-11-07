@@ -2,7 +2,7 @@
   {
     "number": 71,
     "title": "§81 The word-matching allocation-cost case did not travel upstream with the matcher work",
-    "body": "**Preserved** ℹ: at submodule commit `eb0ac0ff2`, reachable in the submodule's history; restore locally with\n`git -C app/src/main/cpp/libosmscout checkout eb0ac0ff2 -- the test file`. The fix is a focused upstream PR on top of\nupstream's copy, so it has to be committed inside the submodule and followed by the gitlink bump.",
+    "body": "**Preserved** ℹ: at submodule commit `eb0ac0ff2`, reachable in the submodule's history; restore locally with\n`git -C app/src/main/cpp/libosmscout checkout eb0ac0ff2 -- the test file`.\nThe fix lands in the submodule — a focused upstream PR on top of upstream's copy, followed by the gitlink bump.",
     "author": { "login": "Framstag" },
     "labels": [
       { "name": "class/bug" },
@@ -14,7 +14,7 @@
   {
     "number": 72,
     "title": "§24 The sharp-s uppercase form is not folded",
-    "body": "**Known limitation** ℹ: the character map row for U+1E9E folds to itself. The row belongs in libosmscout,\nwhere the table is regenerated, so the fix is a commit there rather than one this run can make.",
+    "body": "**Known limitation** ℹ: the character map row for U+1E9E folds to itself, and the table it sits in is regenerated\nfrom upstream's own source.\nThe fix lands in the submodule, where that table is generated rather than in a commit this run can make.",
     "author": { "login": "Framstag" },
     "labels": [
       { "name": "class/bug" },
@@ -31,6 +31,30 @@
     "labels": [
       { "name": "class/bug" },
       { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 74,
+    "title": "§82 The kept worktree is reported clean while the submodule it holds is dirty",
+    "body": "**Observed** ✗: the reset reports a clean tree while `app/src/main/cpp/libosmscout` carries a modified file — the\ndirt was seen on the submodule's `stylesheets/standard.oss`, and the next start refuses the tree.\n**Where the fix lands** ⊨: `tools/loop/worktree.sh`'s reset path, which never asks the submodule for its status.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 75,
+    "title": "§83 The pre-screen report quotes a phrase the queue never reads",
+    "body": "`The fix lands in the submodule` is the phrase this item quotes to show what the marker looks like; the fix it\nowes is in `tools/loop/report.sh`'s own line, and nothing here has to be committed anywhere else.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/harness" },
       { "name": "status/open" },
       { "name": "agent/eligible" }
     ]

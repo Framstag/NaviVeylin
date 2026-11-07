@@ -1,0 +1,2 @@
+Change 'fix-portability-fixture-declares-every-budget-default' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted

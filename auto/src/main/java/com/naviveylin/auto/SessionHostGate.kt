@@ -13,6 +13,11 @@ package com.naviveylin.auto
  * work is not lost: the first emission of the next started session applies the state it
  * finds.
  *
+ * This gate is not what bounds the trip send: that one is bounded by the navigation period
+ * (spec: car-host-fault-isolation — Trip metadata publishing is bounded by the navigation
+ * period), so the trip collector asks [tripSendAllowed] and never [allowHostMutation]. Do not
+ * route it through here; the cluster would freeze while another car app is in front.
+ *
  * All methods are main-thread (the session's lifecycle and its observers).
  */
 internal class SessionHostGate {

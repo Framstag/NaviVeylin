@@ -112,6 +112,7 @@ class PoiSearchPanelComposeTest {
                 addressBookAvailable = false,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
+                isDarkPresentation = false,
                 contactsContent = {}
             )
         }
@@ -259,6 +260,7 @@ class PoiSearchPanelComposeTest {
                     },
                     addressBookAvailable = false,
                     contactsQuery = "",
+                    isDarkPresentation = false,
                     onContactsQueryChanged = {},
                     contactsContent = {}
                 )
@@ -270,6 +272,7 @@ class PoiSearchPanelComposeTest {
                     initialMag = 12.0,
                     isFavorite = false,
                     groupNames = emptyList(),
+                    isDarkPresentation = false,
                     onAddToFavorites = { _, _, _ -> },
                     onRemoveFromFavorites = {},
                     onRouteToLocation = {
@@ -337,6 +340,7 @@ class PoiSearchPanelComposeTest {
                         showDialog = false
                         showDetails = true
                     },
+                    isDarkPresentation = false,
                     addressBookAvailable = false,
                     contactsQuery = "",
                     onContactsQueryChanged = {},
@@ -353,6 +357,7 @@ class PoiSearchPanelComposeTest {
                     onAddToFavorites = { _, _, _ -> },
                     onRemoveFromFavorites = {},
                     onRouteToLocation = null,
+                    isDarkPresentation = false,
                     onShowOnMap = {
                         showInvoked = true
                         showDetails = false

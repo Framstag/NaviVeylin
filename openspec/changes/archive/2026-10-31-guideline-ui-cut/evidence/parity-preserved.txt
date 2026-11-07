@@ -1,0 +1,14 @@
+§1 "Cross-variant UI parity (general rule)" — byte comparison
+
+baseline bytes: 1716
+after-cut bytes: 1716
+byte-identical: True
+
+The four named parity rules, unchanged:
+  - **Rule: same labels and visual style across variants.** Similar UI elements in the
+  - **Rule: a forced deviation is minimal and keeps the label.** When a car-host
+  - **Rule: the action hierarchy is reflected on both variants.** Primary/secondary/destructive
+  - **Rule: a documented deviation names its platform constraint.** A deliberate deviation
+
+Both rows that keep naming `UI.md` (parity §1/§6 and dark mode §9/§10) still do; §8d,
+the dual-surface presentation section, stays with them rather than moving to UICar.md.

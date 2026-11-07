@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineRerouteTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:53:52.515Z" hostname="dingens" time="1.581">
+  <properties/>
+  <testcase name="movingASpeedSliderDoesNotAlterARunningRoute" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="1.037"/>
+  <testcase name="aFailedRerouteEndsTheReroutingState" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.023"/>
+  <testcase name="marginalDeviationConfirmsAfterTheFourSecondFloor" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.018"/>
+  <testcase name="navigationEngineRerouteUsesTheStoredPedestrianSpeed" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.019"/>
+  <testcase name="instructionListUpdatesAfterAReroute" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.021"/>
+  <testcase name="marginalDeviationNeedsTheConfirmationGate" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.025"/>
+  <testcase name="aThrowingRouteCallEndsTheReroutingState" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.023"/>
+  <testcase name="rerouteUsesTheRetainedDestination" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.02"/>
+  <testcase name="poorAccuracyBlocksTheReroute" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.019"/>
+  <testcase name="largeDeviationConfirmsOnTheFastPath" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.024"/>
+  <testcase name="cooldownBlocksARerouteCascade" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.022"/>
+  <testcase name="rerouteDiagnosticLineCarriesNumbersAndNoCoordinates" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.019"/>
+  <testcase name="navigationEngineAcquisitionCarriesTheStoredCarSpeed" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.02"/>
+  <testcase name="confirmedRerouteKeepsTheRetainedVehicleProfile" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.02"/>
+  <testcase name="tunnelExitBlocksTheReroute" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.021"/>
+  <testcase name="aFailedRerouteKeepsTheRunningNavigationLease" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.02"/>
+  <testcase name="aConfirmedRerouteWritesTheLatencyDiagnosticLine" classname="com.naviveylin.navigation.NavigationEngineRerouteTest" time="0.221"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

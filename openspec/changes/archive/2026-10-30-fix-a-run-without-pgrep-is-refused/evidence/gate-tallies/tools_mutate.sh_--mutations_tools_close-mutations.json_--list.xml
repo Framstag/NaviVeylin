@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/close-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a stat</system-out>
+</testsuite>

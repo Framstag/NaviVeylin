@@ -1,0 +1,4 @@
+2026-11-07T02:45:59Z
+$ bash tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0

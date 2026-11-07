@@ -2,7 +2,7 @@
 # run.sh — the runner: select the rows whose cadence is due, run each, interpret its verdict, and
 # dispatch to the three verbs.
 #
-#   run.sh [--due] [--within <minutes>] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
+#   run.sh [--due] [--within <minutes>] [--since <time>] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
 #          [--registry <file>] [--profile <file>]
 #
 # `--rows <id,id>` (repeatable) restricts the candidates to the rows it names — a pipeline step runs one
@@ -17,8 +17,22 @@
 # minutes is refused rather than narrowed, because a silently narrowed window is the defect this flag
 # exists to fix (issue #166).
 #
+# `--since <time>` is the interval `--due` selects over, as an exclusive lower bound: a row is due when
+# its cron matches any minute in `(since, this tick's minute]`. It is what the pipeline passes — the
+# previous tick's start — so a tick GitHub skipped leaves its minutes in the next tick's interval and the
+# row whose cadence fell into the gap is measured instead of lost (issue #256). `--since` takes
+# precedence over `--within` when both are given.
+#
 # `--dry-run` is the default, as everywhere else in this tooling: without `--apply` nothing is written to
 # the tracker and every intended write is printed instead (design D9).
+#
+# `SENSORS_TRIGGER` is the trigger the calling pipeline names, when there is one — the sensor pipeline passes
+# GitHub's own `event_name`. `schedule` is the unattended tick, and a row with no measurement on record is
+# *reported* by it rather than spent: the run prints the count of findings it would have filed and writes
+# nothing, so a new bound's blast radius is measured before it reaches the tracker (issue #667). A dispatch that
+# asked to write (`inputs.apply=true`) is the run a person started whose first exercise records the measurement
+# later runs are compared against; a hand run names no trigger and, its default mode being `--dry-run`, records
+# nothing either.
 #
 # The three outcomes (design D5):
 #
@@ -40,12 +54,13 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=tools/sensors/lib.sh
 source "$here/lib.sh"
 
-usage() { sed -n '2,36p' "$0"; }
+usage() { sed -n '2,42p' "$0"; }
 
 due=0
 only_id=""
 rows_ids=""
 within=1
+since_arg=""
 json=0
 input=""
 now=""
@@ -55,6 +70,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --due) due=1; shift ;;
     --within) need_value "$@"; within="${2:-}"; shift 2 ;;
+    --since) need_value "$@"; since_arg="${2:-}"; shift 2 ;;
     --only) need_value "$@"; only_id="${2:-}"; shift 2 ;;
     --rows) need_value "$@"; rows_ids="${rows_ids:+$rows_ids,}${2:-}"; shift 2 ;;
     --dry-run) SENSORS_DRY_RUN=1; shift ;;
@@ -70,6 +86,9 @@ while [ $# -gt 0 ]; do
 done
 # A dry run is the default; only `--apply` writes to the tracker.
 SENSORS_DRY_RUN="${SENSORS_DRY_RUN:-1}"
+# The trigger that started this run, as the pipeline that ran it names it: `schedule` is the unattended tick,
+# and an empty value is a run a person started — which records a measurement only if it asked to write (issue #667).
+SENSORS_TRIGGER="${SENSORS_TRIGGER:-}"
 # The window above is a count of minutes and it is the caller's to declare, so a value that is not one is
 # refused before anything is read: narrowing it silently to the tick's own minute is what made a late tick a
 # no-op (issue #166).
@@ -79,13 +98,25 @@ esac
 SENSORS_INPUT="$input"
 SENSORS_FAILED=0
 SENSORS_CURRENT_ID=""
+# Which row's run is its first exercise, and whether the run may spend it (issue #667).
+SENSORS_FIRST_EXERCISE=0
 export SENSORS_DRY_RUN
+
+# The record cache: one number per row whose record issue this run filed, so two clear findings of one row
+# file one record issue and not two (a row can print an orphan clear for more than one identity in one run).
+SENSORS_RECORD_STATE=$(mktemp -d "${TMPDIR:-/tmp}/sensors-record.XXXXXX") ||
+  sensors_die "run: cannot create a scratch directory"
+trap 'rm -rf "$SENSORS_RECORD_STATE"' EXIT
 
 sensors_resolve --profile "$profile_arg" --registry "$registry_arg"
 
 SENSORS_NOW="${now:-${SENSORS_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}}"
 export SENSORS_NOW
 epoch=$(sensors_epoch "$SENSORS_NOW") || sensors_die "run: --now '$SENSORS_NOW' is neither an epoch nor an ISO-8601 instant"
+since_epoch=0
+if [ -n "$since_arg" ]; then
+  since_epoch=$(sensors_epoch "$since_arg") || sensors_die "run: --since '$since_arg' is neither an epoch nor an ISO-8601 instant"
+fi
 
 # The identity the run would write as is the gate's only attributable term, so it is checked before any
 # row is selected — a run that may not write must not report a working set either (design D2).
@@ -111,7 +142,11 @@ while IFS= read -r row; do
   if [ -n "$only_id" ]; then
     [ "$id" = "$only_id" ] || continue
   elif [ "$due" -eq 1 ]; then
-    sensors_cron_due "$(sensors_row_field "$row" cron)" "$epoch" "$within" || continue
+    if [ -n "$since_arg" ]; then
+      sensors_cron_since "$(sensors_row_field "$row" cron)" "$since_epoch" "$epoch" || continue
+    else
+      sensors_cron_due "$(sensors_row_field "$row" cron)" "$epoch" "$within" || continue
+    fi
   fi
   selected+=("$id")
 done < <(sensors_rows)
@@ -212,24 +247,36 @@ sensors_issue_body() { # <row> <finding> <baseline>
 
 # The labels a filed issue carries: its kind and area from the row, the ownership label from the row's
 # id, and the registry's fixed ones — neither engine names a value.
-sensors_labels_json() { # <row> <id>
-  local row="$1" id="$2" labels="[]" namespace value
+sensors_labels_json() { # <row> <id> [<status>]
+  local row="$1" id="$2" status="${3:-}" labels="[]" namespace value
   labels=$(jq -c --arg l "class${SENSORS_SEPARATOR}$(sensors_row_field "$row" class)" '. + [$l]' <<< "$labels")
   labels=$(jq -c --arg l "category${SENSORS_SEPARATOR}$(sensors_row_field "$row" category)" '. + [$l]' <<< "$labels")
   labels=$(jq -c --arg l "$(sensors_label "$id")" '. + [$l]' <<< "$labels")
   while IFS=$'\t' read -r namespace value; do
     [ -n "$namespace" ] || continue
+    # The record issue's state is the registry's, not the fixed set's: a record is not a work item
+    # (issue #257).
+    if [ -n "$status" ] && [ "$namespace" = "status" ]; then value="$status"; fi
     labels=$(jq -c --arg l "${namespace}${SENSORS_SEPARATOR}${value}" '. + [$l]' <<< "$labels")
   done < <(jq -r '.labels // {} | to_entries[] | [.key, .value] | @tsv' "$SENSORS_REGISTRY")
   printf '%s\n' "$labels"
 }
 
-sensors_file() { # <row> <id> <finding> <baseline>
-  local row="$1" id="$2" finding="$3" baseline="${4:-}" fp title file body labels
+# A filing carries the writer's own flags when the caller passes them after the body: a condition that returns
+# under a settled item is filed with `--allow-duplicate`, because its fingerprint is deliberately the one the
+# settled item already carries — that the fix did not hold is the new fact (issue #780).
+sensors_file() { # <row> <id> <finding> <baseline> [<body>] [<create arg>…]
+  local row="$1" id="$2" finding="$3" baseline="${4:-}" fp title file body labels code
+  # The extra writer flags are read before anything shifts, and the body is read before them.
+  body="${5:-}"
+  local extra=()
+  if [ "$#" -gt 5 ]; then shift 5; extra=("$@"); fi
   fp=$(jq -r '.fingerprint' <<< "$finding")
   title=$(jq -r '.title // empty' <<< "$finding")
   [ -n "$title" ] || title="${id}: $(jq -r '.measurement' <<< "$finding")"
-  body=$(sensors_issue_body "$row" "$finding" "$baseline")
+  # The body is the caller's when it built one: a filing summary carries the list of what the run did not file, which
+  # the generic finding shape has no room for (issue #666).
+  [ -n "$body" ] || body=$(sensors_issue_body "$row" "$finding" "$baseline")
   labels=$(sensors_labels_json "$row" "$id")
   file=$(mktemp) || sensors_die "run: cannot create a temporary file"
   jq -n --arg title "$title" --arg class "$(sensors_row_field "$row" class)" \
@@ -238,9 +285,72 @@ sensors_file() { # <row> <id> <finding> <baseline>
         --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
     '{title: $title, class: $class, category: $category, claim: $claim,
       fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
+  local args=(--sensor "$id" --finding "$file")
+  [ "${#extra[@]}" -eq 0 ] || args+=("${extra[@]}")
   sensors_write "file a new issue for $id (fingerprint $fp, measurement $(jq -r '.measurement' <<< "$finding"))" \
-    bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file"
+    bash "$SENSORS_ISSUES_DIR/create.sh" "${args[@]}"
+  code=$?
   rm -f "$file"
+  return "$code"
+}
+
+# The body of a row's record issue: it names the row and carries the record's own marker, so the issue is
+# found again without a fingerprint and no finding a check reports can match it (issue #257).
+sensors_record_body() { # <row-id>
+  printf 'The `%s` check has no condition to carry a measurement, so its measurements are kept here.\n\n' "$1"
+  printf 'This issue is a record, not a condition: the check files it once, and every measurement it takes\n'
+  printf 'while no condition issue exists is posted as a comment below. That is how a check that ran and was\n'
+  printf 'green reaches the tracker as a verdict instead of as silence. No finding a check reports carries this\n'
+  printf "issue's identity, so the lifecycle never reopens or closes it.\n\n"
+  printf '<!-- sensor-record: %s -->\n<!-- occurrence: 0 -->\n' "$1"
+}
+
+# The row's record issue, filed once: the issue a green row's measurements go to, so the report can tell a row
+# that ran and was green from one that never ran (issue #257). It carries the row's label, kind and area like
+# any item, and the registry's own record state (`record.status`) so no run may take it — it is a record, never
+# a work item. The created issue's number comes back from the writer's own output, because the measurement that
+# made it necessary is posted on it in the same run.
+sensors_file_record() { # <row> <id> → the created issue's number, or empty
+  local row="$1" id="$2" status fp title claim body labels file out code number
+  status=$(sensors_registry_value '.record.status')
+  # The vocabulary, not only the emptiness: a state outside it would make `create.sh` refuse the filing, and
+  # the run would go on reporting a measurement it never wrote — the silence-read-as-a-verdict class this
+  # fix exists to close (issue #257). The guard refuses such a registry first; this is the direct-run half.
+  if [ -z "$status" ]; then
+    sensors_refuse "$SENSORS_REGISTRY_BAD" "registry-record-status-missing" \
+      "the registry declares no .record.status, so a row's record would carry no state"
+  fi
+  if ! issues_core Policy labels --profile "$SENSORS_PROFILE" \
+       "status${SENSORS_SEPARATOR}${status}" >/dev/null 2>&1; then
+    sensors_refuse "$SENSORS_REGISTRY_BAD" "registry-record-status-outside-the-vocabulary" \
+      "the registry's .record.status '$status' is not a declared status value, so a record would not be excluded from every work selector"
+  fi
+  fp="record-$id"
+  title="sensor record: $id"
+  claim="the $id check's measurement record"
+  body=$(sensors_record_body "$id")
+  labels=$(sensors_labels_json "$row" "$id" "$status")
+  if [ "$SENSORS_DRY_RUN" -eq 1 ]; then
+    # stderr, never stdout: the caller captures this function's stdout as the created issue's number
+    # (`sensors_record_number`), and a dry run's message would become the number it reports.
+    printf 'dry-run: would file the record issue for %s (fingerprint %s, status %s)\n' "$id" "$fp" "$status" >&2
+    return 0
+  fi
+  file=$(mktemp) || sensors_die "run: cannot create a temporary file"
+  jq -n --arg title "$title" --arg class "$(sensors_row_field "$row" class)" \
+        --arg category "$(sensors_row_field "$row" category)" \
+        --arg claim "$claim" --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
+    '{title: $title, class: $class, category: $category, claim: $claim,
+      fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
+  out=$(bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file" 2>&1)
+  code=$?
+  rm -f "$file"
+  printf '%s\n' "$out" >&2
+  [ "$code" -eq 0 ] || return 0
+  number=$(printf '%s' "$out" | grep -oE '/issues/[0-9]+' | tail -1 | tr -dc '0-9')
+  [ -n "$number" ] ||
+    sensors_die "run: the record issue for $id was filed but the writer printed no number: $out"
+  printf '%s\n' "$number"
 }
 
 sensors_comment_file() { # <finding> <note> → the path of a temporary comment file
@@ -272,6 +382,44 @@ sensors_record() { # <row> <number> <finding> <body> <note>
   rm -f "$bodyfile" "$commentfile"
 }
 
+# One measurement posted as a comment, with no body write: a record issue's body carries no condition
+# counters, so there is nothing a run has to move there.
+sensors_comment() { # <number> <finding> <note>
+  local number="$1" finding="$2" note="$3" commentfile
+  commentfile=$(sensors_comment_file "$finding" "$note")
+  sensors_write "record the measurement on #$number ($(jq -r '.measurement' <<< "$finding"))" \
+    bash "$SENSORS_ISSUES_DIR/update.sh" "$number" --comment-file "$commentfile"
+  rm -f "$commentfile"
+}
+
+# The number of the row's record issue, filing it when the row has none: the record cache keeps one filing per
+# row per run, because a row can report more than one clear identity in one run.
+sensors_record_number() { # <row> <id> <issues> → the number, or empty
+  local row="$1" id="$2" issues="$3" issue number
+  if [ -f "$SENSORS_RECORD_STATE/$id" ]; then
+    cat "$SENSORS_RECORD_STATE/$id"
+    return 0
+  fi
+  issue=$(sensors_record_issue "$issues" "$id")
+  number=""
+  [ -n "$issue" ] && number=$(jq -r '.number // empty' <<< "$issue")
+  [ -n "$number" ] || number=$(sensors_file_record "$row" "$id")
+  [ -n "$number" ] || return 0
+  printf '%s\n' "$number" > "$SENSORS_RECORD_STATE/$id" 2>/dev/null || true
+  printf '%s\n' "$number"
+}
+
+# A clear whose condition no open issue carries is still a verdict: it reaches the tracker on the row's own
+# record issue, which the report reads beside the condition issues (issue #257).
+sensors_record_clear() { # <row> <id> <finding> <issues> → the record issue's number, or empty
+  local row="$1" id="$2" finding="$3" issues="$4" number
+  number=$(sensors_record_number "$row" "$id" "$issues")
+  [ -n "$number" ] || return 0
+  sensors_comment "$number" "$finding" \
+    "the check has no open condition; this measurement is kept on the row's record"
+  printf '%s\n' "$number"
+}
+
 sensors_close() { # <row> <number> <finding> <body>
   local row="$1" number="$2" finding="$3" body="$4" id bodyfile
   id=$(sensors_row_field "$row" id)
@@ -299,8 +447,12 @@ sensors_reopen() { # <row> <number> <finding> <body>
   rm -f "$bodyfile" "$measurementfile"
 }
 
-sensors_escalate() { # <row> <number> <finding> <body> <occurrence>
-  local row="$1" number="$2" finding="$3" body="$4" occurrence="$5" bodyfile commentfile labels=()
+# The escalation stops reopening and hands the item to a person. The one write it makes is a routine one, so
+# the profile's settled state still refuses it: an item closed as fixed carries that state, which is exactly
+# where a returned condition lands. The writer's status is kept and returned — reporting an escalation the
+# tooling refused is what left a red main with no item at all (issue #780).
+sensors_escalate() { # <row> <number> <finding> <body> <occurrence> → the writer's status
+  local row="$1" number="$2" finding="$3" body="$4" occurrence="$5" bodyfile commentfile labels=() code
   while IFS= read -r label; do
     [ -n "$label" ] && labels+=("$label")
   done < <(sensors_escalation_labels)
@@ -313,7 +465,9 @@ sensors_escalate() { # <row> <number> <finding> <body> <occurrence>
   done
   sensors_write "escalate #$number (${labels[*]})" \
     bash "$SENSORS_ISSUES_DIR/update.sh" "${args[@]}"
+  code=$?
   rm -f "$bodyfile" "$commentfile"
+  return "$code"
 }
 
 # --------------------------------------------------------------------------- the three outcomes
@@ -327,10 +481,19 @@ sensors_fail_row() { # <row-id> <detail>
 
 sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
   local row="$1" id="$2" finding="$3" issues="$4" baseline="$5"
-  local fp number state state_reason body occurrence k run n
+  local fp number state state_reason body occurrence k run n status
   fp=$(jq -r '.fingerprint' <<< "$finding")
   issue=$(sensors_issue_for_fingerprint "$issues" "$fp")
   if [ -z "$issue" ]; then
+    # What one run of this row may file is bounded (issue #666): an annotation, a reopen or a comment spends nothing,
+    # because none of them makes the tracker grow — only the new item this branch would write does.
+    if [ "$SENSORS_FILED" -ge "$SENSORS_MAX_FILINGS" ]; then
+      SENSORS_UNFILED=$(jq -c --argjson f "$finding" '. + [$f]' <<< "$SENSORS_UNFILED")
+      sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "-" \
+        "not filed (past the row's bound of $SENSORS_MAX_FILINGS new items in one run)"
+      return 0
+    fi
+    SENSORS_FILED=$((SENSORS_FILED + 1))
     sensors_file "$row" "$id" "$finding" "$baseline"
     sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "-" "filed"
     return 0
@@ -363,8 +526,30 @@ sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
   body=$(sensors_body_set "$body" clear-run 0)
   if [ "$occurrence" -ge "$k" ]; then
     sensors_escalate "$row" "$number" "$finding" "$body" "$occurrence"
-    sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "$number" \
-      "escalated (past $k recurrences)"
+    status=$?
+    if [ "$status" -eq 0 ]; then
+      sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "$number" \
+        "escalated (past $k recurrences)"
+      return 0
+    fi
+    # The escalation did not land. The writer refused to displace the item's settled state — a routine write
+    # may not, and the state means a person's fix stands. The condition returned after a fix that did not
+    # hold, which is a new fact: it is filed under the same bound a filing spends everywhere else, and only
+    # when that bound leaves no room does the row fail, because a condition nothing records is the silence
+    # this branch used to report as an escalation (issue #780).
+    if [ "$SENSORS_FILED" -ge "$SENSORS_MAX_FILINGS" ]; then
+      sensors_fail_row "$id" \
+        "the escalation of #$number was refused (status $status) and the row's bound of $SENSORS_MAX_FILINGS new items leaves the condition unrecorded"
+      return 0
+    fi
+    SENSORS_FILED=$((SENSORS_FILED + 1))
+    if ! sensors_file "$row" "$id" "$finding" "$baseline" "" --allow-duplicate; then
+      sensors_fail_row "$id" \
+        "the escalation of #$number was refused (status $status) and the condition could not be filed"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "-" \
+      "filed (the escalation of #$number was refused: its state is settled)"
     return 0
   fi
   n=$(sensors_row_field "$row" consecutive)
@@ -380,17 +565,24 @@ sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
 
 sensors_outcome_clear() { # <row> <id> <finding> <issues>
   local row="$1" id="$2" finding="$3" issues="$4"
-  local fp issue number state body run n
+  local fp issue number state body run n record
   fp=$(jq -r '.fingerprint' <<< "$finding")
   issue=$(sensors_issue_for_fingerprint "$issues" "$fp")
   if [ -z "$issue" ]; then
-    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "-" "nothing filed, nothing to clear"
+    # No condition issue carries this identity: the clear still reaches the tracker, on the row's record
+    # issue, so a row that ran and was green is not read as one that never ran (issue #257).
+    record=$(sensors_record_clear "$row" "$id" "$finding" "$issues")
+    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "${record:--}" \
+      "recorded on the row's record"
     return 0
   fi
   number=$(jq -r '.number' <<< "$issue")
   state=$(jq -r '.state // "OPEN"' <<< "$issue")
   if [ "$state" != "OPEN" ]; then
-    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "$number" "already closed"
+    # Nothing is left to close, but the run is still a measurement: it joins the row's own history.
+    record=$(sensors_record_clear "$row" "$id" "$finding" "$issues")
+    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "${record:-$number}" \
+      "recorded on the row's record (the condition issue is already closed)"
     return 0
   fi
   body=$(jq -r '.body // ""' <<< "$issue")
@@ -418,13 +610,219 @@ sensors_outcome() { # <row> <id> <finding> <issues> <baseline>
   esac
 }
 
+# --------------------------------------------------------------------------- the bound on one run's filings
+
+# How many of the conditions a run did not file one item still lists: the count is the measurement the item carries,
+# so the list may be bounded without the item lying — GitHub refuses a body past 65 536 characters and a run can hold
+# any number of conditions (issue #666).
+SENSORS_SUMMARY_LIST_MAX=20
+
+# The identity of a row's filing summary: the engine's own, derived from the row alone, so one row owns at most one
+# summary item however many conditions a run leaves unfiled — and no finding a check reports can carry it, because a
+# finding's identity is the digest of the fields the row declares (issue #666).
+sensors_summary_fingerprint() { # <row-id>
+  sensors_fingerprint "$(jq -nc --arg s "$1" '{sensor: $s, kind: "filing-summary"}')" "kind sensor"
+}
+
+# The row's summary issue, by its own marker: it is found the way the row's record issue is, never by a fingerprint
+# that a condition's could collide with.
+sensors_summary_issue() { # <issues-json> <row-id> → the issue, or empty
+  jq -c --arg marker "<!-- filing-summary: $2 -->" \
+    '[.[]? | select((.body // "") | contains($marker))] | if length > 0 then .[0] else empty end' <<< "$1"
+}
+
+# The summary as the run's own finding: the count of what it did not file is its measurement, and its identity is
+# the row's — so a second run of the same over-full row annotates one summary instead of filing another (#666).
+sensors_summary_finding() { # <row-id> <unfiled-array>
+  local id="$1" unfiled="$2" count noun fingerprint title claim
+  count=$(jq 'length' <<< "$unfiled")
+  noun="conditions"; [ "$count" -eq 1 ] && noun="condition"
+  fingerprint=$(sensors_summary_fingerprint "$id")
+  title="$id: $count $noun not filed (the row files at most $SENSORS_MAX_FILINGS condition items per run)"
+  claim="$count of the conditions the check reported were not filed: one run of this check files at most $SENSORS_MAX_FILINGS condition items, and every condition it did not file is named here with what it measured"
+  jq -nc --arg fingerprint "$fingerprint" --arg title "$title" --arg claim "$claim" \
+        --argjson unfiled "$unfiled" --argjson count "$count" --arg bound "$SENSORS_MAX_FILINGS" \
+    '{fingerprint: $fingerprint, verdict: "violation", measurement: ($count | tostring),
+      title: $title, claim: $claim, bound: $bound, unfiled: $unfiled}'
+}
+
+# What the summary says: the bound, the count, and every condition the run did not file — in the order the check
+# reported them, which is that check's own rank — each with the identity it is known by. The marker stands first, so
+# the item's own record is read from it rather than from a listed condition's text.
+sensors_summary_body() { # <row> <finding>
+  local row="$1" finding="$2" count bound fields
+  count=$(jq -r '.measurement' <<< "$finding")
+  bound=$(jq -r '.bound' <<< "$finding")
+  fields=$(sensors_finding_fields "$row")
+  printf 'One run of this check files at most %s condition items, and this run found more: %s were not filed.\n\n' \
+    "$bound" "$count"
+  printf 'They are named below in the order the check reported them — its own rank — each with the identity it is\n'
+  printf 'known by. Nothing is lost: widening this row'"'"'s `maxFilings` files them as their own items on the next\n'
+  printf 'run.\n\n'
+  printf '<!-- condition: {"sensor": "%s", "kind": "filing-summary"} -->\n\n' "$(sensors_row_field "$row" id)"
+  printf '<!-- filing-summary: %s -->\n' "$(sensors_row_field "$row" id)"
+  jq -r --argjson max "$SENSORS_SUMMARY_LIST_MAX" --arg fields "$fields" '
+    .unfiled[:$max][] | . as $f
+    | ($fields | split(" ") | map(select(length > 0)) | map("\(.)=\($f[.] // "")") | join(" ")) as $identity
+    | "- \($identity) measured \($f.measurement), identity \($f.fingerprint)"' <<< "$finding"
+  sensors_unfiled_rest "$count"
+}
+
+# The conditions a run did not file, as an annotation on a summary that already exists names them: the identity each
+# will be filed under and the number it measured, in the order the check reported them. The list stops where the
+# item's body does (issue #666).
+sensors_unfiled_lines() { # <finding>
+  jq -r --argjson max "$SENSORS_SUMMARY_LIST_MAX" \
+    '.unfiled[:$max][] | "- identity \(.fingerprint) measured \(.measurement)"' <<< "$1"
+  sensors_unfiled_rest "$(jq '.unfiled | length' <<< "$1")"
+}
+
+# The tail of a list too long for one item: the count is the measurement, the list is bounded like the filings are.
+sensors_unfiled_rest() { # <count>
+  local over=$(( ${1:-0} - SENSORS_SUMMARY_LIST_MAX ))
+  [ "$over" -le 0 ] || printf -- '- … and %s more\n' "$over"
+}
+
+# The summary a run leaves behind, and the clearing of one: filed once per row when the bound left conditions over,
+# annotated while it still does, reopened when a closure already exists, and closed by the first run that leaves
+# nothing over — the count is the run's own integer, so there is nothing a consecutive count would protect here.
+# A run that reported an error clears nothing: a check that determined nothing has no measurement about its own
+# overflow either (`run#errorIsNeverTreatedAsClear`, issue #666).
+sensors_summary_outcome() { # <row> <id> <issues> <failed-before>
+  local row="$1" id="$2" issues="$3" failed_before="$4" count fp issue number finding body reason
+  [ "$SENSORS_FAILED" -eq "$failed_before" ] || return 0
+  count=$(jq 'length' <<< "$SENSORS_UNFILED")
+  issue=$(sensors_summary_issue "$issues" "$id")
+  number=""
+  [ -n "$issue" ] && number=$(jq -r '.number // empty' <<< "$issue")
+  if [ "$count" -eq 0 ]; then
+    [ -n "$number" ] || return 0
+    [ "$(jq -r '.state // "OPEN"' <<< "$issue")" = "OPEN" ] || return 0
+    if ! sensors_close_summary "$row" "$number"; then
+      sensors_fail_row "$id" "the tracker refused the summary's closure"
+      return 0
+    fi
+    sensors_report "$id" "$(sensors_summary_fingerprint "$id")" clear 0 "$number" \
+      "closed (this run left no condition unfiled)"
+    return 0
+  fi
+  finding=$(sensors_summary_finding "$id" "$SENSORS_UNFILED")
+  fp=$(sensors_summary_fingerprint "$id")
+  if [ -z "$number" ]; then
+    body=$(sensors_summary_body "$row" "$finding")
+    if ! sensors_file "$row" "$id" "$finding" "" "$body"; then
+      sensors_fail_row "$id" "the tracker refused the summary's filing"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$count" "-" \
+      "filed one summary for the $count condition(s) it did not file"
+    return 0
+  fi
+  if [ "$(jq -r '.state // "OPEN"' <<< "$issue")" = "OPEN" ]; then
+    # The identities are this run's, not the ones the filing named: a row that stays over its bound has new
+    # conditions each time, and the comment is the only place they reach the tracker.
+    if ! sensors_note_summary "$number" "$(sensors_unfiled_comment "$count" "" "$finding")"; then
+      sensors_fail_row "$id" "the tracker refused the summary's annotation"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$count" "$number" "annotated (still past the bound)"
+    return 0
+  fi
+  # A person's closure is not a completed fix, so a returning overflow is annotated and the closure left
+  # alone — the same rule the condition path follows (design D6), applied to the item this bound files. A
+  # reopen here would be refused by `reopen.sh` while the report claimed one had happened.
+  reason=$(jq -r '(.stateReason // "") | ascii_downcase' <<< "$issue")
+  if [ "$reason" != "completed" ]; then
+    if ! sensors_note_summary "$number" \
+      "$(sensors_unfiled_comment "$count" "the issue was closed as '${reason:-unknown}', not as a completed fix, so it is not reopened" "$finding")"; then
+      sensors_fail_row "$id" "the tracker refused the summary's annotation"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$count" "$number" "commented (closure is a person's decision)"
+    return 0
+  fi
+  if ! sensors_reopen_summary "$row" "$number" "$finding"; then
+    sensors_fail_row "$id" "the tracker refused the summary's reopen"
+    return 0
+  fi
+  sensors_report "$id" "$fp" violation "$count" "$number" "reopened (the row is past its bound again)"
+}
+
+# The comment a summary carries while the row stays over its bound, or after a closure the run will not reverse: the
+# count this run did not file, why the closure is left alone, and the identities the run measured. Plain text, never
+# a measurement marker: a marker on one of the row's items becomes that row's last measurement in the report, and for
+# a `baseline-multiple` row the baseline the next bound is computed from — a count of unfiled conditions is no
+# measurement of the row.
+sensors_unfiled_comment() { # <count> <why-not-reopened> <finding>
+  printf 'still past the bound of %s condition items per run: this run filed its bound and did not file %s condition(s).\n' \
+    "$SENSORS_MAX_FILINGS" "$1"
+  [ -z "$2" ] || printf '%s\n' "$2"
+  printf '\n'
+  sensors_unfiled_lines "$3"
+}
+
+# The one comment a summary gets: its body is the filing's, so a later run's report of what it did not file — and the
+# reason a closure is left alone — reach the tracker here and nowhere else.
+sensors_note_summary() { # <number> <text>
+  local file code
+  file=$(mktemp) || sensors_die "run: cannot create a temporary file"
+  printf '%s\n' "$2" > "$file"
+  sensors_write "comment on #$1 ($2)" \
+    bash "$SENSORS_ISSUES_DIR/update.sh" "$1" --comment-file "$file"
+  code=$?
+  rm -f "$file"
+  return "$code"
+}
+
+# A summary is closed by the run that leaves nothing over, naming what it filed against the bound.
+sensors_close_summary() { # <row> <number>
+  local row="$1" number="$2" id code
+  id=$(sensors_row_field "$row" id)
+  sensors_write "close #$number ($id left no condition unfiled)" \
+    bash "$SENSORS_ISSUES_DIR/close.sh" "$number" \
+      --sensor "$id" \
+      --reason "the $id check filed every condition it reported, inside its bound of $SENSORS_MAX_FILINGS condition items per run" \
+      --evidence "0 conditions were left unfiled by this run (the bound is $SENSORS_MAX_FILINGS condition items per run)"
+  code=$?
+  return "$code"
+}
+
+# A closure a returning overflow reopens, with plain text and no measurement marker, for the reason the annotation
+# above states.
+sensors_reopen_summary() { # <row> <number> <finding>
+  local row="$1" number="$2" finding="$3" status file code
+  status=$(sensors_registry_value '.labels.status')
+  file=$(mktemp) || sensors_die "run: cannot create a temporary file"
+  {
+    printf '%s condition(s) were not filed by this run (the row files at most %s condition items per run):\n\n' \
+      "$(jq -r '.measurement' <<< "$finding")" "$SENSORS_MAX_FILINGS"
+    sensors_unfiled_lines "$finding"
+  } > "$file"
+  sensors_write "reopen #$number ($(sensors_row_field "$row" id) is past its bound again)" \
+    bash "$SENSORS_ISSUES_DIR/reopen.sh" "$number" --measurement-file "$file" --status "$status"
+  code=$?
+  rm -f "$file"
+  return "$code"
+}
+
 sensors_run_row() { # <row>
-  local row="$1" id cmd status out baseline issues line problems handled=0
+  local row="$1" id cmd status out baseline issues line problems handled=0 failed_before
+  failed_before=$SENSORS_FAILED
   id=$(sensors_row_field "$row" id)
   problems=$(sensors_row_problems "$row")
   if [ -n "$problems" ]; then
     sensors_refuse "$SENSORS_REGISTRY_BAD" "row-incomplete" "$id: $(printf '%s' "$problems" | tr '\n' ';')"
   fi
+  # The bound on this run's filings, and the direct-run half of its own check: the guard refuses such a registry
+  # first, exactly as it does for the record's state (issue #666).
+  SENSORS_MAX_FILINGS=$(sensors_row_max_filings "$row")
+  case "$SENSORS_MAX_FILINGS" in
+    ''|*[!0-9]*|0) sensors_refuse "$SENSORS_REGISTRY_BAD" "row-max-filings-not-a-count" \
+      "$id: ${SENSORS_MAX_FILINGS:-no bound declared}" ;;
+  esac
+  SENSORS_FILED=0
+  SENSORS_UNFILED='[]'
+  SENSORS_FIRST_EXERCISE=0
   issues=$(sensors_issues_of_row "$id")
   # The baseline is the issue's own record, never a file beside it (design D8): the newest measurement
   # marker one of this row's issues carries.
@@ -432,6 +830,14 @@ sensors_run_row() { # <row>
   baseline=$(sensors_marker_field "$baseline" measurement)
   SENSORS_BASELINE="$baseline"
   SENSORS_CONDITIONS=$(sensors_conditions_json "$issues")
+  # A row with no measurement on record has never exercised its bound, so nothing it would file has been fitted
+  # against the tracker yet — the state `report.sh` prints as `stale row=<id> no measurement on record`. The
+  # unattended tick reports that first exercise instead of spending it, so a new bound's blast radius is a count in
+  # the log before it is items on the tracker; a dispatch that asked to write (`inputs.apply=true`) is the
+  # acknowledgement that records the first measurement, and every run after it finds one (issue #667).
+  if [ "$SENSORS_TRIGGER" = "schedule" ] && [ -z "$baseline" ]; then
+    SENSORS_FIRST_EXERCISE=1
+  fi
 
   out=$(sensors_exec_cmd "$row" "$id")
   status=$?
@@ -451,11 +857,29 @@ sensors_run_row() { # <row>
       continue
     fi
     handled=$((handled + 1))
+    if [ "$SENSORS_FIRST_EXERCISE" -eq 1 ]; then
+      sensors_report "$id" "$(jq -r '.fingerprint' <<< "$line")" "$(jq -r '.verdict' <<< "$line")" \
+        "$(jq -r '.measurement' <<< "$line")" "-" "not filed (first exercise: no measurement on record)"
+      continue
+    fi
     sensors_outcome "$row" "$id" "$line" "$issues" "$baseline"
   done <<< "$out"
   if [ "$handled" -eq 0 ]; then
     sensors_fail_row "$id" "the command printed no finding"
+    return 0
   fi
+  # The first exercise is the run's report about itself: it carries the count the tick would have filed and writes
+  # nothing — not a condition, not the record issue, not a summary — so the number reaches a reader before the
+  # tracker grows (issue #667).
+  if [ "$SENSORS_FIRST_EXERCISE" -eq 1 ]; then
+    sensors_note "first exercise: row=$id findings=$handled — no measurement on record, so this run wrote nothing (issue #667); a dispatch with inputs.apply=true records the first one"
+    return 0
+  fi
+  # What the row reported and the run did not file leaves as one item, and a summary an earlier run left over is
+  # closed by this run — so a mis-fitted bound costs the tracker one item rather than one per condition it held
+  # (issue #666). A run in which any finding failed clears nothing: the count is a measurement of this row's own
+  # output, and a row that could not determine anything has taken none.
+  sensors_summary_outcome "$row" "$id" "$issues" "$failed_before"
 }
 
 for id in "${selected[@]}"; do

@@ -1,0 +1,14 @@
+loop-mutations: selected 5 of 116 records (labels: 53.1 53.2 53.3 53.4 53.5)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.hvqPTy
+RED    53.1  gate#theDeltaHandsASuiteTheBaseItMeasured   (the base substituted into the suite the delta owes (issue #276))
+restore 53.1 gate#theDeltaHandsASuiteTheBaseItMeasured green again
+RED    53.2  driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns   (the file set narrowing the selection instead of selecting everything (issue #276))
+restore 53.2 driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns green again
+RED    53.3  driver#aFileSetThatNamesNoCaseIsRefused   (a file set that names no case refused rather than read as an empty suite (issue #276))
+restore 53.3 driver#aFileSetThatNamesNoCaseIsRefused green again
+RED    53.4  driver#aCoreFileOwesEveryCase   (a core file owing the whole set whatever the cases declare (issue #276))
+restore 53.4 driver#aCoreFileOwesEveryCase green again
+RED    53.5  driver#everyCaseDeclaresTheFilesItCanReach   (a declaration narrower than the case that carries it (issue #276))
+restore 53.5 driver#everyCaseDeclaresTheFilesItCanReach green again
+
+red-when-mutated: 5 · not-noticed: 0 · restore-failures: 0

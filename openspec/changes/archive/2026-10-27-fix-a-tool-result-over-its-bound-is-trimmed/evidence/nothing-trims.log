@@ -1,0 +1,20 @@
+$ grep -rn "trim\|truncat\|maxResult\|MAX_RESULT" tools/loop/ tools/pi-child-events.sh
+tools/loop/measure.sh:126:# "the tree carries this many" (measured 2026-10-22, review round 1 of issue #246: `head -20` truncated both
+tools/loop/prescreen.sh:112:    '[.[] | select(.name | startswith($n + $s)) | (.name | ltrimstr($n + $s))] | .[0] // ""'
+
+$ grep -n "events\|answer_file" tools/pi-child-events.sh   # the two places a result passes
+56:if [ -n "$events" ]; then
+57:  mkdir -p "$(dirname "$events")" || {
+58:    printf 'pi-child-events: cannot create %s for the event stream\n' "$(dirname "$events")" >&2
+66:answer_file=$(mktemp) || { printf 'pi-child-events: cannot create a temporary file\n' >&2; exit 2; }
+67:trap 'rm -f "$answer_file"' EXIT
+75:      [ -z "$events" ] || printf '%s\n' "$line" >> "$events"
+86:          if [ -n "$text" ]; then printf '%s' "$text" > "$answer_file"; fi
+95:if [ -s "$answer_file" ]; then
+96:  cat "$answer_file"
+
+$ grep -n "LOOP_AGENT_CMD" tools/loop/run.sh
+109:if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
+110:  loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF_PATH — the run has no way to start an agent process"
+979:run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
+1025:  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &

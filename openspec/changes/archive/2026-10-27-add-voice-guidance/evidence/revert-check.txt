@@ -1,0 +1,22 @@
+# Revert check — voice-guidance
+
+Mutation: in `NavigationEngine.onVoiceInstruction`, replace `voiceGuidance.announce(samples)` with a
+comment, so the callback is consumed but announces nothing.
+
+```
+./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest"
+NavigationEngineVoiceGuidanceTest > voiceSampleSequenceIsSpokenWhileNavigating FAILED
+2 tests completed, 1 failed
+BUILD FAILED
+```
+
+The stop scenario stayed green, as it must: the mutation removes only the announcement.
+
+Restored, then forced:
+
+```
+./gradlew :app:testMobileDebugUnitTest -PforceTests --tests "com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest"
+BUILD SUCCESSFUL
+```
+
+The logs are `revert-check-mutated.log` and `revert-check-restored.log` in this directory.

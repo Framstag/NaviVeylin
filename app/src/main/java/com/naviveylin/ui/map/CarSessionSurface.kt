@@ -29,7 +29,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.core.NavigationState
-import com.naviveylin.core.TurnInstructionLocalizer
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.remainingMeters
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.stringResolver
@@ -48,8 +50,8 @@ import com.naviveylin.ui.route.routeProgressPercent
  * the spec asks for — bringing the map back for the rest of the session.
  *
  * Labels are not re-invented here. The maneuver line uses
- * [TurnInstructionLocalizer.shortDescription], the same localized description the car's
- * routing cue (`NavigationTemplateMapper`) and the phone's own next-turn card use, and the
+ * [com.naviveylin.core.ManoeuvreLabels], the same localized text the car's routing cue
+ * (`NavigationTemplateMapper`) and the phone's own next-turn card use, and the
  * distances go through the shared `com.naviveylin.core` formatters, which the car's
  * `distanceForDisplay` also delegates to — so phone and car describe the same state with the
  * same wording (spec: `cross-variant-ui-parity`).
@@ -62,7 +64,7 @@ fun CarSessionSurface(
 ) {
     val context = LocalContext.current
     val resolver = remember(context) { context.stringResolver() }
-    val instruction = navigationState.nextInstruction
+    val step = navigationState.nextStep
     val destination = navigationState.destinationName?.takeIf { it.isNotBlank() }
 
     Surface(
@@ -120,16 +122,16 @@ fun CarSessionSurface(
                         modifier = Modifier.testTag("carSessionDestination")
                     )
                 }
-                if (instruction != null) {
+                if (step != null) {
                     Spacer(Modifier.height(16.dp))
                     Text(
                         text = stringResource(
-                            if (distanceUsesKilometers(instruction.distanceTo)) {
+                            if (distanceUsesKilometers(step.remainingMeters)) {
                                 R.string.distance_unit_km
                             } else {
                                 R.string.distance_unit_m
                             },
-                            formatDistanceNumber(instruction.distanceTo)
+                            formatDistanceNumber(step.remainingMeters)
                         ),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
@@ -137,9 +139,7 @@ fun CarSessionSurface(
                         modifier = Modifier.testTag("carSessionNextDistance")
                     )
                     Text(
-                        text = TurnInstructionLocalizer.shortDescription(resolver, instruction)
-                            .takeIf { it.isNotBlank() }
-                            ?: instruction.description,
+                        text = ManoeuvreLabels.short(resolver, manoeuvreFromStep(step)),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.testTag("carSessionInstruction")

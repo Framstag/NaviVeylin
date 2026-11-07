@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#resetWorktreeNamesTheDirtItCannotDiscard" tests="1" failures="1" errors="0" time="62">
+  <system-out>the repair refuses a tree it cannot make clean: expected '5', got '0' (2026-10-26T07:28:28Z, run.sh from the base 5e8d739b)</system-out>
+</testsuite>

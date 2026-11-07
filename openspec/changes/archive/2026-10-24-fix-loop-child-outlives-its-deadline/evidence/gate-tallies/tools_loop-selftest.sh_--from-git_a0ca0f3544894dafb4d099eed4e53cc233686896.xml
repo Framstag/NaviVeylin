@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git a0ca0f3544894dafb4d099eed4e53cc233686896" tests="211" failures="2" errors="0" time="1330">
+  <system-out>loop-selftest: 2 of 211 cases failed ended 2224986 — its working directory is inside loop-selftest.JnjPEv ended 672270 — its working directory is inside loop-selftest.JnjPEv</system-out>
+</testsuite>

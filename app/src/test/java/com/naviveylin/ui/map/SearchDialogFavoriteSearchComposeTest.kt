@@ -76,6 +76,7 @@ class SearchDialogFavoriteSearchComposeTest {
                 addressBookAvailable = false,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
+                isDarkPresentation = false,
                 contactsContent = {}
             )
         }

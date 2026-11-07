@@ -1,0 +1,20 @@
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-153614')
+HEAD ist jetzt bei 59805c7 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e6dd51e)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f913b26)
+HEAD ist jetzt bei f913b26 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f913b26).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the report names the kept worktree's own scratch root beside the invocation's: 'self-test scratch trees under .pi/worktrees/loop/.pi/tmp' not found in: loop-clean: build output in .pi/worktrees/loop
+loop-clean: self-test scratch trees under /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.q1j82r/case.TVFSuX/tmp older than 120 min
+loop-clean: branches of the loop whose patches are in the base
+  would remove loop-20261023-153614 (its patches are in the base)
+loop-clean: would remove 0 path(s), 0 B and remove 1 branch(es) — nothing removed (pass --apply)
+FAIL clean#reportsTheWorktreesScratchTreesToo
+loop-selftest: 1 of 1 cases failed

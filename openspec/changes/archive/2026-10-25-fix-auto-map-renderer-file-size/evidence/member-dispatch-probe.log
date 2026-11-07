@@ -1,0 +1,11 @@
+# member-dispatch probe — 2026-10-25T18:44:54Z
+# The split's one design constraint: a member a MockK test double stubs must stay a member.
+# Probe: committedViewportCenter() (kept a member by the split) was moved to AutoMapRendererOverlays.kt
+# as an extension function, and only CarMapViewportTest was run.
+$ ./gradlew :auto:testDebugUnitTest -PjvmTestsOnly -PforceTests --tests 'com.naviveylin.auto.CarMapViewportTest'
+$ python3 /tmp/failures.py
+com.naviveylin.auto.CarMapViewportTest.theLastDrawnFrameCenterIsPublished
+    io.mockk.MockKException: no answer found for AutoMapRenderer(#1).getOverrunLat$auto() among the configured answers: (AutoMapRenderer(#1).getOverrunBitmap$auto()) AutoMapRenderer(#1).getOverrunLon$auto()))
+com.naviveylin.auto.CarMapViewportTest.aScreenWhoseFrameNeverLandedKeepsTheCenterAlreadyPublished
+    io.mockk.MockKException: no answer found for AutoMapRenderer(#3).getOverrunLat$auto() among the configured answers: (AutoMapRenderer(#3).getOverrunBitmap$auto()) AutoMapRenderer(#3).getOverrunLon$auto()) AutoMapRenderer(#3).markerViewport$auto()))
+# restore: the function moved back into the class; the same filter is green in evidence/focused-tally.log

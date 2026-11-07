@@ -288,7 +288,8 @@ issues_issue_list() {
 # answer twice, so the write that sets a state is also the write that removes the value it displaces. The scan
 # lives here because it has two writers — `update.sh` and `reopen.sh` — and two copies of it would drift; the
 # namespace *name* is the contract, which is why the portability check reads the names and forbids only the
-# project's values (`check-portability.sh`, "the vocabulary").
+# project's values (`check-portability.sh`, "the vocabulary"). A settled value is not displaced by a routine
+# write at all (`issues_status_settled_guard`, below), which is the second half of the same rule.
 ISSUES_STATUS_NAMESPACE="status"
 
 # issues_status_prefix → the status namespace as a label prefix, e.g. `status/`. Reading the profile starts a
@@ -325,6 +326,24 @@ issues_question_of() { # <comment-json> → the question it carries, one line
   printf '%s' "$json" | jq -r '.body // "" | '"$ISSUES_QUESTION_JQ"
 }
 
+# The statement a *shaping* comment carries (capability `shaping-inbox`). The run writes it from
+# `tools/loop/labels.sh`: the verdict word on the first line, then `**The shaping:**` and the clause that produced
+# it — the same two-part shape the escalation uses for its question, so a writer and a reader cannot drift about
+# where the verdict is. The program takes a comment body and answers `{verdict, clause}`; an item with no
+# comment, or one whose comment states no verdict, answers two empty strings, and the queue names that rather
+# than presenting it as a finding. One home, embedded by `tools/issues/shaping.sh`, exactly as `ISSUES_QUESTION_JQ`
+# is embedded by `decisions.sh` and restated once in `core/WorkPackage.java`.
+ISSUES_SHAPING_JQ='split("\n")
+  | map(select(test("\\S")))
+  | { verdict: (.[0] // ""),
+      clause: ((map(select(startswith("**The shaping:**"))) | .[0] // "") | sub("^\\*\\*The shaping:\\*\\*[[:space:]]*"; "")) }'
+
+issues_shaping_of() { # <comment-json> → the verdict and the clause, tab-separated
+  local json="${1:-}"
+  [ -n "$json" ] || json='{}'
+  printf '%s' "$json" | jq -r '.body // "" | '"$ISSUES_SHAPING_JQ"' | [.verdict, .clause] | @tsv'
+}
+
 # issues_status_displaced <issue-json> <target-label> <prefix> → one label per line: every value of the
 # status namespace the issue carries other than the target. The prefix is the caller's, so this stays a pure
 # filter: it reads the issue the caller already has and makes no `gh` call and no profile read of its own.
@@ -333,6 +352,60 @@ issues_status_displaced() {
   jq -r --arg prefix "$prefix" --arg target "$target" \
     '[.labels[]? | if type == "string" then . else .name end]
      | .[] | select(startswith($prefix)) | select(. != $target)' <<< "$issue"
+}
+
+# issues_records_settled_state <body> <marker> → success when the body keeps a settled state of its own: it
+# carries the record whose text the profile declares as `roles.settledRecordMarker`. Two readers ask this — the
+# reversal in `resolve-stale.sh` (which restores the state the record keeps instead of the queue) and
+# `check-metadata.sh` (which reports an item whose record and label disagree) — so the reading lives here and
+# the marker stays the caller's, resolved once from the profile. An empty marker means the project has no
+# tombstones and no body is one.
+issues_records_settled_state() { # <body> <marker>
+  local body="${1:-}" marker="${2:-}"
+  [ -n "$marker" ] || return 1
+  printf '%s' "$body" | grep -qF -- "$marker"
+}
+
+# A *settled* state is a different claim from a state: it says the item's premise is settled — the defect
+# shipped, the entry was retired — while a hold says something about a run's capacity to take the item, and the
+# second must not erase the first by accident. One write turned #146's `status/retired` into `status/on-hold`
+# and the tombstone was queueable work two days later (#684), so the write path asks which values carry that
+# claim. Which values those are is the project's fact and lives in the profile's `roles.settledStatuses`, read
+# here so every writer asks the same question through one home (the pre-screen reads the same role,
+# `tools/loop/prescreen.sh`, to drop a settled item from the queue). The values are printed qualified with the
+# status prefix, the spelling every writer handles, so a comparison against a displaced label is exact.
+issues_settled_statuses() {
+  [ -n "${ISSUES_PROFILE:-}" ] ||
+    issues_die "issues: the profile is not resolved — call issues_resolve before issues_settled_statuses"
+  jq -e '(.roles // {}) | has("settledStatuses")' "$ISSUES_PROFILE" >/dev/null 2>&1 ||
+    issues_die "issues: the profile's roles section declares no settledStatuses — declare it empty when this project records no settled state"
+  local prefix
+  prefix=$(issues_status_prefix)
+  jq -r --arg prefix "$prefix" '.roles.settledStatuses // [] | .[] | $prefix + .' "$ISSUES_PROFILE"
+}
+
+# The settled values the last guard call found on the write it allowed: one list, filled in the caller's own
+# shell, so a writer can say what it removed instead of only what the caller named.
+ISSUES_SETTLED_DISPLACED=()
+
+# issues_status_settled_guard <issue-number> <named 0|1> <displaced-label>… → refuses the write, naming the
+# settled states it would remove, unless the caller named the transition (exit 3, `status-settled`). The labels
+# are the ones the caller is about to displace, so this is a predicate over an already-read item: no `gh` call
+# and no second scan. `<named>` is 1 for a verb whose own purpose is the transition — a closure that records a
+# settled state, a reopen that reverses one — and 0 for a routine writer, which must pass the flag instead.
+issues_status_settled_guard() {
+  ISSUES_SETTLED_DISPLACED=()
+  local number="$1" named="$2"; shift 2
+  local settled label
+  settled=$(issues_settled_statuses) || exit $?
+  [ -n "$settled" ] || return 0
+  for label in "$@"; do
+    [ -n "$label" ] || continue
+    grep -Fxq -- "$label" <<< "$settled" && ISSUES_SETTLED_DISPLACED+=("$label")
+  done
+  [ "${#ISSUES_SETTLED_DISPLACED[@]}" -gt 0 ] || return 0
+  [ "$named" -eq 1 ] && return 0
+  issues_refuse "status-settled" "#$number carries ${ISSUES_SETTLED_DISPLACED[*]}, a settled state of the project profile — pass --displace-settled to name the transition"
 }
 
 # --------------------------------------------------------------------------- the priority marker
@@ -345,15 +418,161 @@ ISSUES_PRIO_MARKER_OPEN="<!-- prio:"
 ISSUES_PRIO_MARKER_CLOSE="-->"
 ISSUES_PRIO_FIELDS="band score sev reach conf occ basis at"
 
-# issues_prio_marker <body>  → the marker line, or nothing
+# issues_prio_marker_line <body>  → the 1-based line number of the marker, or nothing
+#
+# The marker's *shape* has the same one home as its grammar, and a reader that searched the body for the
+# delimiters instead of for the line the pass writes let an item's prose decide whether it carries a marker
+# (issue #293: #292's own body quoted the grammar, and the check reported three violations against it). The
+# shape is: a line of its own, at column 0, closing at its end, and not inside a fenced code span — every other
+# occurrence is a quotation of the grammar, a guideline excerpt pasted into a body, or a comment copied in.
+#
+# The fence is not an extra exemption, it is the boundary of the same rule: a fenced line renders as code rather
+# than as a comment, so a body that shows the grammar in a fence is quoting it rather than recording one.
+# Leading indentation is therefore not trimmed (it changes the block the line belongs to), while trailing
+# whitespace is (it changes no rendering). An unterminated fence swallows what follows it, as a renderer does.
+issues_prio_marker_line() {
+  printf '%s\n' "${1:-}" | awk -v mo="$ISSUES_PRIO_MARKER_OPEN" -v mc="$ISSUES_PRIO_MARKER_CLOSE" '
+    function is_fence(line,   t) {
+      t = line
+      sub(/^[ \t]+/, "", t)
+      return t ~ /^(```|~~~)/
+    }
+    function is_marker(line,   t) {
+      t = line
+      sub(/\r$/, "", t)
+      sub(/[ \t]+$/, "", t)
+      return length(t) >= length(mo) + length(mc) && index(t, mo) == 1 &&
+             substr(t, length(t) - length(mc) + 1) == mc
+    }
+    { if (is_fence($0)) { infence = !infence; next }
+      if (infence) next
+      if (is_marker($0)) { print NR; exit } }'
+}
+
+# issues_prio_marker <body>  → the marker's line, or nothing
 issues_prio_marker() {
-  printf '%s' "${1:-}" | grep -o "${ISSUES_PRIO_MARKER_OPEN}[^>]*${ISSUES_PRIO_MARKER_CLOSE}" | head -1
+  local line
+  line=$(issues_prio_marker_line "${1:-}")
+  [ -n "$line" ] || return 0
+  printf '%s' "${1:-}" | sed -n "${line}p" | sed -e 's/[[:space:]]*$//'
 }
 
 # issues_prio_field <marker> <name>  → the field's value, or nothing
 issues_prio_field() {
   local marker="$1" name="$2"
   printf '%s' "$marker" | grep -o "\b${name}=[^ ]*" | head -1 | cut -d= -f2-
+}
+
+# --------------------------------------------------------------------------- the band pair
+#
+# The pair is the label and the body's marker, and it is written together (`issue-priority`, "A band label is
+# written only with the body that carries its marker"). The rule lives here because a writer is not one script:
+# `prioritise.sh` writes through `update.sh`, and a person or a skill writes through the same one — a rule kept
+# in the pass alone would leave the other writer free to make the drift the `metadata-invariant` row only
+# reports (issue #671; `guidelines/BacklogTooling.md` §9).
+
+# issues_band_label_values <profile> <label>… → the band values among them, one per line
+#
+# The namespace is the profile's, read through the core, so this names no band of its own and a project that
+# declares no bands answers nothing — the gate below then refuses nothing, which is what
+# `tooling-portability` asks of the engine.
+issues_band_label_values() { # <profile> <label>…
+  local profile="$1" namespace separator label
+  shift || true
+  [ "$#" -gt 0 ] || return 0
+  namespace=$(issues_core Bands meta --profile "$profile" 2>/dev/null | sed -n 's/^namespace=//p')
+  [ -n "$namespace" ] || return 0
+  separator=$(issues_profile_value namespaceSeparator)
+  separator="${separator:-/}"
+  for label in "$@"; do
+    case "$label" in
+      "$namespace$separator"*) printf '%s\n' "${label#"$namespace"$separator}" ;;
+    esac
+  done
+}
+
+# issues_band_pair_gate <profile> <body|""> <added label>… -- <removed label>…
+#
+# Refuses, before any write and with the two reason codes the drift is stated in from the other side:
+#
+#   band-label-unpaired   a band label named with no body — nothing records the band it asserts
+#   band-label-disagrees  the body's marker records another band than the label added, or the call removes the
+#                         item's band label and adds none, so a body that records a band would leave the item
+#                         with a marker and no label
+#
+# The two shapes are the two the call decides by itself. Which half is wrong when the tracker is already
+# drifted stays a judgement (`guidelines/BacklogTooling.md` §9), and a body-only write is not gated: seeing that the
+# marker it carries disagrees with the item's stored label needs a read of the item, which this gate does not
+# buy (`design.md`, "Alternatives the evidence eliminated").
+#
+# An empty body is the one a caller has no body for (a created item's), so every band label is unpaired there.
+issues_band_pair_gate() { # <profile> <body> <added label>… -- <removed label>…
+  local profile="$1" body="$2"
+  shift 2 || true
+  local namespace separator label first marker marker_band
+  local added=() removed=() added_values=() removed_values=()
+  while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do added+=("$1"); shift; done
+  if [ "$#" -gt 0 ]; then shift; fi
+  while [ "$#" -gt 0 ]; do removed+=("$1"); shift; done
+
+  namespace=$(issues_core Bands meta --profile "$profile" 2>/dev/null | sed -n 's/^namespace=//p')
+  [ -n "$namespace" ] || return 0
+  separator=$(issues_profile_value namespaceSeparator)
+  separator="${separator:-/}"
+
+  if [ "${#added[@]}" -gt 0 ]; then
+    while IFS= read -r label; do
+      [ -n "$label" ] || continue
+      added_values+=("$label")
+    done < <(issues_band_label_values "$profile" "${added[@]}")
+  fi
+  if [ "${#removed[@]}" -gt 0 ]; then
+    while IFS= read -r label; do
+      [ -n "$label" ] || continue
+      removed_values+=("$label")
+    done < <(issues_band_label_values "$profile" "${removed[@]}")
+  fi
+  if [ "${#added_values[@]}" -eq 0 ] && [ "${#removed_values[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  first=""
+  if [ "${#added_values[@]}" -gt 0 ]; then first="${namespace}${separator}${added_values[0]}"; fi
+  [ -n "$first" ] || first="${namespace}${separator}${removed_values[0]}"
+
+  if [ -z "$body" ]; then
+    issues_refuse "band-label-unpaired" \
+      "$first is written with no body — a band label and the marker recording it are one write, and a band label alone is the drift check-metadata.sh reports"
+  fi
+
+  marker=$(issues_prio_marker "$body")
+  marker_band=""
+  [ -z "$marker" ] || marker_band=$(issues_prio_field "$marker" band)
+
+  if [ "${#added_values[@]}" -gt 0 ]; then
+    for label in "${added_values[@]}"; do
+      [ "$label" != "$marker_band" ] || continue
+      issues_refuse "band-label-disagrees" \
+        "${namespace}${separator}${label} is written with a body whose marker records '${marker_band:-no band}'"
+    done
+  fi
+  if [ "${#removed_values[@]}" -gt 0 ]; then
+    # A removal that adds no band decides the item's other half by itself: whatever the body's marker records,
+    # the item is left with a marker and no band label (`marker-without-label`), because the label the body
+    # agrees with is the one being taken off. Round 1 asked only whether the removed band was still the recorded
+    # one, so `--remove-label prio/p1 --body <marker band=p3>` passed the gate and wrote the pair apart in the
+    # direction #305 is not (issue #671, review round 1).
+    if [ "${#added_values[@]}" -eq 0 ] && [ -n "$marker_band" ]; then
+      issues_refuse "band-label-disagrees" \
+        "${namespace}${separator}${removed_values[0]} is removed, no band is added, and the body's marker records '${marker_band}' — the item would keep a marker and no band label"
+    fi
+    for label in "${removed_values[@]}"; do
+      [ "$label" != "$marker_band" ] && continue
+      issues_refuse "band-label-disagrees" \
+        "${namespace}${separator}${label} is removed while the body's marker still records it"
+    done
+  fi
+  return 0
 }
 
 # --------------------------------------------------------------------------- the body record
@@ -377,6 +596,26 @@ issues_occurrence() {
   printf '%s\n' "${value:-1}"
 }
 
+# The shape a finding was filed in (`backlog-source-of-truth`, "A finding is filed in one of two shapes"), as the
+# body record carries it: `a` or `b` — the tier keys of the writer — or nothing on an item filed before the keys
+# existed. The marker itself is composed by `issues_body_set` alone, so a reader here cannot meet a second
+# spelling of it.
+issues_tier_of() {
+  issues_body_field "${1:-}" tier
+}
+
+# The change a tier-B finding named, or nothing. Read beside the tier because the two are one claim: a shape
+# without its change is a name nobody can open.
+issues_change_of() {
+  issues_body_field "${1:-}" change
+}
+
+# What exempted a finding from the shape, or nothing: the one caller that files without a cause or a change is the
+# check registry's path (`--sensor <id>`), whose cause is the failing case the registry already names (design D4).
+issues_exempt_of() {
+  issues_body_field "${1:-}" exempt
+}
+
 # Set one record entry, or append it: the writer of a record entry and its reader share this one home, so
 # a body record the metadata pass reads cannot be spelled differently by the pass that writes it.
 issues_body_set() { # <body> <key> <value> → the body with that entry set
@@ -398,6 +637,13 @@ issues_body_set() { # <body> <key> <value> → the body with that entry set
 # project fact.
 issues_sensor_registry() {
   printf '%s\n' "${ISSUES_SENSOR_REGISTRY:-$ISSUES_ROOT/tools/sensors/sensors.json}"
+}
+
+# The OpenSpec changes directory a finding's tier-B shape names (`backlog-source-of-truth`, "A tier-B finding
+# names a change that is ready"): the layout is OpenSpec's own and not this project's, and a caller that keeps its
+# changes elsewhere — the self-test, a worktree — overrides it, exactly as the registry above is overridable.
+issues_changes_dir() {
+  printf '%s\n' "${ISSUES_CHANGES_DIR:-$ISSUES_ROOT/openspec/changes}"
 }
 
 issues_sensor_namespace() {
@@ -502,11 +748,17 @@ issues_ttl_bucket() { # <at-date> <today> <ttl-days>
   printf '%s\n' "$(((now - from) / ttl))"
 }
 
-# The claim's own digest: the body with the priority marker removed and every whitespace run collapsed, so
-# a reflow, a re-indent or a blank line does not read as a change of claim.
+# The claim's own digest: the body with the priority marker's line removed and every whitespace run collapsed,
+# so a reflow, a re-indent or a blank line does not read as a change of claim — while an edit to a *quotation* of
+# the grammar does, because a quotation is part of the claim (issue #293).
 issues_body_hash() { # <body> → the digest
-  printf '%s' "${1:-}" |
-    sed "s|${ISSUES_PRIO_MARKER_OPEN}[^>]*${ISSUES_PRIO_MARKER_CLOSE}||g" |
+  local line
+  line=$(issues_prio_marker_line "${1:-}")
+  if [ -n "$line" ]; then
+    printf '%s' "${1:-}" | awk -v n="$line" 'NR != n'
+  else
+    printf '%s' "${1:-}"
+  fi |
     tr -s '[:space:]' ' ' | sed -e 's/^ //' -e 's/ $//' | issues_sha256
 }
 
@@ -614,12 +866,14 @@ issues_prio_marker_text() { # band score sev reach conf occ basis at
 
 # The body this pass stores: the marker replaced in place when the body already carries one, appended
 # below a blank line when it does not. Composed here so the writer and the `--body-of` view cannot differ,
-# and so exactly one marker is ever in a body.
+# and so exactly one marker is ever in a body — and so a body that quotes the grammar keeps its quotation
+# instead of having that line overwritten (issue #293).
 issues_body_with_marker() { # <body> <marker> → the new body
-  local body="${1:-}" marker="$2"
-  if [ -n "$(issues_prio_marker "$body")" ]; then
-    printf '%s' "$body" | awk -v marker="$marker" -v open="$ISSUES_PRIO_MARKER_OPEN" '
-      index($0, open) > 0 && !replaced { print marker; replaced = 1; next }
+  local body="${1:-}" marker="$2" line
+  line=$(issues_prio_marker_line "$body")
+  if [ -n "$line" ]; then
+    printf '%s' "$body" | awk -v n="$line" -v marker="$marker" '
+      NR == n { print marker; next }
       { print }'
   else
     printf '%s\n\n%s\n' "$body" "$marker"
@@ -710,6 +964,23 @@ issues_citation_header_extensions() { issues_citations_rules '.headerExtensions[
 issues_citation_mention_only_extensions() { issues_citations_rules '.mentionOnlyExtensions[]?'; }
 issues_citation_external_prefixes() { issues_citations_rules '.externalPrefixes[]?'; }
 issues_citation_generated() { issues_citations_rules '.generated[]?'; }
+
+# `generated` entries are names, and a name may carry a shell glob where the project produces the artefact once
+# per run — `reviewer-report-*.md`, `items/*/reviewer-review-1.md`. Matched against the token and against its
+# basename, so `items/88/reviewer-prompt-1.md` is the same artefact as `reviewer-prompt-1.md`: a run's own
+# record is regenerated by the next run, so its absence from the tree is not staleness (#227, #244, #247).
+issues_citation_is_generated() { # <token> → 0 when the token names an artefact the project produces
+  local tok="$1" pat
+  while IFS= read -r pat; do
+    [ -n "$pat" ] || continue
+    # Unquoted, because the entry may be a glob: quoting it would make every pattern an exact name.
+    # shellcheck disable=SC2254
+    case "$tok" in $pat) return 0 ;; esac
+    # shellcheck disable=SC2254
+    case "${tok##*/}" in $pat) return 0 ;; esac
+  done < <(issues_citation_generated)
+  return 1
+}
 
 # The candidate tokens of a text: boundary-checked, still including the ones that turn out not to be paths.
 issues_citation_candidates() { # <text> → one token per line
@@ -832,7 +1103,7 @@ issues_citation_class() { # <token> → exact|suffix|submodule|generated|not-a-p
     fi
   fi
   [ -e "$root/$tok" ] && { printf 'exact\n'; return 0; }
-  if issues_citation_generated | grep -qxF -- "$tok" || issues_citation_generated | grep -qxF -- "${tok##*/}"; then
+  if issues_citation_is_generated "$tok"; then
     printf 'generated\n'
     return 0
   fi

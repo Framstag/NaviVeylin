@@ -1,0 +1,5 @@
+red on HEAD 2026-10-25T07:03Z — bash tools/loop-selftest.sh --case 'run#treeOfACapEndedChildIsKeptAsAPatch'
+  the work a child the cap ended left was not kept as a patch (transcript: LOOP-TIMEOUT: the child exceeded 2 s — the run ended it and everything it started)
+FAIL run#treeOfACapEndedChildIsKeptAsAPatch
+loop-selftest: 1 of 1 cases failed
+status=1

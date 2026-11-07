@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes-selftest.sh" tests="0" failures="0" errors="0">
+  <system-out>PASS  routes#aReferenceInAChangeArtifactIsNotChecked — a reference in a change artifact is not checked (exit 0) PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md is untouched by every case check-doc-routes-selftest: 19 passed, 0 failed</system-out>
+</testsuite>

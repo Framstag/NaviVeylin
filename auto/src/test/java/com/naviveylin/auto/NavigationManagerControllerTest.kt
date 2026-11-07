@@ -141,7 +141,35 @@ class NavigationManagerControllerTest {
     }
 
     @Test
-    fun aRejectedTripUpdateEndsTripPublishing() {
+    fun aTransientTripRejectionRearmsPublishing() {
+        // Spec: car-host-fault-isolation — "A rejected trip update re-arms publishing within
+        // a retry budget": one refusal does not end the navigation period by itself.
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } just Runs
+        var hostAccepts = false
+        every { nm.updateTrip(any()) } answers {
+            if (!hostAccepts) throw IllegalStateException("Navigation is not started")
+        }
+        val controller = NavigationManagerController(nm) {}
+        controller.onNavigationStarted()
+
+        controller.publishTrip(NavigationState(remainingDistance = 100.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+        // The host session is healthy again: the changed trip is sent a second time.
+        hostAccepts = true
+        controller.publishTrip(NavigationState(remainingDistance = 200.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+
+        verify(exactly = 2) { nm.updateTrip(any()) }
+    }
+
+    @Test
+    fun aRejectedTripIsNotResentUntilItsContentChanges() {
+        // Spec: car-host-fault-isolation — the re-arm does not poll the host at the
+        // position update rate: content the host already refused is not resent.
         val nm = mockk<NavigationManager>()
         every { nm.setNavigationManagerCallback(any()) } just Runs
         every { nm.navigationStarted() } just Runs
@@ -152,12 +180,73 @@ class NavigationManagerControllerTest {
         controller.publishTrip(NavigationState(remainingDistance = 100.0)) {
             mockk<Trip>(relaxed = true)
         }
-        // The rejected update means the host's session is gone: no further publishes.
+        // The changed content is the re-arm...
+        controller.publishTrip(NavigationState(remainingDistance = 200.0)) {
+            mockk<Trip>(relaxed = true)
+        }
+        // ...and the same content again is not resent, so the re-arm does not poll the host.
         controller.publishTrip(NavigationState(remainingDistance = 200.0)) {
             mockk<Trip>(relaxed = true)
         }
 
-        verify(exactly = 1) { nm.updateTrip(any()) }
+        verify(exactly = 2) { nm.updateTrip(any()) }
+    }
+
+    @Test
+    fun aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget() {
+        // Spec: car-host-fault-isolation — the re-arm is bounded: a dead host is not
+        // polled for the whole navigation period.
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } just Runs
+        every { nm.updateTrip(any()) } throws IllegalStateException("Navigation is not started")
+        val controller = NavigationManagerController(nm) {}
+        controller.onNavigationStarted()
+
+        // Five changed trip contents against a host that refuses every send. 100 m steps:
+        // DistanceFormat rounds to 50 m below 1 km, so each step is a distinct bucket.
+        for (step in 1..5) {
+            controller.publishTrip(NavigationState(remainingDistance = step * 100.0)) {
+                mockk<Trip>(relaxed = true)
+            }
+        }
+
+        // Three refused sends are the budget; the fourth is not attempted.
+        verify(exactly = 3) { nm.updateTrip(any()) }
+    }
+
+    @Test
+    fun aDeliveredTripResetsTheRejectionBudget() {
+        // Spec: car-host-fault-isolation — the budget counts *consecutive* refusals,
+        // "a run with no accepted send in between": an accepted send ends the run, so a
+        // counter that never resets stops earlier than the contract says.
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } just Runs
+        var hostAccepts = false
+        every { nm.updateTrip(any()) } answers {
+            if (!hostAccepts) throw IllegalStateException("Navigation is not started")
+        }
+        val controller = NavigationManagerController(nm) {}
+        controller.onNavigationStarted()
+
+        fun publish(metres: Double) {
+            controller.publishTrip(NavigationState(remainingDistance = metres)) {
+                mockk<Trip>(relaxed = true)
+            }
+        }
+
+        publish(100.0) // refused — 1 in the run
+        hostAccepts = true
+        publish(200.0) // accepted — the run ends here, so the counter resets
+        hostAccepts = false
+        publish(300.0) // refused — 1 in the new run
+        publish(400.0) // refused — 2 in the new run
+        publish(500.0) // refused — 3 in the new run, sent: the budget of this run is spent here
+
+        // Five sends: the accepted trip reset the count, so the third refusal of the new
+        // run is still attempted. A counter that never resets stops after four.
+        verify(exactly = 5) { nm.updateTrip(any()) }
     }
 
     @Test

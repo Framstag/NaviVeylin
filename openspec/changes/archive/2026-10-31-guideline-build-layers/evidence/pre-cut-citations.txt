@@ -1,0 +1,31 @@
+# Citations of guidelines/Build.md outside guidelines/
+
+Collected with:
+  grep -rn 'Build\.md §' AGENTS.md openspec/changes/change-readiness-gate/*.md openspec/changes/finding-shape-at-filing/*.md .pi/skills/*/SKILL.md
+
+## Open change artifacts (history — not checked, not rewritten)
+
+openspec/changes/change-readiness-gate/proposal.md:38: `guidelines/Build.md` §4a  -> BuildEvidence.md §4a
+openspec/changes/change-readiness-gate/design.md:89:  `guidelines/Build.md` §2a  -> BuildGate.md §2a
+openspec/changes/finding-shape-at-filing/design.md:106: `guidelines/Build.md` §1 -> Build.md §1 (unchanged)
+
+## AGENTS.md Documentation Map rows (this change retargets these)
+
+AGENTS.md:35  §10                  -> BuildNative.md §10
+AGENTS.md:37  §2, §2a-§2e, §3, §4a, §4b, §4d, §4f -> BuildGate.md §2/§2a-§2e, Build.md §3, BuildEvidence.md §4/§4a-§4f
+AGENTS.md:38  §12                  -> BuildNative.md §12
+AGENTS.md:39  §6a-§6h, §7         -> BuildTests.md §6a-§6h, BuildEvidence.md §7
+AGENTS.md:41  §10a-§10k, §11      -> BuildNative.md §10a-§10k, BuildEvidence.md §11
+
+## Skill files (not owned by this change; refs to Build.md are prose, not checked)
+
+.pi/skills/build-app/SKILL.md:26      §2   -> BuildGate.md §2
+.pi/skills/run-tests/SKILL.md:37      §2   -> BuildGate.md §2
+.pi/skills/run-tests/SKILL.md:131     §7   -> BuildEvidence.md §7
+.pi/skills/run-tests/SKILL.md:134     §7   -> BuildEvidence.md §7
+.pi/skills/run-tests/SKILL.md:147     §6   -> BuildTests.md §6
+.pi/skills/run-tests/SKILL.md:154     §4   -> BuildEvidence.md §4
+.pi/skills/run-tests/SKILL.md:172     §6   -> BuildTests.md §6
+.pi/skills/process-failure-log/SKILL.md:26,48,51,52,53,96 (document-level mentions, no section number)
+
+All cited §-numbers resolve in the baseline heading-number set recorded in pre-cut.md.

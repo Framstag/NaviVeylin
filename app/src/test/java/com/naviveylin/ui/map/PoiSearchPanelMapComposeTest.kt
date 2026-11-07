@@ -67,6 +67,7 @@ class PoiSearchPanelMapComposeTest {
                     selectedPoi = 51.5136 to 7.4653,
                     onEntryClick = {},
                     modifier = Modifier.fillMaxSize(),
+                    isDarkPresentation = false,
                     landscapeOverride = landscape.takeIf { it }
                 )
             }

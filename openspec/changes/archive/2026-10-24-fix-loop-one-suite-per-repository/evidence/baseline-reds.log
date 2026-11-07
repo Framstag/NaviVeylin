@@ -1,0 +1,9 @@
+=== the pristine base a0ca0f35, 2026-10-24T10:57:41Z, no lease in its driver (mentions of the lock: 0):
+=== run#aWriterTheRunCanPlaceBlocksTheItem
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+=== run#prescreenAnnouncesItselfBeforeItReturns
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed
+ended 3622780 — its working directory is inside loop-selftest.MAq7Dv

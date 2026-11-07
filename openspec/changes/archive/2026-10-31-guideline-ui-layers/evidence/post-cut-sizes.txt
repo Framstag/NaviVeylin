@@ -1,0 +1,41 @@
+# Post-cut sizes and bounds
+
+$ wc -c guidelines/UI.md guidelines/UIPhone.md
+45326 guidelines/UI.md
+47932 guidelines/UIPhone.md
+93258 insgesamt
+
+All sections under the 12 000-byte bound (tools/check-doc-routes.sh --sizes):
+
+check-doc-routes: section-cost UI.md §1 1716 bytes 27 lines routed
+check-doc-routes: section-cost UI.md §2 532 bytes 13 lines routed
+check-doc-routes: section-cost UI.md §3 3690 bytes 45 lines routed
+check-doc-routes: section-cost UI.md §3a 5379 bytes 74 lines routed
+check-doc-routes: section-cost UI.md §3b 2036 bytes 31 lines routed
+check-doc-routes: section-cost UI.md §3c 2912 bytes 36 lines routed
+check-doc-routes: section-cost UI.md §4 933 bytes 14 lines routed
+check-doc-routes: section-cost UI.md §6 1313 bytes 18 lines routed
+check-doc-routes: section-cost UI.md §6b 5169 bytes 67 lines routed
+check-doc-routes: section-cost UI.md §8d 5539 bytes 65 lines not-routed
+check-doc-routes: section-cost UI.md §9 4879 bytes 64 lines routed
+check-doc-routes: section-cost UI.md §10 8816 bytes 124 lines routed
+check-doc-routes: section-cost UI.md §20 1374 bytes 17 lines routed
+check-doc-routes: section-cost UIPhone.md §5 1203 bytes 18 lines routed
+check-doc-routes: section-cost UIPhone.md §6a 6133 bytes 78 lines routed
+check-doc-routes: section-cost UIPhone.md §7 1704 bytes 25 lines routed
+check-doc-routes: section-cost UIPhone.md §7a 3393 bytes 43 lines routed
+check-doc-routes: section-cost UIPhone.md §7b 7978 bytes 91 lines routed
+check-doc-routes: section-cost UIPhone.md §8 1078 bytes 17 lines routed
+check-doc-routes: section-cost UIPhone.md §8b 3301 bytes 41 lines routed
+check-doc-routes: section-cost UIPhone.md §8c 3493 bytes 44 lines routed
+check-doc-routes: section-cost UIPhone.md §8a 1869 bytes 27 lines routed
+check-doc-routes: section-cost UIPhone.md §10a 2419 bytes 35 lines routed
+check-doc-routes: section-cost UIPhone.md §11 3403 bytes 43 lines routed
+check-doc-routes: section-cost UIPhone.md §12 2094 bytes 26 lines routed
+check-doc-routes: section-cost UIPhone.md §13 655 bytes 9 lines routed
+check-doc-routes: section-cost UIPhone.md §14 763 bytes 11 lines routed
+check-doc-routes: section-cost UIPhone.md §15 975 bytes 14 lines routed
+check-doc-routes: section-cost UIPhone.md §16 1041 bytes 15 lines routed
+check-doc-routes: section-cost UIPhone.md §17 985 bytes 16 lines routed
+check-doc-routes: section-cost UIPhone.md §18 4503 bytes 53 lines routed
+check-doc-routes: section-cost UIPhone.md §19 289 bytes 5 lines routed

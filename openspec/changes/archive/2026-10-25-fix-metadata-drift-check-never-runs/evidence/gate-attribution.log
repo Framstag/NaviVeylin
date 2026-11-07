@@ -1,0 +1,21 @@
+# the gate's one red line, attributed on the pristine base commit 0f3426564b22faf1c2b8cf022050fef498470323 (2026-10-25T19:28:10Z)
+
+$ git ls-tree 0f342656 -- tools/build-inputs.sh
+100644 blob 65a907c975e64541feb4a386eb143cf88623e3cf	tools/build-inputs.sh
+
+$ ls -l /tmp/baseprobe/tools/build-inputs.sh
+-rw-r--r-- 1 tim tim 11131 25. Okt 20:20 /tmp/baseprobe/tools/build-inputs.sh
+
+$ (cd /tmp/baseprobe && tools/build-inputs.sh --check); echo "exit=$?"
+zsh:1: keine Berechtigung: tools/build-inputs.sh
+exit=126
+
+$ jq -r '.rows[].id' /tmp/baseprobe/tools/sensors/sensors.json
+build-duration
+package-size
+hotspot
+coverage
+source-size
+broken-main
+pr-conflicts
+stale-citations

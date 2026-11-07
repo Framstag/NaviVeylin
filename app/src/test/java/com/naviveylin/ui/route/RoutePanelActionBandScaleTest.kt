@@ -17,6 +17,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -94,16 +95,12 @@ class RoutePanelActionBandScaleTest {
                 LocationEntry().apply { label = "Start"; lat = 48.0; lon = 2.0; matchQuality = "coordinate" },
                 LocationEntry().apply { label = "Destination"; lat = 49.0; lon = 2.6; matchQuality = "coordinate" }
             )
-            client.routeToDeliver = RouteEntry().apply {
-                routeHandle = 1L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 120_000.0
+            client.routeToDeliver = routeWithSteps(
+                startStep(lat = 48.0, lon = 2.0),
+                turnStep(TurnType.RIGHT, lat = 48.5, lon = 2.3, legDistance = 120_000.0, legTime = 5_400.0, name = "B"),
+                distance = 120_000.0,
                 duration = 5_400.0
-                descriptions = arrayOf("Start: A  []", "Right onto B  [120.0 km]")
-                instructionLats = doubleArrayOf(48.0, 48.5)
-                instructionLons = doubleArrayOf(2.0, 2.3)
-            }
+            )
             viewModel.calculateRoute()
         }
         composeRule.setContent {

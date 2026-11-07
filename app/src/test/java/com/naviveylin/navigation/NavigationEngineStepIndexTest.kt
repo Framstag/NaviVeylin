@@ -4,7 +4,7 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.location.LocationService
@@ -21,11 +21,10 @@ import org.robolectric.Shadows.shadowOf
 import com.naviveylin.test.engineUnderTest
 
 /**
- * Verifies the phone navigation VM's reroute-restart state handling
- * (spec: auto/navigation-view — "Distance correct after reroute",
- * next-turn-overlay): starting navigation on a new route clears the previous
- * route's steps, and live step-index lookup advances monotonically through
- * duplicate descriptions.
+ * Verifies the phone navigation engine's reroute-restart state handling
+ * (spec: auto/navigation-view — "Distance correct after reroute", next-turn-overlay): starting
+ * navigation on a new route clears the previous route's steps, and the live step-index lookup
+ * advances monotonically through repeated manoeuvres.
  *
  * Default Robolectric sandbox (no @Config, no @GraphicsMode) per the AGENTS.md
  * "JNI stub for unit tests" classloader rule — this class instantiates
@@ -48,33 +47,40 @@ class NavigationEngineStepIndexTest {
         locationService: LocationService = LocationService(ApplicationProvider.getApplicationContext())
     ): NavigationEngine {
         return engineUnderTest(
-            { client }, locationService,
-            ApplicationProvider.getApplicationContext(),
+            client = { client },
+            locationService = locationService,
+            context = ApplicationProvider.getApplicationContext(),
             dispatchers = engineDispatchers
         )
     }
 
-    /** Drain the injected schedulers and the looper, then assert — no wall-clock deadline. */
+    /** Drains the engine's schedulers until [condition] holds. */
     private fun awaitState(condition: () -> Boolean) {
-        repeat(2) {
-            computeDispatcher.scheduler.advanceUntilIdle()
-            ioDispatcher.scheduler.advanceUntilIdle()
+        repeat(50) {
             shadowOf(Looper.getMainLooper()).idle()
+            ioDispatcher.scheduler.advanceUntilIdle()
+            computeDispatcher.scheduler.advanceUntilIdle()
+            if (condition()) return
         }
-        if (!condition()) {
-            throw AssertionError("State condition not met after draining the test scheduler")
-        }
+        assertTrue("the state never reached the awaited condition", condition())
     }
 
-    private fun routeEntry(): RouteEntry = RouteEntry().apply {
+    @Suppress("unused")
+    private fun routeEntry() = RouteEntry().apply {
         routeHandle = 1L
         latitudes = doubleArrayOf(52.5200, 52.5230)
         longitudes = doubleArrayOf(13.4050, 13.4080)
         distance = 1000.0
     }
 
-    private fun instr(description: String, distance: Double = 100.0) =
-        RouteInstruction(distance, TurnType.LEFT, "Main St", description, "Turn left")
+    /** A left turn at [distanceFromStart], so the live step carries a stable identity. */
+    private fun step(distanceFromStart: Double = 100.0) = RouteStep().apply {
+        kind = RouteStep.Kind.TURN
+        turn = TurnType.LEFT
+        legDistance = 100.0
+        this.distanceFromStart = distanceFromStart
+        name = RouteStep.Name("Main St", "")
+    }
 
     @Test
     fun startNavigation_clearsStaleStepsFromPreviousRoute() {
@@ -86,21 +92,21 @@ class NavigationEngineStepIndexTest {
 
         // Simulate steps from the first route reaching the UI.
         val listener = client.navigationListener!!
-        listener.onRouteInstructions(arrayOf(instr("old step 1"), instr("old step 2")))
+        listener.onRouteSteps(arrayOf(step(100.0), step(200.0)))
         awaitState {
-            vm.state.value.instructions.isNotEmpty() && vm.state.value.nextInstruction != null
+            vm.state.value.steps.isNotEmpty() && vm.state.value.nextStep != null
         }
 
         // A reroute restart starts a fresh engine — stale steps must not survive.
         vm.start(routeEntry(), Vehicle.CAR)
 
-        assertTrue(vm.state.value.instructions.isEmpty())
-        assertNull(vm.state.value.nextInstruction)
+        assertTrue(vm.state.value.steps.isEmpty())
+        assertNull(vm.state.value.nextStep)
         assertEquals(0, vm.state.value.currentStepIndex)
     }
 
     @Test
-    fun onNextRouteInstruction_advancesIndexMonotonicallyThroughDuplicates() {
+    fun onNextRouteStep_advancesIndexMonotonicallyThroughRepeatedManoeuvres() {
         val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
         val vm = buildViewModel(client)
 
@@ -108,25 +114,19 @@ class NavigationEngineStepIndexTest {
         awaitState { vm.state.value.isNavigating }
 
         val listener = client.navigationListener!!
-        listener.onRouteInstructions(arrayOf(
-            instr("Turn left into A"),
-            instr("Straight on"),
-            instr("Turn left into A")
-        ))
-        awaitState { vm.state.value.instructions.size == 3 }
+        listener.onRouteSteps(arrayOf(step(100.0), step(300.0), step(700.0)))
+        awaitState { vm.state.value.steps.size == 3 }
 
-        // Advance to the middle step ("Straight on").
-        listener.onNextRouteInstruction(instr("Straight on"))
+        // Advance to the middle step.
+        listener.onNextRouteStep(step(300.0))
         awaitState { vm.state.value.currentStepIndex == 1 }
 
-        // The live instruction re-repeats "Turn left into A": its real
-        // occurrence is the second one (index 2) — the lookup must NOT fall
-        // back to the already-passed index 0.
-        listener.onNextRouteInstruction(instr("Turn left into A"))
+        // The live step jumps to the third manoeuvre.
+        listener.onNextRouteStep(step(700.0))
         awaitState { vm.state.value.currentStepIndex == 2 }
 
-        // Unknown description keeps the current index instead of thrashing.
-        listener.onNextRouteInstruction(instr("Unknown maneuver"))
+        // A step that matches no list entry keeps the current index instead of thrashing.
+        listener.onNextRouteStep(step(9_000.0))
         awaitState { vm.state.value.currentStepIndex == 2 }
     }
 }

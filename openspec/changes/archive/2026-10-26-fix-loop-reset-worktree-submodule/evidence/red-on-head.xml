@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard" tests="1" failures="1" errors="0" time="61">
+  <system-out>the repair leaves a tree the next start accepts: expected '', got ' M app/src/main/cpp/libosmscout' (2026-10-26T07:26:29Z)</system-out>
+</testsuite>

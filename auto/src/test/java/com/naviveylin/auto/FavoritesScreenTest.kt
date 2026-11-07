@@ -15,6 +15,7 @@ import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.SurfaceOrigin
 import dagger.hilt.EntryPoints
 import io.mockk.every
 import io.mockk.just
@@ -449,7 +450,7 @@ class FavoritesScreenTest {
     @Test
     fun rowsOfferNoReorderAffordanceAndSelectionStillNavigates() =
         runTest(mainDispatcherRule.dispatcher) {
-            every { navigationViewModel.navigateTo(any(), any()) } just Runs
+            every { navigationViewModel.navigateTo(any(), any(), any(), any()) } just Runs
             val screen = newScreen(groupName = "Cities")
             favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Rome"), fav("Berlin")))
             advanceUntilIdle()
@@ -459,7 +460,7 @@ class FavoritesScreenTest {
 
             // Selecting a row still starts the destination-picker flow.
             rows.first().onClickDelegate?.sendClick(mockk(relaxed = true))
-            verify { navigationViewModel.navigateTo(51.5136, 7.4653) }
+            verify { navigationViewModel.navigateTo(51.5136, 7.4653, any(), SurfaceOrigin.CAR) }
         }
 
     // --- The all-favorites level: one row per group (spec auto-favorites — The all-favorites mode
@@ -595,7 +596,7 @@ class FavoritesScreenTest {
         // Spec: auto-favorites — Groups stay read-only; fav-management-ui — Car favorites screen
         // offers no move action. The car templates cannot express the destination-group step, and the
         // surface has to stay operable while driving.
-        every { navigationViewModel.navigateTo(any(), any()) } just Runs
+        every { navigationViewModel.navigateTo(any(), any(), any(), any()) } just Runs
         favoritesProvider.flow.value = mapOf(
             "Cities" to listOf(fav("Rome")),
             "Work" to listOf(fav("Office"))
@@ -619,7 +620,7 @@ class FavoritesScreenTest {
             favoriteRows.all { it.actions.isEmpty() }
         )
         favoriteRows.single().onClickDelegate!!.sendClick(mockk(relaxed = true))
-        verify { navigationViewModel.navigateTo(51.5136, 7.4653) }
+        verify { navigationViewModel.navigateTo(51.5136, 7.4653, any(), SurfaceOrigin.CAR) }
     }
 
     @Test
@@ -839,7 +840,7 @@ class FavoritesScreenTest {
     @Test
     fun starredModeOffersNoReorderAffordanceAndSelectionStillNavigates() =
         runTest(mainDispatcherRule.dispatcher) {
-            every { navigationViewModel.navigateTo(any(), any()) } just Runs
+            every { navigationViewModel.navigateTo(any(), any(), any(), any()) } just Runs
             val screen = newScreen(starredOnly = true)
             favoritesProvider.starred.value = starred("Cities" to "Rome")
             advanceUntilIdle()
@@ -848,7 +849,7 @@ class FavoritesScreenTest {
             assertTrue("car rows must not carry reorder actions", rows.all { it.actions.isEmpty() })
 
             rows.first().onClickDelegate?.sendClick(mockk(relaxed = true))
-            verify { navigationViewModel.navigateTo(51.5136, 7.4653) }
+            verify { navigationViewModel.navigateTo(51.5136, 7.4653, any(), SurfaceOrigin.CAR) }
         }
 
     @Test

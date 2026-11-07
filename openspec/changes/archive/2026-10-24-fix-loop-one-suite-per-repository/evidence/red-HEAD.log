@@ -1,0 +1,6 @@
+=== HEAD's driver (git show HEAD:tools/loop-selftest.sh), 2026-10-24T09:51Z, a0ca0f3544894dafb4d099eed4e53cc233686896 ===
+=== bash tools/loop-selftest.sh --case 'driver#aSecondSuiteInOneRepositoryIsRefused'
+  the suite this case started never took the lock at /home/tim/projects/NaviVeylin/.pi/worktrees/i295/.pi/tmp/.loop-selftest.lock
+FAIL driver#aSecondSuiteInOneRepositoryIsRefused
+loop-selftest: 1 of 1 cases failed
+exit=1

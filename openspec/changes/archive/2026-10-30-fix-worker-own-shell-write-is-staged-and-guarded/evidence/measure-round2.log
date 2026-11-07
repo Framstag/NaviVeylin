@@ -1,0 +1,210 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=2f954a04b3f75e138c529fffe7985ca011375866 paths=162 insertions=7211 deletions=44
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-red.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-red.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_loop-selftest.sh_--from-git_2f954a04b3f75e138c529fffe7985ca011375866.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-round-1-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_2f954a04b3f75e138c529fffe7985ca011375866.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/probe-gh-run-list.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/red-on-head.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/revert-check-72.6.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/green-after-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/green-after-archive.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/measure-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/phase-a.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/red-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/revert-check.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-bound-case-line/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/green-after-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/green-after-archive.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/measure-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/red-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routed-read-numbers-verbatim-cases/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-line.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_2f954a04b3f75e138c529fffe7985ca011375866.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/green-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/green-case.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/red-on-head.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-doc-routes-mutations.json
+LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/fixtures/pi
+LOOP-MEASURE-PATH tools/loop/fixtures/scenarios/landed/runs.json
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 2f954a04b3f75e138c529fffe7985ca011375866
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=288 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE 2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded scenarios=13 cases=13 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-summary.xml tests=725 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=217 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=22 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=26s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=129 failures=0 time=75s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=283s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_2f954a04b3f75e138c529fffe7985ca011375866.xml tests=288 failures=0 time=403s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 3 of 23 tally files not shown — at most 20 per directory (openspec/changes/archive/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded/evidence)
+LOOP-MEASURE-SURFACE surface: 1 case added (`run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`), 1 fixture hook added
+LOOP-MEASURE-END

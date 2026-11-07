@@ -1,0 +1,24 @@
+routed pairs: 116
+entry document: 25908 bytes, 299 lines
+documents measured: 9 (626432 bytes over 7793 lines, 80.4 bytes/line)
+
+row routed-section-size (threshold 12000, scope routed-section)
+  doc-context: UI.md §1 bytes=25206 lines=257
+  doc-context: MapRendering.md §1 bytes=22644 lines=249
+  doc-context: UI.md §8 bytes=19681 lines=245
+  doc-context: Backlog.md §9 bytes=14634 lines=158
+  doc-context: UI.md §7a bytes=13102 lines=158
+violation Backlog.md §9 14634 bytes
+violation Build.md §7 12052 bytes
+violation Design.md §5 12781 bytes
+violation Design.md §8 12058 bytes
+violation MapRendering.md §1 22644 bytes
+violation UI.md §1 25206 bytes
+violation UI.md §7a 13102 bytes
+violation UI.md §8 19681 bytes
+
+row entry-document-size (threshold 32000, scope entry-document)
+  doc-context: AGENTS.md bytes=25908 lines=299 (bound 32000 bytes, ~400 lines at 80 bytes/line)
+clear none none
+
+the pair count is the table as it stands: 116 pairs, each one condition when past the bound

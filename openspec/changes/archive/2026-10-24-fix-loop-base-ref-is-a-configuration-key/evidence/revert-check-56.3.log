@@ -1,0 +1,6 @@
+$ bash tools/loop-mutations.sh --only 56.3
+RED    56.3  state#baseBranchIsAConfigurationKey   (the base branch recorded as a value an inherited environment may override (issue #303))
+restore 56.3 state#baseBranchIsAConfigurationKey green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+EXIT_CODE=0

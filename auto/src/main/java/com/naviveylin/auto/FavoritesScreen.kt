@@ -13,6 +13,7 @@ import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.orderedGroupNames
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -328,7 +329,11 @@ class FavoritesScreen(
         .addText(FavoritesScreenMapper.buildDescription(favorite))
         .setOnClickListener {
             Log.d(TAG, "Favorite selected: ${favorite.name}")
-            navigationViewModel.navigateTo(favorite.lat, favorite.lon)
+            navigationViewModel.navigateTo(
+                favorite.lat,
+                favorite.lon,
+                origin = SurfaceOrigin.CAR
+            )
         }
         .build()
 

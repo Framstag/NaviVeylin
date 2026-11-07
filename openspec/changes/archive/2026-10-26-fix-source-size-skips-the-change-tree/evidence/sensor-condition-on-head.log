@@ -1,0 +1,10 @@
+# The row's own run on the real tree at HEAD, the condition its own item carries:
+#   SENSORS_ID=source-size SENSORS_ROOT=$PWD SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[]' \
+#     SENSORS_PROFILE=$PWD/tools/tooling.json bash tools/sensors/metrics/source-size.sh
+# 2026-10-26T21:20:07Z, stderr then stdout
+source-size: lines=2307 path=openspec/changes/archive/2026-10-25-fix-auto-map-renderer-file-size/evidence/AutoMapRenderer-head.kt
+source-size: lines=1407 path=auto/src/main/java/com/naviveylin/auto/NavigationSession.kt
+source-size: lines=1367 path=app/src/main/java/com/naviveylin/ui/favorites/FavoritesSheet.kt
+source-size: lines=1304 path=app/src/main/java/com/naviveylin/ui/route/RoutePanel.kt
+source-size: lines=1261 path=app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt
+{"path":"openspec/changes/archive/2026-10-25-fix-auto-map-renderer-file-size/evidence/AutoMapRenderer-head.kt","fingerprint":"9ba4b081217dbf428415345330a46525a398211110918b615a5ac553142a5d9f","measurement":"2307","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"openspec/changes/archive/2026-10-25-fix-auto-map-renderer-file-size/evidence/AutoMapRenderer-head.kt is 2307 lines, past the row's bound of 1500"}

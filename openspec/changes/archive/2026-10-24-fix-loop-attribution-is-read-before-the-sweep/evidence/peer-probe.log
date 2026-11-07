@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 134 records (labels: 12.11)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/i288-final/.pi/tmp/loop-mutations.At2ZcA
+RED    12.11  run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem   (the child chain the run itself started in the project not being a writer)
+restore 12.11 run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

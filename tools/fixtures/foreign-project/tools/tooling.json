@@ -2,6 +2,10 @@
   "profile": 1,
   "comment": "THE FOREIGN PROFILE — the fixture's own, deliberately different from the upstream project's: another repository, another allowlist, another category vocabulary, another band set and another TTL. A passing fixture cannot be passing by accidental similarity (tooling-portability, D2).",
   "repo": "acme/widget",
+  "checks": {
+    "comment": "The foreign project declares no readiness check, so a finding in its tier-B shape is refused there with `gate-not-configured` — declared empty, never omitted.",
+    "changeReady": ""
+  },
   "allowedAuthors": ["ada"],
   "requiredLabels": ["agent/eligible"],
   "reservedLabels": ["agent/eligible"],
@@ -16,7 +20,7 @@
     "sensor": []
   },
   "roles": {
-    "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and one of them (`deviceStatus`) is empty because this project has no device-gated state — declared empty, never omitted.",
+    "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and two of them (`deviceStatus`, `settledRecordMarker`) are empty because this project has no device-gated state and no tombstone record — declared empty, never omitted.",
     "queuedVerdict": "eligible",
     "heldVerdict": "held",
     "workedClasses": ["bug", "improvement"],
@@ -31,6 +35,7 @@
     "closeStatus": "fixed-by",
     "retiredStatus": "retired",
     "settledStatuses": ["fixed-by", "retired"],
+    "settledRecordMarker": "",
     "inProgressAgent": "in-progress",
     "deviceAgent": "",
     "decisionAgent": "needs-decision"

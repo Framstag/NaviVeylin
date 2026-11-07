@@ -65,6 +65,16 @@ issues_preflight "$profile"
 current=$(gh issue view "$issue" --json number,labels,state,comments)
 labels=$(printf '%s' "$current" | jq -c '[.labels[]? | if type == "string" then {name: .} else . end]')
 if ! printf '%s' "$labels" | jq -e --arg l "$decision_label" 'any(.[]; .name == $l)' >/dev/null; then
+  # An item the run put in the shaping inbox awaits no decision either, but its refusal says where it *is*
+  # waiting — a reader who is told "there is nothing to answer" has one queue fewer to find (capability
+  # `shaping-inbox`).
+  shaping_role=$(jq -r '.roles.shapingAgent // empty' "$profile")
+  if [ -n "$shaping_role" ] && printf '%s' "$labels" | jq -e --arg l "agent${separator}${shaping_role}" \
+    'any(.[]; .name == $l)' >/dev/null; then
+    printf 'answer: #%s awaits no decision — it carries agent%s%s, so it waits in the shaping inbox (tools/issues/shaping.sh lists it) and a person reshapes it with tools/issues/update.sh\n' \
+      "$issue" "$separator" "$shaping_role" >&2
+    exit "$ISSUES_EXIT_POLICY"
+  fi
   printf 'answer: #%s carries no %s — it awaits no decision, so there is nothing to answer\n' "$issue" "$decision_label" >&2
   exit "$ISSUES_EXIT_POLICY"
 fi

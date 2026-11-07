@@ -1,0 +1,8 @@
+# red-on-HEAD, item #778, base bea00bf5da8d
+# the change's two cases applied, its seven production hunks reverted, 2026-11-06T14:06:45Z
+  the run succeeds: build-duration: fingerprint=- verdict=error measurement=error-the-timing-record-proves-nothing issue=- action=posted nothing, the run fails
+sensors: 1 finding(s) reported an error — nothing was written for them and the run fails: expected '0', got '8'
+FAIL sensors#buildDurationCoversThePipeline
+---
+  the fetch exited 2: fetch-build-inputs: unknown argument --jobs-record
+FAIL inputs#theFetcherPublishesTheJobTimings

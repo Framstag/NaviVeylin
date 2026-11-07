@@ -1,0 +1,8 @@
+RED    42.1  run#aMergedBranchIsRemoved   (the worktree released from the branch it holds)
+       2026-10-29T09:23:32Z — the run left the branch of the item it closed behind: fix/issue-21-an-eligible-bug-whose-cited-path-still-e
+restore 42.1 run#aMergedBranchIsRemoved green again
+RED    42.2  run#aMergedBranchIsRemoved   (the deletion of the merged branch)
+       2026-10-29T09:23:55Z — the branch was removed where the run merged it, not by the end sweep that runs after the report: 'fix/issue-' should not appear in: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261029-092346
+restore 42.2 run#aMergedBranchIsRemoved green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

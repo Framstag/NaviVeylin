@@ -1,0 +1,14 @@
+# after the fix, on the change tree
+# command: bash tools/check-sonar-workflow-selftest.sh
+# taken: 2026-11-03T07:04:55Z
+ok: sonar-workflow#theNativeTreeIsExcluded
+ok: sonar-workflow#generatedCodeIsExcluded
+ok: sonar-workflow#theTriggerSetIsPushAndDispatch
+ok: sonar-workflow#aPullRequestTriggerIsReported
+ok: sonar-workflow#theDispatchIsGuardedToMain
+ok: sonar-workflow#theVendoredReportIsNotListed
+ok: sonar-workflow#theGateIsNotWaitedFor
+ok: sonar-workflow#theScanStepIsNotContinueOnError
+ok: sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag
+check-sonar-workflow-selftest: all 9 cases passed (the repository's own scan files, no build, no network)
+# exit: 0

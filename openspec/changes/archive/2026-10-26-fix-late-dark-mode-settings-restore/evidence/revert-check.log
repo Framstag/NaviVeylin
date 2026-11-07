@@ -1,0 +1,12 @@
+=== revert-check: guard mutated away (2026-10-26T06:41:38Z)
+DarkModeLateRestoreTest > aChangeThatLandsBeforeTheReadKeepsBothFields FAILED
+    java.lang.AssertionError: the persisted Automatic must not replace the preference the user just set expected:<ON> but was:<AUTOMATIC>
+2 tests completed, 1 failed
+> Task :app:testMobileDebugUnitTest FAILED
+BUILD FAILED in 16s
+--- XML:
+tests="2" skipped="0" failures="1" errors="0"
+=== revert-check: guard restored, forced run (2026-10-26T06:41:57Z)
+BUILD SUCCESSFUL in 12s
+--- XML:
+tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-26T06:42:03.781Z"

@@ -62,7 +62,7 @@ class PoiResultsScreen(
      * The request-lifecycle seam. The client is resolved per call and never in the constructor, and the
      * gate runs these calls off this screen's host-facing dispatcher, because the native client must not
      * be built on the car-app main thread (spec: `auto-map-renderer` — Provider resolution does not build
-     * the client; `guidelines/UI.md` §3a).
+     * the client; `guidelines/UICar.md` §3a).
      */
     private val requests = object : SearchRequestClient {
         override fun beginSearch(slot: String): Long =

@@ -142,6 +142,13 @@ fi
 
 # --- bump submodule pointer in parent repo ---
 git add "$SUBMODULE_PATH"
+# The pin is recorded only once it is published: a gitlink no remote carries is a tree nobody else can check out,
+# and the loop's worktree clone then reports the module as dirt under no item (measured 2026-10-28 — a run with
+# 600 minutes of budget ended after 69 seconds on exactly that). The staged gitlink is what this step records, so
+# the check reads the index; it answers from this clone's remote-tracking refs, which is why the push above comes
+# first.
+bash "$PARENT_ROOT/tools/check-submodule-pin.sh" --root "$PARENT_ROOT" --path "$SUBMODULE_PATH" --index --quiet ||
+    fail "the pin ${NEW_TIP:0:12} is on no remote-tracking ref — publish it before the parent records it"
 if git diff --cached --quiet; then
     echo "submodule pointer unchanged (already at ${NEW_TIP:0:12})"
 else

@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.core.exitOrdinal
+import com.naviveylin.core.turnTypeFor
 import com.naviveylin.core.ManeuverSymbols
 import kotlin.math.PI
 import kotlin.math.cos
@@ -70,13 +71,15 @@ fun navSymbolFor(turnType: TurnType, roundaboutExitNumber: Int): NavSymbol =
         NavSymbol.TurnArrow(turnType)
     }
 
-/** [navSymbolFor] for an instruction's own manoeuvre. */
-fun navSymbolForInstruction(instruction: RouteInstruction): NavSymbol =
-    navSymbolFor(instruction.turnType, instruction.roundaboutExitNumber)
+/** [navSymbolFor] for a live step's own manoeuvre. */
+fun navSymbolForStep(step: com.framstag.libosmscout.client.RouteStep): NavSymbol =
+    navSymbolFor(turnTypeFor(step), step.exitOrdinal)
 
-/** [navSymbolFor] for an instruction's "next next" hint, from the hint's own ordinal. */
-fun navSymbolForNextNext(instruction: RouteInstruction): NavSymbol =
-    navSymbolFor(instruction.nextNextTurnType, instruction.nextNextRoundaboutExitNumber)
+/** [navSymbolFor] for a live step's "next next" hint, from the hint's own ordinal. */
+fun navSymbolForNextNext(step: com.framstag.libosmscout.client.RouteStep): NavSymbol {
+    val hint = step.nextNext ?: return NavSymbol.TurnArrow(TurnType.STRAIGHT_ON)
+    return navSymbolFor(turnTypeFor(hint), hint.exitOrdinal)
+}
 
 // ── Main composable ──
 

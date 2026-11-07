@@ -1,0 +1,7 @@
+# `bash tools/loop-selftest.sh --case 'run#prescreenAnnouncesItselfBeforeItReturns'` on the base `c4c727fb`
+# Tree: .pi/worktrees/t288c (detached at c4c727fb, the pushed fix/issue-288-… tip). Host: the item was taken on;
+# taken 2026-10-24T09:58:35Z.
+
+  the phase is announced on the console: 'loop: pre-screen' not found in: 
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed

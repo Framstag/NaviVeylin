@@ -1,0 +1,4 @@
+RED    46.1  gate#theSuitesOutputReachesTheConsoleWhileItRuns   (the stream that carries a suite output to the console while the suite runs (issue #269))
+restore 46.1 gate#theSuitesOutputReachesTheConsoleWhileItRuns green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

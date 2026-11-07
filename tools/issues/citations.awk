@@ -1,10 +1,21 @@
 # citations.awk — extract path-shaped citation tokens from a text stream (`stale-citation-resolution`, D2).
 #
-# One match at a time, because the two rules that make this true rather than plausible need the characters
-# *around* the match: a token is a citation only when it is not preceded by `[A-Za-z0-9_.-]` (so the tail of
+# One match at a time, because the rules that make this true rather than plausible need the characters
+# *around* the match: a token is a citation only when it is not preceded by `[]A-Za-z0-9_.@*-]` (so the tail of
 # `-Dorg.gradle.java.home` is not one) and not followed by `[A-Za-z0-9_]` (so `Dorg.gradle.java.h` is not one
 # either, though it ends in a known extension). The pattern itself is handed in as `pattern`; `print tok`
 # emits one candidate per line, and the caller decides which of them are paths (`headerExtensions`).
+#
+# Three of those left-hand characters are not padding but a *shape* the token is part of, and each one produced a
+# false `absent` on a body that cites nothing stale:
+#
+#   `]`  the bracketed-grep idiom, `ps … | grep '[t]ools/loop/run.sh'`, whose `[` elides the first character so
+#        the command's own text does not match itself — the extractor saw `ools/loop/run.sh` (#233);
+#   `*`  a glob, `all `*Test.kt` under app/src/test/java`, whose tail it saw as `Test.kt` (#155);
+#   `@`  a scoped package, `@luan.sh/pi-view-image`, whose tail it saw as `luan.sh` (#94).
+#
+# None of the three can be reconstructed by guessing the elided character, so the token is dropped — a false
+# negative, the half this classifier is allowed to be wrong on.
 {
   text = $0
   start = 1
@@ -16,7 +27,7 @@
     start = i + RLENGTH
     l = (i == 1) ? "" : substr(text, i - 1, 1)
     r = (i + RLENGTH > length(text)) ? "" : substr(text, i + RLENGTH, 1)
-    if (l ~ /[A-Za-z0-9_.-]/) continue
+    if (l ~ /[]A-Za-z0-9_.@*-]/) continue
     if (r ~ /[A-Za-z0-9_]/) continue
     print tok
   }

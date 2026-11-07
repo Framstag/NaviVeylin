@@ -1,0 +1,93 @@
+# revert-checks for the new invariants (issue #289)
+2026-10-25T17:26:30Z
+
+## loop-mutations --only 54.5
+loop-mutations: selected 1 of 170 records (labels: 54.5)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.B5D6d1
+RED    54.5  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the portability check for a path it reads, the loop configuration (issue #289))
+restore 54.5 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+rc=0
+
+## loop-mutations --only 54.6
+loop-mutations: selected 1 of 170 records (labels: 54.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.DZzxa2
+RED    54.6  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the portability check for an engine it scans (issue #289))
+restore 54.6 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+rc=0
+
+## loop-mutations --only 54.7
+loop-mutations: selected 1 of 170 records (labels: 54.7)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.F8Qaha
+RED    54.7  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the issue tooling step for an engine its case greps (issue #289))
+restore 54.7 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+rc=0
+
+## loop-mutations --only 54.8
+loop-mutations: selected 1 of 170 records (labels: 54.8)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.Q04zIP
+RED    54.8  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes one command of that step besides its self-test (issue #289))
+restore 54.8 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+rc=0
+
+## loop-mutations --only 54.9
+loop-mutations: selected 1 of 170 records (labels: 54.9)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.NZowsA
+RED    54.9  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the portability check for the profile it reads (issue #289))
+restore 54.9 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+rc=0
+
+## loop-mutations --only 54.10
+loop-mutations: selected 1 of 170 records (labels: 54.10)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.4SRwp7
+RED    54.10  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the build-inputs step for the registry it reads (issue #289))
+restore 54.10 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+rc=0
+
+## portability-mutations --only 6.4
+6.4	preconditions#refusesOutsideAGitTree	the suite refuses when its root is not a git working tree
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-portability-selftest.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+rc=0
+
+## portability-mutations --only 6.5
+6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-portability-selftest.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+rc=0
+
+## portability-mutations --only 6.6
+6.6	preconditions#runsInALinkedWorkingTree	a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-portability-selftest.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+rc=0
+
+## portability-mutations --only 6.7
+6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-portability-selftest.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+rc=0
+

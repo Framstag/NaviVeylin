@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:52:10.426Z" hostname="dingens" time="0.116">
+  <properties/>
+  <testcase name="navEndWithoutMapKeyWritesNoViewportFile" classname="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" time="0.029"/>
+  <testcase name="freeDriveBeforeNavRestoresFollowAndPreNavSuspension" classname="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" time="0.021"/>
+  <testcase name="suspendedDriveBeforeNavRestoresSuspendedFreeDrive" classname="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" time="0.018"/>
+  <testcase name="browseBeforeNavAppliesBrowseRepresentationKeepingViewport" classname="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" time="0.018"/>
+  <testcase name="stopNavigationWhileStoppedIsIdempotent" classname="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" time="0.025"/>
+  <system-out><![CDATA[navEndNoKey files=[[]]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

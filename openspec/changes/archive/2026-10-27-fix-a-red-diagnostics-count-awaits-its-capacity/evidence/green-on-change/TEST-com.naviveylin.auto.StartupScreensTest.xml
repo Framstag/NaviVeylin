@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.StartupScreensTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-27T06:00:31.996Z" hostname="dingens" time="0.097">
+  <properties/>
+  <testcase name="safeScreenReturnsDelegateTemplateOnSuccess" classname="com.naviveylin.auto.StartupScreensTest" time="0.016"/>
+  <testcase name="errorTemplateContainsMessage" classname="com.naviveylin.auto.StartupScreensTest" time="0.014"/>
+  <testcase name="diagnosticsScreenShowsNewestFirst" classname="com.naviveylin.auto.StartupScreensTest" time="0.018"/>
+  <testcase name="errorScreenShowsMessageAndRetryAction" classname="com.naviveylin.auto.StartupScreensTest" time="0.015"/>
+  <testcase name="retiredLoadingScreenClassIsGone" classname="com.naviveylin.auto.StartupScreensTest" time="0.013"/>
+  <testcase name="safeScreenCatchesTemplateException" classname="com.naviveylin.auto.StartupScreensTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

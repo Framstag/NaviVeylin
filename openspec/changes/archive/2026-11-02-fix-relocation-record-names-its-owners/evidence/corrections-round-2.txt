@@ -1,0 +1,69 @@
+# Correction round 2 — what the review refused, and what was changed
+
+Review round 1 (`evidence/review-round-1-requested.md`) carried one blocking finding and four `UNPROVEN` lines.
+Its decision block recommended option (b), and that is what this round applies — no new claim, case or assertion.
+
+## The blocking finding, quoted
+
+> BLOCKING: the scenario is one form of three the requirement forbids. The shipped text
+> (`openspec/specs/documentation-ownership/spec.md:698`) reads "it SHALL cite each owner as a path of its own … and
+> SHALL NOT cite **a glob, a directory or a directory's complete listing** in their place", but class 4 requires an
+> asterisk on the line … `owner: .pi/skills/` — a directory cited as the owners' home, with no glob — is silent,
+> exits 0, and no scenario covers it.
+
+Options recorded: (a) merge as it stands — rejected; (b) narrow the SHALL NOT to the glob form, leaving
+`design.md`'s "the requirement says no more than that" true; (c) add detection of a bare directory citation and a
+case for it; (d) abandon the change. The reviewer recommended (b); this round applies (b).
+
+## The change, per file
+
+- `openspec/specs/documentation-ownership/spec.md:698` and this change's
+  `specs/documentation-ownership/spec.md` — the requirement now reads: "it SHALL cite each owner as a path of its
+  own, the way the removed block named them, and SHALL NOT cite a glob — the form a directory's complete listing
+  takes — in their place". One refused form, the one class 4 can see; the scenario's own text already named the
+  glob as that form.
+- `design.md`, "The fix" → "The rule" — "never as a glob — the form a directory's complete listing takes".
+- `proposal.md`, `### Modified Capabilities` — the same wording, so the proposal's capability line matches the
+  requirement it lands.
+- `tasks.md` §6 — this round's three tasks, each with its verification.
+
+## The four `UNPROVEN` lines: deleted, not supported
+
+- `proposal.md` — "the OpenSpec CLI validates the change and exits 0" removed from the root-cause sentence.
+- `design.md` — the root cause's "no tool reads the record" and the same CLI claim removed; it now reads "The claim
+  is uncheckable from the record: its reader is given a set of 35 where the claim is about eight".
+- `tools/check-openspec-hygiene.sh`, class 4 header — "The CLI validates the change and exits 0, so" removed; the
+  class paragraph keeps its reason and its citation of issue #732.
+- `tasks.md` 2.2 — "the case's clean sibling … passes on base" removed; the task now states only what the record
+  holds: the case extends case `a`'s clean tree, and that tree passes once the class lands.
+- `proposal.md` — "The claim — each skill's job is stated in its own contract — is true" removed; the sentence now
+  states only that the record does not show the claim for the owners its block was about.
+
+## Verification
+
+```
+$ grep -n -e 'directory or a directory' -e 'glob or a directory' -e 'glob or directory' \
+    openspec/specs/documentation-ownership/spec.md specs/documentation-ownership/spec.md \
+    design.md proposal.md ../../../../tools/check-openspec-hygiene.sh
+(no output; exit 1)
+
+$ grep -n -e 'no tool reads the record' -e 'validates the change and' -e 'passes on base' \
+    design.md proposal.md ../../../../tools/check-openspec-hygiene.sh
+(no output; exit 1)
+
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners --root .
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 6 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 297 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+```
+
+The gate, run once for this round (`./tools/loop/gate.sh`, 2026-11-02T04:31Z): `LOOP-GATE: tests=40 failures=0
+errors=1 … — failing: bash tools/gen-feature-list.sh --check-classification`. Its tail is `evidence/gate-round-2.log`
+and the tallies it wrote are copied beside it. The one red step is not this change's: its own output
+(`evidence/gen-feature-list-round-2.log`) names the two other open changes' unclassified spec ids
+(`auto/off-route-indicator`, `tooling-test-layout`) and three stale entries, and this change introduces no spec id —
+it adds a requirement to an already-classified capability.

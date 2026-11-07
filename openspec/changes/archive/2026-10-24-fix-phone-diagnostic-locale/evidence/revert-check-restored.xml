@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.DiagnosticLineLocaleTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-24T17:04:24.967Z" hostname="dingens" time="9.742">
+  <properties/>
+  <testcase name="theFollowLineKeepsItsNumbersOnADecimalCommaLocale" classname="com.naviveylin.ui.map.DiagnosticLineLocaleTest" time="8.798"/>
+  <testcase name="theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale" classname="com.naviveylin.ui.map.DiagnosticLineLocaleTest" time="0.286"/>
+  <testcase name="theFollowLineKeepsItsUnknownFields" classname="com.naviveylin.ui.map.DiagnosticLineLocaleTest" time="0.061"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

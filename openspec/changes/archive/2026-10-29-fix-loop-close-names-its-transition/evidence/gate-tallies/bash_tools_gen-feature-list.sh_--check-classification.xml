@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0" errors="0" time="4">
+  <system-out>stale: 3 car-only areas: 1 highlights: 19</system-out>
+</testsuite>

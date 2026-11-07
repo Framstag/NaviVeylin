@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- the focused suite that carries the new cases on the tree this change leaves, 2026-10-23T14:21:51Z: `bash tools/loop-selftest.sh --group gate` —
+     `loop-selftest: all 11 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group gate`.
+     The numbers are that summary line's own; the transcript is green-gate-group.log. -->
+<testsuite name="loop-selftest --group gate" tests="11" failures="0" errors="0">
+  <testcase name="gate#theDeltaSelectsTheSuitesItTouches"/>
+  <testcase name="gate#anEnginePathOwesTheRecordCheck"/>
+  <testcase name="gate#theSuitesOutputReachesTheConsoleWhileItRuns"/>
+  <testcase name="gate#aFailingSuiteIsReadFromTheSameStream"/>
+  <testcase name="gate#aFailingSuiteWithNoSummaryInventsNoTest"/>
+  <testcase name="gate#aCompiledStepsTallyIsNotHidden"/>
+  <testcase name="gate#theSummaryNamesWhatEachSuiteCost"/>
+  <testcase name="gate#anArchivedArtefactOwesNoBuild"/>
+  <testcase name="gate#aModuleResourceOwesTheBuild"/>
+  <testcase name="gate#theGateNamesTheProfileItRead"/>
+  <testcase name="gate#theChildReadsTheProfileOfTheTreeItWorksIn"/>
+  <system-out>loop-selftest: all 11 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group gate</system-out>
+</testsuite>

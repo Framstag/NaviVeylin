@@ -1,0 +1,17 @@
+# The four headers features.cmake rendered into the same build tree (2026-10-26)
+# command: grep -E 'define OSMSCOUT_|undef OSMSCOUT_' <header>
+== libosmscout/libosmscout/include/osmscout/lib/CoreFeatures.h
+/* #undef OSMSCOUT_HAVE_SSE2 */
+#define OSMSCOUT_HAVE_LIB_MARISA
+/* #undef OSMSCOUT_DEBUG_ROUTING */
+== libosmscout/libosmscout-map/include/osmscoutmap/MapFeatures.h
+#define OSMSCOUT_MAP_HAVE_LIB_FREETYPE
+/* #undef OSMSCOUT_DEBUG_LABEL_LAYOUTER */
+/* #undef OSMSCOUT_DEBUG_GROUNDTILES */
+== libosmscout/libosmscout-map-cairo/include/osmscoutmapcairo/MapCairoFeatures.h
+/* #undef OSMSCOUT_MAP_CAIRO_HAVE_LIB_PANGO */
+#define OSMSCOUT_MAP_CAIRO_HAVE_LIB_FREETYPE
+/* #undef OSMSCOUT_MAP_CAIRO_HAVE_LIB_FONTCONFIG */
+#define OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT
+== libosmscout/libosmscout-client/include/osmscoutclient/ClientFeatures.h
+(no feature define)

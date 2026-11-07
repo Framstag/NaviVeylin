@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapLayerStackComposeTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-25T19:10:28.495Z" hostname="dingens" time="2.043">
+  <properties/>
+  <testcase name="a snackbar is composed above the map band" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.247"/>
+  <testcase name="the right-side control column sits fully above the session card" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.292"/>
+  <testcase name="the surface takes the tap where it overlaps the chrome" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.185"/>
+  <testcase name="a control keeps its measured size inside its band" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.2"/>
+  <testcase name="chrome the surface does not reach stays untouched" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.178"/>
+  <testcase name="the session card takes the tap the navigation column would take" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.484"/>
+  <testcase name="the menu band covers the chrome" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.234"/>
+  <testcase name="declaration order does not change the stacking" classname="com.naviveylin.ui.map.MapLayerStackComposeTest" time="0.213"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+# 2026-10-22T20:18:39Z
+# ./tools/loop/gate.sh --base 9f107493f4e64e7cdd62e60705951a50ece3c03a
+gate: tools/loop-selftest.sh
+gate: tools/loop-mutations-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=200 failures=0 (tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/check-doc-routes.sh)
+exit=0
+# 2026-10-22T20:32:43Z

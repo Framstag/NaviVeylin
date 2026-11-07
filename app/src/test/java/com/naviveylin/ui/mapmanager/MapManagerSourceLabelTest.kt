@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -119,6 +120,33 @@ class MapManagerSourceLabelTest {
             viewModel.uiState.value.installedMapPaths.first { it.endsWith("berlin") }
         )
         assertEquals(directory.toString(), viewModel.getMapPath("berlin"))
+    }
+
+    @Test
+    fun leftoverStagingIsNotAnInstalledMap() = runTest(mainDispatcherRule.dispatcher) {
+        // The native map manager reports every directory that holds a `types.dat`, and a swap whose
+        // cleanup failed leaves the previous installation in `.berlin.backup` beside its target
+        // (spec `map-updates` — "Data left by an interrupted update is recognised, not mistaken for a
+        // map"). It is not an installed map and has no row.
+        val berlin = mapDirectory("berlin")
+        mapDirectory(".berlin.backup")
+        val viewModel = viewModel()
+
+        viewModel.refreshInstalledMaps()
+        advanceUntilIdle()
+
+        assertTrue(
+            "the leftover is not an installed map",
+            viewModel.uiState.value.installedMapPaths.none { it.endsWith(".berlin.backup") }
+        )
+        assertTrue(
+            "and it has no row in the installed list",
+            viewModel.uiState.value.availableEntries.none { it.name.startsWith(".") }
+        )
+        assertTrue(
+            "the installation beside it stays installed",
+            viewModel.uiState.value.installedMapPaths.contains(berlin.toString())
+        )
     }
 
     private fun viewModel(): MapManagerViewModel {

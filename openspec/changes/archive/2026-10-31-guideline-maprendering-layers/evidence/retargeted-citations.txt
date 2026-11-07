@@ -1,0 +1,24 @@
+# Retargeted citations (the move dangled them; each resolves to the document that carries the number)
+
+Base documents the route check resolves:
+
+- guidelines/Design.md §563: `MapRendering.md §14 "Android Auto renderer"` -> `MapCar.md §14`
+- guidelines/Design.md §820: `MapRendering.md §17`                     -> `MapStyling.md §17`
+- guidelines/UI.md §440:     `MapRendering.md §15`                     -> `MapStyling.md §15`
+- guidelines/UIPhone.md §409:`MapRendering.md §18`                     -> `MapCar.md §18`
+- guidelines/BuildNative.md §206: `MapRendering.md §16 and §16a`       -> `MapStyling.md §16 and §16a`
+
+Companion (no check resolves it; retargeted for honesty):
+
+- guidelines/BuildNative.recipes.md §343: `MapRendering.md §15`        -> `MapStyling.md §15`
+
+AGENTS.md rendering rows: rows retargeted (§1 -> §1a..§1e; §3/§6-§11 -> MapFollow.md; §15..§17 ->
+MapStyling.md; §14 "Android Auto renderer" -> MapCar.md §14; §18 -> MapCar.md §18; the regression
+checklist and parameter table -> the two MapRendering companions).
+
+Bare `§14` attribution (task 1.2). The baseline carried two `MapRendering.md §14` citations, both with
+the heading text "Android Auto renderer" (AGENTS.md row 33 and Design.md §563); both meant the car
+renderer and are retargeted to `MapCar.md §14`. No bare (text-less) `MapRendering.md §14` citation
+existed in the baseline. `guidelines/Backlog.md` §391 mentions "`§14` of `MapRendering.md`" generically
+(a sentence about the addressing scheme, the `§` before the document name, so the check does not read
+it); it is left as history.

@@ -1,0 +1,33 @@
+# Relocation — procedure into guidelines/Backlog.recipes.md
+
+Every procedure block of the pre-cut `guidelines/Backlog.md` is now in `Backlog.recipes.md`, under an anchor of
+the number it came from (`## §N <heading>`; §7 keeps its number as `## §7a`…`§7e`, whose headings the base
+document also carries).
+
+| source (pre-cut lines) | bytes | companion anchor |
+|---|---|---|
+| §2 The participants and the flow (diagram + daily pass) | 2502 | §2 |
+| §7 The loop, lines 250-825 | 56586 | §7a–§7e |
+| §8 The human lane | 1481 | §8 |
+| §9 the outcome protocol, lines 860-867 | 528 | §9 |
+| §9 the declared rows, lines 926-1024 | 9710 | §9 |
+| §10 the engine/project diagram, lines 1030-1041 | 861 | §10 |
+
+Anchors present in the companion:
+
+```
+$ grep -n '^## §' guidelines/Backlog.recipes.md
+9:## §2 The participants and the flow
+48:## §7a Running one item: the script, the child and the package
+149:## §7b What an item costs, and the bounds on it
+341:## §7c The gate and its suite
+415:## §7d Refusals, records and the landing
+513:## §7e Leftovers, the report and the queue
+639:## §8 The human lane
+668:## §9 The outcomes a run of a check writes, and the declared rows
+779:## §10 Portability — the engine and the project
+```
+
+Each companion anchor names a section number the base document carries, so
+`layers#aCompanionAnchorThatNoSectionCarriesIsReported` is clean (`bash tools/check-doc-routes.sh` exits 0), and no
+proof or rule remains in the companion (`grep -c 'Rule:'` above).

@@ -1,0 +1,18 @@
+2026-10-23T07:01:15Z
+== the gate, once. LOOP_CONF is pinned to this tree's profile: the inherited value names the project tree, whose loop.conf is the pre-change one, and the gate must read the tree it verifies.
+LOOP_CONF=/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+-- what this delta would owe under the inherited (pre-change) profile:
+   ./gradlew test -PforceTests --no-build-cache
+   tools/loop-selftest.sh
+   bash tools/loop-mutations.sh --check
+   tools/loop-mutations-selftest.sh
+   bash tools/gen-feature-list.sh --check-classification
+   tools/check-doc-routes.sh
+-- the gate run:
+gate: tools/loop-selftest.sh
+gate: bash tools/loop-mutations.sh --check
+gate: tools/loop-mutations-selftest.sh
+gate: bash tools/gen-feature-list.sh --check-classification
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=308 failures=0 (tools/loop-selftest.sh, bash tools/loop-mutations.sh --check, tools/loop-mutations-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+exit=0

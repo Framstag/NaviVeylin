@@ -1,0 +1,16 @@
+=== source-size probe on HEAD (3cc62e15) ===
+$ SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[]' bash tools/sensors/metrics/source-size.sh
+source-size: lines=5096 path=app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+source-size: lines=3384 path=app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt
+source-size: lines=2307 path=auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt
+source-size: lines=2099 path=auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt
+source-size: lines=1407 path=auto/src/main/java/com/naviveylin/auto/NavigationSession.kt
+{"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt","fingerprint":"44a78d48ed1eb15b6501fe7ffdb328e516e279e52405d64844b16d65d3cb89ac","measurement":"5096","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt is 5096 lines, past the row's bound of 1500"}
+{"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt","fingerprint":"ac5ac11409706f8e0b727ebeabd3edf841a68ec48f6294830690cb242f09f3ac","measurement":"3384","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt is 3384 lines, past the row's bound of 1500"}
+{"path":"auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt","fingerprint":"499ec362fe8f67b31894593536b12b284388b8e033fefd16dcf6a156593790ac","measurement":"2307","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"auto/src/main/java/com/naviveylin/auto/AutoMapRenderer.kt is 2307 lines, past the row's bound of 1500"}
+{"path":"auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt","fingerprint":"60ebe0d1c07f9c2521c7c9031a6d809b0b97190a93eb7acc7d944de316d90518","measurement":"2099","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt is 2099 lines, past the row's bound of 1500"}
+# $ SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[<a condition for app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt>]' bash tools/sensors/metrics/source-size.sh
+# no conditions: {"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt","fingerprint":"44a78d48ed1eb15b6501fe7ffdb328e516e279e52405d64844b16d65d3cb89ac","measurement":"5096","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt is 5096 lines, past the row's bound of 1500"}
+# one condition: {"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt","fingerprint":"44a78d48ed1eb15b6501fe7ffdb328e516e279e52405d64844b16d65d3cb89ac","measurement":"5096","verdict":"violation","baseline":"","title":"the source file is past the size bound","claim":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt is 5096 lines, past the row's bound of 1500"}
+# taken 2026-10-24T21:03:57Z at 3cc62e15
+# provenance: taken 2026-10-24T20:59:59Z (local 22:59:59 +0200) on base 3cc62e15 with a clean tree

@@ -1,0 +1,10 @@
+The two cases the gate's single failure touched, run on the shipped tree after the record was re-pointed — the gate itself was NOT re-run (one run per item)
+
+$ bash tools/loop-selftest.sh --case mutation#everyDeclaredRecordApplies --jobs 1
+PASS mutation#everyDeclaredRecordApplies
+
+$ bash tools/loop-selftest.sh --case run#reviewerEndedAtTheRunsDeadlineIsNotADecision --jobs 1
+PASS run#reviewerEndedAtTheRunsDeadlineIsNotADecision
+
+$ bash tools/loop-mutations.sh --check
+loop-mutations: all 194 cases passed — every selected record applies to the file it names

@@ -1,0 +1,28 @@
+{
+ "afterFirstGate": 1581306283,
+ "baseline": {
+  "charged": 471764956,
+  "median": 17053
+ },
+ "byRole": {
+  "reviewer": {
+   "sessions": 226,
+   "tok": 402888198,
+   "turns": 7522
+  },
+  "worker": {
+   "sessions": 332,
+   "tok": 2168195971,
+   "turns": 25654
+  }
+ },
+ "items": 227,
+ "sessions": 558,
+ "tokens": {
+  "cacheRead": 2502371194,
+  "input": 68712975,
+  "output": 20213756,
+  "total": 2591297925
+ },
+ "turns": 33176
+}

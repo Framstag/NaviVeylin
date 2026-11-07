@@ -161,14 +161,14 @@ class FreeDrivingScreen(
      * the native client may still be building off the main thread, and applying the
      * stylesheet flag must never first-touch it here.
      */
-    private fun pushDark(force: Boolean = false) {
+    private fun pushDark() {
         if (rendererGate.rendererOrNull() == null) return
         val dark = resolvedDark.value
-        if (!daylightApplier.needsPush(dark, force)) return
+        if (!daylightApplier.needsPush(dark)) return
         // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB
         // thread, and this runs from a host callback. The collector started in init
         // applies it on a background dispatcher, and flips the overlay palette with it.
-        rendererGate.requestDaylightPush(dark, force)
+        rendererGate.requestDaylightPush(dark)
     }
 
     private fun loadSettings() {
@@ -314,7 +314,7 @@ class FreeDrivingScreen(
             rendererGate.daylightPush.collect { request ->
                 if (request == null) return@collect
                 val applied = withContext(Dispatchers.Default) {
-                    runCatching { daylightApplier.apply(request.dark, request.force) }
+                    runCatching { daylightApplier.apply(request.dark) }
                         .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
                         .getOrDefault(false)
                 }

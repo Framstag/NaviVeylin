@@ -1,0 +1,4 @@
+$ ./gradlew :app:testMobileDebugUnitTest -PjvmTestsOnly -PforceTests --tests 'com.naviveylin.ui.map.*'
+2026-10-25T19:11:01Z
+tests=837 skipped=0 failures=0 errors=0
+xmls=114 (classes: com.naviveylin.ui.map.*)

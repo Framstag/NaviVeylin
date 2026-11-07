@@ -1,0 +1,39 @@
+# Round 2 — the numbers this round's corrections quote, each under the command that took it.
+# Taken from the change root on 2026-10-30T11:57:28Z.
+
+$ ./tools/loop/gate.sh --plan    # the commands the archived delta owes
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh
+tools/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
+tools/check-openspec-hygiene.sh
+tools/check-openspec-hygiene-selftest.sh
+
+$ bash tools/check-doc-routes.sh --sizes | grep -c '^check-doc-routes: section-cost'
+146
+
+$ bash tools/check-doc-routes.sh --sizes | grep -E 'Backlog.md §9( |$)'
+check-doc-routes: section-cost Backlog.md §9 15785 bytes 171 lines routed
+
+$ ls openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/ | wc -l
+7
+
+$ grep -E '^LOOP-MEASURE-(GATE|CHANGE)' openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/measure-round-2.txt
+LOOP-MEASURE-GATE seconds=8 suites=7
+LOOP-MEASURE-CHANGE 2026-10-30-fix-routing-row-figure-is-measured scenarios=2 cases=2 unnamed=0
+
+$ openspec validate documentation-ownership --type spec | tail -4
+⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Specification 'documentation-ownership' is valid
+
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured --root . | tail -6
+ok   C1 §references: 37 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 6 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 469 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS

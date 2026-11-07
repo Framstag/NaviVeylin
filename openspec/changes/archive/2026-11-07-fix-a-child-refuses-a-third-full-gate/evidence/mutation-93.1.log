@@ -1,0 +1,10 @@
+2026-11-07T02:46:34Z
+$ bash tools/loop-mutations.sh --only 93.1
+loop-mutations: selected 1 of 266 records (labels: 93.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.YLTkdB
+RED    93.1  gate#aThirdFullRunInOneSessionIsRefused   (the refusal of a full gate run past the number the profile records, so a child cannot pay for the same suites three times (issue #756))
+       2026-11-07T02:46:35Z — the third full run in one child is refused, with the refusal's own status: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.jpueHi/cases/0/tree/case.EpdAD8/gate.conf — pinned; not the profile beside 
+restore 93.1 gate#aThirdFullRunInOneSessionIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit=0

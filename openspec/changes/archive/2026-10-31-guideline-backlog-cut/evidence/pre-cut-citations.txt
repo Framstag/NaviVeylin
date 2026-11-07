@@ -1,0 +1,36 @@
+Pre-cut referring set for guidelines/Backlog.md, measured 2026-10-31 before any edit.
+
+command: grep -rn 'Backlog\.md' --include='*.md' --include='*.sh' --include='*.json' . | grep '§'
+excluded: .pi/worktrees/ (other working trees) and .pi/issue-loop/items/ (immutable run records)
+
+The routed references — those `check-doc-routes.sh` resolves — name these files:
+
+AGENTS.md                                   §1, §4, §5 (stay) + §9, §10 (move) + §10 in the PORTING row
+guidelines/Backlog.md                       three bare numbers and one sentence (internal, see below)
+guidelines/Backlog.recipes.md               preamble: `Backlog.md` §7 (stays) and §9 (moves)
+guidelines/Backlog.why.md                   its own `## §9` anchor (moves)
+
+The prose references — resolved by no check, retargeted because a wrong pointer is still wrong:
+
+.pi/skills/loop-spend/SKILL.md:20           `guidelines/Backlog.md` §9   -> BacklogTooling.md
+.pi/skills/portability-check/SKILL.md:14    `guidelines/Backlog.md` §10  -> BacklogTooling.md
+.pi/skills/portability-check/SKILL.md:159   `guidelines/Backlog.md` §10  -> BacklogTooling.md
+tools/issues/lib.sh:454                     `guidelines/Backlog.md` §9   -> BacklogTooling.md
+tools/issues/lib.sh:486                     `guidelines/Backlog.md` §9   -> BacklogTooling.md
+tools/issues/check-metadata.sh:17           `guidelines/Backlog.md` §9   -> BacklogTooling.md
+tools/sensor-cases.sh:2743                  `guidelines/Backlog.md` §9   -> BacklogTooling.md
+tools/check-portability.sh:10               `guidelines/Backlog.md` §10  -> BacklogTooling.md
+
+Unchanged, because the section stays:
+tools/loop/prescreen.sh:15                  `guidelines/Backlog.md` §7
+tools/loop-cases.sh:5377                    `guidelines/Backlog.md` §7
+tools/issues/resolve-stale.sh:26            `Backlog.md` §5
+.pi/skills/update-issue/SKILL.md:67,74       `guidelines/Backlog.md` §4
+.pi/skills/cleanup-todo/SKILL.md:242         `Backlog.md` §5
+
+Inside Backlog.md itself, five places named a moving section by bare number and were repaired
+(design.md D5): §3's `ownership` row `(§9)`, §3's "one profile" `(§10)`, §5's security note `(§11)`,
+change 3's row in §1, and §9's two references to `Backlog.recipes.md` §9.
+
+Not retargeted, and why: `.pi/issue-loop/items/**` are the loop's own run records — a report that cited
+`Backlog.md` §9 on the day it read it is a historical statement, not a pointer.

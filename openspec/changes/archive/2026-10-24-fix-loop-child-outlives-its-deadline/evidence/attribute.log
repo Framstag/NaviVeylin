@@ -1,0 +1,8 @@
+== fixed run.sh
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+== HEAD run.sh (0 deadline lines)
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+== restored (1 deadline lines)
+DONE

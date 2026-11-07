@@ -131,6 +131,7 @@ class BackGestureComposeTest {
                 addressBookAvailable = false,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
+                isDarkPresentation = false,
                 contactsContent = {}
             )
         }

@@ -258,11 +258,25 @@ object DiagnosticsLog {
      *
      * Waits (bounded by [READ_DRAIN_TIMEOUT_MS]) for the worker to move already
      * logged entries to the file and then reads it, so the caller sees a
-     * consistent snapshot. Reads the file, so call it off the main thread —
-     * see [readEntriesAsync].
+     * consistent snapshot. A wait that expires is not an empty log: the expiry is
+     * recorded on this class's own tag (identity only, no coordinate —
+     * `guidelines/Logging.md` §3) and the drain is retried once through
+     * [flushNow], because an entry the worker still holds reaches the file
+     * milliseconds later and a reader that treated the miss as final published an
+     * empty window for the life of the screen (spec: auto-diagnostics — A read
+     * that misses its drain is retried and recorded; issue #701). Reads the file,
+     * so call it off the main thread — see [readEntriesAsync].
      */
     fun readEntries(): List<String> {
-        awaitDrained()
+        if (!awaitDrained()) {
+            log(TAG, "read drain expired after ${READ_DRAIN_TIMEOUT_MS}ms — retrying once")
+            if (!flushNow()) {
+                log(
+                    TAG,
+                    "read drain expired again after ${READ_DRAIN_TIMEOUT_MS}ms — reading the file as it stands"
+                )
+            }
+        }
         val file = currentFile() ?: return emptyList()
         return fileLock.withLock {
             try {

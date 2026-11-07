@@ -8,7 +8,10 @@
 #
 # The unit and the scope are the recorded decision of the item that asked for this row: lines per *file*,
 # Kotlin and Java only, tests included, the native sources out (the whole native tree is two orders of
-# magnitude below the bound). It is the file-level cut, not a class-level one: a file carrying several classes
+# magnitude below the bound) and the change tree out — `openspec/changes/**` holds a change's prose and the
+# frozen copies it keeps as evidence, which no build compiles, so a copy a change kept of a file it brought
+# under the bound is not a condition that can ever be cleared (issue #670). It is the file-level cut, not a
+# class-level one: a file carrying several classes
 # is one condition here, because separating them needs a brace-matching counter this tooling does not have —
 # the refinement the item names, and a second change rather than this one.
 #
@@ -25,7 +28,7 @@ tab=$(printf '\t')
 # and not `wc -l`'s: `wc` prints a total line whose label is a translated word, so a parser keyed on it would
 # need the locale. The list is NUL-separated, so a path with a space in it survives; a batch of a hundred
 # files per `awk` keeps a tree of a thousand sources to a few processes.
-sizes=$(git ls-files -z '*.kt' '*.java' 2>/dev/null | xargs -0 -r -n 100 awk '
+sizes=$(git ls-files -z '*.kt' '*.java' ':(exclude)openspec/changes/' 2>/dev/null | xargs -0 -r -n 100 awk '
   FNR == 1 { if (seen) printf "%d\t%s\n", lines, previous; previous = FILENAME; lines = 0; seen = 1 }
   { lines++ }
   END { if (seen) printf "%d\t%s\n", lines, previous }
@@ -63,10 +66,19 @@ done <<< "$ranked"
 while IFS= read -r path; do
   [ -n "$path" ] || continue
   current=$(printf '%s\n' "$ranked" | awk -v p="$path" -F "$tab" '$2 == p { print $1; exit }')
-  [ -n "$current" ] || current=0
-  sensors_compare "$current" "$threshold" greater-than && continue
   fields=$(jq -nc --arg path "$path" '{path: $path}')
   fingerprint=$(sensors_fingerprint "$fields" "path")
+  if [ -z "$current" ]; then
+    # The recorded path is not in the measured tree at all — a frozen copy under the change tree, a file the
+    # tree dropped, or an empty one. It carries no line count to report, and a number nobody measured is worse
+    # than none (issue #670): the condition clears on its own identity and says what happened instead.
+    sensors_emit "$fingerprint" "outside-scope" clear "$fields" "" \
+      "the source file is inside the size bound" \
+      "$path is not a source file in the measured tree, so it carries no line count and no condition"
+    findings=$((findings + 1))
+    continue
+  fi
+  sensors_compare "$current" "$threshold" greater-than && continue
   sensors_emit "$fingerprint" "$current" clear "$fields" "" \
     "the source file is inside the size bound" \
     "$path is ${current} lines, inside the row's bound of ${threshold}"

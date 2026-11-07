@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapMenuBackOrderComposeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-25T19:10:43.629Z" hostname="dingens" time="0.195">
+  <properties/>
+  <testcase name="a surface composed after the menu band takes the back gesture" classname="com.naviveylin.ui.map.MapMenuBackOrderComposeTest" time="0.088"/>
+  <testcase name="the menu takes the back gesture when nothing is composed over it" classname="com.naviveylin.ui.map.MapMenuBackOrderComposeTest" time="0.064"/>
+  <testcase name="the menu band is declared after the chrome band and before the modal band" classname="com.naviveylin.ui.map.MapMenuBackOrderComposeTest" time="0.039"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+# openspec validation (issue #289)
+2026-10-25T17:34:37Z
+
+## openspec validate --specs
+Totals: 177 passed, 0 failed (177 items)
+
+## openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin
+  OpenSpec root: ok
+
+References
+  (none declared)
+rc=0

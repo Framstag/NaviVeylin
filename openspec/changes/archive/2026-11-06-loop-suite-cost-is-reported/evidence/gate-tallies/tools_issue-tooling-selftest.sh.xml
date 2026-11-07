@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issue-tooling-selftest.sh" tests="158" failures="0" errors="0" time="91">
+  <system-out>PASS check#selfCheckIsGreen PASS prioritise#recordsOutgrowOneArgument issue-tooling-selftest: all 158 cases passed (JDK 27, offline, no token, HEAD 723c7998, tools e3b0c44298fc, 2026-11-06T10:48:19Z)</system-out>
+</testsuite>

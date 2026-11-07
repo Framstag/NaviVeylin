@@ -164,7 +164,10 @@ fi
 # closed stays in the decision queue (`tools/issues/decisions.sh`, a query over the label) for ever, and the
 # ceiling that counts the queue then refuses runs over an item nobody can answer — measured 2026-10-20 on #81,
 # closed and still listed (issue #225). An item without the label is untouched, so a closure writes nothing it
-# would have to justify.
+# would have to justify. The shaping label leaves beside it for exactly the same reason (capability
+# `shaping-inbox`): a closed item in the shaping queue is work the queue claims a person owes and nobody can
+# do. `update.sh` implies both removals from the state this call writes; they are named here as well so the
+# closure's own write says what it took off, and one label is removed once whatever names it.
 separator=$(jq -r '.namespaceSeparator // "/"' "$profile")
 decision_role=$(jq -r '.roles.decisionAgent // empty' "$profile")
 remove_args=()
@@ -176,7 +179,12 @@ if [ -n "$decision_role" ]; then
   fi
 fi
 write_status=0
-bash "$here/update.sh" "$number" --status "$settled_status" "${remove_args[@]}" --profile "$profile" >&2 || write_status=$?
+# The state a closure records is settled, and the state it displaces may be the other settled one (a completed
+# fix closed as not to be done, a retired entry closed as fixed): recording a settled state is this verb's own
+# purpose, so it names the transition to the guard `update.sh` applies to every routine writer (#684). That same
+# write takes the shaping label off (capability `shaping-inbox`), so a closed item never stays in the inbox.
+bash "$here/update.sh" "$number" --status "$settled_status" --displace-settled "${remove_args[@]}" \
+  --profile "$profile" >&2 || write_status=$?
 if [ "$write_status" -ne 0 ]; then
   # The closure did not happen: the item is left open with the state it carried, which is the honest outcome —
   # a half-written item is worse than one a person can still read.

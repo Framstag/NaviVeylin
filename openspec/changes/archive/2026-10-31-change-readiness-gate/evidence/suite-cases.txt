@@ -1,0 +1,18 @@
+# The loop suite's declared case count, and the new suite's, before and after the three suite entries
+#
+# Measured 2026-10-31T20:53:47Z on 68296d7f. "before" reads the loop configuration
+# HEAD holds, through the suite's own LOOP_CONF override.
+#
+$ LOOP_CONF=/tmp/loop.conf.head bash tools/loop-selftest.sh --list | wc -l      # before
+  289
+$ bash tools/loop-selftest.sh --list | wc -l                                     # after
+  289
+$ bash tools/check-change-readiness-selftest.sh --list | wc -l                   # before (no file) / after
+  before 0 — the suite did not exist
+  after  13
+$ bash tools/mutate.sh --mutations tools/check-change-readiness-mutations.json --list | tail -n +2 | wc -l
+  7
+#
+# The loop suite's declared case count does not move: the three entries map a path to commands and declare no case
+# of the loop's own, so 289 before is 289 after. What moves is what a delta under tools/check-change-readiness*
+# pulls in — three commands, over a suite of its own that declares 13 cases and a mutation list of 7 records.

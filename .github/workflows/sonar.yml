@@ -1,0 +1,172 @@
+name: SonarCloud
+
+# The analysis pipeline: a workflow of its own, so the pipeline that validates changes never carries the
+# scanner credential (the separation `sensors.yml` already keeps for the tracker token). Its triggers are
+# capped at two kinds — a push to `main` and an explicit dispatch, guarded to `main` at run time — and it has
+# no pull-request path, so no contributor's unchecked-out code is analysed with the token in scope.
+#
+# Why `main` only: SonarQube Cloud's free plan analyses the default branch, so a scan of a feature branch is
+# refused by the server, and pull-request decoration is deliberately not v1 (design D2 of
+# `integrate-sonar-analysis`).
+#
+# What it measures: the Kotlin and Java this repository owns, per module, with the coverage the test run
+# already produces. The boundary — the `libosmscout` submodule tree, the vendored client API, the tooling and
+# documentation trees, the build outputs — is declared once in `sonar-project.properties`, not inferred by
+# the scanner. `tools/check-sonar-workflow.sh` is what keeps that declaration and this file's triggers honest.
+#
+# The quality gate colours the project and gates nothing: the gate-wait property is never set, so a red gate
+# colours the badge and the project without failing the run (`guidelines/BuildEvidence.md` §7). A *scanner*
+# failure still fails the run — a scan that did not happen must never read as one that passed.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only by default and for the job: the scan needs the tree and the token, nothing else.
+permissions:
+  contents: read
+
+# One analysis at a time on `main`: two scans of the same branch race for the project's state.
+concurrency:
+  group: sonar-main
+  cancel-in-progress: false
+
+env:
+  # The Android SDK this build configures against; `:app` cannot configure without it.
+  ANDROID_HOME: ${{ github.workspace }}/android-sdk
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+
+jobs:
+  sonar:
+    name: Scan main
+    # `workflow_dispatch` can select any ref, so the guard is a runtime check rather than a line of YAML to be
+    # trusted (design D2). The dispatch of any other branch is refused here, before the scanner runs.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 180
+    steps:
+      # Sonar's SCM/blame integration needs the history; the submodule is checked out because the build
+      # compiles `:osmscout-client-java`'s vendored source set from it (the scan excludes it, the build
+      # cannot).
+      - name: Checkout with submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # AGP reads sdk.dir; the Gradle launcher reads org.gradle.java.home.
+      - name: Write local.properties
+        run: |
+          cat > local.properties <<EOF
+          sdk.dir=$ANDROID_HOME
+          org.gradle.java.home=$JAVA_HOME
+          EOF
+
+      - name: Cache Android SDK
+        id: cache-sdk
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.ANDROID_HOME }}
+          key: android-sdk-${{ runner.os }}-api36-bt36-sonar
+
+      - name: Install Android SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSLo /tmp/cmdline-tools.zip \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          # sdkmanager exits 0 after writing licenses; 'yes' then dies on the
+          # closed pipe (SIGPIPE → 141). Under `set -o pipefail` that fails the
+          # step — swallow it, sdkmanager's own exit code already ran.
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/dists
+            ~/.gradle/jdks
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # The JVM-only gate (guidelines/Build.md §3): the same command line the local gate runs, so this scan is
+      # reproducible by hand. It compiles exactly the source sets that are in scope — which is also what
+      # `sonar.java.binaries` needs — and executes the coverage agent the two report steps below read.
+      - name: Run unit tests
+        id: tests
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
+
+      # One report per module, one provenance for the Java module: the root merged Kover report is not
+      # generated (its module-relative paths are the known breakage, design D4) and the vendored JaCoCo report
+      # is not generated either (it measures the submodule, design D4). A report task that does not run is a
+      # failed step here rather than a silent zero in the analysis.
+      #
+      # `-PjvmTestsOnly` again, for the same reason the test step carries it (guidelines/Build.md §3): the
+      # licence inventory is a variant asset source, so without the toggle this invocation's graph regains
+      # `generateLicenseAssets` → `generateSbom` → `mergeNativeSbom`, and `mergeNativeSbom` reads vcpkg's
+      # installed-status file at configuration time — a runner that never ran `./setup-vcpkg.sh` fails here,
+      # before the scanner. The report tasks only read what the step above measured, and the toggle refuses a
+      # packaging invocation only.
+      - name: Generate coverage reports
+        id: coverage
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport -PjvmTestsOnly
+
+      # The scan itself: the token is the only credential and `sonar-project.properties` is the whole
+      # configuration. The step carries no error-swallowing wrapper, so a refused token, an unreachable server
+      # or a configuration the scanner cannot read fails this run.
+      - name: Scan
+        id: scan
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # The scan's own outcome, written for every run and published as the artifact the checks' pipeline
+      # fetches. Without it a scan that has never once succeeded is indistinguishable from a healthy one: three
+      # failed scans of `main` filed no item of any kind (issue #751). `tools/build-inputs.sh` is the one place
+      # that knows the path, so this record and the `broken-scan` row that reads it cannot drift apart — and the
+      # write lives here, in the pipeline that holds the scanner credential, never in the pipeline that holds
+      # the tracker's (`tools/check-sonar-workflow.sh` holds the boundary between them).
+      - name: Write the scan's result record
+        if: always()
+        env:
+          # The run's conclusion, then each step that can fail, in the order they ran. The first that neither
+          # succeeded nor was skipped is the cause the item is filed under; a step that never ran has no
+          # outcome and is not a cause.
+          SCAN_STATUS: ${{ job.status }}
+          SCAN_STEPS: >-
+            [{"id":"Run unit tests","command":"./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache","outcome":"${{ steps.tests.outcome }}"},
+             {"id":"Generate coverage reports","command":"./gradlew :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport -PjvmTestsOnly","outcome":"${{ steps.coverage.outcome }}"},
+             {"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"${{ steps.scan.outcome }}"}]
+        run: bash tools/build-inputs.sh --scan-result --status "$SCAN_STATUS" --steps "$SCAN_STEPS"
+
+      # `if: always()` for the same reason the record is written for every run: a *failed* scan is exactly when
+      # the checks' pipeline needs it. `if-no-files-found: error` because an upload that carries nothing is the
+      # defect this step exists for, and a green run with no record must be red here rather than silent.
+      # The path is the workspace root because `upload-artifact` roots a single explicit file at its own
+      # directory: a record under `app/build/` would be carried as `scan-result.json` and unpacked at the
+      # workspace root anyway, so the row declares the path the upload root can actually carry
+      # (`tools/build-inputs.sh`, `scan_result`; issue #751).
+      - name: Publish the scan's record
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scan-inputs
+          path: scan-result.json
+          if-no-files-found: error

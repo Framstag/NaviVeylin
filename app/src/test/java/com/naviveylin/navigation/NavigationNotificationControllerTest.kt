@@ -157,7 +157,12 @@ class NavigationNotificationControllerTest {
         override val positionFlow =
             MutableStateFlow<com.framstag.libosmscout.client.NavigationPosition?>(null)
         override fun stopNavigation() = Unit
-        override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) = Unit
+        override fun navigateTo(
+            destLat: Double,
+            destLon: Double,
+            destinationName: String?,
+            origin: com.naviveylin.core.SurfaceOrigin
+        ) = Unit
         override fun clearError() = Unit
         override fun cancelAcquisition() = Unit
         override fun reportError(message: String, origin: com.naviveylin.core.SurfaceOrigin) = Unit

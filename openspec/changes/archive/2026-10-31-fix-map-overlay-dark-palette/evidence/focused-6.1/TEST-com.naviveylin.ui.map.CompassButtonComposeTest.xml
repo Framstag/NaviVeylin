@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.CompassButtonComposeTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:05.159Z" hostname="dingens" time="18.756">
+  <properties/>
+  <testcase name="headingUpFollowShowsTheNorthNeedle" classname="com.naviveylin.ui.map.CompassButtonComposeTest" time="16.361"/>
+  <testcase name="buttonLargerThanOtherOverlayButtons" classname="com.naviveylin.ui.map.CompassButtonComposeTest" time="0.222"/>
+  <testcase name="fillColorReflectsGpsFixQuality" classname="com.naviveylin.ui.map.CompassButtonComposeTest" time="0.169"/>
+  <testcase name="longPressTriggersToggleOrientation" classname="com.naviveylin.ui.map.CompassButtonComposeTest" time="0.645"/>
+  <testcase name="shortPressTriggersCenterClick" classname="com.naviveylin.ui.map.CompassButtonComposeTest" time="0.208"/>
+  <testcase name="northUpShowsTheNorthNeedle" classname="com.naviveylin.ui.map.CompassButtonComposeTest" time="0.166"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,68 @@
+== round 4: the map against the pipeline on the merged tree, 2026-10-24T06:12:49Z
+-- pipeline Check-step shell commands:
+tools/build-inputs-mutations.sh --list
+tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check
+tools/check-action-runtimes-selftest.sh
+tools/check-action-runtimes.sh
+tools/check-compose-sandbox-rule-selftest.sh
+tools/check-compose-sandbox-rule.sh
+tools/check-doc-routes-selftest.sh
+tools/check-doc-routes.sh
+tools/check-portability-selftest.sh
+tools/check-portability.sh
+tools/check-todo-references.sh
+tools/gen-feature-list-selftest.sh
+tools/gen-feature-list.sh --check-classification
+tools/issues/check-metadata.sh
+tools/issues/metadata-mutations.sh --list
+tools/issue-tooling-selftest.sh
+tools/loop-mutations-selftest.sh
+tools/loop-selftest.sh
+tools/mutate-selftest.sh
+tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+tools/mutate.sh --mutations tools/close-mutations.json --list
+tools/mutate.sh --mutations tools/create-mutations.json --list
+tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/portability-mutations.json --list
+tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
+tools/mutate.sh --mutations tools/status-mutations.json --list
+tools/resolve-stale-selftest.sh
+tools/sensor-mutations.sh --list
+tools/sensor-selftest.sh
+-- map commands (the pin's strip of --from-git {base}):
+tools/build-inputs-mutations.sh --list
+tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check
+tools/check-action-runtimes-selftest.sh
+tools/check-action-runtimes.sh
+tools/check-compose-sandbox-rule-selftest.sh
+tools/check-compose-sandbox-rule.sh
+tools/check-doc-routes-selftest.sh
+tools/check-doc-routes.sh
+tools/check-portability-selftest.sh
+tools/check-portability.sh
+tools/check-todo-references.sh
+tools/gen-feature-list-selftest.sh
+tools/gen-feature-list.sh --check-classification
+tools/issues/check-metadata.sh
+tools/issues/metadata-mutations.sh --list
+tools/issue-tooling-selftest.sh
+tools/loop-mutations-selftest.sh
+tools/loop-mutations.sh --check
+tools/loop-selftest.sh
+tools/mutate-selftest.sh
+tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+tools/mutate.sh --mutations tools/close-mutations.json --list
+tools/mutate.sh --mutations tools/create-mutations.json --list
+tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/portability-mutations.json --list
+tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
+tools/mutate.sh --mutations tools/status-mutations.json --list
+tools/resolve-stale-selftest.sh
+tools/sensor-mutations.sh --list
+tools/sensor-selftest.sh
+-- comm -13 map pipeline (missing):
+(empty above = every pipeline command is a value of the map)

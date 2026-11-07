@@ -1,0 +1,6 @@
+# line accounting — HEAD's single file against the files the split produced
+#   code lines before: 2514
+#   code lines after:  2514 (excluding the 15 wire* declarations and their 15 init calls)
+# $ diff <(git show HEAD:app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt | norm | sort) <(cat app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel*.kt app/src/main/java/com/naviveylin/ui/map/MapCanvasUiState.kt | norm | sort)
+#   identical — no statement was dropped, added or rewritten by the move
+# taken 2026-10-24T21:45:00Z at c5b58332

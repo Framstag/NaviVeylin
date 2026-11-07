@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the whole loop self-test with the two new cases added, against the engine at
+     522d69a7ac21 (2026-10-22T21:05Z). Both cases failed on HEAD, each for the reason its own line names;
+     the transcript is red-HEAD.log and the suite's own summary line was
+     "loop-selftest: 2 of 168 cases failed". -->
+<testsuite name="loop-selftest" tests="168" failures="2" errors="0">
+  <system-out>worktree#refusesABranchWhoseReviewRoundNeverAnswered: the branch states that its last review round never answered: expected 'review-unanswered', got 'adoptable'
+run#announcesAndRecordsTheReviewRound: the round is announced on the branch before the reviewer runs: 'review-round-1-requested.md' not found in: openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+loop-selftest: 2 of 168 cases failed</system-out>
+</testsuite>

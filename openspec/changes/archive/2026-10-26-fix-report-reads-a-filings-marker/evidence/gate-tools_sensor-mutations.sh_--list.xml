@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="1">
+  <system-out>8.20 report#aFiledRowIsReported — the filing marker in the issue body is part of the row history (issue #668) (tools/sensors/lib.sh) 8.21 run#aFilingSetsTheBaseline — the baseline is the newest marker the row carries, a filing included (issue #668) (tools/sensors/run.sh) 8.22 report#aTrendIsBetweenOneCondition — the marker carries its condition fingerprint, not the one the issue body would give it</system-out>
+</testsuite>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/red-probe.sh" tests="2" failures="2" errors="0" timestamp="2026-10-30T06:59:57Z">
+  <system-out>red-probe: 2 of 2 cases failed (tools/check-doc-routes.sh, rows the table prices)</system-out>
+</testsuite>

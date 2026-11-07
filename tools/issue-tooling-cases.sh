@@ -34,6 +34,21 @@ ISSUES_SHELL_CASES=(
   'create#refusesAClassItsLabelsContradict'
   'create#refusesADoubledCitation'
   'create#bareValueFlagNeedsAValue'
+  'create#aShapelessFindingIsRefused'
+  'create#aFindingWithBothShapesIsRefused'
+  'create#aCauseWithAResolvingPointerIsFiled'
+  'create#aCauseWhosePointerIsGoneIsRefused'
+  'create#aCauseWithoutACaseIsRefused'
+  'create#aNamedChangeThatDoesNotExistIsRefused'
+  'create#aChangeThatIsNotReadyIsRefused'
+  'create#aTierBWithNoDecisionIsRefused'
+  'create#anEmptyGatePathRefusesTierB'
+  'create#theDeclaredGatePathIsTheOneRun'
+  'create#aTierBIsFiledWithItsDecisions'
+  'create#theShapeIsInTheBodyRecord'
+  'create#aTierAIsFiled'
+  'create#aTierBIsFiled'
+  'create#aSensorFindingIsExemptFromTheShape'
   'update#refusesUnknownLabel'
   'update#reportsAnUnreachableTrackerInsteadOfARefusal'
   'close#requiresReasonAndEvidence'
@@ -46,14 +61,20 @@ ISSUES_SHELL_CASES=(
   'surface#noDeletePath'
   'surface#reservedLabelRefusesInEveryWritePath'
   'surface#reservationIsNotBypassedByTheOtherLabelFlags'
+  'surface#theStubRefusesAnEditWithNoField'
   'import#dryRunEmitsOnePreviewPerFinding'
   'import#secondRunIsANoOp'
+  'import#theImportedItemNamesItsExemption'
   'adapter#emitsOneFindingPerFixtureSection'
   'update#removeLabelRunsThroughTheSameGate'
+  'update#refusesABandLabelWithoutItsMarker'
+  'update#writesABandLabelWithTheBodysMarker'
+  'create#refusesABandLabelAtFilingTime'
   'update#statusReplacesTheOldStatus'
   'update#statusReplacementIsIdempotent'
   'update#statusRejectsTwoStatesInOneCall'
   'update#statusReportNamesImpliedRemoval'
+  'update#refusesToDisplaceASettledState'
   'update#statusWriteReportsAnEmptyTransition'
   'update#commentOnlyReportsNoStatusWrite'
   'update#stateNamedAsALabelReplacesTheOldState'
@@ -62,9 +83,27 @@ ISSUES_SHELL_CASES=(
   'close#keepsTheItemOpenWhenTheStateCannotBeWritten'
   'close#writesNothingWhenTheItemAlreadyCarriesTheState'
   'close#refusesAProfileThatNamesNoSettledState'
+  'close#namesTheSettledStateItDisplaces'
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#theQuestionIsNotTheVerdictWord'
   'decisions#emptyQueueIsNotAnError'
+  'decisions#theOldestQueuedItemIsListed'
+  'decisions#aReadThatCannotCoverTheSetIsRefused'
+  'shaping#theQueuePrintsTheVerdictAndClause'
+  'shaping#anItemWithNoStatementIsNamed'
+  'shaping#anEmptyQueueExitsZero'
+  'shaping#anEmptyListIsAnEmptyQueue'
+  'shaping#theDecisionQueueIgnoresTheShapingLabel'
+  'shaping#answeringAShapingItemIsRefused'
+  'shaping#aReshapedItemLeavesTheQueue'
+  'shaping#aClosedItemLeavesNoLabel'
+  'shaping#anUndeclaredLabelIsRefused'
+  'shaping#theConsumerProposesFromTheItemsOwnStatement'
+  'shaping#theConsumerWritesNothingBeforeTheOwnerChooses'
+  'shaping#theApprovedReshapeLeavesThroughTheExistingWriters'
+  'decision-queue#theReaderTakesAnIdOrTheQueue'
+  'decision-queue#everyOptionCarriesAnExampleAndTwoViews'
+  'decision-queue#theReaderWritesNothingBeforeTheChoice'
   'duplicates#dryRunWritesNothing'
   'duplicates#youngerDuplicateIsClosedWithAPointer'
   'duplicates#olderItemSurvives'
@@ -89,6 +128,7 @@ ISSUES_SHELL_CASES=(
   'prioritise#capsTheDueSet'
   'prioritise#secondRunScoresNothing'
   'prioritise#writesLabelAndMarkerTogether'
+  'prioritise#theWriteKeepsAQuotation'
   'prioritise#refusesATaxonomyOutsideValue'
   'prioritise#commentsOnlyOnABandTransition'
   'prioritise#occurrenceAbsenceIsOne'
@@ -104,13 +144,18 @@ ISSUES_SHELL_CASES=(
   'list#prioSelector'
   'list#unrankedSelector'
   'list#eligibleOnlyIgnoresTheBand'
+  'list#closedItemIsNotASelection'
   'check#markerLabelMismatchFails'
   'check#outOfRangeBandFails'
   'check#neverWritesEligibility'
   'check#incompleteMarkerFails'
   'check#labelWithoutMarkerFails'
+  'check#aQuotationIsNotAMarker'
+  'check#aMarkerLineBesideAQuotationIsTheRecord'
+  'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
+  'prioritise#recordsOutgrowOneArgument'
 )
 
 issues_shell_cases() {
@@ -142,6 +187,21 @@ issues_run_shell_case() {
     'create#refusesAClassItsLabelsContradict') case_create_refusesAClassItsLabelsContradict ;;
     'create#refusesADoubledCitation') case_create_refusesADoubledCitation ;;
     'create#bareValueFlagNeedsAValue') case_create_bareValueFlagNeedsAValue ;;
+    'create#aShapelessFindingIsRefused') case_create_aShapelessFindingIsRefused ;;
+    'create#aFindingWithBothShapesIsRefused') case_create_aFindingWithBothShapesIsRefused ;;
+    'create#aCauseWithAResolvingPointerIsFiled') case_create_aCauseWithAResolvingPointerIsFiled ;;
+    'create#aCauseWhosePointerIsGoneIsRefused') case_create_aCauseWhosePointerIsGoneIsRefused ;;
+    'create#aCauseWithoutACaseIsRefused') case_create_aCauseWithoutACaseIsRefused ;;
+    'create#aNamedChangeThatDoesNotExistIsRefused') case_create_aNamedChangeThatDoesNotExistIsRefused ;;
+    'create#aChangeThatIsNotReadyIsRefused') case_create_aChangeThatIsNotReadyIsRefused ;;
+    'create#aTierBWithNoDecisionIsRefused') case_create_aTierBWithNoDecisionIsRefused ;;
+    'create#anEmptyGatePathRefusesTierB') case_create_anEmptyGatePathRefusesTierB ;;
+    'create#theDeclaredGatePathIsTheOneRun') case_create_theDeclaredGatePathIsTheOneRun ;;
+    'create#aTierBIsFiledWithItsDecisions') case_create_aTierBIsFiledWithItsDecisions ;;
+    'create#theShapeIsInTheBodyRecord') case_create_theShapeIsInTheBodyRecord ;;
+    'create#aTierAIsFiled') case_create_aTierAIsFiled ;;
+    'create#aTierBIsFiled') case_create_aTierBIsFiled ;;
+    'create#aSensorFindingIsExemptFromTheShape') case_create_aSensorFindingIsExemptFromTheShape ;;
     'update#refusesUnknownLabel') case_update_refusesUnknownLabel ;;
     'update#reportsAnUnreachableTrackerInsteadOfARefusal') case_update_reportsAnUnreachableTrackerInsteadOfARefusal ;;
     'close#requiresReasonAndEvidence') case_close_requiresReasonAndEvidence ;;
@@ -154,14 +214,20 @@ issues_run_shell_case() {
     'surface#noDeletePath') case_surface_noDeletePath ;;
     'surface#reservedLabelRefusesInEveryWritePath') case_surface_reservedLabelRefusesInEveryWritePath ;;
     'surface#reservationIsNotBypassedByTheOtherLabelFlags') case_surface_reservationIsNotBypassed ;;
+    'surface#theStubRefusesAnEditWithNoField') case_surface_theStubRefusesAnEditWithNoField ;;
     'import#dryRunEmitsOnePreviewPerFinding') case_import_dryRunEmitsOnePreviewPerFinding ;;
     'import#secondRunIsANoOp') case_import_secondRunIsANoOp ;;
+    'import#theImportedItemNamesItsExemption') case_import_theImportedItemNamesItsExemption ;;
     'adapter#emitsOneFindingPerFixtureSection') case_adapter_emitsOneFindingPerFixtureSection ;;
     'update#removeLabelRunsThroughTheSameGate') case_update_removeLabelRunsThroughTheSameGate ;;
+    'update#refusesABandLabelWithoutItsMarker') case_update_refusesABandLabelWithoutItsMarker ;;
+    'update#writesABandLabelWithTheBodysMarker') case_update_writesABandLabelWithTheBodysMarker ;;
+    'create#refusesABandLabelAtFilingTime') case_create_refusesABandLabelAtFilingTime ;;
     'update#statusReplacesTheOldStatus') case_update_statusReplacesTheOldStatus ;;
     'update#statusReplacementIsIdempotent') case_update_statusReplacementIsIdempotent ;;
     'update#statusRejectsTwoStatesInOneCall') case_update_statusRejectsTwoStatesInOneCall ;;
     'update#statusReportNamesImpliedRemoval') case_update_statusReportNamesImpliedRemoval ;;
+    'update#refusesToDisplaceASettledState') case_update_refusesToDisplaceASettledState ;;
     'update#statusWriteReportsAnEmptyTransition') case_update_statusWriteReportsAnEmptyTransition ;;
     'update#commentOnlyReportsNoStatusWrite') case_update_commentOnlyReportsNoStatusWrite ;;
     'update#stateNamedAsALabelReplacesTheOldState') case_update_stateNamedAsALabelReplacesTheOldState ;;
@@ -170,9 +236,27 @@ issues_run_shell_case() {
     'close#keepsTheItemOpenWhenTheStateCannotBeWritten') case_close_keepsTheItemOpenWhenTheStateCannotBeWritten ;;
     'close#writesNothingWhenTheItemAlreadyCarriesTheState') case_close_writesNothingWhenTheItemAlreadyCarriesTheState ;;
     'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
+    'close#namesTheSettledStateItDisplaces') case_close_namesTheSettledStateItDisplaces ;;
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
+    'decisions#theOldestQueuedItemIsListed') case_decisions_theOldestQueuedItemIsListed ;;
+    'decisions#aReadThatCannotCoverTheSetIsRefused') case_decisions_aReadThatCannotCoverTheSetIsRefused ;;
+    'shaping#theQueuePrintsTheVerdictAndClause') case_shaping_theQueuePrintsTheVerdictAndClause ;;
+    'shaping#anItemWithNoStatementIsNamed') case_shaping_anItemWithNoStatementIsNamed ;;
+    'shaping#anEmptyQueueExitsZero') case_shaping_anEmptyQueueExitsZero ;;
+    'shaping#anEmptyListIsAnEmptyQueue') case_shaping_anEmptyListIsAnEmptyQueue ;;
+    'shaping#theDecisionQueueIgnoresTheShapingLabel') case_shaping_theDecisionQueueIgnoresTheShapingLabel ;;
+    'shaping#answeringAShapingItemIsRefused') case_shaping_answeringAShapingItemIsRefused ;;
+    'shaping#aReshapedItemLeavesTheQueue') case_shaping_aReshapedItemLeavesTheQueue ;;
+    'shaping#aClosedItemLeavesNoLabel') case_shaping_aClosedItemLeavesNoLabel ;;
+    'shaping#anUndeclaredLabelIsRefused') case_shaping_anUndeclaredLabelIsRefused ;;
+    'shaping#theConsumerProposesFromTheItemsOwnStatement') case_shaping_theConsumerProposesFromTheItemsOwnStatement ;;
+    'shaping#theConsumerWritesNothingBeforeTheOwnerChooses') case_shaping_theConsumerWritesNothingBeforeTheOwnerChooses ;;
+    'shaping#theApprovedReshapeLeavesThroughTheExistingWriters') case_shaping_theApprovedReshapeLeavesThroughTheExistingWriters ;;
+    'decision-queue#theReaderTakesAnIdOrTheQueue') case_decision_queue_theReaderTakesAnIdOrTheQueue ;;
+    'decision-queue#everyOptionCarriesAnExampleAndTwoViews') case_decision_queue_everyOptionCarriesAnExampleAndTwoViews ;;
+    'decision-queue#theReaderWritesNothingBeforeTheChoice') case_decision_queue_theReaderWritesNothingBeforeTheChoice ;;
     'duplicates#dryRunWritesNothing') case_duplicates_dryRunWritesNothing ;;
     'duplicates#youngerDuplicateIsClosedWithAPointer') case_duplicates_youngerDuplicateIsClosedWithAPointer ;;
     'duplicates#olderItemSurvives') case_duplicates_olderItemSurvives ;;
@@ -197,6 +281,7 @@ issues_run_shell_case() {
     'prioritise#capsTheDueSet') case_prioritise_capsTheDueSet ;;
     'prioritise#secondRunScoresNothing') case_prioritise_secondRunScoresNothing ;;
     'prioritise#writesLabelAndMarkerTogether') case_prioritise_writesLabelAndMarkerTogether ;;
+    'prioritise#theWriteKeepsAQuotation') case_prioritise_theWriteKeepsAQuotation ;;
     'prioritise#refusesATaxonomyOutsideValue') case_prioritise_refusesATaxonomyOutsideValue ;;
     'prioritise#commentsOnlyOnABandTransition') case_prioritise_commentsOnlyOnABandTransition ;;
     'prioritise#occurrenceAbsenceIsOne') case_prioritise_occurrenceAbsenceIsOne ;;
@@ -204,6 +289,7 @@ issues_run_shell_case() {
     'prioritise#writesNoGateLabel') case_prioritise_writesNoGateLabel ;;
     'prioritise#reportsEveryCounter') case_prioritise_reportsEveryCounter ;;
     'prioritise#bodiesAreDelimitedData') case_prioritise_bodiesAreDelimitedData ;;
+    'prioritise#recordsOutgrowOneArgument') case_prioritise_recordsOutgrowOneArgument ;;
     'prioritise#refusesABodyThatClosesTheFence') case_prioritise_refusesABodyThatClosesTheFence ;;
     'classify#selectsOnlyUnclassified') case_classify_selectsOnlyUnclassified ;;
     'classify#refusesAnOutOfVocabularyProposal') case_classify_refusesAnOutOfVocabularyProposal ;;
@@ -212,9 +298,12 @@ issues_run_shell_case() {
     'list#prioSelector') case_list_prioSelector ;;
     'list#unrankedSelector') case_list_unrankedSelector ;;
     'list#eligibleOnlyIgnoresTheBand') case_list_eligibleOnlyIgnoresTheBand ;;
+    'list#closedItemIsNotASelection') case_list_closedItemIsNotASelection ;;
     'check#markerLabelMismatchFails'|'check#outOfRangeBandFails'|'check#neverWritesEligibility'|\
-      'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|'check#unrankedIsNotAViolation'|\
-      'check#selfCheckIsGreen') case_check_delegated "$1" ;;
+      'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|\
+      'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
+      'check#aDisplacedSettledStateIsReported'|\
+      'check#unrankedIsNotAViolation'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -281,12 +370,21 @@ status_tracker() { # <dir> <number> <label>…
        labels: [ $labels[] | {name: .} ]}]' > "$dir/issues.json"
 }
 
-# The finding every write-path case files.
+# The finding every write-path case files. It carries a tier-A cause (`backlog-source-of-truth`, "A finding is
+# filed in one of two shapes"): a pointer into this tree that resolves and the case that names the fixture, so
+# every case below exercises the write it is about rather than the shape refusal.
 finding_json() {
   jq -n '{sourceId: "903", title: "§903 a fixture finding", class: "bug", category: "ui",
           claim: "A fixture claim about the phone card header", anchor: "app/src/main/Card.kt:Header",
           labels: ["class/bug", "category/ui", "status/open", "source/agent"],
+          cause: {file: "tools/issues/create.sh", line: 84, case: "create#theFixtureFinding"},
           body: "- **Observed** ✗: the two numbers disagree."}'
+}
+
+# The shape a write-path case's own finding carries, added at the call site so a case that is about the label gate
+# or the citation rule still reaches the refusal it asserts.
+with_cause() { # <finding-json>
+  jq '. + {cause: {file: "tools/issues/create.sh", line: 84, case: "create#theFixtureFinding"}}' <<< "$1"
 }
 
 # ----------------------------------------------------------------------------- cases
@@ -629,10 +727,10 @@ case_create_writesMarkerAndLabels() {
   local dir log finding line
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
   export GH_STUB_RECORD="$log"
-  finding=$(jq -n '{sourceId: "129", title: "§129 a fixture finding", class: "bug",
-                    category: "route-and-navigation", claim: "A claim", anchor: "app/src/main/X.kt:Y",
-                    labels: ["class/bug", "category/route-and-navigation", "status/open", "source/todo-import"],
-                    body: "the body, verbatim"}')
+  finding=$(with_cause "$(jq -n '{sourceId: "129", title: "§129 a fixture finding", class: "bug",
+                     category: "route-and-navigation", claim: "A claim", anchor: "app/src/main/X.kt:Y",
+                     labels: ["class/bug", "category/route-and-navigation", "status/open", "source/todo-import"],
+                     body: "the body, verbatim"}')")
   printf '%s' "$finding" | run_tool create.sh --json >/dev/null || fail "create.sh failed"
   line=$(grep 'issue create' "$log" | head -1)
   [ -n "$line" ] || fail "no gh issue create invocation was recorded"
@@ -656,9 +754,9 @@ case_create_carriesTheFindingsClassAndCategory() {
   printf '[]\n' > "$dir/issues.json"
   export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
 
-  finding=$(jq -n '{sourceId: "199", title: "a finding whose kind is in its fields alone",
+  finding=$(with_cause "$(jq -n '{sourceId: "199", title: "a finding whose kind is in its fields alone",
                     class: "bug", category: "build-and-harness", claim: "A claim", anchor: "a",
-                    body: "the body, verbatim"}')
+                    body: "the body, verbatim"}')")
   out=$(printf '%s' "$finding" | run_tool create.sh 2>&1) || fail "create.sh refused a complete finding: $out"
   line=$(grep 'issue create' "$log" | head -1)
   [ -n "$line" ] || fail "no gh issue create invocation was recorded"
@@ -678,8 +776,8 @@ case_create_carriesTheFindingsClassAndCategory() {
 
   # …and a value the vocabulary does not carry is refused rather than dropped, because the field is a label.
   : > "$log"
-  finding=$(jq -n '{sourceId: "202", title: "a finding with a misspelt class", class: "bugg",
-                    category: "ui", claim: "A claim", anchor: "a", body: "b"}')
+  finding=$(with_cause "$(jq -n '{sourceId: "202", title: "a finding with a misspelt class", class: "bugg",
+                    category: "ui", claim: "A claim", anchor: "a", body: "b"}')")
   out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
   assert_eq "3" "$status" "a class outside the vocabulary is refused: $out"
   assert_contains "$out" "label-opaque" "the refusal is the label gate's"
@@ -695,18 +793,18 @@ case_create_refusesAClassItsLabelsContradict() {
   printf '[]\n' > "$dir/issues.json"
   export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
 
-  finding=$(jq -n '{sourceId: "203", title: "a finding whose field contradicts its labels",
+  finding=$(with_cause "$(jq -n '{sourceId: "203", title: "a finding whose field contradicts its labels",
                     class: "bug", category: "ui", claim: "A claim", anchor: "a", body: "b",
-                    labels: ["class/improvement", "category/ui"]}')
+                    labels: ["class/improvement", "category/ui"]}')")
   out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
   assert_eq "2" "$status" "a filing naming two classes is a usage error: $out"
   assert_contains "$out" "class/improvement" "the refusal names the value the labels carried"
   assert_contains "$out" "class/bug" "and the value the finding's class field carried"
   [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
 
-  finding=$(jq -n '{sourceId: "204", title: "a finding whose area contradicts its labels",
+  finding=$(with_cause "$(jq -n '{sourceId: "204", title: "a finding whose area contradicts its labels",
                     class: "bug", category: "ui", claim: "A second claim", anchor: "a", body: "b",
-                    labels: ["class/bug", "category/car"]}')
+                    labels: ["class/bug", "category/car"]}')")
   out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
   assert_eq "2" "$status" "a filing naming two categories is a usage error: $out"
   assert_contains "$out" "category/car" "the refusal names the value the labels carried"
@@ -724,9 +822,9 @@ case_create_refusesTwoValuesOfOneNamespace() {
   printf '[]\n' > "$dir/issues.json"
   export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
 
-  finding=$(jq -n '{sourceId: "903", title: "a contradictory finding", class: "bug", category: "ui",
+  finding=$(with_cause "$(jq -n '{sourceId: "903", title: "a contradictory finding", class: "bug", category: "ui",
                     claim: "c", anchor: "a", body: "b",
-                    labels: ["class/bug", "category/ui", "status/fixed-by"]}')
+                    labels: ["class/bug", "category/ui", "status/fixed-by"]}')")
   out=$(printf '%s' "$finding" | run_tool create.sh --status open 2>&1); status=$?
   assert_eq "2" "$status" "a filing naming two states is a usage error: $out"
   assert_contains "$out" "status/fixed-by" "the refusal names the value the labels carried"
@@ -734,8 +832,8 @@ case_create_refusesTwoValuesOfOneNamespace() {
   [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
 
   # A second namespace is refused the same way, so the rule is per namespace and not status-only.
-  finding=$(jq -n '{sourceId: "904", title: "another contradictory finding", class: "bug", category: "ui",
-                    claim: "c2", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')
+  finding=$(with_cause "$(jq -n '{sourceId: "904", title: "another contradictory finding", class: "bug", category: "ui",
+                    claim: "c2", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')")
   out=$(printf '%s' "$finding" | run_tool create.sh --label class/feature 2>&1); status=$?
   assert_eq "2" "$status" "a second value of any namespace is a usage error: $out"
   assert_contains "$out" "class/bug" "the refusal names the first value"
@@ -743,12 +841,12 @@ case_create_refusesTwoValuesOfOneNamespace() {
   [ ! -s "$log" ] || fail "a gh issue create call was made: $(cat "$log")"
 
   # The state named only through --status, or only through the labels, still files.
-  finding=$(jq -n '{sourceId: "905", title: "a clean finding", class: "bug", category: "ui",
-                    claim: "c3", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')
+  finding=$(with_cause "$(jq -n '{sourceId: "905", title: "a clean finding", class: "bug", category: "ui",
+                    claim: "c3", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')")
   printf '%s' "$finding" | run_tool create.sh --status open >/dev/null 2>&1 || fail "--status alone must file"
-  finding=$(jq -n '{sourceId: "906", title: "another clean finding", class: "bug", category: "ui",
+  finding=$(with_cause "$(jq -n '{sourceId: "906", title: "another clean finding", class: "bug", category: "ui",
                     claim: "c4", anchor: "a", body: "b",
-                    labels: ["class/bug", "category/ui", "status/open"]}')
+                    labels: ["class/bug", "category/ui", "status/open"]}')")
   printf '%s' "$finding" | run_tool create.sh >/dev/null 2>&1 || fail "a state named only by labels must file"
   assert_eq "2" "$(grep -c 'issue create' "$log" || true)" "both single-route filings reach the tracker"
   return 0
@@ -1002,6 +1100,296 @@ case_decisions_emptyQueueIsNotAnError() {
   assert_contains "$out" "no item awaits a decision" "and it says so"
 }
 
+# The label the queue is a query over, read from the profile as `decisions.sh` resolves it (one separator between
+# the namespace and the role's value), so a case names no project value of its own.
+decision_label() {
+  local separator
+  separator=$(jq -r '.namespaceSeparator // "/"' "$(profile_path)")
+  printf 'agent%s%s\n' "${separator:-/}" "$(jq -r '.roles.decisionAgent' "$(profile_path)")"
+}
+
+# A tracker of `<total>` issues, the ones the remaining arguments name carrying the decision label and the
+# escalation comment the queue prints. The numbers rise with `createdAt`, so the newest-first order a `gh` list
+# answers in is the numbers reversed: the oldest item sits at the far end of it, outside any window smaller than
+# the tracker.
+decision_tracker() { # <dir> <total> <labelled number>…
+  local dir="$1" total="$2"; shift 2
+  jq -n --argjson total "$total" \
+        --argjson labelled "$(printf '%s\n' "$@" | jq -R . | jq -s 'map(tonumber)')" \
+        --arg label "$(decision_label)" '
+    [ range(1; $total + 1) as $n
+      | {number: $n,
+         title: "fixture item \($n)",
+         state: "OPEN",
+         createdAt: "2026-01-01T00:00:00Z",
+         updatedAt: "2026-01-01T00:00:00Z",
+         body: "- **Observed** ✗: fixture claim about \($n).",
+         author: {login: "Framstag"},
+         labels: ([{name: "class/bug"}, {name: "status/on-hold"}, {name: "agent/eligible"}]
+                  + (if ($labelled | index($n)) != null then [{name: $label}] else [] end)),
+         comments: (if ($labelled | index($n)) != null
+                    then [{author: {login: "Framstag"}, createdAt: "2026-01-01T00:00:00Z",
+                           body: "needs-decision\n\n**The decision:** merge the two rows into one"}]
+                    else [] end)}]' > "$dir/issues.json"
+}
+
+# A tracker bigger than the window the queue used to ask for — 400 issues (#805). The oldest labelled item is #1, so
+# a read of the 400 newest never sees it; the case asserts it is listed, and that the queue says which set it read.
+case_decisions_theOldestQueuedItemIsListed() {
+  local d out status
+  d=$(scratch); decision_tracker "$d" 405 1 405
+  export GH_STUB_DIR="$d"
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_contains "$out" "#1  **The decision:** merge the two rows into one" \
+    "the oldest item that awaits a decision is listed, not only the newest page of the tracker"
+  assert_contains "$out" "#405  **The decision:** merge the two rows into one" "with the newest one beside it"
+  assert_contains "$out" "2 item(s) await a decision" "the count is the labelled set's, not a window's"
+  assert_contains "$out" "read from the 2 item(s) the tracker counts carrying $(decision_label)" \
+    "the queue states the set it read"
+}
+
+# A read the tracker overran — items filed between the count and the list: the window comes back full, so the queue
+# must refuse, because a count printed over a set it could not cover is the defect — items awaiting a decision read as
+# fewer than they are (#805).
+case_decisions_aReadThatCannotCoverTheSetIsRefused() {
+  local d out status
+  d=$(scratch); decision_tracker "$d" 3 1 2
+  export GH_STUB_DIR="$d"
+  export GH_STUB_COUNT_LAG=1
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a set the read could not cover is a refusal: $out"
+  assert_contains "$out" "1 item(s) carrying $(decision_label)" "the refusal names the set the tracker counted"
+  assert_contains "$out" "came back full at 2" "and the read it got instead"
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -c 'await a decision' || true)" \
+    "no count is printed over a set it did not cover"
+}
+
+# --- the shaping inbox: what a run handed back to a person, and the queue that shows it -----------------------
+#
+# One tracker for the queue cases (`fixtures/scenarios/shaping`): #91 carries the verdict and the clause the run
+# wrote, #92 the label and no statement at all, #93 a decision instead, #94 a *closed* item that still carries the
+# label. The state is neither a hold nor a decision (capability `shaping-inbox`).
+
+case_shaping_theQueuePrintsTheVerdictAndClause() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local out status
+  out=$(run_tool shaping.sh --json 2>/dev/null); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_eq "2" "$(printf '%s' "$out" | jq 'length')" "only the open items carrying the shaping label are queued"
+  assert_eq "91 92" "$(printf '%s' "$out" | jq -r '[.[].issue] | join(" ")')" "in issue order"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .verdict')" "too-wide" \
+    "the verdict is the item's own record, not a summary"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .clause')" \
+    "six capability deltas" "and so is the clause behind it"
+  assert_eq "0" "$(printf '%s' "$out" | jq -r '[.[] | select(.issue == 94)] | length')" \
+    "a closed item is not in the queue, whatever labels it kept"
+
+  out=$(run_tool shaping.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the human form exits 0 as well"
+  assert_contains "$out" "#91  too-wide: the item wants splitting" "the human form prints the verdict line"
+  assert_contains "$out" "six capability deltas" "with the clause under it"
+  assert_contains "$out" "LOOP-SHAPING-COUNT 2" "and the count the inbox is measured by"
+}
+
+case_shaping_anItemWithNoStatementIsNamed() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local out
+  out=$(run_tool shaping.sh 2>&1)
+  assert_contains "$out" "#92  (no statement recorded" \
+    "an item carrying the label with no statement is named as carrying none, not presented as a finding"
+  # The machine form keeps the absence as an absence: an empty verdict, never an invented one.
+  assert_eq "" "$(run_tool shaping.sh --json 2>/dev/null | jq -r '.[] | select(.issue == 92) | .verdict')" \
+    "the record states no verdict for it"
+}
+
+case_shaping_anEmptyQueueExitsZero() {
+  export GH_STUB_DIR="$(scenario present)"
+  local out status
+  out=$(run_tool shaping.sh 2>&1); status=$?
+  assert_eq "0" "$status" "an empty inbox is not a failure"
+  assert_contains "$out" "no item awaits shaping" "and it says so"
+  assert_contains "$out" "LOOP-SHAPING-COUNT 0" "with the count at zero"
+}
+
+# A project that names no shaping verdict declares the list empty, and then no run writes the label — so the queue
+# it reads is empty rather than an error. The run's half of this is `run#aVerdictOutsideTheListWritesNoLabel`.
+case_shaping_anEmptyListIsAnEmptyQueue() {
+  export GH_STUB_DIR="$(scenario present)"
+  local dir profile out status
+  dir=$(scratch); profile="$dir/tooling.json"
+  jq '.roles.shapingVerdicts = []' "$(profile_path)" > "$profile" || fail "could not write the empty-list profile"
+  out=$(run_tool shaping.sh --profile "$profile" 2>&1); status=$?
+  assert_eq "0" "$status" "a project that names no verdict still reads its queue: $out"
+  assert_contains "$out" "LOOP-SHAPING-COUNT 0" "and the queue it reads is empty"
+}
+
+case_shaping_theDecisionQueueIgnoresTheShapingLabel() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local out
+  out=$(run_tool decisions.sh --json 2>/dev/null)
+  assert_eq "93" "$(printf '%s' "$out" | jq -r '[.[].issue] | join(" ")')" \
+    "the decision queue lists the decision item and neither shaping item"
+}
+
+case_shaping_answeringAShapingItemIsRefused() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  out=$(run_tool answer.sh 91 --decision "keep it" 2>&1); status=$?
+  assert_eq "3" "$status" "an item that awaits no decision cannot be answered: $out"
+  assert_contains "$out" "shaping inbox" "the refusal names the state the item is in"
+  assert_contains "$out" "tools/issues/shaping.sh" "and the queue that does hold it"
+  [ ! -s "$log" ] || fail "a refused answer wrote something: $(cat "$log")"
+}
+
+case_shaping_aReshapedItemLeavesTheQueue() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local dir log out edit tracker
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  out=$(run_tool update.sh 91 --status open 2>&1) || fail "the update failed: $out"
+  edit=$(grep 'issue edit' "$log")
+  assert_contains "$edit" "--remove-label agent/needs-shaping" "the label leaves in the write that records the outcome"
+  assert_contains "$edit" "--remove-label status/on-hold" "beside the hold it replaced"
+  assert_contains "$edit" "--add-label status/open" "and the state it set"
+
+  # The tracker that write leaves behind: the label is gone, so the queue does not list it either.
+  tracker="$dir/tracker"; cp -r "$(scenario shaping)" "$tracker"
+  jq 'map(if .number == 91 then .labels = [.labels[] | select(.name != "agent/needs-shaping")] else . end)' \
+    "$tracker/issues.json" > "$tracker/issues.new" && mv "$tracker/issues.new" "$tracker/issues.json"
+  export GH_STUB_DIR="$tracker"
+  assert_eq "92" "$(run_tool shaping.sh --json 2>/dev/null | jq -r '[.[].issue] | join(" ")')" \
+    "and the reshaped item is no longer in the queue"
+}
+
+case_shaping_aClosedItemLeavesNoLabel() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local dir log out
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  out=$(run_tool close.sh 91 --reason "reshaped into four items" --evidence "the four filed items" 2>&1) ||
+    fail "the closure failed: $out"
+  assert_contains "$(grep 'issue edit' "$log")" "--remove-label agent/needs-shaping" \
+    "the label leaves in the write that records the settled state, so the queue keeps no closed item"
+}
+
+case_shaping_anUndeclaredLabelIsRefused() {
+  export GH_STUB_DIR="$(scenario shaping)"
+  local dir profile log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  profile="$dir/tooling.json"
+  jq '.namespaces.agent = (.namespaces.agent | map(select(. != "needs-shaping")))' "$(profile_path)" > "$profile" ||
+    fail "could not write the profile without the value"
+  out=$(run_tool update.sh 91 --label agent/needs-shaping --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "a value the vocabulary does not hold is refused: $out"
+  assert_contains "$out" "label-opaque" "with the reason code every writer's gate answers"
+  assert_eq "0" "$(grep -c 'label create' "$log" || true)" "and no label is created"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "nor is the item written"
+}
+
+# The inbox's reader is a skill, so its contract is prose — but it is prose with three things a case can hold it
+# to: the verb it reads the queue through and the proposal it owes, the sentence that ends its authority, and the
+# two writers it may leave through. The cases assert the contract, not the judgement (design D4).
+consumer_skill() {
+  printf '%s\n' "$ISSUES_REPO_ROOT/.pi/skills/reshape-issue/SKILL.md"
+}
+
+consumer_skill_body() {
+  local skill
+  skill=$(consumer_skill)
+  [ -f "$skill" ] || fail "the inbox has no reader: ${skill#$ISSUES_REPO_ROOT/} does not exist"
+  cat "$skill"
+}
+
+case_shaping_theConsumerProposesFromTheItemsOwnStatement() {
+  local body
+  body=$(consumer_skill_body)
+  assert_contains "$body" "tools/issues/shaping.sh --json" "the reader takes the queue's own output"
+  assert_contains "$body" "verdict" "and repeats the verdict the item's statement carries"
+  assert_contains "$body" "clause" "beside the clause behind it"
+  assert_contains "$body" "one mechanism" "its first proposal form is the single mechanism the item lacks"
+  assert_contains "$body" "children" "its second is the children the item splits into"
+  assert_contains "$body" "file:line" "every proposal names the pointer read in the tree"
+  assert_contains "$body" "tools/issues/create.sh" "a child is filed by the writer that already exists"
+  assert_contains "$body" "carries no \`cause\` and no \`change\`" "which refuses a finding of neither shape"
+}
+
+case_shaping_theConsumerWritesNothingBeforeTheOwnerChooses() {
+  local body
+  body=$(consumer_skill_body)
+  assert_contains "$body" "It writes nothing before the owner chooses: no label, no comment, no body edit and no child item" \
+    "the sentence that ends the reader's authority before a write, and what it forbids"
+  assert_contains "$body" "agent/needs-shaping" "and names the label the item keeps until then"
+}
+
+case_shaping_theApprovedReshapeLeavesThroughTheExistingWriters() {
+  local body forbidden
+  body=$(consumer_skill_body)
+  assert_contains "$body" "tools/issues/create.sh" "a chosen child is filed by the creator"
+  assert_contains "$body" "tools/issues/update.sh" "and the item's new shape by the updater"
+  assert_contains "$body" "takes the shaping label off" "which is the write that empties the queue"
+  for forbidden in 'gh issue edit' 'gh issue create' 'gh issue close' 'gh issue comment'; do
+    case "$body" in
+      *"$forbidden"*) fail "the reader writes through '$forbidden', a path beside the writers" ;;
+    esac
+  done
+}
+
+# The decision queue's reader is a skill too, so its contract is prose — and it is prose with three things a case
+# can hold it to: the three input forms and the queue it lists when none is given, the shape every option must
+# carry (one example, two separated views, a recommendation), and the sentence that ends its authority before the
+# owner chooses. The cases assert the contract, not the judgement — the same split the shaping inbox's reader is
+# held to.
+decision_reader_skill() {
+  printf '%s\n' "$ISSUES_REPO_ROOT/.pi/skills/answer-decision/SKILL.md"
+}
+
+decision_reader_body() {
+  local skill
+  skill=$(decision_reader_skill)
+  [ -f "$skill" ] || fail "the decision queue has no reader: ${skill#$ISSUES_REPO_ROOT/} does not exist"
+  cat "$skill"
+}
+
+case_decision_queue_theReaderTakesAnIdOrTheQueue() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "https://github.com/" "the reader accepts an issue URL"
+  assert_contains "$body" "tools/issues/list.sh --id 163" "and resolves a pre-migration id through the marker that holds it"
+  assert_contains "$body" "never the number" "which is not the issue number"
+  assert_contains "$body" "tools/issues/decisions.sh" "with no item named, it lists the queue"
+  assert_contains "$body" "ask_user" "and asks the owner which item, rather than choosing"
+  assert_contains "$body" "retry the item, or abandon it" "it names the run's boilerplate as not being the fork"
+}
+
+case_decision_queue_everyOptionCarriesAnExampleAndTwoViews() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "Example:" "every option is offered with a worked example"
+  assert_contains "$body" "before → after" "whose shape is a state and its consequence"
+  assert_contains "$body" "unmeasured" "a claim it could not measure is named as one"
+  assert_contains "$body" "**Short term**" "the pro/contra carries the short-term view"
+  assert_contains "$body" "**Strategic**" "and the strategic view beside it, never merged into it"
+  assert_contains "$body" "never one score" "which is the sentence forbidding a single ranking"
+  assert_contains "$body" "**Recommendation: <option>**" "and a recommendation whose rejected options name their clause"
+}
+
+case_decision_queue_theReaderWritesNothingBeforeTheChoice() {
+  local body section forbidden
+  body=$(decision_reader_body)
+  assert_contains "$body" "It writes nothing before the owner chooses: no label, no comment and no body edit." \
+    "the sentence that ends the reader's authority before a write, and what it forbids"
+  assert_contains "$body" "tools/issues/answer.sh" "the answer leaves through the writer that already exists"
+  assert_contains "$body" "--retire" "including the closure outcome, with its evidence"
+  # A direct tracker write named as forbidden is fine; a second mention is a path beside the writer, so each of the
+  # four appears exactly once — in the section that forbids them.
+  section=$(sed -n '/## What this skill never does/,$p' <<< "$body")
+  for forbidden in 'gh issue comment' 'gh issue edit' 'gh issue create' 'gh issue close'; do
+    assert_contains "$section" "$forbidden" "the never-list names '$forbidden' as outside the reader"
+    assert_eq "1" "$(grep -cF "$forbidden" <<< "$body")" "and it is named once, so no second mention is a write path"
+  done
+}
+
 case_answer_requiresTheDecisionText() {
   export GH_STUB_DIR="$(scenario decision-queue)"
   local dir log out status
@@ -1177,6 +1565,27 @@ case_surface_reservationIsNotBypassed() {
   [ ! -s "$log" ] || fail "no write may reach the tracker: $(cat "$log")"
 }
 
+# The stub is the only `gh` the suite ever runs, so a shape the real CLI refuses is a fact no case can see:
+# the item reached the tracker with every suite green (#165), because the bare `gh issue edit <n>` that
+# `tools/issues/update.sh` issued was recorded by a stub that inspects no flags. The tool side is guarded
+# (`edit_needed`, `tools/issues/update.sh:192-196`); this case is the fixture's own guard, so a path added
+# later that assembles an empty edit is red here rather than on a person's desk.
+case_surface_theStubRefusesAnEditWithNoField() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_RECORD="$log"
+
+  out=$(gh issue edit 21 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "the stub recorded a fieldless `gh issue edit`, which the real CLI refuses: $out"
+  assert_contains "$out" "--add-label" "the refusal names a flag that would make the edit legal"
+  assert_contains "$out" "--body-file" "and the body route beside it"
+  [ ! -s "$log" ] || fail "a call the real CLI refuses was recorded as a write: $(cat "$log")"
+
+  # and a legitimate write is still recorded, unchanged: the refusal narrows the arm, it does not close it
+  gh issue edit 21 --add-label class/bug >/dev/null 2>&1 || fail "a legal `gh issue edit` was refused"
+  grep -qxF 'gh issue edit 21 --add-label class/bug' "$log" || fail "the legal edit does not reach the log: $(cat "$log")"
+}
+
 # `--id N` is the resolution a `§N` citation depends on after the source record is gone (design D3): the
 # marker is the identity, so exactly one issue answers, and a number that is a prefix of another entry's
 # marker must not answer for it.
@@ -1330,6 +1739,102 @@ case_update_removeLabelRunsThroughTheSameGate() {
   return 0
 }
 
+# --------------------------------------------------------------------------- the band pair (#671)
+#
+# A band label is the selector over a stored record, and the record is the body's marker: the pair is one
+# write. The `metadata-invariant` row reports the drift it finds and repairs nothing (the owner's decision of
+# 2026-10-25, issue #292 — which half of a drifted pair is wrong is a judgement), so the only half left is
+# prevention: the write path that can set one without the other is the defect.
+
+band_tracker() { # <dir> → item 25 (a band label, no marker) and item 26 (the pair)
+  local dir="$1" marker
+  marker='<!-- prio: band=p1 score=6 sev=4 reach=1 conf=2 occ=1 basis=0000000000000000000000000000000000000000000000000000000000000000 at=2026-10-26 -->'
+  jq -n --arg marker "$marker" '
+    [{number: 25, title: "a band label with no marker", state: "OPEN", stateReason: "",
+      body: "The body, with no marker at all.", comments: [], author: {login: "Framstag"},
+      labels: [{name: "class/bug"}, {name: "prio/p1"}]},
+     {number: 26, title: "a band label with its marker", state: "OPEN", stateReason: "",
+      body: ("The body.\n\n" + $marker), comments: [], author: {login: "Framstag"},
+      labels: [{name: "class/bug"}, {name: "prio/p1"}]}]' > "$dir/issues.json"
+}
+
+case_update_refusesABandLabelWithoutItsMarker() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  band_tracker "$dir"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 25 --label prio/p2 2>&1); status=$?
+  assert_eq "3" "$status" "a band label added with no body is refused: $out"
+  assert_contains "$out" "band-label-unpaired" "the refusal names the pairing rule"
+
+  out=$(run_tool update.sh 25 --remove-label prio/p1 2>&1); status=$?
+  assert_eq "3" "$status" "a band label removed with no body is refused: $out"
+  assert_contains "$out" "band-label-unpaired" "the removal is the same rule"
+
+  [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+}
+
+case_update_writesABandLabelWithTheBodysMarker() {
+  local dir log out status edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  band_tracker "$dir"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  printf 'The body.\n\n<!-- prio: band=p2 score=8 sev=4 reach=1 conf=2 occ=1 basis=1111111111111111111111111111111111111111111111111111111111111111 at=2026-10-26 -->\n' \
+    > "$dir/body-p2"
+  printf 'The body.\n\n<!-- prio: band=p3 score=4 sev=2 reach=1 conf=2 occ=1 basis=2222222222222222222222222222222222222222222222222222222222222222 at=2026-10-26 -->\n' \
+    > "$dir/body-p3"
+
+  # The pass's own shape: the label and the body in one call, the old band removed beside them.
+  out=$(run_tool update.sh 26 --label prio/p2 --remove-label prio/p1 --body "$dir/body-p2" 2>&1); status=$?
+  assert_eq "0" "$status" "a band label carrying its marker is written: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log")" "exactly one issue edit is issued"
+  edit=$(grep 'issue edit' "$log")
+  assert_contains "$edit" "--add-label prio/p2" "the band label travels"
+  assert_contains "$edit" "--remove-label prio/p1" "and the band it replaces"
+  assert_contains "$edit" "--body-file" "with the body that records it"
+
+  # A body whose marker records another band is the same drift, one call later.
+  : > "$log"
+  out=$(run_tool update.sh 26 --label prio/p2 --body "$dir/body-p3" 2>&1); status=$?
+  assert_eq "3" "$status" "a band label the body's marker contradicts is refused: $out"
+  assert_contains "$out" "band-label-disagrees" "the refusal names the disagreement"
+  [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+
+  # The removal half, which is the drift the other way round: taking the band label off while the body's
+  # marker keeps recording a band leaves the item with a marker and no label — `marker-without-label`, the
+  # half #305 does not happen to be. Nothing about the call is unknown: a label named for removal, none
+  # added, and a body that records a band, so the gate decides it without reading the item.
+  : > "$log"
+  out=$(run_tool update.sh 26 --remove-label prio/p1 --body "$dir/body-p3" 2>&1); status=$?
+  assert_eq "3" "$status" "a removal whose body still records a band is refused: $out"
+  assert_contains "$out" "band-label-disagrees" "the removal is the same rule"
+  [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+
+  # And the removal that carries a body with no marker is the pair it should be: the item ends with neither
+  # half, which is the state a demoted item has.
+  : > "$log"
+  printf 'The body, and no marker at all.\n' > "$dir/body-none"
+  out=$(run_tool update.sh 26 --remove-label prio/p1 --body "$dir/body-none" 2>&1); status=$?
+  assert_eq "0" "$status" "a removal carrying a body with no marker succeeds: $out"
+  assert_contains "$(grep 'issue edit' "$log")" "--remove-label prio/p1" "the removal travels"
+}
+
+# A created item's body carries no marker, so no band can agree with it: the pass assigns the pair, never the
+# filing.
+case_create_refusesABandLabelAtFilingTime() {
+  export GH_STUB_DIR="$ISSUES_FIXTURES"
+  local dir log finding out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  finding=$(finding_json)
+
+  out=$(printf '%s' "$finding" | run_tool create.sh --label prio/p1 2>&1); status=$?
+  assert_eq "3" "$status" "a band label at filing time is refused: $out"
+  assert_contains "$out" "band-label-unpaired" "the refusal names the pairing rule"
+  [ ! -s "$log" ] || fail "a refused band label reached the tracker: $(cat "$log")"
+}
+
 # --------------------------------------------------------------------------- the state transition
 #
 # A state write replaces the state: `gh issue edit` carries the add and every other value of the namespace as
@@ -1456,6 +1961,55 @@ case_update_statusReportNamesImpliedRemoval() {
   assert_contains "$(jq -rc '.labels' <<< "$out")" "status/fixed-by" "the report names the state it set"
   assert_contains "$(jq -rc '.removedLabels' <<< "$out")" "status/open" \
     "and the state it displaced, which the caller never named"
+  return 0
+}
+
+# A settled state is a claim about the item's premise — the defect shipped, or the entry was retired — and a
+# hold is a claim about a run's capacity to take it, so the second must not erase the first by accident: one
+# write turned #146's `status/retired` into `status/on-hold`, and the tombstone was queueable work two days
+# later (#684). A routine state write therefore refuses to displace a value of the profile's
+# `roles.settledStatuses`, and only a call that names the transition — `--displace-settled` — performs it.
+case_update_refusesToDisplaceASettledState() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/retired class/bug category/car
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --status on-hold 2>&1); status=$?
+  assert_eq "3" "$status" "a hold over a settled state is refused: $out"
+  assert_contains "$out" "status-settled" "the refusal names the rule"
+  assert_contains "$out" "status/retired" "and the settled state the write would have displaced"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and nothing reached the tracker"
+
+  # The same write with the transition named lands, and reports the settled state it removed.
+  out=$(run_tool update.sh 11 --status on-hold --displace-settled 2>&1); status=$?
+  assert_eq "0" "$status" "the write that names the transition succeeds: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log")" "exactly one issue edit is issued"
+  assert_contains "$(grep 'issue edit' "$log")" "--remove-label status/retired" \
+    "the settled state is displaced in the same write"
+  assert_contains "$out" "status/retired" "and the call names what it displaced"
+
+  # The flag names a transition, so a call that sets no state cannot pass it.
+  out=$(run_tool update.sh 11 --label category/car --displace-settled 2>&1); status=$?
+  assert_eq "2" "$status" "the flag without a state is a usage error: $out"
+  return 0
+}
+
+# A closure writes a settled state on purpose — that is the transition it is — so it names it: a not-planned
+# closure over an item already settled as fixed displaces one settled state for the other instead of being
+# refused (#684).
+case_close_namesTheSettledStateItDisplaces() {
+  local dir log out status edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 24 status/fixed-by class/bug category/car source/agent agent/eligible
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 24 --reason "the fix was reverted" --evidence "the case is green" --not-planned 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a closure displacing one settled state for the other succeeds: $out"
+  edit=$(grep 'issue edit' "$log" || true)
+  assert_contains "$edit" "--add-label status/retired" "the settled state the closure records is set"
+  assert_contains "$edit" "--remove-label status/fixed-by" "and the settled state it displaces is removed"
   return 0
 }
 
@@ -1630,10 +2184,10 @@ case_create_refusesADoubledCitation() {
   local dir log out status finding
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
   export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_RECORD="$log"
-  finding=$(jq -n '{sourceId: "907", title: "§907 a fixture finding", class: "bug", category: "ui",
+  finding=$(with_cause "$(jq -n '{sourceId: "907", title: "§907 a fixture finding", class: "bug", category: "ui",
                     claim: "c5", anchor: "tools/issues/close.sh",
                     labels: ["class/bug", "category/ui", "status/open"],
-                    body: "- **Evidence** ⊨: `tools/issues/tools/issues/close.sh` rewrites the status."}')
+                    body: "- **Evidence** ⊨: `tools/issues/tools/issues/close.sh` rewrites the status."}')")
   out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
   assert_eq "2" "$status" "a doubled citation is refused as a malformed payload"
   assert_contains "$out" "the repository's path is 'tools/issues/close.sh'" "the refusal names the tracked path"
@@ -1891,6 +2445,66 @@ case_prioritise_writesLabelAndMarkerTogether() {
   return 0
 }
 
+# A body that quotes the grammar is not a body that carries a marker. The writer composed the new body by
+# replacing the first line that *contains* the opening delimiter, so re-scoring an item that documents the
+# grammar replaced the quotation with the marker and lost that prose — and left the fenced excerpt standing as a
+# second marker (issue #293). The composed body is what `update.sh` is handed, so both arms are asserted on it:
+# the append (a body with no marker of its own) and the replace (a body whose stored marker line is the one line
+# the write may change), so mutating `NR == n` away from the record's line fails this case.
+case_prioritise_theWriteKeepsAQuotation() {
+  local dir composed quoted stored marker read_band
+  dir=$(scratch)
+  quoted='<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->'
+  stored='<!-- prio: band=p2 score=1 sev=1 reach=1 conf=1 occ=1 basis=deadbeefdeadbeef at=2026-01-01 -->'
+  jq -n --arg q "$quoted" '[{number: 1,
+    title: "a finding that quotes the grammar",
+    labels: [{name: "class/bug"}, {name: "category/ui"}, {name: "status/open"}],
+    body: ("the pass appends `" + $q + "` on the body'"'"'s last line:\n\n```\n" + $q + "\n```\n"),
+    author: {login: "Framstag"}}]' > "$dir/issues.json"
+  metadata_scores 1 > "$dir/scores.json"
+  export GH_STUB_DIR="$dir"
+
+  marker=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --scores "$dir/scores.json" --profile "$(profile_path)" |
+    jq -r '.writes[0].marker') || fail "the run could not compose a marker"
+  [ -n "$marker" ] || fail "the run composed no marker for issue 1"
+  composed=$(bash "$ISSUES_ENGINE/prioritise.sh" --scores "$dir/scores.json" --body-of 1 --profile "$(profile_path)") ||
+    fail "the composed body could not be read"
+
+  assert_eq "1" "$(printf '%s\n' "$composed" | grep -cF "$marker" || true)" \
+    "the marker the pass wrote is in the body exactly once"
+  assert_eq "2" "$(printf '%s\n' "$composed" | grep -cF "$quoted" || true)" \
+    "and both quotations survive the write"
+  assert_eq "2" "$(printf '%s\n' "$composed" | grep -c '^```$' || true)" \
+    "the fence's two lines are left as they stand"
+  read_band=$( ( source "$ISSUES_ENGINE/lib.sh"; issues_prio_field "$(issues_prio_marker "$composed")" band ) )
+  assert_eq "p2" "$read_band" "and the record read back is the pass's own band, not the quoted one"
+
+  # the replace arm: the same body, now carrying the record the pass wrote last time. That line — and only it —
+  # is what the next write changes; a quotation is never the line that stands in for it. The marker is composed
+  # again, because the stored marker's own `at` moves the freshness bucket and therefore the basis the marker
+  # text carries.
+  jq -n --arg q "$quoted" --arg s "$stored" '[{number: 1,
+    title: "a finding that quotes the grammar",
+    labels: [{name: "class/bug"}, {name: "category/ui"}, {name: "status/open"}],
+    body: ("the pass appends `" + $q + "` on the body'"'"'s last line:\n\n```\n" + $q + "\n```\n\n" + $s + "\n"),
+    author: {login: "Framstag"}}]' > "$dir/issues.json"
+
+  marker=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --scores "$dir/scores.json" --profile "$(profile_path)" |
+    jq -r '.writes[0].marker') || fail "the run could not compose a marker for the stored body"
+  [ -n "$marker" ] || fail "the stored body was taken as needing no write"
+  composed=$(bash "$ISSUES_ENGINE/prioritise.sh" --scores "$dir/scores.json" --body-of 1 --profile "$(profile_path)") ||
+    fail "the composed body of the stored record could not be read"
+  assert_eq "1" "$(printf '%s\n' "$composed" | grep -cF "$marker" || true)" \
+    "the stored body keeps exactly one marker line"
+  assert_eq "0" "$(printf '%s\n' "$composed" | grep -cF "$stored" || true)" \
+    "the stored record's own line is the line replaced, not a quotation beside it"
+  assert_eq "2" "$(printf '%s\n' "$composed" | grep -cF "$quoted" || true)" \
+    "and both quotations still survive"
+  read_band=$( ( source "$ISSUES_ENGINE/lib.sh"; issues_prio_field "$(issues_prio_marker "$composed")" band ) )
+  assert_eq "p2" "$read_band" "and the record read back is still the pass's own band"
+  return 0
+}
+
 case_prioritise_refusesATaxonomyOutsideValue() {
   local dir log profile out status
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
@@ -2030,6 +2644,30 @@ case_prioritise_reportsEveryCounter() {
   done
   assert_contains "$out" "waiting=0" "and the queue a bounded run leaves behind"
   assert_contains "$out" "unclassified=0" "and the issues that carry no kind"
+  return 0
+}
+
+# The records leave `prioritise.sh` as one JSON document, and on a tracker of this project's size that document
+# is larger than a single command-line argument may be: the report then died with "Argument list too long",
+# the tool exited 0 anyway (no `set -e` around the subshell), and the helper read an empty plan and reported a
+# bare "integer expected" instead of the reason the pass had stopped (#291). The tracker is generated rather
+# than checked in — a fixture this large is a file nobody reads — and the case asserts the size it reached, so
+# a generator that shrank below the limit fails loudly instead of passing without exercising it.
+case_prioritise_recordsOutgrowOneArgument() {
+  local dir out status size
+  dir=$(scratch)
+  # 400 issues carrying a title of ~330 characters: each title travels base64-encoded inside the record, so the
+  # document this builds is ~200 kB against the 131072 bytes Linux allows one argument.
+  metadata_issues 400 | jq 'map(.title = (.title + " — " + ("a title long enough that the records outgrow a single argument " * 4)))' \
+    > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --dry-run --max-rescore 400 2>&1); status=$?
+  assert_eq "0" "$status" "the plan is built and reported: $out"
+  assert_eq "400" "$(jq -r '.records | length' <<< "$out")" "every issue read is in the report"
+  size=$(jq -c '.records' <<< "$out" | wc -c | tr -d ' ')
+  [ "$size" -gt 131072 ] ||
+    fail "the records are $size bytes, which one argument may carry — this case is not exercising the limit"
   return 0
 }
 
@@ -2256,4 +2894,358 @@ case_list_eligibleOnlyIgnoresTheBand() {
   assert_eq "1" "$(jq -r 'length' <<< "$out")" "one of the two items is eligible"
   assert_eq "2" "$(jq -r '.[0].number' <<< "$out")" "and it is the one that carries the opt-in, not the band"
   return 0
+}
+
+# A closed item is not a selection. The query is made against `--state all` (one paged call, and the tracker's own
+# `--state` flag cannot say "open *and* every label this asks for"), and until 2026-10-27 nothing filtered the closed
+# entries out again: 321 candidates reached the pre-screen, each costing a full read, and the closed #310 was the
+# candidate whose unreadable record ended a run. `--include-closed` is the opt-in for a caller that wants them.
+case_list_closedItemIsNotASelection() {
+  local dir out
+  dir=$(scratch)
+  metadata_issues 2 | jq '.[0].labels += [{name: "agent/eligible"}] | .[1].labels += [{name: "agent/eligible"}] | .[1].state = "CLOSED"' \
+    > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(run_tool list.sh --json) || fail "the plain query failed: $out"
+  assert_eq "1" "$(jq -r 'length' <<< "$out")" "the closed item is not in the plain selection"
+  assert_eq "1" "$(jq -r '.[0].number' <<< "$out")" "only the open one is"
+
+  out=$(run_tool list.sh --eligible-only --json) || fail "the eligibility query failed: $out"
+  assert_eq "1" "$(jq -r 'length' <<< "$out")" "it is not eligible either, whatever its labels say"
+
+  out=$(run_tool list.sh --eligible-only --include-closed --json) || fail "the opt-in query failed: $out"
+  assert_eq "2" "$(jq -r 'length' <<< "$out")" "the opt-in asks for it and gets it"
+  return 0
+}
+
+# ---------------------------------------------------------------- the finding's shape (`backlog-source-of-truth`)
+#
+# The writer refuses a finding that names no shape, records the shape it filed in the body record, and — for the
+# tier-B shape — reaches the readiness check through the profile and records the answered forks on the item
+# before its state moves. Everything these cases need is the case's own: the change lives in a scratch changes
+# directory (`ISSUES_CHANGES_DIR`) and the readiness check is a script the case writes, so no case reads this
+# tree's changes and none runs the real checker (design D3, D6).
+
+shape_profile() { # <dir> <gate-path> → the profile path: this project's, with checks.changeReady set
+  local dir="$1" gate="$2"
+  mkdir -p "$dir/profile"
+  jq --arg gate "$gate" '.checks = ((.checks // {}) + {changeReady: $gate})' \
+    "$(profile_path)" > "$dir/profile/tooling.json"
+  printf '%s\n' "$dir/profile/tooling.json"
+}
+
+shape_changes() { # <dir> <change-name> → the changes directory, holding one change
+  local dir="$1" name="$2"
+  mkdir -p "$dir/changes/$name/specs/fixture"
+  printf '# Design\n\n## Open decisions\n\nnone\n' > "$dir/changes/$name/design.md"
+  printf '%s\n' "$dir/changes"
+}
+
+shape_gate_ok() { # <file> — a readiness check that reports the change ready and records its call
+  cat > "$1" <<'GATE'
+#!/usr/bin/env bash
+[ -n "${GATE_LOG:-}" ] && printf '%s\n' "$*" >> "$GATE_LOG"
+printf 'LOOP-CHANGE-READY: ok\n'
+GATE
+}
+
+shape_gate_refused() { # <file> — a readiness check that refuses a change which declares a decision
+  cat > "$1" <<'GATE'
+#!/usr/bin/env bash
+printf 'LOOP-CHANGE-READY: refused open-decision=design.md:5\n'
+exit 1
+GATE
+}
+
+# A finding with no shape at all: the writer names both shapes and what each owes, and writes nothing.
+case_create_aShapelessFindingIsRefused() {
+  local dir log out status finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(jq -n '{sourceId: "910", title: "a finding with no shape", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b", labels: ["class/bug", "category/ui"]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a finding with neither a cause nor a change is refused: $out"
+  assert_contains "$out" "shape-missing" "the refusal is named"
+  assert_contains "$out" "cause" "the refusal names the first shape"
+  assert_contains "$out" "change" "and the second"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+# Both shapes at once: a proven fix and a planned change are different work, so the writer refuses rather than
+# choosing one for the item.
+case_create_aFindingWithBothShapesIsRefused() {
+  local dir log out status finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(with_cause "$(jq -n '{sourceId: "911", title: "a finding with both shapes", class: "bug",
+                    category: "ui", claim: "c", anchor: "a", body: "b", change: "some-change"}')")
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "3" "$status" "both shapes is a refusal: $out"
+  assert_contains "$out" "shape-ambiguous" "the refusal is named"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_aCauseWithAResolvingPointerIsFiled() {
+  local dir log out finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(with_cause "$(jq -n '{sourceId: "912", title: "a cause that resolves", class: "bug",
+                    category: "ui", claim: "c", anchor: "a", body: "b"}')")
+  out=$(printf '%s' "$finding" | run_tool create.sh --json) || fail "a complete tier-A finding was refused: $out"
+  assert_eq "a" "$(jq -r '.shape' <<< "$out")" "the writer reports the shape it filed"
+  assert_eq "tools/issues/create.sh:84" "$(jq -r '.cause' <<< "$out")" "and the pointer the cause named"
+  assert_eq "1" "$(grep -c 'issue create' "$log")" "exactly one issue is created"
+}
+
+case_create_aCauseWhosePointerIsGoneIsRefused() {
+  local dir log out status finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(jq -n '{sourceId: "913", title: "a cause whose pointer is gone", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b",
+                    cause: {file: "tools/issues/no-such-file.sh", line: 3, case: "create#gone"}}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a pointer nothing resolves is refused: $out"
+  assert_contains "$out" "cause-unresolved" "the refusal is named"
+  assert_contains "$out" "tools/issues/no-such-file.sh" "and names the token"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_aCauseWithoutACaseIsRefused() {
+  local dir log out status finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(jq -n '{sourceId: "914", title: "a cause with no case", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b",
+                    cause: {file: "tools/issues/create.sh", line: 84}}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a cause with no red case is refused: $out"
+  assert_contains "$out" "cause-without-case" "the refusal is named"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_aNamedChangeThatDoesNotExistIsRefused() {
+  local dir log out status finding changes
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" an-existing-change)
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+  finding=$(jq -n '{sourceId: "915", title: "a change nobody wrote", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b", change: "no-such-change",
+                    questions: [{question: "q", decision: "d"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a change directory the tree does not hold is refused: $out"
+  assert_contains "$out" "change-not-found" "the refusal is named"
+  assert_contains "$out" "no-such-change" "the path it looked for is named"
+  assert_contains "$out" "openspec new change" "and the command that creates one"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_aChangeThatIsNotReadyIsRefused() {
+  local dir log out status finding changes gate profile
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" not-ready-change)
+  gate="$dir/gate.sh"; shape_gate_refused "$gate"
+  profile=$(shape_profile "$dir" "$gate")
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+  finding=$(jq -n '{sourceId: "916", title: "a change that is not ready", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b", change: "not-ready-change",
+                    questions: [{question: "q", decision: "d"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "a change the checker refuses is not filed: $out"
+  assert_contains "$out" "change-not-ready" "the refusal is named"
+  assert_contains "$out" "open-decision=design.md:5" "and the checker's verdict line is quoted"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_aTierBWithNoDecisionIsRefused() {
+  local dir log out status finding changes gate profile
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" ready-change)
+  gate="$dir/gate.sh"; shape_gate_ok "$gate"
+  profile=$(shape_profile "$dir" "$gate")
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+
+  finding=$(jq -n '{sourceId: "917", title: "a tier-B finding with no questions", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b", change: "ready-change"}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "a tier-B finding with no recorded fork is refused: $out"
+  assert_contains "$out" "decision-missing" "the refusal is named"
+
+  finding=$(jq -n '{sourceId: "918", title: "a tier-B finding with an unanswered question", class: "bug",
+                    category: "ui", claim: "c2", anchor: "a", body: "b", change: "ready-change",
+                    questions: [{question: "merge or keep?"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "a question with no decision is refused too: $out"
+  assert_contains "$out" "merge or keep?" "and the unanswered question is named"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_anEmptyGatePathRefusesTierB() {
+  local dir log out status finding changes profile
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" ready-change)
+  profile=$(shape_profile "$dir" "")
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+  finding=$(jq -n '{sourceId: "919", title: "a tier-B finding where no check is declared", class: "bug",
+                    category: "ui", claim: "c", anchor: "a", body: "b", change: "ready-change",
+                    questions: [{question: "q", decision: "d"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "an empty checks.changeReady refuses the tier-B shape: $out"
+  assert_contains "$out" "gate-not-configured" "the refusal is named"
+  assert_contains "$out" "checks.changeReady" "and names the key"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_theDeclaredGatePathIsTheOneRun() {
+  local dir log out finding changes gate profile gate_log
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" ready-change)
+  gate="$dir/gate.sh"; shape_gate_ok "$gate"; chmod +x "$gate"
+  profile=$(shape_profile "$dir" "$gate")
+  gate_log="$dir/gate.log"; : > "$gate_log"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes" GATE_LOG="$gate_log"
+  finding=$(jq -n '{sourceId: "920", title: "a ready change", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b", change: "ready-change",
+                    questions: [{question: "q", decision: "d"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" >/dev/null 2>&1)
+  [ -n "$out" ] && fail "the filing failed: $out"
+  assert_contains "$(cat "$gate_log")" "ready-change" "the check the profile declares is the one that ran"
+  assert_contains "$(cat "$gate_log")" "$changes" "and it was handed the change directory"
+
+  # …and a profile that names a path with no file is a refusal, never a silent pass.
+  unset GATE_LOG
+  profile=$(shape_profile "$dir" "$dir/gone.sh")
+  : > "$log"
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "a declared check that is not there refuses the shape: $out"
+  assert_contains "$out" "gate-not-configured" "the refusal is named"
+  [ ! -s "$log" ] || fail "an issue was created anyway: $(cat "$log")"
+}
+
+case_create_aTierBIsFiledWithItsDecisions() {
+  local dir log out finding changes gate profile create_ln comment_ln edit_ln create_line comment_line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" ready-change)
+  gate="$dir/gate.sh"; shape_gate_ok "$gate"
+  profile=$(shape_profile "$dir" "$gate")
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+  finding=$(jq -n '{sourceId: "921", title: "a ready change, its forks answered", class: "bug",
+                    category: "ui", claim: "c", anchor: "a", body: "b", change: "ready-change",
+                    labels: ["class/bug", "category/ui", "status/open"],
+                    questions: [{question: "merge or keep the file?", decision: "keep it"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" --json) ||
+    fail "a complete tier-B finding was refused: $out"
+  assert_eq "b" "$(jq -r '.shape' <<< "$out")" "the writer reports the tier-B shape"
+  assert_eq "1" "$(jq -r '.decisions' <<< "$out")" "and the decision it recorded"
+
+  create_ln=$(grep -n 'issue create' "$log" | cut -d: -f1)
+  comment_ln=$(grep -n 'issue comment' "$log" | cut -d: -f1)
+  edit_ln=$(grep -n 'issue edit' "$log" | cut -d: -f1)
+  [ -n "$create_ln" ] && [ -n "$comment_ln" ] && [ -n "$edit_ln" ] ||
+    fail "the sequence is incomplete: $(cat "$log")"
+  [ "$create_ln" -lt "$comment_ln" ] && [ "$comment_ln" -lt "$edit_ln" ] ||
+    fail "the answers must be recorded before the state moves: $(cat "$log")"
+  create_line=$(sed -n "${create_ln}p" "$log")
+  comment_line=$(sed -n "${comment_ln}p" "$log")
+  assert_contains "$comment_line" "Decision: keep it" "the comment carries the answer the answer path writes"
+  assert_contains "$comment_line" "answers:" "and names the question it settles"
+  case "$create_line" in
+    *status/open*) fail "the state label was written with the create, before the answers: $create_line" ;;
+  esac
+  case "$(cat "$log")" in
+    *needs-decision*) fail "the item carries the decision label it should not: $(cat "$log")" ;;
+  esac
+  assert_contains "$(sed -n "${edit_ln}p" "$log")" "status/open" "the state is set after the answers"
+}
+
+case_create_theShapeIsInTheBodyRecord() {
+  local dir log out finding line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(with_cause "$(jq -n '{sourceId: "922", title: "the shape in the body record", class: "bug",
+                    category: "ui", claim: "c", anchor: "a", body: "b"}')")
+  printf '%s' "$finding" | run_tool create.sh >/dev/null 2>&1 || fail "the tier-A filing failed"
+  line=$(grep 'issue create' "$log" | head -1)
+  assert_eq "1" "$(grep -o 'tier: a' <<< "$line" | wc -l | tr -d ' ')" "one tier marker, naming the shape"
+}
+
+case_create_aTierAIsFiled() {
+  local dir log out finding
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  out=$(finding_json | run_tool create.sh) || fail "a complete tier-A finding was refused: $out"
+  assert_contains "$out" "filed as tier a" "the command reports the shape it filed"
+  assert_eq "1" "$(grep -c 'issue create' "$log")" "exactly one issue is created"
+}
+
+case_create_aTierBIsFiled() {
+  local dir log out finding changes gate profile
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" ready-change)
+  gate="$dir/gate.sh"; shape_gate_ok "$gate"
+  profile=$(shape_profile "$dir" "$gate")
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+  finding=$(jq -n '{sourceId: "923", title: "a ready change", class: "bug", category: "ui",
+                    claim: "c", anchor: "a", body: "b", change: "ready-change",
+                    questions: [{question: "q", decision: "d"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile") ||
+    fail "a complete tier-B finding was refused: $out"
+  assert_contains "$out" "filed as tier b" "the command reports the shape it filed"
+  assert_contains "$out" "ready-change" "and names the change"
+  assert_eq "1" "$(grep -c 'issue create' "$log")" "exactly one issue is created"
+}
+
+case_create_aSensorFindingIsExemptFromTheShape() {
+  local dir log out sensor finding line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  sensor=$(jq -r '.rows[0].id' "$ISSUES_REPO_ROOT/tools/sensors/sensors.json") ||
+    fail "the registry declares no row to file under"
+  finding=$(jq -nc --arg sensor "sensor/$sensor" '{title: "a check finding", class: "bug",
+    category: "build-and-harness", claim: "the declared row fired", fingerprint: "fixture-1", body: "b",
+    labels: ["class/bug", "category/build-and-harness"]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --sensor "$sensor" --json) ||
+    fail "the check registry's finding was refused the shape exemption: $out"
+  assert_eq "exempt" "$(jq -r '.shape' <<< "$out")" "the finding reports the exemption"
+  line=$(grep 'issue create' "$log" | head -1)
+  assert_contains "$line" "exempt: sensor $sensor" "the item names what exempted it"
+  assert_contains "$line" "occurrence" "beside the occurrence count"
+  case "$line" in
+    *"tier: "*) fail "an exempt finding carries a tier marker it has no claim to: $line" ;;
+  esac
+}
+
+# The reconciler's findings are historical records, so they carry neither shape: the exemption is declared on the
+# item rather than left silent, exactly as the check registry's is (`backlog-source-of-truth`, the shape
+# requirement; design D4).
+case_import_theImportedItemNamesItsExemption() {
+  local dir log out finding line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  out=$(run_tool import.sh --findings "$ISSUES_FIXTURES/findings.json" --apply --json 2>&1) ||
+    fail "the reconciler refused a historical finding: $out"
+  assert_eq "2" "$(jq -r '.created' <<< "$out")" "both fixture findings are filed"
+  line=$(grep 'issue create' "$log" | head -1)
+  assert_contains "$line" "exempt: import 901" "the item names what exempted it and where it came from"
+  case "$line" in
+    *"tier: "*) fail "an exempt finding carries a tier marker it has no claim to: $line" ;;
+  esac
 }

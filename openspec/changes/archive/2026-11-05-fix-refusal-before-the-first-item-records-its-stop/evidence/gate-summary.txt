@@ -1,0 +1,33 @@
+# Gate, one run, 2026-11-05 (round 2 — the review's correction)
+
+Change root `/home/tim/projects/NaviVeylin/.pi/worktrees/loop`, base `62ab008d`, tree as this change leaves it
+after round 1's correction. `./tools/loop/gate.sh` was run **once**, by the round-2 worker, on the final tree:
+exit 0. It was not run again — the result below is that run's own last line, quoted, and nothing here is a second
+measurement of it.
+
+```
+LOOP-GATE: tests=906 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 272s, tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d 409s, bash tools/loop-mutations.sh --check 2s, tools/loop-mutations-selftest.sh 238s, tools/sensor-selftest.sh 77s, tools/sensor-mutations.sh --list 0s, tools/check-compose-sandbox-rule.sh 0s, tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 22s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 1s, tools/issue-tooling-selftest.sh 88s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s)
+```
+
+`gate.log` beside this file is that run's console stream; the 25 per-step tallies it wrote are beside it too, one
+`.xml` per step, named after the command that printed it.
+
+The leg that carries this change, as the gate's own tally states it:
+
+```
+<testsuite name="tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d" tests="319" failures="0" errors="0" time="409">
+```
+
+`all 319 cases passed` is at line 1163 of `gate.log`, and all three cases this change answers for pass in it:
+
+- line 594 — `PASS run#theDecisionCapRecordsItsStopReason`
+- line 850 — `PASS run#dirtyKeptWorktreeIsARecordedRefusal`
+- line 878 — `PASS run#resetWorktreeNamesTheDirtItCannotDiscard`, the case round 1's correction widened
+
+The build leg is `gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml` (`time="272"`, its
+`BUILD SUCCESSFUL` in `system-out`, and — as in round 1 — no case counted for it, `tests="0"`); no compiled file
+is touched by this change, and the leg is the gate's own plan, not a task of this change.
+
+The red case this change answers for was measured before the fix, on HEAD, and its tally is
+`red-on-HEAD-run-theDecisionCapRecordsItsStopReason.xml` (`tests=1 failures=1`) — a case-level run, and the `tests=1`
+there is the one case, not the suite.

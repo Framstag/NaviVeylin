@@ -1,0 +1,61 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=c29691865337325c0b293b57b72068d0468540da paths=20 insertions=563 deletions=13
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/service/NavigationNotificationContent.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/service/NavigationNotificationContentFormatterTest.kt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/focused-car-hint.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/focused-navigation-notification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-modules.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/red-zero-distance.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/revert-restored.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/specs/navigation-ongoing-notification/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/tasks.md
+LOOP-MEASURE-PATH openspec/specs/navigation-ongoing-notification/spec.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=273 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=6s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=274s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=285 suites=10
+LOOP-MEASURE-CHANGE 2026-10-28-fix-zero-distance-reads-zero-not-unknown scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/focused-car-hint.xml tests=6 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/focused-navigation-notification.xml tests=18 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=6s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=274s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/red-zero-distance.xml tests=1 failures=1
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-zero-distance-reads-zero-not-unknown/evidence/revert-restored.xml tests=1 failures=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 0 fixtures realigned —
+LOOP-MEASURE-END

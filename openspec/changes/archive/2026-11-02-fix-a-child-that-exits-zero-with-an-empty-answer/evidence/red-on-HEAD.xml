@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault" tests="1" failures="1" errors="0" time="0" timestamp="2026-11-02T19:05:59Z">
+  <system-out>1 of 1 cases failed</system-out>
+</testsuite>

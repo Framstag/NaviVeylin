@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git f2d27735818acd6d05095a9b331f4ee2bae1bb74" tests="202" failures="0" errors="0" time="832">
+  <system-out>loop-selftest: all 202 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git f2d27735818acd6d05095a9b331f4ee2bae1bb74 ended 181917 — its working directory is inside loop-selftest.rWPPW5 ended 564478 — its working directory is inside loop-selftest.rWPPW5</system-out>
+</testsuite>

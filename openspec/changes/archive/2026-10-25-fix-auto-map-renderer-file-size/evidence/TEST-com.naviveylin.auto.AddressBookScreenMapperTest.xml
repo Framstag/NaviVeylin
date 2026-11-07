@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AddressBookScreenMapperTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:12.018Z" hostname="dingens" time="0.008">
+  <properties/>
+  <testcase name="singleAddressResolvesDirectly" classname="com.naviveylin.auto.AddressBookScreenMapperTest" time="0.005"/>
+  <testcase name="noMatchReturnsEmpty" classname="com.naviveylin.auto.AddressBookScreenMapperTest" time="0.001"/>
+  <testcase name="rowContentJoinsAddresses" classname="com.naviveylin.auto.AddressBookScreenMapperTest" time="0.0"/>
+  <testcase name="blankQueryReturnsAll" classname="com.naviveylin.auto.AddressBookScreenMapperTest" time="0.0"/>
+  <testcase name="multiAddressDefersToPicker" classname="com.naviveylin.auto.AddressBookScreenMapperTest" time="0.001"/>
+  <testcase name="filterIsCaseInsensitiveByName" classname="com.naviveylin.auto.AddressBookScreenMapperTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

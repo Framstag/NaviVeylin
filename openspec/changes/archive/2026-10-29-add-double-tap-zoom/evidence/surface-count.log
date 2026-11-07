@@ -1,0 +1,17 @@
+\$ grep -rn "scroll wheel\|scroll-wheel\|double tap\|double-tap\|doubleTap" --include=*.kt --include=*.md app/src/main app/src/test guidelines openspec/specs FEATURES.md | grep -v "^openspec/specs/auto\|Scroll wheel" | cut -d: -f1 | sort | uniq -c | sort -rn
+     10 app/src/test/java/com/naviveylin/ui/map/MapGestureComposeTest.kt
+      8 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenParts.kt
+      6 openspec/specs/smooth-zoom/spec.md
+      6 app/src/main/java/com/naviveylin/ui/map/MapGestures.kt
+      4 app/src/test/java/com/naviveylin/ui/map/MapCanvasDoubleTapZoomTest.kt
+      2 app/src/main/cpp/libosmscout/openspec/changes/archive/2026-07-06-javascout-map-rendering/tasks.md
+      1 guidelines/MapRendering.md
+      1 FEATURES.md
+      1 app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+      1 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt
+      1 app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
+      1 app/src/main/java/com/naviveylin/ui/map/MapCanvasFollowDisplay.kt
+      1 app/src/main/cpp/libosmscout/openspec/specs/map-interaction/spec.md
+      1 app/src/main/cpp/libosmscout/openspec/specs/javascout-map-follow/spec.md
+      1 app/src/main/cpp/libosmscout/openspec/changes/archive/2026-07-06-javascout-map-rendering/proposal.md
+      1 app/src/main/cpp/libosmscout/openspec/changes/archive/2026-07-06-javascout-map-rendering/design.md

@@ -63,6 +63,7 @@ Thumbs.db
 # src/test/jniLibs
 !app/src/test/jniLibs/*.so
 !auto/src/test/jniLibs/*.so
+!osmscout-client-java/src/test/jniLibs/*.so
 
 # vcpkg
 vcpkg/

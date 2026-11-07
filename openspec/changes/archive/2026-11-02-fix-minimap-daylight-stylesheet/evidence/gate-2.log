@@ -1,0 +1,15 @@
+# Round-2 gate — 2026-11-04T20:15:34Z on a80dc1cb
+# measured on the tree committed as e9a10210 — a80dc1cb plus the `changed || force` re-render fix that the
+# round's first gate caught (MapCanvasViewModelViewportRestoreTest); the JVM half re-ran green on that tree.
+# LOOP-GATE: tests=997 failures=1 errors=0 — failing: tools/loop-selftest.sh --from-git aee35ca6…
+#
+# The JVM half PASSED: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache, BUILD SUCCESSFUL in 283s,
+# 0 failures / 0 errors in every module (gate-2-tallies.txt: mobile 2232, automotive 2232, :auto 912,
+# :core 653, :osmscout-client-java 112 -> 6141 tests).
+#
+# The one red step is attributed to a wall-clock bound, not to code: the single failing case is
+#   FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s) loop-selftest: 1 of 305 cases failed
+# and it passes alone on the same tree:
+#   $ tools/loop-selftest.sh --case 'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
+#   PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+# (BuildEvidence.md §4d/§4e: a bound-dependent case re-run alone, quoted rather than re-attributed.)

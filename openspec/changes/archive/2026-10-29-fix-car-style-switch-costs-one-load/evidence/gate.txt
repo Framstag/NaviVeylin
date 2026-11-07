@@ -1,0 +1,39 @@
+gate — ./tools/loop/gate.sh, run from the repository root on 2026-10-29 (base main, HEAD 5bd1edba plus the
+round-3 work uncommitted), after the round-3 fix and before the archive move. Eight steps, the plan
+`./tools/loop/gate.sh --plan` prints for this tree: the changed paths are `auto/src/**` (a module source tree),
+`guidelines/MapRendering.md` and the change's own `*.md` files, and `openspec/**`.
+
+LOOP-GATE: tests=6 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 367s,
+bash tools/gen-feature-list.sh --check-classification 5s, tools/check-doc-routes.sh 1s,
+tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s,
+tools/check-openspec-hygiene-selftest.sh 0s) -> exit 0.
+
+The 6 is the tool half: the gate derives a suite's case count from a `all N cases passed` summary line and Gradle
+prints none, so the gradle step's tally carries `tests="0"`. The Gradle half, summed from its own JUnit XML on
+this tree (`evidence/gradle-tallies-round-3.xml`), is tests=6070 failures=0 errors=0 across
+`:app:testMobileDebugUnitTest` 2138, `:app:testAutomotiveDebugUnitTest` 2138, `:auto:testDebugUnitTest` 887,
+`:core:testDebugUnitTest` 643, `:osmscout-client-java:test` 112, `:buildSrc:test` 152; the step printed
+`BUILD SUCCESSFUL in 6m 6s`. Tallies: `evidence/gate/`; sum: `evidence/gate-summary.xml`. Rounds 1 and 2's gate
+records are kept as `evidence/gate-round-1*` and `evidence/gate-round-2*`.
+
+## The two red attempts before it, and why they are not this change
+
+Three attempts, all recorded, in order (Build.md §4d — "a flake of unknown origin gets an entry with its rerun
+evidence, never a silent retry"):
+
+1. **attempt 1 red** (`evidence/gate-attempt-1-red.txt`, `evidence/gate-attempt-1-gradle.xml`):
+   `MapScreenTest > aStyleSwitchLoadsTheStylesheetSetOnce` — `the startup applies the day variant exactly once,
+   got [] expected:<1> but was:<0>`. That case is mine, and the failure was a test-side assumption, not a product
+   one: the flag push is applied by a collector on a background dispatcher, and the case asserted right after
+   `advanceUntilIdle()` where every other case in the class awaits the observable state. Fixed in the same round
+   (task 9.2's second half): both cases now await the push through `awaitDaylightPush`, which the class already
+   used for exactly this reason.
+2. **attempt 2 red** (`evidence/gate-attempt-2-red.txt`, `evidence/gate-attempt-2-attribution.txt`):
+   `StartupScreensTest > diagnosticsScreenShowsNewestFirst` — `the startup screen never published 3 log rows`,
+   i.e. the class's 5 s window expiring under the loaded aggregate run. Attributed, not blamed
+   (`tools/gate-attribute.sh`): the class is green alone (3 consecutive forced runs) and green together with the
+   change's own case (`StartupScreensTest` 7/0 beside `MapScreenTest` 7/0 in one run). This is the family issue
+   #93 tracks (`§148` — timing-sensitive cases in the loaded aggregate run, `status/on-hold`), and the case it
+   failed on is not one this change touches.
+3. **attempt 3 green**: the record above.

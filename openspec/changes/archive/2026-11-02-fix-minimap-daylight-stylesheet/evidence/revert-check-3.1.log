@@ -1,0 +1,9 @@
+# revert-check 3.1 — the daylight push, mutated and restored
+# mutation: MiniMap.kt, `client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, daylight)`
+#           replaced by `// REVERT-CHECK MUTATION (task 3.1): the daylight push is removed`
+# mutated:  ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMapComposeTest" -PforceTests --no-build-cache
+#           exit=1, MiniMapComposeTest 10 tests, 3 failed (evidence/revert-check-3.1-red.xml,
+#           tests="10" failures="3", 2026-11-02T04:59:21Z)
+# restored: same command, exit=0, BUILD SUCCESSFUL in 15s (evidence/revert-check-3.1-green.xml,
+#           tests="10" failures="0", 2026-11-02T05:00:0xZ)
+# marker check: grep -rn 'REVERT-CHECK MUTATION' app/src core/src auto/src -> no output

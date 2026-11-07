@@ -1,0 +1,13 @@
+od -c tails, read 2026-11-06 in /home/tim/projects/NaviVeylin (the project tree, not this change root):
+
+== .pi/issue-loop/items/788/pre-gate-review.md
+0000000   -   -   -  \n  \n   `   L   O   O   P   -   B   L   O   C   K
+0000020   I   N   G   :       3   `  \n   `   V   E   R   D   I   C   T
+0000040   :       F   A   I   L   `  \n
+0000050
+
+== .pi/issue-loop/items/788/pre-gate-review-retry.md
+0000000   -   -   -  \n  \n   `   L   O   O   P   -   B   L   O   C   K
+0000020   I   N   G   :       3   `  \n   `   V   E   R   D   I   C   T
+0000040   :       F   A   I   L   `  \n
+0000050

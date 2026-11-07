@@ -1,0 +1,4 @@
+# the applied tree, 2026-11-05
+
+PASS run#childPastItsContextBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheContextBoundOff

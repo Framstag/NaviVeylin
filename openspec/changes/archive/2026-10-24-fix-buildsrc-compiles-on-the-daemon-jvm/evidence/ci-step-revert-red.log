@@ -1,0 +1,6 @@
+--- mutation: the Java 17 toolchain returns to buildSrc/build.gradle.kts
+--- ci step:
+13:    toolchain {
+14:        languageVersion = JavaLanguageVersion.of(17)
+::error file=buildSrc/build.gradle.kts::buildSrc must declare no JVM toolchain of its own — a toolchain it cannot provision fails the configuration on a machine without that JDK; it compiles with the daemon JVM the criteria select (guidelines/Build.md §2d, issue #92)
+ciExit=1

@@ -1,0 +1,19 @@
+2026-10-26T18:22:33Z
+$ git rev-parse --short main   # the base this change sits on
+f856ca27
+$ git show f856ca27:tools/sensors/run.sh | grep -c MAX_FILINGS
+0
+$ git show f856ca27:tools/sensors/lib.sh | grep -c maxFilings
+0
+$ bash tools/sensor-selftest.sh --list | wc -l   # declared cases, after
+61
+$ git show f856ca27:tools/sensor-cases.sh | sed -n "/^SENSOR_CASES=(/,/^)/p" | grep -c "^  ."   # declared cases, on the base
+54
+$ grep -c "^  .8\." tools/sensor-mutations.sh   # mutation records, after
+27
+$ git show f856ca27:tools/sensor-mutations.sh | grep -c "^  .8\."   # on the base
+22
+$ ls tools/sensors/fixtures/registry*.json | wc -l   # registry fixtures, after
+5
+$ git ls-tree --name-only f856ca27 tools/sensors/fixtures/ | grep -c "registry.*json"   # on the base
+4

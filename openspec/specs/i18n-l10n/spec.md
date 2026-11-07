@@ -124,7 +124,12 @@ POI category names returned by libosmscout (hardcoded English in native code) SH
 - **THEN** the app SHALL fall back to the English resource string for that category
 
 ### Requirement: Native-generated navigation text is localized at the frontend
-Turn-by-turn instruction text produced by the native JNI bridge (hardcoded English in `OSMScoutClient.cpp`, e.g. "Turn left", "Exit 3", "Enter motorway", "Keep left") SHALL be rebuilt from the structured instruction fields (`turnType`, `streetName`) into localized resource strings in the frontend. The native layer SHALL remain unchanged. When a turn type or native text pattern has no localized mapping, the app SHALL fall back to the native English text.
+
+Turn-by-turn guidance text SHALL be produced by the frontend from the route step model — the manoeuvre's kind,
+move, roundabout exit ordinal and circulation direction, street name or ref, and way type — and resolved from
+localized `:core` resources in the device language. The native layer SHALL NOT produce guidance text: it
+publishes values only. No surface SHALL depend on an English string for a manoeuvre, and no native fallback
+SHALL exist.
 
 #### Scenario: German turn instruction on Android Auto
 - **WHEN** the device locale is German and the next instruction is a left turn
@@ -143,8 +148,9 @@ Turn-by-turn instruction text produced by the native JNI bridge (hardcoded Engli
 - **THEN** the instruction SHALL render in German (e.g. "Links halten", "Autobahn verlassen"), not "Keep left" / "Leave motorway"
 
 #### Scenario: Unknown turn type falls back to native text
-- **WHEN** the native layer returns a turn type or text pattern with no localized mapping
-- **THEN** the app SHALL display the native English text rather than an empty or wrong string
+- **WHEN** the step ahead carries a manoeuvre the localizer has no wording for
+- **THEN** the app SHALL display the localized neutral turn wording rather than an empty string
+- **AND** SHALL NOT display a native English text, because the native layer publishes none
 
 #### Scenario: English device locale
 - **WHEN** the device locale is English
@@ -239,3 +245,63 @@ assignment or of a report call is outside the scan's coverage.
   the diagnostics log's payload)
 - **THEN** the scan reports nothing, because logcat-only wording is exempt
 - **Case**: `HardcodedStringScannerTest.logPayloadFieldIsNotFlagged`
+
+### Requirement: Log and diagnostic numbers are locale-independent
+
+The numeric fields of a log or diagnostic line SHALL be formatted with a fixed locale, never the device
+locale, so the same state prints the same line on every install. The phone formats them with `Locale.US`,
+the Android Auto variant with `Locale.ROOT`; the car's own line is owned by `auto-diagnostics`.
+
+#### Scenario: A phone line on a decimal-comma locale
+
+- **WHEN** the device locale is German and the phone writes a `follow`, GPS-fix, auto-zoom or re-center line
+- **THEN** every number in the line SHALL print with a `.` decimal separator
+- **AND** the line SHALL be byte-identical to the one the same state writes on a dot locale
+- **Case**: `DiagnosticLineLocaleTest.theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale`
+- **Case**: `DiagnosticLineLocaleTest.theFollowLineKeepsItsNumbersOnADecimalCommaLocale`
+- **Case**: `MapCanvasViewModelBrowseReCenterTest.theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale`
+
+#### Scenario: A displayed number keeps the device locale
+
+- **WHEN** the same German install displays a distance or a size
+- **THEN** the displayed number SHALL keep its German decimal separator, because it is display text and not
+  evidence
+
+### Requirement: Native description labels are localized at the frontend
+
+The section names, subsection names and label keys that the native description service publishes SHALL be rendered
+from the string resources of the surface that shows the row, in the device language. The mapping SHALL be keyed on
+the key's value — the only form that crosses the boundary — and the wording SHALL live in the surface's own module,
+never in a shared one. Every mapped key SHALL carry a German translation, and a key the table does not carry SHALL
+render as that key.
+
+#### Scenario: A German device reads the German words
+
+- **WHEN** the device locale is German and the details dialog shows a section header, a subsection header and a label
+  row whose keys are `Contact`, `Lanes` and `MaxSpeed`
+- **THEN** the rows SHALL read `Kontakt`, `Spuren` and `Höchstgeschwindigkeit:` and SHALL NOT read `Contact`,
+  `Lanes` or `MaxSpeed:`
+- **Case**: `LocationDetailsDialogComposeTest.germanDeviceTranslatesDescriptionSectionsAndLabels`
+
+#### Scenario: An English device keeps the native words
+
+- **WHEN** the device locale is English and the details dialog shows the `Contact` rows
+- **THEN** the section header SHALL read `Contact` and the label rows `Phone:` and `Website:` — the English value of
+  a mapped key is the key itself, so the English rendering is unchanged
+- **Case**: `LocationDetailsDialogComposeTest.englishDeviceKeepsTheNativeDescriptionWords` (asserts the
+  `Contact` header and the `Phone:` and `Website:` label rows under the default locale; a row's click behaviour is
+  its own scenario's — `phoneValueOpensTheDialer` for a `tel:` value, `websiteValueStartsTheBrowser` for an
+  `http`/`https` value — and is not claimed here)
+
+#### Scenario: A key the table does not carry
+
+- **WHEN** the native layer emits a description entry whose section or label key the surface has no resource for
+- **THEN** the row SHALL render that key verbatim, the entry SHALL still be shown, and the dialog SHALL NOT show an
+  empty label or fail
+- **Case**: `LocationDetailsDialogComposeTest.anUnmappedDescriptionKeyKeepsTheNativeKey`
+
+#### Scenario: Every mapped key has a German translation
+
+- **WHEN** the German resource set is validated against the English default
+- **THEN** every `description_label_*` key of `values/` SHALL exist in `values-de/`
+- **Case**: `GermanTranslationCompletenessTest.everyEnglishStringHasGermanTranslation`

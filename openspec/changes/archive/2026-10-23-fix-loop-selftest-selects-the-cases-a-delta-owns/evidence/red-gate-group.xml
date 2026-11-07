@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --group gate (HEAD gate.sh)" tests="12" failures="1" errors="0" time="0">
+  <system-out>  the suite is handed the base the gate resolved: tools/narrow.sh --from-git {base}: 'tools/narrow.sh --from-git ada20dce35c254b94fffc00c455ac06f106312b1' not found in: tools/narrow.sh --from-git {base} FAIL gate#theDeltaHandsASuiteTheBaseItMeasured loop-selftest: 1 of 12 cases failed </system-out>
+</testsuite>

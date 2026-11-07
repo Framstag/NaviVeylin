@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/issue-tooling-selftest.sh --case update#writesABandLabelWithTheBodysMarker" tests="1" failures="1" errors="0" time="1">
+  <system-out>  a band label the body's marker contradicts is refused: stub gh: recorded `gh issue edit`: expected '3', got '0' FAIL update#writesABandLabelWithTheBodysMarker</system-out>
+</testsuite>

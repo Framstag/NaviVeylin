@@ -1,0 +1,17 @@
+# Pre-change ## heading-number sets — guideline-layers-mechanism, task 1.2
+# the comparison basis for layers#noSectionNumberMoves
+# date: 2026-10-31T08:59:40Z
+# each line: <doc><TAB><sorted space-joined section numbers its ## headings carry>
+# a heading '## 3a. Text' contributes '3a'; '## 3. Text' contributes '3'; a heading with no number contributes '-'
+guidelines/Backlog.md	1 10 11 12 13 14 2 3 4 5 6 7 8 9
+guidelines/Build.md	1 10 10a 10b 10c 10d 10e 10f 10g 10h 10i 10j 10k 11 12 2 2a 2b 2c 2d 2e 3 4 4a 4b 4c 4d 4e 4f 5 6 6a 6b 6c 6d 6e 6f 6g 6h 7 8 9
+guidelines/Design.md	- 1 10 11 12 13 2 3 4 5 6 7 8 9
+guidelines/FeatureList.md	1 2 3 4 5 6 7 8 9
+guidelines/Logging.md	1 2 3
+guidelines/MapRendering.md	- 1 10 11 12 13 14 15 15a 16 16a 16b 17 18 19 2 20 3 4 5 6 7 8 9
+guidelines/Metrics.md	1 2 3 4 5 6 7
+guidelines/Regulatory.md	1 10 2 3 4 5 6 7 8 9
+guidelines/UI.md	- 1 10 10a 11 2 3 3a 3b 3c 4 5 6 6a 6b 7 7a 8 8a 9
+AGENTS.md	-
+
+# documents counted: 10

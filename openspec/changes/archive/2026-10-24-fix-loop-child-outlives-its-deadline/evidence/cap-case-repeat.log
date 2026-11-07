@@ -1,0 +1,8 @@
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+FAIL run#childOutlastingTheWallClockIsBlocked
+loop-selftest: 1 of 1 cases failed
+PASS run#childOutlastingTheWallClockIsBlocked
+ 11:48:33 up 16 days,  5:46,  2 users,  load average: 7,74, 7,58, 7,44
+DONE

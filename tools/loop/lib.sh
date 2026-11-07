@@ -36,6 +36,10 @@ LOOP_ISSUES_DIR="$LOOP_DIR/../issues"
 source "$LOOP_ISSUES_DIR/lib.sh"
 
 LOOP_ROOT=""
+# The configuration file `loop_resolve` actually sourced. It is a global because the file a gate read is the rule
+# its numbers attest, so the process that ran it names it in its own log (issue #277). Empty until `loop_resolve`
+# has run, and every engine script resolves before it reads a key.
+LOOP_CONF_PATH=""
 # `LOOP_STATE_FILE` and `LOOP_WORKTREE` are the self-test's configuration seam (and the only way to run
 # two loops in one tree deliberately). An inherited value is preserved, never cleared: assigning an
 # empty string here would drop the environment's answer.
@@ -115,6 +119,7 @@ loop_resolve() {
   }
   local conf="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
   [ -f "$conf" ] || loop_die "no configuration at $conf — the loop reads its defaults and its project keys from loop.conf"
+  LOOP_CONF_PATH="$conf"
   # shellcheck source=tools/loop/loop.conf
   source "$conf"
   # An inherited run identity is honoured only inside the tree this process resolved; `loop_path_outside_tree`
@@ -153,9 +158,79 @@ loop_tmp_resolve() {
   esac
 }
 
+# The scratch root *another tree* resolves, which is not the one this process resolved. A suite creates its trees
+# under the root of the tree it runs in, so a gate that runs `tools/loop-selftest.sh` inside the kept worktree makes
+# them under the worktree's own `.pi/tmp` — the root a report run from the project never looked in while 305 MB of
+# trees and four poll loops accumulated there (measured 2026-10-23, issue #274). The key is read from that tree's
+# configuration, the same file `loop_resolve` sources when it runs there, and it is **read, never sourced**: a
+# report looks at a tree, it does not run that tree's configuration.
+loop_tmp_dir_for() { # <tree> → that tree's scratch root, resolved against that tree
+  local tree="${1:-}" recorded=""
+  if [ -n "$tree" ] && [ -f "$tree/tools/loop/loop.conf" ]; then
+    recorded=$(sed -n 's/^LOOP_TMP_DIR\="\{0,1\}\([^"\]*\)"\{0,1\}[[:space:]]*$/\1/p' \
+      "$tree/tools/loop/loop.conf" | tail -1)
+  fi
+  case "$recorded" in
+    "") printf '%s\n' "$tree/.pi/tmp" ;;
+    /*) printf '%s\n' "$recorded" ;;
+    *) printf '%s\n' "$tree/$recorded" ;;
+  esac
+}
+
+# The same directory however each side is spelled: `--worktree .` (or a relative name this tree resolves to) makes the
+# invocation's scratch root and the kept worktree's one directory written two ways — `$LOOP_ROOT/.pi/tmp` against
+# `$LOOP_ROOT/./.pi/tmp` — and compared as strings they never match, so the same trees would be listed twice and their
+# bytes counted twice while `--apply` removes them once (issue #274, round-1 review). Empty and vanished paths are not
+# the same directory: a root that does not exist has no tree to list under it either.
+loop_same_dir() { # <a> <b> → 0 when both name the same existing directory
+  local a b
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 1
+  a=$(cd "$1" 2>/dev/null && pwd -P) || return 1
+  b=$(cd "$2" 2>/dev/null && pwd -P) || return 1
+  [ "$a" = "$b" ]
+}
+
 loop_conf_value() { # print one configuration key's value by name
   local key="$1"
   eval "printf '%s' \"\${$key:-}\""
+}
+
+# The branch every item descends from: the run's base is *this* branch's commit, never the commit the project
+# tree happens to have checked out (issue #301 — `state.sh init` read `HEAD`, so a run opened on a feature branch
+# recorded that branch's commit and refused its own first item as a stale base). One definition, because the
+# same name is read by `state.sh` (what a run records), `worktree.sh` (`check_base`), `run.sh` (what a merge
+# advances) and `loop-clean.sh` (what a sweep compares against): a second copy of the rule is a second rule.
+#
+# The name itself is the project's, so it is recorded in `loop.conf` as `LOOP_BASE_REF` — this expansion is what
+# reads it, and `main` is only the fallback for a configuration that records none (issue #303: the branch name was
+# reachable through the environment alone, which a ported project can neither commit nor audit).
+loop_base_ref() { printf '%s\n' "${LOOP_BASE_REF:-main}"; }
+
+# The ceiling of whatever started this invocation, in seconds (issue #692): `LOOP_CALL_CEILING_SECONDS` in the
+# configuration, which a caller sets at the call site. Every bound this project applies is a recorded value — 900 s
+# for a case, 1 800 s for a gate step, 2 700 s for a child — and the harness a child runs under ends one tool call at
+# a ceiling of its own that no project file can see (measured twice on 2026-10-28, `900000ms`, both mid-suite with the
+# child's work uncommitted). A bound larger than that ceiling is not a bound: the caller ends the call first and the
+# invocation never writes the line that says what it was doing. One reader of the key, for both invocations that
+# apply a bound, because a second copy of the rule is a second rule (D16).
+#
+# Empty, non-numeric or `0` prints nothing, which is no ceiling named: every bound keeps its recorded value and the
+# invocation starts no watcher — the shape this project ran in before the key existed. The key's own record, and why
+# the value is the last second an invocation may run rather than the caller's hard kill, is in `loop.conf`.
+loop_ceiling() { # → the caller's ceiling in whole seconds, empty when none was named
+  local c="${LOOP_CALL_CEILING_SECONDS:-}"
+  case "$c" in ''|*[!0-9]*|0) return 0 ;; esac
+  printf '%s' "$c"
+}
+
+loop_bound_under_ceiling() { # <bound> → that bound, or the ceiling when the ceiling is the smaller
+  local bound="$1" ceiling
+  ceiling=$(loop_ceiling)
+  if [ -n "$ceiling" ] && [ "$ceiling" -lt "$bound" ]; then
+    printf '%s' "$ceiling"
+  else
+    printf '%s' "$bound"
+  fi
 }
 
 # ── the build output a kept worktree does not need ────────────────────────────────────────────────
@@ -327,10 +402,40 @@ loop_unlanded_commits() { # <repo> <base> <branch>
   return 0
 }
 
-# The branches the loop names: one per item it worked and one per run for its worktree. The same set the
-# report lists, so a reader and the sweep ask about the same branches.
+# The branches the loop names: one per item it worked, one per run for its worktree, and one per blocked attempt it
+# set aside. The same set the report lists, so a reader and the sweep ask about the same branches. The third
+# namespace is not work in progress — it is a previous attempt's only copy — and what protects it is the reading
+# every other branch gets (patch identity, never ancestry): the branch is swept once the base carries its patches
+# and kept, and named, while it does not. Without it a set-aside branch was enumerated by nothing at all, so one
+# whose work had landed by hand stayed for ever (issue #803; measured 2026-11-06, eight set-aside branches of one
+# to three commits each, and neither removal path named one of them).
 loop_own_branches() { # <repo> → one branch per line
-  git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+  {
+    git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+    git -C "$1" branch --list 'loop/leftover/*' --format='%(refname:short)' 2>/dev/null
+  }
+}
+
+# The same set resolved on the remote, which is where a branch the loop published lives after the run merged its
+# work and released its local branch (issue #763: every sweep enumerated `loop_own_branches`, a local namespace, and
+# a landed `fix/issue-728-…` head stayed on the remote for ever). The pattern is the local one with the remote's
+# prefix, so a ref the loop never names is never a candidate for the sweep that deletes it. A branch in the
+# set-aside namespace is local by construction — a blocked attempt's branch is renamed, never published — so it is
+# no arm's remote candidate and the two patterns below stay the two.
+#
+# Resolved on the remote means read from the remote *now*, not from this clone's cache of it: `git branch -r` names
+# the tips of the last fetch, and the sweep deletes the ref the remote holds, so a head somebody advanced after that
+# fetch was judged landed at its stale tip and removed with the commits it had gained since — on a shared remote,
+# unattended, against the requirement that only a ref whose patches the base holds goes. So the two candidate
+# patterns are fetched first (the same two, so nothing else becomes a candidate) with `--prune`, which also stops a
+# ref the sweep already deleted from being named again. A fetch that cannot run — no remote, an offline clone —
+# leaves the cache as it is, and the delete's lease (in `cmd_prune_landed`) is what keeps a moved ref then.
+loop_remote_branches() { # <repo> [<remote>] → one `<remote>/<branch>` per line
+  local remote="${2:-origin}"
+  git -C "$1" fetch --quiet --prune "$remote" \
+    "+refs/heads/fix/issue-*:refs/remotes/$remote/fix/issue-*" \
+    "+refs/heads/loop-*:refs/remotes/$remote/loop-*" >/dev/null 2>&1
+  git -C "$1" branch -r --list "$remote/fix/issue-*" "$remote/loop-*" --format='%(refname:short)' 2>/dev/null
 }
 
 # The branches a worktree holds: git refuses to delete one of them, so every deletion asks this first.
@@ -352,9 +457,31 @@ loop_profile() {
 # asked for, and the fixture `gh` now does the same. The pre-screen asks for neither, so its per-candidate read
 # stays as small as it was.
 loop_issue_json() {
-  local fields="number,title,body,labels,author,state"
+  local fields="number,title,body,labels,author,state" errfile status
   [ "${2:-}" = "--comments" ] && fields="$fields,comments"
-  gh issue view "$1" --json "$fields" 2>/dev/null
+  # The CLI's own words survive a failure. Swallowing them (`2>/dev/null`, which is what this function did) made
+  # every failed read an anonymous exit status: the retry seam's `tracker-unreachable:` line, its retry lines and
+  # the tracker's refusals all went to the same /dev/null, so an operator holding a dead run could not tell an
+  # outage from a refusal (measured 2026-10-27: a run died at the pre-screen on one unreadable candidate and the
+  # reason was gone). The caller decides whether to record or to print them; this seam only stops losing them.
+  errfile=$(mktemp) || { gh issue view "$1" --json "$fields"; return $?; }
+  gh issue view "$1" --json "$fields" 2>"$errfile"
+  status=$?
+  [ "$status" -eq 0 ] || cat "$errfile" >&2
+  rm -f "$errfile"
+  return "$status"
+}
+
+# The head branch of every open pull request, one per line. Read through the forge this loop already asks about the
+# tracker (`loop_issue_json` beside it), because nothing else knows whether a branch is somebody's open review — and
+# the sweep that deletes a remote ref must not delete that one (issue #763). No `--state`: `gh pr list` answers the
+# open pull requests without it, and the status namespace's own word is the project's to declare, not this engine's
+# (`tools/sensors/conditions/pr-conflicts.sh` reads it the same way). Returns 1 when the forge cannot be read: an
+# outage is not a forge with no pull requests, and the caller keeps every ref rather than deciding so.
+loop_open_pull_request_heads() {
+  local out
+  out=$(gh pr list --limit 200 --json headRefName 2>/dev/null) || return 1
+  printf '%s\n' "$out" | jq -r '.[].headRefName // empty' 2>/dev/null || return 1
 }
 
 loop_issue_tool() { # run one of the tooling's scripts
@@ -386,6 +513,13 @@ loop_required_labels() {
 # (like the namespace names); a value another project does not need is declared empty, never omitted.
 LOOP_ROLES=""
 LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories firstCategoryClasses firstCategoryEvery proposeClass refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
+# The two keys the shaping inbox reads (`tools/tooling.json`, capability `shaping-inbox`): `shapingAgent` is the
+# label an item carries when a run's verdict said a person must reshape it, and `shapingVerdicts` names the run
+# verdicts that write it. They are read with the same `loop_role`, but they are **not** required: a profile that
+# omits them reads as "this project has no shaping inbox", so a profile written before the capability still starts
+# a run instead of stopping on a key it never declared (the rule "declare it empty, never omit it" is what the
+# *required* keys keep, and `tools/check-portability.sh` reports neither of these two).
+LOOP_SHAPING_ROLE_KEYS="shapingAgent shapingVerdicts"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""
@@ -395,10 +529,31 @@ loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop th
     printf '%s\n' "$LOOP_ROLES" | jq -e --arg k "$key" 'has($k)' >/dev/null ||
       loop_die "the roles section in $(loop_profile) does not declare $key — declare it empty when this project has no such value"
   done
+  # The shaping keys may be absent (see above), but a key that is present must be a name or a list of them: a
+  # number or an object there reads as "no shaping verdict" and would silently empty an inbox the project meant
+  # to declare.
+  for key in $LOOP_SHAPING_ROLE_KEYS; do
+    printf '%s\n' "$LOOP_ROLES" |
+      jq -e --arg k "$key" 'if has($k) then (.[$k] | type | . == "string" or . == "array") else true end' >/dev/null ||
+      loop_die "the roles section in $(loop_profile) declares $key as neither a name nor a list of names"
+  done
 }
 
 loop_role() { # <role> → the value, or one value per line when the role is a list
   printf '%s\n' "$LOOP_ROLES" | jq -r --arg k "$1" '.[$k] // empty | if type == "array" then .[] else . end'
+}
+
+# loop_shaping_verdicts <verdict> → success when the profile names that verdict as a shaping verdict, which is
+# the one question `labels.sh` asks about the list. An absent key, an empty list and a verdict outside it all
+# answer the same way, so a project that declares no shaping inbox writes no shaping label anywhere.
+loop_shaping_verdicts() {
+  local verdict="${1:-}" named
+  [ -n "$verdict" ] || return 1
+  while IFS= read -r named; do
+    [ -n "$named" ] || continue
+    [ "$named" = "$verdict" ] && return 0
+  done < <(loop_role shapingVerdicts)
+  return 1
 }
 
 loop_compat_profile_value() { # the profile's value for a section, via the tooling's own reader

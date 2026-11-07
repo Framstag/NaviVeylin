@@ -1,0 +1,40 @@
+# `bash tools/loop-mutations.sh --only 46.1` — the record that replaces the gate's `| tee "$stream"` with a
+# capture into the log, so the console never carries the suite's text. The case this change fixed must still
+# notice it. Taken 2026-10-24T10:59:37Z in this change root, timed with the shell's own `time`.
+#
+# The wait expires before the first-line assertion fires, which is why this run costs the bound (~30 s) rather
+# than the 1.5 s the unmutated case costs: a gate whose stream is silent is refused for the right reason, at the
+# price of the bound. Restore goes green.
+#
+# The harness's log carries the verdict, not the case's assertion text — the assertion that fired is the
+# first-line one (`gate: bash` is printed by the gate itself and stays present), and the substitution is quoted
+# in `tools/loop-mutations.sh` record 46.1. The same shape is in the archived precedent,
+# `openspec/changes/archive/2026-10-23-fix-loop-gate-output-streams-while-a-suite-runs/evidence/revert-check-46.1.log`.
+
+$ time bash tools/loop-mutations.sh --only 46.1
+loop-mutations: selected 1 of 132 records (labels: 46.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-mutations.HAgFod
+RED    46.1  gate#theSuitesOutputReachesTheConsoleWhileItRuns   (the stream that carries a suite output to the console while the suite runs (issue #269))
+restore 46.1 gate#theSuitesOutputReachesTheConsoleWhileItRuns green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+bash tools/loop-mutations.sh --only 46.1 2>&1  1,73s user 2,37s system 11% cpu 36,932 total
+
+# The same substitution applied by hand, so the assertion it fires for is *quoted* rather than inferred:
+# record 46.1 silences the gate's `| tee "$stream"`, so the console carries the gate's own lines and no line of
+# the suite. Taken 2026-10-24T11:02:32Z in this change root; the file was restored and the restore proved (the
+# `git diff` for `tools/loop/gate.sh` is empty). The harness of that run is `handrun46.sh` beside this file.
+
+$ bash .pi/tmp/handrun46.sh
+MUTATION-LANDED: 166:    out=$($cmd 2>&1); printf %s "$out" > "$stream"
+  the suite's own first line reaches the console while the suite runs: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296/tools/loop/loop.conf)
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/suite.sh
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/suite.sh — 3s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/suite.sh 3s): 'case: a note is read' not found in: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296/tools/loop/loop.conf)
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/suite.sh
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/suite.sh — 3s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/i296/.pi/tmp/loop-selftest.9XYj9w/case.HjPukX/suite.sh 3s)
+FAIL gate#theSuitesOutputReachesTheConsoleWhileItRuns
+loop-selftest: 1 of 1 cases failed
+case exit=1
+RESTORE-DIFF: 

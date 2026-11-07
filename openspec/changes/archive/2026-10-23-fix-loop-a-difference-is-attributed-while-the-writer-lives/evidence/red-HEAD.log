@@ -1,0 +1,8 @@
+Taken 2026-10-23T18:47:40Z — `bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem` against the engine at
+HEAD c1b7a619 (throwaway worktree .pi/tmp/red-attrib, only `tools/loop-cases.sh` copied in): the worker writes
+and takes the file back before it ends, so the exit reading sees nothing and the item closes.
+
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+exit=1

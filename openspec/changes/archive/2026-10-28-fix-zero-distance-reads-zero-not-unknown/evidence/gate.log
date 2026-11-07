@@ -1,0 +1,27 @@
+# Gate — the tree after the round-1 review's corrections (2026-10-28)
+
+`./tools/loop/gate.sh`, from the change root, exit 0. The gate streams each suite's output to a temporary file it
+deletes on exit; this round did not tee that stream, so what is recorded here is the gate's console output as it
+printed — every step with its own wall clock, and the verdict line. The round-1 transcript, whose tree the
+corrections replaced, is the same path at commit `bba250c0`.
+
+```
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 274s
+gate: tools/check-compose-sandbox-rule.sh — 1s
+gate: tools/check-compose-sandbox-rule-selftest.sh — 0s
+gate: bash tools/gen-feature-list.sh --check-classification — 6s
+gate: tools/check-doc-routes.sh — 0s
+gate: tools/check-doc-routes-selftest.sh — 2s
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list — 0s
+gate: tools/check-todo-references.sh — 1s
+gate: tools/check-openspec-hygiene.sh — 1s
+gate: tools/check-openspec-hygiene-selftest.sh — 0s
+LOOP-GATE: tests=6 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 274s, tools/check-compose-sandbox-rule.sh 1s, tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 6s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 2s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 1s, tools/check-openspec-hygiene-selftest.sh 0s)
+```
+
+The number the verdict line carries is the wrapper's own count of the suites' summary lines: it takes `tests=` from
+a line matching `all N cases passed`, which only the shell self-test prints (`check-openspec-hygiene-selftest: all 6
+cases passed`). Gradle prints no such line, so the compiled step contributes `tests=0` — the wrapper defect the
+round-1 review named at `tools/loop/gate.sh:274-279`, not an execution that did not happen. What executed in the
+build is carried by the per-module JUnit XMLs the same run wrote: `evidence/gate-modules.txt` records their tallies
+and the command that reads them, and the gate's wrapper tallies are copied under `evidence/gate-tallies/`.

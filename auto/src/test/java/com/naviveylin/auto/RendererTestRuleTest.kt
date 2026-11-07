@@ -47,7 +47,7 @@ class RendererTestRuleTest {
 
     @Test
     fun anInTestShutdownSurvivesTheTeardown() {
-        // The six in-test `renderer.shutdown()` calls in AutoMapRendererTest rely on
+        // The in-test `renderer.shutdown()` calls in the `AutoMapRenderer*` case classes rely on
         // shutdown() being idempotent.
         val renderer = renderers.newRenderer()
         renderer.shutdown()

@@ -1,0 +1,12 @@
+# The compile the driver pays inside the old reading's 1.5 s window — 2026-10-24
+#
+# `run_loop` calls `core_ensure`, and the case backgrounds the whole `( run_loop … )` subshell, so on an
+# invocation whose selected cases have not asked for the core yet this compile runs inside the window. Taken on
+# the same host, cold (no javac daemon, an empty output directory):
+
+$ rm -rf /tmp/j287
+$ time javac --release 17 -d /tmp/j287 tools/issues/core/*.java
+javac --release 17 -d /tmp/j287 tools/issues/core/*.java 2>&1  14,56s user 0,91s system 373% cpu 4,140 total
+
+# 4.140 s wall against the 1.5 s window: the reading the case took when it ran alone was an empty console, which
+# is the invocation the item's evidence was taken with (`--case '<name>'`, one case per invocation).

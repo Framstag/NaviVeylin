@@ -5,7 +5,8 @@ package com.naviveylin.core
  *
  * Single source of truth consumed by BOTH renderers:
  * - phone: `app/.../ui/map/LocationMarkerOverlay.kt` (Compose canvas)
- * - Android Auto: `auto/.../AutoMapRenderer.kt` (android.graphics)
+ * - Android Auto: `auto/.../AutoMapRendererMarkers.kt` (android.graphics; the file the
+ *   `AutoMapRenderer` split of item #299 moved the two surface-drawn markers into)
  *
  * The arrow is described in a normalized local frame where the arrow points
  * up (negative y in canvas coordinates) and `H` is half the marker size. All

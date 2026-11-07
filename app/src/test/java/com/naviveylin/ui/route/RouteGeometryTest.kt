@@ -29,7 +29,14 @@ class RouteGeometryTest {
         latitudes = lats
         longitudes = lons
         distance = 5000.0
-        descriptions = arrayOf("Start: A  [0.0 km]", "Left onto B  [1.2 km]")
+        steps = arrayOf(
+            startStep(lat = 52.5200, lon = 13.4050),
+            turnStep(
+                com.framstag.libosmscout.client.TurnType.LEFT,
+                lat = 52.5230, lon = 13.4080,
+                legDistance = 5000.0
+            )
+        )
     }
 
     @Test

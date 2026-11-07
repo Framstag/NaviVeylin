@@ -20,10 +20,8 @@ class ViewportStorage(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun fileFor(mapKey: String): File {
-        val safe = mapKey.replace(Regex("[^A-Za-z0-9._-]"), "_")
-        return File(context.filesDir, "maps/viewport-$safe.json")
-    }
+    private fun fileFor(mapKey: String): File =
+        File(context.filesDir, "maps/" + fileNameFor(mapKey))
 
     /** Save viewport state for a map to disk. Runs on [Dispatchers.IO]. */
     suspend fun save(mapKey: String, state: ViewportState) {
@@ -61,5 +59,21 @@ class ViewportStorage(
 
     companion object {
         private const val TAG = "ViewportStorage"
+
+        /**
+         * The viewport key of a map database path: the path's last segment, i.e. the map's file
+         * name (for `/data/maps/germany.osm` the key is `germany.osm`). One rule for load and save,
+         * so the two cannot key different files (spec: viewport-persist).
+         */
+        internal fun keyFor(mapPath: String): String = mapPath.substringAfterLast('/')
+
+        /**
+         * The file a map key is persisted under. Every character outside `A-Za-z0-9._-` becomes
+         * `_`, so the key is always one path segment (spec: viewport-persist — Save viewport state).
+         */
+        internal fun fileNameFor(mapKey: String): String {
+            val safe = mapKey.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            return "viewport-$safe.json"
+        }
     }
 }

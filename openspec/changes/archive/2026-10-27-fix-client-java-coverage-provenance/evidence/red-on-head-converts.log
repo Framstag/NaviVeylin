@@ -1,0 +1,3 @@
+  one percentage per module, minified and pretty-printed reports alike, class counters not mistaken for the module's: expected '{"app":90.0,"auto":80.0,"core":100.0,"osmscout-client-java":60.0,"osmscout-client-java-vendored":95.0}', got '{"app":90.0,"auto":80.0,"core":100.0,"osmscout-client-java":60.0}'
+FAIL inputs#convertsPerModuleCoverage
+EXIT=1

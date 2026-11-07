@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.UnitTestSourceNullabilityBaselineTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T10:06:59.874Z" hostname="dingens" time="0.365">
+  <properties/>
+  <testcase name="the scan refuses the unasserted forms and accepts the stated ones" classname="com.naviveylin.build.UnitTestSourceNullabilityBaselineTest" time="0.047"/>
+  <testcase name="no unit test dereferences a nullable parent directory without a safe call or an assertion" classname="com.naviveylin.build.UnitTestSourceNullabilityBaselineTest" time="0.159"/>
+  <testcase name="no unit test feeds an unasserted start map resolution into a membership check" classname="com.naviveylin.build.UnitTestSourceNullabilityBaselineTest" time="0.145"/>
+  <system-out><![CDATA[sources=471 findings=0
+sources=471 findings=0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

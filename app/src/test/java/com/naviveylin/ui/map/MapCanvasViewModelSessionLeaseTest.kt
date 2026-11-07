@@ -238,15 +238,16 @@ class MapCanvasViewModelSessionLeaseTest {
             // The lease stops automatic moves only: the session's explicit analysis move
             // still happens (spec: route-analysis).
             routePanelViewModel.updateLocationsForReroute(entry("start"), entry("dest"))
-            client.routeToDeliver = com.framstag.libosmscout.client.RouteEntry().apply {
-                routeHandle = 1L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 120_000.0
-                descriptions = arrayOf("Start: A  [0.0 km]", "Right onto B  [120.0 km]")
-                instructionLats = doubleArrayOf(48.0, 48.5)
-                instructionLons = doubleArrayOf(2.0, 2.3)
-            }
+            client.routeToDeliver = com.naviveylin.ui.route.routeWithSteps(
+                com.naviveylin.ui.route.startStep(lat = 48.0, lon = 2.0),
+                com.naviveylin.ui.route.turnStep(
+                    com.framstag.libosmscout.client.TurnType.RIGHT,
+                    lat = 48.5, lon = 2.3,
+                    legDistance = 120_000.0, legTime = 5_400.0, name = "B"
+                ),
+                distance = 120_000.0,
+                duration = 5_400.0
+            )
             routePanelViewModel.calculateRoute()
             advanceUntilIdle()
             assertNotEquals(before, viewModel.uiState.value.viewport)

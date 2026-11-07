@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one new case, against the engine's own `tools/loop/gate.sh` at
+     214e62e0d4d3b74ef8b12d65eda5ad689b51e480 (2026-10-23T09:15Z, ~5 s wall clock): the case file from this
+     change, `tools/loop/gate.sh` restored from HEAD (`git show HEAD:tools/loop/gate.sh`), then
+     `bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'` — FAIL, exit 1,
+     because the log held the gate's own announcement of the suite and nothing the suite had written 1.5 s into
+     a suite that prints at once. A single-case run prints no suite summary line, so the tally below is one case
+     and the one failure; the transcript is evidence/red-HEAD.log. -->
+<testsuite name="loop-selftest --case gate#theSuitesOutputReachesTheConsoleWhileItRuns" tests="1" failures="1" errors="0">
+  <testcase name="gate#theSuitesOutputReachesTheConsoleWhileItRuns">
+    <failure>the suite's own first line reaches the console while the suite runs: gate: bash /…/case.daFlIs/suite.sh: 'case: a note is read' not found in: gate: bash /…/case.daFlIs/suite.sh</failure>
+  </testcase>
+  <system-out>FAIL gate#theSuitesOutputReachesTheConsoleWhileItRuns</system-out>
+</testsuite>

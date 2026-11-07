@@ -1,0 +1,22 @@
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+EXIT_CODE=0
+$ bash tools/check-doc-routes-selftest.sh
+check-doc-routes-selftest: 19 passed, 0 failed
+EXIT_CODE=0
+$ bash tools/check-todo-references.sh
+check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
+check-todo-references: 63 citation(s) resolve through the recorded table; 4546 file(s) excluded by the allowlist above
+EXIT_CODE=0
+$ bash tools/gen-feature-list.sh --check-classification
+stale: 3
+car-only areas: 1
+highlights: 19
+EXIT_CODE=0
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 4 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+EXIT_CODE=0
+$ bash tools/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 6 cases passed (throwaway OpenSpec trees, no Gradle)
+EXIT_CODE=0

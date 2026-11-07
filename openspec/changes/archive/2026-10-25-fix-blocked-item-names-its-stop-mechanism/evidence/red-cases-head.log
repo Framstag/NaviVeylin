@@ -1,0 +1,18 @@
+=== state#aBlockedItemNamesTheMechanismThatStoppedIt
+loop: done: unknown argument --stop-reason
+  a blocked item recording a refusing round was refused
+FAIL state#aBlockedItemNamesTheMechanismThatStoppedIt
+loop-selftest: 1 of 1 cases failed
+=== run#reviewRoundsCapAtTwo
+  and the record names the refusing round as the mechanism that stopped it (issue #280): expected 'refused', got 'null'
+FAIL run#reviewRoundsCapAtTwo
+loop-selftest: 1 of 1 cases failed
+=== run#doesNotCloseOnAMergeTheBaseCannotTake
+  and the record names the base's refusal as the mechanism that stopped it (issue #280): expected 'unmergeable', got 'null'
+FAIL run#doesNotCloseOnAMergeTheBaseCannotTake
+loop-selftest: 1 of 1 cases failed
+=== report#wallTimeAndReasonInTheTable
+loop: done: unknown argument --stop-reason
+  and one for the mechanism a block stopped on (issue #280): '| stop |' not found in: | issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |
+FAIL report#wallTimeAndReasonInTheTable
+loop-selftest: 1 of 1 cases failed

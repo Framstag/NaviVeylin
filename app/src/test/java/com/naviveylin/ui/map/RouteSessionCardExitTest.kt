@@ -54,7 +54,7 @@ import com.naviveylin.test.engineUnderTest
  * 2026-10-05: "I cannot leave the stateful navigation without starting a route").
  *
  * The card is composed with the same wiring the screen uses
- * (`onEndSession = { viewModel.dismissRoutePanel() }`, `MapCanvasScreen.kt`), so a card that
+ * (`onEndSession = { viewModel.dismissRoutePanel() }`, `MapCanvasScreenModalBands.kt`), so a card that
  * ends the session without asking the host to close fails here.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -142,7 +142,6 @@ class RouteSessionCardExitTest {
         duration = 1_500.0
         latitudes = doubleArrayOf(51.5136, 51.5226)
         longitudes = doubleArrayOf(7.4653, 7.4653)
-        descriptions = arrayOf("Start: A  [0.0 km]", "Turn left into Main Street  [1.2 km, 5 min]")
     }
 
     @Test
@@ -166,7 +165,7 @@ class RouteSessionCardExitTest {
             RoutePanel(
                 viewModel = routePanelViewModel,
                 onOpenFavoritePicker = {},
-                // The screen's wiring, verbatim (MapCanvasScreen.kt).
+                // The screen's wiring, verbatim (MapCanvasScreenModalBands.kt).
                 onEndSession = { viewModel.dismissRoutePanel() },
                 centerLat = 51.5136,
                 centerLon = 7.4653

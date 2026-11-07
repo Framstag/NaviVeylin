@@ -1,0 +1,8 @@
+\$ git show 821d9fc1:app/src/main/java/com/naviveylin/ui/map/MapGestures.kt | grep -c onDoubleTap
+0
+\$ git show 821d9fc1:app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt | grep -n "no double-tap"
+487:    // discrete zoom input (buttons, scroll wheel, keyboard — no double-tap
+\$ git show 821d9fc1:app/src/test/java/com/naviveylin/ui/map/MapGestureComposeTest.kt | grep -c "doubleTap\|doubleClick"
+0
+\$ grep -rn "scroll wheel keeps the cursor\|Scroll wheel input SHALL anchor the cursor" guidelines/MapRendering.md openspec/specs/smooth-zoom/spec.md
+guidelines/MapRendering.md:517:  center otherwise (the scroll wheel keeps the cursor). The marker overlay receives the same pivot,

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.RouteInstructionFieldsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-27T01:53:46.829Z" hostname="dingens" time="0.025">
+  <properties/>
+  <testcase name="constructorsWithoutTheRoundaboutFieldsDefaultToNoRoundabout()" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.002"/>
+  <testcase name="fieldsExistWithTheTypesTheBridgeAndConsumersAgreeOn()" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.003"/>
+  <testcase name="a counter-clockwise instruction reports its direction" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.0"/>
+  <testcase name="no exit is distinguishable from exit one" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.001"/>
+  <testcase name="a plain turn carries no exit ordinal" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.001"/>
+  <testcase name="the next-next hint carries its own exit ordinal" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.001"/>
+  <testcase name="the native roundabout text is unchanged" classname="com.framstag.libosmscout.client.RouteInstructionFieldsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

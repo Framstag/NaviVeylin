@@ -363,7 +363,6 @@ class MapLayerStackComposeTest {
         duration = 1_500.0
         latitudes = doubleArrayOf(51.5136, 51.5226)
         longitudes = doubleArrayOf(7.4653, 7.4653)
-        descriptions = arrayOf("Start: A  [0.0 km]", "Turn left into Main Street  [1.2 km, 5 min]")
     }
 
     /** Opens the session in REVIEWING on a two-point route, as `RouteSessionCardExitTest` does. */
@@ -383,7 +382,7 @@ class MapLayerStackComposeTest {
         composeRule.setContent {
             Box(Modifier.fillMaxSize()) {
                 // Chrome band: the bottom band the navigation view puts its right-side widget
-                // column and its routing status card in (MapCanvasScreen.kt, navigation overlay
+                // column and its routing status card in (MapCanvasScreenChromeBand.kt, navigation overlay
                 // block) — the region the session card shares with it.
                 Box(Modifier.fillMaxSize().zIndex(MapLayer.CHROME.z)) {
                     Box(
@@ -438,7 +437,7 @@ class MapLayerStackComposeTest {
         // inset (spec: route-planning-session — The overlay never covers the map controls; owner
         // finding 2026-10-03: the min strip covered the zoom-out button). The screen itself cannot
         // be hosted here, so the case composes the two real members in their two bands and
-        // reproduces the screen's wiring one-for-one (`MapCanvasScreen.kt`: `onOverlayHeightChanged
+        // reproduces the screen's wiring one-for-one (`MapCanvasScreenModalBands.kt`: `onOverlayHeightChanged
         // = { height -> viewModel.setOverlayCoveredPx(height); overlayBottomInset = height }` and
         // `bottomInset = state.overlayCoveredPx.toDp()`): the inset is the number the real card
         // reported, not a constant — with a zero inset these controls fall to the screen's bottom

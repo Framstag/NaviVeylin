@@ -10,12 +10,12 @@ import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
-import com.framstag.libosmscout.client.RouteInstruction
-import com.framstag.libosmscout.client.RoutingProfile
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
+import com.naviveylin.core.guidanceStep
 import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.FailureReason
 import com.naviveylin.core.NavigationFailure
@@ -24,7 +24,7 @@ import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.data.SettingsStorage
-import com.naviveylin.data.maxSpeedKmhFor
+import com.naviveylin.data.routingProfileFor
 import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
@@ -109,7 +109,10 @@ class NavigationEngine @Inject constructor(
     // change applies to the next one — the acquisition of the next destination and the next reroute —
     // and never restarts a calculation in flight (spec: `routing-max-speed` — A speed change does not
     // restart a calculation).
-    private val settingsStorage: SettingsStorage
+    private val settingsStorage: SettingsStorage,
+    // Spoken guidance for the native voice sample sequence (spec: `voice-guidance`). The seam is
+    // injected so a test records the sentence without starting a platform TTS engine.
+    private val voiceGuidance: VoiceGuidance
 ) : com.naviveylin.core.NavigationViewModel {
 
     /**
@@ -187,6 +190,28 @@ class NavigationEngine @Inject constructor(
 
     /** Collector that forwards leased location fixes into the native controller. */
     private var locationJob: Job? = null
+
+    /**
+     * The surface that started the running navigation session (spec: `voice-guidance` — The voice
+     * switch is per surface, persisted and on by default). Phone by default: every caller that does
+     * not name a surface starts a phone session, which is the behaviour before the switches existed.
+     * Reset in [stopNavigation].
+     */
+    private var sessionOrigin: SurfaceOrigin = SurfaceOrigin.PHONE
+
+    /**
+     * The GPS sample ordinal currently held, or the last one announced (spec: `voice-guidance` —
+     * A GPS announcement is spoken only after the state held). A repeated sample of the same state
+     * neither restarts the hold nor adds an utterance; the opposite state replaces it.
+     */
+    private var gpsStateInFlight: Int? = null
+
+    /**
+     * The hold job of a pending GPS announcement: cancelled by the opposite state, by the session end,
+     * and by nothing else. Lives in the engine scope, so it dies with the engine
+     * (`guidelines/Design.md` §4).
+     */
+    private var gpsHoldJob: Job? = null
 
     /** Timestamp of the last fix forwarded to the native controller (feed dedupe). */
     private var lastFedFixTime = 0L
@@ -386,8 +411,8 @@ class NavigationEngine @Inject constructor(
             // Clear the previous route's steps (reroute restart): the old route's
             // last maneuver must not render over the new route until the engine
             // emits its first instruction list.
-            instructions = emptyList(),
-            nextInstruction = null,
+            steps = emptyList(),
+            nextStep = null,
             totalDistance = totalDistance,
             // Progress starts at 0%: remaining distance equals the total until the
             // first arrival estimate arrives.
@@ -505,14 +530,12 @@ class NavigationEngine @Inject constructor(
         val token = beginCalculation(destLat, destLon, if (fromReroute) "reroute" else "acquisition")
         scope.launch(dispatchers.compute) {
             try {
-                // The calculation vehicle's own stored maximum speed, read here so the reroute of a
-                // running session and a fresh acquisition both use it (spec: `routing-max-speed` —
-                // Every calculation path carries the vehicle's maximum speed), and so a slider change
-                // cannot alter a route already calculated.
-                val profile = RoutingProfile(
-                    vehicle,
-                    settingsStorage.loadOnCallerDispatcher().maxSpeedKmhFor(vehicle)
-                )
+                // The profile every calculation uses: the calculation vehicle's own stored maximum speed
+                // and the stored avoidance choices, read here so the reroute of a running session and a
+                // fresh acquisition both use them (spec: `routing-max-speed`; spec: `routing-avoidance` —
+                // One builder produces the profile every calculation uses), and so a slider change cannot
+                // alter a route already calculated.
+                val profile = settingsStorage.loadOnCallerDispatcher().routingProfileFor(vehicle)
                 client.get().calculateRouteWithProfile(
                     startLat, startLon, destLat, destLon, profile,
                     object : RouteCallback {
@@ -611,7 +634,20 @@ class NavigationEngine @Inject constructor(
      * car favourites, `AutoEntryPoint`). Records the destination identity in the
      * state and acquires the route itself.
      */
-    override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+    /**
+     * Navigate a destination from the current GPS position (car deep link, car favourites,
+     * `AutoEntryPoint`). Records the destination identity in the state and acquires the route itself.
+     *
+     * [origin] is the surface that starts the session: speech follows that surface's own switch
+     * (spec: `voice-guidance` — The voice switch is per surface, persisted and on by default).
+     */
+    override fun navigateTo(
+        destLat: Double,
+        destLon: Double,
+        destinationName: String?,
+        origin: SurfaceOrigin
+    ) {
+        sessionOrigin = origin
         _state.update { it.copy(
             destLat = destLat,
             destLon = destLon,
@@ -710,13 +746,13 @@ class NavigationEngine @Inject constructor(
      * live calculation's state). Main-thread only.
      */
     /**
-     * One coordinate-free line per roundabout instruction, not one per position update: the engine is
+     * One coordinate-free line per roundabout manoeuvre, not one per position update: the engine is
      * fed on every fix, and the fields only change when the manoeuvre does (task 7.2). Main-thread only,
      * like the state it reads. The line's shape is asserted in `RoundaboutInstructionDiagnosticsTest`.
      */
-    private fun logRoundaboutInstruction(instruction: RouteInstruction) {
-        if (!logsRoundabout(instruction)) return
-        val line = roundaboutInstructionLine(instruction)
+    private fun logRoundaboutStep(step: RouteStep) {
+        if (!logsRoundabout(step)) return
+        val line = roundaboutStepLine(step)
         if (line == lastRoundaboutLine) return
         lastRoundaboutLine = line
         DiagnosticsLog.log(ROUNDABOUT_TAG, line)
@@ -756,7 +792,7 @@ class NavigationEngine @Inject constructor(
 
     /**
      * The reroute flag belongs to the attempt that set it, so every terminal outcome ends the
-     * claim that one is running — success clears it in [onRouteInstructions], a failure and a
+     * claim that one is running — success clears it in [onRouteSteps], a failure and a
      * cancellation through this one rule (spec: `rerouting-visual-feedback` — Rerouting state is
      * exposed in navigation state). A superseded attempt never reaches a clear site: its
      * `endCalculation` guard returns first.
@@ -777,6 +813,13 @@ class NavigationEngine @Inject constructor(
     override fun stopNavigation() {
         nativeController?.stop()
         nativeController = null
+        // End the current utterance with the session it belongs to (spec: `voice-guidance` —
+        // A voice instruction after navigation stops is silent).
+        voiceGuidance.stop()
+        cancelGpsHold()
+        // The next session names its own surface; until one does, speech follows the phone's
+        // switch (spec: `voice-guidance` — The voice switch is per surface).
+        sessionOrigin = SurfaceOrigin.PHONE
         releaseNavLease()
         stopLocationFeed()
         // The fresh state carries the default, so the arrival fact of the ended session goes
@@ -820,6 +863,73 @@ class NavigationEngine @Inject constructor(
         copy(failure = failure)
 
     /** Acquire the navigation-scoped location lease (idempotent). */
+    /**
+     * Hold a GPS state for [FLAP_WINDOW_MILLIS] before announcing it (spec: `voice-guidance` — A GPS
+     * announcement is spoken only after the state held). The opposite state replaces the hold, so a
+     * flap speaks only the state that survived; a repeat of the same state changes nothing.
+     */
+    private fun holdGpsState(state: Int, samples: IntArray) {
+        if (gpsStateInFlight == state) return
+        if (gpsStateInFlight != null) {
+            // The state it replaces never survived the window (spec: `voice-guidance` — A GPS
+            // announcement is spoken only after the state held).
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.GPS,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SUPPRESSED,
+                    VoiceAnnouncementReason.FLAP_REPLACED
+                )
+            )
+        }
+        gpsHoldJob?.cancel()
+        gpsStateInFlight = state
+        DiagnosticsLog.log(
+            VOICE_TAG,
+            voiceAnnouncementLine(
+                VoiceAnnouncementKind.GPS,
+                sessionOrigin,
+                VoiceAnnouncementOutcome.HELD
+            )
+        )
+        gpsHoldJob = scope.launch(Dispatchers.Main) {
+            delay(FLAP_WINDOW_MILLIS)
+            // The session may have ended during the hold; the stop hook cancels this job, and this
+            // guard keeps a sample that raced it silent (spec: `voice-guidance` — Stopping
+            // navigation cancels a pending announcement).
+            if (!_state.value.isNavigating) return@launch
+            voiceGuidance.announce(samples)
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.GPS,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SPOKEN
+                )
+            )
+            gpsHoldJob = null
+        }
+    }
+
+    /** Drop a pending GPS announcement: the session that would have spoken it is over. */
+    private fun cancelGpsHold() {
+        if (gpsHoldJob != null) {
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.GPS,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SUPPRESSED,
+                    VoiceAnnouncementReason.SESSION_ENDED
+                )
+            )
+        }
+        gpsHoldJob?.cancel()
+        gpsHoldJob = null
+        gpsStateInFlight = null
+    }
+
     private fun acquireNavLease() {
         if (navLease == null) {
             navLease = locationService.acquire(LocationConsumers.NAV_ENGINE)
@@ -932,31 +1042,33 @@ class NavigationEngine @Inject constructor(
                 }
             }
 
-            override fun onNextRouteInstruction(instruction: RouteInstruction) {
+            override fun onNextRouteStep(step: RouteStep) {
                 scope.launch(Dispatchers.Main) {
+                    val announced = guidanceStep(step)
                     val idx = nextStepIndex(
-                        _state.value.instructions,
+                        _state.value.steps,
                         _state.value.currentStepIndex,
-                        instruction
+                        announced
                     )
-                    logRoundaboutInstruction(instruction)
+                    logRoundaboutStep(announced)
                     _state.update { it.copy(
-                        nextInstruction = instruction,
+                        nextStep = announced,
                         currentStepIndex = idx
                     ) }
                 }
             }
 
-            override fun onRouteInstructions(instructions: Array<RouteInstruction>) {
+            override fun onRouteSteps(steps: Array<RouteStep>) {
                 scope.launch(Dispatchers.Main) {
                     _state.update { it.copy(
-                        instructions = instructions.toList(),
+                        steps = steps.toList(),
                         currentStepIndex = 0,
                         isRerouting = false,
                         isOffRoute = false
                     ) }
-                    if (instructions.isNotEmpty()) {
-                        _state.update { it.copy(nextInstruction = instructions[0]) }
+                    if (steps.isNotEmpty()) {
+                        val list = steps.toList()
+                        _state.update { it.copy(nextStep = guidanceStep(list[0])) }
                     }
                 }
             }
@@ -986,6 +1098,62 @@ class NavigationEngine @Inject constructor(
                     _state.update { it.copy(
                         maxSpeedKmH = maxSpeedKmH.takeIf { it > 0.0 } ?: Double.NaN
                     ) }
+                }
+            }
+
+            override fun onVoiceInstruction(samples: IntArray) {
+                scope.launch(Dispatchers.Main) {
+                    // A sample that races the end of a session must not speak after the stop hook
+                    // (spec: `voice-guidance` — A voice instruction after navigation stops is silent).
+                    if (!_state.value.isNavigating) return@launch
+                    val settings = settingsStorage.load()
+                    val gpsState = voiceGuidance.gpsStateOf(samples)
+                    if (gpsState != null) {
+                        // GPS announcements are one shared switch, off by default, independent of the
+                        // surface's voice switch (spec: `voice-guidance` — GPS announcements are one
+                        // shared switch; The spoken GPS wording follows the same rule on both surfaces).
+                        if (!settings.announceGpsState) {
+                            DiagnosticsLog.log(
+                                VOICE_TAG,
+                                voiceAnnouncementLine(
+                                    VoiceAnnouncementKind.GPS,
+                                    sessionOrigin,
+                                    VoiceAnnouncementOutcome.SUPPRESSED,
+                                    VoiceAnnouncementReason.GPS_SWITCH_OFF
+                                )
+                            )
+                            return@launch
+                        }
+                        holdGpsState(gpsState, samples)
+                    } else {
+                        // Turns follow the switch of the surface that started this session
+                        // (spec: `voice-guidance` — The voice switch is per surface).
+                        val enabled = when (sessionOrigin) {
+                            SurfaceOrigin.CAR -> settings.autoVoiceGuidanceEnabled
+                            else -> settings.voiceGuidanceEnabled
+                        }
+                        if (!enabled) {
+                            DiagnosticsLog.log(
+                                VOICE_TAG,
+                                voiceAnnouncementLine(
+                                    VoiceAnnouncementKind.TURN,
+                                    sessionOrigin,
+                                    VoiceAnnouncementOutcome.SUPPRESSED,
+                                    VoiceAnnouncementReason.VOICE_SWITCH_OFF
+                                )
+                            )
+                            return@launch
+                        }
+                        voiceGuidance.announce(samples)
+                        DiagnosticsLog.log(
+                            VOICE_TAG,
+                            voiceAnnouncementLine(
+                                VoiceAnnouncementKind.TURN,
+                                sessionOrigin,
+                                VoiceAnnouncementOutcome.SPOKEN
+                            )
+                        )
+                    }
                 }
             }
 
@@ -1158,6 +1326,21 @@ class NavigationEngine @Inject constructor(
 
     companion object {
         private const val TAG = "NavigationEngine"
+
+        /**
+         * How long a GPS state must hold before it is announced (spec: `voice-guidance` — A GPS
+         * announcement is spoken only after the state held). Shorter than the native agent's own 10 s
+         * hold on `GpsLost` (`libosmscout/.../VoiceInstructionAgent.cpp:401`), so the window shifts an
+         * announcement later without swallowing the loss; the state that a flap leaves behind is the
+         * one that ends up spoken.
+         */
+        internal const val FLAP_WINDOW_MILLIS = 5_000L
+
+        /**
+         * Diagnostics tag of the spoken-guidance measurement entries (spec: `voice-guidance`).
+         * Coordinate-free, like every other diagnostics line (`guidelines/Logging.md`).
+         */
+        internal const val VOICE_TAG = "VOICE"
 
         /**
          * Diagnostics tag of the route-calculation measurement entries (spec:

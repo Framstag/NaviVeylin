@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Three cases of the change's own set, run one at a time on the base commit 5b30ed79 (the driver emits no XML; this
+     is the tally its three logs carry, evidence/red-on-head-{look,adapter,prompt}.log, 2026-11-06T16:42:50Z). -->
+<testsuite name="bash tools/loop-selftest.sh --case (look#aPathScopesTheWalkToIt, adapter#theChildIsStartedWithItsToolDirectoryOnPath, prompt#thePhasePromptsCarryTheirOwnRoute)" tests="3" failures="3" errors="0" time="3">
+  <testcase name="look#aPathScopesTheWalkToIt"><failure>exit 2, `look: unknown argument --path` — the wrapper has no scope</failure></testcase>
+  <testcase name="adapter#theChildIsStartedWithItsToolDirectoryOnPath"><failure>the child's PATH began `/usr/bin` — the agent's tool directory is not exported</failure></testcase>
+  <testcase name="prompt#thePhasePromptsCarryTheirOwnRoute"><failure>`tools/look.sh '^## '` not found in the skeleton — the recipe is the refused shell grep</failure></testcase>
+</testsuite>

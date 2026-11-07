@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of evidence/red-on-head.log: one run of the case against HEAD's engine
+     (tools/sensors/metrics/source-size.sh as at d4667b04a6f62ebcda8fa3c069775368ea815d0b, restored for the run
+     and put back), wall time 1.164 s. The case is new in this change, so "red on HEAD" is that script run with
+     the case: the file list has no pathscope, so a frozen evidence copy is a condition. -->
+<testsuite name="bash tools/sensor-selftest.sh --case sensors#sourceSizeSkipsTheChangeTree (HEAD, unchanged engine)" tests="1" failures="1" errors="0" time="1.164">
+  <testcase name="sensors#sourceSizeSkipsTheChangeTree" classname="sensor-selftest">
+    <failure message="a frozen copy a change keeps as evidence is not a source file: 'Head.kt' unexpectedly present">a frozen copy a change keeps as evidence is not a source file: 'Head.kt' unexpectedly present in: {"path":"app/src/main/java/Big.kt","measurement":"1600","verdict":"violation"} {"path":"openspec/changes/archive/a-change/evidence/Head.kt","measurement":"1600","verdict":"violation"} {"path":"openspec/changes/an-open-change/evidence/Case.kt","measurement":"1600","verdict":"violation"}</failure>
+  </testcase>
+  <system-out>FAIL sensors#sourceSizeSkipsTheChangeTree (2026-10-26T21:22:18Z, wall 1.164 s)</system-out>
+</testsuite>

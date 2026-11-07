@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git 98673c50c12788f4fd27f72e2ed5288f9c56a845" tests="252" failures="0" errors="0" time="405">
+  <system-out>PASS driver#theSuiteRunsItsCasesInAPool PASS gate#theDeltaHandsASuiteTheBaseItMeasured loop-selftest: all 252 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git 98673c50c12788f4fd27f72e2ed5288f9c56a845</system-out>
+</testsuite>

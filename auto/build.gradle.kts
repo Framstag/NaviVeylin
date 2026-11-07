@@ -157,6 +157,42 @@ val checkNoWallClockWaits = tasks.register("checkNoWallClockWaits") {
 }
 tasks.named("preBuild") { dependsOn(checkNoWallClockWaits) }
 
+// ── Trip-send gate (spec `car-host-fault-isolation` — Trip metadata publishing is bounded by the
+// navigation period; issue #71) ─────────────────────────────────────────────────────────────────────
+// The trip collector's own line is reachable by no unit test: `NavigationSession` needs a host-provided
+// `CarContext` and cannot be constructed under Robolectric, which is why its decision was extracted as the
+// pure seam `tripSendAllowed(...)` (covered by `NavigationSessionTripSendTest`). This check covers the
+// wiring half — the collector takes its decision from that seam and never asks
+// `SessionHostGate.allowHostMutation()` — the way `checkNoWallClockWaits` covers waits a test cannot
+// police. The scanner is the pure buildSrc object `com.naviveylin.build.testing.TripSendGateScanner`,
+// unit-tested; there is no allowlist on purpose.
+val checkTripSendGate = tasks.register("checkTripSendGate") {
+    val sourceDirs = listOf(file("src/main/java"))
+    inputs.files(sourceDirs)
+    doLast {
+        var sawCollector = false
+        val findings = sourceDirs.asSequence()
+            .flatMap { dir -> dir.walkTopDown() }
+            .filter { it.extension == "kt" }
+            .flatMap { file ->
+                val path = file.relativeTo(rootProject.projectDir).path
+                val text = file.readText()
+                if (text.contains(com.naviveylin.build.testing.TripSendGateScanner.COLLECTOR_MARKER)) {
+                    sawCollector = true
+                }
+                com.naviveylin.build.testing.TripSendGateScanner.scan(path, text).asSequence()
+            }
+            .toList()
+        if (!sawCollector) {
+            throw GradleException(com.naviveylin.build.testing.TripSendGateScanner.reportMissingCollector())
+        }
+        if (findings.isNotEmpty()) {
+            throw GradleException(com.naviveylin.build.testing.TripSendGateScanner.report(findings))
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkTripSendGate) }
+
 dependencies {
     implementation(project(":core"))
     implementation(project(":osmscout-client-java"))

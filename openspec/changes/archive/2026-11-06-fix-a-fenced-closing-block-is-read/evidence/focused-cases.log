@@ -1,0 +1,33 @@
+2026-11-06T07:37:49Z
+=== run#a*Cut*
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case run#a*Cut*
+=== run#*PreGate*
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+PASS run#thePreGateReviewRunsBeforeTheGate
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case run#*PreGate*
+=== run#a*Refus*
+PASS run#aZeroRoundBudgetIsRefused
+PASS run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen
+PASS run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen
+PASS run#aHostWithoutThePlacementReadingIsRefused
+PASS run#aRefusedStartKeepsTheLeftoversItFound
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+loop-selftest: all 10 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case run#a*Refus*
+=== run#reviewRoundsCapAtTwo
+PASS run#reviewRoundsCapAtTwo
+=== run#escalationCarriesTheDecision
+PASS run#escalationCarriesTheDecision
+=== run#metricsRecordedPerItem
+PASS run#metricsRecordedPerItem
+=== run#childPastItsTurnBoundIsBlocked
+PASS run#childPastItsTurnBoundIsBlocked
+=== driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+2026-11-06T07:39:01Z

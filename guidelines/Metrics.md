@@ -15,29 +15,27 @@ that catches it, and the excluded-class list is stated in every report so a read
 
 ## 1. Invocation and exit status
 
-```bash
-tools/project-metrics-report.sh                # whole repository
-tools/project-metrics-report.sh app core       # one or more scopes
-tools/project-metrics-report.sh --help         # the usage block, from the script's own header
-```
+The invocations are in `Metrics.recipes.md` §1.
 
 Output is a **complete** text report on stdout, for manual inspection: no JSON, no snapshots, no baseline, no
 thresholds, and no option that narrows the report. `--help` is the only option beside scope paths.
 
-Exit status is an outcome, never a verdict: **0** when a report was printed, **2** on a usage or environment
+- **Rule: the exit status is an outcome, never a verdict.** It has three outcomes: **0** when a report was
+  printed, **2** on a usage or environment
 error (unknown option, missing or unreadable scope, no source layout in scope, a required tool missing). The
 tool never exits 1 and no figure influences the status.
 
 ## 2. What one run measures, and what it does not
 
-The subject is the **project as it is on disk**. Figures do not depend on version-control state, the tool runs no
+- **Rule: the subject is the project as it is on disk.** Figures do not depend on version-control state, the tool
+  runs no
 version-control command, and a worktree with uncommitted work is measured as it stands — which means a local run
 and a clean CI clone legitimately differ when their trees differ. The report's header states the run's date, its
 scope, how many files were measured, and every excluded class with the paths it removed, so a figure is never
 read without its subject.
 
-Every class below is excluded **and stated** with each path in the report's `EXCLUDED CLASSES` section. Nothing
-is filtered silently.
+- **Rule: every excluded class is stated with each path, and nothing is filtered silently.** Every class below is
+  excluded **and stated** with each path in the report's `EXCLUDED CLASSES` section.
 
 | class | what it is | why |
 |---|---|---|
@@ -64,13 +62,15 @@ A file is attributed to a module, package and layer only when its path matches
   `(no package)` when there is no package, and the first two segments for a foreign package (`com.framstag`);
 - **depth** — the number of dots in the package path, printed with each package row.
 
-A source file that matches no source root is listed in `UNCLASSIFIED` with its path, and is attributed to no
+- **Rule: a source file that matches no source root is listed in `UNCLASSIFIED`.** A source file that matches no
+  source root is attributed to no
 module, package or layer figure. A scope in which no source layout is found at all is **refused** with exit 2,
 naming the scope, and no figures are printed: the tool never reports a shape it did not recognize.
 
 ## 4. Counting definitions
 
-A line is exactly one of **code**, **comment** or **blank**, and the three sum to the file's total.
+- **Rule: a line is exactly one of code, comment or blank, and the three sum to the file's total.** The three
+  classifications sum to the file's total.
 
 - Comments are full-line `//` and `/* … */` (Kotlin, Java, C/C++, Gradle), full-line `#` (Shell, AWK, Python,
   YAML/TOML, Properties/Config) and full-line `<!-- … -->` (XML). Multi-line block comments continue across
@@ -80,7 +80,8 @@ A line is exactly one of **code**, **comment** or **blank**, and the three sum t
 - Source sets come from the source-root directory: `main` → production, `test` → unit test, `androidTest` →
   instrumented test, any other set under its own name. Documentation is its own kind, and a file outside every
   source root is reported as `outside a source root`, so the source-set figures sum to the files measured.
-- **Documentation is counted but never mixed into a source figure.** A ratio that describes source — the test
+- **Rule: documentation is counted but never mixed into a source figure.** A ratio that describes source — the
+  test
   share — divides by code lines *outside* documentation, and the per-file lists cover source files only:
   documents and OpenSpec store files (`openspec/**`) are aggregated, with their own file and line counts
   printed beside the list. Nothing about them is hidden, and nothing about them dilutes a source metric.
@@ -109,7 +110,8 @@ would not be a test share.
 
 ## 6. Surface convention
 
-Car code is the `auto` module, or a file whose name or enclosing directory carries a car word — a `Car`, `Auto`
+- **Rule: car code is the `auto` module or a car-named file; everything else is phone code.** A car file is the
+  `auto` module, or a file whose name or enclosing directory carries a car word — a `Car`, `Auto`
 or `Automotive` token starting where no letter precedes it (`CarSessionSurface.kt`, `di/AutoServiceModule.kt`,
 `AutomotiveDevice.kt`), or a name containing `Car` immediately followed by an upper-case letter, which is the
 form this project's own car API uses (`NaviVeylinCarAppService.kt`). Everything else under a module source root
@@ -124,7 +126,8 @@ source.
 
 ## 7. Ordering and completeness
 
-Every list is ordered by its figure, descending, with ties ordered by name ascending, under `LC_ALL=C`. Two runs
+- **Rule: every list is ordered by its figure, descending, with ties by name ascending, under `LC_ALL=C`.** Ties
+  are ordered by name ascending under `LC_ALL=C`. Two runs
 over an unchanged tree therefore print the same report apart from the header's date, and a different environment
 locale cannot reorder a list. Nothing is truncated: every package and every source file in scope is listed,
 however long the report becomes, and every figure column carries a header. Documents and OpenSpec store files

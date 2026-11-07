@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#childIsEndedAtTheRunsDeadline" tests="1" failures="1" errors="0" time="72">
+  <testcase name="run#childIsEndedAtTheRunsDeadline" classname="loop-selftest">
+    <failure message="the run was still waiting 60 s after its own recorded deadline passed">the run was still waiting 60 s after its own recorded deadline passed</failure>
+  </testcase>
+  <system-out>FAIL run#childIsEndedAtTheRunsDeadline loop-selftest: 1 of 1 cases failed </system-out>
+</testsuite>

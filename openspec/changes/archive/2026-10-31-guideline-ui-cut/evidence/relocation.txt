@@ -1,0 +1,33 @@
+Relocation proof — guideline-ui-cut (measured 2026-10-31)
+
+Baseline: guidelines/UI.md as HEAD-carried before the cut, 45 327 B, 13 sections.
+
+Baseline heading numbers: §1 §10 §2 §20 §3 §3a §3b §3c §4 §6 §6b §8d §9
+UI.md after:            §1 §10 §20 §6 §8d §9
+UICar.md after:         §2 §3 §3a §3b §3c §4 §6b
+
+Union equals the baseline set: True (disjoint: True)
+
+section  baseline B  after B  comparison
+§2             532       532  verbatim
+§3            3690      3690  verbatim
+§3a           5379      5382  verbatim+retarget
+§3b           2036      2036  verbatim
+§3c           2912      2915  verbatim+retarget
+§4             933       933  verbatim
+§6b           5169      5177  verbatim+retarget
+§1            1716      1716  verbatim
+§6            1313      1313  verbatim
+§8d           5539      5539  verbatim
+§9            4877      4877  verbatim
+§10           8816      8816  verbatim
+§20           1377      1431  edited (maintenance)
+
+The three retargets inside the moved text, and nothing else:
+  UICar.md §3a  `UI.why.md` §3a  -> `UICar.why.md` §3a   (its rationale moved with it)
+  UICar.md §3c  `UI.why.md` §3c  -> `UICar.why.md` §3c   (its rationale moved with it)
+  UICar.md §6b  bare (§1)        -> (`UI.md` §1)         (§1 stays in UI.md)
+
+§20 (kept) is the one edited section: its first bullet now says the restatement rule holds
+for this document and for UICar.md, and its glyph-table reference names `UICar.md` §2.
+Byte totals: baseline 45327 = UI.md 24881 + UICar.md 21562 - 1116 B of preambles rewritten

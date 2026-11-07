@@ -1,0 +1,11 @@
+# the red case on HEAD (2026-10-25T19:24:04Z), base 0f342656, clean tree: 1 changed path(s)
+
+$ bash tools/sensor-selftest.sh --case sensors#metadataDriftRow
+  the registry declares no metadata-invariant row
+FAIL sensors#metadataDriftRow
+exit=1
+
+$ bash tools/sensor-selftest.sh --case sensors#metadataDriftClearsUnderItsOwnIdentity
+  the drift keeps the identity the issue holds: bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/sensors/metrics/metadata-invariant.sh: Datei oder Verzeichnis nicht gefunden: '"fingerprint":"8f63298dcb779e7e63cbf3937ec9e466c209aaffceef1cb9980a9db818018b94"' not found in: 
+FAIL sensors#metadataDriftClearsUnderItsOwnIdentity
+exit=1

@@ -1,0 +1,14 @@
+# Gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache (issue #19)
+# Worktree .pi/worktrees/issue19, run 2026-10-29T16:01:13Z
+# Environment: ANDROID_HOME/ANDROID_SDK_ROOT/ANDROID_NDK_HOME instead of a machine-local local.properties.
+# Console tail, quoted from the run:
+#   > Task :app:testMobileDebugUnitTest
+#   BUILD SUCCESSFUL in 8m 16s
+#   166 actionable tasks: 163 executed, 3 up-to-date
+
+# Tallies summed from the per-class JUnit XML (tests/failures/errors):
+app/build/test-results/testMobileDebugUnitTest       297 files tests=2138 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest   297 files tests=2138 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest            92 files tests=887 failures=0 errors=0
+core/build/test-results/testDebugUnitTest            63 files tests=643 failures=0 errors=0
+osmscout-client-java/build/test-results/test         23 files tests=112 failures=0 errors=0

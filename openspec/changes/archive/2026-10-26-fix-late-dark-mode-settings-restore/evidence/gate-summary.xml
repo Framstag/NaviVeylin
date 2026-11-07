@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./tools/loop/gate.sh" tests="595" failures="0" errors="0">
+  <system-out>LOOP-GATE: tests=595 failures=0 errors=0 — the aggregate of the 23 tallies beside this file, read from the gate's own summary line in evidence/gate.log (the same derivation the gate applies per suite; no single suite tally carries the sum). The compiled step's own tally is evidence/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml: BUILD SUCCESSFUL in 4m 35s, 275s wall clock, and the suites that ran are app/build/test-results/{testMobileDebugUnitTest,testAutomotiveDebugUnitTest}, core and auto (2111 + 2111 + 646 + 880 case tallies, no failure, no error).</system-out>
+</testsuite>

@@ -1,0 +1,24 @@
+# The two openspec/* checks the profile owes for the archived tree
+# (loop.conf:141-143: an openspec/ path owes both the classification gate and the doc routes).
+# Taken on the tree as it stands after the archive and after round 2's corrections — HEAD
+# 4750f087 plus the uncommitted files this round writes. The pre-archive gate
+# could not owe them: .gitignore:75-76 ignores openspec/changes/*/ and un-ignores
+# openspec/changes/archive/, so openspec/ became a gated path with the archive move itself.
+
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 1
+stale: 3
+car-only areas: 1
+highlights: 19
+exit 0 — 2s
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+exit 0 — 0s

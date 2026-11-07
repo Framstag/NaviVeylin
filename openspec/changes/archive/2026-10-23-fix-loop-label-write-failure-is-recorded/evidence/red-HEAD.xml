@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#aFailed* (base f5f2a2a76)" tests="2" failures="2" errors="0" time="13">
+  <system-out>FAIL run#aFailedEscalationWriteIsNamed the write the tracker refused is recorded with the item: expected 'escalate', got '' | FAIL run#aFailedUnpickIsNamed the write the tracker refused is recorded with the item: expected 'unpick', got '' | loop-selftest: 2 of 2 cases failed</system-out>
+</testsuite>

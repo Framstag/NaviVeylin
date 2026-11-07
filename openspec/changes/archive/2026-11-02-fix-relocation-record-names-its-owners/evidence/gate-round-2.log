@@ -1,0 +1,11 @@
+# 2026-11-02T04:31:37Z — the correction round's one gate run, ./tools/loop/gate.sh
+# The child's transcript kept the tail of the run; the tallies below are the ones the gate wrote
+# under app/build/test-results/loop-gate/, copied beside this file at the moment they were produced.
+gate: tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 3 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+gate: tools/check-openspec-hygiene.sh — 0s
+gate: tools/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
+gate: tools/check-openspec-hygiene-selftest.sh — 0s
+LOOP-GATE: tests=40 failures=0 errors=1 (bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 6s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s) — failing: bash tools/gen-feature-list.sh --check-classification

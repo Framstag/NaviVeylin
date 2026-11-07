@@ -227,11 +227,19 @@ The car follow display SHALL obey the same bounded-rate correction and stop-deci
 
 ### Requirement: Single resolved anchor in the AA follow blit
 
-In AA follow mode the follow blit offset SHALL be computed against the same **resolved** anchor screen fraction the AA frame render target uses — the `clampAnchorOutOfPane` result against the host pane band (left in LTR, right in RTL) — never the raw preset.
+In AA follow mode the follow blit offset SHALL be computed against the same **resolved** anchor screen
+fraction the AA frame render target uses — the `clampAnchorOutOfPane` result against the host pane band
+(left in LTR, right in RTL) — never the raw preset.
 
-- The blit offset (`FollowPrediction.displayOffsetPx`) SHALL receive the resolved fraction at both blit sites (the extrapolation-loop blit and `renderFrame`'s blit path), so the pane-band presets are held at their resolved screen fraction
-- With the frame rendered anchor-centered on the resolved fraction and the blit computed against it, the blit SHALL stay a pure prediction drift inside the overrun margin — never permanently clamped for a pane-band preset (a permanently clamped offset converts every tick into a full native render instead of a sub-region blit)
-- The AA marker SHALL keep riding the blitted content (marker projection subtracts the same blit offset); the change SHALL NOT alter the marker-to-content glue
+- The blit offset (`OverrunWindow.shiftPx`) SHALL receive the resolved fraction at both blit sites (the
+  extrapolation-loop blit and `renderFrame`'s blit path), so the pane-band presets are held at their resolved
+  screen fraction
+- With the frame rendered anchor-centered on the resolved fraction and the blit computed against it, the
+  blit SHALL stay a pure prediction drift inside the overrun margin — never permanently clamped for a
+  pane-band preset (a permanently clamped offset converts every tick into a full native render instead of a
+  sub-region blit)
+- The AA marker SHALL keep riding the blitted content (marker projection subtracts the same blit offset);
+  the change SHALL NOT alter the marker-to-content glue
 
 #### Scenario: Far-left preset against an LTR host pane
 

@@ -1,0 +1,25 @@
+# The gate's one failing step, and why it is not this change's
+
+`./tools/loop/gate.sh` was run once, on 2026-11-02, and its own line is
+`LOOP-GATE: tests=41 failures=0 errors=1 (…) — failing: bash tools/gen-feature-list.sh --check-classification`
+(`evidence/gate.log`). Every suite this change's pathspec owes passed; the one step that failed reports two delta
+spec ids that this change does not introduce:
+
+```
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+```
+
+Both are the work of *other* open changes in the same tree, and the check's own message says where the classification
+belongs: in the change that introduces the spec id. This change introduces no delta spec id of its own — its
+requirement modifies the existing capability `documentation-ownership`, which `FEATURES.md` classifies — and the
+change touches `AGENTS.md` and `tools/check-doc-routes-selftest.sh` only.
+
+The same check over the run's base `9318dad9`, taken with `git archive 9318dad9 openspec tools/gen-feature-list.sh
+tools/feature-list FEATURES.md` into a scratch directory, exits **0** with `unclassified: 0, delta spec ids: 0`;
+the two ids enter the tree with the other changes' open artifacts, which are not in that commit.
+
+So the step is red on this tree before this change and green on the base, and repairing it would mean classifying
+another change's spec delta — writing into a change this item does not own.

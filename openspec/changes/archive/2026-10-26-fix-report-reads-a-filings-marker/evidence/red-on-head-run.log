@@ -1,0 +1,21 @@
+  a wall time past the filing's number is a violation: 'verdict=violation' not found in: Gate timing record: /tmp/sensor-selftest.nhG8iw/case.ZErBgK/gate-timings.json
+Run:     2026-10-17T03:00:00Z -> 2026-10-17T03:09:02Z   wall 9m02s   verdict: no failed task
+Requested: :app:testMobileDebugUnitTest
+
+Tasks by outcome (record-level; Gradle's own 'actionable tasks' line counts lifecycle tasks differently)
+  1	executed
+  executed task durations sum: 3m15s of 9m02s wall
+
+Phase breakdown (sum of executed task durations)
+  tests                  3m15s     1 tasks
+  configuration & overhead 5m47s   
+
+Suites (wall time from the first and last result XML timestamp)
+  :app:testMobileDebugUnitTest             no result XML under ./app/build/test-results/testMobileDebugUnitTest
+
+Slowest executed tasks
+  3m15s    :app:testMobileDebugUnitTest
+stub gh: recorded `gh issue edit`
+build-duration: fingerprint=ee344a3dc0062286db2173320c59b6dad087550fb50c192d75cbf1dff81652bb verdict=clear measurement=542000 issue=121 action=commented (hysteresis)
+FAIL run#aFilingSetsTheBaseline
+exit=1

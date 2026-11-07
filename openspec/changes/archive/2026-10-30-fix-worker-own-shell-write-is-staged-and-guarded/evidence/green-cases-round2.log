@@ -1,0 +1,9 @@
+PASS run#aFailedEscalationWriteIsNamed
+PASS run#reviewerWriteInvalidatesTheRound
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#childWriteOutsideTheWorktreeIsNoted
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+loop-selftest: all 8 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case run#*rite*

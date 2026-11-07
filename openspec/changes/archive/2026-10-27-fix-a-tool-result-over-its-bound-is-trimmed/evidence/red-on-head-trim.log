@@ -1,0 +1,13 @@
+trim#aResultAboveTheBoundIsTrimmedAndNamed|   nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)
+trim#aResultUnderTheBoundIsHandedOverWhole|   nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)
+trim#theTrimIsRecorded|   nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)
+--- trim#aResultAboveTheBoundIsTrimmedAndNamed[0] (exit 1)
+  nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)
+FAIL trim#aResultAboveTheBoundIsTrimmedAndNamed
+--- [1] (exit 1)
+  nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)
+FAIL trim#aResultUnderTheBoundIsHandedOverWhole
+--- [2] (exit 1)
+  nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)
+FAIL trim#theTrimIsRecorded
+loop-selftest: 3 of 3 cases failed

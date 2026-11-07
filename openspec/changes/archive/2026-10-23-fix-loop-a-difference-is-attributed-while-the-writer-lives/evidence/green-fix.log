@@ -1,0 +1,17 @@
+Taken 2026-10-23T18:48:02Z — the outside-write rule's five cases, green, from the change root.
+
+=== run#childWriteOutsideTheWorktreeIsNoted
+PASS run#childWriteOutsideTheWorktreeIsNoted
+
+=== run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+
+=== run#dirtyBaseRefusesTheMergeAndNamesThePath
+PASS run#dirtyBaseRefusesTheMergeAndNamesThePath
+
+=== run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteBlocksTheItem
+
+=== run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+

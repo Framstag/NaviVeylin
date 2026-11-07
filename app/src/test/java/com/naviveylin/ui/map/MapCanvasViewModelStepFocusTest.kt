@@ -19,6 +19,10 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import com.naviveylin.ui.route.routeWithSteps
+import com.naviveylin.ui.route.startStep
+import com.naviveylin.ui.route.targetStep
+import com.naviveylin.ui.route.turnStep
 import com.naviveylin.ui.route.RoutePanelViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -104,22 +108,18 @@ class MapCanvasViewModelStepFocusTest {
         viewModel.cancelScopeForTest()
     }
 
-    /** Route whose three instruction lines sit on its three vertices (legs of ~110 m). */
-    private fun routeEntry(withPositions: Boolean = true): RouteEntry = RouteEntry().apply {
-        routeHandle = 1L
-        latitudes = doubleArrayOf(48.0, 48.0002, 48.0004)
-        longitudes = doubleArrayOf(2.0, 2.0002, 2.0004)
+    /** Route whose three rows sit on its three vertices (legs of ~60 m each). */
+    private fun routeEntry(withPositions: Boolean = true): RouteEntry = routeWithSteps(
+        startStep(lat = 48.0, lon = 2.0),
+        turnStep(
+            com.framstag.libosmscout.client.TurnType.RIGHT,
+            lat = if (withPositions) 48.0002 else Double.NaN,
+            lon = if (withPositions) 2.0002 else Double.NaN,
+            legDistance = 50.0, legTime = 10.0, name = "B"
+        ),
+        targetStep(lat = 48.0004, lon = 2.0004, legDistance = 10.0, legTime = 2.0),
         distance = 60.0
-        descriptions = arrayOf(
-            "Start: A  []",
-            "Right onto B  [50 m]",
-            "Destination reached  []"
-        )
-        if (withPositions) {
-            instructionLats = doubleArrayOf(48.0, 48.0002, 48.0004)
-            instructionLons = doubleArrayOf(2.0, 2.0002, 2.0004)
-        }
-    }
+    )
 
     private fun entry(label: String, lat: Double, lon: Double): LocationEntry =
         LocationEntry().apply {

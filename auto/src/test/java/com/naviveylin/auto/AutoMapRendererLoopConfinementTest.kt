@@ -55,8 +55,10 @@ class AutoMapRendererLoopConfinementTest {
         renderer.testIterationFault = RenderLoop.FRAME
         renderer.frameIteration()
 
-        // The frame was skipped: nothing was drawn, and the request was consumed rather than
-        // left as a permanent source of retries.
+        // The frame was skipped: nothing was drawn. Since `car-frame-wait-bound` the request is NOT
+        // consumed — it stays outstanding and a wait is armed, so a frame path that cannot draw no
+        // longer leaves the surface on its last frame (spec: auto-map-renderer — A requested car frame
+        // that never lands is re-requested).
         assertEquals(0, renderer.fullRenderCount)
         assertEquals(0, renderer.blitCount)
 
@@ -89,7 +91,7 @@ class AutoMapRendererLoopConfinementTest {
         rendererWithSurface()
         val now = System.currentTimeMillis()
         // A frame must be on the surface: the following ticks update it by blitting the overrun
-        // buffer (same shape as the follow-blit case in AutoMapRendererTest).
+        // buffer (same shape as the follow-blit case in AutoMapRendererBlitTest).
         renderer.renderFrame()
         assertEquals(1, renderer.fullRenderCount)
         renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0, speedKmH = 10.0, timeMs = now)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The same two cases on the tree this change leaves, 2026-10-23T14:21:51Z: `bash tools/loop-selftest.sh --case
+     gate#the*Profile*` — `loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — selection:
+     --case gate#the*Profile*`. The numbers are that summary line's own; the transcript is green-focused.log. -->
+<testsuite name="loop-selftest --case gate#the*Profile*" tests="2" failures="0" errors="0">
+  <testcase name="gate#theGateNamesTheProfileItRead"/>
+  <testcase name="gate#theChildReadsTheProfileOfTheTreeItWorksIn"/>
+  <system-out>PASS gate#theGateNamesTheProfileItRead
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case gate#the*Profile*</system-out>
+</testsuite>

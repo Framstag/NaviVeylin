@@ -1,0 +1,9 @@
+=== 59.1
+RED    59.1  driver#theSuiteRunsItsCasesInAPool   (the pool that starts the next case as one finishes, rather than one case at a time (issue #260))
+restore 59.1 driver#theSuiteRunsItsCasesInAPool green again
+=== 59.2
+RED    59.2  driver#aCaseThatLeavesAProcessBehindIsSweptWithIt   (the sweep of a case own scratch root before its slot is handed on (issue #260))
+restore 59.2 driver#aCaseThatLeavesAProcessBehindIsSweptWithIt green again
+=== 48.2
+RED    48.2  driver#theCoreIsCompiledOncePerSuite   (the marker that keeps the compile to one per suite, not one per asking case (issue #261))
+restore 48.2 driver#theCoreIsCompiledOncePerSuite green again

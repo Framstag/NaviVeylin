@@ -144,8 +144,13 @@ class NavigationViewModel @Inject constructor(
         engine.stopNavigation()
     }
 
-    override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
-        engine.navigateTo(destLat, destLon, destinationName)
+    override fun navigateTo(
+        destLat: Double,
+        destLon: Double,
+        destinationName: String?,
+        origin: SurfaceOrigin
+    ) {
+        engine.navigateTo(destLat, destLon, destinationName, origin)
     }
 
     override fun clearError() {

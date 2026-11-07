@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-24T21:45:47.024Z" hostname="dingens" time="0.858">
+  <properties/>
+  <testcase name="openRoutePanelWithStartWhileFollowing_disablesFollow" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.025"/>
+  <testcase name="absentPolyline_fallsBackToEndpointMidpoint" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.079"/>
+  <testcase name="userGestureAfterTheFitIsNotOverridden" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.03"/>
+  <testcase name="routeCalculation_fitsViewportToBoundingBox" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.031"/>
+  <testcase name="shrinkingCardHeightDoesNotRefit" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.036"/>
+  <testcase name="fitUsesTheFullCanvasWhenTheSessionOwnsIt" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.041"/>
+  <testcase name="emptyPolyline_fallsBackToEndpointMidpoint" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.033"/>
+  <testcase name="routeCalculationWhileFollowing_keepsViewport" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.033"/>
+  <testcase name="reportedCardHeight_fitUsesTheFreeMapArea" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.04"/>
+  <testcase name="fitAfterALandedWalkIsRenderedAtTheFitMagnification" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.045"/>
+  <testcase name="staleReEmission_doesNotRefit_userMovedViewportKept" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.07"/>
+  <testcase name="rerouteWhileNavigating_keepsViewport" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.076"/>
+  <testcase name="unchangedCardHeight_leavesAUserMovedViewportAlone" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.055"/>
+  <testcase name="invalidCoordinates_leaveViewportUntouched" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.037"/>
+  <testcase name="startAndTargetMarkersStayClearOfTheFreeBandEdges" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.03"/>
+  <testcase name="changedCardHeight_refitsTheRouteAboveTheCard" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.03"/>
+  <testcase name="favoriteSelectedWhileFollowing_disablesFollowAndFits" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.042"/>
+  <testcase name="routeCalculationWhileNavigating_keepsViewport" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.035"/>
+  <testcase name="longTrip_zoomsBelowAreaFloor_bothEndpointsFit" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.041"/>
+  <testcase name="theFitSeamHonoursTheMarkerMargin" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.018"/>
+  <testcase name="fitAppliesInTheArrivalTurn" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

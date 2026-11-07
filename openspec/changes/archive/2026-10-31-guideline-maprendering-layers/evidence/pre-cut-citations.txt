@@ -1,0 +1,33 @@
+AGENTS.md:25:| how the map is drawn — pipeline, bitmaps, throttling, epochs, front buffer, overrun | `MapRendering.md` §1, §2, §4, §5, §12, §13 |
+AGENTS.md:26:| follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapRendering.md` §3, §6, §7, §8, §9, §10, §11 |
+AGENTS.md:27:| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.1 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-10-29) |
+AGENTS.md:28:| label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapRendering.md` §20 "Label wrapping" |
+AGENTS.md:33:| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+AGENTS.md:34:| a surface that must live while a phone and a car session are both active | `MapRendering.md` §18 "The phone canvas while a car session is active", `UIPhone.md` §10a "Phone surface while a car session is active" 2.4 kB (measured 2026-10-29) |
+AGENTS.md:37:| route data and the numbers derived from it | `MapRendering.md` §19 |
+AGENTS.md:50:| a rendering regression to re-check, and the parameter table | `MapRendering.md` "Known Pitfalls", "Parameter Overview" |
+AGENTS.md:131:it into the APK; the runtime contract is `guidelines/MapRendering.md` §15, §15a, §16, §16a and §16b, and the
+AGENTS.md:140:`guidelines/MapRendering.md` §18, `guidelines/Build.md` §10, and the specs `android-automotive-os`, `auto`,
+guidelines/Design.md:7:(this file); `UI.md` = UI rules (phone + Android Auto); `MapRendering.md` =
+guidelines/Design.md:79:  markers — see `guidelines/MapRendering.md` (analysed-route-segment overlay).
+guidelines/Design.md:449:- Pipeline details and pitfalls: `guidelines/MapRendering.md`.
+guidelines/Design.md:472:- Details: `guidelines/MapRendering.md`.
+guidelines/Design.md:563:  `guidelines/MapRendering.md` §14 "Android Auto renderer". A loop iteration **must not swallow
+guidelines/Design.md:820:    see `guidelines/MapRendering.md` §17.
+guidelines/UI.md:440:  `guidelines/MapRendering.md` §15).
+guidelines/UIPhone.md:409:short of (`guidelines/MapRendering.md` §18 has the numbers).
+guidelines/BuildNative.md:206:(`guidelines/MapRendering.md` §16 and §16a own the runtime contract).
+guidelines/BuildNative.recipes.md:343:`guidelines/MapRendering.md` §15 for the key and the legitimate triggers. Both the phone and the car
+guidelines/Backlog.md:47:| conventions of the app itself | `Design.md`, `UI.md`, `MapRendering.md`, `Build.md` — this document routes to them, it does not restate them |
+guidelines/Backlog.md:391:  reason a `§14` of `MapRendering.md` is written with its heading text.
+guidelines/Backlog.recipes.md:749:eight sections — `UI.md` §1 (25 206 bytes) and `UIPhone.md` §8 (19 681), `MapRendering.md` §1 (22 592), `UIPhone.md` §7a (13 102),
+.pi/skills/process-failure-log/SKILL.md:26:| `guidelines/Build.md`, `guidelines/Design.md`, `guidelines/MapRendering.md`, `guidelines/UI.md`, `AGENTS.md`, `.pi/skills/*` | the artifacts the extracted actions *name* as their home (this skill records the target, it does not edit them unless the user asks) |
+.pi/skills/process-failure-log/SKILL.md:54:| Design / scope (verify premise, log both sides of a seam, decide pacing first) | `guidelines/Design.md`, `guidelines/MapRendering.md` |
+
+# --- §14 attribution (by hand, 2026-10-31) ---
+# No citation in the baseline wrote a BARE `MapRendering.md §14` (no heading text).
+# Two citations named §14 WITH the heading text "Android Auto renderer"; both mean the CAR renderer:
+#   AGENTS.md:33  `MapRendering.md` §14 "Android Auto renderer"   -> MapCar.md §14
+#   guidelines/Design.md:563  §14 "Android Auto renderer"         -> MapCar.md §14
+# The rotation-gesture handoff (§14 in MapRendering.md) carried no §14 citation in the baseline; it
+# stays MapRendering.md §14 and is routed by the "how the map is drawn" row.

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#resetWorktreeNamesTheDirtItCannotDiscard" tests="1" failures="0" errors="0" time="0">
+  <system-out>PASS run#resetWorktreeNamesTheDirtItCannotDiscard — tools/loop-selftest.sh --case run#resetWorktreeNamesTheDirtItCannotDiscard, 2026-11-05T22:48Z, round 1's correction: the reset arm's stop reason names the dirt its repair printed</system-out>
+</testsuite>

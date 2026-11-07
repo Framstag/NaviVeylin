@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.MapDownloadManagerVersionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-27T01:53:46.722Z" hostname="dingens" time="0.012">
+  <properties/>
+  <testcase name="listingRequestCarriesTheConstant()" classname="com.framstag.libosmscout.client.MapDownloadManagerVersionTest" time="0.001"/>
+  <testcase name="noPlaceholderSurvivesSubstitution()" classname="com.framstag.libosmscout.client.MapDownloadManagerVersionTest" time="0.001"/>
+  <testcase name="bothVersionBoundsUseOneValue()" classname="com.framstag.libosmscout.client.MapDownloadManagerVersionTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

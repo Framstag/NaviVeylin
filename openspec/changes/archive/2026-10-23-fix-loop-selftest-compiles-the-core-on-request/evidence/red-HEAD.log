@@ -1,0 +1,3 @@
+  a case that asks for no core runs without one: javac: this probe does not compile anything
+loop-selftest: the issue tooling's Java core does not compile: expected '0', got '1'
+FAIL driver#aCaseThatAsksForNoCoreCompilesNothing

@@ -1,0 +1,21 @@
+# Relocation count, UI.why.md / UI.recipes.md
+
+Blocks removed from guidelines/UI.md into its companions:
+  1. the parity decisions table ('### Current parity decisions', 10 303 B) -> UI.why.md ## §1
+  2. '### Why the phone is not locked during a car session' -> UI.why.md ## §1
+  3. '### Why favorite, group and starred reordering are phone-only' -> UI.why.md ## §1
+  4. '### Why the license list is phone-only' -> UI.why.md ## §1
+  5. the 'issue #110' wait measurement in §3a -> UI.why.md ## §3a
+  6. the 'measured 2026-10-05 ... issue #84' dwell measurement in §3c -> UI.why.md ## §3c
+  7. the 'issue #42' car-search defect in §8d -> UI.why.md ## §8d
+  8. the car-list capacity measurement in §3 -> UI.recipes.md ## §3
+
+Statements found in the companions (removed blocks = 8; anchors present):
+guidelines/UI.why.md:5
+guidelines/UI.recipes.md:1
+guidelines/UI.why.md:7:## §1 The parity decisions, and why
+guidelines/UI.why.md:89:## §3a The wait that is not the loading row's deadline
+guidelines/UI.why.md:96:## §3c The route-calculation notice's dwell
+guidelines/UI.why.md:101:## §8d The car search distance reference
+guidelines/UI.why.md:107:## §9 Why the dark chrome is not app-themed
+guidelines/UI.recipes.md:6:## §3 Reading the car-list capacity

@@ -1,0 +1,37 @@
+=== $ date -u +%Y-%m-%dT%H:%M:%SZ → 2026-10-24T09:52:13Z
+=== the gate's own suite is running in this worktree (ps):
+1623111 1623109     921 bash tools/loop/gate.sh --base 0f366176
+1623683 1623111     920 bash tools/loop-selftest.sh --from-git 0f366176
+2922242 2922240      33 timeout 2700 bash tools/loop/gate.sh --base a0ca0f3544894dafb4d099eed4e53cc233686896
+2922245 2922242      33 bash tools/loop/gate.sh --base a0ca0f3544894dafb4d099eed4e53cc233686896
+2922387 2922245      33 bash tools/loop-selftest.sh --from-git a0ca0f3544894dafb4d099eed4e53cc233686896
+2954543 2922387       8 bash tools/loop-selftest.sh --from-git a0ca0f3544894dafb4d099eed4e53cc233686896
+2962711 1623683       2 bash tools/loop-selftest.sh --from-git 0f366176
+2965684 2837014       1 timeout 200 bash tools/loop-selftest.sh --case run#childOutlastingTheWallClockIsBlocked
+2965688 2965684       1 bash tools/loop-selftest.sh --case run#childOutlastingTheWallClockIsBlocked
+2965841 2965688       0 bash tools/loop-selftest.sh --case run#childOutlastingTheWallClockIsBlocked
+2965897 2965841       0 bash tools/loop-selftest.sh --case run#childOutlastingTheWallClockIsBlocked
+=== the lock it holds:
+2922387 2026-10-24T09:51:40Z
+=== a second suite of this repository, asked to run a group:
+loop-selftest: another suite holds /home/tim/projects/NaviVeylin/.pi/worktrees/i295/.pi/tmp/.loop-selftest.lock (owner 2922387 2026-10-24T09:51:40Z) — one suite per repository: two suites in one repository make the failing set of each depend on the other (issue #295)
+loop-selftest: wait for it, run this suite in another worktree, or remove /home/tim/projects/NaviVeylin/.pi/worktrees/i295/.pi/tmp/.loop-selftest.lock if that process is not a suite
+exit=
+=== the same command, read for its status alone:
+exit=2
+=== …and a suite in ANOTHER worktree of this repository is not refused by that lock (it resolves its own):
+210
+the other worktree's own scratch root: .pi/tmp
+
+=== note, on what each block above does and does not show
+The ps snapshot at the top is a moment in which four suites stood at once: this worktree's gate suite (pid 2922387,
+`--from-git a0ca0f35…`, 33 s at the time), the project tree's own gate suite (pid 1623683, `--from-git 0f366176`,
+920 s), and two more `--from-git` runs below them. The refusal that follows is this worktree's second suite, refused
+by the lock this worktree's gate suite had taken 33 s earlier — the lock's own file is the line above it.
+What this file does NOT show is cross-worktree behaviour: the project tree's suite ran a driver from the project
+tree, which in this change's own run predates the lease, so its running beside this one is not evidence that two
+*leased* trees do not refuse each other. That is covered where it can be: the third half of
+`driver#aSecondSuiteInOneRepositoryIsRefused` runs a suite whose scratch root is its own while the repository's lock
+is held, and it runs its cases (see evidence/green-case.log and the full-suite log).
+The last block shows what makes that true — the other worktree resolves a scratch root of its own (`.pi/tmp` under
+that tree) — and nothing more; the 210 there is that tree's own case count, not a run.

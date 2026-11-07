@@ -1,0 +1,11 @@
+=== the failing case alone, in two clean detached worktrees, this change absent (2026-10-24) ===
+
+--- .pi/worktrees/baseline271-base at f5f2a2a7 ---
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+
+--- .pi/worktrees/baseline271-maintip at 23c9f944 ---
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,53 @@
+# revert-check 53.1, 53.2, 53.3 — one mutation per invariant, the named case red, restored green
+# command: tools/loop-mutations.sh --only <label> (one label per invocation; the harness takes one)
+# taken: 2026-10-23T17:16:05Z
+loop-mutations: selected 1 of 114 records (labels: 53.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.mi0j9H
+RED    53.1  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the leftovers recorded under the item whose work the tree holds, and escalated (issue #284))
+restore 53.1 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+loop-mutations: selected 1 of 114 records (labels: 53.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.7yzQNt
+RED    53.2  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (one record per item, a second account joining the note the item already has (issue #284))
+restore 53.2 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+loop-mutations: selected 1 of 114 records (labels: 53.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.jwHVll
+RED    53.3  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the stop reason naming the item the leftovers belong to and the files it found (issue #284))
+restore 53.3 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+
+# Round 2: the same three mutations reproduced by hand, each case run kept with its own failing line.
+# The harness discards a case's output (tools/loop-mutations.sh run_case: >/dev/null 2>&1), so the RED line
+# above names the case and the invariant but not the assertion. Reproduced with the declared sed
+# expressions from tools/loop-mutations.sh:352-354, restored byte-identical afterwards, and the
+# pristine tree green again (see the end of this file).
+# taken: 2026-10-23T17:36:08Z
+
+$ sed -i 's|^        if \[ "$dry_run" -eq 0 \] \&\& \[ -n "$owner_item" \]; then$|        if false; then|' tools/loop/run.sh
+$ bash tools/loop-selftest.sh --case run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+  and the leftovers join it instead of replacing it: 'leftovers' not found in: reported success but the tree is still at the base commit — nothing was committed
+FAIL run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+loop-selftest: 1 of 1 cases failed
+
+$ sed -i 's|^      if (\[\.items\[\] \| select(\.issue == $i)\] \| length) == 0 then$|      if true then|' tools/loop/state.sh
+$ bash tools/loop-selftest.sh --case run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+  the run records one item, not one per account of it: expected '1', got '2'
+FAIL run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+loop-selftest: 1 of 1 cases failed
+
+$ sed -i 's|^        stop_run "the item could not be started: the worktree is not clean .*$|        stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|' tools/loop/run.sh
+$ bash tools/loop-selftest.sh --case run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+  and names the item whose work the tree holds, not only the candidate: '#21' not found in: the item could not be started: loop: the worktree is not clean — refusing to start #22:
+FAIL run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+loop-selftest: 1 of 1 cases failed
+
+restored: both files byte-identical to the pristine copies; the case green again on the restored tree:
+$ bash tools/loop-selftest.sh --case run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+PASS run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds

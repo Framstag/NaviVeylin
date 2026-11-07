@@ -1,0 +1,5 @@
+RED    13.13  run#theEndSweepsTheLandedBranchesItMade   (the refusal that keeps a branch the base does not carry)
+       2026-10-27T16:03:18Z — the branch that carries work was removed
+restore 13.13 run#theEndSweepsTheLandedBranchesItMade green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

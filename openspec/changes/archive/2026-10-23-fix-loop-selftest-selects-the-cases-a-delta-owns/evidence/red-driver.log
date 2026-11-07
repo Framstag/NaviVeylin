@@ -1,0 +1,15 @@
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#theCoreIsCompiledOncePerSuite
+  a file set that names cases runs them: loop-selftest: unknown argument --files: expected '0', got '2'
+FAIL driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+  and the refusal names what it could not resolve: loop-selftest: unknown argument --files: 'names no case of the 4 declared' not found in: loop-selftest: unknown argument --files
+FAIL driver#aFileSetThatNamesNoCaseIsRefused
+  a core file runs the suite: loop-selftest: unknown argument --files: expected '0', got '2'
+FAIL driver#aCoreFileOwesEveryCase
+  the driver could not print the declared file set: loop-selftest: unknown argument --case-files
+FAIL driver#everyCaseDeclaresTheFilesItCanReach
+loop-selftest: 4 of 10 cases failed

@@ -1,0 +1,10 @@
+== date: 2026-10-22T04:41:39Z
+== HEAD: ee95d71
+
+  the profile records no LOOP_GATE_PIPELINE, so the map is pinned to nothing and nobody can tell
+FAIL gate#theMapCoversEveryPipelineStep
+exit=1
+
+  the check the pipeline runs over that path is owed: LOOP-GATE: nothing owed — no path this profile gates changed since 7534b1caa95478d5965bbdb4f326be329b1cb0d1: 'tools/build-inputs.sh --check' not found in: LOOP-GATE: nothing owed — no path this profile gates changed since 7534b1caa95478d5965bbdb4f326be329b1cb0d1
+FAIL gate#aPipelineCheckIsOwedByItsPaths
+exit=1

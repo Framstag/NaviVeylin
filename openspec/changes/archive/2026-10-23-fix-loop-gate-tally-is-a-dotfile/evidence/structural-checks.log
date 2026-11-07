@@ -1,0 +1,4 @@
+Change 'fix-loop-gate-tally-is-a-dotfile' is valid
+strict rc=0
+check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+doc-routes rc=0

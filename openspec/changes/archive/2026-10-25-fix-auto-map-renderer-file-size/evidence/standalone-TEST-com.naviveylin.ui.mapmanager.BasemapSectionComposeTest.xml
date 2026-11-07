@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.BasemapSectionComposeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:54:53.969Z" hostname="dingens" time="2.268">
+  <properties/>
+  <testcase name="downloadingShowsCompactStatus" classname="com.naviveylin.ui.mapmanager.BasemapSectionComposeTest" time="1.798"/>
+  <testcase name="availableShowsDownloadButton" classname="com.naviveylin.ui.mapmanager.BasemapSectionComposeTest" time="0.204"/>
+  <testcase name="installedShowsDeleteButton" classname="com.naviveylin.ui.mapmanager.BasemapSectionComposeTest" time="0.142"/>
+  <testcase name="unavailableShowsSubtleStatus" classname="com.naviveylin.ui.mapmanager.BasemapSectionComposeTest" time="0.116"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/tmp/byteBuddyAgent559243975155462792.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+[BasemapManager] Server returned 404 for http://127.0.0.1:39639/basemap/
+[BasemapManager] Server returned 404 for http://127.0.0.1:39639/basemap/
+[BasemapManager] Server returned 404 for http://127.0.0.1:34131/basemap/
+]]></system-err>
+</testsuite>

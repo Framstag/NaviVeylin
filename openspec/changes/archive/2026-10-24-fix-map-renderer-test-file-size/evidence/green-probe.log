@@ -1,0 +1,5 @@
+# source-size probe — auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt
+# bound=1500 comparison=greater-than; the open condition's fingerprint is the entry's own
+$ SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[<the entry's condition>]' bash tools/sensors/metrics/source-size.sh
+{"path":"auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt","fingerprint":"60ebe0d1c07f9c2521c7c9031a6d809b0b97190a93eb7acc7d944de316d90518","measurement":"437","verdict":"clear","baseline":"","title":"the source file is inside the size bound","claim":"auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt is 437 lines, inside the row's bound of 1500"}
+# taken 2026-10-24T21:02:50Z at 3cc62e15, 6 changed path(s) in the tree

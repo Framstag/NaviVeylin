@@ -1,0 +1,69 @@
+# Retargeted citations
+
+A citation is repaired by naming the document that now carries the number; no number changes.
+
+## Done inside the permitted file set
+
+### AGENTS.md (Documentation Map)
+- The single `phone UI` row is split into two:
+  - new row: `the phone map — modes, overlays, layering, the route-planning card` -> `UIPhoneMap.md`
+    §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11 (sub-sections priced as before).
+  - narrowed row: `phone surfaces — the details dialog, search, favourites` -> `UIPhone.md`
+    §5, §6a, §12..§19 (sub-section §6a 6.1 kB priced).
+- Row `a surface that must live while ...` : `UIPhone.md` §10a -> `UIPhoneMap.md` §10a.
+
+### tools/doc-routes.json
+- Every map-cluster section and rule prefix `UIPhone.md §{7,7a,7b,8,8a,8b,8c,10a,11}` retargeted to
+  `UIPhoneMap.md §...` in both globs that carry them (`app/src/main/java/**` and `guidelines/UI*.md`).
+  125 entries retargeted; 0 remain under `UIPhone.md`.
+- `UIPhone.md` continues to carry §5, §6a, §12..§19.
+
+## BLOCKED — outside the permitted file set (see design amendment)
+
+Four base guideline documents reference map-cluster sections and must be retargeted for
+`tools/check-doc-routes.sh` to exit 0. These files are NOT in this change's permitted set:
+
+- guidelines/Design.md:266  `guidelines/UIPhone.md` §8b  -> `guidelines/UIPhoneMap.md` §8b
+- guidelines/Design.md:277  `guidelines/UIPhone.md` §11  -> `guidelines/UIPhoneMap.md` §11
+- guidelines/MapCar.md:150  `guidelines/UIPhone.md` §10a -> `guidelines/UIPhoneMap.md` §10a
+- guidelines/UI.md:617      restatements §7a, §8b, §8c, §11 -> `UIPhoneMap.md`
+
+Also for honesty (no check resolves them):
+- guidelines/Design.recipes.md:9,17  §11 -> UIPhoneMap.md
+- guidelines/Backlog.recipes.md:749  §8, §7a -> UIPhoneMap.md
+- .pi/skills/compose-geometry/SKILL.md:24,98  §8b -> UIPhoneMap.md
+
+Until these are retargeted, `bash tools/check-doc-routes.sh` reports:
+```
+::error file=guidelines/Design.md::UIPhone.md §8b — no such section
+::error file=guidelines/Design.md::UIPhone.md §11 — no such section
+::error file=guidelines/MapCar.md::UIPhone.md §10a — no such section
+::error file=guidelines/UI.md::UIPhone.md §7a — no such section
+::error file=guidelines/UI.md::UIPhone.md §8b — no such section
+::error file=guidelines/UI.md::UIPhone.md §8c — no such section
+::error file=guidelines/UI.md::UIPhone.md §11 — no such section
+```
+
+## Retarget count per file (supervisor authorised the six files, 2026-10-31)
+
+| file | refs retargeted | note |
+|---|---|---|
+| guidelines/Design.md | 2 | §8b, §11 (resolved by check) |
+| guidelines/MapCar.md | 1 | §10a (resolved) |
+| guidelines/UI.md | 1 line / 4 refs | §7a, §8b, §8c, §11 — the ONE line UI.md:617; nothing else in UI.md touched |
+| guidelines/Design.recipes.md | 2 | §11 (not check-resolved) |
+| .pi/skills/compose-geometry/SKILL.md | 2 | §8b (not check-resolved) |
+| guidelines/Backlog.recipes.md | 0 of 2 | **left** — see below |
+
+All substitutions are name-only: `UIPhone.md §X` -> `UIPhoneMap.md §X`. No statement, sentence or example changed.
+
+### Backlog.recipes.md:749 — left, not retargeted
+The line is a **past measurement**: "Measured on the tree this landed on, the bound convicts eight
+sections — … `UIPhone.md` §8 (19 681) … `UIPhone.md` §7a (13 102) …". At that tree the two sections were
+still in `UIPhone.md`; renaming them to `UIPhoneMap.md` would state a history that never happened. A
+rename needs more than the document name here (a note that the section has since moved), so per the
+supervisor's rule 1 this line is left and reported. No check resolves it.
+
+## Post-retarget check
+`bash tools/check-doc-routes.sh` -> `all 308 section references resolve, all 2 skill references resolve` (0)
+`bash tools/check-rule-routes.sh` -> `every glob matches the tree and all 575 named rule(s) are reached` (0)

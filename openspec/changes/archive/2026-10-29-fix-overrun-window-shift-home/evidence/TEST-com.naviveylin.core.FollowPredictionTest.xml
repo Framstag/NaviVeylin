@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.FollowPredictionTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-29T17:04:29.496Z" hostname="dingens" time="0.014">
+  <properties/>
+  <testcase name="ease alpha converges to one" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="caps the speed at 70 percent of the average while decelerating" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="extrapolates linearly along heading" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="holds position before any fix" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="holds position when the fix has not moved" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="uses GPS speed when it is below the cap" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="falls back to GPS speed before a second fix is available" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="uses GPS speed in steady state without the cap" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="does not extrapolate into the past" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="holds position when GPS speed is zero even with a stale average" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="ease alpha default tau is 0_3 seconds" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="ease alpha is zero for zero delta" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="holds position when speed is zero" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="staleBaseDoesNotDeclareStop" classname="com.naviveylin.core.FollowPredictionTest" time="0.003"/>
+  <testcase name="holds position when fix is older than max extrapolation window" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="extrapolates north along heading 0" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <testcase name="holds position when bearing unknown" classname="com.naviveylin.core.FollowPredictionTest" time="0.0"/>
+  <testcase name="holds position when speed unknown" classname="com.naviveylin.core.FollowPredictionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

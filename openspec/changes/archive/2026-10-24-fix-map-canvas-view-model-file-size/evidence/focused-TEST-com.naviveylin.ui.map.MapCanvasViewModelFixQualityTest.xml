@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-24T21:45:39.604Z" hostname="dingens" time="6.806">
+  <properties/>
+  <testcase name="anUnchangedQualityPublishesNoNewValue" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.283"/>
+  <testcase name="anAgedOutFixBecomesNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.023"/>
+  <testcase name="aGoodFixReportsGood" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.024"/>
+  <testcase name="noFixAtAllIsNone" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.02"/>
+  <testcase name="aPoorAccuracyReportsPoor" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.02"/>
+  <testcase name="aTickDoesNotDispatchOnTheMainDispatcher" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.365"/>
+  <testcase name="aDisabledSourceIsNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.021"/>
+  <testcase name="everyConsumerReadsTheSharedQuality" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.027"/>
+  <testcase name="aNewFixRestoresTheTier" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

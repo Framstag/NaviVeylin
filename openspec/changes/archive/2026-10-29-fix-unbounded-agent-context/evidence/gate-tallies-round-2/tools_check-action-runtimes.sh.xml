@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-action-runtimes.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>action runtimes: 10 action pins across 2 workflow files target Node 24.</system-out>
+</testsuite>

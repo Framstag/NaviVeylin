@@ -1,6 +1,6 @@
 package com.naviveylin.ui.map
 
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,7 +19,7 @@ import kotlin.math.abs
  * margin the offset equals the finger travel (the content follows the finger), at the
  * margin it saturates and the screen asks for a re-centered frame.
  *
- * Plain JUnit — the math is pure (`FollowPrediction.displayOffsetPx` with the default
+ * Plain JUnit — the math is pure (`OverrunWindow.shiftPx` with the default
  * center anchor, which is the documented pan/overrun-window case); no JNI, no
  * Robolectric sandbox involved (AGENTS.md classloader rules).
  */
@@ -35,7 +35,7 @@ class MapPanDisplayWindowTest {
     private val frameLon = 7.4652789
 
     private fun offset(displayLat: Double, displayLon: Double, angle: Double = 0.0) =
-        FollowPrediction.displayOffsetPx(
+        OverrunWindow.shiftPx(
             displayLat, displayLon, frameLat, frameLon, mag, angle,
             bitmapW, bitmapH, canvasW, canvasH, dpi
         )

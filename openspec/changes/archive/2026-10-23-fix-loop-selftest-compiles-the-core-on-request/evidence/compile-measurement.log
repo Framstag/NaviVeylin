@@ -1,0 +1,8 @@
+# the compile a selection pays for, taken 2026-10-23T10:40:50Z on this host
+# command: javac --release 17 -d "$(mktemp -d .pi/tmp/javac-measure.XXXXXX)" tools/issues/core/*.java
+
+run 1: 0,904 s wall, 504,00 CPU
+run 2: 0,869 s wall, 500,00 CPU
+
+# the whole invocation of a --case run that asks for no core, which is what the item measures
+--case run: 1,315 s wall

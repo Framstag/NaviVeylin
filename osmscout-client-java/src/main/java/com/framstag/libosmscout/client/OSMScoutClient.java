@@ -418,6 +418,23 @@ public class OSMScoutClient {
     public native List<ObjectDescription> getDescriptionCandidates(double lat, double lon, int magnification);
 
     /**
+     * Set the language of the type descriptions this client reports.
+     * <p>
+     * A search result carries the description of its object type in this language when the
+     * database carries one. When the database does not carry that language, the English
+     * description answers; when the type carries no description at all, the description is
+     * empty, and the caller shows the technical type name (e.g. {@code amenity_bank}) instead.
+     * <p>
+     * The language can also be set when the client is built
+     * ({@link OSMScoutClientBuilder#withDescriptionLanguage(String)}); this method changes it on a
+     * running client. The next search reports descriptions in the new language. An empty code
+     * leaves the current language in place; the default is {@code "en"}.
+     *
+     * @param languageCode language code of the description, e.g. {@code "de"} or {@code "en"}
+     */
+    public native void setDescriptionLanguage(String languageCode);
+
+    /**
      * Reverse-lookup the address (street + house number + admin region +
      * postal area) at the given geographic coordinate via the location index,
      * independent of the object's own address tags.

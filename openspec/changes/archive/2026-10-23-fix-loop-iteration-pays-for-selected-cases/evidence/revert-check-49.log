@@ -1,0 +1,12 @@
+loop-mutations: selected 4 of 103 records (labels: 49.1 49.2 49.3 49.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/selftest-select/.pi/tmp/loop-mutations.slSSBR
+RED    49.1  driver#aGroupFilterRunsOnlyItsOwnCases   (the group filter that keeps a suite from running the cases of another group (2026-10-23))
+restore 49.1 driver#aGroupFilterRunsOnlyItsOwnCases green again
+RED    49.2  driver#aFilterThatNamesNoCaseRefuses   (the count the refusal of a filter that names no case depends on (2026-10-23))
+restore 49.2 driver#aFilterThatNamesNoCaseRefuses green again
+RED    49.3  gate#theSummaryNamesWhatEachSuiteCost   (the wall clock the gate records beside the suite that spent it (2026-10-23))
+restore 49.3 gate#theSummaryNamesWhatEachSuiteCost green again
+RED    49.4  driver#aGroupFilterRunsOnlyItsOwnCases   (the summary that names the selection a filtered run made (2026-10-23, review round 1 P1))
+restore 49.4 driver#aGroupFilterRunsOnlyItsOwnCases green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

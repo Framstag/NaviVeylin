@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.PoiSearchPanelComposeTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:46:23.100Z" hostname="dingens" time="9.623">
+  <properties/>
+  <testcase name="searchDisabledUntilCategoryChosen" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="1.519"/>
+  <testcase name="resultLabelShowsUnnamedWhenNothingAvailable" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.476"/>
+  <testcase name="singleClickOpensDetails" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.411"/>
+  <testcase name="noCategoryPreselected" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.206"/>
+  <testcase name="resultLabelShowsDifferingBrandWhenNameEqualsOperator" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.465"/>
+  <testcase name="resultLabelShowsBrandAloneWhenUnnamed" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.324"/>
+  <testcase name="resultLabelPrefersBrandOverOperator" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.312"/>
+  <testcase name="routeActionClosesBothSheets" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.486"/>
+  <testcase name="resultLabelShowsOperatorAloneWhenUnnamedAndNoBrand" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.395"/>
+  <testcase name="reselectingCategoryClearsSelection" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="1.011"/>
+  <testcase name="searchFailureShowsErrorAndKeepsDialogUsable" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.29"/>
+  <testcase name="resultLabelShowsNameAndOperatorWithoutBrand" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.315"/>
+  <testcase name="emptyStateShownWhenNoResults" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.27"/>
+  <testcase name="resultRowShowsTypeAndDistance" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.308"/>
+  <testcase name="showActionClosesDetailsAndKeepsDialogClosed" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.534"/>
+  <testcase name="resultLabelDoesNotDuplicateNameEqualToBrand" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.387"/>
+  <testcase name="resultLabelDoesNotDuplicateNameEqualToOperator" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.311"/>
+  <testcase name="typingFilterNarrowsCategories" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.491"/>
+  <testcase name="resultLabelShowsDifferingOperatorWhenNameEqualsBrand" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.257"/>
+  <testcase name="emptyResultsShowsEmptyState" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.248"/>
+  <testcase name="resultLabelShowsNameAndBrand" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.255"/>
+  <testcase name="filterNoMatchShowsNoCategories" classname="com.naviveylin.ui.map.PoiSearchPanelComposeTest" time="0.323"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

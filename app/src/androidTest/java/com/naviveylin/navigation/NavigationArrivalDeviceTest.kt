@@ -161,7 +161,9 @@ class NavigationArrivalDeviceTest {
                 EngineDispatchers.Production,
                 // The engine resolves a calculation's vehicle maximum speed from the settings store
                 // (spec: `routing-max-speed`); a device case reads the app's own file.
-                SettingsStorage(context)
+                SettingsStorage(context),
+                // A device case asserts navigation state, not audio; keep the TTS engine out of it.
+                VoiceGuidance(context, VoiceOutput.NoOp)
             )
 
             var fed = 0
@@ -174,7 +176,7 @@ class NavigationArrivalDeviceTest {
                 assumeTrue(
                     "the engine published neither instructions nor a route distance for this route",
                     await(engine, 10_000) {
-                        engine.state.value.instructions.isNotEmpty() ||
+                        engine.state.value.steps.isNotEmpty() ||
                             engine.state.value.totalDistance > 0.0
                     }
                 )
@@ -226,7 +228,7 @@ class NavigationArrivalDeviceTest {
                     "ArrivalDeviceTest",
                     "arrival device: fixes=$fed vertices=$vertices lastEdge=${lastEdgeM.toInt()}m" +
                         " reached=${state.hasReachedDestination} offRoute=${state.isOffRoute}" +
-                        " nextInstruction=${state.nextInstruction != null}" +
+                        " nextStep=${state.nextStep != null}" +
                         " remaining=${state.remainingDistance.toInt()}m"
                 )
 

@@ -1,0 +1,22 @@
+# Relocation from the entry document — the gate (BuildGate.md §2a)
+
+`AGENTS.md`'s `Agent iteration loop (measure first)` block names `guidelines/BuildGate.md` §2a,
+"Agent iteration protocol", as the loop. Its four distinguishing statements are each found in that section
+as a named rule (the check that resolves them is `bash tools/check-doc-routes.sh`, which reads the same text):
+
+```
+$ for t in "look, then measure, before changing code" "iterate with focused suites, gate once" \
+           "batch independent questions" "one builder per working tree"; do grep -Fc "$t" guidelines/BuildGate.md; done
+1
+1
+1
+1
+```
+
+- `**Rule: look, then measure, before changing code.**` — §2a
+- `**Rule: iterate with focused suites, gate once.**` — §2a
+- `**Rule: batch independent questions.**` — §2a
+- `**Rule: one builder per working tree.**` — §2a
+
+`AGENTS.md`'s block keeps the statement and its route; its `guidelines/Build.md §2a` reference is
+retargeted to `guidelines/BuildGate.md §2a`. No block was removed that a guideline does not state.

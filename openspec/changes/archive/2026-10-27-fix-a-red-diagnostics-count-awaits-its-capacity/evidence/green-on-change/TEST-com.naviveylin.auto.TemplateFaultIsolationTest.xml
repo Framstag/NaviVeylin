@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.TemplateFaultIsolationTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-27T05:58:57.603Z" hostname="dingens" time="0.332">
+  <properties/>
+  <testcase name="carSearchTemplateServesTheErrorTemplateWhenTheBuildThrows" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.02"/>
+  <testcase name="rootScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.013"/>
+  <testcase name="preferencesScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.012"/>
+  <testcase name="carPaneTemplateServesTheErrorTemplateWhenTheBuildThrows" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.014"/>
+  <testcase name="errorOverlayScreenShowsTheMessageAndABackActionWhenItBuilds" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.013"/>
+  <testcase name="diagnosticsScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.012"/>
+  <testcase name="carListTemplateServesTheErrorTemplateWhenTheBuildThrows" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.012"/>
+  <testcase name="poiResultsScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="errorOverlayScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.013"/>
+  <testcase name="addressBookAddressPickerScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.029"/>
+  <testcase name="searchScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="poiSearchScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.019"/>
+  <testcase name="addressBookScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.025"/>
+  <testcase name="aboutScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="carScreenTemplateServesTheErrorTemplateWhenTheBuildThrows" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.014"/>
+  <testcase name="searchHistoryScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="detailsScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="vehicleAnchorPickerScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="overspeedDeltaPickerScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.015"/>
+  <testcase name="favoritesScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.014"/>
+  <testcase name="candidatePickerScreenServesTheErrorTemplateWhenTheBuildFails" classname="com.naviveylin.auto.TemplateFaultIsolationTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

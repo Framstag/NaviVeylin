@@ -1,0 +1,21 @@
+# Companion anchors before the cut
+
+`grep -n '^## §' guidelines/MapRendering.why.md guidelines/MapRendering.recipes.md`
+
+```
+guidelines/MapRendering.why.md:8:## §1 Render Pipeline Architecture — the anchor's history and measurements
+guidelines/MapRendering.why.md:19:## §13 Overrun Display Window (pan and follow) — the regression checklist
+guidelines/MapRendering.recipes.md:6:## §20 Label wrapping — the parameter table
+guidelines/MapRendering.recipes.md:26:## §20 Label wrapping — the pango measurement
+```
+
+Every anchor names a section the baseline set carries (§1, §13, §20 — all present).
+
+## Where each anchor's material belongs after the cut
+
+| anchor | its section after the cut | companion it must follow |
+|---|---|---|
+| why §1 | stays in `MapRendering.md` §1 | stays in `MapRendering.why.md` |
+| why §13 (the regression checklist, `## Known Pitfalls` to end of file) | `MapFrames.md` §13 | `MapFrames.why.md` (new) |
+| recipes §20 "the parameter table" | `MapStyling.md` §20 | — its region is EMPTY: the heading is followed immediately by `## Parameter Overview`, the follow-mode parameter table |
+| recipes §20 "the pango measurement" | `MapStyling.md` §20 | `MapStyling.recipes.md` (does not exist) |

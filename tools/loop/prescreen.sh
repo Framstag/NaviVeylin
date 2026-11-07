@@ -2,19 +2,21 @@
 # prescreen.sh — the cheap, mechanical half of the eligibility gate, run before any agent process.
 #
 # The loop's gate has two halves and the split is the point (design D6): what a script can decide
-# cheaply — the item still cites something that exists, its class is one this loop works, its status is
-# not already in flight, its evidence needs a device rather than a judgement — is decided here, with no
+# cheaply — its class is one this loop works, its status is not already in flight, its evidence needs a
+# device rather than a judgement, a cited `File.kt:Symbol` names a declaration — is decided here, with no
 # agent process; what only judgement can decide (one root cause, exactly one fix, a falsifiable
 # WHEN/THEN, one capability) is carried into the queue as `pending` and decided by the worker in Phase B.
+# A citation the tree does not hold is **reported** and refuses nothing (#281): the token is named in the
+# item's record, and the item is queued.
 #
 # Claiming the whole gate as deterministic would be false, and a script that pretended otherwise would
 # turn "this needs a decision" into "silently skipped" — the failure the run's report exists to prevent.
 # The pre-screen is measured at 10-15 min per rejection saved: without it, 5 of 8 candidates were
-# ineligible (`.pi/skills/fix-loop/REFERENCE.md`).
+# ineligible (`guidelines/Backlog.md` §7, "What an item costs").
 #
-# The candidate's text is read here (it is data, and the sensor reads it as data): the queue and the
-# exclusions are the run's own output, so a rejected candidate is reported with the clause that
-# rejected it rather than dropped silently.
+# The candidate's text is read here (it is data, and the sensor reads it as data): the queue, the
+# exclusions and the reported citations are the run's own output, so a rejected candidate is reported with
+# the clause that rejected it rather than dropped silently.
 #
 # The refusals an item cannot escape by itself leave a trace in the tracker, not only in this run's
 # state: the state is machine-local and the next `init` replaces it wholesale, so an authorised item the
@@ -69,6 +71,10 @@ vocabulary() { loop_compat_profile_value "$1"; }
 queued_verdict=$(loop_role queuedVerdict)
 held_verdict=$(loop_role heldVerdict)
 decision_verdict=$(loop_role decisionAgent)
+# The verdict for a candidate the tracker did not answer for. It is deliberately *not* a profile role: it names no
+# judgement about the item, only that nothing is known about it, so it writes no label and reaches no other
+# verdict's branch (issue #231's rule, applied to a single read).
+unreadable_verdict="unreadable"
 worked_classes="$(loop_role workedClasses)"
 # The categories whose defects lead the queue, in the profile's order (this project: the tooling, the process and
 # the proof rather than the shipped app). Empty is a project that wants no category priority, and the queue then
@@ -95,6 +101,8 @@ is_settled_status() { [ -n "$settled_statuses" ] && printf '%s\n' "$settled_stat
 allowed_authors=$(vocabulary allowedAuthors)
 # The refusal labels: the verdicts an item cannot escape by itself, and therefore the ones that must be
 # readable from the tracker rather than from the run. A project renames them here, not in this script (D16).
+# `excludedStaleAgent` is read although this script no longer writes it: an item still carrying
+# `agent/excluded-stale` from a run before #281 sheds it on the first run whose verdict is not a refusal.
 refusal_stale=$(loop_role excludedStaleAgent)
 refusal_feature=$(loop_role excludedFeatureAgent)
 refusal_settled=$(loop_role excludedSettledAgent)
@@ -108,14 +116,12 @@ label_value() { # label_value <labels-json> <namespace> -> the value, or empty
     '[.[] | select(.name | startswith($n + $s)) | (.name | ltrimstr($n + $s))] | .[0] // ""'
 }
 
-# The filesystem sensor: does the item still cite something that exists? A memory is not a fact, and a
-# path that no longer resolves is the one thing a script can refute without reading the code (Phase A
-# step 1 / Phase B condition 1, decided cheaply here — design D6).
-# The citation rule is `tools/issues/lib.sh`'s (`stale-citation-resolution` D1): **one** definition of what a
-# citation is — asked here and by `tools/issues/resolve-stale.sh`, so the two cannot disagree about a body —
-# and `stale` means the classifier's verdict (a citation no file, no submodule and no generated artefact
-# accounts for) rather than "this token is not at the repository root". That crude extraction was wrong about
-# 48 of 49 verdicts on 2026-10-18 (#164).
+# The citation sensor: which citation does the item carry that the tree does not hold? It **reports** — the
+# verdict it used to produce is gone (#281) — and the token is what the record names for a reader.
+# The rule is `tools/issues/lib.sh`'s (`stale-citation-resolution` D1): **one** definition of what a citation is
+# — asked here and by `tools/issues/resolve-stale.sh`, so the two cannot disagree about a body — rather than
+# "this token is not at the repository root". That crude extraction was wrong about 48 of 49 verdicts on
+# 2026-10-18 (#164).
 stale_citations_of() {
   issues_stale_citations_of "$1
 $2"
@@ -131,20 +137,16 @@ cited_symbols_of() {
 # `worktree.sh end-item` may commit or push there, so the item is a person's patch followed by the gitlink bump —
 # and a run that admits it spends a worker phase, a review and a decision slot to reach exactly that (issue #254,
 # measured on #30, #60 and #122 of the 2026-10-22 run; the owner's answer on #60 was a pre-screen rule as the
-# durable guard). The signal is the item's own text naming the submodule, which is what the tooling already has:
-# the path the loop's configuration records, a path under it, or the submodule's directory name. Nothing fuzzier —
-# a rule that guessed from a word like "upstream" would refuse items whose fix is the app's, and a falsely refused
-# item is lost from the queue.
+# durable guard). The signal is the author's **stated claim** — a line of its own beginning
+# `The fix lands in the submodule` — and never the submodule's path or its name: a body quotes the path as the file
+# a dirty tree was seen on, and reading that as the claim parked three items of the loop's own tooling with
+# `needs-decision` before any run could take them (#309, #310, #305; issue #314). The match is a line prefix, so a
+# body that quotes the marker inline, in backticks or as an example is quoting it and stays eligible.
 submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
-names_the_submodule() { # <title> <body> → 0 when the item's own text names the submodule
-  local text name
+states_the_fix_lands_in_the_submodule() { # <title> <body> → 0 when the author states the claim on a line of its own
+  local marker='The fix lands in the submodule'
   [ -n "$submodule_path" ] || return 1
-  text="$1
-$2"
-  case "$text" in *"$submodule_path"*) return 0 ;; esac
-  name="${submodule_path##*/}"
-  [ -n "$name" ] || return 1
-  printf '%s\n' "$text" | grep -qwF -- "$name"
+  printf '%s\n%s\n' "$1" "$2" | grep -q "^$marker"
 }
 
 # The base every item of this run descends from: the branch question below is asked against it, exactly as
@@ -184,15 +186,41 @@ candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit
 # The tracker writes the refusals need are collected here and applied once, after the queue is written, so
 # a pre-screen that dies mid-selection changes no item (the labels are the run script's, never a child's).
 label_writes=$(mktemp) || loop_die "prescreen: could not create the label write list"
-trap 'rm -f "$label_writes"' EXIT
+# The verdict line a refused tier-B item carries onto the tracker is queued here, beside the label writes, and
+# applied after the queue for the same reason: a pre-screen that dies mid-selection changes no item. A comment and
+# not a label, because the label a change-not-ready item carries is the shaping inbox's to define — this refusal
+# states the checker's own verdict and leaves the item open.
+comment_writes=$(mktemp) || loop_die "prescreen: could not create the comment write list"
 
 records='[]'
 count=$(printf '%s' "$candidates_json" | jq 'length')
+unreadable_count=0
+read_err=$(mktemp) || loop_die "prescreen: could not create the read error file"
+# The trap cleans both temporary files: the label write list and the one candidate's stderr it holds at a time.
+trap 'rm -f "$label_writes" "$read_err" "$comment_writes"' EXIT
 i=0
 while [ "$i" -lt "$count" ]; do
   number=$(printf '%s' "$candidates_json" | jq -r ".[$i].number")
   i=$((i + 1))
-  issue=$(loop_issue_json "$number") || loop_die "prescreen: gh could not read issue #$number"
+  # One candidate the tracker did not answer for is *unknown*, never "no" — and never the end of the screen. Until
+  # 2026-10-27 a single failed `gh issue view` ended the pre-screen (and the run) on the first flaky answer, so a
+  # 321-candidate screen was worth one socket; what killed it was not even recorded, because the seam's retry and
+  # its `tracker-unreachable` verdict went to /dev/null (#231). The item is recorded with the CLI's own words, the
+  # queue is still built from the candidates that did answer, and the count below decides whether the run has an
+  # answer at all.
+  if ! issue=$(loop_issue_json "$number" 2>"$read_err"); then
+    unreadable_count=$((unreadable_count + 1))
+    read_error=$(tr '\n' ' ' < "$read_err" | sed -e 's/  */ /g' -e 's/ $//')
+    printf 'pre-screen: the tracker could not be read for #%s — %s (recorded as %s, the screen continues)\n' \
+      "$number" "${read_error:-the CLI gave no message}" "$unreadable_verdict" >&2
+    record=$(jq -n --argjson issue "$number" --arg verdict "$unreadable_verdict" \
+      --arg reason "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" '
+      {issue:$issue, title:"", class:"", category:"", status:"", author:"", verdict:$verdict, reason:$reason,
+       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false,
+       gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
+    records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
+    continue
+  fi
   labels=$(printf '%s' "$issue" | jq -c '[.labels[]? | if type == "string" then {name: .} else . end]')
   title=$(printf '%s' "$issue" | jq -r '.title // ""')
   body=$(printf '%s' "$issue" | jq -r '.body // ""')
@@ -233,6 +261,8 @@ while [ "$i" -lt "$count" ]; do
     verdict="$inflight_status"
     reason="status${separator}${status} — another change already holds it"
   elif [ "$gh_state" = "CLOSED" ] || is_settled_status "$status"; then
+    # The closed half of this guard covers the item closed between the list and this read: `list.sh --eligible-only`
+    # filters `CLOSED` out of the query itself (2026-10-27), so a closed item is normally never a candidate.
     condition="${status:-closed}"
     verdict="settled"
     reason="the item is already ${condition} — nothing is left for this loop to work"
@@ -255,14 +285,73 @@ while [ "$i" -lt "$count" ]; do
     reason="the item does not carry ${LOOP_AUTHORISATION_LABEL} — the opt-in is the author's, not the run's"
   fi
 
+  # ── the shape the item was filed in, and the change it names (`finding-shape-at-filing`, this change) ────────
+  # A tier-A item is worked exactly as before: its plan is the worker's own. A tier-B item names a change the tree
+  # already holds, and two facts about it are script-decidable before anything is started — the directory is there,
+  # and the profile's readiness checker still reports `ok` for it. Either failing is a refusal, not a hold: the
+  # checker's own verdict line goes onto the item and the run starts no child. Both reads are of the *source* tree,
+  # before any worktree is cut, which is where the run will copy the change from.
+  if [ "$verdict" = "$queued_verdict" ] && [ "$(issues_tier_of "$body" | tr '[:upper:]' '[:lower:]')" = "b" ]; then
+    named_change=$(issues_change_of "$body")
+    changes_family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+    changes_family="${changes_family:-openspec/changes}"
+    change_refusal=""
+    if [ -z "$named_change" ]; then
+      change_refusal="LOOP-CHANGE-READY: refused change-unreadable — the item records tier: b and names no change, so there is no directory to hand a worker"
+    elif ! printf '%s' "$named_change" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+      change_refusal="LOOP-CHANGE-READY: refused change-unreadable=$named_change — a change is named by one directory name, not by a path"
+    elif [ ! -d "$LOOP_ROOT/$changes_family/$named_change" ]; then
+      change_refusal="LOOP-CHANGE-READY: refused change-unreadable=$changes_family/$named_change — the tree holds no such change directory"
+    else
+      readiness_gate=$(jq -r '.checks.changeReady // ""' "$profile" 2>/dev/null | head -1)
+      readiness_line=""
+      if [ -z "$readiness_gate" ]; then
+        change_refusal="LOOP-CHANGE-READY: refused gate-not-configured — the profile declares no checks.changeReady, so this project has no readiness check to run"
+      else
+        case "$readiness_gate" in
+          /*) readiness_gate_path="$readiness_gate" ;;
+          *) readiness_gate_path="$LOOP_ROOT/$readiness_gate" ;;
+        esac
+        if [ ! -f "$readiness_gate_path" ]; then
+          change_refusal="LOOP-CHANGE-READY: refused gate-not-configured — checks.changeReady names $readiness_gate and no file is there"
+        else
+          readiness_out=$(bash "$readiness_gate_path" "$LOOP_ROOT/$changes_family/$named_change" 2>&1)
+          readiness_status=$?
+          readiness_line=$(printf '%s\n' "$readiness_out" | grep -m1 '^LOOP-CHANGE-READY:' || true)
+          if [ "$readiness_status" -ne 0 ] || [ -z "$readiness_line" ] || [ "${readiness_line##*: }" != "ok" ]; then
+            change_refusal="${readiness_line:-LOOP-CHANGE-READY: refused change-unreadable=$changes_family/$named_change — the check at $readiness_gate printed no verdict line}"
+          fi
+        fi
+      fi
+    fi
+    if [ -n "$change_refusal" ]; then
+      verdict="change-not-ready"
+      reason="the change this item names is not ready to be worked unattended — $change_refusal"
+      evidence="$changes_family${named_change:+/$named_change}"
+      if [ "$write" -eq 1 ]; then
+        # One comment per refusal, not one per run: the checker's own line is the key, so a second run that finds
+        # the change still unready says nothing it has already said on the item.
+        already=$(loop_issue_json "$number" --comments 2>/dev/null |
+          jq -r '[.comments[]? | .body // ""] | join("\n")' 2>/dev/null || true)
+        case "$already" in
+          *"$change_refusal"*) ;;
+          *) comment_body="$change_refusal
+the item is left open and no child was started: shape $changes_family/${named_change:-<the change>} until the readiness check reports 'ok', and it is selected again"
+             printf '%s\t%s\n' "$number" "$(jq -c -n --arg b "$comment_body" '$b')" >> "$comment_writes" ;;
+        esac
+      fi
+    fi
+  fi
+
   # A previous attempt's branch is the one rejection the tracker cannot state, so it is asked of git — and
   # asked before the citation sensor, because it names a decision for a person rather than a repair. The
   # verdict is a value of the profile's vocabulary, read here as the device verdict is (D16).
   #
   # What the branch *carries* decides the verdict (#232). A finished attempt — one archived change of its own
-  # plus a green verification, or the reviewer's refusal of exactly that change — is a question for its owner
-  # (#176, #185). A **blocked** attempt carries commits and no archived change of its own: nothing on it states
-  # a question a person could answer, and `start-item` keeps its commits by renaming the branch aside, so the
+  # plus a green verification, with its last review round answered by a pass — is a question for its owner
+  # (#176, #185); so is one whose last round was announced and never answered, or refused (#262). A **blocked**
+  # attempt carries commits and no archived change of its own: nothing on it states a question a person could
+  # answer, and `start-item` keeps its commits by renaming the branch aside, so the
   # item is queued as work. Before this, any commit parked the item forever — measured on #230, whose branch
   # held an unmerged fix and whose refusal named an unrelated change (issue #232).
   #
@@ -302,37 +391,38 @@ while [ "$i" -lt "$count" ]; do
     fi
   fi
 
-  # The sensor runs on every candidate, before any judgement: it is the cheap refutation, and `stale` is the
-  # classifier's verdict — a citation no file, no submodule and no generated artefact accounts for.
+  # The citation sensor reports; it no longer refuses (#281). A token no file, no submodule and no generated
+  # artefact accounts for has several legitimate causes the class vocabulary cannot tell apart — a path the
+  # change itself creates, a deleted path the body says was deleted, a run's own artefact — so the refusal that
+  # read every one of them as a lost citation cost 35 items their place in the queue, 18 of them for a citation
+  # that was no longer stale at all. The absent token is named in the item's record for a reader, and the item
+  # stays eligible.
+  # The symbol sensor below is evidence, not a verdict: it sets the record's `evidence` to whether a cited
+  # `File.kt:Symbol` names a declaration in that file, and it assigns no verdict — it never refused an item.
+  absent_citation=""
+  if [ "$sensor" -eq 1 ]; then
+    absent_citation=$(stale_citations_of "$title" "$body" | head -1)
+  fi
   if [ "$verdict" = "$queued_verdict" ] && [ "$sensor" -eq 1 ]; then
-    stale_path=$(stale_citations_of "$title" "$body" | head -1)
-    if [ -n "$stale_path" ]; then
-      verdict="stale"
-      reason="cited path '$stale_path' resolves to no file in the repository or its submodules"
-      evidence="$stale_path"
-    fi
-    if [ "$verdict" = "$queued_verdict" ]; then
-      for symbol in $(cited_symbols_of "$title" "$body"); do
-        p="${symbol%%:*}"
-        s="${symbol#*:}"
-        if ! git -C "$LOOP_ROOT" grep -qn -- "$s" -- "$p" 2>/dev/null; then
-          evidence="'$symbol' names no declaration in $p"
-          break
-        fi
-        evidence="$symbol resolves"
-      done
-    fi
+    for symbol in $(cited_symbols_of "$title" "$body"); do
+      p="${symbol%%:*}"
+      s="${symbol#*:}"
+      if ! git -C "$LOOP_ROOT" grep -qn -- "$s" -- "$p" 2>/dev/null; then
+        evidence="'$symbol' names no declaration in $p"
+        break
+      fi
+      evidence="$symbol resolves"
+    done
   fi
 
   # An item that already awaits a decision is its owner's until a person answers it: re-deriving the same
   # conclusion spends the very budget the decision cap protects, and #110 was escalated three times with one
-  # conclusion (#183). The sensor and the branch rule above speak first, and that ordering is the point — a
-  # stale citation is a repair and a branch carrying a finished attempt is an adoption, both cheaper than a
-  # decision, and the spec's refusal label for `stale` must still be written on a held item.
+  # conclusion (#183). The branch rule above speaks first, and that ordering is the point — a branch carrying a
+  # finished attempt is an adoption, cheaper than a decision.
   #
   # A hold is **not** a decision (#193): the state is written by the worker's skip verdict, by the device
-  # verdict, by the stale-citation repair parking an item and by a person by hand, and three of those four
-  # state no question at all. Only the decision label — the one an escalation writes — makes an item a
+  # verdict and by a person by hand, and each of those states no question at all. Only the decision label — the
+  # one an escalation writes — makes an item a
   # decision; a hold without it is reported as what it is, so it is visible on the tracker and stops consuming
   # the decision cap, which counts the items a person can actually answer.
   #
@@ -355,9 +445,10 @@ while [ "$i" -lt "$count" ]; do
   # A fix that must land inside the submodule is the one question a script can settle before a child spends a
   # phase on it (#254): the loop may neither commit nor push there, so the item is its owner's, and the verdict is
   # the profile's decision value — no new label, and the same state the run reached minutes later from a worker
-  # report. It is asked after the awaiting-decision clauses and not before: a hold or an earlier escalation has
+  # report. It is asked of the claim the author writes and not of the item's vocabulary (issue #314), and it is
+  # asked after the awaiting-decision clauses and not before: a hold or an earlier escalation has
   # already stated what the item is, and a second verdict would escalate it twice.
-  if [ "$verdict" = "$queued_verdict" ] && names_the_submodule "$title" "$body"; then
+  if [ "$verdict" = "$queued_verdict" ] && states_the_fix_lands_in_the_submodule "$title" "$body"; then
     verdict="$decision_verdict"
     reason="the fix has to be committed inside ${submodule_path}, where this run may neither commit nor push — a person lands the patch there and the gitlink bump that follows"
     evidence="$submodule_path"
@@ -370,7 +461,6 @@ while [ "$i" -lt "$count" ]; do
   if [ "$write" -eq 1 ] && [ -n "$refusal_labels" ]; then
     refusal_label=""
     case "$verdict" in
-      stale) refusal_label="agent${separator}${refusal_stale}" ;;
       class-feature) refusal_label="agent${separator}${refusal_feature}" ;;
       settled) refusal_label="agent${separator}${refusal_settled}" ;;
     esac
@@ -391,9 +481,10 @@ while [ "$i" -lt "$count" ]; do
   record=$(jq -n --argjson issue "$number" --arg title "$title" --arg class "$class" \
     --arg category "$category" --arg status "$status" --arg author "$author" \
     --arg verdict "$verdict" --arg reason "$reason" --arg evidence "$evidence" \
+    --arg absent "$absent_citation" \
     --argjson escalated "$([ "$already_escalated" -eq 1 ] && printf true || printf false)" '
     {issue:$issue, title:$title, class:$class, category:$category, status:$status, author:$author,
-     verdict:$verdict, reason:$reason, evidence:$evidence, rank:null, alreadyEscalated:$escalated,
+     verdict:$verdict, reason:$reason, evidence:$evidence, absentCitation:$absent, rank:null, alreadyEscalated:$escalated,
      gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done
@@ -445,14 +536,34 @@ while IFS=$'\t' read -r write_issue write_label; do
       "$write_label" "$write_issue" >&2
 done < "$label_writes"
 
+# The tier-B refusal's line, written on the item after the queue for the same reason and with the same repair: a
+# tracker write that fails is reported and does not stop a run, because the verdict and its reason are already in
+# the run's state and report.
+while IFS=$'\t' read -r write_issue write_body; do
+  [ -n "$write_issue" ] && [ -n "$write_body" ] || continue
+  refusal_text=$(printf '%s' "$write_body" | jq -r '.')
+  if gh issue comment "$write_issue" --body "$refusal_text" >/dev/null 2>&1; then
+    printf 'pre-screen: the readiness refusal was written on #%s\n' "$write_issue" >&2
+  else
+    printf 'pre-screen: could not write the readiness refusal on #%s — the verdict is in the report and the run continues\n' \
+      "$write_issue" >&2
+  fi
+done < "$comment_writes"
+
 if [ "$json" -eq 1 ]; then
   printf '%s\n' "$records"
 else
   printf 'pre-screen: %s eligible, %s excluded — gates 2-5 stay the worker'"'"'s (design D6)\n' "$eligible_count" "$excluded_count"
   printf '%s' "$records" | jq -r --arg queued "$queued_verdict" '.[] |
     if .verdict == $queued
-    then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])"
+    then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])\(if (.absentCitation // "") != "" then " (cites absent `\(.absentCitation)`)" else "" end)"
     else "  excluded #\(.issue) \(.verdict): \(.reason)" end'
+fi
+# An empty queue has two causes and they are not the same answer (#231): the tracker refused every candidate, or it
+# did not answer at all. Only the first is a stop; the second is an outage, and the run must not print "nothing
+# eligible" over it.
+if [ "$eligible_count" -eq 0 ] && [ "$unreadable_count" -gt 0 ]; then
+  loop_die "prescreen: $unreadable_count of $count candidate(s) could not be read — nothing is queued and nothing was refused, so the tracker's answer is unknown"
 fi
 [ "$eligible_count" -gt 0 ] || exit "$LOOP_STOP"
 exit "$LOOP_OK"

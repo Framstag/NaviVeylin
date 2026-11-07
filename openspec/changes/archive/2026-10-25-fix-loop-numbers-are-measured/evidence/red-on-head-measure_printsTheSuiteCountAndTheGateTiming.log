@@ -1,0 +1,15 @@
+  the declared case count is carried: LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/issue244/.pi/tmp/loop-selftest.z5gACE/cases/0/tree/case.38wUJs/measure.conf
+LOOP-MEASURE base=a324460689f05bda1704ad932a0cabe8c2dd6f8b paths=0 insertions=0 deletions=0
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since a324460689f05bda1704ad932a0cabe8c2dd6f8b
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/issue244/.pi/tmp/loop-selftest.z5gACE/cases/0/tree/case.38wUJs/tally/s1.xml tests=4 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/issue244/.pi/tmp/loop-selftest.z5gACE/cases/0/tree/case.38wUJs/tally/s2.xml tests=3 failures=0
+LOOP-MEASURE-CHANGE none — no change is open and none is archived
+LOOP-MEASURE-END: 'LOOP-MEASURE-SUITE cases=3' not found in: LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/issue244/.pi/tmp/loop-selftest.z5gACE/cases/0/tree/case.38wUJs/measure.conf
+LOOP-MEASURE base=a324460689f05bda1704ad932a0cabe8c2dd6f8b paths=0 insertions=0 deletions=0
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since a324460689f05bda1704ad932a0cabe8c2dd6f8b
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/issue244/.pi/tmp/loop-selftest.z5gACE/cases/0/tree/case.38wUJs/tally/s1.xml tests=4 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/issue244/.pi/tmp/loop-selftest.z5gACE/cases/0/tree/case.38wUJs/tally/s2.xml tests=3 failures=0
+LOOP-MEASURE-CHANGE none — no change is open and none is archived
+LOOP-MEASURE-END
+FAIL measure#printsTheSuiteCountAndTheGateTiming
+loop-selftest: 1 of 1 cases failed

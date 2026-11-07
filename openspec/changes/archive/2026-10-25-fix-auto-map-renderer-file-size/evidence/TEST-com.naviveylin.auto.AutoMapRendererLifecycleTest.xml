@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererLifecycleTest" tests="20" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:16.049Z" hostname="dingens" time="0.469">
+  <properties/>
+  <testcase name="zoomStep_doubleScaleZoomsInOneLevel" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.022"/>
+  <testcase name="committedViewportCenterIsNullBeforeTheFirstFrame" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.021"/>
+  <testcase name="setViewportDisengagesFollowMode" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.019"/>
+  <testcase name="shutdownStopsRenderLoop" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.021"/>
+  <testcase name="renderLogMessageCarriesMagnificationAndFrameSizeWithoutAPosition" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.023"/>
+  <testcase name="setGpsMarkerUpdatesState" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.021"/>
+  <testcase name="renderLogMessageStaysPositionFreeWhenTheRenderFailed" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.02"/>
+  <testcase name="surfaceCreatedStartsRender" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.021"/>
+  <testcase name="zoomStep_smallScaleFactorKeepsZoomLevel" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.018"/>
+  <testcase name="zoomStep_clampsAtLimits" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.032"/>
+  <testcase name="reCenterReengagesFollowMode" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.043"/>
+  <testcase name="surfaceDestroyedClearsSurface" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.026"/>
+  <testcase name="setFavoriteLocationsNullClearsData" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.018"/>
+  <testcase name="setFavoriteLocationsStoresData" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.022"/>
+  <testcase name="setDestinationMarkerNaNclearsMarker" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.023"/>
+  <testcase name="setDestinationMarkerStoresPositionAndName" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.021"/>
+  <testcase name="zoomStep_accumulatesAcrossEvents" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.033"/>
+  <testcase name="zoomStep_halfScaleZoomsOutOneLevel" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.025"/>
+  <testcase name="setRouteWithoutGeometryStillSchedulesAndDrawsTheFrame" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.022"/>
+  <testcase name="viewportStateFlowEmitsUpdates" classname="com.naviveylin.auto.AutoMapRendererLifecycleTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

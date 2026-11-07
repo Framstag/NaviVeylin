@@ -1,0 +1,5 @@
+== green, on the tree this change leaves
+        the entry document names .pi/skills/analyse-loop-run .pi/skills/create-issue .pi/skills/device-check; check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three
+check-doc-routes-selftest: all 1 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+exit=0

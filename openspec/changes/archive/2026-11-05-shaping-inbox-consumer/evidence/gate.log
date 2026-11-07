@@ -1,0 +1,16 @@
+# gate of #764 — run once by the item's first process, from the change root
+# /home/tim/projects/NaviVeylin/.pi/worktrees/loop at HEAD 98640a10, 2026-11-05.
+# The per-suite tallies it produced are in gate-tallies/ (33 files); their own
+# tests/failures/errors attributes sum to 461/0/0, the numbers on the line below.
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+gate: tools/issue-tooling-selftest.sh
+gate: tools/sensor-selftest.sh --list / tools/sensor-mutations.sh --list
+gate: the doc-route (tools/check-doc-routes.sh)
+gate: openspec-hygiene (tools/check-openspec-hygiene.sh)
+gate: portability (tools/check-portability.sh)
+gate: build-inputs (tools/build-inputs.sh --check)
+gate: issue-metadata (tools/issues/check-metadata.sh)
+gate: sonar-workflow (tools/check-sonar-workflow.sh)
+gate: vcpkg-cache (tools/ci-vcpkg-cache-selftest.sh)
+gate: mutate --list (every tools/mutate.sh --list tooling step)
+LOOP-GATE: tests=461 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache, tools/issue-tooling-selftest.sh, tools/sensor-*, the doc-route, openspec-hygiene, portability, build-inputs, issue-metadata, sonar-workflow, vcpkg-cache and mutate --list tooling steps)

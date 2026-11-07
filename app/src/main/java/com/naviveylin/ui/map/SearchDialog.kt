@@ -88,6 +88,10 @@ import kotlin.math.roundToInt
  * sources in Places mode, and per-mode content. The search field is shared:
  * it drives the location query in Places mode, filters the category chips in
  * POIs mode, and filters contacts in Contacts mode.
+ *
+ * Its embedded mini map takes the app's resolved dark presentation
+ * ([isDarkPresentation]) — the dialog must not read `isSystemInDarkTheme()`
+ * (see [CompassButton]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,7 +134,10 @@ fun SearchDialog(
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
     onPoiSearch: () -> Unit,
+    isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit,
+    /** Message sink for a rejected stylesheet-variant reload of the POI mini map (spec: map-styles). */
+    onStyleLoadFailure: ((String) -> Unit)? = null,
     // Contacts mode
     addressBookAvailable: Boolean,
     contactsQuery: String,
@@ -224,6 +231,8 @@ fun SearchDialog(
                 poiCenterLon = poiCenterLon,
                 currentPosition = currentPosition,
                 selectedPoi = selectedPoi,
+                isDarkPresentation = isDarkPresentation,
+                onStyleLoadFailure = onStyleLoadFailure,
                 onPoiCategorySelected = onPoiCategorySelected,
                 onPoiRadiusChanged = onPoiRadiusChanged,
                 onPoiSearch = onPoiSearch,
@@ -595,7 +604,10 @@ private fun PoiContent(
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
     onPoiSearch: () -> Unit,
-    onPoiEntryClick: (PoiEntry) -> Unit
+    isDarkPresentation: Boolean,
+    onPoiEntryClick: (PoiEntry) -> Unit,
+    /** Message sink for a rejected stylesheet-variant reload of the POI mini map (spec: map-styles). */
+    onStyleLoadFailure: ((String) -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -673,6 +685,8 @@ private fun PoiContent(
                     radiusMeters = poiRadiusMeters,
                     currentPosition = currentPosition,
                     selectedPoi = selectedPoi,
+                    isDarkPresentation = isDarkPresentation,
+                    onStyleLoadFailure = onStyleLoadFailure,
                     onEntryClick = onPoiEntryClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -804,8 +818,11 @@ internal fun PoiResultsWithMap(
     radiusMeters: Double,
     currentPosition: Pair<Double, Double>?,
     selectedPoi: Pair<Double, Double>?,
+    isDarkPresentation: Boolean,
     onEntryClick: (PoiEntry) -> Unit,
     modifier: Modifier = Modifier,
+    /** Message sink for a rejected stylesheet-variant reload of the embedded mini map. */
+    onStyleLoadFailure: ((String) -> Unit)? = null,
     /** Test hook: force the landscape branch; null uses the real maxWidth > maxHeight check. */
     landscapeOverride: Boolean? = null
 ) {
@@ -829,9 +846,11 @@ internal fun PoiResultsWithMap(
                     lat = centerLat,
                     lon = centerLon,
                     initialMag = fitMag,
+                    isDarkPresentation = isDarkPresentation,
                     additionalMarkers = results.map { it.lat to it.lon },
                     selectedMarker = selectedPoi,
                     currentPosition = currentPosition,
+                    onStyleLoadFailure = onStyleLoadFailure,
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 8.dp)
@@ -849,9 +868,11 @@ internal fun PoiResultsWithMap(
                     lat = centerLat,
                     lon = centerLon,
                     initialMag = fitMag,
+                    isDarkPresentation = isDarkPresentation,
                     additionalMarkers = results.map { it.lat to it.lon },
                     selectedMarker = selectedPoi,
                     currentPosition = currentPosition,
+                    onStyleLoadFailure = onStyleLoadFailure,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(240.dp)

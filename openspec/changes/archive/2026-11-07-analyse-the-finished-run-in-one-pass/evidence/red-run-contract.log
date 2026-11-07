@@ -1,0 +1,5 @@
+== the analysis skill with its read-only boundary weakened (one phrase)
+FAIL  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three
+        the analysis skill states no Read-only, so the pass it names is not the one this delta specifies
+check-doc-routes-selftest: 1 of 1 cases failed
+exit=1

@@ -1,0 +1,3 @@
+$ openspec validate loop-consumes-a-prepared-change --strict
+Change 'loop-consumes-a-prepared-change' is valid
+exit=0

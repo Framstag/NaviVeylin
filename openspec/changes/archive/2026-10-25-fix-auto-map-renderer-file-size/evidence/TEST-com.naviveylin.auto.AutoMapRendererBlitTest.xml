@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererBlitTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:14.116Z" hostname="dingens" time="1.63">
+  <properties/>
+  <testcase name="paneBandBlitOffsetUsesTheResolvedAnchor" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.576"/>
+  <testcase name="freshRenderPutsTheDisplayOnTheAnchor" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.459"/>
+  <testcase name="browseBlitKeepsTheSurfaceCenterAnchorContract" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.037"/>
+  <testcase name="destinationPinProjectsAgainstTheDisplayedFrame" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.045"/>
+  <testcase name="blitRespectsSurfaceFailurePath" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.021"/>
+  <testcase name="zoomStepBeyondTheBlitLimitFallsBackToAFullRender" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.036"/>
+  <testcase name="smallGpsMoveServedByBlitNoFullRender" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.026"/>
+  <testcase name="followReanchorFallsBackToTheFixBeforeTheFirstDisplayFrame" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.027"/>
+  <testcase name="markerRidesTheBlittedContentWithABlitOffset" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.027"/>
+  <testcase name="zoomStepIsAppliedAcrossFrames" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.027"/>
+  <testcase name="invalidateStyleAfterShutdownIsNoOp" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.023"/>
+  <testcase name="viewportStateCarriesTheFractionalMagnification" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.019"/>
+  <testcase name="invalidateDataForcesFullRenderNotBlit" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.029"/>
+  <testcase name="followReanchorUsesTheDisplayedPosition" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.035"/>
+  <testcase name="markerStaysOnItsContentWhileAFollowReanchorIsPending" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.024"/>
+  <testcase name="followCommitLandsTheDisplayOnTheAnchor" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.044"/>
+  <testcase name="fullRenderRendersAtOverrunSize" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.026"/>
+  <testcase name="markerUsesTheDisplayedFrameRotation" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.025"/>
+  <testcase name="followBlitServedForANonCenterAnchor" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.026"/>
+  <testcase name="invalidateStyleForcesFullRenderNotBlit" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.027"/>
+  <testcase name="committedFrameIsLabeledWithTheRenderedParameters" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.026"/>
+  <testcase name="invalidateDataAfterShutdownIsNoOp" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.021"/>
+  <testcase name="largeViewportMoveFallsBackToFullRender" classname="com.naviveylin.auto.AutoMapRendererBlitTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

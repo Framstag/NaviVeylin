@@ -1,0 +1,24 @@
+Red case for the native coordinate gate, recorded 2026-10-29: the same gate task run against the tree with
+the submodule patch reverted (the seven coordinate lines restored), so the failure is the gate's and not a
+typo's. Command, from the repository root, with `app/build.gradle.kts` carrying the native half:
+
+  ./gradlew :app:checkNoCoordinatesInLogs
+
+Result: FAILED, every line named with its file and its accessor. Verbatim from the failure:
+
+> Native log lines must not carry device coordinates (spec: auto-diagnostics — Diagnostics carry no coordinates).
+>   Log precision-free identity instead: object label/id, map database or map file name,
+>   magnification, screen pixel, accuracy, bearing — never `GetDisplayText()`, `GetLat()`
+>   or `GetLon()` on a position.
+>
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:6296: position accessor 'GetDisplayText' — osmscout::log.Debug() << "[JNI] checking db box: " << dbBox.GetDisplayText();
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:7024: position accessor 'GetDisplayText' — osmscout::log.Debug() << "ResolveRoutePosition: found via coord " << coord.GetDisplayText();
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:7033: position accessor 'GetDisplayText' — osmscout::log.Debug() << "ResolveRoutePosition: found via coord (5km) " << coord.GetDisplayText();
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:7893: position accessor 'GetDisplayText' — osmscout::log.Warn() << "calculateRouteAsync: resolving start at " << start.GetDisplayText();
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:7901: position accessor 'GetDisplayText' — osmscout::log.Warn() << "calculateRouteAsync: FAILED to find routable node near start " << start.GetDisplayText();
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:7911: position accessor 'GetDisplayText' — osmscout::log.Warn() << "calculateRouteAsync: resolving dest at " << dest.GetDisplayText();
+>   app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:7919: position accessor 'GetDisplayText' — osmscout::log.Warn() << "calculateRouteAsync: FAILED to find routable node near dest " << dest.GetDisplayText();
+
+`findings=7`, i.e. exactly the seven statements issue #125 counted at `:7145`, `:7151`, `:7160`, `:7166` and
+`:7198` plus the three the decision predicted must go with them (`:6357` box, `:7086`/`:7095` resolve), on
+today's line numbers. Green after the patch is `evidence/gate-green.log` (same task, `--rerun-tasks`).

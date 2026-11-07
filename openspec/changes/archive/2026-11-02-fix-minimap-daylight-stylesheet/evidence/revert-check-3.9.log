@@ -1,0 +1,6 @@
+# revert-check 3.9 — the rejected push still moves the surface's record (round-4 sources, 2026-11-04T21:09:24Z)
+# mutation: MapCanvasViewModelSettings.kt, 'if (outcome == MapDaylightPush.FAILED) return' deleted.
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MapCanvasViewModelStyleTest"
+# result: 1 failure — the retry would compute changed==false and skip its re-render:
+message="java.lang.AssertionError: a rejected push does not move this surface's record expected:&lt;false&gt; but was:&lt;true&gt;"
+# green half: restored, forced green (round-4 sources) — same command as the red half

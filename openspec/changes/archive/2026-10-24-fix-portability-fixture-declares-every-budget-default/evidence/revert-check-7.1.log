@@ -1,0 +1,6 @@
+$ bash tools/mutate.sh --mutations tools/portability-mutations.json --only 7.1
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+EXIT_CODE=0

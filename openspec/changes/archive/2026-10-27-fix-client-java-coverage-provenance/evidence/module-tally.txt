@@ -1,0 +1,6 @@
+module=osmscout-client-java
+classes=23
+tests=116
+failures=0
+errors=0
+command=./gradlew --offline :osmscout-client-java:test :osmscout-client-java:jacocoTestReport :osmscout-client-java:jacocoVendoredTestReport -PforceTests

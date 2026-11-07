@@ -1,0 +1,6 @@
+gate#aStepIsBoundedAndTheOverrunNamesIt|   the step ran past its bound: still inside the gate 20s into a suite that never returns, with the bound set to 2s
+--- gate#aStepIsBoundedAndTheOverrunNamesIt[0] (exit 1)
+  the step ran past its bound: still inside the gate 20s into a suite that never returns, with the bound set to 2s
+FAIL gate#aStepIsBoundedAndTheOverrunNamesIt
+loop-selftest: 1 of 1 cases failed
+exit=1

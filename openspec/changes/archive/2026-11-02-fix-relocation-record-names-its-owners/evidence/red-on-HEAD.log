@@ -1,0 +1,7 @@
+# artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported — run against base 650028bfdf6e652ebd045b4af1be0a90b6c0a481
+# 2026-11-02T04:25:12Z
+# exit=1
+
+FAIL artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported: an owner cited as a directory listing passed (exit 0)
+       
+check-openspec-hygiene-selftest: 1 of 1 cases failed — artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported

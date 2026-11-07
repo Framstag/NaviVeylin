@@ -1,0 +1,6 @@
+# gate#aPipelineCheckIsOwedByItsPaths after the review corrections (issue #242, review round 1)
+2026-10-22T04:59:42Z
+
+$ bash tools/loop-selftest.sh --case gate#aPipelineCheckIsOwedByItsPaths
+PASS gate#aPipelineCheckIsOwedByItsPaths
+exit=0

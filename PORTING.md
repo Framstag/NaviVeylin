@@ -49,12 +49,29 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    the input bounds. This is the only file that names the project's repository and vocabulary.
 2. **`tools/sensors/sensors.json`** — the declared checks: one row per check, each with its command,
    cadence, bound, consecutive count, the kind and area it files, and the fields its fingerprint is
-   derived from.
+   derived from; plus `record.status` (one of the profile's own status values), the state the record issue a
+   green row's measurements land on carries, so no work selector takes it (`backlog-sensors`, issue #257);
+   plus `maxFilings`, the most items one run of one row may file, which a row may override — what a run does
+   not file leaves as one summary item (`backlog-sensors`, issue #666).
 3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`), which of the
    project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), **how the project's gate is
-   run** (`LOOP_GATE_CMD`) and the submodule a fresh worktree has to check out (`LOOP_SUBMODULE_PATH`,
-   empty for a project without one). The gate command is the project's: leave it empty for a project
-   with no build, and the phases still run while the report says the gate was skipped.
+   run** (`LOOP_GATE_CMD`), the submodule a worktree — fresh, reused or reset by `--reset-worktree` — has to
+   check out
+   (`LOOP_SUBMODULE_PATH`, empty for a project without one), the command that lists the project's test cases without running one
+   (`LOOP_SUITE_CASES_CMD`, empty for a project whose suite cannot list them — the measuring block then says so
+   instead of reporting a count of zero) and **the branch every item descends from** (`LOOP_BASE_REF`,
+   written `LOOP_BASE_REF="${LOOP_BASE_REF:-main}"` because the file is sourced *after* the environment:
+   the expansion is what lets an inherited value win, and a plain assignment would ignore it), the one gitignored
+   directory a stopped run copies into its leftovers patch (`LOOP_UNTRACKED_RECORD_DIR` — the project's own
+   unarchived changes live in one, and a patch of the tracked diff alone would lose them), and how long one
+   self-test case may run (`LOOP_CASE_MAX_SECONDS`), the per-item token band the report warns above
+   (`LOOP_ITEM_TOKENS_WARN` — the project's own p75 rather than this one's; `0` or no key records no band, and
+   nothing in the run reads it, so it costs a ported project one line at most), and the calls-per-turn floor the
+   report's trend names an item below (`LOOP_ITEM_CALLS_PER_TURN_MIN` — the project's own p25 of `tool_execution_end`
+   per `turn_end`, again `0` or no key for no floor and read by nothing in the run). The gate
+   command is the project's: leave it empty for a project with no build, and the phases still run while
+   the report says the gate was skipped. The base branch is the project's too — a project on `trunk` or
+   `develop` records it here, so nothing about the branch lives in the engine.
 
 ## What to delete
 

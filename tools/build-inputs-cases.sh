@@ -14,12 +14,15 @@ INPUTS_CASES=(
   'inputs#refusesADeclaredInputWithNoProducer'
   'inputs#writesTheGateTimingRecord'
   'inputs#convertsPerModuleCoverage'
+  'inputs#splitsTheJavaModulesCoverageByProvenance'
   'inputs#resultRecordShapes'
   'inputs#aRedBuildStillCarriesTheResultRecord'
   'inputs#fetchRestoresTheDeclaredPaths'
   'inputs#reportsTheRunsConclusion'
   'inputs#refusesAnotherCommitsRecord'
   'inputs#noRecordExitsThree'
+  'inputs#theFetcherPublishesTheJobTimings'
+  'inputs#theScanRecordIsTheScanPipelinesOwn'
 )
 
 inputs_cases() {
@@ -33,12 +36,15 @@ inputs_run_case() {
     'inputs#refusesADeclaredInputWithNoProducer') case_inputs_refusesADeclaredInputWithNoProducer ;;
     'inputs#writesTheGateTimingRecord') case_inputs_writesTheGateTimingRecord ;;
     'inputs#convertsPerModuleCoverage') case_inputs_convertsPerModuleCoverage ;;
+    'inputs#splitsTheJavaModulesCoverageByProvenance') case_inputs_splitsTheJavaModulesCoverageByProvenance ;;
     'inputs#resultRecordShapes') case_inputs_resultRecordShapes ;;
     'inputs#aRedBuildStillCarriesTheResultRecord') case_inputs_aRedBuildStillCarriesTheResultRecord ;;
     'inputs#fetchRestoresTheDeclaredPaths') case_inputs_fetchRestoresTheDeclaredPaths ;;
     'inputs#reportsTheRunsConclusion') case_inputs_reportsTheRunsConclusion ;;
     'inputs#refusesAnotherCommitsRecord') case_inputs_refusesAnotherCommitsRecord ;;
     'inputs#noRecordExitsThree') case_inputs_noRecordExitsThree ;;
+    'inputs#theFetcherPublishesTheJobTimings') case_inputs_theFetcherPublishesTheJobTimings ;;
+    'inputs#theScanRecordIsTheScanPipelinesOwn') case_inputs_theScanRecordIsTheScanPipelinesOwn ;;
     *) printf 'no such case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -101,11 +107,14 @@ coverage_xml() { # <file> <covered> <missed> [minified] — a report whose root 
 XML
 }
 
-module_reports() { # <tree> — one kover XML per Android module plus the JaCoCo module, both shapes
+module_reports() { # <tree> — one kover XML per Android module plus the Java module's two JaCoCo reports, both shapes
   coverage_xml "$1/app/build/reports/kover/report.xml" 90 10
   coverage_xml "$1/auto/build/reports/kover/report.xml" 80 20
   coverage_xml "$1/core/build/reports/kover/report.xml" 100 0 minified
-  coverage_xml "$1/osmscout-client-java/build/reports/jacoco/test/jacocoTestReport.xml" 70 30 minified
+  # The Java module compiles two provenances — its own local overrides and the vendored client API beside them —
+  # and each has its report; the numbers differ so a reader that mixes them cannot pass.
+  coverage_xml "$1/osmscout-client-java/build/reports/jacoco/test/jacocoTestReport.xml" 60 40 minified
+  coverage_xml "$1/osmscout-client-java/build/reports/jacoco/vendored/jacocoVendoredTestReport.xml" 95 5
 }
 
 timing_record() { # <tree>
@@ -152,6 +161,10 @@ stub_runs() { # <stub-dir> <json>
 
 stub_artifacts() { # <stub-dir> <names-json>
   printf '%s\n' "$2" > "$1/artifacts.json"
+}
+
+stub_jobs() { # <stub-dir> <jobs-json>
+  printf '%s\n' "$2" > "$1/jobs.json"
 }
 
 # --------------------------------------------------------------------------- cases
@@ -250,8 +263,38 @@ case_inputs_convertsPerModuleCoverage() {
   test_results "$dir" clean
   publisher --root "$dir" --write >/dev/null 2>&1 || fail "--write failed"
   out=$(jq -c '.modules' "$dir/app/build/reports/jacoco/coverage.json") || fail "the coverage summary is not JSON"
-  assert_eq '{"app":90.0,"auto":80.0,"core":100.0,"osmscout-client-java":70.0}' "$out" \
+  assert_eq '{"app":90.0,"auto":80.0,"core":100.0,"osmscout-client-java":60.0,"osmscout-client-java-vendored":95.0}' "$out" \
     "one percentage per module, minified and pretty-printed reports alike, class counters not mistaken for the module's"
+}
+
+# The Java module's row used to be one number for two provenances — the module's own sources and the vendored
+# `libosmscout` Java client API it compiles beside them — so a gain in the vendored half paid for a deficit in the
+# module's own half and the condition could not name whose code moved. One report per provenance, one row key per
+# report, and a missing report is refused instead of read as a mixed denominator.
+case_inputs_splitsTheJavaModulesCoverageByProvenance() {
+  local dir out own vendored
+  dir=$(workspace)
+  module_reports "$dir"
+  timing_record "$dir"
+  package_apk "$dir"
+  test_results "$dir" clean
+  publisher --root "$dir" --write >/dev/null 2>&1 || fail "--write failed"
+  own=$(jq -r '.modules["osmscout-client-java"]' "$dir/app/build/reports/jacoco/coverage.json") || fail "no own-code key"
+  vendored=$(jq -r '.modules["osmscout-client-java-vendored"]' "$dir/app/build/reports/jacoco/coverage.json") \
+    || fail "the vendored provenance has no key of its own — its number is still read as the module's"
+  assert_eq '60.0' "$own" "the own-code key reads the module's own report, not the vendored classes beside it"
+  assert_eq '95.0' "$vendored" "the vendored key reads the vendored report, so a pin bump moves it alone"
+
+  # A missing report is named, never silently folded into the other provenance's number.
+  dir=$(workspace)
+  module_reports "$dir"
+  rm -f "$dir/osmscout-client-java/build/reports/jacoco/vendored/jacocoVendoredTestReport.xml"
+  timing_record "$dir"
+  package_apk "$dir"
+  test_results "$dir" clean
+  out=$(publisher --root "$dir" --write 2>&1); status=$?
+  [ "$status" -eq 1 ] || fail "--write exited $status without the vendored report, expected 1"
+  assert_contains "$out" "jacocoVendoredTestReport.xml" "the refusal names the report the vendored provenance is read from"
 }
 
 case_inputs_resultRecordShapes() {
@@ -292,6 +335,46 @@ case_inputs_aRedBuildStillCarriesTheResultRecord() {
   assert_eq '{"job":"test","case":"com.naviveylin.FixtureTest.bWork","result":"failure"}' \
     "$(jq -c . "$dir/app/build/gate-result.json")" "the result record was written before the report"
   [ ! -e "$dir/app/build/reports/jacoco/coverage.json" ] || fail "a coverage summary appeared without its reports"
+}
+
+case_inputs_theScanRecordIsTheScanPipelinesOwn() {
+  # The scan's record is published by the scan's own workflow, so the build writes neither it nor a
+  # placeholder for it — and the registry may still declare it, because the publisher is the one place that
+  # knows every path a row declares (spec `backlog-sensors`, "A pipeline outside the build publishes its own
+  # record", issue #751).
+  local dir out
+  out=$(publisher --manifest) || fail "the manifest could not be printed"
+  assert_contains "$out" "scan-result.json" "the manifest names the scan's record"
+  # The publisher's path and the row's declared input are one string: a record written where the row does not
+  # read it would be published and still be invisible (issue #751, review round 1).
+  assert_eq "$(jq -r '.rows[] | select(.id == "broken-scan") | .input' "$INPUTS_REPO_ROOT/tools/sensors/sensors.json")" \
+    "$(printf '%s\n' "$out" | grep -E '^scan-result\.json$')" "the row declares the path the scan publishes"
+
+  # A build writes its own record and does not wait for the scan's: the scan runs beside it, not after it.
+  dir=$(workspace)
+  module_reports "$dir"; timing_record "$dir"; package_apk "$dir"; test_results "$dir" clean
+  out=$(publisher --root "$dir" --write 2>&1) || fail "--write refused a workspace without the scan's record: $out"
+  [ ! -e "$dir/scan-result.json" ] || fail "--write wrote the scan's record, which only the scan produces"
+
+  # The record itself: the first step that did not succeed is the cause, and the command it ran travels with
+  # it, so the item says what failed rather than only that something did.
+  dir=$(workspace)
+  out=$(publisher --root "$dir" --scan-result --status failure \
+    --steps '[{"id":"Run unit tests","command":"./gradlew test","outcome":"success"},
+              {"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"failure"}]' 2>&1) \
+    || fail "the scan's record could not be written: $out"
+  assert_eq '{"job":"sonar","step":"Scan","command":"SonarSource/sonarqube-scan-action@v7","result":"failure"}' \
+    "$(jq -c . "$dir/scan-result.json")" "the record names the failing step and its command"
+
+  dir=$(workspace)
+  publisher --root "$dir" --scan-result --status success \
+    --steps '[{"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"success"}]' >/dev/null 2>&1 \
+    || fail "a green scan's record could not be written"
+  assert_eq '{"job":"sonar","step":"","command":"","result":"success"}' \
+    "$(jq -c . "$dir/scan-result.json")" "a green scan names no failing step"
+
+  # The pairing the row relies on still holds over the shipped registry.
+  publisher --check >/dev/null 2>&1 || fail "--check refused the repository's own registry"
 }
 
 case_inputs_fetchRestoresTheDeclaredPaths() {
@@ -383,4 +466,59 @@ case_inputs_noRecordExitsThree() {
   out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" 2>&1); status=$?
   unset GH_STUB_DIR
   [ "$status" -eq 3 ] || fail "a run without the artifact exited $status, expected 3: $out"
+}
+
+# A step of the build cannot read its own run's step durations, so the wall time a row can measure comes from
+# GitHub's jobs API — and the checks' fetcher is the one thing that already knows the run of the commit under
+# test (issue #778). One flag asks for the record; a caller that does not ask gets nothing, so the fetcher's
+# second call (the scan's artifact) cannot overwrite the build's record with a stranger's jobs.
+case_inputs_theFetcherPublishesTheJobTimings() {
+  local dir dest record out status
+  dir=$(scratch); dest="$dir/tree"; record="$dest/build/job-timings.json"
+  stub_runs "$dir" '[{"databaseId":4242,"headSha":"abc1234","status":"completed","conclusion":"success","workflowFile":"build.yml"}]'
+  stub_artifacts "$dir" '{"artifacts":[{"name":"sensor-inputs"}]}'
+  stub_jobs "$dir" '{"total_count":2,"jobs":[
+    {"name":"Build debug APK (all ABIs)","conclusion":"success",
+     "started_at":"2026-11-02T09:56:00Z","completed_at":"2026-11-02T11:45:00Z",
+     "steps":[
+       {"name":"Install vcpkg dependencies","conclusion":"success",
+        "started_at":"2026-11-02T10:22:55Z","completed_at":"2026-11-02T11:20:33Z"},
+       {"name":"Build debug APK","conclusion":"success",
+        "started_at":"2026-11-02T11:20:56Z","completed_at":"2026-11-02T11:31:19Z"}]},
+    {"name":"Offline gates","conclusion":"success",
+     "started_at":"2026-11-02T09:56:00Z","completed_at":"2026-11-02T10:19:36Z",
+     "steps":[{"name":"Check OpenSpec artifact hygiene","conclusion":"success",
+                "started_at":"2026-11-02T10:05:00Z","completed_at":"2026-11-02T10:05:30Z"}]}]}'
+  mkdir -p "$dir/artifact/4242"
+  printf 'record\n' > "$dir/artifact/4242/gate-result.json"
+
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" \
+    --jobs-record "$record" 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 0 ] || fail "the fetch exited $status: $out"
+  [ -f "$record" ] || fail "no job-timings record at $record"
+  # The record is the run's own: every job with its wall time derived from the API's two instants, and every
+  # step beside it, so a row can name the step that grew without reading step names of its own.
+  assert_eq "2" "$(jq -r '.jobs | length' "$record")" "the record carries every job of the run"
+  assert_eq "Build debug APK (all ABIs)" "$(jq -r '.jobs[0].name' "$record")" "a job keeps the API's own name"
+  assert_eq "6540000" "$(jq -r '.jobs[0].durationMs' "$record")" "the job's wall time is derived from its own instants"
+  assert_eq "3458000" "$(jq -r '.jobs[0].steps[0].durationMs' "$record")" "a step's wall time is derived the same way"
+  assert_eq "1416000" "$(jq -r '.jobs[1].durationMs' "$record")" "the second job is measured separately"
+  assert_eq "4242" "$(jq -r '.runId' "$record")" "the record names the run it belongs to"
+  assert_eq "abc1234" "$(jq -r '.commit' "$record")" "and the commit, so it cannot answer for another"
+
+  # A caller that does not ask for the record gets none: the scan's fetch runs through the same script, and a
+  # record overwritten with the scan's jobs would measure the wrong pipeline.
+  dest="$dir/scan-tree"
+  stub_runs "$dir" '[{"databaseId":5151,"headSha":"abc1234","status":"completed","conclusion":"success","workflowFile":"sonar.yml"}]'
+  stub_artifacts "$dir" '{"artifacts":[{"name":"scan-inputs"}]}'
+  mkdir -p "$dir/artifact/5151"
+  printf 'record\n' > "$dir/artifact/5151/scan-result.json"
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" \
+    --workflow sonar.yml --artifact scan-inputs 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 0 ] || fail "the scan's fetch exited $status: $out"
+  [ ! -e "$dest/build/job-timings.json" ] || fail "a fetch that did not ask for the record wrote one anyway"
 }

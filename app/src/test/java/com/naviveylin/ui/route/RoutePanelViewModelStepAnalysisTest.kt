@@ -68,23 +68,25 @@ class RoutePanelViewModelStepAnalysisTest {
     }
 
     /**
-     * Three-point route whose three instruction lines sit exactly on the polyline's
-     * three vertices, so the expected vertex ranges are readable.
+     * Three-row route whose rows sit exactly on the polyline's three vertices, so the expected
+     * vertex ranges are readable.
      */
-    private fun routeEntry(withPositions: Boolean = true): RouteEntry = RouteEntry().apply {
-        routeHandle = 1L
-        latitudes = doubleArrayOf(52.5200, 52.5230, 52.5300)
-        longitudes = doubleArrayOf(13.4050, 13.4080, 13.4100)
-        distance = 5000.0
-        descriptions = arrayOf(
-            "Start: Hauptbahnhof  [0.0 km]",
-            "Left onto Main Street  [1.2 km]",
-            "Destination reached  [0.0 km]"
+    private fun routeEntry(withPositions: Boolean = true): RouteEntry {
+        val turn = turnStep(
+            com.framstag.libosmscout.client.TurnType.LEFT,
+            lat = if (withPositions) 52.5230 else Double.NaN,
+            lon = if (withPositions) 13.4080 else Double.NaN,
+            legDistance = 1200.0,
+            legTime = 300.0,
+            name = "Main Street"
         )
-        if (withPositions) {
-            instructionLats = doubleArrayOf(52.5200, 52.5230, 52.5300)
-            instructionLons = doubleArrayOf(13.4050, 13.4080, 13.4100)
-        }
+        return routeWithSteps(
+            startStep(lat = 52.5200, lon = 13.4050),
+            turn,
+            targetStep(lat = 52.5300, lon = 13.4100),
+            distance = 5000.0,
+            duration = 600.0
+        )
     }
 
     private fun entry(label: String, lat: Double = 51.5, lon: Double = 7.4): LocationEntry =
@@ -343,27 +345,21 @@ class RoutePanelViewModelStepAnalysisTest {
         }
 
     @Test
-    fun `a route starts on its first step that carries values`() =
+    fun `a route starts on its first row that carries values`() =
         runTest(mainDispatcherRule.dispatcher) {
-            val route = RouteEntry().apply {
-                routeHandle = 7L
-                latitudes = doubleArrayOf(52.5200, 52.5230, 52.5300)
-                longitudes = doubleArrayOf(13.4050, 13.4080, 13.4100)
+            // The start line owns a zero-length leg — no distance, no time — and presenting it left
+            // the min overlay's detail empty (owner finding, 2026-10-03).
+            val route = routeWithSteps(
+                startStep(lat = 52.5200, lon = 13.4050),
+                turnStep(
+                    com.framstag.libosmscout.client.TurnType.LEFT,
+                    lat = 52.5230, lon = 13.4080,
+                    legDistance = 1200.0, legTime = 45.0,
+                    name = "Main Street"
+                ),
+                targetStep(lat = 52.5300, lon = 13.4100),
                 distance = 5000.0
-                // The native start line owns a zero-length leg — no distance, no time —
-                // and presenting it left the min overlay's detail empty (owner finding,
-                // 2026-10-03).
-                descriptions = arrayOf(
-                    "--- Route ---",
-                    "Start: Hauptbahnhof  []",
-                    "Left onto Main Street  [1.2 km, 45 s]"
-                )
-                // One instruction position per instruction line (the header is not an
-                // instruction), so two here: the start line and the turn. The per-step values
-                // are absent, so the description's bracket carries them (the fallback path).
-                instructionLats = doubleArrayOf(52.5200, 52.5230)
-                instructionLons = doubleArrayOf(13.4050, 13.4080)
-            }
+            )
 
             calculateAndAwaitSuccess(route)
 
@@ -376,95 +372,83 @@ class RoutePanelViewModelStepAnalysisTest {
     @Test
     fun `the row's values and the published segment describe the same leg`() =
         runTest(mainDispatcherRule.dispatcher) {
-            // The row's numbers come from the bridge's per-step values and the highlight from
-            // `stepSegments`; both must be the leg between the same two manoeuvres (spec:
-            // route-analysis — Row values and highlighted leg are the same leg). Measured on device
-            // 2026-10-05: the values are the legs (the largest 16,2 km), so a row and its segment
-            // cannot describe different pieces of the route.
-            val route = RouteEntry().apply {
-                routeHandle = 12L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 16_677.0
+            // The row's numbers come from the step's own leg and the highlight from `stepSegments`;
+            // both must be the run between the same two manoeuvres (spec: route-analysis — Row values
+            // and highlighted leg are the same leg). Measured on device 2026-10-05: the values are the
+            // legs (the largest 16,2 km), so a row and its segment cannot describe different pieces of
+            // the route.
+            val route = routeWithSteps(
+                startStep(lat = 48.0, lon = 2.0),
+                turnStep(
+                    com.framstag.libosmscout.client.TurnType.RIGHT,
+                    lat = 48.5, lon = 2.3,
+                    legDistance = 9_000.0, legTime = 500.0, name = "B"
+                ),
+                turnStep(
+                    com.framstag.libosmscout.client.TurnType.LEFT,
+                    lat = 49.0, lon = 2.6,
+                    legDistance = 7_600.0, legTime = 430.0, name = "C"
+                ),
+                distance = 16_677.0,
                 duration = 1_200.0
-                descriptions = arrayOf(
-                    "--- Route ---",
-                    "Start: A  []",
-                    "Right onto B  []",
-                    "Left onto C  []"
-                )
-                instructionLats = doubleArrayOf(48.0, 48.5, 49.0)
-                instructionLons = doubleArrayOf(2.0, 2.3, 2.6)
-                instructionDistances = doubleArrayOf(0.0, 9_000.0, 7_600.0)
-                instructionTimes = doubleArrayOf(0.0, 500.0, 430.0)
-            }
+            )
 
             calculateAndAwaitSuccess(route)
 
-            // The current step is the first with a leg; its segment is the polyline range from the
-            // previous manoeuvre to its own, and its values are that leg's.
+            // The current row is the first with a leg; its segment is the polyline range from the
+            // previous boundary to its own, and its values are that run's.
             val analysed = viewModel.uiState.value.analysedStepIndex
             assertEquals(1, analysed)
             assertEquals(0..1, viewModel.uiState.value.analysedSegment)
             val values = viewModel.uiState.value.routeSteps[analysed!!]
             assertEquals(9_000.0, values.distanceMeters, 1e-6)
             assertEquals(500.0, values.durationSeconds, 1e-6)
-            // …and every other step's row carries its own values, not its neighbour's.
+            // …and every other row carries its own values, not its neighbour's.
             assertEquals(7_600.0, viewModel.uiState.value.routeSteps[2].distanceMeters, 1e-6)
             assertFalse(viewModel.uiState.value.routeSteps[0].hasLegValues)
         }
 
     @Test
-    fun `a route with positions but no per-step values still lists its steps`() =
+    fun `a route whose steps carry no legs still lists its rows`() =
         runTest(mainDispatcherRule.dispatcher) {
-            // The native guard drops the positions *and* the values together; a route that carries
-            // only the positions (a bridge that predates the values) must still list its steps and
-            // fall back to the description's bracket (spec: osmscout-jni — Unaligned values are
-            // absent, not shifted).
-            val route = RouteEntry().apply {
-                routeHandle = 13L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 16_677.0
-                descriptions = arrayOf(
-                    "--- Route ---",
-                    "Start: A  []",
-                    "Right onto B  [9.0 km, 8 min]",
-                    "Left onto C  [7.6 km, 7 min]"
-                )
-                instructionLats = doubleArrayOf(48.0, 48.5, 49.0)
-                instructionLons = doubleArrayOf(2.0, 2.3, 2.6)
-            }
+            // A route whose legs are all zero lists its rows and omits the values instead of inventing
+            // them (spec: route-analysis — A route without per-step values still lists its steps).
+            val route = routeWithSteps(
+                startStep(lat = 52.5200, lon = 13.4050),
+                turnStep(
+                    com.framstag.libosmscout.client.TurnType.LEFT,
+                    lat = 52.5230, lon = 13.4080,
+                    legDistance = 0.0, legTime = 0.0, name = "Main Street"
+                ),
+                distance = 5000.0
+            )
 
             calculateAndAwaitSuccess(route)
 
-            assertEquals(3, viewModel.uiState.value.routeSteps.size)
-            assertEquals(3, viewModel.uiState.value.stepAnchors.size)
-            // The bracket carries the values, and they are the legs it describes.
-            assertEquals(9_000.0, viewModel.uiState.value.routeSteps[1].distanceMeters, 1e-6)
-            assertEquals(480.0, viewModel.uiState.value.routeSteps[1].durationSeconds, 1e-6)
+            assertEquals(2, viewModel.uiState.value.routeSteps.size)
+            assertEquals(2, viewModel.uiState.value.stepAnchors.size)
+            assertTrue(viewModel.uiState.value.routeSteps[1].instruction.contains("Main Street"))
+            assertTrue(
+                "a row without a leg shows no value",
+                viewModel.uiState.value.routeSteps.none { it.hasLegValues }
+            )
         }
 
     @Test
-    fun `the route's per-step values win over the description's bracket`() =
+    fun `a row's values come from the step, never from prose`() =
         runTest(mainDispatcherRule.dispatcher) {
-            val route = RouteEntry().apply {
-                routeHandle = 8L
-                latitudes = doubleArrayOf(52.5200, 52.5230, 52.5300)
-                longitudes = doubleArrayOf(13.4050, 13.4080, 13.4100)
-                distance = 5000.0
+            // The native description's bracket is not read at all: the step's leg is the value
+            // (spec: osmscout-jni — A calculated route publishes structured route steps).
+            val route = routeWithSteps(
+                startStep(lat = 52.5200, lon = 13.4050),
+                turnStep(
+                    com.framstag.libosmscout.client.TurnType.LEFT,
+                    lat = 52.5230, lon = 13.4080,
+                    legDistance = 4300.0, legTime = 520.0, name = "Main Street"
+                ),
+                distance = 5000.0,
                 duration = 600.0
-                // The bracket carries what the pre-fix bridge measured between two route nodes;
-                // the arrays carry the leg. The arrays are the contract (spec: osmscout-jni —
-                // Per-step leg values on a calculated route).
-                descriptions = arrayOf(
-                    "--- Route ---",
-                    "Start: Hauptbahnhof  []",
-                    "Left onto Main Street  [0.0 km, 2 s]"
-                )
-                instructionDistances = doubleArrayOf(0.0, 4300.0)
-                instructionTimes = doubleArrayOf(0.0, 520.0)
-            }
+            )
 
             calculateAndAwaitSuccess(route)
 
@@ -475,50 +459,22 @@ class RoutePanelViewModelStepAnalysisTest {
         }
 
     @Test
-    fun `a route without per-step values still lists every step`() =
+    fun `a route without steps lists no rows`() =
         runTest(mainDispatcherRule.dispatcher) {
-            // A bridge that predates the arrays, or an alignment guard that dropped them: the step
-            // list keeps its instructions and takes the values from the bracket.
+            // No structured steps, no rows: nothing is parsed back into structure
+            // (spec: route-analysis — A route without per-step values still lists its steps).
             val route = RouteEntry().apply {
                 routeHandle = 9L
                 latitudes = doubleArrayOf(52.5200, 52.5300)
                 longitudes = doubleArrayOf(13.4050, 13.4100)
                 distance = 5000.0
-                descriptions = arrayOf(
-                    "--- Route ---",
-                    "Start: Hauptbahnhof  []",
-                    "Left onto Main Street  [1.2 km, 45 s]"
-                )
             }
 
             calculateAndAwaitSuccess(route)
 
-            assertEquals(2, viewModel.uiState.value.routeSteps.size)
-            assertEquals("Left onto Main Street", viewModel.uiState.value.routeSteps[1].instruction)
-            assertEquals(1200.0, viewModel.uiState.value.routeSteps[1].distanceMeters, 1e-6)
-        }
-
-    @Test
-    fun `a mismatched per-step array is not used`() =
-        runTest(mainDispatcherRule.dispatcher) {
-            val route = RouteEntry().apply {
-                routeHandle = 10L
-                latitudes = doubleArrayOf(52.5200, 52.5300)
-                longitudes = doubleArrayOf(13.4050, 13.4100)
-                distance = 5000.0
-                descriptions = arrayOf(
-                    "--- Route ---",
-                    "Start: Hauptbahnhof  []",
-                    "Left onto Main Street  [1.2 km, 45 s]"
-                )
-                // Two instruction lines, three values: shifted, so they must not be used.
-                instructionDistances = doubleArrayOf(0.0, 4300.0, 4400.0)
-                instructionTimes = doubleArrayOf(0.0, 520.0, 530.0)
-            }
-
-            calculateAndAwaitSuccess(route)
-
-            assertEquals(1200.0, viewModel.uiState.value.routeSteps[1].distanceMeters, 1e-6)
+            assertTrue(viewModel.uiState.value.routeSteps.isEmpty())
+            assertTrue(viewModel.uiState.value.stepAnchors.isEmpty())
+            assertEquals(RouteState.Done, viewModel.uiState.value.routeState)
         }
 
     @Test
@@ -578,20 +534,17 @@ class RoutePanelViewModelStepAnalysisTest {
             logFile.delete()
             DiagnosticsLog.initForTest(logFile)
             try {
-                val route = RouteEntry().apply {
-                    routeHandle = 11L
-                    latitudes = doubleArrayOf(52.5200, 52.5230)
-                    longitudes = doubleArrayOf(13.4050, 13.4080)
-                    distance = 17_300.0
+                val route = routeWithSteps(
+                    startStep(lat = 52.5200, lon = 13.4050),
+                    turnStep(
+                        com.framstag.libosmscout.client.TurnType.LEFT,
+                        lat = 52.5230, lon = 13.4080,
+                        legDistance = 17_250.0, legTime = 1_195.0,
+                        name = "Main Street"
+                    ),
+                    distance = 17_300.0,
                     duration = 1_200.0
-                    descriptions = arrayOf(
-                        "--- Route ---",
-                        "Start: Hauptbahnhof  []",
-                        "Left onto Main Street  []"
-                    )
-                    instructionDistances = doubleArrayOf(0.0, 17_250.0)
-                    instructionTimes = doubleArrayOf(0.0, 1_195.0)
-                }
+                )
 
                 calculateAndAwaitSuccess(route)
 

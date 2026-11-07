@@ -23,6 +23,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -163,17 +164,17 @@ class RoutePanelComposeTest {
         )
         viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
         viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })
-        client.routeToDeliver = RouteEntry().apply {
-            distance = 12400.0
-            duration = 1500.0
-            latitudes = doubleArrayOf(51.0, 52.0)
-            longitudes = doubleArrayOf(7.0, 8.0)
-            descriptions = arrayOf(
-                "--- Route ---",
-                "Start: A  [0.0 km]",
-                "Turn left into Main Street  [1.2 km, 5 min]"
-            )
-        }
+        client.routeToDeliver = routeWithSteps(
+            startStep(lat = 51.0, lon = 7.0),
+            turnStep(
+                TurnType.LEFT,
+                lat = 52.0, lon = 8.0,
+                legDistance = 12_400.0, legTime = 1_500.0,
+                name = "Main Street"
+            ),
+            distance = 12_400.0,
+            duration = 1_500.0
+        )
         composeRule.setContent {
             RoutePanel(
                 viewModel = viewModel,
@@ -236,13 +237,17 @@ class RoutePanelComposeTest {
         )
         viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
         viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })
-        client.routeToDeliver = RouteEntry().apply {
-            distance = 12400.0
-            duration = 1500.0
-            latitudes = doubleArrayOf(51.0, 52.0)
-            longitudes = doubleArrayOf(7.0, 8.0)
-            descriptions = arrayOf("Start: A  [0.0 km]", "Turn left into Main Street  [1.2 km, 5 min]")
-        }
+        client.routeToDeliver = routeWithSteps(
+            startStep(lat = 51.0, lon = 7.0),
+            turnStep(
+                TurnType.LEFT,
+                lat = 52.0, lon = 8.0,
+                legDistance = 12_400.0, legTime = 1_500.0,
+                name = "Main Street"
+            ),
+            distance = 12_400.0,
+            duration = 1_500.0
+        )
         // The card requests the exit; the host performs it (the screen wires this callback to
         // `MapCanvasViewModel.dismissRoutePanel()`, which RouteSessionCardExitTest covers).
         var endRequests = 0
@@ -347,19 +352,17 @@ class RoutePanelComposeTest {
         )
         viewModel.setStartLocation(LocationEntry().apply { label = "Start"; lat = 51.0; lon = 7.0 })
         viewModel.setDestLocation(LocationEntry().apply { label = "Dest"; lat = 52.0; lon = 8.0 })
-        client.routeToDeliver = RouteEntry().apply {
-            distance = 16_677.0
-            duration = 1500.0
-            latitudes = doubleArrayOf(51.0, 52.0)
-            longitudes = doubleArrayOf(7.0, 8.0)
-            instructionDistances = doubleArrayOf(0.0, 21_011.0)
-            instructionTimes = doubleArrayOf(0.0, 1_400.0)
-            descriptions = arrayOf(
-                "--- Route ---",
-                "Start: A  [0.0 km, 0 min]",
-                "Turn left into Main Street  [21.0 km, 23 min]"
-            )
-        }
+        client.routeToDeliver = routeWithSteps(
+            startStep(lat = 51.0, lon = 7.0),
+            turnStep(
+                TurnType.LEFT,
+                lat = 52.0, lon = 8.0,
+                legDistance = 21_011.0, legTime = 1_400.0,
+                name = "Main Street"
+            ),
+            distance = 16_677.0,
+            duration = 1_500.0
+        )
         composeRule.setContent {
             RoutePanel(
                 viewModel = viewModel,

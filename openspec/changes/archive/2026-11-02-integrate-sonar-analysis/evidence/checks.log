@@ -1,0 +1,80 @@
+# structural checks for integrate-sonar-analysis (2026-11-02T19:36:43Z)
+
+$ bash tools/check-sonar-workflow.sh
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+exit=0
+
+$ bash tools/check-sonar-workflow-selftest.sh
+ok: sonar-workflow#theNativeTreeIsExcluded
+ok: sonar-workflow#generatedCodeIsExcluded
+ok: sonar-workflow#theTriggerSetIsPushAndDispatch
+ok: sonar-workflow#aPullRequestTriggerIsReported
+ok: sonar-workflow#theDispatchIsGuardedToMain
+ok: sonar-workflow#theVendoredReportIsNotListed
+ok: sonar-workflow#theGateIsNotWaitedFor
+ok: sonar-workflow#theScanStepIsNotContinueOnError
+check-sonar-workflow-selftest: all 8 cases passed (the repository's own scan files, no build, no network)
+exit=0
+
+$ bash tools/check-action-runtimes.sh
+action runtimes: 16 action pins across 4 workflow files target Node 24.
+exit=0
+
+$ bash tools/check-action-runtimes-selftest.sh
+ok: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major
+ok: pins at or above the Node 24 floor pass
+ok: a Node 20 upload-artifact pin fails
+ok: a Node 20 checkout pin fails
+ok: a subpath of a recorded action resolves to the action's floor
+ok: action-runtimes#anActionWithNoRecordedRuntimeFails — an action with no recorded runtime fails
+ok: an unverifiable ref fails
+ok: a container action and a local action are skipped
+ok: a workflow with no action pin passes
+ok: a tree with no workflow directory is a layout error
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+exit=0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 4 skill references resolve
+exit=0
+
+$ bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 577 named rule(s) are reached
+exit=0
+
+$ bash tools/check-change-readiness.sh openspec/changes/integrate-sonar-analysis
+LOOP-CHANGE-READY: ok
+exit=0
+
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 4 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  sonar-analysis
+  start-map-selection
+specs read: 182
+classified: 186
+unclassified: 2
+delta spec ids: 15
+stale: 4
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1
+
+$ bash tools/check-jvm-test-graph-selftest.sh
+check-jvm-test-graph-selftest: all 3 cases passed (--dry-run configurations, no build, no network)
+exit=0
+
+$ bash tools/check-dex-gate-graph-selftest.sh
+check-dex-gate-graph-selftest: all 6 cases passed (--dry-run configurations, no build, no network)
+exit=0
+

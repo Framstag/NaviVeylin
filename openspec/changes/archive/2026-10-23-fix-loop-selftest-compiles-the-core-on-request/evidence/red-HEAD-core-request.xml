@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the second new case, against the driver as abeffcad45997a34b96f45e32486b178517c918e
+     carries it (2026-10-23T10:00:22Z): `bash tools/loop-selftest.sh --case
+     'driver#aCaseThatAsksForTheCoreGetsItOrRefuses'` — FAIL, exit 1. The nested driver the case starts has no way
+     for a case to ask for the Java core, so the stub case cannot be handed a class path; its own transcript is
+     red-HEAD-driver#aCaseThatAsksForTheCoreGetsItOrRefuses.log beside this file. The refusal half of the case is
+     green on HEAD and stays as the guard that the laziness removed nothing: with a `javac` that fails, the nested
+     driver prints `loop-selftest: the issue tooling's Java core does not compile` and exits 1. -->
+<testsuite name="loop-selftest --case driver#aCaseThatAsksForTheCoreGetsItOrRefuses" tests="1" failures="1" errors="0">
+  <testcase name="driver#aCaseThatAsksForTheCoreGetsItOrRefuses">
+    <failure>a case that asks for the core is handed the compiled class path: the driver hands a case no way to ask for the core
+FAIL stub#asksForTheCore: expected '0', got '1'</failure>
+  <system-out>FAIL driver#aCaseThatAsksForTheCoreGetsItOrRefuses</system-out>
+</testsuite>

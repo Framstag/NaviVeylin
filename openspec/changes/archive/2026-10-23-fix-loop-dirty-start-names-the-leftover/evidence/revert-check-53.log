@@ -1,0 +1,24 @@
+# revert-check 53.1, 53.2, 53.3 — one mutation per invariant, the named case red, restored green
+# command: tools/loop-mutations.sh --only <label> (one label per invocation; the harness takes one)
+# taken: 2026-10-23T17:16:05Z
+loop-mutations: selected 1 of 114 records (labels: 53.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.mi0j9H
+RED    53.1  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the leftovers recorded under the item whose work the tree holds, and escalated (issue #284))
+restore 53.1 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+loop-mutations: selected 1 of 114 records (labels: 53.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.7yzQNt
+RED    53.2  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (one record per item, a second account joining the note the item already has (issue #284))
+restore 53.2 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+loop-mutations: selected 1 of 114 records (labels: 53.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.jwHVll
+RED    53.3  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the stop reason naming the item the leftovers belong to and the files it found (issue #284))
+restore 53.3 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+

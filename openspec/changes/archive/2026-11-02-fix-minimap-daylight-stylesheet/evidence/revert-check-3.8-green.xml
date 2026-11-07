@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-04T20:35:44.190Z" hostname="dingens" time="6.517">
+  <properties/>
+  <testcase name="saveViewport during re-entry window keeps persisted viewport" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" time="5.359"/>
+  <testcase name="initMap renders at restored viewport not renderer default" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" time="0.205"/>
+  <testcase name="re-entry while init suspended keeps the new map viewport" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" time="0.236"/>
+  <testcase name="saveViewport during restore does not clobber persisted viewport" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" time="0.106"/>
+  <testcase name="screen size during viewport restore does not clobber restored center" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" time="0.112"/>
+  <testcase name="saveViewport after restore persists current viewport" classname="com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest" time="0.109"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,36 @@
+The suite after the split, read off the host that runs it (2026-11-05, run
+[42094414229](https://github.com/Framstag/NaviVeylin/actions/runs/42094414229), head `3bdd6783`, one
+`workflow_dispatch` on `fix/issue-781-the-loop-s-self-test-cannot-be-shortened`):
+
+    $ gh run view 42094414229 --json jobs --jq '.jobs[] | "\(.name)\t\(.conclusion)\t\(.startedAt)\t\(.completedAt)"'
+    Build debug APK (all ABIs)   in_progress 2026-11-05T19:29:49Z
+    Loop self-test (run)         success     2026-11-05T19:29:49Z  2026-11-05T19:35:50Z
+    Loop self-test (rest)        success     2026-11-05T19:29:49Z  2026-11-05T19:31:36Z
+    Offline gates                success     2026-11-05T19:29:49Z  2026-11-05T19:36:23Z
+    Loop self-test (tooling)     success     2026-11-05T19:29:49Z  2026-11-05T19:36:45Z
+
+| leg | cases | duration | against the base step (1035 s) |
+|---|---|---|---|
+| `run` | 114 | **361 s** (6 min 1 s) | 35 % |
+| `tooling` | 138 | **416 s** (6 min 56 s) — the slowest leg | 40 % |
+| `rest` | 62 | **107 s** (1 min 47 s) | 10 % |
+
+The slowest leg is `tooling` at 416 s, which is under half the base step's 1035 s (517 s) — the bound
+`tasks.md` 3.1 asks for. The three legs start at the same second, so the suite's wall clock in the pipeline is
+now the slowest leg plus the job's own checkout and JDK setup, not the sum of 314 cases over four workers.
+
+Two things this run also shows:
+
+- **A leg is its own verdict.** The dispatch before this one, run
+  [42090111006](https://github.com/Framstag/NaviVeylin/actions/runs/42090111006) on head `ec58cb91`, carried the
+  workflow with the legs and none of the case fix below: `Loop self-test (tooling)` failed in 166 s while
+  `Loop self-test (run)` passed in 400 s and `(rest)` in 120 s, and the run was red — one red leg, one red run.
+- **What the red leg was.** The step runs `bash tools/loop-selftest.sh --group "$g"`, and
+  `gate#theMapCoversEveryPipelineStep` compares every `bash`/`sh` command under a `Check …` step with the
+  profile's suite map: the narrowed command was not in the map. Quoted from that leg's log:
+
+      gate#theMapCoversEveryPipelineStep|   the suite map carries none of these commands the pipeline's Check steps run: tools/loop-selftest.sh --group "$g"
+      FAIL gate#theMapCoversEveryPipelineStep
+
+  The repair is commit `3bdd6783`: the pin strips a `--group <selection>` from both sides, and the two records
+  that falsify it are in `evidence/revert-check.txt`.

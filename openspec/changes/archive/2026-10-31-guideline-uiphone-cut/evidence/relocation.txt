@@ -1,0 +1,20 @@
+# Relocation — the cut is a move, not a rewrite
+
+The text was moved by line slice (`sed -n`), never retyped, so every moved byte is identical.
+The proof is the per-section cost: for all 19 sections the post-cut `--sizes` byte count equals
+the pre-cut one (compare post-cut.md with pre-cut.md) — §7 1704, §7a 3393, §7b 7978, §8 1078,
+§8b 3301, §8c 3493, §8a 1869, §10a 2413, §11 3403, §5 1203, §6a 6133, §12 2094, §13 655,
+§14 763, §15 975, §16 1041, §17 985, §18 4503, §19 289. A reworded line would change its
+section's byte count.
+
+| block | source lines (pre-cut UIPhone.md) | bytes | receiving document |
+|---|---|---|---|
+| §7 … §11 | 113–478 | 28632 | UIPhoneMap.md |
+| §5, §6a | 17–112 | 7336 | UIPhone.md |
+| §12 … §19 | 479–627 | 11305 | UIPhone.md |
+
+Relocation count closes: 28632 + 7336 + 11305 = 47273 = 47926 − 653 (the preamble, replaced by
+each document's own). Every moved block is found in its receiving document at the same byte span.
+
+The heading-number union of the two documents equals the baseline set:
+{5,6a,7,7a,7b,8,8a,8b,8c,10a,11,12,13,14,15,16,17,18,19}. No number moved.

@@ -1,0 +1,12 @@
+# green, 2026-10-25T19:24:44Z
+PASS sensors#metadataDriftRow
+PASS sensors#metadataDriftClearsUnderItsOwnIdentity
+PASS workflow#aRedRecordRunsNoRecordRow
+PASS Registry#everyRowIsComplete
+PASS sensors#engineNamesNoProjectValue
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+
+$ bash tools/sensor-mutations.sh --only 8.19
+MUTATION 8.19: sensors#metadataDriftRow red under the mutation, green after the restore — a drifted priority pair is a condition, not a clear (issue #292)
+
+sensor-mutations: 1 behaved, 0 did not

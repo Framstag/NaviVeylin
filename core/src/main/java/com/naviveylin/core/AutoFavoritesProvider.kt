@@ -5,6 +5,17 @@ import com.framstag.libosmscout.client.StarredFavoriteLocation
 import kotlinx.coroutines.flow.StateFlow
 
 /**
+ * The favourites store's whole state as one value: the four sources the car favourites screen
+ * observes, captured together so a screen can render a consistent list (spec `auto-favorites`).
+ */
+data class FavoritesSnapshot(
+    val favorites: Map<String, List<FavoriteLocation>>,
+    val groupOrder: List<String>,
+    val starredOrder: List<StarredFavoriteLocation>,
+    val storeReady: Boolean
+)
+
+/**
  * Provider for favorite locations, consumed by Android Auto screens.
  * Implemented in the [:app] module via Hilt.
  */
@@ -42,6 +53,26 @@ interface AutoFavoritesProvider {
      * loading placeholder only while this is false, never for a state it already holds.
      */
     fun storeReady(): StateFlow<Boolean>
+
+    /**
+     * The store's current state, readable **without a dispatch and without resolving the repository** —
+     * or null while this provider has not resolved it yet.
+     *
+     * This is what keeps the car favourites screen's first template off the loading row when the
+     * background hop that resolves the provider is itself late. That hop is a `withContext` onto a
+     * shared background dispatcher, and on a cold session the map's first frame (stylesheet and type
+     * config parse, tile retrieval, bitmap render) holds those threads and the CPU — measured on the
+     * AAOS emulator: `favorites resolution entered` arrived 623–1715 ms after `favorites observation
+     * start`, while the store had been ready for seconds (issue #110, spec `auto-favorites` — A ready
+     * store's state is published without waiting for the hop). Reading the resolved repository's
+     * `StateFlow.value`s is a plain field read: it produces no list, opens no database and never builds
+     * the native client, which is why the host thread may call it.
+     *
+     * Null is the honest answer for a provider that has not resolved the repository: there is no state
+     * to hand out yet, and a screen that showed one would present an uninitialised store as empty
+     * (the failure the loading row exists to prevent).
+     */
+    fun snapshotIfResolved(): FavoritesSnapshot? = null
 
     /**
      * Initialize the favorites repository with the JSON persistence path

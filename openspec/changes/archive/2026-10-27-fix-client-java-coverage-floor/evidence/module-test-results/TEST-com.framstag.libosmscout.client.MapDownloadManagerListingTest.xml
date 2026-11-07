@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.MapDownloadManagerListingTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-27T01:53:46.664Z" hostname="dingens" time="0.046">
+  <properties/>
+  <testcase name="aDirectoryEntryIsRefusedWithItsOwnName()" classname="com.framstag.libosmscout.client.MapDownloadManagerListingTest" time="0.013"/>
+  <testcase name="listingUrlSubstitutesTheDatabaseFormatVersionAndTheLocale()" classname="com.framstag.libosmscout.client.MapDownloadManagerListingTest" time="0.002"/>
+  <testcase name="aProviderThatAnswersWithAnHttpErrorYieldsNoMaps()" classname="com.framstag.libosmscout.client.MapDownloadManagerListingTest" time="0.016"/>
+  <testcase name="aFailedNativePreparationIsReportedThroughTheListener()" classname="com.framstag.libosmscout.client.MapDownloadManagerListingTest" time="0.005"/>
+  <testcase name="anUnreachableProviderYieldsNoMaps()" classname="com.framstag.libosmscout.client.MapDownloadManagerListingTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[[MapDownloadManager] HTTP error: 503
+[MapDownloadManager] HTTP error: Verbindungsaufbau abgelehnt
+]]></system-err>
+</testsuite>

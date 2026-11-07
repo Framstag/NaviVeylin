@@ -1,0 +1,6 @@
+PROBE pool=1 wall=10s rc=0 verdict=LOOP-GATE: tests=3 failures=0 errors=0 (./suite-a 3s, ./suite-b 3s, ./suite-c 4s)
+PROBE pool=1 poolline=LOOP-GATE-POOL: at most 1 suite step(s) in flight at once — the first steps and the build run alone
+PROBE pool=1 tallies=suite-a.xml suite-b.xml suite-c.xml 
+PROBE pool=3 wall=3s rc=0 verdict=LOOP-GATE: tests=3 failures=0 errors=0 (./suite-a 3s, ./suite-b 3s, ./suite-c 3s)
+PROBE pool=3 poolline=LOOP-GATE-POOL: at most 3 suite step(s) in flight at once — the first steps and the build run alone
+PROBE pool=3 tallies=suite-a.xml suite-b.xml suite-c.xml 

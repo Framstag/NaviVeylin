@@ -1,0 +1,2 @@
+  the process the ended child left in the worktree (pid 1604805) outlived the run — the cap must end what the child started, and a session of its own is not a group the cap reaches
+FAIL run#detachedProcessInTheWorktreeIsEndedByTheCap

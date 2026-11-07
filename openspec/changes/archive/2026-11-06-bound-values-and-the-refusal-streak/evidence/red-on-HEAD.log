@@ -1,0 +1,11 @@
+state#aBlockAtTheRunsBoundIsNoRefusal|   done #21 failed
+--- state#aBlockAtTheRunsBoundIsNoRefusal[0] (exit 1)
+loop: done: --stop-reason must be refused or unmergeable
+  done #21 failed
+FAIL state#aBlockAtTheRunsBoundIsNoRefusal
+loop-selftest: 1 of 1 cases failed
+run#childPastItsTurnBoundIsBlocked|   the block records the run's own bound as its mechanism: expected 'bound', got ''
+--- run#childPastItsTurnBoundIsBlocked[0] (exit 1)
+  the block records the run's own bound as its mechanism: expected 'bound', got ''
+FAIL run#childPastItsTurnBoundIsBlocked
+loop-selftest: 1 of 1 cases failed

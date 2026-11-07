@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/tally-269/suite.sh" tests="3" failures="2" errors="0">
+  <system-out>FAIL notes#aCaseThatFails — the reason it failed notes: 2 of 3 cases failed</system-out>
+</testsuite>

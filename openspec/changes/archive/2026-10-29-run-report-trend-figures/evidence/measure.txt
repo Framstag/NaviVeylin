@@ -1,0 +1,91 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+LOOP-MEASURE base=38b34946 paths=21 insertions=597 deletions=28
+LOOP-MEASURE-PATH app/src/main/cpp/libosmscout
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/data/SettingsStorage.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/data/VehicleMaxSpeed.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationOptionsOverlay.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenChromeBand.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasUiState.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSettings.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/route/RoutePanelViewModel.kt
+LOOP-MEASURE-PATH app/src/main/res/values/strings.xml
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/data/RoutingProfileBuilderTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationOptionsOverlayComposeTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAvoidanceTest.kt
+LOOP-MEASURE-PATH build.gradle.kts
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH tools/feature-list/specs.json
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 38b34946
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK tools/gen-feature-list-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=284 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=217 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=45s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=21 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=27s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_gen-feature-list-selftest.sh.xml tests=119 failures=0 time=18s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=129 failures=0 time=82s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=297s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_357a4670a0d0494e1b6b5b77679bc98e95432faa.xml tests=284 failures=0 time=442s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 1 of 21 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=921 suites=21
+LOOP-MEASURE-CHANGE run-report-trend-figures scenarios=6 cases=6 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=217 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=45s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=21 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=27s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_gen-feature-list-selftest.sh.xml tests=119 failures=0 time=18s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=129 failures=0 time=82s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=297s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_357a4670a0d0494e1b6b5b77679bc98e95432faa.xml tests=284 failures=0 time=442s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/run-report-trend-figures/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 1 of 21 tally files not shown — at most 20 per directory (openspec/changes/run-report-trend-figures/evidence)
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END

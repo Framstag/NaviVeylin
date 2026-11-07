@@ -1,0 +1,44 @@
+=== post-gate structural checks over the *.md edits (2026-10-26T06:46:49Z)
+--- tools/check-doc-routes.sh
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+exit=0
+--- tools/check-todo-references.sh
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
+check-todo-references: 63 citation(s) resolve through the recorded table; 5182 file(s) excluded by the allowlist above
+exit=0
+--- tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+--- bash tools/gen-feature-list.sh --check-classification
+zsh:1: datei oder Verzeichnis nicht gefunden: bash tools/gen-feature-list.sh --check-classification
+exit=0
+--- openspec validate fix-late-dark-mode-settings-restore --strict
+zsh:1: command not found: openspec validate fix-late-dark-mode-settings-restore --strict
+exit=0
+--- bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 1
+stale: 3
+car-only areas: 1
+highlights: 19
+exit=0
+--- openspec validate fix-late-dark-mode-settings-restore --strict
+Change 'fix-late-dark-mode-settings-restore' is valid
+exit=0
+--- bash tools/loop/evidence-check.sh openspec/changes/fix-late-dark-mode-settings-restore --root .
+ok   C1 §references: 5 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 12 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 357 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0

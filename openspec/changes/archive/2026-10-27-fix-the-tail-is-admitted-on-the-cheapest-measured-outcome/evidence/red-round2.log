@@ -1,0 +1,36 @@
+red on round 1's tree (`12c736b3`), 2026-10-27T07:47Z — the case the reviewer's refusal bought
+
+`run#reviewerEndedAtTheRunsDeadlineIsNotADecision` was added by this correction round, so it has no history on
+the run's base `2de16da0`; the tree it is red on is the one round 1 left. The defect was re-created on that tree
+without touching anything else: the two lines that read the reviewer's own `LOOP-DEADLINE` were replaced by
+
+    reviewer_deadline=""  # RED: no line reads the reviewer LOOP-DEADLINE
+
+which is what the shipped round-1 `run.sh` did: it read the item's worker's transcript and the round-2 worker's,
+never `reviewer-report-$round.md`. The case then ran
+alone:
+
+    LOOP_TOOL_RESULT_TRIM_RECORD= bash tools/loop-selftest.sh \
+      --case 'run#reviewerEndedAtTheRunsDeadlineIsNotADecision' --jobs 1
+
+    run#reviewerEndedAtTheRunsDeadlineIsNotADecision|   the cut round was read as a refusal and bought a rework worker
+    FAIL run#reviewerEndedAtTheRunsDeadlineIsNotADecision
+
+The file was restored from a copy taken before the edit, and the same case is green as shipped (the gate's own
+loop-suite tally is the record of that). The tally beside this log is `red-on-base-reviewer-deadline.xml`
+(`tests="1" failures="1"`).
+
+## The adapter case's necessity, measured rather than asserted
+
+Round 1's review read the adapter case's isolation change as an assertion with no failing log behind it. It was
+measured the same way: with `-u LOOP_TOOL_RESULT_TRIM_RECORD` removed from the case's `env` line and the record
+exported in the caller's environment — the state a worker's run leaves behind — the case fails:
+
+    LOOP_TOOL_RESULT_TRIM_RECORD=/tmp/674r2/inherited-trims.log bash tools/loop-selftest.sh \
+      --case 'adapter#theChildIsStartedWithTheResultBound' --jobs 1
+
+    adapter#theChildIsStartedWithTheResultBound|   a child started by hand, with no event stream, names no record
+    file and writes nothing into the project: expected '', got '/tmp/674r2/inherited-trims.log'
+
+Tally: `adapter-inherited-record-red.xml` (`tests="1" failures="1"`). With the `env -u` as shipped, the case is
+green — it is the isolation, and no production behaviour, that the two words change.

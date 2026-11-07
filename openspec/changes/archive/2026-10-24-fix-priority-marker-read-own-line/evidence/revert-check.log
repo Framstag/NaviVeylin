@@ -1,0 +1,19 @@
+== mutation 1 — the column-0 anchor
+   index(t, mo) == 1                                          →  index(t, mo) > 0
+  noticed by check#aQuotationIsNotAMarker: the mutated clause makes it fail  (2026-10-24T23:18:47Z)
+  quiet again: check#aQuotationIsNotAMarker passes on the restored tree  (2026-10-24T23:18:49Z)
+== mutation 2 — the end anchor
+   substr(t, length(t) - length(mc) + 1) == mc                →  1 == 1
+  noticed by check#aQuotationIsNotAMarker: the mutated clause makes it fail  (2026-10-24T23:18:49Z)
+  quiet again: check#aQuotationIsNotAMarker passes on the restored tree  (2026-10-24T23:18:50Z)
+== mutation 3 — the fence
+   if (infence) next                                          →  if (0) next
+  noticed by check#aMarkerLineBesideAQuotationIsTheRecord: the mutated clause makes it fail  (2026-10-24T23:18:50Z)
+  quiet again: check#aMarkerLineBesideAQuotationIsTheRecord passes on the restored tree  (2026-10-24T23:18:51Z)
+== mutation 4 — the write path's line
+   NR == n { print marker; next }                             →  NR == 0 { print marker; next }
+  noticed by prioritise#theWriteKeepsAQuotation: the mutated clause makes it fail  (2026-10-24T23:18:51Z)
+  quiet again: prioritise#theWriteKeepsAQuotation passes on the restored tree  (2026-10-24T23:18:56Z)
+== the tree is the change's own again
+  lib.sh restored byte for byte  (2026-10-24T23:18:56Z)
+REVERT-CHECK: PASS — four clauses, each noticed by the case that holds it  (2026-10-24T23:18:56Z)

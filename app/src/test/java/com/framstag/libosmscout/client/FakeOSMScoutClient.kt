@@ -30,6 +30,24 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Recorded (key, value) style flag pushes in call order. */
     val styleFlags: MutableList<Pair<String, Boolean>> = CopyOnWriteArrayList()
 
+    /**
+     * Every native call that a stylesheet variant depends on, in call order: `flag:<key>=<value>` and
+     * `render`. The record is what lets a case assert *ordering* — that a variant push preceded the
+     * first frame request — which the [styleFlags] list alone cannot show.
+     */
+    val variantCalls: MutableList<String> = CopyOnWriteArrayList()
+
+    /**
+     * The `daylight` flag value in effect at each render, in call order; null when no push was made
+     * before that render. This is the record that pins *which variant a frame was rendered under*:
+     * a push that lands after the first frame shows up as a null (or previous) entry.
+     */
+    val daylightAtRender: MutableList<Boolean?> = CopyOnWriteArrayList()
+
+    /** The `daylight` flag value the client currently carries; null until a push arrives. */
+    @Volatile
+    var currentDaylight: Boolean? = null
+
     /** Number of [render] invocations (full direct native renders). */
     val renderCount = java.util.concurrent.atomic.AtomicInteger(0)
 
@@ -70,6 +88,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
 
     override fun setStyleSheetFlag(key: String, value: Boolean) {
         styleFlags.add(key to value)
+        variantCalls.add("flag:$key=$value")
+        if (key == "daylight") currentDaylight = value
     }
 
     // --- Map style switching stubs ---
@@ -242,6 +262,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
         dpi: Double
     ): IntArray? {
         renderCount.incrementAndGet()
+        variantCalls.add("render")
+        daylightAtRender.add(currentDaylight)
         lastRenderLat = lat
         lastRenderLon = lon
         lastRenderMag = magnification
@@ -262,6 +284,8 @@ class FakeOSMScoutClient : OSMScoutClient() {
         trackLats: DoubleArray?, trackLons: DoubleArray?
     ): IntArray? {
         renderWithRouteAndPoisCount.incrementAndGet()
+        variantCalls.add("render")
+        daylightAtRender.add(currentDaylight)
         lastSearchSelLat = searchSelLat
         lastSearchSelLon = searchSelLon
         lastRouteLats = routeLats

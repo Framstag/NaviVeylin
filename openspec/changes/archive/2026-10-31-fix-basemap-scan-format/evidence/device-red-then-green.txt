@@ -1,0 +1,37 @@
+# On-device: the stale basemap directory leaves the registered set (#716)
+
+Device: `emulator-5554` (x86_64), mobile debug build, one regional map installed (`andorra`).
+Fixture: `files/maps/basemap/basemap/` holding all 19 mandatory database files
+(`MapDirectory::MandatoryFiles()`) with `types.dat` = little-endian `26`, i.e. a database
+`MapDirectory::IsValid()` accepts and this build's reader (27) refuses. Prepared by
+`.pi/base716/make_stale_basemap.py` on the host and created in place through `run-as`
+(the shell allowlist refuses device-absolute paths in a command).
+
+## Red — the pre-fix APK (`app/build/outputs/apk/mobile/debug/app-mobile-debug.apk`, built 11:13, submodule `b5d045eb4`)
+
+    I NaviVeylin: Scanning maps lookup directory: /data/user/0/com.framstag.naviveylin/files/maps
+    I NaviVeylin:   found valid map 'Andorra' at /data/user/0/com.framstag.naviveylin/files/maps/andorra (with metadata)
+    I NaviVeylin:   found valid map 'basemap' at /data/user/0/com.framstag.naviveylin/files/maps/basemap/basemap (no metadata)
+    I NaviVeylin: Lookup directory /data/user/0/com.framstag.naviveylin/files/maps scan complete: 2 candidates, 2 valid, 0 invalid
+    I NaviVeylin: Total installed maps found: 2
+    E NaviVeylin: File '/data/user/0/com.framstag.naviveylin/files/maps/basemap/basemap/types.dat' does not have the expected format version! Actual 26, expected: 27
+    W NaviVeylin: Cannot open db '/data/user/0/com.framstag.naviveylin/files/maps/basemap/basemap'!
+
+This is #716's own symptom: the scan publishes the refused directory as a regular database
+(`2 valid`), and the reader prints its format-version pair when the set is applied.
+
+## Green — the fixed APK (`app/build/intermediates/apk/mobile/debug/app-mobile-debug.apk`, built 16:34, submodule `e4ec10400`)
+
+The installed APK's `lib/x86_64/libosmscout_clientd.so` reads back as md5
+`ac77bd416a6883d25e7c964ad0c8917f`, identical to the freshly stripped native library, so the
+installed artifact carries the patch. After `am force-stop` and a fresh start:
+
+    I NaviVeylin: Scanning maps lookup directory: /data/user/0/com.framstag.naviveylin/files/maps
+    I NaviVeylin:   found valid map 'Andorra' at /data/user/0/com.framstag.naviveylin/files/maps/andorra (with metadata)
+    W NaviVeylin:   skipping map directory whose data format version is 26, this build reads 27: /data/user/0/com.framstag.naviveylin/files/maps/basemap/basemap
+    I NaviVeylin: Lookup directory /data/user/0/com.framstag.naviveylin/files/maps scan complete: 2 candidates, 1 valid, 1 invalid
+    I NaviVeylin: Total installed maps found: 1
+
+Over the whole session log (`adb logcat -d -s NaviVeylin`, 46 lines): `0` occurrences of
+`does not have the expected format version`, `0` of `Cannot open db`, `1` of the skip line. The
+regional map stays published and the refused basemap directory is named once and left out.

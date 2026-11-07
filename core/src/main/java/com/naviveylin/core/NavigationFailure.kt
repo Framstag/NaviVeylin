@@ -36,9 +36,16 @@ enum class FailureReason {
 
     /**
      * No routing data could be used for the calculation: no map database is loaded, or the routing
-     * service could not open the loaded ones.
+     * service could not open the loaded ones. The map data is what can fix this.
      */
     ROUTING_DATA_UNAVAILABLE,
+
+    /**
+     * The routing data was not loaded yet: the database open has been asked for but its instance list
+     * is still empty, so the same calculation succeeds a moment later. Nothing about the map data is
+     * wrong, so no map-manager action belongs to it.
+     */
+    DATABASE_NOT_LOADED,
 
     /** The start point could not be attached to the road network. */
     START_UNROUTABLE,
@@ -116,6 +123,7 @@ fun navigationFailureWordingRes(failure: NavigationFailure): Int {
 
     return when (failure.reason) {
         FailureReason.ROUTING_DATA_UNAVAILABLE -> R.string.navigation_failure_routing_data_unavailable
+        FailureReason.DATABASE_NOT_LOADED -> R.string.navigation_failure_database_not_loaded
         FailureReason.START_UNROUTABLE -> if (hasDistance) {
             R.string.navigation_failure_start_unroutable_near
         } else {
@@ -145,8 +153,9 @@ fun navigationFailureWordingRes(failure: NavigationFailure): Int {
  *
  * Missing, unopenable or unreadable routing data is what a different or re-downloaded map changes, so
  * those reasons offer the map manager on the phone; a route that simply does not exist between two
- * points has no map-manager fix. One rule for both variants, because the car states the same fact (it
- * must not open a phone screen).
+ * points has no map-manager fix. Routing data that is still loading is none of these: trying again is
+ * the whole of what clears it, so it offers no action. One rule for both variants, because the car
+ * states the same fact (it must not open a phone screen).
  */
 fun NavigationFailure.hasMapManagerAction(): Boolean =
     reason == FailureReason.ROUTING_DATA_UNAVAILABLE ||

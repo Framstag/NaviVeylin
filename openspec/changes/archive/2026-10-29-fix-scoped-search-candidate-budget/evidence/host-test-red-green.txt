@@ -1,0 +1,57 @@
+# Host test: the counting rule (issue #19)
+# meson test -C build --print-errorlogs  (2026-10-29T16:15:46Z)
+# Run against submodule commit ac405ff49 (rebased onto 5188f2138, which moved the extent
+# derivation into search_scope_extent.h).
+#   'Check search scope (this change)'          = the tree's search_scope.h
+#   'Check search scope (HEAD rule, expected to fail)' = the same header with one mutation:
+#       Reached(): return scanned >= limit;   (the pre-change accounting, which counted every hit)
+
+ninja: Entering directory `/tmp/issue19-meson/build'
+ninja: no work to do.
+1/2 issue19-search-scope:Check search scope (this change)                 OK              0.01s
+2/2 issue19-search-scope:Check search scope (HEAD rule, expected to fail) FAIL            0.00s   exit status 42
+>>> MESON_TEST_ITERATION=1 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1 MSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1 MALLOC_PERTURB_=52 ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_summary=1 /tmp/issue19-meson/build/SearchScopeTestHeadRule
+――――――――――――――――――――――――――――――――――――― ✀  ―――――――――――――――――――――――――――――――――――――
+Randomness seeded to: 1272899866
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SearchScopeTestHeadRule is a Catch2 v3.16.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+A scoped free-text walk collects the requested candidates, not fewer
+-------------------------------------------------------------------------------
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue19/app/src/main/cpp/libosmscout/Tests/src/SearchScopeTest.cpp:175
+...............................................................................
+
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue19/app/src/main/cpp/libosmscout/Tests/src/SearchScopeTest.cpp:208: FAILED:
+  REQUIRE( budget.Kept()==30 )
+with expansion:
+  0 == 30
+
+-------------------------------------------------------------------------------
+A refused hit does not spend the budget
+-------------------------------------------------------------------------------
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue19/app/src/main/cpp/libosmscout/Tests/src/SearchScopeTest.cpp:233
+...............................................................................
+
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue19/app/src/main/cpp/libosmscout/Tests/src/SearchScopeTest.cpp:241: FAILED:
+  REQUIRE_FALSE( budget.Reached() )
+with expansion:
+  !true
+
+===============================================================================
+test cases: 12 | 10 passed | 2 failed
+assertions: 61 | 59 passed | 2 failed
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+
+Summary of Failures:
+
+2/2 issue19-search-scope:Check search scope (HEAD rule, expected to fail) FAIL            0.00s   exit status 42
+
+Ok:                1   
+Fail:              1   
+
+Full log written to /tmp/issue19-meson/build/meson-logs/testlog.txt

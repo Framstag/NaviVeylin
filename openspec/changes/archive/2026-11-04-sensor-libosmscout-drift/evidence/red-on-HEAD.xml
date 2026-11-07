@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of red-on-head.log: one run of the case against HEAD's engine
+     (tools/sensors/lib.sh before it validates a row's own recurrence bound), 2026-11-04T16:19:27Z. The case is new
+     in this change, so "red on HEAD" is that library with the case: a row's `k` is read by run.sh:509, but no
+     validator refuses a bound of zero or a value that is not a count. -->
+<testsuite name="bash tools/sensor-selftest.sh --case lib#aRowBoundIsACount (HEAD, unchanged library)" tests="1" failures="1" errors="0" time="0.000">
+  <testcase name="lib#aRowBoundIsACount" classname="sensor-selftest">
+    <failure message="a bound of zero is refused by name">'fixture-emit: row-k-not-a-count: 0' not found in: </failure>
+  </testcase>
+  <system-out>FAIL lib#aRowBoundIsACount (2026-11-04T16:19:27Z)</system-out>
+</testsuite>

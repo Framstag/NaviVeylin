@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.BuildSrcJvmRequirementTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-24T07:46:26.185Z" hostname="dingens" time="0.354">
+  <properties/>
+  <testcase name="a reintroduced toolchain is refused" classname="com.naviveylin.build.BuildSrcJvmRequirementTest" time="0.21"/>
+  <testcase name="the build script names no JVM of its own" classname="com.naviveylin.build.BuildSrcJvmRequirementTest" time="0.016"/>
+  <testcase name="the criteria still pin the JVM the build logic compiles with" classname="com.naviveylin.build.BuildSrcJvmRequirementTest" time="0.005"/>
+  <testcase name="the scan is still detectable" classname="com.naviveylin.build.BuildSrcJvmRequirementTest" time="0.11"/>
+  <system-out><![CDATA[stepChars=2464
+buildScript=build.gradle.kts lines=30 findings=0
+criteria=gradle-daemon-jvm.properties lines=27 versionLines=1 vendorLines=0
+offending=[1, 1, 1] tolerated=[0, 0, 0, 0]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

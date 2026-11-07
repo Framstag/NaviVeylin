@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-11-04T22:08:35.156Z" hostname="dingens" time="16.918">
+  <properties/>
+  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="11.672"/>
+  <testcase name="aValueAnotherWriterAppliedStillReRendersTheWidget" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.707"/>
+  <testcase name="aClientThatAlreadyCarriesTheVariantIsNotReloaded" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.275"/>
+  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.779"/>
+  <testcase name="darkPresentationPushesTheDarkDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.284"/>
+  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.268"/>
+  <testcase name="lightPresentationPushesTheDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.26"/>
+  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.47"/>
+  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.466"/>
+  <testcase name="presentationChangeReRendersTheMiniMap" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.639"/>
+  <testcase name="aRejectedVariantReloadIsReported" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.264"/>
+  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.057"/>
+  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.29"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

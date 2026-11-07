@@ -1,0 +1,8 @@
+2026-11-06T19:44:49Z
+PASS decisions#theOldestQueuedItemIsListed
+PASS decisions#aReadThatCannotCoverTheSetIsRefused
+PASS decisions#listsTheQueueAndItsQuestions
+PASS decisions#theQuestionIsNotTheVerdictWord
+PASS decisions#emptyQueueIsNotAnError
+PASS shaping#theDecisionQueueIgnoresTheShapingLabel
+2026-11-06T19:44:55Z

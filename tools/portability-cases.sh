@@ -28,6 +28,7 @@ PORTABILITY_CASES=(
   'discovery#outsideAGitTree'
   'preconditions#refusesOutsideAGitTree'
   'preconditions#refusesUnderMachineLocalState'
+  'preconditions#runsInALinkedWorkingTree'
   'foreign#profileDiffersFromOurs'
   'foreign#noProjectNameInTheStub'
   'foreign#toolchainRunsEndToEnd'
@@ -36,6 +37,7 @@ PORTABILITY_CASES=(
   'foreign#emptyGateCommandStillRunsThePhases'
   'foreign#fixtureIsVersioned'
   'foreign#fixtureDeclaresEveryBudgetDefault'
+  'foreign#baseBranchIsTheFixturesConfiguration'
   'foreign#statesWhatItDoesNotModel'
   'porting#everyCommandInTheRecipeRuns'
   'porting#recipeDoesNotAssumeOurBuild'
@@ -63,6 +65,7 @@ portability_run_case() {
     'discovery#outsideAGitTree') case_discovery_outsideAGitTree ;;
     'preconditions#refusesOutsideAGitTree') case_preconditions_refusesOutsideAGitTree ;;
     'preconditions#refusesUnderMachineLocalState') case_preconditions_refusesUnderMachineLocalState ;;
+    'preconditions#runsInALinkedWorkingTree') case_preconditions_runsInALinkedWorkingTree ;;
     'foreign#profileDiffersFromOurs') case_foreign_profileDiffersFromOurs ;;
     'foreign#noProjectNameInTheStub') case_foreign_noProjectNameInTheStub ;;
     'foreign#toolchainRunsEndToEnd') case_foreign_toolchainRunsEndToEnd ;;
@@ -71,6 +74,7 @@ portability_run_case() {
     'foreign#emptyGateCommandStillRunsThePhases') case_foreign_emptyGateCommandStillRunsThePhases ;;
     'foreign#fixtureIsVersioned') case_foreign_fixtureIsVersioned ;;
     'foreign#fixtureDeclaresEveryBudgetDefault') case_foreign_fixtureDeclaresEveryBudgetDefault ;;
+    'foreign#baseBranchIsTheFixturesConfiguration') case_foreign_baseBranchIsTheFixturesConfiguration ;;
     'foreign#statesWhatItDoesNotModel') case_foreign_statesWhatItDoesNotModel ;;
     'porting#everyCommandInTheRecipeRuns') case_porting_everyCommandInTheRecipeRuns ;;
     'porting#recipeDoesNotAssumeOurBuild') case_porting_recipeDoesNotAssumeOurBuild ;;
@@ -115,8 +119,8 @@ scratch() { mktemp -d "$PORTABILITY_TMP/case.XXXXXX"; }
 # cannot be used for the case that proves a tool refuses when there is no project at all.
 scratch_outside() { mktemp -d "${TMPDIR:-/tmp}/portability-selftest.XXXXXX"; }
 
-git_init() { # <dir>
-  git -C "$1" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository"
+git_init() { # <dir> [branch] — the branch defaults to this project's, the foreign tree passes its own
+  git -C "$1" init -q -b "${2:-main}" >/dev/null 2>&1 || fail "could not create the throwaway repository"
   git -C "$1" add -A >/dev/null 2>&1 || fail "could not stage the throwaway repository"
   git -C "$1" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm init >/dev/null 2>&1 ||
     fail "could not record the throwaway repository's first state"
@@ -159,8 +163,17 @@ foreign_tree() { # engines + the foreign fixture overlaid — the tree the forei
   copy_engines "$d/project"
   cp -a "$PORTABILITY_FIXTURE/." "$d/project/" || fail "could not overlay the foreign fixture"
   chmod +x "$d/project/tools/sensors/fixtures/foreign-emit.sh" 2>/dev/null || true
-  git_init "$d/project"
+  # The branch the fixture's own configuration names, not this project's: the loop records the base branch's commit
+  # and refuses a checkout off it, so a tree created on `main` would exercise this project's branch name instead of
+  # the foreign one (issue #303).
+  git_init "$d/project" "$(fixture_base_ref)"
   printf '%s\n' "$d/project"
+}
+
+# The base branch the foreign project records, read the way the loop reads it: source the fixture's configuration in
+# a subshell with the environment unset, so the case asserts the key rather than a pattern of how it is written.
+fixture_base_ref() {
+  ( LOOP_BASE_REF=""; . "$PORTABILITY_FIXTURE/tools/loop/loop.conf" >/dev/null 2>&1; printf '%s\n' "$LOOP_BASE_REF" )
 }
 
 run_check() { # <tree> [check args…]
@@ -426,9 +439,11 @@ case_discovery_outsideAGitTree() {
 
 # The suite reads two things a copy cannot provide: the real tree's check (its case `passesOnTheRealTree`
 # drives it) and the fixture's versioned path (its case `fixtureIsVersioned` asserts it). Run it from a copy
-# outside a git working tree, or from a path under `.pi/`, and it refuses with a named reason instead of
-# reporting a case as failed — two sessions read that red as a regression of the code under test (issue
-# #172). The header states both preconditions, so a reader knows before running it.
+# outside a git working tree, or from a copy under `.pi/` that is not a checkout of its own, and it refuses
+# with a named reason instead of reporting a case as failed — two sessions read that red as a regression of
+# the code under test (issue #172). A linked working tree under `.pi/` *is* a checkout and runs the suite,
+# because the loop's gate runs in one (issue #289). The header states the preconditions, so a reader knows
+# before running it.
 case_preconditions_refusesOutsideAGitTree() {
   local d out status
   d=$(scratch_outside)
@@ -446,7 +461,7 @@ case_preconditions_refusesOutsideAGitTree() {
 }
 
 case_preconditions_refusesUnderMachineLocalState() {
-  local d out status
+  local d p out status
   d=$(scratch_outside)
   # a checkout whose machine-local state holds a copy of the suite: the root IS inside a git working tree,
   # so only the `.pi/` precondition can refuse — which is the second reading the issue measured
@@ -458,6 +473,39 @@ case_preconditions_refusesUnderMachineLocalState() {
   assert_eq "2" "$status" "the suite refuses from a copy under a machine-local path: $out"
   assert_contains "$out" "/.pi/" "the refusal names the machine-local path"
   assert_not_contains "$out" "FAIL " "no case is reported failed by where the suite was run"
+
+  # …and the top of another repository under `.pi/` is refused too: it is a checkout, but not this project's.
+  # The suite reads this project's fixture and its real tree's check, which a copy of the engines and cases does
+  # not carry, so accepting the root would report their absence as a red case (issue #289).
+  p="$d/.pi/top"
+  mkdir -p "$p"
+  copy_suite "$p"
+  git -C "$p" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository under .pi/"
+  out=$(cd "$p" && bash tools/check-portability-selftest.sh --list 2>&1); status=$?
+  assert_eq "2" "$status" "a .pi/ checkout that is not this project's is refused: $out"
+  assert_contains "$out" "/.pi/" "and the refusal names the machine-local path"
+}
+
+# …but a *checkout* under `.pi/` is not machine-local state: the loop's gate runs in a linked working tree
+# under `.pi/worktrees/`, and the suite it owes for a delta there may not refuse the change root (issue
+# #289 — the reader edges `Check portability` reads are mapped to that step, so the gate runs this suite in
+# the change root, and exit 2 there reads as a red gate). The precondition asks git, not the path.
+case_preconditions_runsInALinkedWorkingTree() {
+  local d p wt out status
+  d=$(scratch); p="$d/project"; mkdir -p "$p"
+  copy_suite "$p"
+  # this project's checkout carries the fixture, which is what tells it from the top of another repository
+  # under `.pi/` (the refusal case above)
+  mkdir -p "$p/tools/fixtures"
+  cp -a "$PORTABILITY_FIXTURE" "$p/tools/fixtures/foreign-project" || fail "could not copy the fixture"
+  git_init "$p"
+  wt="$p/.pi/linked"
+  git -C "$p" worktree add -q "$wt" -b linked >/dev/null 2>&1 || fail "could not create a linked working tree"
+
+  out=$(cd "$wt" && bash tools/check-portability-selftest.sh --list 2>&1); status=$?
+  assert_eq "0" "$status" "the suite runs from a linked working tree under .pi/: $out"
+  assert_contains "$out" "preconditions#refusesUnderMachineLocalState" \
+    "and lists its cases rather than refusing the root"
 }
 
 # --------------------------------------------------------------------------- the foreign project (D2)
@@ -543,6 +591,20 @@ case_foreign_toolchainRunsEndToEnd() {
   out=$(engine_script "$p" tools/issues/reopen.sh 11 --status open --json \
     --measurement "the condition returned") || fail "reopen.sh failed in the foreign project: $out"
   assert_eq "2" "$(jq -r '.occurrence' <<< "$out")" "the recurrence count is incremented"
+  # The reopen reverses a completed closure, so it displaces the settled state that closure recorded: the call
+  # names it instead of removing it silently (#684). Both report branches are asserted, because each is code of
+  # its own — the document a caller pipes and the line a person reads.
+  assert_eq "status/fixed-by" "$(jq -r '.removed | join(",")' <<< "$out")" \
+    "the report names the settled state the reopen removed"
+  foreign_issues "$p" "$(jq -n '[{number: 12, title: "a second foreign sensor issue", state: "CLOSED",
+       stateReason: "COMPLETED", body: "<!-- occurrence: 1 -->\n<!-- fingerprint: cafebabe -->",
+       author: {login: "ada"},
+       labels: [{name: "class/bug"}, {name: "category/core"}, {name: "status/fixed-by"},
+                {name: "sensor/foreign-row"}],
+       comments: []}]')"
+  out=$(engine_script "$p" tools/issues/reopen.sh 12 --status open \
+    --measurement "the condition returned again") || fail "reopen.sh (text mode) failed in the foreign project: $out"
+  assert_contains "$out" "removed status/fixed-by" "the text report names the settled state it removed"
 
   # one sensor row: the registry's command indirection, in the foreign vocabulary
   foreign_issues "$p" "$(foreign_issue 7 OPEN "" "" '[]')"
@@ -560,8 +622,14 @@ case_foreign_toolchainRunsEndToEnd() {
     fail "the metadata pass failed in the foreign project: $out"
   assert_contains "$(cat "$log")" "prio/p2" "the foreign band set decides the band"
 
-  # a dry-run loop: the phases run and nothing is created — one authorised candidate in the foreign tree
+  # a dry-run loop: the phases run and nothing is created — one authorised candidate in the foreign tree. The
+  # fixture's own writes are committed first: the run reads the project tree's uncommitted work before its pre-screen
+  # and refuses it (issue #798), and those files are this case's scaffolding — the tracker mirror, the score list, the
+  # stub's record — not a person's edit. A real project that had just run the metadata pass would commit or ignore them
+  # too, so the fixture starts the loop from the state a project has when it starts a run.
   foreign_issues "$p" "$(foreign_issue 7 OPEN "" "" '[{"name": "agent/eligible"}]')"
+  : > "$log"
+  git_commit "$p" "the fixture's own state, before the loop reads the tree"
   : > "$log"
   out=$(engine_script "$p" tools/loop/run.sh --dry-run --items 1 --minutes 30) ||
     fail "the dry-run loop failed in the foreign project: $out"
@@ -607,12 +675,17 @@ case_foreign_identityIsRefusedToo() {
 }
 
 case_foreign_fixtureIsVersioned() {
-  local f engines
+  local f engines rel
   f="$PORTABILITY_FIXTURE"
   [ -d "$f" ] || fail "the fixture directory does not exist"
-  # part of the repository's tracked content — not a path outside it, and not machine-local state
+  # part of the repository's tracked content — not a path outside it, and not machine-local state. The
+  # tracked half is asked of git rather than of the path, so it holds in the main checkout and in a linked
+  # working tree alike: the loop's change root is the latter and its fixture is tracked exactly as this one's
+  # is (issue #289), while a copy that carries no checkout of its own is still refused.
   case "$f" in "$PORTABILITY_ROOT"/*) ;; *) fail "the fixture lives outside the repository" ;; esac
-  case "$f" in */.pi/*) fail "the fixture lives in the machine-local state" ;; esac
+  rel=${f#"$PORTABILITY_ROOT"/}
+  git -C "$PORTABILITY_ROOT" ls-files --error-unmatch "$rel/README.md" >/dev/null 2>&1 ||
+    fail "the fixture is not tracked content of $PORTABILITY_ROOT — machine-local state or a path outside the tree"
   git -C "$PORTABILITY_ROOT" check-ignore -q "tools/fixtures/foreign-project/README.md" &&
     fail "the fixture is gitignored — a fresh clone would not carry it"
 
@@ -642,6 +715,26 @@ case_foreign_fixtureDeclaresEveryBudgetDefault() {
     "every budget default the loop's engine reads is declared by the fixture's loop.conf"
 }
 
+case_foreign_baseBranchIsTheFixturesConfiguration() {
+  local p declared tip base
+  declared=$(fixture_base_ref)
+  [ -n "$declared" ] ||
+    fail "the fixture's loop.conf records no LOOP_BASE_REF — a foreign project whose base branch is not main could change it only through the environment"
+  [ "$declared" != "main" ] ||
+    fail "the fixture's base branch is the engine's default, so a green case would prove nothing about the key"
+
+  p=$(foreign_tree)
+  foreign_env "$p"
+  assert_eq "$declared" "$(git -C "$p" rev-parse --abbrev-ref HEAD)" \
+    "the foreign tree is created on the base branch its own configuration names"
+
+  engine_script "$p" tools/loop/state.sh init --items 1 --minutes 30 >/dev/null ||
+    fail "the foreign project's run could not start"
+  tip=$(git -C "$p" rev-parse "$declared")
+  base=$(engine_script "$p" tools/loop/state.sh get run.base)
+  assert_eq "$tip" "$base" "the base recorded is the branch the fixture's configuration names"
+}
+
 case_foreign_statesWhatItDoesNotModel() {
   local readme text count
   readme="$PORTABILITY_FIXTURE/README.md"
@@ -659,8 +752,9 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
   p=$(foreign_tree)
   foreign_env "$p"
 
-  # the scaffolding a run needs in any project: a worktree source, an archive, the skills the loop copies
-  mkdir -p "$p/.pi/skills/fix-loop" "$p/.pi/skills/openspec-apply-change" \
+  # the scaffolding a run needs in any project: a worktree source, an archive, and the generated skill the loop
+  # seeds — only `openspec-*` is copied into a worktree, a versioned skill arrives with the checkout (issue #255)
+  mkdir -p "$p/.pi/skills/openspec-apply-change" \
            "$p/app/src/main/cpp/libosmscout" "$p/openspec/changes/archive"
   # The stub `gh` and the stub `pi` keep their record inside the fixture — `gh/issues.json` it rewrites,
   # `gh.log` and `pi.log` they append to, and the worker's two files the case writes. Those are the suite's
@@ -669,7 +763,6 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
   # not clean" while the engine was right (measured 2026-10-21, the CI failure of this case).
   printf '.pi/\napp/build/\ngh/\ngh.log\npi.log\nworker-action.sh\nworker-report.txt\n' > "$p/.gitignore"
   printf 'cmake_minimum_required(VERSION 3.22)\n' > "$p/app/src/main/cpp/libosmscout/CMakeLists.txt"
-  printf -- '---\nname: fix-loop\n---\nfixture skill\n' > "$p/.pi/skills/fix-loop/SKILL.md"
   printf 'fixture skill\n' > "$p/.pi/skills/openspec-apply-change/SKILL.md"
   git_commit "$p" "the loop's scaffolding"
 
@@ -698,6 +791,10 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
     > "$p/worker-report.txt"
   export PI_STUB_ACTION="$p/worker-action.sh" PI_STUB_REPORT_WORKER="$p/worker-report.txt" \
          PI_STUB_LOG="$p/pi.log" GH_STUB_RECORD="$p/gh.log"
+  : > "$PI_STUB_LOG"; : > "$GH_STUB_RECORD"
+  # The fixture's scaffolding is committed before the run reads the tree: the start's guard refuses a project tree with
+  # uncommitted work (issue #798), and these files are this case's own arrangement, not a person's edit.
+  git_commit "$p" "the fixture's own state, before the loop starts"
   : > "$PI_STUB_LOG"; : > "$GH_STUB_RECORD"
 
   out=$(engine_script "$p" tools/loop/run.sh --items 1 --minutes 30 --review off --max-decisions 1 2>&1)

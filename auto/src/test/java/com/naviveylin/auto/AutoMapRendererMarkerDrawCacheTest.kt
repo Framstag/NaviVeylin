@@ -3,11 +3,13 @@ package com.naviveylin.auto
 import android.graphics.Canvas
 import android.view.Surface
 import com.framstag.libosmscout.client.FakeAutoRenderClient
+import com.naviveylin.core.GpsMarkerPalette
 import com.naviveylin.core.VehicleMarkerGeometry
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
@@ -108,6 +110,78 @@ class AutoMapRendererMarkerDrawCacheTest {
         renderer.renderFrame()
         assertSame(night, renderer.markerDrawObjectsForTest())
         assertEquals(2, renderer.markerDrawRebuildsForTest())
+    }
+
+    /**
+     * The accuracy ring is the overlay this change exists for: it must dim with the presentation
+     * (spec: gps-location-marker — "Accuracy circle follows the resolved presentation", scenario
+     * "Dark presentation draws the dark ring"). Red before the shared palette exists, because both
+     * presentations carried the same `0x1A2196F3` / `0x662196F3` pair.
+     */
+    @Test
+    fun theAccuracyRingBranchesOnTheDarkPresentation() {
+        val renderer = attachedRenderer()
+        renderer.renderFrame()
+        val day = renderer.markerDrawObjectsForTest()!!
+        val dayFill = day.accuracyFillPaint.color
+        val dayBorder = day.accuracyBorderPaint.color
+
+        renderer.setDarkPresentation(true)
+        renderer.renderFrame()
+        val night = renderer.markerDrawObjectsForTest()!!
+
+        assertNotEquals(
+            "the accuracy ring's fill must follow the presentation",
+            dayFill,
+            night.accuracyFillPaint.color
+        )
+        assertNotEquals(
+            "the accuracy ring's border must follow the presentation",
+            dayBorder,
+            night.accuracyBorderPaint.color
+        )
+    }
+
+    /**
+     * The car's ring paints read the one shared palette the phone overlay reads, so the two surfaces
+     * cannot drift apart again (spec: gps-location-marker — scenario "Phone and car draw the same
+     * ring"; spec `cross-variant-ui-parity`).
+     */
+    @Test
+    fun theRingPaintsTakeTheSharedPaletteValues() {
+        val renderer = attachedRenderer()
+        renderer.renderFrame()
+        val day = renderer.markerDrawObjectsForTest()!!
+        assertEquals(
+            "the daylight ring fill is the shared palette's",
+            GpsMarkerPalette.accuracyFill(dark = false).toInt(),
+            day.accuracyFillPaint.color
+        )
+        assertEquals(
+            "the daylight ring border is the shared palette's",
+            GpsMarkerPalette.accuracyBorder(dark = false).toInt(),
+            day.accuracyBorderPaint.color
+        )
+
+        renderer.setDarkPresentation(true)
+        renderer.renderFrame()
+        val night = renderer.markerDrawObjectsForTest()!!
+        assertEquals(
+            "the dark ring fill is the shared palette's",
+            GpsMarkerPalette.accuracyFill(dark = true).toInt(),
+            night.accuracyFillPaint.color
+        )
+        assertEquals(
+            "the dark ring border is the shared palette's",
+            GpsMarkerPalette.accuracyBorder(dark = true).toInt(),
+            night.accuracyBorderPaint.color
+        )
+        assertEquals(
+            "the ring's stroke width stays this surface's own geometry",
+            1.5f,
+            night.accuracyBorderPaint.strokeWidth,
+            0.001f
+        )
     }
 
     @Test

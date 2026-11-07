@@ -1,0 +1,9 @@
+# The gate (gate-summary.log) ran once on the corrected tree, started 2026-10-27T01:53Z. After it, the shipped
+# spec (one word), this change's record (proposal.md, design.md, tasks.md, gate-attribution.md) and its
+# evidence copies moved; no compiled file and no test source did. These four suites are the gate steps that
+# read those files, run focused on the final tree, so the gate's own record and this one cover what changed
+# since.
+bash tools/check-doc-routes.sh                          -> exit 0: all 154 section references resolve, all 4 skill references resolve
+bash tools/check-todo-references.sh                     -> exit 0: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table; 63 citation(s) resolve
+bash tools/check-openspec-hygiene.sh                   -> exit 0: 0 open change(s) carry task markers, every capability spec states its Purpose
+bash tools/gen-feature-list.sh --check-classification  -> exit 0: 19 highlights

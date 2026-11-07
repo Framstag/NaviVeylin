@@ -1,0 +1,5 @@
+red on HEAD 2026-10-25T01:27:49Z (base cba31292bca785d293f910e2910776cd90f75a52)
+  the run took 2008 ms to notice a worker that answered in 150 ms: the wait's granularity is not below a second (issue #259; console in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.wSi2rd/cases/0/tree/case.OWLuKH/stamped.log)
+FAIL run#theWaitEndsWhenTheChildDoes
+loop-selftest: 1 of 1 cases failed
+status=1

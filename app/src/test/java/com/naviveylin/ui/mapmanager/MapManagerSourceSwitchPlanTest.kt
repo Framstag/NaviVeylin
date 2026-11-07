@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeMapDownloadManager
 import com.framstag.libosmscout.client.FakeOSMScoutClient
+import com.framstag.libosmscout.client.MapDownloadManager
 import com.framstag.libosmscout.client.MapProvider
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.mapsource.MapSource
@@ -31,6 +32,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -263,7 +266,13 @@ class MapManagerSourceSwitchPlanTest {
     private fun markBasemap(kind: MapSourceKind, bytes: Int, baseUrl: String? = null): Path {
         val directory = storageManager.mapsRootDir.resolve("basemap")
         Files.createDirectories(directory)
-        Files.write(directory.resolve("types.dat"), ByteArray(bytes))
+        // The session registers a basemap only when its types.dat names this build's data format version
+        // (spec `basemap-loading`, issue #23), so the fixture carries the version instead of zero padding.
+        val types = ByteBuffer.allocate(maxOf(bytes, 4))
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .putInt(MapDownloadManager.DATABASE_FORMAT_VERSION)
+            .array()
+        Files.write(directory.resolve("types.dat"), types)
         MapSourceMarker.write(directory, MapSourceRecord(kind, baseUrl, 27))
         return directory
     }

@@ -1,0 +1,2 @@
+$ openspec validate 2026-10-30-fix-routing-row-figure-is-measured --type change --strict   # 2026-10-30T07:02:18Z
+Change '2026-10-30-fix-routing-row-figure-is-measured' is valid

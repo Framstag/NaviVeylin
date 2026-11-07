@@ -1,0 +1,4 @@
+RED    44.1  run#detachedProcessInTheWorktreeIsEndedByTheCap   (the cap ending the processes the child left working in the tree, and naming each one (issue #272))
+restore 44.1 run#detachedProcessInTheWorktreeIsEndedByTheCap green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

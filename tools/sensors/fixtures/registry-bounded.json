@@ -1,0 +1,49 @@
+{
+  "profile": 1,
+  "comment": "A fixture registry for the bound on what one run of one row may file (issue #666): `maxFilings` is the registry's default for every row, and a row may declare its own. The third row declares a bound that is not a count, so the registry check has something to refuse.",
+  "namespace": "sensor",
+  "labels": { "status": "open", "source": "ci" },
+  "escalation": { "maxRecurrences": 3, "labels": ["agent/needs-decision", "status/on-hold"] },
+  "record": { "status": "on-hold" },
+  "maxFilings": 2,
+  "rows": [
+    {
+      "id": "fixture-emit",
+      "cmd": "tools/sensors/fixtures/sensors/emit.sh",
+      "cron": "0 3 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 2,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["case"] }
+    },
+    {
+      "id": "fixture-own-bound",
+      "cmd": "tools/sensors/fixtures/sensors/emit.sh",
+      "cron": "0 5 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 2,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "maxFilings": 3,
+      "fingerprint": { "fields": ["case"] }
+    },
+    {
+      "id": "fixture-no-filings",
+      "cmd": "tools/sensors/fixtures/sensors/emit.sh",
+      "cron": "0 6 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file",
+      "maxFilings": 0,
+      "fingerprint": { "fields": ["case"] }
+    }
+  ]
+}

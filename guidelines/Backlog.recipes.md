@@ -169,6 +169,15 @@ prompt has asked for that since #246, and the archive still records `LOOP-SPEND-
 the adapter owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`,
 `trim#aResultAboveTheBoundIsTrimmedAndNamed`).
 
+The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
+~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round
+that does not page grades its head: over one 891 687 B diff the probe's seven children answered the diff's own last
+line byte-exact once (`docs/2026-11-07-reviewer-model-analysis.md:55`, column `C1/C3/C6`). Every phase prompt therefore names the recorded bound, the marker a
+cut result carries (`[LOOP-TRIMMED: … read the rest in ranges …]`), the call and arguments that page the rest until
+the last line, and the rule that only a window that arrived whole may be quoted —
+`prompt#thePhasePromptsCarryTheirOwnRoute` renders the four skeletons and fails when one of them is missing, and
+mutation record `258.1` stops the sentence in the reviewer's prompt to prove the case notices.
+
 What it does **not** claim: the project's own tree is not the child's, so a difference between the two readings of
 it taken around a child is recorded and not turned into a verdict. The transcript gains one line naming what
 changed — the differing status entries and any process whose working directory is inside the project but outside

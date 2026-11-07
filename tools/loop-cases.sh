@@ -3553,7 +3553,7 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
 # repository path a skeleton names resolves: a route the prompt states and the tree does not hold is a child sent to
 # a file that is not there, and an offline case is the only thing that can see it before a run pays for the trip.
 case_prompt_thePhasePromptsCarryTheirOwnRoute() {
-  # files: tools/loop/prompts/ tools/look.sh AGENTS.md guidelines/ tools/loop/loop.conf
+  # files: tools/loop/prompts/ tools/look.sh tools/pi-trim-result.mjs AGENTS.md guidelines/ tools/loop/loop.conf
   local f text tok
   for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
     [ -f "$f" ] || fail "no prompt skeleton at $f"
@@ -3563,6 +3563,15 @@ case_prompt_thePhasePromptsCarryTheirOwnRoute() {
     assert_not_contains "$text" "grep -n '^## '" "and not the shell search that policy refuses, which left the child a recipe it could not run (issue #796)"
     assert_contains "$text" 'guidelines/' "and where the rules live"
     assert_contains "$text" 'openspec/specs/' "and where the capabilities live"
+    # A read a child is handed arrives cut: `tools/pi-trim-result.mjs` marks every cut above the recorded bound and the
+    # read tool stops at its own cap — so each prompt says so and says how to page it (issue #818). A reviewer that
+    # takes a window for the file writes PASS over a file head, and the round's report cannot be told from one written
+    # over the whole diff.
+    assert_contains "$text" 'LOOP-TRIMMED' "$(basename "$f") names the marker a cut result carries (issue #818)"
+    assert_contains "$text" 'LOOP_TOOL_RESULT_MAX_CHARS' "$(basename "$f") names the recorded bound a read is cut at (issue #818)"
+    assert_contains "$text" 'ctx_read mode="lines:N-M"' "$(basename "$f") names the range syntax a cut result is paged with (issue #818)"
+    assert_contains "$text" 'offset' "$(basename "$f") names the offset/limit pair that pages until the last line (issue #818)"
+    assert_contains "$text" 'arrived whole' "$(basename "$f") quotes only a window that arrived whole (issue #818)"
   done
   [ -f "$LOOP_PROJECT_ROOT/AGENTS.md" ] || fail "the document map the prompts name is not in the project root"
   # …and the map the prompts send a child to must not hand it the recipe that child's own policy refuses (issue #796):

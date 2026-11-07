@@ -856,6 +856,13 @@ MUTATIONS=(
   '256.2@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the gate bucket the trend totals, so the phase that costs the most is printed as one that cost nothing (issue #759)@s#{n: "gate", ms: (\[$phs\[\].gateMs\] | add)}#{n: "gate", ms: 0}#'
   '256.3@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the numerator of the share spent after an item first gate, pinned to a constant so every run reads as fully after its gate (issue #759)@s#(((\$a / \$tot) \* 100)#((1 \* 100)#'
 
+  # 258.x — every phase prompt names the cut a read result can arrive with (issue #818). Measured 2026-11-07 by the
+  # reviewer-model probe over one 441 334 B / 6 639-line diff: the read tool caps one result at ~2 000 lines / 50 kB
+  # (`docs/2026-11-07-reviewer-model-analysis.md:47`), so the diff must be paged, and of seven children one answered
+  # the diff's last line byte-exact. The bound is applied by `tools/pi-trim-result.mjs` and was named nowhere a child
+  # reads it. One record for the prompt the item names — the reviewer's, whose report is a claim about the text it read.
+  '258.1@-@tools/loop/prompts/reviewer.md@prompt#thePhasePromptsCarryTheirOwnRoute@the sentence that names the marker a cut read carries, so a reviewer that holds a window grades it as the file (issue #818)@s#LOOP-TRIMMED#LOOP-WINDOW#'
+
   # 89.x — an item's kept stream is bounded and reported (issue #802). Measured 2026-11-06 over this archive: 254 event
   # streams held 3 483 MiB (p50 11.84, p90 29.88, max 63.47 MiB), and no cleanup arm named the 3 563 MiB of item
   # directories. Four invariants: the writer rotates at its bound, the turn count survives a rotation, the report's age

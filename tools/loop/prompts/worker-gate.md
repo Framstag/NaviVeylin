@@ -39,6 +39,14 @@ Your system prompt carries **no project context**, so what `AGENTS.md` would hav
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you are gating is in
   the change root, and the evidence it cites is versioned in that change's `evidence/`.
 
+**A read that arrived cut is not the file.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every
+result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown
+— read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]`, and the read tool stops at its own cap
+(about 2 000 lines or 50 kB per result, `docs/2026-11-07-reviewer-model-analysis.md`) — so a result that
+carries that marker, or that ends before the file's last line, is the file's head and not the file. Page it with
+`ctx_read`'s `offset` and `limit` until the last line arrives, and quote, cite or edit only a window that arrived whole
+(issue #818).
+
 ## What your own shell and tools refuse
 
 None of the four families below is a question you can ask and none of them is a rule of this project to be argued

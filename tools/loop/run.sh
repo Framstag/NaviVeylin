@@ -1879,12 +1879,14 @@ while true; do
   # The pre-screen has read that rule since #231 (a candidate it cannot read is recorded and the screen continues), and
   # this read — the one that happens once per item, asking for the comments a recorded decision arrives in — was the
   # last place that turned the same unknown into a `stop_run`: one unanswered read cost a run the budget it had left
-  # (measured 2026-11-06, the 480-minute run that ended at 03:31Z with 108 minutes and 69 item slots unspent). The
-  # seam (`tools/issues/lib.sh`) has already retried the transport's failure and reported `tracker-unreachable`, so
-  # what reaches here is a tracker that will not answer this item at all. The item is recorded with the word the
-  # screen writes for the same unknown and the queue moves on. Two such items in a row are the blocked pair
-  # `state.sh next` ends a run on (issue #804): a tracker that answers nothing still ends it, with the records naming
-  # the outage, instead of a stop after the first item's socket.
+  # (measured 2026-11-06, the 480-minute run that ended at 03:31Z with 108 minutes and 69 item slots unspent — the
+  # record `.pi/issue-loop/runs/2026-11-06T21:19:06Z.json`: 480 min − 372 min elapsed = 108 min, 80 item slots − 11
+  # recorded = 69). The read is the seam's own (`tools/issues/lib.sh`), so what reaches here is the failure the seam
+  # handed back: a refusal it passes through without retrying, or a transport failure it retried and reported as
+  # `tracker-unreachable`. The item is recorded with the word the screen writes for the same unknown and the queue
+  # moves on: a tracker that answers nothing still ends the run, on the refusal streak `state.sh next` reads — the
+  # count the engine is given (`LOOP_REFUSAL_STREAK_STOP`, `tools/loop/loop.conf:83`; 4 in this tree), not a pair
+  # (issue #804).
   read_err=$(mktemp) || read_err=""
   if ! issue_json=$(loop_issue_json "$issue" --comments 2>"${read_err:-/dev/stderr}"); then
     read_error=$(tr '\n' ' ' < "${read_err:-/dev/null}" | sed -e 's/  */ /g' -e 's/ *$//')

@@ -735,12 +735,15 @@ itself, and one that left work behind, stay blocked items: the first carries its
 commit, the second its branch, which is what a later pass escalates.
 
 What it does with an item the tracker does not answer for: nothing is decided about that item, so nothing ends the
-run on it. The read is the seam's own — `tools/loop/lib.sh` sources `tools/issues/lib.sh`, so the transport's failure
-is retried beside every other `gh` call and what reaches the run is a tracker that will not answer this item at all —
-and the run then records the item `blocked` with the verdict `unreadable` and the CLI's own words, and the queue moves
-to the next candidate. Two such records in a row are the blocked pair `next` ends a run on, so a tracker that answers
-nothing still ends the run, with two records naming the outage, instead of ending it on the first item's socket: that
-is what cost the 480-minute run of 2026-11-06 the 108 minutes and 69 item slots it had left (#808). The case is
+run on it. The read is the seam's own — `tools/loop/lib.sh` sources `tools/issues/lib.sh`, so what reaches the run is
+the failure the seam handed back: a refusal it passes through without retrying, or a transport failure it retried and
+reported as `tracker-unreachable` — and the run then records the item `blocked` with the verdict `unreadable` and the
+CLI's own words, and the queue moves to the next candidate. Such a record is a refusal, and the run ends on the
+refusal streak `next` reads — the count the engine is given (`LOOP_REFUSAL_STREAK_STOP`, `tools/loop/loop.conf:83`;
+4 in this tree) and not a pair (issue #804) — so a tracker that answers nothing still ends the run, with those records
+naming the outage, instead of ending it on the first item's socket: that is what cost the 480-minute run of
+2026-11-06 the 108 minutes and 69 item slots it had left (`.pi/issue-loop/runs/2026-11-06T21:19:06Z.json`: 480 min
+budget − 372 min elapsed, 21:19:06Z → 03:31:27Z, = 108 min; 80 item slots − 11 recorded = 69) (#808). The case is
 `run#anUnreadableItemIsNotTheEndOfTheRun`, and `tools/loop-mutations.sh` 100.1 the record that keeps it.
 
 A run one of the traps it installs ended records that signal as its own stop: `HUP` is trapped beside `INT` and

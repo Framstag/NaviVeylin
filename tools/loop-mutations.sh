@@ -963,10 +963,13 @@ MUTATIONS=(
   # `labels.sh` directly, which is not a path a run takes. Putting the verdict back in the list is what the new case
   # reads.
   '261.1@-@../tooling.json@run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames@the verdict the profile declares a shaping verdict while the run escalates it, so the list and the labels a skip leaves disagree (issue #738)@s%^    "shapingVerdicts": \["unspecifiable", "too-wide", "not-spec-shaped"\],$%    "shapingVerdicts": ["needs-diagnosis", "unspecifiable", "too-wide", "not-spec-shaped"],%'
-  # 100.1 — the record an unreadable item gets instead of the stop (issue #808). Restoring the stop is what the
-  # base did: the item is left unrecorded and the run ends on one item's socket. The `--note` line that followed the
-  # record is left as a second command and fails harmlessly (`|| true`), so the mutated file stays valid.
-  '100.1@-@tools/loop/run.sh@run#anUnreadableItemIsNotTheEndOfTheRun@the record an item the tracker did not answer for gets, so a read that fails is the whole stop again and the item is left unrecorded (issue #808)@s|^    loop_state done "\$issue" --result blocked --verdict unreadable \\$|    stop_run "gh could not read #\$issue — the tracker did not answer"|'
+  # 100.1 — the record an unreadable item gets instead of the stop, and the `break` that follows it (issue #808).
+  # Restoring the stop is what the base did: the item is left unrecorded and the run ends on one item's socket. The
+  # `--note` line that followed the record is left as a second command and fails harmlessly (`|| true`), so the
+  # mutated file stays valid. The `break` is restored with it, because a `stop_run` that only records leaves the
+  # candidate in the queue and the run takes it again — the case would be killed by its own timeout instead of
+  # failing at its first assertion, which is the shape `tools/loop-mutations.sh:1175–1182` names as unreadable.
+  '100.1@-@tools/loop/run.sh@run#anUnreadableItemIsNotTheEndOfTheRun@the record an item the tracker did not answer for gets and the break that follows it, so a read that fails is the whole stop again and the item is left unrecorded (issue #808)@s|^    loop_state done "\$issue" --result blocked --verdict unreadable \\$|    stop_run "gh could not read #\$issue — the tracker did not answer" \\|;;s|^    continue$|    break|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -4401,8 +4401,10 @@ case_run_blockedItemAsksItsOwnQuestion() {
 # The pre-screen has read that rule since #231 — a candidate it cannot read is recorded as unreadable and the screen
 # continues — and the run's own per-item read was the last place that turned the same unknown into a `stop_run`, so
 # one unanswered read cost a run the budget it had left (measured 2026-11-06: the 480-minute run ended at 03:31Z
-# with 108 minutes and 69 item slots unspent). The seam has already retried the transport's failure
-# (`tools/issues/lib.sh`), so what reaches the run is a tracker that will not answer this item at all.
+# with 108 minutes and 69 item slots unspent — `.pi/issue-loop/runs/2026-11-06T21:19:06Z.json`: 480 min − 372 min
+# elapsed = 108 min, 80 item slots − 11 recorded = 69). The read is the seam's own (`tools/issues/lib.sh`), so what
+# reaches the run is the failure the seam handed back: a refusal it passes through without retrying, or a transport
+# failure it retried and reported as `tracker-unreachable`.
 case_run_anUnreadableItemIsNotTheEndOfTheRun() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
   local p out reason note
@@ -4417,7 +4419,7 @@ case_run_anUnreadableItemIsNotTheEndOfTheRun() {
   assert_eq "21" "$(jq -r '.items[0].issue // "none"' "$(state_file "$p")")" \
     "the item the tracker did not answer for is recorded rather than left unrecorded: $out"
   assert_eq "blocked" "$(jq -r '.items[0].result // "none"' "$(state_file "$p")")" \
-    "recorded as a block, the result the blocked pair and the report's tallies read"
+    "recorded as a block, the result the refusal streak and the report's tallies read"
   assert_eq "unreadable" "$(jq -r '.items[0].verdict // "none"' "$(state_file "$p")")" \
     "recorded as unreadable, the word the pre-screen already writes for the same unknown"
   assert_contains "$out" "could not be read" "the console says the item was not answered for"

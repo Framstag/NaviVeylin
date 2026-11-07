@@ -630,7 +630,8 @@ so the child ran the gate's own selection to satisfy the round and the gate ran 
 places and owned here. The `LOOP-MEASURE-CHECK` lines the block prints are the **gate's** selection — the child that
 runs the gate once, or the change child's own last phase when the gate is not deferred — and the change child's own
 selection is the named red case plus the cases its delta's declaration reaches; every other check it cites from the
-block and never runs. `tools/loop/prompts/worker.md` states that beside the sentence that the block runs no check,
+block and does not run — the check that stands in for a delta compiling nothing, and the number the round after it
+asks the record to carry, stay the child's own. `tools/loop/prompts/worker.md` states that beside the sentence that the block runs no check,
 and `tools/loop/prompts/pre-gate-review.md` tells the round before the gate that a check the gate will run is graded
 on the block's check line and never `UNPROVEN` for want of a log the change child did not produce — the refusal that
 sent item #798's child to run `tools/loop-selftest.sh --case run#*` (129 cases, 219.93 s) and `--from-git fca2c857`

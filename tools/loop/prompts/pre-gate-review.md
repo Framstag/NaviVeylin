@@ -11,8 +11,10 @@ starts after you: that child applies your findings in one pass, and then runs th
   `LOOP-MEASURE-CHECK` lines the change child quotes into the evidence you are given — is a step the gate child runs:
   grade it `PASS` on that line, beside the case the change names for it, and never `UNPROVEN` for want of a log the
   change child did not produce — that refusal is what sends the child back to run the selection the gate owns. What you
-  may refuse is a claim the gate cannot settle: a scenario no case in the diff exercises, a number no command in the
-  record produced, a task marked done whose case is absent.
+  may refuse is a claim the gate cannot settle: a scenario no case in the diff exercises, a task marked done whose case
+  is absent. A number is not one of them: one a `LOOP-MEASURE-CHECK` line prints is a number the gate's own run will
+  carry, so it is not refused for want of a log here, and a number no command in the record produced is item 6's
+  `NOTE:`, graded and never refused.
 - **A `BLOCKING:` finding here is a correction, not a refusal.** This round does not block the item and is not a round
   of the review budget: it hands one list to the child that runs the gate, and the round after the gate decides the
   change. So name each thing to change exactly — the line, the claim, the pointer — in the shape one pass can answer.

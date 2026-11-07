@@ -56,6 +56,39 @@ GATE_RE = re.compile(r'gate\.sh|gradlew ')
 
 SECTION_RULE = '-' * 100
 
+# The role a session played, read the way the engine reads it: `child_role` (`tools/loop/run.sh`) takes the name of
+# the prompt file the run handed the child and nothing else, and the prompt file's path *is* the first user message of
+# every session `tools/pi-child-events.sh` keeps (`run_child`: `$child_cmd "$1"`) — `<item>/worker-gate-prompt.md`,
+# `<item>/reviewer-pre-gate-prompt.md`, `<item>/worker-prompt-round2.md`. The arms are the engine's, in the engine's
+# order — a tail and the round before the gate are named before the `gate` and plain shapes they also match, and the
+# rework round before the worker it is rendered from — because the order is the rule there and one word of a file name
+# is not enough to charge a turn to the right session here. The engine's own fallbacks end it: the name without its
+# extension for a prompt no arm matches, and, for a first message that is prompt *text* rather than a path (a fixture,
+# another harness), the reading the words give it — a `reviewer` word, else a worker (issue #822).
+ROLE_ARMS = (
+    ('-tail', 'worker-tail'),
+    ('pre-gate', 'reviewer-pre-gate'),
+    ('gate', 'worker-gate'),
+    ('round2', 'worker-rework'),
+)
+
+
+def prompt_role(first_user):
+    """The role the prompt's own name gives a session — `child_role`'s arms, over the path the stream records."""
+    text = (first_user or '').strip()
+    first = text.split('\n', 1)[0].strip().strip('"\'')
+    name = os.path.basename(first)
+    if name.endswith('.md'):
+        for needle, role in ROLE_ARMS:
+            if needle in name:
+                return role
+        if name.startswith('reviewer-'):
+            return 'reviewer'
+        if name.startswith('worker-'):
+            return 'worker'
+        return name[:-3]
+    return 'reviewer' if 'reviewer' in text[:4000].lower() else 'worker'
+
 
 # ─────────────────────────────────────────────────────────────── reading the streams
 
@@ -133,11 +166,11 @@ def read_sessions(path):
                 calls=turn_calls,
                 results=results,
             ))
-    # A reviewer is told so in its prompt; a worker is handed a path. The role decides nothing but the split in
-    # the report, so an unrecognised prompt is a worker rather than a third category nobody can act on.
+    # Which role the session was: the prompt's name, by the engine's own rule, so a gate child, a tail child and the
+    # round before the gate are charged to the role that spent the tokens rather than to the word their prompt happens
+    # to carry.
     for s in sessions:
-        text = (s['first_user'] or '')[:4000].lower()
-        s['role'] = 'reviewer' if 'reviewer' in text else 'worker'
+        s['role'] = prompt_role(s['first_user'])
         s['turns'] = [t for t in s['turns'] if t['inp'] or t['cr'] or t['out']]
     return [s for s in sessions if s['turns']]
 
@@ -363,10 +396,10 @@ def report(m, top, quiet):
 
     add('')
     add('Per session role')
-    add(f'  {"role":10} {"sessions":>8} {"turns":>7} {"Mtok":>8} {"Mtok/session":>13} {"ctx/turn":>9}')
+    add(f'  {"role":17} {"sessions":>8} {"turns":>7} {"Mtok":>8} {"Mtok/session":>13} {"ctx/turn":>9}')
     for role in sorted(m['by_role'], key=lambda r: -m['by_role'][r]['tok']):
         r = m['by_role'][role]
-        add(f'  {role:10} {r["sessions"]:>8} {r["turns"]:>7} {r["tok"]/1e6:>8.1f} '
+        add(f'  {role:17} {r["sessions"]:>8} {r["turns"]:>7} {r["tok"]/1e6:>8.1f} '
             f'{r["tok"]/max(r["sessions"],1)/1e6:>13.2f} {r["tok"]/max(r["turns"],1)/1000:>8.0f}k')
 
     add('')

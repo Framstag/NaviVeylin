@@ -12,7 +12,8 @@ python3 tools/loop-spend.py                  # the tables (about 5 s on the 1.8 
 python3 tools/loop-spend.py --quiet          # only the LOOP-SPEND-* lines, for a prompt or a script
 python3 tools/loop-spend.py --since 2026-10-24 --top 0
 python3 tools/loop-spend.py --json           # one object, for a caller that does not parse tables
-bash tools/loop-spend-selftest.sh            # 23 cases on a fixture the test writes itself
+bash tools/loop-spend-selftest.sh            # 27 cases on fixtures the test writes itself
+bash tools/loop-spend-selftest.sh --case spend#eachRoleTheEngineStartsIsChargedToItsOwnName
 ```
 
 A registry row watches the same number without being asked: `loop-spend` in `tools/sensors/sensors.json`
@@ -43,6 +44,18 @@ carries the model; this file is how to read it and what to do next.
   the expensive half, and the fix has to land there, not in the planning turns.
 - **Reads: duplicate=…** counts file reads that repeated a path the same session already had (45% of all reads
   over the archive, flat across the week — the prose rule in `tools/loop/prompts/worker.md` did not move it).
+
+## The per-role split is the engine's own
+
+`--json`'s `byRole` and the `Per session role` table charge each session to the role **the prompt file's name gives
+it**, exactly as `child_role` (`tools/loop/run.sh`) resolves that child — `*-tail*` → `worker-tail`, `*pre-gate*` →
+`reviewer-pre-gate`, `*gate*` → `worker-gate`, `*round2*` → `worker-rework`, `reviewer-*` → `reviewer`, `worker-*` →
+`worker`, in that order — because the run hands every child its prompt path (`run_child`) and that path is the
+session's first user message. So the roles the engine starts are the rows a model decision can be taken from: over
+this archive the same 730 sessions read `worker` 444 / `reviewer` 286 under the two-value rule, and `worker` 256 ·
+`worker-rework` 110 · `worker-tail` 46 · `worker-gate` 32 · `reviewer` 264 · `reviewer-pre-gate` 22 under it, at an
+unchanged total. The `roles` an item's record carries (`tools/loop/state.sh`, three names, written when the item
+closed) is a different reading with its own requirement, and is never this one.
 
 ## Use it as a before/after measurement
 

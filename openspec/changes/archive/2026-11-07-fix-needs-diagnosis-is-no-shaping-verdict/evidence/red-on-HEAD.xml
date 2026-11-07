@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames" tests="1" failures="1" errors="0" time="7" timestamp="2026-11-07T20:30:57Z">
+  <testcase name="run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames" classname="loop-selftest" time="7">
+    <failure message="the item carries exactly the labels roles.shapingVerdicts names for a needs-diagnosis skip (issue #738): expected 'agent/needs-decision agent/needs-shaping status/on-hold', got 'agent/needs-decision status/on-hold'"/>
+  </testcase>
+  <system-out>FAIL run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames loop-selftest: 1 of 1 cases failed (2026-11-07T20:30:57Z–20:31:04Z)</system-out>
+</testsuite>

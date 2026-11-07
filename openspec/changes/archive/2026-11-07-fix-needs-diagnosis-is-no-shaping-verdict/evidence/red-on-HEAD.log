@@ -1,0 +1,7 @@
+2026-11-07T20:30:57Z
+run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames|   the item carries exactly the labels roles.shapingVerdicts names for a needs-diagnosis skip (issue #738): expected 'agent/needs-decision agent/needs-shaping status/on-hold', got 'agent/needs-decision status/on-hold'
+--- run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames[0] (exit 1)
+  the item carries exactly the labels roles.shapingVerdicts names for a needs-diagnosis skip (issue #738): expected 'agent/needs-decision agent/needs-shaping status/on-hold', got 'agent/needs-decision status/on-hold'
+FAIL run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames
+loop-selftest: 1 of 1 cases failed
+2026-11-07T20:31:04Z

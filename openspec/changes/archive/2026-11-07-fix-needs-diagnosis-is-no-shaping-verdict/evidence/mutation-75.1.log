@@ -1,0 +1,9 @@
+2026-11-07T20:33:26Z
+loop-mutations: selected 1 of 285 records (labels: 75.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.bDqzh4
+RED    75.1  run#aShapingVerdictWritesTheLabel   (the shaping label written in the same call as the hold, so the item is never held and nameless to the queue that exists for it (capability `shaping-inbox`))
+       2026-11-07T20:33:28Z — the shaping label rides that write: '--add-label agent/needs-shaping' not found in: gh issue edit 21 --add-label status/on-hold --remove-label status/open
+restore 75.1 run#aShapingVerdictWritesTheLabel green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+2026-11-07T20:33:31Z

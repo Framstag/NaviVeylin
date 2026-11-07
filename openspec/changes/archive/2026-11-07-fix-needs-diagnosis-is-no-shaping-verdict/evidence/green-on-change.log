@@ -1,0 +1,13 @@
+2026-11-07T20:31:31Z
+PASS run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames
+PASS run#aShapingVerdictWritesTheLabel
+PASS run#aVerdictOutsideTheListWritesNoLabel
+PASS labels#verdictToLabelMatrix
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS run#theShapingInboxDoesNotCountAgainstTheCeiling
+loop-selftest: no such case: shaping#anEmptyListIsAnEmptyQueue
+2026-11-07T20:32:01Z
+PASS shaping#anEmptyListIsAnEmptyQueue
+PASS run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames
+PASS run#aShapingVerdictWritesTheLabel
+PASS labels#verdictToLabelMatrix

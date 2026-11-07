@@ -1,0 +1,9 @@
+## 2026-11-05T20:38:37Z driver cases after the flag, on the rebased tree ef7a3600
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+---
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+---
+FAIL driver#everyCaseDeclaresTheFilesItCanReach
+---
+PASS gate#theMapCoversEveryPipelineStep
+---

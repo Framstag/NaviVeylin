@@ -351,7 +351,7 @@ MUTATIONS=(
   # 54.11 — a leg's group selection is the map's own driver entry with a narrowing appended (issue #781): without
   # the strip, the suite the pipeline runs as three legs names the driver as a command the map does not carry, so
   # the loop's suite is red for a landing the pipeline would accept.
-  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip=.*$|  strip='"'"'s/ --from-git {base}$//'"'"'|'
+  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip() .*$|  strip() { sed -e '"'"'s/ --from-git [^ ]*$//'"'"'; }|'
   # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
   # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
   # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
@@ -485,6 +485,16 @@ MUTATIONS=(
   '53.9@-@../loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
   '53.10@-@../loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
   '53.11@-@../loop-selftest.sh@clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft@the sweep of the suite own scratch root on the way out, so a process a case left behind does not outlive it (issue #233)@s|^  loop_end_pids_under "\$tmp"$|  : # the mutation leaves the process behind|'
+  # A delta no case declares (issue #779). The driver answered that file set with one outcome only — the refusal — and a
+  # CI step handed a real delta needs the second: with `--allow-empty` the empty intersection is a statement naming the
+  # delta, and without the flag the refusal stands byte for byte. One mutation, the flag's branch removed, so the
+  # statement goes back to being a refusal; the case that reads the pair is the one named here.
+  '80.1@-@../loop-selftest.sh@driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt@the empty intersection stated rather than refused when the caller has declared it expects one (issue #779)@s|^  if \[ "\$allow_empty" -eq 1 \]; then$|  if false; then|'
+  # The pin compares the pipeline's command against the map's, and the delta the step is now handed is written as a
+  # run-time substitution (`${{ steps.delta.outputs.args }}`). Removing that half of the strip line puts the
+  # expression back into the comparison, so the pin reports the step as missing from the map — which is the state
+  # this tree was in from the leg split, before the normalisation existed.
+  '80.2@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the run-time substitution the pipeline makes stripped before the map is compared (issue #779)@s|^  strip() { sed -e .*--from-git \[\^ \]\*\$//.; }$|  strip() { sed -e '\''s/ --group [^ ]*$//'\'' -e '\''s/ --from-git [^ ]*$//'\''; }|'
   # One suite per repository (issue #295): the lock is taken at all, the pattern that is a suite is told from the one
   # named case that is not, the lease lets a suite whose owner is gone take it over, and the release leaves the
   # repository free for the suite after it.

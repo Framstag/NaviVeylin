@@ -1,0 +1,32 @@
+## red-run attribution — the whole set under two other agent sessions on one host
+
+The tree of this change declares 315 cases. It was run whole twice while other worktrees of the same host ran
+their own suites (`load average` reached 30 and 45 on 16 cores), and both runs reported only `run#` cases that
+end a child on a wall clock and then read what it left — the class `guidelines/BuildTests.md` §6e names as the
+wall-clock-dependent one:
+
+- `full-set-contended.log`, 2026-11-05T19:24:11Z, 4 of 315:
+  `run#detachedProcessInTheWorktreeIsEndedByTheCap`, `run#treeOfAChildTheCapEndedIsNotCommitted`,
+  `run#treeOfACapEndedChildIsKeptAsAPatch`, `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`.
+- `full-set-contended-2.log`, 2026-11-05T20:07:04Z, 6 of 315: the four above plus `stub#watchesForIt` and
+  `driver#aCaseThatLeavesAProcessBehindIsSweptWithIt`.
+
+Three things say the host, not this change:
+
+1. Each of the first four cases passes when run alone on this tree:
+   `bash tools/loop-selftest.sh --case run#<name>` → `PASS` for all four (2026-11-05T20:26Z).
+2. The three cap cases pass alone on the base tree as well (`077b1e7e`/`caf44b92`): the same command on a detached
+   worktree of `main` → `PASS`, three of three.
+3. The base tree fails the identical four cases when its `run` group is run whole under the same load:
+   `base-run-group-contended.log`, 2026-11-05T20:08:39Z, `run` group only, 4 of 116 — the same four names, on a
+   tree that does not carry this change.
+
+This change touches the driver's argument handling and refusal branch, one case in `tools/loop-cases.sh`, two
+mutation records and the pin's normalisation; none of them reaches the child cap those cases exercise.
+
+One further transient was seen once and not again: `driver#everyCaseDeclaresTheFilesItCanReach` failed while the
+host was at load 28, and passed in the four runs around it and inside the green whole run below. Its only
+non-`awk` inputs are `tools/loop-selftest.sh --case-files` (317 lines, stable over five calls) and the tree, so no
+mechanism of this change reaches it either.
+
+The set was then run whole again, alone, once the host was idle — `full-set.log`.

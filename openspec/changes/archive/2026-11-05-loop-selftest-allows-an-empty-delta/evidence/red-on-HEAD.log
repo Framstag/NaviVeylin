@@ -1,0 +1,9 @@
+2026-11-05T08:10:22Z
+# red on HEAD (ec58cb91): the case asks for a flag the driver does not have
+# command: bash tools/loop-selftest.sh --case driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt|   an empty delta the caller declared is not a failure: loop-selftest: unknown argument --allow-empty: expected '0', got '2'
+--- driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt[0] (exit 1)
+  an empty delta the caller declared is not a failure: loop-selftest: unknown argument --allow-empty: expected '0', got '2'
+FAIL driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+loop-selftest: 1 of 1 cases failed
+exit=1

@@ -347,6 +347,7 @@ LOOP_SHELL_CASES=(
   'driver#theCoreIsCompiledOncePerSuite'
   'driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns'
   'driver#aFileSetThatNamesNoCaseIsRefused'
+  'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt'
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#theSuiteRunsItsCasesInAPool'
@@ -746,6 +747,7 @@ loop_run_shell_case() {
     'driver#theCoreIsCompiledOncePerSuite') fn=case_driver_theCoreIsCompiledOncePerSuite ;;
     'driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns') fn=case_driver_aFileFilterRunsOnlyTheCasesTheDeltaOwns ;;
     'driver#aFileSetThatNamesNoCaseIsRefused') fn=case_driver_aFileSetThatNamesNoCaseIsRefused ;;
+    'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt') fn=case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
@@ -4135,9 +4137,14 @@ case_gate_theMapCoversEveryPipelineStep() {
   # The commands a check step runs: a step named `Check …` is a check (a publish step writes the tree and is not
   # one), and its commands are the `bash <path> …` lines it runs — inline after `run:` or one per line inside a
   # `run: |` block. A trailing `|| { … }` is the workflow's own error handling, not part of the command.
-  # The narrowing the gate appends is not part of the pipeline's command, and neither is a selection the pipeline
-  # varies per leg: both are stripped from the map's values and the pipeline's commands before they are compared.
-  strip='s/ --from-git {base}$//; s/ --group [^ ]*$//'
+  #
+  # The map names the command the pipeline runs, and the pipeline varies parts of it *at run time*: a leg narrows the
+  # run with `--group <selection>`, and the step is handed the delta it owes as `${{ steps.delta.outputs.args }}`,
+  # which carries `--from-git <base>`. A substitution the pipeline makes is not part of the command the map names,
+  # and neither is the gate's own `--from-git {base}` narrowing on the map's side, so both sides are compared on
+  # what they have in common. A leg runs *fewer* of the cases the map's driver entry runs — the map's entry is the
+  # broader claim — so a leg answers to that entry and needs no pair of its own (issue #781, issue #779).
+  strip() { sed -e 's/ \${{[^}]*}}//' -e 's/ --group [^ ]*$//' -e 's/ --from-git [^ ]*$//'; }
   cmds=$(awk '
     /^[[:space:]]*- name:/ { name=$0; sub(/^[[:space:]]*- name:[[:space:]]*/, "", name); incheck=(name ~ /^Check /); next }
     incheck {
@@ -4148,10 +4155,10 @@ case_gate_theMapCoversEveryPipelineStep() {
         sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*[|&;].*$/, "", line); print line
       }
     }' "$LOOP_PROJECT_ROOT/$pipeline" \
-    | sed -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
+    | sed -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | strip | sort -u)
   [ -n "$cmds" ] || fail "the pipeline at $pipeline names no shell gate command: the pin would pass over nothing"
   map=$(sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' "$conf" | tr ';' '\n' \
-    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
+    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | strip | sort -u)
   [ -n "$map" ] || fail "the profile's suite map is empty"
   missing=$(comm -13 <(printf '%s\n' "$map") <(printf '%s\n' "$cmds"))
   [ -z "$missing" ] || fail "the suite map carries none of these commands the pipeline's Check steps run: $(printf '%s' "$missing" | tr '\n' ' ')"
@@ -11781,6 +11788,49 @@ case_driver_aFileSetThatNamesNoCaseIsRefused() {
 
   out=$(LOOP_CONF="$conf" bash "$driver" --files tools/loop-cases.sh 2>&1); status=$?
   assert_eq "2" "$status" "a path in the tree that no case declares is the same refusal: $out"
+  return 0
+}
+
+# The refusal above is written for a caller who mistyped a path, and it is right there. A caller handed a real delta
+# asks a different question — "does this delta owe any case?" — and "no" is its ordinary answer: most paths in this
+# repository are declared by no case, because a case declares the engine scripts it can be reached through. The two
+# answers share one status and one sentence, so a caller that narrows cannot tell them apart and must refuse both.
+# `--allow-empty` is the caller saying which question it is asking: the empty intersection becomes a statement that
+# names the delta and the declared set, runs nothing and exits 0, while the same file set without the flag is the
+# refusal it always was. The flag states emptiness; it does not make a file set valid, and it does not swallow a
+# selection that is not empty.
+case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d driver conf out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_SELECTION_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+
+  # A real delta the case set does not declare — an application path, which no case reaches. With the flag it is a
+  # statement carrying the file set and the declared set it selected against, and no case runs.
+  out=$(LOOP_CONF="$conf" bash "$driver" --allow-empty \
+    --files app/src/main/java/com/naviveylin/MainActivity.kt 2>&1); status=$?
+  assert_eq "0" "$status" "an empty delta the caller declared is not a failure: $out"
+  assert_contains "$out" "LOOP-SELFTEST: no case declares the delta" "and it is stated, not swallowed: $out"
+  assert_contains "$out" "files: app/src/main/java/com/naviveylin/MainActivity.kt" "naming the file set it read: $out"
+  assert_contains "$out" "0 of 4 declared" "and the declared set it selected against: $out"
+  assert_eq "" "$(cat "$STUB_RUN_LOG")" "no case ran"
+
+  # The same file set without the flag is the refusal, byte for byte: a caller that has not said it expects emptiness
+  # cannot be told by the driver that emptiness is what it found.
+  out=$(LOOP_CONF="$conf" bash "$driver" \
+    --files app/src/main/java/com/naviveylin/MainActivity.kt 2>&1); status=$?
+  assert_eq "2" "$status" "the same file set without the flag is still refused: $out"
+  assert_contains "$out" "names no case of the 4 declared" "with the refusal it always printed: $out"
+  assert_eq "" "$(cat "$STUB_RUN_LOG")" "and neither invocation ran a case"
+
+  # The flag is about the intersection and never about the selection: a file set that does name a case still runs it.
+  out=$(LOOP_CONF="$conf" bash "$driver" --allow-empty --files tools/loop/gate.sh 2>&1); status=$?
+  assert_eq "0" "$status" "a delta that owes a case runs it under the flag: $out"
+  assert_eq "stub#ownsGate" "$(cat "$STUB_RUN_LOG")" "and the case it names is the one that ran"
+  assert_contains "$out" "selected 1 of 4 cases" "with the selection stated as the flag narrowed nothing: $out"
   return 0
 }
 

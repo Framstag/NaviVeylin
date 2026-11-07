@@ -1,0 +1,16 @@
+# gate#theMapCoversEveryPipelineStep, and the command the loop-suite step runs
+# measured 2026-11-05T08:20:48Z in the change worktree
+
+## the base ec58cb91 (no normalisation, as the case stood before this change)
+$ git show ec58cb91:.github/workflows/build.yml | <extract the Check steps>
+tools/loop-selftest.sh --group "$g"
+## the map's own driver entry: 4 entries read `tools/loop-selftest.sh --from-git {base}`
+=> the base names `tools/loop-selftest.sh --group "$g"`, which the map does not carry: red from a32b1dfa.
+
+## this change's tree, with the substitution dropped from both sides
+tools/loop-selftest.sh ${{ steps.delta.outputs.args }} --group "$g"
+tools/loop-selftest.sh
+tools/loop-selftest.sh
+tools/loop-selftest.sh
+tools/loop-selftest.sh
+=> both sides read `tools/loop-selftest.sh`.

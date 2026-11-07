@@ -1016,6 +1016,16 @@ the tracker refused with the item it left stale. A count is not
 an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.
 
+Every one of those figures is a comparison, and since #815 the bound it is read against travels with it: the state
+records the three numbers its children's numbers were measured against — the character bound a tool result is cut at
+(`run.toolResultMaxChars`) and the two context bounds an item's largest context is read against
+(`run.itemContextWarn`, `run.itemContextMax`), each the value the configuration recorded and `0` when it records none
+— `state.sh show` prints them on a `bounds` line and the report names them beside the budget. Both readings depend on
+that number: the archive's `LOOP-SPEND-CAP4K` against `LOOP-SPEND-CAP8K` is two bounds' worth of spend, and an item's
+`context` column is only readable as "near the stop that ended it" beside the stop. Without it in the record, the
+comparison was of whatever `tools/loop/loop.conf` held when somebody read it — and that file is one line a person
+edits between runs, which is exactly how the experiment #791 asks for (one run at another cap) is run.
+
 Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
 faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, the
 run's tool calls per turn beside the items below its recorded floor (#757), and — since #759 — where the spend went,

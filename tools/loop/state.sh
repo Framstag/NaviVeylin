@@ -103,6 +103,19 @@ need_jq() {
 now_epoch() { date +%s; }
 iso_utc() { date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ; }
 
+# What the configuration file records, read from the file and never from the shell variable (issue #815): the
+# adapter exports `LOOP_TOOL_RESULT_MAX_CHARS` into every child it starts, so a run started from inside one inherits
+# the parent's bound, and `loop_conf_value` — which reads the sourced variable — would report it as this run's even
+# where the configuration records none. Absent, empty or non-numeric is `0`, the "no bound" every reader of these
+# keys already knows. This is the read `tools/pi-child-events.sh` and `tools/gate-attribute.sh` make of the keys they
+# apply: read, never sourced.
+recorded_bound() { # <key> → the number the run's configuration file records
+  local value
+  value=$(sed -n 's/^'"$1"'="\{0,1\}\([0-9][0-9]*\)"\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF_PATH" | tail -1)
+  case "$value" in ''|*[!0-9]*) value=0 ;; esac
+  printf '%s' "$value"
+}
+
 digest_of() { # digest of a file's canonical JSON, without the digest field itself
   if command -v sha256sum >/dev/null 2>&1; then
     jq -cS 'del(.stateDigest)' "$1" | sha256sum | cut -c1-16
@@ -226,22 +239,38 @@ cmd_init() {
 
   keep_replaced_state
   local started deadline
+  # The bounds an item's numbers are read against travel with the numbers (issue #815). Every figure the report
+  # prints for an item is a comparison: its `context` column against the stop that ended it, its tokens against
+  # `LOOP_ITEM_TOKENS_WARN`, and its tool results against the character bound the adapter cuts them at. Those three
+  # numbers used to live only in `tools/loop/loop.conf`, which is a line a person edits between runs — so a run at
+  # another bound (the one experiment #791's 200 104-token cut asks for) left a state whose figures nobody could read
+  # back as the figures of *that* bound. Recorded once, and `0` where the configuration records none.
+  local tool_result_max context_warn context_max
+  tool_result_max=$(recorded_bound LOOP_TOOL_RESULT_MAX_CHARS)
+  context_warn=$(recorded_bound LOOP_ITEM_CONTEXT_WARN)
+  context_max=$(recorded_bound LOOP_ITEM_CONTEXT_MAX)
   started=$(now_epoch)
   deadline=$(( started + minutes * 60 ))
   write_state "$(jq -n \
     --argjson items "$items" --argjson minutes "$minutes" --argjson maxDecisions "$max_decisions" \
     --argjson maxReviewRounds "$max_review_rounds" --argjson ownerPid "$owner_pid" \
     --argjson started "$started" --argjson deadline "$deadline" \
+    --argjson toolResultMaxChars "$tool_result_max" --argjson itemContextWarn "$context_warn" \
+    --argjson itemContextMax "$context_max" \
     --arg review "$review" --arg mayClose "$may_close" --arg base "$base" \
     --arg startedAt "$(iso_utc "$started")" --arg deadlineAt "$(iso_utc "$deadline")" \
     '{run:{items:$items, minutes:$minutes, review:$review, mayClose:$mayClose,
            maxDecisions:$maxDecisions, maxReviewRounds:$maxReviewRounds, base:$base,
+           toolResultMaxChars:$toolResultMaxChars, itemContextWarn:$itemContextWarn,
+           itemContextMax:$itemContextMax,
            ownerPid:$ownerPid,
            startedAt:$startedAt, startedEpoch:$started,
            deadlineAt:$deadlineAt, deadlineEpoch:$deadline},
       queue:[], excluded:[], current:null, items:[], steps:[]}')"
   printf 'state: budget %s items / %s min · review %s · may-close %s · max-decisions %s · max-review-rounds %s · base %s\n' \
     "$items" "$minutes" "$review" "$may_close" "$max_decisions" "$max_review_rounds" "${base:0:12}"
+  printf 'state: bounds result %s · context warn %s · context max %s\n' \
+    "$tool_result_max" "$context_warn" "$context_max"
   printf 'state: deadline %s\n' "$(iso_utc "$deadline")"
 }
 
@@ -272,6 +301,7 @@ cmd_show() {
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
+      "bounds   result bound \($r.toolResultMaxChars // "?") · context warn \($r.itemContextWarn // "?") · context max \($r.itemContextMax // "?")",
       "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
       "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",

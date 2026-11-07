@@ -908,6 +908,12 @@ MUTATIONS=(
   # itself `agent/needs-decision`. The sibling record 80.2 quotes the reviewer's cut (`"\$1" cut >&2`) and cannot
   # reach a line that ends `"\$1" rework-cut`, so this one site is the record the guard that writes it owes.
   '94.1@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the rework record written on the branch, so a later pre-screen reads the phase the run ended as work instead of a question its owner owes an answer to (issue #817)@s|^        record_rework_cut "\$round"$|        : # the mutation leaves the rework cut recorded nowhere|'
+  # 95.x — the bounds an item's numbers are read against travel with the numbers (issue #815). The state named the
+  # budget and the review rounds and nothing of the bound its children's tool results were cut at, so a run made at
+  # another `LOOP_TOOL_RESULT_MAX_CHARS` — the one experiment #791's 200 104-token cut asks for — left a record whose
+  # figures nobody could read back as that bound's. The record writes the value it read from the configuration; the
+  # mutation writes a number no configuration holds.
+  '95.1@-@tools/loop/state.sh@state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst@the character bound the run recorded for every tool result it cut, so a run at another bound is a record a reader can tell apart (issue #815)@s|--argjson toolResultMaxChars "\$tool_result_max"|--argjson toolResultMaxChars 0|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

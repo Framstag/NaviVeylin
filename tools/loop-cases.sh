@@ -47,6 +47,7 @@ LOOP_SHELL_CASES=(
   'state#aBlockedItemNamesTheMechanismThatStoppedIt'
   'state#anAdoptionRefusalIsRecordedBesideTheExclusion'
   'state#defaultsComeFromLoopConf'
+  'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
   'state#agentCommandRefusesAnEmptyValue'
@@ -451,6 +452,7 @@ loop_run_shell_case() {
     'state#aBlockedItemNamesTheMechanismThatStoppedIt') fn=case_state_aBlockedItemNamesTheMechanismThatStoppedIt ;;
     'state#anAdoptionRefusalIsRecordedBesideTheExclusion') fn=case_state_anAdoptionRefusalIsRecordedBesideTheExclusion ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
+    'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst') fn=case_state_theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
     'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
@@ -1572,6 +1574,60 @@ case_state_baseBranchIsAConfigurationKey() {
   ( export LOOP_BASE_REF="$other"; run_state "$p" init --items 1 --minutes 30 >/dev/null 2>&1 ) ||
     fail "init with an inherited base branch failed"
   assert_eq "$env_tip" "$(run_state "$p" get run.base)" "an inherited LOOP_BASE_REF wins over the recorded key"
+}
+
+# What a run's numbers were measured against travels with them (issue #815). The item that prices the result cap
+# (#791: 69 trims cut 817 168 characters down to 552 000 and the item still died at a 200 104-token context) asks for
+# one run at another `LOOP_TOOL_RESULT_MAX_CHARS`, judged against the 8 000 baseline — and the state of neither run
+# named the bound it ran under. The value has one home, `tools/loop/loop.conf`, which is a line a person edits between
+# runs, so the comparison was read off that file at the time somebody read it rather than off the record. The run now
+# records the three numbers an item's figures are read against: the character bound a result is cut at, and the
+# warning and stop bounds on the context an item's turns cost. The case pins each to the file's own number rather
+# than to a literal, so a key that moves and a record that stops following it are the same failure.
+case_state_theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst() {
+  # files: tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p result warn max out none f
+  d=$(scratch); p=$(new_project)
+  result=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  warn=$(sed -n 's/^LOOP_ITEM_CONTEXT_WARN=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  max=$(sed -n 's/^LOOP_ITEM_CONTEXT_MAX=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  [ -n "$result" ] || fail "loop.conf records no LOOP_TOOL_RESULT_MAX_CHARS — the bound a result is cut at has no recorded value"
+  [ -n "$warn" ] && [ -n "$max" ] \
+    || fail "loop.conf records no context bound — the largest context an item reached is read against nothing"
+  init_state "$p" 1 90
+  assert_eq "$result" "$(run_state "$p" get run.toolResultMaxChars)" \
+    "the record names the character bound its items' results were cut at"
+  assert_eq "$warn" "$(run_state "$p" get run.itemContextWarn)" \
+    "and the context at which the run flags an item"
+  assert_eq "$max" "$(run_state "$p" get run.itemContextMax)" "and the context that ends one"
+  out=$(run_state "$p" show)
+  assert_contains "$out" "result bound $result" \
+    "the live view prints the bound beside the item whose numbers it was measured against: $out"
+  assert_contains "$out" "context max $max" "and the stop an item's largest context is read against: $out"
+  assert_contains "$(run_report "$p")" "result bound $result" \
+    "the report names the same number in the header its figures are read with"
+  # A configuration that records none is `0` — no bound, the value every reader of these keys already treats as one —
+  # and a state written before the record carried the key prints it as unrecorded rather than as `0`. The second half
+  # edits the state by hand because that is exactly what a state from an earlier run is to this reader (the writer of
+  # the state reports the edit as drift, and still reports the figures).
+  none="$d/no-result-bound.conf"
+  sed '/^LOOP_TOOL_RESULT_MAX_CHARS=/d' "$LOOP_CONF" > "$none"
+  ( export LOOP_CONF="$none"; run_state "$p" init --items 1 --minutes 90 >/dev/null 2>&1 ) \
+    || fail "init against a configuration that records no result bound failed"
+  assert_eq "0" "$(run_state "$p" get run.toolResultMaxChars)" \
+    "a configuration that records no result bound is recorded as 0, never as the number the last run used"
+  assert_eq "$max" "$(run_state "$p" get run.itemContextMax)" \
+    "and the bound it does record keeps its own number"
+  sed 's/^LOOP_TOOL_RESULT_MAX_CHARS=.*/LOOP_TOOL_RESULT_MAX_CHARS=0/' "$LOOP_CONF" > "$d/unbounded.conf"
+  ( export LOOP_CONF="$d/unbounded.conf"; run_state "$p" init --items 1 --minutes 90 >/dev/null 2>&1 ) \
+    || fail "init against a configuration that records 0 as the result bound failed"
+  assert_eq "0" "$(run_state "$p" get run.toolResultMaxChars)" \
+    "and the value that means no bound is recorded as the same 0, not as a second word for it"
+  f=$(state_file "$p")
+  jq 'del(.run.toolResultMaxChars)' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+  out=$(run_state "$p" show)
+  assert_contains "$out" "result bound ?" \
+    "a state written before the field existed is printed as unrecorded, never as 0: $out"
 }
 
 case_state_defaultsComeFromLoopConf() {

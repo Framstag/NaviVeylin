@@ -142,6 +142,7 @@ LOOP_SHELL_CASES=(
   'prompt#thePhasePromptNamesWhatItsShellRefuses'
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
+  'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen'
   'run#blockedItemAsksItsOwnQuestion'
   'run#falsifiedSkipClosesWithItsMeasurement'
   'run#falsificationWithoutAMeasurementIsEscalated'
@@ -540,6 +541,7 @@ loop_run_shell_case() {
     'prompt#thePhasePromptNamesWhatItsShellRefuses') fn=case_prompt_thePhasePromptNamesWhatItsShellRefuses ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
+    'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen') fn=case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
     'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
     'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
@@ -2372,11 +2374,13 @@ case_prescreen_itemAwaitingADecisionIsNotQueued() {
 # stopped every future run (measured 2026-10-20: 12 items against a cap of 3).
 case_prescreen_aHoldWithNoDecisionIsNotADecision() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local p out status log
-  p=$(new_project)
+  local d p out status log
+  d=$(scratch); p=$(new_project)
   init_state "$p" 1 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario held)
-  log="$p/gh.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  # The log lives outside the project: the pre-screen step below writes it, and the run after it refuses a project
+  # tree that carries uncommitted work — a file the case's own tracker stub left there is not that (#798).
+  log="$d/gh.log"; : > "$log"; export GH_STUB_RECORD="$log"
 
   out=$(run_prescreen "$p" --json); status=$?
   assert_eq "3" "$status" "a backlog whose only item is a bare hold is 'nothing eligible'"
@@ -3922,6 +3926,37 @@ case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen() {
   assert_eq "0" "$(jq -r '.queue | length' "$f")" "the pre-screen was not paid for"
   assert_eq "0" "$(jq -r '.items | length' "$f")" "and no item was started"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+  return 0
+}
+
+# The start-time pre-flight reads the checkout this tree holds (issue #301) and the dirt in the kept worktree, and not
+# the uncommitted work in the tree the landing step merges into — which only `worktree.sh`'s `merge-item` and
+# `adopt-item` read, at the end of an item's life. Measured over this loop's archive (#798): four items were recorded
+# `unmergeable` for exactly that reason (#668, #675, #769, #782), the last of them for the two files a person had left
+# in the tree, so one dirty pair cost a run and two items before any refusal was read. The refusal is the pre-flight's
+# and not a cleanup: the run's own leftovers are already kept as the item's own patch, and what is left in this tree
+# may be an edit its owner made while no run was live — which is why `--reset-worktree` is not offered here.
+case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen() {
+  # files: tools/loop/run.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local d p out status f reason
+  d=$(scratch); p=$(new_project)
+  printf 'wip\n' > "$p/tools/wip-notes.txt"
+  stub_success "$d"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  f=$(state_file "$p")
+  assert_eq "5" "$status" "a run whose project tree carries uncommitted work is refused"
+  assert_contains "$out" "tools/wip-notes.txt" "the refusal names the path its tree carries"
+  assert_contains "$out" "the run cannot tell its own leftover" "and says what it may not decide, so nothing is discarded"
+  assert_not_contains "$out" "loop: pre-screen ·" "the pre-screen was not paid for"
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" "tools/wip-notes.txt" "the reason records the path, so a later reader has it"
+  assert_contains "$out" "$reason" "and the printed report names it too"
+  assert_eq "0" "$(jq -r '.queue | length' "$f")" "no queue was built"
+  assert_eq "0" "$(jq -r '.items | length' "$f")" "and no item was started"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+  assert_eq "" "$(cat "$GH_STUB_RECORD" 2>/dev/null || true)" "no label was written — no adoption was attempted and nothing was escalated"
+  [ -f "$p/tools/wip-notes.txt" ] || fail "the refusal discarded the file it found"
   return 0
 }
 
@@ -7306,9 +7341,14 @@ case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p base branch log
   d=$(scratch); p=$(new_project)
-  printf 'work in progress\n' > "$p/uncommitted.txt"
   base=$(git -C "$p" rev-parse main)
-  run_one_item "$p" "$d" --review on >/dev/null 2>&1 || fail "the run itself failed"
+  # The tree the merge lands in is dirtied while the run is *live*, by the item's own child: a tree that is already
+  # dirty when the run starts is refused by the start-time pre-flight, before any item (#798), so what this case
+  # measures is the landing step's own refusal of that same tree.
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    "printf 'work in progress\\n' > '$p/uncommitted.txt'"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
     "a closure whose merge the base cannot take is blocked, not settled"
   assert_eq "unmergeable" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
@@ -7381,7 +7421,7 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
 # tree that was not clean — 12 h after the owner had answered the item's only real question, and one of the ten
 # decision slots of that run.
 case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/fixtures/scenarios/ tools/issues/fixtures/gh tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status branch base log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7402,9 +7442,16 @@ case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable() {
     fail "could not commit the previous attempt"
   git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
   base=$(git -C "$p" rev-parse main)
-  # the tree the merge lands in carries work nobody committed: the cheapest refusal `adopt-item` has
-  printf 'work nobody committed\n' > "$p/uncommitted.txt"
-  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+  # The tree the merge lands in is dirtied while the run is *live*: a tree that is already dirty when the run starts
+  # is refused by the start-time pre-flight, before any adoption (#798). The dirt arrives with the run's first tracker
+  # read — the one the decision cap makes, before the pre-screen — which is the window a person's edit occupies, so
+  # `adopt-item`'s own refusal, the cheapest one it has, stays the reading this case is about.
+  mkdir -p "$d/bin"
+  printf '#!/usr/bin/env bash\ncase "$*" in *"issue list"*) printf "work nobody committed\\n" > "%s" ;; esac\nexec %s "$@"\n' \
+    "$p/uncommitted.txt" "$LOOP_ISSUE_FIXTURES/gh" > "$d/bin/gh"
+  chmod +x "$d/bin/gh"
+  export PATH="$d/bin:$PATH"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
 
   out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
   assert_eq "0" "$status" "an adoption the tree refuses is an explicit non-error"
@@ -9171,7 +9218,7 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
-  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
   stub_success "$d"
 
   out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 10 2>&1)

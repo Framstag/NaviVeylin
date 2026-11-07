@@ -850,6 +850,12 @@ MUTATIONS=(
   '89.2@-@tools/loop/run.sh@run#aRotatedStreamStillCountsTheTurnsItDropped@the turns a rotated stream records added to the ones it still holds, so a child bound falls back to zero whenever the writer rotates (issue #802)@s#"$(( n + r ))"#"$n"#'
   '89.3@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the age gate that keeps an item directory an open issue may still cite, so a directory written a minute ago is released (issue #802)@s#-mmin -$(( archive_days \* 1440 ))#-mmin -0#'
   '89.4@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the run state reading of a landed and closed item, so a landed item is released whatever its issue still cites (issue #802)@s#(.metrics.closed // "no") == "yes"#(true)#'
+  # 90.1 — the start-time pre-flight refuses a project tree that carries uncommitted work, because the landing step
+  # merges into that tree and both of its merges refuse dirt there (issue #798). Without the guard the refusal arrives
+  # after the item's whole budget and its gate: measured over this loop's archive, four items were recorded
+  # `unmergeable` for it (#668, #675, #769, #782), and #782's two files cost one run and two items. The sed removes the
+  # guard alone, so the case this record names fails on the exit it expects and on the paths nothing printed.
+  '90.1@-@tools/loop/run.sh@run#aDirtyProjectTreeIsRefusedBeforeThePreScreen@the refusal of a run whose project tree carries uncommitted work, so the landing step refuses it after the item and its gate (issue #798)@s|^if \[ -n "\$project_dirt" \]; then$|if false; then|'
   # 91.1 is issue #797's invariant: the empty tree read at the diff, before the child that would run the gate. Without
   # it the run commits the change child's nothing, starts the tail anyway, and reads its own "could not start" stop on
   # the tail's empty answer — the item is not even recorded, and the gate phase the reading would have refused is what

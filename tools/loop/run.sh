@@ -350,6 +350,9 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
   local close_args=("$issue" \
     --reason "a previous attempt finished this item and was merged, not re-run" \
     --evidence "branch $merged_branch (commits $merged_commits), $worktree/openspec/changes/archive/$merged_change, evidence checked: $merged_evidence")
+  # The commit the landing made is what the closure's claim rests on (#715): `base` is the branch this function
+  # has just re-read, the same commit it records as `merged.sha` below.
+  [ -z "$base" ] || close_args+=(--landed "$base")
   if [ "$may_close" = "no" ]; then close_args+=(--no-close); fi
   local closure="no"
   if loop_labels close "${close_args[@]}" >&2; then
@@ -2840,6 +2843,8 @@ while true; do
 $review_notes_text"
       fi
       close_args=("$issue" --reason "$close_reason" --evidence "$evidence_paths")
+      # The commit the landing made, for the same reason (#715): `merged_sha` is the base re-read after the merge.
+      [ -z "$merged_sha" ] || close_args+=(--landed "$merged_sha")
       if [ "$may_close" = "no" ]; then close_args+=(--no-close); fi
       if loop_labels close "${close_args[@]}"; then closure="$(if [ "$may_close" = yes ]; then printf yes; else printf skipped; fi)"; fi
       # The waiver travels only when the child recorded one: `--gate-waived` is refused beside a gate that passed,

@@ -30,14 +30,15 @@
 #   exclude-feature · exclude-settled       + agent/<verdict>, status and the opt-in untouched — the
 #                                           pre-screen's own refusal, which a person clears
 #   close                                   − agent/in-progress, + status/fixed-by naming the transition, then the
-#                                           closure
+#                                           closure — and, when `--landed <commit>` names the commit the
+#                                           landing made, only if the base branch carries it (#715)
 #   escalate                                + agent/needs-decision + status/on-hold, and a comment that
 #                                           names the root cause, the failing case and the branch
 #
 # Exit: 0 ok, 2 usage, 3 policy (propagated from the tooling), 5 refuse.
 #
 # Usage: labels.sh <verdict> <issue-number> [--change <name>] [--reason <text>] [--evidence <text>]
-#                  [--no-close]
+#                  [--landed <commit>] [--no-close]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -53,12 +54,14 @@ shift 2 2>/dev/null || true
 change=""
 reason=""
 evidence=""
+landed=""
 may_close=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --change) need_value "$@"; change="${2:-}"; shift 2 ;;
     --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
     --evidence) need_value "$@"; evidence="${2:-}"; shift 2 ;;
+    --landed) need_value "$@"; landed="${2:-}"; shift 2 ;;
     --no-close) may_close=0; shift ;;
     *) loop_die "labels: unknown argument $1" ;;
   esac
@@ -174,6 +177,31 @@ if [ "$close_issue" -eq 1 ] || [ "$escalate" -eq 1 ] || [ "$comment_only" -eq 1 
   [ -n "$evidence" ] || loop_die "labels: $verdict needs --evidence (the paths that carry the proof)"
 fi
 
+# The closure's claim is read *before* the state it settles is written (#715): `close.sh` refuses a commit the base
+# branch does not carry, but the loop reaches it only after its own `status/fixed-by` write, so that refusal landed
+# on an item that already read settled — and a settled item is one no later run revisits. Asking the same question
+# here means a refused closure writes nothing at all: no state, no comment, no close.
+if [ -n "$landed" ]; then
+  [ "$close_issue" -eq 1 ] ||
+    loop_die "labels: --landed belongs to the close verdict — another verdict claims no landing to check"
+  landed_check=0
+  loop_landed_on_base "$landed" || landed_check=$?
+  if [ "$landed_check" -ne 0 ]; then
+    base_ref=$(loop_base_ref)
+    case "$landed_check" in
+      2) landed_detail="$landed does not resolve in this tree, so the base branch cannot carry it" ;;
+      3) landed_detail="the base branch $base_ref does not resolve in this tree, so the claim cannot be read" ;;
+      *) landed_detail="$landed is not on the base branch $base_ref — the landing is still owed, and a closure records a fix the tree has (the same branch, landed by \`worktree.sh adopt-item\`, or a commit that is on $base_ref)" ;;
+    esac
+    printf 'not-on-base: %s\n' "$landed_detail"
+    printf 'labels: refusing to record %s on #%s — nothing was written, and the item keeps the state it carries\n' \
+      "$status_value" "$issue" >&2
+    # The tooling's policy code, so a caller reads a refused claim exactly as it reads a refused closure
+    # (`close.sh` exits 3 for the same reason).
+    exit 3
+  fi
+fi
+
 if [ "${#add_labels[@]}" -gt 0 ] || [ "${#remove_labels[@]}" -gt 0 ] || [ -n "$status_value" ]; then
   loop_issue_tool update.sh "${args[@]}" >&2 || exit $?
 fi
@@ -190,6 +218,9 @@ if [ "$close_issue" -eq 1 ] || [ "$escalate" -eq 1 ] || [ "$comment_only" -eq 1 
     comment_reason="$shaping_line"$'\n\n'"**The shaping:** $reason"
   fi
   close_args=("$issue" --reason "$comment_reason" --evidence "$evidence")
+  # The commit the claim rests on travels with the closure: `close.sh` reads it against the base branch itself, so a
+  # caller that reaches the closure another way meets the same refusal (#715).
+  [ -z "$landed" ] || close_args+=(--landed "$landed")
   # `--may-close no` keeps the item open and still posts the comment: the deliverable is the evidence,
   # and whether the item is done is then a person's decision (D8). An escalation always leaves it open
   # for the same reason — the decision is the owner's.

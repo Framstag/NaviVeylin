@@ -84,6 +84,7 @@ ISSUES_SHELL_CASES=(
   'close#writesNothingWhenTheItemAlreadyCarriesTheState'
   'close#refusesAProfileThatNamesNoSettledState'
   'close#namesTheSettledStateItDisplaces'
+  'close#refusesAClosureTheBaseDoesNotCarry'
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#theQuestionIsNotTheVerdictWord'
   'decisions#emptyQueueIsNotAnError'
@@ -237,6 +238,7 @@ issues_run_shell_case() {
     'close#writesNothingWhenTheItemAlreadyCarriesTheState') case_close_writesNothingWhenTheItemAlreadyCarriesTheState ;;
     'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
     'close#namesTheSettledStateItDisplaces') case_close_namesTheSettledStateItDisplaces ;;
+    'close#refusesAClosureTheBaseDoesNotCarry') case_close_refusesAClosureTheBaseDoesNotCarry ;;
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
@@ -2010,6 +2012,78 @@ case_close_namesTheSettledStateItDisplaces() {
   edit=$(grep 'issue edit' "$log" || true)
   assert_contains "$edit" "--add-label status/retired" "the settled state the closure records is set"
   assert_contains "$edit" "--remove-label status/fixed-by" "and the settled state it displaces is removed"
+  return 0
+}
+
+# A closure is a claim that the fix is in the tree, and a branch is exactly what the base may carry none of: on
+# 2026-10-30 five items read `CLOSED status/fixed-by` while their commits sat on a branch the base never received
+# (issue #715). The closure therefore reads the commit its claim rests on (`--landed`) against the base branch
+# before it writes anything, and refuses with the reason `not-on-base` when the branch does not carry it. The
+# base branch is the profile's `baseBranch`, falling back to the repository's own default branch, because the name
+# is this project's and an engine names none (`tools/check-portability.sh`).
+case_close_refusesAClosureTheBaseDoesNotCarry() {
+  local dir repo log out status landed base profile
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"; repo="$dir/repo"
+  mkdir -p "$repo"
+  git -C "$repo" init -q -b main || fail "could not create the throwaway repository"
+  git -C "$repo" config user.email selftest@example.invalid
+  git -C "$repo" config user.name selftest
+  printf 'the base\n' > "$repo/FILE"
+  git -C "$repo" add -A >/dev/null 2>&1
+  git -C "$repo" commit -qm base >/dev/null 2>&1 || fail "could not commit the base"
+  base=$(git -C "$repo" rev-parse HEAD)
+  # A commit the base does not carry: a branch cut from the base and never merged, which is the state all five
+  # closures of 2026-10-30 cited.
+  git -C "$repo" switch -q -c fix/issue-24-unlanded || fail "could not create the branch"
+  printf 'the fix\n' > "$repo/FIX"
+  git -C "$repo" add -A >/dev/null 2>&1
+  git -C "$repo" commit -qm fix >/dev/null 2>&1 || fail "could not commit the fix on the branch"
+  landed=$(git -C "$repo" rev-parse HEAD)
+  git -C "$repo" switch -q main || fail "could not switch back to the base branch"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  profile=$(profile_path)
+
+  # The closure runs in the throwaway repository, which is the tree the claim is about.
+  close_in_repo() { ( cd "$repo" && run_tool close.sh "$@" ); }
+
+  status_tracker "$dir" 24 status/on-hold class/bug category/car source/agent agent/eligible
+  out=$(close_in_repo 24 --reason "fixed" --evidence "the branch $landed" --landed "$landed" --profile "$profile" 2>&1)
+  status=$?
+  assert_eq "3" "$status" "a closure naming a commit the base does not carry is a policy refusal: $out"
+  assert_contains "$out" "not-on-base" "the refusal names its reason"
+  assert_contains "$out" "$landed" "and the commit the claim rests on"
+  assert_contains "$out" "main" "and the base branch that does not carry it"
+  assert_contains "$out" "adopt-item" "and the landing the item still needs, when the evidence names a branch"
+  [ ! -s "$log" ] || fail "nothing may be written for a claim the base does not carry: $(cat "$log")"
+
+  # A ref that does not resolve is refused for the same reason rather than compared: a claim about a commit the
+  # tree does not have is not a claim this check can read.
+  out=$(close_in_repo 24 --reason "fixed" --evidence "a commit nobody has" --landed doesnotexist \
+    --profile "$profile" 2>&1); status=$?
+  assert_eq "3" "$status" "a closure naming a ref that does not resolve is refused: $out"
+  assert_contains "$out" "not-on-base" "with the same reason, so a caller reads one outcome"
+  [ ! -s "$log" ] || fail "nothing may be written for a ref that does not resolve: $(cat "$log")"
+
+  # `--not-planned` asserts that nothing landed, so a commit beside it is a usage error rather than a claim.
+  out=$(close_in_repo 24 --reason "not ours to fix" --evidence "the case is green" --landed "$landed" \
+    --not-planned --profile "$profile" 2>&1); status=$?
+  assert_eq "2" "$status" "a not-planned closure refuses a landing as a usage error: $out"
+  [ ! -s "$log" ] || fail "nothing may be written for a refused call: $(cat "$log")"
+
+  # The same call on a commit the base carries writes the closure: the refusal is about the claim, not the path.
+  out=$(close_in_repo 24 --reason "fixed" --evidence "the base carries it" --landed "$base" --profile "$profile" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a closure on a commit the base carries succeeds: $out"
+  assert_contains "$(cat "$log")" "--add-label status/fixed-by" "the settled state is recorded"
+  assert_eq "1" "$(grep -c 'issue close' "$log")" "and the item is closed"
+
+  # A closure that names no commit is unchanged: a person's not-planned retirement and a sensor's metric closure
+  # make no claim about a commit, so the check needs none to read.
+  : > "$log"
+  status_tracker "$dir" 25 status/on-hold class/bug category/car source/agent agent/eligible
+  out=$(close_in_repo 25 --reason "fixed" --evidence "the case is green" --profile "$profile" 2>&1); status=$?
+  assert_eq "0" "$status" "a closure naming no commit keeps the behaviour it had: $out"
+  assert_eq "1" "$(grep -c 'issue close' "$log")" "and it still closes the item"
   return 0
 }
 

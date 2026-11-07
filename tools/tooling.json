@@ -2,6 +2,7 @@
   "profile": 1,
   "comment": "THE PROJECT PROFILE — the one file a second project adapts. Every project-specific fact the issue tooling needs lives here: the repository, who may authorise work, the label vocabulary, the source renames and the input bounds. Nothing under tools/issues/*.sh, tools/issues/import.sh or tools/issues/core/*.java names a project value; those files read this profile at run time (design D11).",
   "repo": "Framstag/NaviVeylin",
+  "baseBranch": "main",
   "docRoutes": "tools/doc-routes.json",
   "checks": {
     "comment": "THE PROJECT CHECKS — the paths of checks another tool may run, by name, so the tooling never hard-codes a path into an engine (`tools/check-portability.sh`). `changeReady` is the readiness checker a tier-B finding must pass before it is filed: `tools/check-change-readiness.sh` (capability `change-readiness`). An EMPTY value is a declaration that this project has no readiness check — and then the filing path refuses a tier-B finding with `gate-not-configured` rather than filing it unchecked. A path that is not there is refused the same way.",

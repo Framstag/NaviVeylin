@@ -19,6 +19,16 @@
 # or buggy sensor. A check closes a completed fix, never a person's decision, so `--not-planned` is
 # refused beside `--sensor`.
 #
+# `--landed <ref>` is the commit the closure's claim rests on (#715): the evidence a loop closure cites is the
+# item's *branch*, and a branch is exactly what the base may carry none of — five items read
+# `CLOSED status/fixed-by` on 2026-10-30 while their commits sat on a branch the base never received. A completed
+# closure that names a commit refuses with exit 3 and the reason `not-on-base` unless `git merge-base --is-ancestor`
+# finds it on the base branch the profile's `baseBranch` names (the repository's own default branch where the
+# profile names none), and the refusal names the ref, the base branch and the landing the item still needs. It is
+# refused before the first write, so nothing is posted, labelled or closed. A closure that names no commit is
+# untouched: a person's not-planned retirement and a check's metric closure make no claim about a commit, which is
+# why `--not-planned` refuses `--landed` as a usage error rather than checking a landing nothing landed.
+#
 # There is no delete path in this tooling, and this script adds none: the issue is the only record of a
 # finding.
 #
@@ -28,8 +38,8 @@
 #
 # Exit: 0 closed (or commented), 2 usage, 3 policy.
 #
-# Usage: close.sh <issue-number> --reason <text> --evidence <text> [--not-planned] [--comment-only]
-#                  [--sensor <id>] [--json] [--profile <path>]
+# Usage: close.sh <issue-number> --reason <text> --evidence <text> [--landed <ref>] [--not-planned]
+#                  [--comment-only] [--sensor <id>] [--json] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -51,11 +61,13 @@ evidence=""
 state_reason="completed"
 comment_only=0
 sensor_id=""
+landed=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
     --evidence) need_value "$@"; evidence="${2:-}"; shift 2 ;;
+    --landed) need_value "$@"; landed="${2:-}"; shift 2 ;;
     --not-planned) state_reason="not_planned"; shift ;;
     --comment-only) comment_only=1; shift ;;
     --sensor) need_value "$@"; sensor_id="${2:-}"; shift 2 ;;
@@ -67,6 +79,11 @@ done
 
 [ -n "$reason" ] || issues_die "close: --reason is required — a closure carries the reason it was made"
 [ -n "$evidence" ] || issues_die "close: --evidence is required — a closure carries the evidence for it"
+# A not-planned closure asserts that nothing landed, so a commit beside it is a usage error and not a claim to
+# check (#715): the verdict and the commit say opposite things, and no refusal below could read both.
+if [ -n "$landed" ] && [ "$state_reason" = "not_planned" ]; then
+  issues_die "close: --landed names the commit the fix landed as — a not-planned closure records that nothing landed, so it names none"
+fi
 
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
@@ -127,6 +144,38 @@ if [ -n "$sensor_label" ]; then
       printf 'close: refusing to close #%s — it does not carry %s\n' "$number" "$sensor_label"
     fi
     exit "$ISSUES_EXIT_POLICY"
+  fi
+fi
+
+# The closure's claim, read against the base branch (#715). It sits here — after the gate and the ownership
+# scope, before the settled state is resolved and before the first write — so a refused claim leaves the item
+# exactly as it was: no comment, no label, no close. A closure that names no commit reads nothing, because such a
+# closure asserts no landing: a person's not-planned retirement, a check's metric closure.
+if [ -n "$landed" ]; then
+  # The branch name is this project's, so the profile carries it: an engine that wrote it would be the project
+  # inside the tool (`tools/check-portability.sh`). A profile that records none is read against the repository's
+  # own default branch, which is the branch it merges into.
+  base_branch=$(jq -r '.baseBranch // empty' "$profile" 2>/dev/null) || base_branch=""
+  if [ -z "$base_branch" ]; then
+    base_branch=$(git -C "$ISSUES_ROOT" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null) || base_branch=""
+    base_branch=${base_branch#origin/}
+  fi
+  base_commit=""
+  if [ -n "$base_branch" ]; then
+    base_commit=$(git -C "$ISSUES_ROOT" rev-parse --verify --quiet "${base_branch}^{commit}" 2>/dev/null) || base_commit=""
+  fi
+  # A base branch this tree cannot resolve is no verdict about the item, so it is refused as the unread claim it
+  # is rather than reported as a landing that is owed.
+  [ -n "$base_commit" ] || issues_refuse "not-on-base" \
+    "$landed cannot be read against a base branch — this tree resolves none, so no claim about the item's landing can be checked until the profile's baseBranch names the branch it merges into"
+  landed_commit=$(git -C "$ISSUES_ROOT" rev-parse --verify --quiet "${landed}^{commit}" 2>/dev/null) || landed_commit=""
+  [ -n "$landed_commit" ] || issues_refuse "not-on-base" \
+    "$landed does not resolve in this tree, so no base branch carries it — the item is not fixed in the tree"
+  if ! git -C "$ISSUES_ROOT" merge-base --is-ancestor "$landed_commit" "$base_commit" >/dev/null 2>&1; then
+    # The refusal names the ref, the base branch and the landing the item still needs — the same sentence the
+    # loop's `adopt-item` prints when it is handed a branch that finished and was never landed.
+    issues_refuse "not-on-base" \
+      "$landed is not on the base branch $base_branch — the commit this closure's evidence names is on a branch the base has not received, so the item is not fixed in the tree; land that branch first (adopt-item merges a finished attempt onto the base), because a closure records a fix the tree carries"
   fi
 fi
 

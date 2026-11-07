@@ -220,6 +220,24 @@ loop_conf_value() { # print one configuration key's value by name
 # reachable through the environment alone, which a ported project can neither commit nor audit).
 loop_base_ref() { printf '%s\n' "${LOOP_BASE_REF:-main}"; }
 
+# Whether a commit is on the base branch: the question a closure's claim rests on (#715). A closure wrote
+# `status/fixed-by` and cited a branch, and a branch is exactly what the base may carry none of — five items of the
+# run of 2026-10-30 read `CLOSED status/fixed-by` while their commits sat on a branch the base never received. The
+# loop asks this before it writes the settled state, because `close.sh`'s own refusal arrives after that write and
+# leaves the item settled on a fix the tree does not have, which `prescreen.sh` then reads as one nobody revisits.
+#
+# The answers are told apart because a caller reports different things: a commit the tree does not have and a base
+# branch that does not resolve are both no verdict about the item, and only `1` is the item's own state.
+loop_landed_on_base() { # <ref> → 0 the base branch carries it, 1 it does not, 2 the ref does not resolve, 3 no base
+  local ref="${1:-}" commit base base_ref
+  [ -n "$ref" ] || return 2
+  commit=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${ref}^{commit}" 2>/dev/null) || return 2
+  base_ref=$(loop_base_ref)
+  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${base_ref}^{commit}" 2>/dev/null) || return 3
+  git -C "$LOOP_ROOT" merge-base --is-ancestor "$commit" "$base" >/dev/null 2>&1 && return 0
+  return 1
+}
+
 # The ceiling of whatever started this invocation, in seconds (issue #692): `LOOP_CALL_CEILING_SECONDS` in the
 # configuration, which a caller sets at the call site. Every bound this project applies is a recorded value — 900 s
 # for a case, 1 800 s for a gate step, 2 700 s for a child — and the harness a child runs under ends one tool call at

@@ -133,6 +133,7 @@ LOOP_SHELL_CASES=(
   'labels#closeRemovesTheDecisionLabel'
   'labels#closeRemovesTheShapingLabel'
   'labels#closeNamesTheSettledTransition'
+  'labels#closeRefusesACommitTheBaseDoesNotCarry'
   'run#aShapingVerdictWritesTheLabel'
   'run#aVerdictOutsideTheListWritesNoLabel'
   'run#theShapingInboxDoesNotCountAgainstTheCeiling'
@@ -552,6 +553,7 @@ loop_run_shell_case() {
     'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
     'labels#closeNamesTheSettledTransition') fn=case_labels_closeNamesTheSettledTransition ;;
     'labels#closeRemovesTheShapingLabel') fn=case_labels_closeRemovesTheShapingLabel ;;
+    'labels#closeRefusesACommitTheBaseDoesNotCarry') fn=case_labels_closeRefusesACommitTheBaseDoesNotCarry ;;
     'run#aShapingVerdictWritesTheLabel') fn=case_run_aShapingVerdictWritesTheLabel ;;
     'run#aVerdictOutsideTheListWritesNoLabel') fn=case_run_aVerdictOutsideTheListWritesNoLabel ;;
     'run#theShapingInboxDoesNotCountAgainstTheCeiling') fn=case_run_theShapingInboxDoesNotCountAgainstTheCeiling ;;
@@ -4203,6 +4205,50 @@ case_labels_closeNamesTheSettledTransition() {
   assert_contains "$out" "status/retired" \
     "the settled value the closure displaced is said out loud, so a reader of the call sees the claim that moved"
   assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed, not left half attempted"
+}
+
+# A closure is a claim that the fix is in the base branch, and the loop writes `status/fixed-by` *before* it reaches
+# `close.sh`: a refusal that arrived at the closure left the item settled on a commit the base does not carry, and
+# `prescreen.sh` reads a settled item as one nobody revisits (issue #715). The loop therefore asks the question
+# itself, of the commit its landing made, and a refused closure writes nothing at all — no state, no comment, no
+# close. `--landed` belongs to the `close` verdict: another verdict asserts nothing about a commit, so the flag is a
+# usage error there rather than a claim quietly ignored.
+case_labels_closeRefusesACommitTheBaseDoesNotCarry() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p log out status sha base_sha
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario retired)
+  log="$d/gh-close-unlanded.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  # A commit the base does not carry: a branch of the throwaway tree, cut from the base and never merged.
+  base_sha=$(git -C "$p" rev-parse main)
+  git -C "$p" switch -q -c fix/issue-21-unlanded || fail "could not create the branch"
+  printf 'a fix the base does not have\n' > "$p/FIX"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm 'a fix on a branch' >/dev/null 2>&1 ||
+    fail "could not commit the fix on the branch"
+  sha=$(git -C "$p" rev-parse HEAD)
+  git -C "$p" switch -q main || fail "could not switch back to the base branch"
+
+  out=$(run_labels "$p" close 21 --landed "$sha" --reason "the fixture cause" --evidence "the fixture evidence" 2>&1)
+  status=$?
+  assert_eq "3" "$status" "a closure whose commit the base does not carry is a policy refusal: $out"
+  assert_contains "$out" "not-on-base" "the refusal names its reason"
+  assert_contains "$out" "$sha" "and the commit the claim rests on"
+  assert_contains "$out" "main" "and the base branch that does not carry it"
+  [ ! -s "$log" ] || fail "a refused closure wrote to the tracker: $(cat "$log")"
+
+  # A commit the base carries is the same call, accepted: the refusal is about the claim, not the path.
+  : > "$log"
+  out=$(run_labels "$p" close 21 --landed "$base_sha" --reason "the fixture cause" --evidence "the fixture evidence" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a closure on a commit the base carries is recorded: $out"
+  assert_contains "$(grep 'issue edit' "$log" || true)" "--add-label status/fixed-by" "the settled state is recorded"
+  assert_eq "1" "$(grep -c 'issue close' "$log")" "and the item is closed"
+
+  # `--landed` is the close verdict's own argument: another verdict claims no landing.
+  out=$(run_labels "$p" pick 21 --landed "$base_sha" 2>&1); status=$?
+  assert_eq "2" "$status" "a verdict that claims no landing refuses the flag as a usage error: $out"
 }
 
 # A shaping verdict (capability `shaping-inbox`) writes the shaping label in the *same* call as the hold and its

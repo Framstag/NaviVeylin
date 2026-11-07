@@ -817,7 +817,12 @@ while the run is open, naming both branches (the start's own guard covers only t
 branch, `main` does not move, the run re-reads the unchanged base and closes the item with `status/fixed-by` on
 a fix the base never had (issue #308, from #301's review, 2026-10-24). For the same reason the base the run
 records is only ever a commit the base *branch* carries: `set-base` asks the branch and refuses anything else,
-so a closure cannot be recorded against a tree the base does not have.
+so a closure cannot be recorded against a tree the base does not have. The closure's own write reads that claim
+(issue #715): — `close.sh --landed`, handed the `merged.sha` the
+run recorded — and is refused with `not-on-base` unless the base branch carries it, and the loop asks the same
+question *before* it writes `status/fixed-by`, because a refusal that arrives at the closure leaves the item
+settled on a fix the tree does not have and the pre-screen never revisits a settled item. A closure that names no
+commit asserts no landing (a person's not-planned retirement, a check's metric closure) and is untouched.
 The same pre-flight reads that tree's **uncommitted work**, because every merge the landing step makes lands there
 and refuses dirt: a run whose project tree carries a modified, staged or untracked path git does not ignore is
 refused at exit 5 before the pre-screen, before any item and before any adoption, with the paths printed and

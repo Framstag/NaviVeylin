@@ -951,6 +951,12 @@ MUTATIONS=(
   '98.1@-@tools/loop/state.sh@state#aCloseOverARedGateWithoutAWaiverIsRefused@the refusal of a close over a red tally that records no waiver, so the judgement lives in a transcript and the item reads `closed` with `errors=1` (issue #811)@s|^  elif \[ "\$result" = done \] && .*$|  elif false; then|'
   '98.2@-@tools/loop/state.sh@state#aCloseOverARedGateRecordsWhyItWasWaived@the clause a close over a red gate was waived with, so a report can count the waiver instead of trusting prose (issue #811)@s|^                           gateWaived:(if \$gw == "" then null else \$gw end),$|                           gateWaived:null,|'
   '98.3@-@tools/loop/run.sh@run#aCloseOverARedGateIsWaivedOrBlocked@the clause the closing child recorded, so the run blocks an item it was handed a waiver for and the record never says why the red was taken (issue #811)@s|^  gate_waived=\$(report_field "\$final_report" LOOP-GATE-WAIVED)$|  gate_waived=""|'
+  # 99.x — the closure's claim read against the base branch (issue #715). Measured 2026-10-30: six branches carried
+  # work the base did not have and five of them belonged to items the tracker showed `CLOSED status/fixed-by`, because
+  # a closure's evidence is a branch and nothing compared it with the branch it has to be an ancestor of. Two halves,
+  # one case each: the tooling's own refusal (`tools/close-mutations.json` A1.6) and the loop's ask, which happens
+  # *before* the state write so a refused closure leaves the item unsettled.
+  '99.1@-@tools/loop/lib.sh@labels#closeRefusesACommitTheBaseDoesNotCarry@the loop asking the base branch before it settles the item, so the state write lands and the closure is refused after it — the item reads settled on a fix the tree does not have, which no later run revisits (issue #715)@s|^  git -C "\$LOOP_ROOT" merge-base --is-ancestor "\$commit" "\$base" >/dev/null 2>&1 \&\& return 0$|  return 0|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

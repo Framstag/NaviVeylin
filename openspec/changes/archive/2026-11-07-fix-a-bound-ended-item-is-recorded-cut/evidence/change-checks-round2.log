@@ -1,0 +1,19 @@
+# round 2 — the corrections the review of round 1 required (2026-11-07)
+
+$ openspec validate --all
+✗ change/fix-a-bound-ended-rework-spends-no-decision-slot
+✗ change/fix-a-cut-child-asks-no-question
+✗ change/fix-a-project-tree-is-refused-before-the-item
+✗ change/fix-remote-heads-are-swept
+Totals: 189 passed, 4 failed (193 items)
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 9 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+
+$ tools/check-todo-references.sh
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 9455 file(s) excluded by the allowlist above

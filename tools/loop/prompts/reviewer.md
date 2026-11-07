@@ -15,7 +15,7 @@ artifacts name), the evidence the change cites, and this task.
 Your system prompt carries **no project context**: this child is started without the project's context files, so
 `AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is
 read — it routes a kind of change to the guideline that owns the rule — and read only the section that
-guideline's own list names (`grep -n '^## '` over the document prints it). `guidelines/` holds the rules,
+guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` prints it). `guidelines/` holds the rules,
 `openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.
 
 - item: **#{{ISSUE}}**
@@ -116,6 +116,9 @@ order:
 LOOP-BLOCKING: <n>
 VERDICT: PASS|FAIL
 ```
+
+Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it
+stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.
 
 `<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL`
 only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count —

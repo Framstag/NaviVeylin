@@ -1,0 +1,4 @@
+2026-11-07T02:45:21Z
+$ bash tools/loop-selftest.sh --case gate#aThirdFullRunInOneSessionIsRefused
+PASS gate#aThirdFullRunInOneSessionIsRefused
+exit=0

@@ -4,6 +4,7 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteStep
 import com.naviveylin.core.MIN_ROW_LEG_METERS
 import com.naviveylin.core.Manoeuvre
+import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.ROW_MERGE_WINDOW_METERS
 import com.naviveylin.core.RouteRow
 import com.naviveylin.core.foldName
@@ -114,6 +115,15 @@ internal fun routeCensus(steps: List<RouteStep>, rows: List<RouteRow>): String {
             it.kind == RouteStep.Kind.MOTORWAY_LEAVE
     }
     val informational = count { isDataOnly(it) }
+    // The destination record's presence on the motorway manoeuvres that word it: the label rule of
+    // this change is only worth its clause if a real German import carries the tag (design D6 of
+    // `motorway-destination-hint`). `motorway_dest` counts the manoeuvres that word a destination,
+    // `dest_empty` the ones that carry none.
+    val motorwayDest = count { ManoeuvreLabels.carriesDestination(it) }
+    val destEmpty = count {
+        (it.kind == RouteStep.Kind.MOTORWAY_ENTER || it.kind == RouteStep.Kind.MOTORWAY_CHANGE) &&
+            !ManoeuvreLabels.carriesDestination(it)
+    }
 
     fun kilometres(predicate: (Manoeuvre) -> Boolean): String =
         manoeuvres.filter(predicate).sumOf { it.legDistanceMeters }
@@ -165,6 +175,7 @@ internal fun routeCensus(steps: List<RouteStep>, rows: List<RouteRow>): String {
         append("route census: steps=${steps.size} rows=${rows.size} ")
         append("turn=$turn straightOn=$straightOn nameChange=$nameChanges ")
         append("roundabout=$roundabout motorway=$motorway info=$informational ")
+        append("motorway_dest=$motorwayDest dest_empty=$destEmpty ")
         append("start=${kindCount(RouteStep.Kind.START)} target=${kindCount(RouteStep.Kind.TARGET)} ")
         append("dist_km turn=${kilometres { it.kind == RouteStep.Kind.TURN && !it.isStraightOn }} ")
         append("straightOn=${kilometres { it.isStraightOn }} ")

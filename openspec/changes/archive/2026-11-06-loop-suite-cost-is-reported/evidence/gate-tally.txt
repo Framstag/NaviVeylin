@@ -1,0 +1,131 @@
+# gate tally — app/build/test-results/loop-gate, read after the gate of 2026-11-06T10:48:26Z finished with LOOP-GATE: tests=922 failures=0 errors=0
+--- bash_tools_gen-feature-list.sh_--check-classification.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0" errors="0" time="3">
+  <system-out>stale: 5 car-only areas: 1 highlights: 19</system-out>
+</testsuite>
+--- bash_tools_loop-mutations.sh_--check.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-mutations.sh --check" tests="248" failures="0" errors="0" time="1">
+  <system-out>loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.JaQNF5 loop-mutations: all 248 cases passed — every selected record applies to the file it names</system-out>
+</testsuite>
+--- gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="0" time="268">
+  <system-out>BUILD SUCCESSFUL in 4m 27s 167 actionable tasks: 18 executed, 149 up-to-date Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html</system-out>
+</testsuite>
+--- tools_check-compose-sandbox-rule-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-compose-sandbox-rule-selftest.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>ok: a Compose class without the rule fails ok: the rule without @get:Rule(order = 0) fails ok: a tree without a Compose test class passes</system-out>
+</testsuite>
+--- tools_check-compose-sandbox-rule.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-compose-sandbox-rule.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>compose sandbox rule: 73 Compose test classes carry it.</system-out>
+</testsuite>
+--- tools_check-doc-routes-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes-selftest.sh" tests="34" failures="0" errors="0" time="8">
+  <system-out>PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no</system-out>
+</testsuite>
+--- tools_check-doc-routes.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>check-doc-routes: all 329 section references resolve, all 5 skill references resolve</system-out>
+</testsuite>
+--- tools_check-openspec-hygiene-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-openspec-hygiene-selftest.sh" tests="7" failures="0" errors="0" time="0">
+  <system-out>check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)</system-out>
+</testsuite>
+--- tools_check-openspec-hygiene.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-openspec-hygiene.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>Every capability spec states its Purpose. OpenSpec artifacts are consistent: 10 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.</system-out>
+</testsuite>
+--- tools_check-portability-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-portability-selftest.sh" tests="29" failures="0" errors="0" time="23">
+  <system-out>PASS porting#namesTheAdaptationPoint PASS porting#statesTheCopyCost check-portability-selftest: all 29 cases passed (JDK 27, offline, no token, no Gradle)</system-out>
+</testsuite>
+--- tools_check-portability.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-portability.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>check-portability: the documented exception — the label that authorises work is declared read-only, once:   tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible" check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)</system-out>
+</testsuite>
+--- tools_check-todo-references.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-todo-references.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table check-todo-references: 66 citation(s) resolve through the recorded table; 8923 file(s) excluded by the allowlist above</system-out>
+</testsuite>
+--- tools_issue-tooling-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issue-tooling-selftest.sh" tests="158" failures="0" errors="0" time="91">
+  <system-out>PASS check#selfCheckIsGreen PASS prioritise#recordsOutgrowOneArgument issue-tooling-selftest: all 158 cases passed (JDK 27, offline, no token, HEAD 723c7998, tools e3b0c44298fc, 2026-11-06T10:48:19Z)</system-out>
+</testsuite>
+--- tools_loop-mutations-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-mutations-selftest.sh" tests="34" failures="0" errors="0" time="247">
+  <system-out>ok   and it says the same selection the file set named ok   and the copy is byte-identical to the pristine one again loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched</system-out>
+</testsuite>
+--- tools_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanReach.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach" tests="0" failures="0" errors="0" time="10">
+  <system-out>PASS driver#everyCaseDeclaresTheFilesItCanReach</system-out>
+</testsuite>
+--- tools_loop-selftest.sh_--from-git_b114e2d04b9f643949358ac4a5db606666dd4d1d.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d" tests="328" failures="0" errors="0" time="418">
+  <system-out>loop-selftest: phase 2 cases 13.24 s loop-selftest: repeat 4 cases 36.93 s loop-selftest: all 328 cases passed (JDK 27, offline, no token, no sandbox) — 415.47 s, selection: --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d</system-out>
+</testsuite>
+--- tools_mutate-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate-selftest.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>PASS  the portability set names the check's own self-test as its gate  mutate-selftest: 36 passed, 0 failed</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renam</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/close-mutations.json --list" tests="0" failures="0" errors="0" time="1">
+  <system-out>A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a stat</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/create-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create 1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189) 1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/decision-question-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out># tools/decision-question-mutations.json — 2 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case} A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now make</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/duplicates-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/portability-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289) 7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290) 7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project'</system-out>
+</testsuite>
+--- tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/status-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>5.4	update#statusReportNamesImpliedRemoval	the report carrying the displaced labels the caller never named 7.1	update#stateNamedAsALabelReplacesTheOldState	a state named as the namespaced label being the same act as one named through the state flag 8.1	update#refusesToDisplaceASettledState	the guard refusing a routine write that would displace a settled state instead of letting every caller throug</system-out>
+</testsuite>
+--- tools_sensor-mutations.sh_--list.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>8.33 sensors#entryDocumentSizeRow — an entry document past its own row bound is a violation (issue #197) (tools/sensors/metrics/doc-context.sh) 3.1 sensors#documentSizeRow — a normative document past the row bound is a violation (design D4) (tools/sensors/metrics/doc-context.sh) 3.2 layers#aFigureInANormativeDocumentIsACondition — a measured figure inside a normative document is a condition (docum</system-out>
+</testsuite>
+--- tools_sensor-selftest.sh.xml ---
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-selftest.sh" tests="84" failures="0" errors="0" time="77">
+  <system-out>PASS sensors#loopSpendRow PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing sensor-selftest: all 84 cases passed (JDK 27, offline, no token)</system-out>
+</testsuite>

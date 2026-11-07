@@ -1,0 +1,18 @@
+2026-11-06T17:53:09Z
+worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved|   the sweep keeps a set-aside branch that carries work, and names why: 'kept loop/leftover/issue-22-work-20260101T000000Z — carries work the base does not have' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved| worktree: no branch of the loop to prune
+worktree#aSetAsideBranchWhosePatchesLandedIsRemoved|   a set-aside branch whose patches are in the base is swept: 'would remove loop/leftover/issue-21-demo-20260101T000000Z' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#aSetAsideBranchWhosePatchesLandedIsRemoved| would remove fix/issue-21-demo (its patches are in the base)
+worktree#aSetAsideBranchWhosePatchesLandedIsRemoved| worktree: would remove 1 landed branch(es) · 0 kept (carries work the base does not) · 0 kept (checked out) · 0 kept (the reviewer refused it)
+--- worktree#aSetAsideBranchWhosePatchesLandedIsRemoved[1] (exit 1)
+  the sweep keeps a set-aside branch that carries work, and names why: 'kept loop/leftover/issue-22-work-20260101T000000Z — carries work the base does not have' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree: no branch of the loop to prune
+FAIL worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved
+--- worktree#aSetAsideBranchWhosePatchesLandedIsRemoved[0] (exit 1)
+  a set-aside branch whose patches are in the base is swept: 'would remove loop/leftover/issue-21-demo-20260101T000000Z' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+would remove fix/issue-21-demo (its patches are in the base)
+worktree: would remove 1 landed branch(es) · 0 kept (carries work the base does not) · 0 kept (checked out) · 0 kept (the reviewer refused it)
+FAIL worktree#aSetAsideBranchWhosePatchesLandedIsRemoved
+loop-selftest: worktree 2 cases 1.17 s
+loop-selftest: 2 of 2 cases failed — 1.58 s
+2026-11-06T17:53:12Z

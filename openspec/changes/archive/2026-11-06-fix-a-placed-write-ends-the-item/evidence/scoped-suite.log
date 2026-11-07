@@ -1,0 +1,11 @@
+cmd: scoped suite, cases naming the outside-write reading, the tail/gate prompt and the declaration
+date: 2026-11-06T22:06:43Z base: 54373f19c58ba66cc7b26d8c452372f82ca1317b
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+PASS run#childWriteOutsideTheWorktreeIsNoted
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#childUsageIsRecordedPerItem
+PASS run#thePreGateReviewRunsBeforeTheGate

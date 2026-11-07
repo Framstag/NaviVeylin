@@ -7,8 +7,8 @@
 # sandbox tool: git is never stubbed, because the git logic is part of what is being tested (D13).
 #
 # Usage: bash tools/loop-selftest.sh [--list] [--case <group#name|glob>] [--group <group>] [--jobs <n>]
-#                                    [--files <path> ...] [--from-git <base>] [--allow-empty]
-#                                    [--case-files] [--print-bound]
+#                                    [--files <path> ...] [--from-git <base>] [--case-files] [--print-bound] [--times]
+#                                    [--allow-empty]
 #        A run that may execute more than one case holds this tree's lock; `--list`, `--case-files` and one named
 #        `--case` hold none. `--jobs` bounds how many cases run at once — the value the invocation names, else the
 #        profile's `LOOP_SELFTEST_JOBS`, else the host's CPU count. Every case keeps a process group, a scratch root
@@ -18,6 +18,24 @@
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+# Milliseconds since the epoch, for the report this run makes of its own cost (issue #782). `date`'s sub-second field
+# is a GNU extension, so a host whose `date` prints something else answers in whole seconds — a coarse figure rather
+# than a wrong one.
+now_ms() {
+  local t
+  t=$(date +%s%3N 2>/dev/null)
+  case "$t" in
+    ''|*[!0-9]*) t=$(( $(date +%s) * 1000 )) ;;
+  esac
+  printf '%s' "$t"
+}
+
+# A figure is printed in seconds with two decimals, from the milliseconds it was measured in: one shape for a case, a
+# group and the selection, so a reader compares the lines without converting them (issue #782).
+case_figure() { # <milliseconds> → e.g. 1.03
+  printf '%s.%02d' $(( $1 / 1000 )) $(( ($1 % 1000) / 10 ))
+}
 
 # A case is named `<group>#<name>`, and the selection is a filter over that name: `--case` takes a name and,
 # because a name may carry a glob, a pattern; `--group` takes the group alone. Both may be given at once, and
@@ -53,6 +71,9 @@ list_declared=0
 # count. Read into this variable here and resolved once the profile is sourced; only the value is checked below, so a
 # refusal is a usage error and arrives before anything is started.
 only_jobs=""
+# `--times` asks for the per-case figure and is off by default: two callers parse the `PASS` line (the mutation
+# harness and the leftovers cases), so the figure is asked for rather than always printed (issue #782).
+times=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) list_only=1; shift ;;
@@ -65,6 +86,7 @@ while [ $# -gt 0 ]; do
     --jobs) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_jobs="${2:-}"; shift 2 ;;
     --case-files) list_declared=1; shift ;;
     --print-bound) print_bound=1; shift ;;
+    --times) times=1; shift ;;
     -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
     *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
   esac
@@ -129,6 +151,13 @@ caller_jobs="${LOOP_SELFTEST_JOBS:-}"
 # shellcheck source=tools/loop/loop.conf
 source "$LOOP_CONF"
 LOOP_SELFTEST_JOBS="${LOOP_SELFTEST_JOBS:-$caller_jobs}"
+
+# A case never inherits the caller's own event stream (issue #756). `run.sh` exports `LOOP_CHILD_EVENTS` for every
+# process of an item, so a suite started from a child would hand each of its cases that child's stream — and the gate
+# counts the full runs of itself that were started in the session it is running in, which would make the *caller's*
+# gate runs count against a case that runs the gate of its own. A case that wants a stream writes its own or passes
+# one to `run.sh`, and a case that inherits the run's would be measuring the run and not the engine.
+unset LOOP_CHILD_EVENTS
 
 # How many cases run at once (issue #260). The value is the invocation's `--jobs`, else the profile's
 # `LOOP_SELFTEST_JOBS`, else the host's CPU count — a host that cannot answer is a pool of one, never a suite that
@@ -202,7 +231,30 @@ case_slot_name=()
 case_slot_dir=()
 # …and the case's bound: when it started, and the watcher job that enforces it (issue #308).
 case_slot_started=()
+case_slot_ended=()
 case_slot_watch=()
+# What this run cost (issue #782): each finished case's elapsed time, and per group its case count and the time those
+# cases paid. Kept beside the slots because a group has no wall clock of its own in a pool of jobs — the sum of its
+# cases' own figures is the cost the group is owed for, and it is the number the summary states.
+case_last_elapsed_ms=0
+declare -A group_cases=()
+declare -A group_ms=()
+group_order=()
+
+# One line per group this run executed, in the order the pool first started one of its cases (issue #782). A group's
+# figure is the sum of its cases' own elapsed times: a pooled run has no wall clock per group, and that sum is the
+# cost those cases paid for the group they were selected by.
+print_group_report() {
+  local g
+  [ "${#group_order[@]}" -gt 0 ] || return 0
+  for g in "${group_order[@]}"; do
+    printf 'loop-selftest: %s %s cases %s s\n' "$g" "${group_cases[$g]:-0}" "$(case_figure "${group_ms[$g]:-0}")"
+  done
+}
+
+# The figure this run paid, for its own summary line: the same shape as a group's, so the lines are read the same
+# way (issue #782).
+suite_figure() { case_figure $(( $(now_ms) - suite_started )); }
 # The repository's lock, set only on the way through `selftest_lock_take` that took it (issue #295). Empty
 # until then, and named here rather than beside the function because `on_exit` may run before that line.
 selftest_lock=""
@@ -481,7 +533,7 @@ mkdir -p "$selftest_case_root" || {
 }
 
 start_case() { # <slot> <case name> → the case is running in that slot
-  local slot="$1" name="$2" dir
+  local slot="$1" name="$2" dir case_group
   dir="$selftest_case_root/$slot"
   rm -rf "$dir"
   mkdir -p "$dir/tree" || {
@@ -507,7 +559,11 @@ start_case() { # <slot> <case name> → the case is running in that slot
   # on the first shape of this change: the whole `driver#*` group stood at its 900 s bound). The relay reads a fifo
   # of its own instead: it is a child of the case's subshell and therefore a member of its process group, so
   # `finish_case` ends it with the group, and the case's status never waits for it.
-  case_slot_started[slot]=$(date +%s)
+  case_slot_started[slot]=$(now_ms)
+  # The group the case belongs to is named in a line of the summary, and its first case is what puts it in that
+  # summary's order (issue #782).
+  case_group="${name%%#*}"
+  [ -n "${group_cases[$case_group]+set}" ] || { group_order+=("$case_group"); group_cases[$case_group]=0; group_ms[$case_group]=0; }
   set -m
   ( LOOP_CASE_TMP="$dir/tree"; export LOOP_CASE_TMP
     mkfifo "$dir/stream" 2>/dev/null || exit 1
@@ -559,7 +615,7 @@ start_case() { # <slot> <case name> → the case is running in that slot
 # written by the subshell that ran it, so a case whose subshell the kernel killed records nothing — and a case that
 # recorded nothing is a failure, never a pass.
 finish_case() { # <slot> → the case's own status
-  local slot="$1" dir status
+  local slot="$1" dir status elapsed case_group
   dir="${case_slot_dir[$slot]}"
   # The bound's watcher first, while the slot directory is still the one it was started for (issue #308): a watcher
   # that outlived its case would otherwise fire into the slot the pool hands to the next one. Its group, not its
@@ -569,7 +625,15 @@ finish_case() { # <slot> → the case's own status
   case_slot_watch[slot]=""
   wait "${case_slot_pid[$slot]}" 2>/dev/null
   case_slot_pid[slot]=""
+  # The case's own cost, recorded before its start is cleared (issue #782): the group it belongs to pays it, and
+  # `--times` prints it beside the case's name.
+  case_slot_ended[slot]=$(now_ms)
+  elapsed=$(( case_slot_ended[slot] - case_slot_started[slot] ))
   case_slot_started[slot]=""
+  case_last_elapsed_ms=$elapsed
+  case_group="${case_slot_name[$slot]%%#*}"
+  group_cases[$case_group]=$(( ${group_cases[$case_group]:-0} + 1 ))
+  group_ms[$case_group]=$(( ${group_ms[$case_group]:-0} + elapsed ))
   status=$(cat "$dir/status" 2>/dev/null)
   case "$status" in
     ''|*[!0-9]*) status=1 ;;
@@ -728,6 +792,9 @@ fi
 # running, and the next one starts the moment one finishes — no barrier, because a batch waits for its slowest case
 # and the `run#*` cases are the suite's longest. `wait -n` is the reaper; which slot finished is read from the record
 # the case's subshell wrote, so a status is never attributed to the wrong case.
+# The selection's own clock (issue #782): the summary states what the whole run cost, which is the number a reader
+# used to take off a person's stopwatch or off the CI UI's step durations.
+suite_started=$(now_ms)
 declare -a selftest_queue=()
 while IFS= read -r _case_name; do
   [ -n "$_case_name" ] || continue
@@ -755,7 +822,11 @@ while [ "$started" -lt "$queued" ] || [ "$running" -gt 0 ]; do
     # watcher ended it is a failure, and the line says which clock answered it.
     bound=$(cat "${case_slot_dir[$slot]}/bound" 2>/dev/null)
     if finish_case "$slot"; then
-      printf 'PASS %s\n' "$case_name"
+      if [ "$times" -eq 1 ]; then
+        printf 'PASS %s (%s s)\n' "$case_name" "$(case_figure "$case_last_elapsed_ms")"
+      else
+        printf 'PASS %s\n' "$case_name"
+      fi
     else
       failed=$((failed + 1))
       if [ -n "$bound" ]; then
@@ -776,21 +847,35 @@ if [ "$total" -eq 0 ]; then
   echo "no cases"
   exit 0
 fi
+# What the run cost is stated beside its verdict (issue #782): one line per group this run executed, and the
+# selection's own figure on the summary line. One case named with `--case` and no pattern keeps the output every
+# caller already reads — the `PASS` line and the exit status, with no summary and no figure — because the mutation
+# harness and the leftovers cases invoke exactly that shape and read nothing else, so the bypass is answered once,
+# for the failing and the passing verdict alike.
+if [ "$total" -eq 1 ] && [ -n "$only_case" ] && [ -z "$only_group" ] && ! is_glob "$only_case"; then
+  quiet_summary=1
+else
+  quiet_summary=0
+fi
 if [ "$failed" -gt 0 ]; then
-  echo "loop-selftest: $failed of $total cases failed"
+  [ "$quiet_summary" -eq 1 ] || print_group_report
+  if [ "$quiet_summary" -eq 1 ]; then
+    echo "loop-selftest: $failed of $total cases failed"
+  else
+    echo "loop-selftest: $failed of $total cases failed — $(suite_figure) s"
+  fi
   exit 1
 fi
-# One case named with `--case` and no pattern keeps the output every caller already reads — the `PASS` line and
-# the exit status, with no summary — because the mutation harness and the leftovers cases invoke exactly that
-# shape and read nothing else. A filtered run names its selection beside the count, so a green suite that ran a
-# seventh of its cases never reads like the whole one.
+# A filtered run names its selection beside the count, so a green suite that ran a seventh of its cases never reads
+# like the whole one.
 selection=""
 [ -n "$only_group" ] && selection=" --group $only_group"
 [ -n "$only_case" ] && selection="$selection --case $only_case"
 [ -n "$from_git" ] && selection="$selection --from-git $from_git"
 [ "$only_files" != " " ] && [ -z "$from_git" ] && selection="$selection --files$only_files"
-if [ "$total" -eq 1 ] && [ -n "$only_case" ] && [ -z "$only_group" ] && ! is_glob "$only_case"; then
+if [ "$quiet_summary" -eq 1 ]; then
   exit 0
 fi
-echo "loop-selftest: all $total cases passed (JDK $feature, offline, no token, no sandbox)${selection:+ — selection:$selection}"
+print_group_report
+echo "loop-selftest: all $total cases passed (JDK $feature, offline, no token, no sandbox) — $(suite_figure) s${selection:+, selection:$selection}"
 exit 0

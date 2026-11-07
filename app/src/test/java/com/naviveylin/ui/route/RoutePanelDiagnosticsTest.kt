@@ -46,6 +46,10 @@ class RoutePanelDiagnosticsTest {
         assertTrue(line, line.contains("roundabout=1"))
         assertTrue(line, line.contains("motorway=1"))
         assertTrue(line, line.contains("info=1"))
+        // The destination record's presence on the motorway manoeuvres that word it (design D6):
+        // the census route's motorway entry carries no destination, so the two counters move apart.
+        assertTrue(line, line.contains("motorway_dest=0"))
+        assertTrue(line, line.contains("dest_empty=1"))
         // ... metres ...
         assertTrue(line, line.contains("leg_m median="))
         assertTrue(line, line.contains("under20="))
@@ -61,6 +65,19 @@ class RoutePanelDiagnosticsTest {
         assertFalse(line, Regex("""-?\d+\.\d{3,}""").containsMatchIn(line))
         assertFalse(line, line.contains("lat"))
         assertFalse(line, line.contains("lon"))
+    }
+
+    @Test
+    fun `the census counts the motorway manoeuvres that carry a destination`() {
+        val withDestination = step(RouteStep.Kind.MOTORWAY_ENTER, motorwayTo = "A8").apply {
+            destination = "München"
+        }
+        val withoutDestination = step(RouteStep.Kind.MOTORWAY_CHANGE, motorwayTo = "A8")
+
+        val line = routeCensus(listOf(withDestination, withoutDestination), emptyList())
+
+        assertTrue(line, line.contains("motorway_dest=1"))
+        assertTrue(line, line.contains("dest_empty=1"))
     }
 
     @Test

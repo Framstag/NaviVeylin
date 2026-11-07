@@ -1,0 +1,18 @@
+2026-11-06T19:09:33Z
+loop-mutations: selected 4 of 260 records (labels: 89.1 89.2 89.3 89.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.nzieth
+RED    89.1  adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded   (the bound the writer rotates at, so the stream of every item is appended for its whole life again (issue #802))
+       2026-11-06T19:09:34Z — the stream's first line records the rotation: expected 'stream_rotation', got 'turn_end'
+restore 89.1 adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded green again
+RED    89.2  run#aRotatedStreamStillCountsTheTurnsItDropped   (the turns a rotated stream records added to the ones it still holds, so a child bound falls back to zero whenever the writer rotates (issue #802))
+       2026-11-06T19:10:41Z — the run was still waiting on a child whose stream records 2 dropped turns and holds 1, past a bound of 3
+restore 89.2 run#aRotatedStreamStillCountsTheTurnsItDropped green again
+RED    89.3  clean#reportsAnAgedItemDirectory   (the age gate that keeps an item directory an open issue may still cite, so a directory written a minute ago is released (issue #802))
+       2026-11-06T19:10:51Z — a freshly written item is kept by its age: 'kept items/44 — written within 14 days' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.0A7Sqk/cases/0/tree/case.a5t0HV/repo/.pi/wor
+restore 89.3 clean#reportsAnAgedItemDirectory green again
+RED    89.4  clean#reportsAnAgedItemDirectory   (the run state reading of a landed and closed item, so a landed item is released whatever its issue still cites (issue #802))
+       2026-11-06T19:10:54Z — an item whose issue is still open is kept and named: 'kept items/42 — the issue it belongs to is not closed' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.2Yp4YD/cases/0/tree
+restore 89.4 clean#reportsAnAgedItemDirectory green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+2026-11-06T19:10:56Z

@@ -1,0 +1,33 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db paths=8 insertions=290 deletions=41
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/lib.sh
+LOOP-MEASURE-PATH tools/loop/loop-clean.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=336 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-the-leftovers-nothing-reads scenarios=13 cases=13 unnamed=0
+LOOP-MEASURE-SURFACE surface: 3 cases added, 0 rewritten, 2 tools changed (`lib.sh`, `loop-clean.sh`), 1 mutation record, 2 guideline
+LOOP-MEASURE-END

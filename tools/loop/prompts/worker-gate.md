@@ -21,6 +21,9 @@ everything else you need is in the tree.
 - the red test it produced: `{{RED_TEST}}`
 - the findings the reviewer wrote, as a file: `{{FINDINGS_PATH}}`
 - evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
+- scratch directory (the one place beside the change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
+  start. A write with a **relative path** lands in the project's own tree, not in the change root, because your
+  working directory is the project.
 - the run's base commit: `{{BASE}}`
 - the project's gate command: `{{GATE_CMD}}`
 - the skills this project wants you to use: `{{WORKER_SKILLS}}`
@@ -32,9 +35,29 @@ Your system prompt carries **no project context**, so what `AGENTS.md` would hav
 - `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the
   `guidelines/` document that owns the rule. Find your change's row there, then read the section it names — never the
   whole file.
-- A guideline's section list is its own: `grep -n '^## '` over the file prints it.
+- A guideline's section list is its own: `tools/look.sh '^## ' --path guidelines/<file>.md` prints it.
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you are gating is in
   the change root, and the evidence it cites is versioned in that change's `evidence/`.
+
+## What your own shell and tools refuse
+
+None of the four families below is a question you can ask and none of them is a rule of this project to be argued
+with: each is what the process you are started in refuses, before any rule of this tree can matter (issue #799).
+
+- **You commit nothing and stage nothing.** The run commits, and the branch the item descends from is the base a
+  red-on-HEAD proof is taken against, so `git commit` and `git add` are no step of yours — and `git stash`,
+  `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
+  unattended process can never be asked for.
+- **No inline code.** `python3 -c`, `python3 <<'EOF'` and a `$( … )` substitution are refused. A number is
+  taken by a command the tree already carries — the project's measuring command, the suite a change names, a
+  `tools/*.sh` — or by `awk` over the output such a command printed.
+- **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact
+  text`, or `found N occurrences` when the text is not unique: read the range once with `ctx_read` immediately before
+  the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.
+- **A shell search of the tree is refused**: the verbs `grep`, `cat`, `head`, `tail`, `ls`, `find`, `wc` and `awk`
+  over the tree are `tools/look.sh` (a pattern over the whole tree), `ctx_read` (one file, or a range of it) and
+  `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
+  refused.
 
 ## Phase E — the findings, then the gate
 
@@ -55,7 +78,10 @@ Your system prompt carries **no project context**, so what `AGENTS.md` would hav
    does not complete inside the run's budget — the run ends a child that outlasts its configured wall-clock, and that
    includes every command you started — is not yours to report: the run records the item `blocked` with your log
    itself, and a second attempt is not yours to make. Two attempts at one gate is how a run spends its whole budget
-   inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them.
+   inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them. The
+   gate counts its own runs: a full one beyond `LOOP_GATE_RUNS_MAX` in this child is refused with exit `3` and hands
+   you the command the delta owes instead, and that refusal is not a red gate — it is the engine saying this child has
+   spent its measurements.
 3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
    result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy.
 4. **A gate that did not pass is not yours to repair.** The tail child records the item `blocked` with the failing

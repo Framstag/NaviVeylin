@@ -1,0 +1,12 @@
+# falsification: the two added rule entries removed, 2026-11-05T20:29:14Z
+$ grep -v 'UIPhone.md §5 "the two `Contact` values are links on the phone."' tools/doc-routes.json > /tmp/x && mv /tmp/x tools/doc-routes.json
+$ bash tools/check-rule-routes.sh
+::error file=tools/doc-routes.json::the rule "the two `Contact` values are links on the phone." in UIPhone.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 1 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
+exit=1
+
+# restored
+$ bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 579 named rule(s) are reached
+exit=0

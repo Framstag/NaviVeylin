@@ -1,0 +1,14 @@
+# the policy the adapter loads with every child refuses the recipe every phase prompt named (issue #796)
+$ git show 5b30ed79:tools/loop/prompts/worker.md | grep -n "grep -n"
+43:- Every guideline is one document under `guidelines/`, and its section list is the document's own: `grep -n '^## '`
+$ node tools/pi-shell-refusal.mjs --command "grep -n '^## ' guidelines/Build.md"
+REFUSED shell `grep` is not how this tree is read: `tools/look.sh '<regex>'` searches the worktree and the submodule in one bounded call, `ctx_grep` searches one path. A range of a known file stays shell's — `sed -n 'N,Mp'`, `tail -n <N> <file>` — and so does a filter of another command's output (`… | grep`).
+exit=3
+$ node tools/pi-shell-refusal.mjs --command "tools/look.sh '^## ' --path guidelines/Build.md"
+ALLOWED
+exit=0
+$ tools/look.sh '^## ' --path guidelines/Build.md | head -3
+LOOK: 42 matches in 1 files of /home/tim/projects/NaviVeylin/guidelines/Build.md for '^## '
+LOOK-FILE: guidelines/Build.md 42
+guidelines/Build.md:16:## 1. Skills
+at=2026-11-06T16:46:30Z host=Linux 7.2.11-arch1-1

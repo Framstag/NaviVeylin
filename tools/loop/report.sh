@@ -18,6 +18,12 @@
 # state, and the one figure that state does not hold — the landings that reddened `main` — named where it lives
 # rather than fetched, because the report reads the state and git and never the tracker.
 #
+# Since issue #759 it also says where the spend went: the clock split by the phase that spent it (the model time,
+# the project's gate, every other tool), the tokens split by the role that spent them (worker, reviewer, tail), and
+# the share of the tokens spent after an item's first gate. All three are read from the state, which records them
+# when the item's stream is read — a run that paid two thirds of its clock inside the gate and one that paid it
+# reading printed the same shapes before these lines existed.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -68,6 +74,9 @@ closed=$(jq -r '[.items[] | select(.result == "done")] | length' "$state_file")
 misdiagnosed=$(jq -r '[.items[] | select(.result == "falsified")] | length' "$state_file")
 skipped=$(jq -r '[.items[] | select(.result == "skipped")] | length' "$state_file")
 blocked=$(jq -r '[.items[] | select(.result == "blocked")] | length' "$state_file")
+# The item a bound cut is counted apart from one that blocked (issue #785): it spent budget, so the budget left
+# subtracts it, and it is no question — the next run resumes the phase the run's own clock ended.
+cut=$(jq -r '[.items[] | select(.result == "cut")] | length' "$state_file")
 
 printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · review rounds %s · may-close %s · max-decisions %s · base %s)\n\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$items" "$minutes" \
@@ -84,7 +93,7 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
 is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
 # Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
-# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
+# two consecutive refusals, the remaining-time floor) and the run records it, so the report and the state
 # file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
 # printed while it is still going.
 stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
@@ -114,15 +123,15 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
   fi
 fi
 if [ "$owner_gone" -eq 1 ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$owner_pid"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$owner_pid"
 elif [ -n "$spent_min" ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" \
-    "$((items - closed - misdiagnosed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left %s items / %s min · spent %s min\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" \
+    "$((items - closed - misdiagnosed - skipped - blocked - cut))" "$((minutes - spent_min))" "$spent_min"
 else
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$deadline_at"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$deadline_at"
 fi
 
 printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
@@ -160,14 +169,23 @@ printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#
 # named apart from the closures so a run that only falsified does not read as a run that delivered (openspec
 # change `falsified-items-close-in-the-loop`).
 printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified") | "#\(.issue) \(.metrics.rootCause // "")"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
-printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)\(if (.mechanism // "") == "" then "" else " (\(.mechanism))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# The items a bound cut are named apart from the blocks, in the reader's own language: a phase the run ended at
+# its own bound asked nobody a question, so the line says which phase was cut and what the next run resumes
+# (issues #785, #790). The row reads the item's own `result` and nothing else — the mechanism vocabulary is what
+# a state carries for a reader who asks *which* bound it was, not a second predicate the report needs to tell work
+# from a refusal. A state a tree wrote before `cut` carried a bound keeps its two `blocked` items in the block
+# tally, exactly as that tree counted them. Empty for a run with none, exactly as the other named lists are.
+printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the
-# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177).
+# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177). An exclusion that
+# carries the adoption's own mechanism is the run's own result, not the owner's question (issue #794): the
+# mechanism is what `run.sh` writes when the branch is admissible and the merge's inputs refused it.
 printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAgent)" '
   [.items[] | select((.escalatedLabel // "") != "") | "#\(.issue)"]
-  + [.excluded[] | select(.verdict == $d) | "#\(.issue)"]
+  + [.excluded[] | select(.verdict == $d and (.mechanism // "") != "unmergeable") | "#\(.issue)"]
   | if length == 0 then "none" else join(" · ") end' "$state_file")"
 
 # The branches are read from git, not from a child's report: the run's own script created them. What each
@@ -244,6 +262,14 @@ trend=$(jq -r --argjson floor "$calls_floor" '
     else ((.[(length / 2) - 1] + .[length / 2]) / 2)
     end;
   def decided: . == "PASS" or . == "NOTES" or . == "FAIL" or . == "round2-ended";
+  # Three figures about where the spend went (issue #759), each a count the state records: a duration in
+  # milliseconds, printed in seconds below an hour and in hours above it, and a token count printed in Mtok to the
+  # one decimal the per-item columns are read at.
+  def dur: (. / 1000) | if . >= 3600 then ((. / 3600 * 10 | round) / 10 | "\(.) h")
+                       else ((. * 10 | round) / 10 | "\(.) s") end;
+  def mtok_n: ((. / 1000000 * 10 | round) / 10);
+  def mtok: (. | mtok_n | "\(.) Mtok");
+  def items_n: if . == 1 then "1 item" else "\(.) items" end;
   ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0)}]) as $it
   | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
   | [$it[] | select(.v | decided)] as $decided
@@ -281,7 +307,57 @@ trend=$(jq -r --argjson floor "$calls_floor" '
               else "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · floor off — LOOP_ITEM_CALLS_PER_TURN_MIN records \($floor), so no item is flagged"
               end )
       end ) as $callline
-  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)"
+  # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so
+  # the line names how many items it is over — a rate over 3 items and one over 227 are not the same claim. A bucket
+  # nobody spent time in is left out of the phase line rather than printed as `0 s`, because a zero there reads as a
+  # measurement that was made; the line below says when no gate ran at all.
+  | ([.items[] | .metrics.phases | select(. != null)]) as $phs
+  | ([.items[] | .metrics.roles | select(. != null)]) as $rol
+  | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
+  # What a state written before this figure existed holds instead: some spend and no split at all. That is a
+  # different answer from a run whose items measured nothing, the distinction the calls line already makes.
+  | ([.items[] | select(.metrics.tokens != null or (.metrics.roles // null) != null)] | length) as $hasSpend
+  | ([.items[] | select((.metrics.phases // null) != null or (.metrics.roles // null) != null)] | length) as $splitAny
+  | ( if ($phs | length) == 0 then
+        (if $hasSpend > 0
+          then "- · this state records no phase durations — it was written before the report read them"
+          else "- · no item recorded a phase duration" end)
+      else ([{n: "model", ms: ([$phs[].modelMs] | add)},
+             {n: "gate", ms: ([$phs[].gateMs] | add)},
+             {n: "other", ms: ([$phs[].otherMs] | add)}]
+            | map(select(.ms > 0))) as $b
+        | ([$b[].ms] | add) as $total
+        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)"
+          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)"
+          end
+      end ) as $phaseline
+  | ( if ($rol | length) == 0 then
+        (if $hasSpend > 0
+          then "- · this state records no role split — it was written before the report read one"
+          else "- · no item recorded a session role" end)
+      else (["worker", "reviewer", "tail"]
+            | map(. as $r | {role: $r, tok: ([$rol[] | .[$r] | select(. != null)] | add)})
+            | map(select(.tok != null))) as $by
+        | if ($by | length) == 0 then "- · no item recorded a session that reported tokens"
+          elif ($by | length) == 1 then "\($by[0].role) \($by[0].tok | mtok) over \($rol | length | items_n)"
+          else "\($by | map("\(.role) \(.tok | mtok)") | join(" · ")) · \(([$by[].tok] | add) | mtok) over \($rol | length | items_n)"
+          end
+      end ) as $roleline
+  # The share after the first gate has both halves in the state (`tokens` and `total`, over the sessions that ran a
+  # gate), so the line prints the percentage with the two numbers it is a percentage of — the rule the review rate
+  # keeps for its own figures.
+  | ( if ($gt | length) == 0 then
+        (if $splitAny == 0 and $hasSpend > 0
+          then "- · this state records no gate share — it was written before the report read one"
+          else "- · no item of this run ran a gate in its stream" end)
+      else ([$gt[].tokens] | add // 0) as $a
+        | ([$gt[].total] | add // 0) as $tot
+        | ([$gt[].sessions] | add // 0) as $n
+        | if $tot == 0 then "- · the items that ran a gate reported no tokens"
+          else "\((($a / $tot) * 100) | round) % — \($a | mtok_n) of \($tot | mtok_n) Mtok, from the first gate of \($n) session\(if $n == 1 then "" else "s" end)"
+          end
+      end ) as $gateline
+  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"
@@ -311,7 +387,7 @@ decisions() {
   jq -r --arg d "$(loop_role decisionAgent)" '
     (.items[] | select((.escalatedLabel // "") != "")
       | ["item", (.issue | tostring), .verdict, (.note // ""), (.metrics.rootCause // "")]),
-    (.excluded[] | select($d != "" and .verdict == $d)
+    (.excluded[] | select($d != "" and .verdict == $d and (.mechanism // "") != "unmergeable")
       | ["excluded", (.issue | tostring), .verdict, (.reason // ""), (.evidence // "")])
     | @tsv' "$state_file"
 }

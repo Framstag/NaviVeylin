@@ -1,0 +1,5 @@
+$ python3 openspec/changes/fix-a-child-has-a-working-search/evidence/ctx-grep-census.py
+CTX-GREP-CENSUS at=2026-11-06T17:18:36Z items=252 items_failed=125 calls=482 failed=282
+
+# the same census over the runs of 2026-11-06 only, which is the day the item reports
+$ python3 <the census, narrowed to the item directories mtime>

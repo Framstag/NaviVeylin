@@ -1,0 +1,7 @@
+cmd: bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem
+date: 2026-11-06T22:05:32Z  base: 54373f19c58ba66cc7b26d8c452372f82ca1317b
+run#aWriterTheRunCanPlaceBlocksTheItem|   the reading that ended the item is recorded as a step of its own: expected '1', got '0'
+--- run#aWriterTheRunCanPlaceBlocksTheItem[0] (exit 1)
+  the reading that ended the item is recorded as a step of its own: expected '1', got '0'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed

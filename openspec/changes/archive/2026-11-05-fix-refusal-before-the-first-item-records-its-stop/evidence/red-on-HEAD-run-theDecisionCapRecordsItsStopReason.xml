@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#theDecisionCapRecordsItsStopReason @ 2026-11-05T21:48:02Z on base 62ab008d" tests="1" failures="1" errors="0" time="0">
+  <system-out>FAIL run#theDecisionCapRecordsItsStopReason — the refusal is the run's stop reason, naming both counts it compared: &apos;3 of the 3 item(s) that await a decision are candidates, and the cap is 3&apos; not found in: (the field is empty) · loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

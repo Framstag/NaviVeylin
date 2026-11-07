@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the self-test printed on the base tree (HEAD 4522a41, the engine change the only thing reverted) for
+     the two set-aside cases: the shell runner writes no JUnit XML, so this file is the carrier of the number the
+     change quotes (tests=2 failures=2), kept beside evidence/red-on-HEAD.log so the claim has both halves. The
+     selection was the two cases of the worktree group whose names begin with aSetAside. -->
+<testsuite name="tools/loop-selftest.sh (worktree#aSetAside*, HEAD 4522a41)" tests="2" failures="2" errors="0" time="1.58">
+  <testcase name="worktree#aSetAsideBranchWhosePatchesLandedIsRemoved" classname="loop-selftest">
+    <failure message="a set-aside branch whose patches are in the base is swept">'would remove loop/leftover/issue-21-demo-20260101T000000Z' not found in: would remove fix/issue-21-demo (its patches are in the base)</failure>
+  </testcase>
+  <testcase name="worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved" classname="loop-selftest">
+    <failure message="the sweep keeps a set-aside branch that carries work, and names why">'kept loop/leftover/issue-22-work-20260101T000000Z — carries work the base does not have' not found in: worktree: no branch of the loop to prune</failure>
+  </testcase>
+  <system-out>2026-11-06T17:53:09Z FAIL worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved FAIL worktree#aSetAsideBranchWhosePatchesLandedIsRemoved loop-selftest: 2 of 2 cases failed — 1.58 s 2026-11-06T17:53:12Z</system-out>
+</testsuite>

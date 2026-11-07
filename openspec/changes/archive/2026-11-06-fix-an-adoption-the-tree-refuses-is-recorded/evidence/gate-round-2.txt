@@ -1,0 +1,38 @@
+The gate of correction round 2 — run once, in /home/tim/projects/NaviVeylin/.pi/worktrees/loop, base b114e2d04b9f643949358ac4a5db606666dd4d1d,
+at 2026-11-06T12:49:27Z. Its own summary line, quoted as it printed:
+
+LOOP-GATE: tests=925 failures=0 errors=0 (tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 10s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 259s, tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d 420s, bash tools/loop-mutations.sh --check 2s, tools/loop-mutations-selftest.sh 245s, tools/sensor-selftest.sh 77s, tools/sensor-mutations.sh --list 0s, tools/check-compose-sandbox-rule.sh 0s, tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 22s, tools/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 89s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 1s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s)
+
+The tallies it left, read from app/build/test-results/loop-gate/ and copied here as gate-tallies-round2/:
+  (tests / failures / time attributes of each <testsuite> line)
+tests=0    failures=0  time=3    s bash_tools_gen-feature-list.sh_--check-classification.xml
+tests=249  failures=0  time=2    s bash_tools_loop-mutations.sh_--check.xml
+tests=0    failures=0  time=259  s gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+tests=0    failures=0  time=0    s tools_check-compose-sandbox-rule-selftest.sh.xml
+tests=0    failures=0  time=0    s tools_check-compose-sandbox-rule.sh.xml
+tests=34   failures=0  time=8    s tools_check-doc-routes-selftest.sh.xml
+tests=0    failures=0  time=1    s tools_check-doc-routes.sh.xml
+tests=7    failures=0  time=0    s tools_check-openspec-hygiene-selftest.sh.xml
+tests=0    failures=0  time=0    s tools_check-openspec-hygiene.sh.xml
+tests=29   failures=0  time=22   s tools_check-portability-selftest.sh.xml
+tests=0    failures=0  time=1    s tools_check-portability.sh.xml
+tests=0    failures=0  time=1    s tools_check-todo-references.sh.xml
+tests=158  failures=0  time=89   s tools_issue-tooling-selftest.sh.xml
+tests=34   failures=0  time=245  s tools_loop-mutations-selftest.sh.xml
+tests=0    failures=0  time=10   s tools_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanReach.xml
+tests=330  failures=0  time=420  s tools_loop-selftest.sh_--from-git_b114e2d04b9f643949358ac4a5db606666dd4d1d.xml
+tests=0    failures=0  time=1    s tools_mutate-selftest.sh.xml
+tests=0    failures=0  time=0    s tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+tests=0    failures=0  time=0    s tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+tests=0    failures=0  time=1    s tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+tests=0    failures=0  time=0    s tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+tests=0    failures=0  time=0    s tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+tests=0    failures=0  time=0    s tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+tests=0    failures=0  time=0    s tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+tests=0    failures=0  time=0    s tools_sensor-mutations.sh_--list.xml
+tests=84   failures=0  time=77   s tools_sensor-selftest.sh.xml
+summed tests=925 failures=0 over 26 tallies
+
+The sum has an XML carrier too: evidence/gate-round-2-sum.xml, derived from the same 26 tallies (their
+testsuite attributes copied unchanged, nothing re-run) so that the number quoted above is not carried by this
+file alone.

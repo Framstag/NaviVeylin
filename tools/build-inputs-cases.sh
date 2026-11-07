@@ -21,6 +21,7 @@ INPUTS_CASES=(
   'inputs#reportsTheRunsConclusion'
   'inputs#refusesAnotherCommitsRecord'
   'inputs#noRecordExitsThree'
+  'inputs#theFetcherPublishesTheJobTimings'
   'inputs#theScanRecordIsTheScanPipelinesOwn'
 )
 
@@ -42,6 +43,7 @@ inputs_run_case() {
     'inputs#reportsTheRunsConclusion') case_inputs_reportsTheRunsConclusion ;;
     'inputs#refusesAnotherCommitsRecord') case_inputs_refusesAnotherCommitsRecord ;;
     'inputs#noRecordExitsThree') case_inputs_noRecordExitsThree ;;
+    'inputs#theFetcherPublishesTheJobTimings') case_inputs_theFetcherPublishesTheJobTimings ;;
     'inputs#theScanRecordIsTheScanPipelinesOwn') case_inputs_theScanRecordIsTheScanPipelinesOwn ;;
     *) printf 'no such case: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -159,6 +161,10 @@ stub_runs() { # <stub-dir> <json>
 
 stub_artifacts() { # <stub-dir> <names-json>
   printf '%s\n' "$2" > "$1/artifacts.json"
+}
+
+stub_jobs() { # <stub-dir> <jobs-json>
+  printf '%s\n' "$2" > "$1/jobs.json"
 }
 
 # --------------------------------------------------------------------------- cases
@@ -460,4 +466,59 @@ case_inputs_noRecordExitsThree() {
   out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" 2>&1); status=$?
   unset GH_STUB_DIR
   [ "$status" -eq 3 ] || fail "a run without the artifact exited $status, expected 3: $out"
+}
+
+# A step of the build cannot read its own run's step durations, so the wall time a row can measure comes from
+# GitHub's jobs API — and the checks' fetcher is the one thing that already knows the run of the commit under
+# test (issue #778). One flag asks for the record; a caller that does not ask gets nothing, so the fetcher's
+# second call (the scan's artifact) cannot overwrite the build's record with a stranger's jobs.
+case_inputs_theFetcherPublishesTheJobTimings() {
+  local dir dest record out status
+  dir=$(scratch); dest="$dir/tree"; record="$dest/build/job-timings.json"
+  stub_runs "$dir" '[{"databaseId":4242,"headSha":"abc1234","status":"completed","conclusion":"success","workflowFile":"build.yml"}]'
+  stub_artifacts "$dir" '{"artifacts":[{"name":"sensor-inputs"}]}'
+  stub_jobs "$dir" '{"total_count":2,"jobs":[
+    {"name":"Build debug APK (all ABIs)","conclusion":"success",
+     "started_at":"2026-11-02T09:56:00Z","completed_at":"2026-11-02T11:45:00Z",
+     "steps":[
+       {"name":"Install vcpkg dependencies","conclusion":"success",
+        "started_at":"2026-11-02T10:22:55Z","completed_at":"2026-11-02T11:20:33Z"},
+       {"name":"Build debug APK","conclusion":"success",
+        "started_at":"2026-11-02T11:20:56Z","completed_at":"2026-11-02T11:31:19Z"}]},
+    {"name":"Offline gates","conclusion":"success",
+     "started_at":"2026-11-02T09:56:00Z","completed_at":"2026-11-02T10:19:36Z",
+     "steps":[{"name":"Check OpenSpec artifact hygiene","conclusion":"success",
+                "started_at":"2026-11-02T10:05:00Z","completed_at":"2026-11-02T10:05:30Z"}]}]}'
+  mkdir -p "$dir/artifact/4242"
+  printf 'record\n' > "$dir/artifact/4242/gate-result.json"
+
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" \
+    --jobs-record "$record" 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 0 ] || fail "the fetch exited $status: $out"
+  [ -f "$record" ] || fail "no job-timings record at $record"
+  # The record is the run's own: every job with its wall time derived from the API's two instants, and every
+  # step beside it, so a row can name the step that grew without reading step names of its own.
+  assert_eq "2" "$(jq -r '.jobs | length' "$record")" "the record carries every job of the run"
+  assert_eq "Build debug APK (all ABIs)" "$(jq -r '.jobs[0].name' "$record")" "a job keeps the API's own name"
+  assert_eq "6540000" "$(jq -r '.jobs[0].durationMs' "$record")" "the job's wall time is derived from its own instants"
+  assert_eq "3458000" "$(jq -r '.jobs[0].steps[0].durationMs' "$record")" "a step's wall time is derived the same way"
+  assert_eq "1416000" "$(jq -r '.jobs[1].durationMs' "$record")" "the second job is measured separately"
+  assert_eq "4242" "$(jq -r '.runId' "$record")" "the record names the run it belongs to"
+  assert_eq "abc1234" "$(jq -r '.commit' "$record")" "and the commit, so it cannot answer for another"
+
+  # A caller that does not ask for the record gets none: the scan's fetch runs through the same script, and a
+  # record overwritten with the scan's jobs would measure the wrong pipeline.
+  dest="$dir/scan-tree"
+  stub_runs "$dir" '[{"databaseId":5151,"headSha":"abc1234","status":"completed","conclusion":"success","workflowFile":"sonar.yml"}]'
+  stub_artifacts "$dir" '{"artifacts":[{"name":"scan-inputs"}]}'
+  mkdir -p "$dir/artifact/5151"
+  printf 'record\n' > "$dir/artifact/5151/scan-result.json"
+  export GH_STUB_DIR="$dir"
+  out=$(fetcher --repo example/repo --commit abc1234 --dest "$dest" \
+    --workflow sonar.yml --artifact scan-inputs 2>&1); status=$?
+  unset GH_STUB_DIR
+  [ "$status" -eq 0 ] || fail "the scan's fetch exited $status: $out"
+  [ ! -e "$dest/build/job-timings.json" ] || fail "a fetch that did not ask for the record wrote one anyway"
 }

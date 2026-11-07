@@ -9,6 +9,7 @@ import androidx.car.app.navigation.model.LaneDirection
 import androidx.car.app.navigation.model.Maneuver
 import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LaneTurn
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
@@ -254,6 +255,66 @@ class NavigationTemplateMapperTest {
         )
         assertNull(step.road)
         assertEquals("Turn right", step.cue.toString())
+    }
+
+    /** A motorway change onto [to], the manoeuvre a signposted destination exists for. */
+    private fun motorwayChangeStep(
+        destination: String? = "München",
+        to: String = "A8",
+        distance: Double = 350.0
+    ) =
+        RouteStep().apply {
+            kind = RouteStep.Kind.MOTORWAY_CHANGE
+            remainingDistance = distance
+            distanceFromStart = distance
+            motorwayChange = RouteStep.MotorwayChange().apply {
+                from = RouteStep.Name("", "A3")
+                this.to = RouteStep.Name("", to)
+                move = TurnType.RIGHT
+            }
+            this.destination = destination
+        }
+
+    @Test
+    fun `the current motorway step's road carries the destination`() {
+        // The cue stays the manoeuvre alone; the road — the target the host draws under it — carries
+        // the ref and the signposted destination, worded by the same `:core` function the phone
+        // overlay reads (spec: auto/navigation-view — The target street carries the destination).
+        val step = NavigationTemplateMapper.stepForStep(
+            motorwayChangeStep(), testIcon, resolver = resolver
+        )
+
+        assertEquals("Keep right", step.cue.toString())
+        assertEquals("A8 towards München", step.road.toString())
+    }
+
+    @Test
+    fun `the next motorway step carries its own destination`() {
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            steps = listOf(
+                motorwayChangeStep("München", "A8", distance = 350.0),
+                motorwayChangeStep("Nürnberg", "A9", distance = 900.0)
+            )
+        )
+
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false, resolver = resolver
+        )!!
+
+        assertEquals("A8 towards München", info.currentStep!!.road.toString())
+        assertEquals("A9 towards Nürnberg", info.nextStep!!.road.toString())
+    }
+
+    @Test
+    fun `a motorway step without a destination keeps the bare reference`() {
+        val step = NavigationTemplateMapper.stepForStep(
+            motorwayChangeStep(destination = null), testIcon, resolver = resolver
+        )
+
+        assertEquals("Keep right", step.cue.toString())
+        assertEquals("A8", step.road.toString())
     }
 
     @Test

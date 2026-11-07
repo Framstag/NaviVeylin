@@ -9,7 +9,7 @@ numbers. The phone's own surfaces — the details dialog, the search dialog and 
 affordances — are `guidelines/UIPhone.md`.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/UIPhoneMap.md`; AGENTS.md's Documentation Map routes a kind of
+`tools/look.sh '^## ' --path guidelines/UIPhoneMap.md`; AGENTS.md's Documentation Map routes a kind of
 change here.
 
 ---

@@ -6,7 +6,7 @@ keeps it honest — the declared checks, its portability, and where an agent run
 `guidelines/BacklogTooling.md`, which carries those sections under their own numbers.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/Backlog.md`; AGENTS.md's Documentation Map routes a kind of change here.
+`tools/look.sh '^## ' --path guidelines/Backlog.md`; AGENTS.md's Documentation Map routes a kind of change here.
 
 ## 1. Status, and what this document owns
 
@@ -98,7 +98,7 @@ carry preferences.
 | I5 | A check cannot reverse a person's decision | only a closure recorded as a completed fix is reopened | a check reopens an item a person closed as "not to be done" |
 | I6 | A failing check is not a cleared condition | three-valued outcome; only "cleared" may close | a crash, an unreachable input or an unreadable result closes an item |
 | I7 | A check acts only on what it owns | ownership label checked at the write | a check closes, reopens or annotates another's item |
-| I8 | Version control belongs to the script that starts a run, never to an agent | the wrapper; no phase can invoke git on its own behalf | an agent creates a branch, a tree or a commit, or a push happens unasked |
+| I8 | Version control belongs to the script that starts a run, never to an agent | the wrapper; no phase can invoke git on its own behalf; the run's end sweeps refs only, deletes only refs the loop names, keeps a remote ref that is the head of an open pull request (`run#theRemoteSweepKeepsAnOpenPullRequest`), and judges a remote ref at the tip the remote publishes, deleting it only while it still points there | an agent creates a branch, a tree or a commit, a push happens unasked, or the sweep deletes a ref the loop did not make, one a worktree holds, one somebody's open pull request is, or one whose published tip the base does not carry |
 | I9 | A reviewer never wrote what it reviews | a separate process; a write during review discards the round | a round is accepted although the tree changed during it |
 | I10 | The loop verifies; it does not trust a claim | the wrapper reads the tree, the archive and the evidence itself | a claimed success closes an item with nothing committed |
 | I11 | An item that cannot be finished is preserved, not thrown away | the escalation carries the root cause, the failing case and the branch | work is abandoned and only its absence is recorded |
@@ -141,7 +141,7 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
-Five rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
+Six rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
 the *candidates* in it — the items that carry both the decision label and the loop's opt-in, so a decision parked
 by removing `agent/eligible` (the owner's "not yet") never spends a slot that stops work on the ones they can
 answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
@@ -171,6 +171,23 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   settled state a decision not to act records, with the measurement as the comment — under the same `--may-close`
   permission a fix closure rides, and only after the review read the claim. A falsification whose tree moved
   during the review is a change, so it is escalated instead (openspec change `falsified-items-close-in-the-loop`).
+- **Rule: the queue reads the whole labelled set, and refuses one it could not cover.** The queue is a query over a
+  label, so the set it must read is the items carrying that label — not a fixed number of the tracker's newest
+  items, which is a window that the tracker outgrows: the 400 `decisions.sh` asked for left the 53 oldest items of a
+  453-item tracker unread, three of them awaiting a decision, while the count printed said how many it had seen
+  (#805). `tools/issues/decisions.sh` counts the labelled population first (`gh api graphql` `totalCount`), asks the
+  list for a window one item larger than the count, and refuses with exit 3 when the read comes back full — a read
+  the tracker overran — printing the set its count was taken over instead of a count over a set it could not cover.
+
+**The queue's reader is a skill, and it answers the owner's questions rather than the item's.** An item carrying the
+decision label is read by `.pi/skills/answer-decision`, which takes its URL, its number or a pre-migration `§N` — or,
+with nothing named, lists `tools/issues/decisions.sh` and asks which item — and then lays the fork out in the order a
+decider asks for it: what the item states, every option with at least one worked example, and a pro/contra in two
+views kept apart, the short-term one priced in this tree's own numbers (files touched, gate minutes, decisions still
+parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items hitting the same
+mechanism would do to it). The recommendation then states which view decided, because an average of the two is exactly
+the judgement this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through
+`answer.sh` — the same transition every other answer takes, so a skill that skipped it would be a second writer.
 
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Four of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `needs-diagnosis`, `unspecifiable`,
@@ -270,7 +287,7 @@ The run's script, the child's prompt and the result bound are `guidelines/Backlo
 
 ## 7b. What an item costs, and the bounds on it
 
-The item's cost, the clock, the memory floor, the turn bound and the gate-step bound are
+The item's cost, the clock, the memory floor, the turn bound, the context bound and the gate-step bound are
 `guidelines/Backlog.recipes.md` §7b.
 
 ## 7c. The gate and its suite

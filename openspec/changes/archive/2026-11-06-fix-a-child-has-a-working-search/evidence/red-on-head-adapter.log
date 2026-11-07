@@ -1,0 +1,5 @@
+adapter#theChildIsStartedWithItsToolDirectoryOnPath|   the child's PATH begins with the agent's own tool directory (issue #796): expected '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.v6d8ds/cases/0/tree/case.1AOXb1/agent/bin', got '/usr/bin'
+--- adapter#theChildIsStartedWithItsToolDirectoryOnPath[0] (exit 1)
+  the child's PATH begins with the agent's own tool directory (issue #796): expected '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.v6d8ds/cases/0/tree/case.1AOXb1/agent/bin', got '/usr/bin'
+FAIL adapter#theChildIsStartedWithItsToolDirectoryOnPath
+loop-selftest: 1 of 1 cases failed

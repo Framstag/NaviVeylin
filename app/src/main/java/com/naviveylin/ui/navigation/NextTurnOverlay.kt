@@ -270,5 +270,8 @@ internal data class InstructionLines(
 internal fun instructionLines(resolver: StringResolver, manoeuvre: Manoeuvre): InstructionLines =
     InstructionLines(
         generic = ManoeuvreLabels.short(resolver, manoeuvre),
-        destination = (manoeuvre.displayName ?: manoeuvre.motorwayTo)?.takeIf { it.isNotBlank() }
+        // The thing the manoeuvre leads onto, worded by the one `:core` function the car's
+        // instruction panel reads too (spec: `next-turn-overlay` — The second line carries the
+        // signposted destination).
+        destination = ManoeuvreLabels.leadsOnto(resolver, manoeuvre)
     )

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git aee35ca6fe60bb243fc6d4227d5a50e2675a87c3" tests="316" failures="1" errors="0" time="402">
+  <system-out>PASS run#theRecordedZeroKeepsTheContextBoundOff PASS run#theRecordedZeroKeepsTheTurnBoundOff loop-selftest: 1 of 316 cases failed</system-out>
+</testsuite>

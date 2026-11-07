@@ -712,15 +712,15 @@ echo_case routed-read#figure case_routed_read_figure \
 echo_case routed-read#range case_routed_read_range \
   "a range a row states is the span of the lettered sections it names, and a past measurement in the same row is not compared"
 
-# `documentation-ownership`, "The entry document names the skill a reader needs by its path". The two skills the
-# iteration loop ends with — filing the finding, and measuring it on a device — were named in blocks an earlier
-# diet removed, and a *dropped* pointer is the one failure the checker cannot report: it resolves the skill paths
-# the documents still write, and an absent reference and a reference to nothing look the same to it. The case
-# reads this repository's entry document, so the two names below are this delta's expectation, declared once
-# here; the second leg runs the check so a re-added name that does not resolve fails this case too.
+# `documentation-ownership`, "The entry document names the skill a reader needs by its path". The skills the
+# iteration loop ends with — filing the finding, measuring it on a device, and reading a finished run — were named
+# in blocks an earlier diet removed, and a *dropped* pointer is the one failure the checker cannot report: it
+# resolves the skill paths the documents still write, and an absent reference and a reference to nothing look the
+# same to it. The case reads this repository's entry document, so the names below are this delta's expectation,
+# declared once here; the second leg runs the check so a re-added name that does not resolve fails this case too.
 case_routed_read_skill_pointers() {
   local out rc name missing="" named
-  for name in create-issue device-check; do
+  for name in create-issue device-check analyse-loop-run; do
     if [ ! -d "$root/.pi/skills/$name" ]; then
       CASE_WHY="the tree carries no .pi/skills/$name, so this case's expectation no longer names a skill"
       return 1
@@ -731,19 +731,30 @@ case_routed_read_skill_pointers() {
     CASE_WHY="the entry document names no path for$missing — a reader reaches those skills only by listing .pi/skills/"
     return 1
   fi
+  # The names are the route; the contract behind the third one is what a reader is routed *to*, so the same case
+  # holds the two sentences that make the analysis pass what the spec says it is: it writes nothing, and a finding
+  # it makes becomes an item rather than an edit. A pointer to a skill that had lost either would resolve and lie.
+  local contract="" phrase
+  for phrase in 'Read-only' 'agent/eligible'; do
+    grep -qF -- "$phrase" "$root/.pi/skills/analyse-loop-run/SKILL.md" || contract="$contract $phrase"
+  done
+  if [ -n "$contract" ]; then
+    CASE_WHY="the analysis skill states no$contract, so the pass it names is not the one this delta specifies"
+    return 1
+  fi
   out=$("$check" --root "$root" 2>&1); rc=$?
   if [ "$rc" != 0 ]; then
     CASE_WHY="the route check refused the entry document that names both paths: exit $rc: $out"
     return 1
   fi
-  named=$(grep -o '\.pi/skills/\(create-issue\|device-check\)' "$root/AGENTS.md" | sort -u | paste -sd' ' -)
+  named=$(grep -o '\.pi/skills/\(create-issue\|device-check\|analyse-loop-run\)' "$root/AGENTS.md" | sort -u | paste -sd' ' -)
   printf '        the entry document names %s; %s\n' \
     "$named" "$(printf '%s\n' "$out" | grep 'skill references resolve' | tail -1)" >&2
   return 0
 }
 
 echo_case routed-read#theEntryDocumentNamesTheLoopSkillsByPath case_routed_read_skill_pointers \
-  "the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both"
+  "the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three"
 
 # The two cases above read the tree, so "the repository's documents are untouched" is asserted after them too: a
 # case that measured a document by editing it would pass and leave the tree changed.

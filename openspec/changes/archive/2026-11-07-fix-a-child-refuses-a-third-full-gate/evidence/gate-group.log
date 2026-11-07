@@ -1,0 +1,48 @@
+2026-11-07T02:46:11Z
+$ bash tools/loop-selftest.sh --group gate
+PASS gate#theMapCoversEveryPipelineStep
+PASS gate#aPipelineCheckIsOwedByItsPaths
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS gate#aStepEndsWithItsCommandNotWithItsWatchers
+PASS gate#aStepIsBoundedAndTheOverrunNamesIt
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+PASS gate#aCompiledStepsTallyIsNotHidden
+PASS gate#theSummaryNamesWhatEachSuiteCost
+PASS gate#independentStepsRunTogether
+PASS gate#aFailingSuitesTallyIsUnchangedByItsNeighbours
+PASS gate#aPooledWavePrintsEachStepWholeWhenItEnds
+PASS gate#anArchivedArtefactOwesNoBuild
+PASS gate#theDeltaSelectsTheSuitesItTouches
+PASS gate#aModuleResourceOwesTheBuild
+PASS gate#theGateNamesTheProfileItRead
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-024623')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 1523363 an engine of its own
+PASS gate#aThirdFullRunInOneSessionIsRefused
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e106ee9)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c80181f)
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei c80181f review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c80181f).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS gate#theDeclarationCaseIsOwedFirst
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 c80181f839548081ca714b0aa54059d0b922fd8a: unscored — the pipeline runs of this commit could not be read
+PASS gate#aGreenLogNamesNoFailingCase
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS gate#aFailingCaseCarriesItsFactsAndItsRerun
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS gate#twoFailuresNameTheFirstAndCountTheRest
+PASS gate#aStepThatNamesNoCaseIsAttributedByItsStep
+PASS gate#theBlockStaysInsideTheRecordedBound
+PASS gate#theStepBoundIsClampedByTheCeilingTheCallerNamed
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+loop-selftest: gate 28 cases 151.05 s
+loop-selftest: all 28 cases passed (JDK 27, offline, no token, no sandbox) — 19.79 s, selection: --group gate
+exit=0

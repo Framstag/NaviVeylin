@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the self-test printed on the base tree (HEAD 2e59e48a, `tools/issues/decisions.sh` at the base commit
+     and the two new cases plus the stub's window fidelity applied) for the queue's two read cases: the shell runner
+     writes no JUnit XML, so this file is the carrier of the number the change quotes (tests=2 failures=2), kept
+     beside evidence/red-on-HEAD.log so the claim has both halves. The selection was the two `decisions#` cases this
+     change adds, run one at a time through `tools/issue-tooling-selftest.sh --case`. -->
+<testsuite name="tools/issue-tooling-selftest.sh (decisions# read cases, HEAD 2e59e48a)" tests="2" failures="2" errors="0" time="2">
+  <testcase name="decisions#theOldestQueuedItemIsListed" classname="issue-tooling-selftest">
+    <failure message="the oldest item that awaits a decision is listed, not only the newest page of the tracker">'#1  **The decision:** merge the two rows into one' not found in: #405  **The decision:** merge the two rows into one / fixture item 405 / last touched 2026-01-01T00:00:00Z / 1 item(s) await a decision — answer one with tools/issues/answer.sh &lt;issue&gt; --decision "&lt;text&gt;"</failure>
+  </testcase>
+  <testcase name="decisions#aReadThatCannotCoverTheSetIsRefused" classname="issue-tooling-selftest">
+    <failure message="a set the read could not cover is a refusal">#1 … / #2 … / 2 item(s) await a decision — answer one with tools/issues/answer.sh &lt;issue&gt; --decision "&lt;text&gt;": expected '3', got '0'</failure>
+  </testcase>
+  <system-out>2026-11-06T19:42:44Z FAIL decisions#theOldestQueuedItemIsListed FAIL decisions#aReadThatCannotCoverTheSetIsRefused 2026-11-06T19:42:46Z</system-out>
+</testsuite>

@@ -15,9 +15,9 @@ quoted only where its run is dated (§2c, §6c–§6e).
 
 ## 1. Skills
 
-Five skills wrap the existing Gradle calls and the verification discipline around them, and three more wrap
+Five skills wrap the existing Gradle calls and the verification discipline around them, and four more wrap
 the tooling's own shell gates and the loop's spend (`tools/issues/**`, `tools/sensors/**`, `tools/loop/**`,
-`tools/check-portability.sh`, `tools/loop-spend.py`). They are named
+`tools/check-portability.sh`, `tools/loop-spend.py`, `tools/loop/report.sh`). They are named
 and discoverable by LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
 verification, or release work is requested or required by the OpenSpec apply/archive guidance. The loop
 they serve — when to look, when to measure, when to run which suite — is §2a's *Agent iteration protocol*;
@@ -31,6 +31,7 @@ the skills are its hands, not its rule.
 | `mutation-runner` | Run a *versioned set* of shell-gate mutations in one command (`tools/mutate.sh`), with a guard against a mutation that never landed and one against a case that does not notice | The gate is a self-test, not Gradle; a change's falsification pass is owed for `tools/**`; a mutation set has to be run, listed or repaired |
 | `portability-check` | Prove the tooling names no project value and still runs in another project (`tools/check-portability.sh` + its 21 cases + the synthetic foreign project) | A change touches `tools/issues`, `tools/sensors`, `tools/loop` or the check; a task says "portability"/"no project value"/"the foreign project"; CI's `Check portability` step fails |
 | `loop-spend` | Measure what the loop's children spent and on what — the re-read context, the prompt baseline, tool-result traffic, repeated file reads, spend per role and per day, and what each lever would save (`tools/loop-spend.py` + `tools/loop-spend-selftest.sh`) | Items cost more than they used to; an item's tokens have to be explained; a change claims to reduce the loop's spend and owes a before/after |
+| `analyse-loop-run` | Read one finished run into its numbers, what it did well and badly, and a weighted table of the changes worth paying for (`tools/loop/report.sh`, `tools/loop/state.sh show`, `tools/loop-spend.py`) — read-only, and its findings become items, never edits | A run has ended and its yield has to be judged; a run cost more than it returned; the next run's config or case set is about to be chosen |
 | `compose-geometry` | Assert a UI geometry invariant (size, tap target, disjointness, visibility inside a parent) in a Compose case instead of `assertExists()` | A phone control or tap area is added/moved; a task asks for a bounds/48 dp/disjointness/visibility case; a device run shows a tap landing on the wrong action or an action that is unreachable |
 | `release-build` | Produce Play-ready release AABs (mobile + automotive) | User asks for a release build or version bump; Play upload / sideload artifacts |
 
@@ -135,11 +136,12 @@ tools (`tools/issues/*` owes the issue tooling's self-test, the tracker sets owe
 --list`), so a step's commands are covered even where no single path reaches all of them;
 `gate#theMapCoversEveryPipelineStep` pins that side against the pipeline the profile names in
 `LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry fails the loop's own suite and
-names the missing commands. The two sides are compared on the command both run, so a part the pipeline substitutes
-at run time is dropped from both before the comparison — the `--group <selection>` a leg narrows with, the
-`${{ steps.delta.outputs.args }}` a step is handed the delta it owes as, and the gate's own `--from-git {base}` on
-the map's side — because a substitution is not part of the command the map names, and a leg runs *fewer* of the
-cases the map's broader driver entry runs. The *path* side: which paths a step's tools read is named by no workflow, so the
+names the missing commands. A step that runs a script the map carries with a selection the pipeline varies is that
+entry and not a new command: the loop's suite runs as one leg per group selection, and a leg runs fewer of the
+cases the map's own driver entry runs. The two sides are therefore compared on what they have in common — the
+`--group <selection>` a leg narrows with, the `${{ steps.delta.outputs.args }}` a step is handed the delta it owes
+as, and the gate's own `--from-git {base}` on the map's side are stripped from both before the comparison, because a
+substitution is not part of the command the map names (issue #781, issue #779). The *path* side: which paths a step's tools read is named by no workflow, so the
 reader edges were measured once and are hand-kept, and every measured edge owes the *whole* step whose tool
 reads the path — the pipeline runs the step as a unit and any of its commands can be the one that reddens.
 Measured 2026-10-25, for `Check portability`: `tools/check-portability.sh` opens

@@ -1,0 +1,57 @@
+The step clock after the split, read 2026-11-05 from a run on main that carries the `gates` job
+(run 42093153526, head `caf44b92`, the first run on main whose build job reached its end with the
+`Offline gates` and `Loop self-test (<leg>)` jobs beside it):
+
+    gh run view 42093153526 --repo Framstag/NaviVeylin --json jobs \
+      | jq -r '.jobs[] | select(.name|test("Build debug")) | .steps[]
+               | "\(.number) \(.startedAt[11:19]) \(.completedAt[11:19]) \(.name)"'
+
+  1 19:21:51 19:21:52 Set up job
+  2 19:21:52 19:21:58 Checkout with submodules
+  3 19:21:58 19:21:58 Set up JDK 21
+  4 19:21:58 19:21:58 Write local.properties
+  5 19:21:58 19:21:58 Check libosmscout Android-free outside Android/
+  6 19:21:58 19:22:10 Cache Android SDK
+  7 19:22:10 19:22:10 Install Android SDK
+  8 19:22:10 19:23:37 Check the JVM-only test graph
+  9 19:23:37 19:23:55 Check the dex gate's producer
+ 10 19:23:55 19:24:31 Install host build dependencies
+ 11 19:24:31 19:24:33 Clone vcpkg (pinned commit)
+ 12 19:24:33 19:24:33 Bootstrap vcpkg
+ 13 19:24:33 19:24:35 Configure NuGet source for vcpkg binary cache
+ 14 19:24:35 19:24:36 Probe the vcpkg binary cache
+ 15 19:24:36 19:26:04 Install vcpkg dependencies
+ ...
+
+Steps 6–24 of the base run are gone from this job. The step the build waits for, `Install vcpkg
+dependencies`, is step 15 here and starts 2 min 46 s into the job — 19:21:50 (job start) → 19:24:36 —
+where the base run reached it 26 min 31 s in (09:56:24 → 10:22:55). The 23 min 36 s the base run spent
+in front of it is off the build's clock.
+
+The three steps the change keeps in `build` are exactly the ones its own classification puts there, and
+they are the ones between the job start and the install above: `Check libosmscout Android-free outside
+Android/` (0 s), `Check the JVM-only test graph` (1 min 27 s), `Check the dex gate's producer` (18 s).
+
+The four jobs a run now carries, and their clocks, from the same read:
+
+    Build debug APK (all ABIs)  started 19:21:50  ended 19:47:27  success   (25 min 37 s)
+    Offline gates               started 19:21:50  ended 19:22:37  failure   (47 s — red at step 8,
+                                                                          `Check the rule routes`;
+                                                                          steps 9–21 were skipped, so
+                                                                          this is not the job's own
+                                                                          duration)
+    Loop self-test (tooling)    started 19:21:50  ended 19:25:13  failure   (3 min 23 s)
+    Loop self-test (rest)       started 19:21:50  ended 19:23:38  success   (1 min 48 s)
+    Loop self-test (run)        started 19:21:50  ended 19:28:35  success   (6 min 45 s)
+
+Every job starts in the same second, so no gate job's duration is on the build's clock.
+
+**What this run does not measure.** It is red — `Check the rule routes` failed in the gates job — so the
+gates job's own duration is truncated and the run's total (19:21:47 → 19:47:28, 25 min 41 s) is not
+comparable to the base run's 1 h 50 min 29 s: the base run built the vcpkg ports from source
+(`Install vcpkg dependencies` 57 min 10 s) where this one restored them from the binary cache
+(1 min 28 s). The claim task 3.1 verifies is the pre-install block, which neither of those touches and
+which is 2 min 46 s against 26 min 31 s.
+
+The gates job's own duration on a green run is recorded when one is available; `Check the rule routes`
+was red on main at this head, its own item and not this change's.

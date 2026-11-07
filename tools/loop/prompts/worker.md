@@ -27,6 +27,10 @@ you get: everything else you need is in the tree.
   `cd` into the change root and run every command there; the project's own tree is not yours to write.
 - prepared work package: `{{WORK_PACKAGE}}`
 - evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
+- scratch directory (the one place beside your change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
+  start. A write with a **relative path** lands in the project's own tree, not in the change root, because your
+  working directory is the project: a file you meant to leave beside the change is one the project's tree is then
+  dirty with at the landing step. Write such a file here instead.
 - the run's base commit: `{{BASE}}`
 - the project's gate command: `{{GATE_CMD}}`
 - the project's measuring command: `{{MEASURE_CMD}}`
@@ -40,13 +44,36 @@ the whole of it:
 
 - `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the guideline
   that owns the rule. Find your change's row there, then read the section it names — never the whole file.
-- Every guideline is one document under `guidelines/`, and its section list is the document's own: `grep -n '^## '`
-  over the file prints it, so you read the section that owns the rule and never the whole document.
+- Every guideline is one document under `guidelines/`, and its section list is the document's own:
+  `tools/look.sh '^## ' --path guidelines/<file>.md` prints it, so you read the section that owns the rule and never
+  the whole document. That wrapper is what a tree question is answered with here: the shell form of it is refused by
+  the policy every child is started with (`tools/pi-shell-refusal.mjs`, its verb list in the block below), and a tool
+  that fails on your host is not an answer about the tree either — the wrapper is a call, not a hint.
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you plan lives in
   `openspec/changes/<change-name>/`, and the evidence it cites is versioned in that change's `evidence/`.
 - The rules a phase like yours breaks most often are the ones measuring them: what the gate's result means and
   what a red run is, the test constraints, and the rule that **no log or diagnostics line carries a coordinate** —
   an object, a database or file name, a magnification, a pixel, an accuracy or a bearing instead.
+
+## What your own shell and tools refuse
+
+None of the four families below is a question you can ask and none of them is a rule of this project to be argued
+with: each is what the process you are started in refuses, before any rule of this tree can matter (issue #799).
+
+- **You commit nothing and stage nothing.** The run commits, and the branch the item descends from is the base a
+  red-on-HEAD proof is taken against, so `git commit` and `git add` are no step of yours — and `git stash`,
+  `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
+  unattended process can never be asked for.
+- **No inline code.** `python3 -c`, `python3 <<'EOF'` and a `$( … )` substitution are refused. A number is
+  taken by a command the tree already carries — the project's measuring command, the suite a change names, a
+  `tools/*.sh` — or by `awk` over the output such a command printed.
+- **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact
+  text`, or `found N occurrences` when the text is not unique: read the range once with `ctx_read` immediately before
+  the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.
+- **A shell search of the tree is refused**: the verbs `grep`, `cat`, `head`, `tail`, `ls`, `find`, `wc` and `awk`
+  over the tree are `tools/look.sh` (a pattern over the whole tree), `ctx_read` (one file, or a range of it) and
+  `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
+  refused.
 
 ## One call per measurement, and one turn for the independent ones
 
@@ -82,7 +109,7 @@ nothing. The same holds for a command: a measurement you have taken is quoted, n
 items of this loop (issue #246): 8 to 49 of every item's 22 to 79 file reads were a second read of a path the
 item had already read.
 
-**Independent calls belong in one turn, not in one turn each.** A read, a `grep`, a `git log` and a `jq` that do
+**Independent calls belong in one turn, not in one turn each.** A read, a search, a `git log` and a `jq` that do
 not need each other's output are one turn's work: issue them together and read the four answers once. Every turn
 re-reads the whole conversation, so the second call of a pair paid a turn costs the item its context again without
 buying a fact — measured over this loop's archive (227 items, 2026-11-03): 36 825 tool calls in 33 183 turns,
@@ -153,9 +180,9 @@ option lists, and the recorded `2` came to mean a different option).
 4. Name the owning capability and the owning guideline section. Route with `AGENTS.md`'s Documentation
    Map; never read a guideline in full.
 5. Count the surface before the plan is fixed. The rule you are about to change has more than one place that
-   asserts it, and the plan is only real once you know how many: `grep -l` the rule's text and its symbol over
-   the cases (`tools/*-cases.sh`), the engine, the prompts and the fixtures, and list the cases and fixtures
-   that assert the behaviour being changed. The proposal carries the count with the command that produced it
+   asserts it, and the plan is only real once you know how many: `tools/look.sh '<the rule>'` names the files that
+   hold the rule's text and its symbol — over the cases (`tools/*-cases.sh`), the engine, the prompts and the
+   fixtures — and lists the cases and fixtures that assert the behaviour being changed. The proposal carries the count with the command that produced it
    (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`), because the count, not the first
    file the plan names, is what the estimate is set against. An estimate made before this pass is the defect
    this step exists for: the #232 change was planned as two functions and landed as 292 insertions over six
@@ -211,6 +238,36 @@ so; test sources only — the red case plus the affected cases; code — the gat
 to "refresh" evidence: the re-run is what destroys it, so copy the XMLs you cite into `{{EVIDENCE_DIR}}`
 at the moment they are produced. Never mark a task done on a cached or partial run, and never while a
 failure is open. Tests red after three focused attempts is `blocked`, not "adjust the test".
+
+**The plan's first line is the cheapest check a delta can owe, and it goes first.** A diff that writes a case, or
+narrows the first-line `# files:` declaration that says what a case can reach, is refused by one case in seconds
+rather than by minutes of suite, and the gate's plan already puts that step first for such a delta. Ask for the
+plan (`{{GATE_CMD}} --plan --base {{BASE}}`) and run its first line before you run anything else: the suite that
+would otherwise refuse the declaration arrives at the end of the gate, and the attempt that paid for it was
+recorded `blocked` with nothing archived (issue #792). Do not write a second reading of the declaration — the one
+case that reads it stays its only owner.
+
+## Grade your own diff before you hand it over
+
+The reader who follows you refuses a diff on three predicates, and each one is answerable from the diff in your
+hands — `openspec/specs/agent-issue-loop/spec.md`, "A review finding is blocking or it is not". Read your own
+diff against them before you print the line that ends this session, and answer what you find instead of handing
+it over:
+
+1. **Every scenario's clauses against the case that names it.** For each `- **THEN**` clause of your delta, point at
+   the line of the case that fails once the production change is removed. A case whose name matches and whose
+   assertions cover the first clause only is the finding a reader writes next.
+2. **Your own prose against the diff.** Every sentence of `design.md`, `tasks.md` and `proposal.md` that claims
+   something about the tree — "no guideline section states it", "keeps today's text byte for byte", a
+   `path:line` pointer — is either made true by a hunk you can name or deleted. The claim you cannot point at is
+   the one a reader cannot check without you.
+3. **Every artifact your change cites.** A log, XML, evidence file or case name your change or your report names
+   exists where it says, now. Copy it into `{{EVIDENCE_DIR}}` when it is produced, never after.
+4. **The owning guideline section phase C named.** It carries the edit this diff owes, or the change states why it
+   owes none — and a `design.md` that asserts no section owns the rule is a claim this item proves or withdraws.
+
+A finding you make here is not a reason to stop. Fix it, or — when it is outside this item — name it as a `NOTE:`
+in your report, so the reviewer meets it already named rather than paying a round to find it.
 
 {{GATE_STEP}}
 

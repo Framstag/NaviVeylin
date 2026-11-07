@@ -1,0 +1,5 @@
+2026-11-06T17:55:08Z
+loop-mutations: selected 13 of 256 records (files: tools/loop/lib.sh tools/loop/loop-clean.sh tools/loop-cases.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.EZgotR
+loop-mutations: all 13 cases passed — every selected record applies to the file it names
+2026-11-06T17:55:08Z

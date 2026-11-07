@@ -64,9 +64,9 @@ gate had been written for want of that number (issue #663).
   (`LOOP_ITEM_GATE_SECONDS`, which a project without a gate leaves out)
 - **THEN** the run ends that process and every process it started, appends one machine-readable line to the
   report it was writing (`LOOP-TIMEOUT: the child exceeded <n> s …`), and returns a status that is not the
-  child's own, so the item is recorded `blocked` with that transcript and the run goes on to its next stop
-  condition instead of spending its clock in one wait
-- **Case**: `run#childOutlastingTheWallClockIsBlocked`
+  child's own, so the item is recorded `cut` with `bound` as its stop reason and that transcript, and the run
+  goes on to its next stop condition instead of spending its clock in one wait
+- **Case**: `run#childOutlastingTheWallClockIsCut`
 
 #### Scenario: A child that never started is the run's fault, not the item's
 
@@ -94,7 +94,7 @@ still at the base commit" and escalated — two decision slots no reviewer and n
 stopped on two consecutive blocked items 121 s into a 360-minute budget.
 
 - **WHEN** an agent process ends with a zero status, wrote no verdict line, was not ended by the run's own
-  wall-clock or its turn bound, and left the item's tree at the run's base commit
+  wall-clock or one of its spend bounds, and left the item's tree at the run's base commit
 - **THEN** the run records that once as its own stop reason, naming the status, the size of the answer it left and
   the child's own last line, and stops without escalating an item: no item record is written for it, no decision
   label and no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` —
@@ -309,10 +309,12 @@ The run SHALL create and manage the working tree and the branch of each item its
 item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided by
 what it *carries*, read by **patch identity** and not by ancestry — the run lands work as `fix: … (#N)`, so such
 a branch is not an ancestor of the base: a branch whose attempt **finished** — one archived change of its own,
-added by a commit that names its issue — SHALL be merged and its item closed by the run, or, when it is not
-admissible for adoption, SHALL be refused and escalated as a decision; a branch that carries commits and no
-archived change of its own SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them
-and the item SHALL be worked.
+added by a commit that names its issue — SHALL be merged and its item closed by the run; when that branch's own
+evidence is not admissible for adoption it SHALL be refused and escalated as a decision; and when its evidence
+admits it but the project tree, the base or the replay refuses the merge, it SHALL be refused and recorded as the
+item's mechanism `unmergeable` beside the pre-screen's exclusion, with no decision label and no item record, so
+the item stays queued work the next run retries; a branch that carries commits and no archived change of its own
+SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them and the item SHALL be worked.
 
 #### Scenario: One working tree per run
 
@@ -379,8 +381,12 @@ and the item SHALL be worked.
   green — learned either when the item starts or when the pre-screen records the branch as an exclusion
 - **THEN** the branch's commits are merged onto the base, the base the run recorded advances to the merge, the
   item is closed with the branch, its commits and the evidence it was checked for named in the run's own record
-  and report, and no budget slot is spent on a fresh attempt — so a finished attempt is not treated as a blocked
-  one, and a change another item's commit added does not make this branch adoptable
+  and report, and no budget slot is spent on a fresh attempt; when the tree the merge would land in, the base or
+  the replay refuses it, nothing is merged and nothing is closed, the refusal is recorded as the item's mechanism
+  `unmergeable` beside its exclusion with the refusal's own text and no decision label written for it, and the
+  branch stays the evidence — so a finished attempt is not treated as a blocked one, an attempt whose merge the
+  tree refuses is work the next run retries rather than a question only its owner can answer, and a change
+  another item's commit added does not make this branch adoptable
 - **Case**: `run#mergesAFinishedAttemptAndClosesTheItem`
 
 #### Scenario: A change another item's commit added does not make the branch adoptable
@@ -538,23 +544,37 @@ change.
 ### Requirement: The run verifies rather than trusts
 
 The run SHALL determine whether an item closed from artifacts it reads itself — the working tree, the
-change's archive and the gate's evidence — and SHALL NOT accept an agent's claim of success.
+change's archive and the gate's evidence — and SHALL NOT accept an agent's claim of success. The tree's
+own state SHALL be read as soon as the run can read it, and before any child the reading would make
+pointless is started.
 
 #### Scenario: A claim without a commit is blocked
 
 - **WHEN** an agent process reports success but the working tree shows nothing committed
 - **THEN** the item is recorded as blocked and the item is not closed
+- **Case**: `run#childClaimWithoutCommitIsBlocked`
+
+#### Scenario: An empty tree is read at the diff, before the child that runs the gate
+
+- **WHEN** the change child answered that its change is ready for the gate and the commit the run makes
+  leaves HEAD at the run's base commit
+- **THEN** the reading is recorded as a step of the item, no reviewer, gate child or tail is started, and
+  the item is recorded as blocked with the reason the run writes for that tree — not with the reason it
+  writes for a child that never read the item
+- **Case**: `run#anEmptyTreeIsRefusedBeforeTheGateChild`
 
 #### Scenario: The gate's evidence is read by the run
 
 - **WHEN** an item claims a gate result
 - **THEN** the run quotes the evidence it found and does not repeat the claim
+- **Case**: `run#claimedGateWithoutEvidenceIsBlocked`
 
 #### Scenario: Evidence outlives the run
 
 - **WHEN** an item cites a test result
 - **THEN** the result is carried into the change's own directory, because the build directory is
   overwritten by the next run
+- **Case**: `run#citedEvidenceMustTravelWithTheChange`
 
 ### Requirement: Closure follows a passing review and carries evidence
 
@@ -633,6 +653,15 @@ sufficient to continue after an interrupt without repeating work already done.
   previous branches alone
 - **Case**: `run#dirtyKeptWorktreeIsARecordedRefusal`, `run#resetWorktreeDiscardsWhatItNames`, `state#secondRunRefusesWithExit5`
 
+#### Scenario: A refused start is the run's own recorded end
+
+- **WHEN** a run ends at one of its refusals before the first item — a kept worktree it may not clean, the repair
+  `--reset-worktree` that cannot clean it, or the decision cap — and that refusal never reached an item it works
+- **THEN** the refusal is written as the run's stop reason, naming what the refusal printed, so a report read after
+  that run's process is gone prints the refusal and not "it was killed and recorded no stop" (#787)
+- **Case**: `run#dirtyKeptWorktreeIsARecordedRefusal`, `run#resetWorktreeNamesTheDirtItCannotDiscard`,
+  `run#theDecisionCapRecordsItsStopReason`
+
 #### Scenario: A skipped item leaves no item looking in progress
 
 - **WHEN** an item ends with a skip verdict
@@ -665,8 +694,11 @@ both the decision label and the loop's opt-in, so a decision parked by removing 
 
 - **WHEN** the number of candidate items awaiting a decision reaches the cap
 - **THEN** the run refuses to start, prints those items and states the count it compared, so nothing new is
-  produced while decisions accumulate
-- **Case**: `run#decisionCapRefusesToStart`, `run#decisionCapCountsOnlyCandidates`
+  produced while decisions accumulate, and records that refusal as the run's own stop reason — naming both counts
+  it compared and the items it printed — so a later report prints the refusal instead of the sentence a killed
+  process leaves (#787)
+- **Case**: `run#decisionCapRefusesToStart`, `run#decisionCapCountsOnlyCandidates`,
+  `run#theDecisionCapRecordsItsStopReason`
 
 #### Scenario: An item needing a decision is escalated, not abandoned
 
@@ -1006,9 +1038,13 @@ reports.
 The tooling SHALL have one entry point that answers what the loop left on disk and how much it is: without
 `--apply` it SHALL name every path it would remove with its size and remove nothing, with `--apply` it SHALL
 remove exactly those paths, and a second run SHALL find nothing. It SHALL remove the recorded build paths of a
-worktree, the branches whose patches the base already holds, and the scratch trees old enough that no suite can be
-writing into them — in **both** the scratch root the invocation resolves and the one the kept worktree resolves —
-and it SHALL NOT touch a worktree's tracked or untracked source.
+worktree, the branches whose patches the base already holds, the worktrees under the loop's own tree that the run
+does not keep, the scratch trees old enough that no suite can be writing into them — in **both** the scratch
+root the invocation resolves and the one the kept worktree resolves — and the item directories no open issue still
+cites, and it SHALL NOT touch a worktree's tracked or untracked source. A worktree it keeps SHALL be named with the
+reason it is kept: uncommitted changes, or a commit the base does not carry. An item directory SHALL be released
+only when nothing inside it has been written for `LOOP_ITEM_ARCHIVE_DAYS` **and** the run recorded the item landed
+and its issue closed, and SHALL be kept and named with that reason otherwise; a `0` retention SHALL release none.
 
 #### Scenario: The report removes nothing
 
@@ -1039,6 +1075,14 @@ and it SHALL NOT touch a worktree's tracked or untracked source.
   are kept and named, and a second run finds nothing left to remove
 - **Case**: `clean#sweepsOnlyWhatIsInTheBase`
 
+#### Scenario: A worktree no run keeps is reported, and removed only with `--apply`
+
+- **WHEN** the report runs on a tree that holds the one worktree the run keeps and another worktree under
+  `.pi/worktrees/` that no configuration, no state field and no marker names
+- **THEN** the tree no run keeps is named with its size and removed only with `--apply`, the tree the run keeps is
+  not touched, and a tree holding uncommitted changes is kept in both runs and named with that reason
+- **Case**: `clean#reportsAWorktreeNoRunKeeps`
+
 #### Scenario: The kept worktree's own scratch root is scanned beside the invocation's
 
 - **WHEN** the kept worktree carries a stale `loop-selftest.*` tree under its own `.pi/tmp` — where a gate run
@@ -1055,6 +1099,14 @@ and it SHALL NOT touch a worktree's tracked or untracked source.
 - **THEN** the report prints one heading for that root, lists each scratch tree once and counts its bytes once — a
   tree is never listed or counted twice
 - **Case**: `clean#worktreeDotSweepsTheOneRootOnce`
+
+#### Scenario: An item directory is reported by its age and by what its issue still says
+
+- **WHEN** the report runs over item directories older than `LOOP_ITEM_ARCHIVE_DAYS`, one whose item landed and was
+  closed, one whose item landed but could not be closed, one whose item never landed, and one written a minute ago
+- **THEN** the landed and closed directory is named with its size and removed only with `--apply`, the other three
+  are kept and named with the reason, and a `0` retention releases nothing
+- **Case**: `clean#reportsAnAgedItemDirectory`
 
 ### Requirement: A suite ended by a signal ends the case it was in, and its processes
 
@@ -1683,7 +1735,10 @@ label, and a lock whose owner is no longer running SHALL be taken over and annou
 
 A branch the run committed for an item and merged SHALL be removed once no worktree holds it, a branch whose
 patches the base already holds SHALL be named as removable, and a branch that still carries unlanded work
-SHALL be left alone and named as work to land.
+SHALL be left alone and named as work to land. A branch the run renamed aside as a previous attempt's leftovers
+SHALL be judged by that same reading — a candidate of both removal paths, never a name nothing enumerates — so it
+SHALL be removed once the base carries its patches and SHALL be kept, and named with the work it carries, while the
+base does not.
 
 #### Scenario: A branch the run merged is removed
 
@@ -1714,6 +1769,20 @@ SHALL be left alone and named as work to land.
 - **THEN** the report names those branches apart from the ones that carry work, so a reader can tell the
   leftovers from the work without asking git
 - **Case**: `report#landedBranchesAreNamedAsRemovable`
+
+#### Scenario: A set-aside branch whose work the base carries is swept
+
+- **WHEN** a branch the run set aside as a blocked attempt's leftovers carries only patches the base already holds
+- **THEN** both removal paths name it as removable, a read-only run removes nothing, and `--apply` removes it — so a
+  set-aside branch whose work was landed by hand does not stay for ever
+- **Case**: `worktree#aSetAsideBranchWhosePatchesLandedIsRemoved`
+
+#### Scenario: A set-aside branch that still carries work is kept and named
+
+- **WHEN** the sweep of what the loop left behind meets a set-aside branch whose patches the base does not have
+- **THEN** the branch is kept and named as work the base does not have, and its commit is still reachable from it, so
+  the attempt's only copy is never the thing a leftovers rule throws away
+- **Case**: `worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved`
 
 ### Requirement: A declared mutation record is checked against the file it names
 
@@ -1785,18 +1854,29 @@ ended with the loop's own signal discipline, and named in the transcript before 
 
 ### Requirement: The gate streams a suite's output while it runs
 
-A gate SHALL print each suite's output as the suite writes it and derive the numbers it reports and keeps from that
+A gate SHALL print a step's output as the step writes it and derive the numbers it reports and keeps from that
 stream, because a captured output is silent for the suite's whole wall clock, and a red suite's failure text
-survives only as the tail of a tally. A step SHALL end with the command it ran, not with a writer that outlived it,
-and the suite's exit status SHALL stay the verdict, never the stream's.
+survives only as the tail of a tally. That stream SHALL be live where nothing can interleave with it — a step the
+engine runs alone, and a wave of one — and a wave of several steps SHALL print each step's output whole, under that
+step's own `gate: <command>` header, once the wave has drained: two writers on one console interleave their bytes,
+and a failing case would then belong to the step that happened to print next. A step SHALL end with the command it
+ran, not with a writer that outlived it, and the suite's exit status SHALL stay the verdict, never the stream's.
 
 #### Scenario: A suite's output reaches the console before the suite exits
 
-- **WHEN** the gate runs a suite that writes a line at once and keeps working after it
+- **WHEN** the gate runs a suite that writes a line at once and keeps working after it, alone
 - **THEN** that line is on the gate's console while the suite is still running, and a line the suite has not
   written yet is not — so a suite that runs for minutes shows its own progress instead of a two-line log an
   operator cannot tell from a stopped one
 - **Case**: `gate#theSuitesOutputReachesTheConsoleWhileItRuns`
+
+#### Scenario: A wave of several prints each step whole when it ends
+
+- **WHEN** the gate runs two or more suites in one wave, each writing a line at once and keeping working after it
+- **THEN** nothing of either step's output is on the console while the wave runs, and when the wave has drained each
+  step's output is there whole, between that step's own `gate: <command>` header and its own `— <n>s` line, in the
+  profile's order — so a failure and the step that spent it are read from one block no neighbour's bytes crossed
+- **Case**: `gate#aPooledWavePrintsEachStepWholeWhenItEnds`
 
 #### Scenario: The console and the tally are one observation
 
@@ -2093,30 +2173,23 @@ tracker cannot see. The run SHALL NOT record a decision label it did not write.
 
 ### Requirement: A child the run ended itself leaves no commit
 
-The run SHALL commit an item's tree only after the child that produced it has finished by its own exit. A child
-the run ended — the wall-clock cap's status, or the `LOOP-TIMEOUT` line its transcript carries — SHALL leave the
-branch as it stood: the item is recorded blocked with that transcript, and the tree is kept exactly as the child
-left it, because nothing is discarded unrecorded: `--reset-worktree` discards it, and so does this run before it
-starts its next item, the patch having been written first. It holds for the rework worker a refusing review
-round starts as well. The tree that child left SHALL be readable without the tree itself: before the run moves to
-its next item, the changes it left — the tracked diff and each untracked file — SHALL be written to
-`<item dir>/leftover-from-killed-run.patch`, and the transcript the ended child leaves SHALL carry a
-`LOOP-LEFTOVERS:` line naming that file. The item's own state record SHALL name that file as well, so the report
-can point a caller at the work an ended child left (issue #674).
-
-An item whose child was ended by the **run's own deadline** SHALL NOT be escalated as a decision about the item:
-the clock that cut it is the run's budget, not a finding, so no decision label is written for it and the item is
-left for the next run. That holds for every child an item starts — its worker, the rework worker a refusing round
-starts, and the reviewer of a review round — and the run SHALL take no further pass over the queue once the
-deadline has ended one, because a pass that admitted work the spent budget cannot pay would name a decision about
-the item the clock cut. A child the item's own wall-clock cap ended is unchanged and is escalated.
+The run SHALL commit an item's tree only after the child that produced it has finished by its own exit. A child the
+run ended — the wall-clock cap's status, or the `LOOP-TIMEOUT` line its transcript carries — SHALL leave the branch as
+it stood: the item is recorded `cut` with that transcript, and the tree is kept exactly as the child left it, because
+nothing is discarded unrecorded: `--reset-worktree` discards it, and so does this run before it starts its next item,
+the patch having been written first. It holds for the rework worker a refusing review round starts as well. The tree
+that child left SHALL be readable without the tree itself: before the run moves to its next item, the changes it left
+— the tracked diff and each untracked file — SHALL be written to `<item dir>/leftover-from-killed-run.patch`, and the
+transcript the ended child leaves SHALL carry a `LOOP-LEFTOVERS:` line naming that file. The item's own state record
+SHALL name that file as well, so the report can point a caller at the work an ended child left (issue #674), and SHALL
+carry no decision label, because the clock that ended it is the run's budget rather than a finding.
 
 #### Scenario: A worker the cap ends leaves the branch at the base
 
 - **WHEN** the wall-clock cap ends an item's worker and that worker has left changes in the change root
 - **THEN** the run commits none of them — the change root's `HEAD` is still the base commit — the item is recorded
-  `blocked` with its `LOOP-TIMEOUT` transcript, the tree still carries what the child left (kept, not discarded),
-  and the run's own line says the commit was skipped
+  `cut` with its `LOOP-TIMEOUT` transcript, the tree still carries what the child left (kept, not discarded), and the
+  run's own line says the commit was skipped
 - **Case**: `run#treeOfAChildTheCapEndedIsNotCommitted`
 
 #### Scenario: The cap ends the rework worker of a refusing review round
@@ -2124,37 +2197,37 @@ the item the clock cut. A child the item's own wall-clock cap ended is unchanged
 - **WHEN** a review round refuses the change and the wall-clock cap ends the rework worker that round starts, after
   that worker has written into the change root
 - **THEN** the run commits none of it — the branch carries only what the item's own worker had already earned — the
-  item is recorded `blocked` with the round's `LOOP-TIMEOUT` transcript, the tree still carries what that worker
-  left, and the blocked reason names the tree it did not commit
+  item is recorded `cut` with the round's `LOOP-TIMEOUT` transcript, the tree still carries what that worker left, and
+  the note names the tree it did not commit
 - **Case**: `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted`
 
 #### Scenario: The changes a cap-ended child left are kept as a patch
 
 - **WHEN** the wall-clock cap ends an item's worker that has left modifications and an untracked file in the tree
 - **THEN** `<item dir>/leftover-from-killed-run.patch` exists, carries the worker's modifications (staged and
-  unstaged, against `HEAD`) and that untracked file's content, the child's transcript carries a
-  `LOOP-LEFTOVERS:` line naming it, the item's state record names it, and the report's action list names the
-  recovery — so the work is readable after `--reset-worktree` discards the tree
+  unstaged, against `HEAD`) and that untracked file's content, the child's transcript carries a `LOOP-LEFTOVERS:`
+  line naming it, and the item's record names it beside the cut
 - **Case**: `run#treeOfACapEndedChildIsKeptAsAPatch`
 
 #### Scenario: The item the run's own deadline cut is not a decision
 
 - **WHEN** the run's deadline passes while an item's child is running, and the run ends that child
-- **THEN** the item is recorded `blocked` with the `LOOP-TIMEOUT`/`LOOP-DEADLINE` lines of its transcript and its
-  tree uncommitted, no decision label is written for it, and the report's decision list does not hold it — the
-  item is left for the next run
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and the `LOOP-TIMEOUT`/`LOOP-DEADLINE` lines of
+  its transcript and its tree uncommitted, no decision label is written for it, and the report's decision list does
+  not hold it — the item is left for the next run
 - **Case**: `run#childIsEndedAtTheRunsDeadline`
 
 #### Scenario: A reviewer the run's deadline cut is not a refusal
 
 The deadline is consulted while a child runs, and a reviewer is a child: its transcript carried the same
 `LOOP-DEADLINE` line as the worker's, and no part of the run read it — so a round the clock ended was read as one
-the reviewer never answered, which bought a rework worker for a change nobody refused (the cut-short retry could not fire: `run_child` writes `LOOP-TIMEOUT` beside `LOOP-DEADLINE`, and the retry condition read that line), and the
+the reviewer never answered, which bought a rework worker for a change nobody refused (the cut-short retry could not
+fire: `run_child` writes `LOOP-TIMEOUT` beside `LOOP-DEADLINE`, and the retry condition read that line), and the
 item was escalated with the other blocks.
 
 - **WHEN** the run's deadline passes while the reviewer of a review round is running, and the run ends that child
 - **THEN** the round is recorded as cut rather than refused — the transcript's `LOOP-DEADLINE` line is read, no
-  retry and no rework worker is started for it, and the item is recorded `blocked` with no decision label and no
+  retry and no rework worker is started for it, and the item is recorded `cut` with no decision label and no
   entry in the report's decision list, exactly as the item whose worker the same clock ended
 - **Case**: `run#reviewerEndedAtTheRunsDeadlineIsNotADecision`
 
@@ -2303,10 +2376,14 @@ no claim about when the base moved.
 ### Requirement: A block records the mechanism that stopped it
 
 An item recorded `blocked` SHALL carry the mechanism that stopped it, from a closed vocabulary — `refused` when a
-review round refused the change, `unmergeable` when the base would not take the branch — and a block neither
-mechanism caused SHALL carry none. A value outside the vocabulary, and a mechanism on a result that is not a
-block, SHALL be a usage error before anything is written, so a mechanism's spend is totalled without the note's
-prose.
+review round refused the change, `unmergeable` when the base would not take the branch, `bound` when the run ended a
+child at a bound it enforces — and a block none caused SHALL carry none. `bound` is also the one mechanism an item
+recorded `cut` carries, because the same bound is the phase the next run resumes. The vocabulary SHALL carry one
+second home: `unmergeable` SHALL be written beside the pre-screen's exclusion of an item whose admissible finished
+branch the project tree, the base or the replay refused to merge, with the refusal's own text, and no other mechanism
+SHALL be written on a result that is not a block. A value outside the vocabulary, and one on any other result than a
+block, that exclusion or a `cut` carrying `bound`, SHALL be refused before anything is written, so a mechanism's
+spend is totalled without the note's prose.
 
 #### Scenario: The refusing round is named
 
@@ -2320,10 +2397,38 @@ prose.
 - **THEN** the item's record carries `unmergeable`, beside the note that names the branch
 - **Case**: `run#doesNotCloseOnAMergeTheBaseCannotTake`
 
+#### Scenario: The tree's refusal of an adoption is named on the exclusion
+
+- **WHEN** the run records an adoption's refusal on an item the pre-screen excluded, and is asked to record one
+  for an issue that is not one of the run's exclusions
+- **THEN** the exclusion carries `unmergeable` beside the refusal's own text while its verdict, its reason and the
+  branch stay as the pre-screen read them, and the second request exits with the refusal naming that the issue is
+  not one exclusion of this run and leaves the state unwritten — so the mechanism's second home is the exclusion
+  and not a free field
+- **Case**: `state#anAdoptionRefusalIsRecordedBesideTheExclusion`
+
+#### Scenario: A block the run's own bound caused is named as one
+
+- **WHEN** a state a tree wrote before this change records an item `blocked` with `bound` as its stop reason
+- **THEN** the item keeps `bound` beside its `blocked` result, and `state.sh next` keeps the pair out of the streak
+  it stops on, because the mechanism says the run's own bound ended the phase — the same fact this run records
+  with `cut`
+- **Case**: `state#aBlockAtTheRunsBoundIsNoRefusal`
+
+#### Scenario: A bound the run ended a phase with is named beside the result
+
+- **WHEN** a child of the item reaches its role's turn bound, outlives the child clock or is ended by the run's
+  deadline, and the run ends it
+- **THEN** the item is recorded `cut` with `bound` as its stop reason, its note says the attempt is left for the next
+  run rather than asked about, and no decision label is written for it — the item is work the next run resumes, so it
+  spends no decision slot and stays eligible
+- **Case**: `run#childPastItsTurnBoundIsCut`
+
 #### Scenario: A mechanism outside the vocabulary is refused
 
-- **WHEN** a stop reason is given that is neither `refused` nor `unmergeable`, or a stop reason is given for a
-  result that is not a block
+- **WHEN** a stop reason is given that is neither `refused` nor `unmergeable` nor `bound`, or `refused` or
+  `unmergeable` is given for a result that is not a block, or `bound` is given for a result that is neither a block
+  nor a cut
 - **THEN** the record is refused as a usage error and the state is not written, so the field cannot turn into a
   second prose channel
 - **Case**: `state#aBlockedItemNamesTheMechanismThatStoppedIt`
@@ -2599,6 +2704,26 @@ governs it.
   root the child is started in
 - **Case**: `prompt#thePhasePromptsCarryTheirOwnRoute`
 
+### Requirement: A child is told what its own shell and tools refuse
+
+The phase prompt a child is started with for work that writes the tree SHALL name what the process it runs in
+refuses, before its first tool call:
+that the commit is the run's and the child neither commits nor stages, which git calls come back refused for an
+approval no unattended process can be asked for, that inline code is refused and how a number is taken instead, that
+an edit call needs the text as it stands now, and which shell verbs over the tree are refused. The verb list SHALL
+name every verb the refusal policy module exports, and the case for this requirement SHALL read that export and fail
+when the prompt's list and the policy differ, so a verb the policy gains is a case that fails rather than a child that
+learns it by being refused. A reviewer's prompt is out of scope: that child is bounded to reading.
+
+#### Scenario: The phase prompt names what the child's shell refuses
+
+- **WHEN** a phase prompt is rendered for work that writes the tree
+- **THEN** it carries that block — the commit that is the run's, a git call that comes back refused, inline code, the
+  edit that needs the text as it stands now, and the shell verbs a tree search is refused for — every verb the
+  refusal policy exports is named in it, and each of the three skeletons a child can be handed for such work states
+  that block's heading
+- **Case**: `prompt#thePhasePromptNamesWhatItsShellRefuses`
+
 ### Requirement: A child's tool results are bounded and a trim is named
 
 A result a child's tool returns SHALL enter that child's context whole only while it is no longer than the bound
@@ -2671,8 +2796,10 @@ A kept worktree that `create` switches to a new base SHALL be left with the conf
 ### Requirement: The run's end sweeps the branches it made
 
 When a run ends it SHALL remove every branch the loop names whose patches the base already holds, unless a
-worktree holds it or the change it carries has a reviewer's refusal. It SHALL keep and name the branches that
-still carry work, and SHALL print what it removed and what it kept.
+worktree holds it or the change it carries has a reviewer's refusal. It SHALL sweep those names on the remote as
+well as locally, against the fetched `origin/<base branch>`, and SHALL keep and name a remote ref that is the head
+of an open pull request — every remote ref when the open pull requests cannot be read. It SHALL print what it
+removed and what it kept.
 
 #### Scenario: A landed branch no longer outlives the run that made it
 
@@ -2681,6 +2808,20 @@ still carry work, and SHALL print what it removed and what it kept.
 - **THEN** the run removes that branch, keeps and names a branch that still carries work, a branch a worktree
   holds, and a branch whose archived change carries a reviewer's refusal, and prints the number it removed
 - **Case**: `run#theEndSweepsTheLandedBranchesItMade`
+
+#### Scenario: A landed head is swept on the remote, never a pull request's
+
+- **WHEN** a run ends and a branch the loop published carries no patch the fetched `origin/<base branch>` lacks
+- **THEN** the run removes that remote ref at the tip the remote publishes, keeps and names a ref that is the head
+  of an open pull request, and keeps every remote ref when the open pull requests cannot be read
+- **Case**: `run#theRemoteSweepKeepsAnOpenPullRequest`
+
+#### Scenario: The base the sweep judges against is the published one
+
+- **WHEN** a branch landed on the base after the run recorded the commit it started on
+- **THEN** the sweep compares against the fetched `origin/<base branch>` and removes that branch, so a branch
+  landed during or after the run is not kept as work the base does not have
+- **Case**: `run#theSweepComparesAgainstTheFetchedBase`
 
 ### Requirement: A stale skip asks its own question
 
@@ -3026,6 +3167,40 @@ The report printed what an item cost and nothing about the shape it spent it in,
 - **THEN** the trend prints the run's own rate with the two counts it came from (`1.33 calls per turn (8 calls / 6 turns)`) and names the item below the floor with its own ratio (`#22 0.5`) while the item above it is not named, the table's last column reads `3` and `0.5`, a floor of `0` prints as off and names no item, an item that recorded no turn prints `-` with its reason, a state written before the two counts existed says so rather than naming a run of items that answered without a tool, and both items keep the outcome their work earned
 - **Case**: `report#anItemBelowTheCallsPerTurnFloorIsNamed`
 
+### Requirement: The report says which phase and which role spent the run's clock
+
+A run's spend SHALL be split where it was spent: the clock by the phase that spent it — the model time, the gate,
+and the other tools the children ran — and the tokens by the role that spent them (worker, reviewer, tail), both
+read from what an item's own event stream records when its record is written, never from a stream the report would
+have to find again. It SHALL also state the share of the tokens the run spent after an item's first gate. Each
+figure SHALL print `-` with its reason where nothing was measured, never a zero that reads as a measurement.
+
+#### Scenario: The clock and the tokens are split where they were spent
+
+- **WHEN** an item's stream records turns with durations and tool calls with durations, one of them running
+  `gate.sh`, and sessions whose prompt paths name a worker, a reviewer and a tail
+- **THEN** the state records the sum of the turn durations as the model time, the durations of the calls that ran
+  the gate as the gate time and every other tool's durations beside them, and the tokens of each session under the
+  role its prompt names, the tail told apart from the worker; and the trend prints `model … · gate … · other …`
+  with their total and `worker … · reviewer … · tail …` with the tokens they are a share of
+- **Case**: `report#theSpendIsSplitByPhaseRoleAndGate`
+
+#### Scenario: The share spent after the first gate is stated with both its numbers
+
+- **WHEN** a session of the item runs the gate at a known turn and spends a known number of tokens from that turn on
+- **THEN** the trend prints the share of that session's tokens spent from its first gate on, with the tokens after
+  the gate and the session total it is a share of, counted over the sessions that ran a gate rather than over every
+  session of the item
+- **Case**: `report#theSpendIsSplitByPhaseRoleAndGate`
+
+#### Scenario: A figure nobody measured prints as absent, not as zero
+
+- **WHEN** an item's stream records no duration and no usage, or the state was written before the split was
+  recorded
+- **THEN** each of the three lines prints `-` with its reason — no duration measured, no gate to split at, or a
+  state written before the report read the figure — rather than a zero that reads as a measurement that was made
+- **Case**: `report#aStreamWithoutDurationsPrintsDash`
+
 ### Requirement: The diff is read before the gate, and a fresh child runs the one gate
 
 An item's gate SHALL be run by a child of its own, after the diff has been read by a reviewer that is not the child
@@ -3055,10 +3230,12 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 
 #### Scenario: A round the run cut before the gate is left for the next run
 
-- **WHEN** the round before the gate never answers — cut by the deadline, ended at its role's turn bound, or cut
+- **WHEN** the round before the gate never answers — cut by the deadline, ended at its role's turn bound or at the
+  item's context bound, or cut
   twice on its way to the file
-- **THEN** the item is recorded `blocked` with that round named as the one before the gate, no gate child is started
-  on a diff nobody read, and the round after the gate is not asked either
+- **THEN** the item is recorded `cut` when a bound the run enforces ended that round and `blocked` when the
+  transport did, with that round named as the one before the gate, no gate child is started on a diff nobody read,
+  and the round after the gate is not asked either
 - **Case**: `run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun`
 
 #### Scenario: A change child that ran the gate itself is read as it always was
@@ -3087,7 +3264,7 @@ over the stream every child appends to decides which phase is discarded, not whe
 - **WHEN** the worker takes ten turns, more than the item's old total but below its own role's bound, and the
   round after it takes the eight turns its role records
 - **THEN** the worker's transcript carries no `LOOP-TIMEOUT`, the reviewer is ended at its own bound of eight turns
-  with a line naming `LOOP_CHILD_TURNS_MAX_REVIEWER` and its role, and the item is recorded `blocked` with that
+  with a line naming `LOOP_CHILD_TURNS_MAX_REVIEWER` and its role, and the item is recorded `cut` with that
   round marked cut
 - **Case**: `run#eachChildIsBoundedByItsOwnRolesTurns`
 
@@ -3097,3 +3274,449 @@ over the stream every child appends to decides which phase is discarded, not whe
 - **THEN** no turn bound ends it, while the item's total is still counted over its children (`metrics.turns`) and
   printed by the report's `calls:` line beside the calls it was made of
 - **Case**: `run#aRoleWithNoRecordedTurnBoundRunsUnbounded`
+
+### Requirement: An item the run's own bound cut is recorded `cut`, not `blocked`
+
+An item a bound the run enforces ended SHALL be recorded `cut`: the run's deadline or a role's turn bound
+ending a review round, and the role's turn bound, the context bound, the child clock, a vanished writer or the run's deadline ending the item's own child.
+It SHALL carry `bound` as its stop reason when the bound ended the item's own child, while a round the run ended
+carries none, as it did before — so the mechanism's spend is totalled beside the result — SHALL write no
+decision label and no comment, SHALL NOT enter the two-blocked streak `state.sh next` stops on, and SHALL be named on
+a line of its own in the report and counted there as a cut rather than a block, so no reader needs the mechanism's
+vocabulary to tell work from a refusal. The work an ended child left SHALL stay where the child left it, SHALL be
+named in the item's own record, and SHALL NOT be committed.
+The round a review bound ended SHALL be written on the branch as a cut with its announcement withdrawn. A state a
+tree wrote before `cut` carried a bound keeps that `blocked` + `bound` pair out of the streak, while a pre-mechanism
+pair with no stop reason still stops the run, and an answer the *transport* cut twice is not this case: no bound
+ended it, so it stays a block with its reason.
+
+#### Scenario: A round the turn bound ended leaves no decision behind
+
+- **WHEN** an item's tail writes `LOOP-VERDICT: closed`, its gate answered and its change is archived, and the run
+  then ends review round 1 at the reviewer's role's turn bound
+- **THEN** the item is recorded `cut` with its round marked cut, no `agent/needs-decision` label is written for it
+  and the report's decision list does not hold it, the branch carries `review-round-1-cut.md` and no
+  `review-round-1-requested.md`, and `branch-state` reads `adoptable` — work the next run finishes, not a question
+  only its owner can answer
+- **Case**: `run#aReviewerEndedAtItsTurnBoundIsNotARefusal`
+
+#### Scenario: A child the turn bound ended is recorded cut, not blocked
+
+- **WHEN** an item's own child reaches its role's recorded turn bound and the run ends it there
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and the count in its note, the report counts it
+  as a cut and not as a block and names it on the run's own bound line, no `agent/needs-decision` label and no
+  retry-or-abandon comment is written for it, and nothing is closed
+- **Case**: `run#childPastItsTurnBoundIsCut`
+
+#### Scenario: A child the item's own wall clock ended is recorded cut, not blocked
+
+- **WHEN** the wall-clock cap ends an item's worker that has left changes in the change root
+- **THEN** the item is recorded `cut` with `bound` as its stop reason, the run commits none of the work — the change
+  root's `HEAD` is still the base commit — the tree still carries what the child left, the item's note names the
+  patch it was written to and says the attempt is the next run's to resume, and no decision label is written for it
+- **Case**: `run#childOutlastingTheWallClockIsCut`, `run#treeOfAChildTheCapEndedIsNotCommitted`
+
+#### Scenario: A child the run's own deadline ended is recorded cut
+
+- **WHEN** the run's deadline passes while an item's child runs and the run ends it there
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and the `LOOP-TIMEOUT` transcript it left, no
+  decision label is written for it, and the run records the deadline as its own stop reason
+- **Case**: `run#childIsEndedAtTheRunsDeadline`
+
+#### Scenario: Two consecutive cuts do not stop the run
+
+- **WHEN** two items in a row are recorded `cut` and the queue still holds a candidate
+- **THEN** `state.sh next` hands out that candidate, a block that follows a cut is the first block of its own pair,
+  and two blocks in a row still stop the run
+- **Case**: `state#nextHonoursEveryStopCondition`
+
+#### Scenario: A block at a bound holds no pair
+
+- **WHEN** two items in a row carry a bound — recorded `blocked` with `bound` as their stop reason by a state a tree
+  wrote before `cut`, or `cut` with `bound` by this run — and the queue still holds a candidate
+- **THEN** `state.sh next` hands out that candidate, because what the pair is read for is a refusal's prediction
+  about the next item — the same gate, the same provider, the same tree — and a bound predicts nothing about an
+  item that starts a fresh worker on a fresh tree; a refusal after a bound cuts is the first block of its own pair,
+  and a state written before the mechanism existed, whose two `blocked` items carry no stop reason, still stops the
+  run as it always did
+- **Case**: `state#aBlockAtTheRunsBoundIsNoRefusal`
+
+### Requirement: The suite runs as legs on separate runners, and a leg is its own verdict
+
+The self-test SHALL be runnable as several independent legs on separate runners, each leg the cases of one group
+selection, so the suite's wall clock is bounded by its slowest leg rather than by one runner's core count. A leg
+SHALL state the selection it ran against the declared set in its own summary and SHALL keep its repository and its
+scratch root to itself, and the workflow SHALL take a leg's own exit status as a verdict of the run.
+
+#### Scenario: A leg runs the cases of its own selection
+
+- **WHEN** the suite is invoked with a group selection and a declared set larger than that group
+- **THEN** only that group's cases run, the summary counts them against the declared set, and no case of another
+  group prints a line
+- **Case**: `driver#aGroupFilterRunsOnlyItsOwnCases`
+
+#### Scenario: Two legs do not contend for the suite's lease
+
+- **WHEN** two legs of one suite run at the same moment, each in its own checkout
+- **THEN** neither refuses the other, because the lease is per repository and a leg's repository is its own — the
+  state `driver#aSecondSuiteInOneRepositoryIsRefused` separates
+- **Case**: none — the property is a leg's checkout, which is the workflow's; the lease's own case states the rule
+  it rests on
+
+#### Scenario: A red leg fails the run
+
+- **WHEN** one leg fails a case and the other legs pass
+- **THEN** the run is red and names the leg, exactly as one red case in a single-leg suite does today
+- **Case**: none — a workflow's verdict is the host's; it is read from the dispatch run that recorded the leg split
+
+### Requirement: The bound on a child is priced in what it spends, not in how many turns it takes
+
+The run SHALL bound a child in what a turn costs, not in how many turns it takes: it SHALL read the largest context the child's stream reported (`input + cacheRead`, or a compaction's `tokensBefore`, whichever is greater) in the wait that enforces the clock and the turn count, SHALL print one checkpoint line at `LOOP_ITEM_CONTEXT_WARN`, and SHALL end it and everything it started at `LOOP_ITEM_CONTEXT_MAX`. Both keys SHALL be recorded values named in the run's header; `0` or no key is no bound. An item this bound ends SHALL be recorded `cut` with `bound` as its stop reason, exactly as every other bound the run enforces ends one (issue #790): the phase is the next run's to resume, not a finding about the item.
+
+#### Scenario: A child whose context crosses the recorded bound is ended and named
+
+- **WHEN** a child's stream reports a growing context — 120 000, 155 000, then 210 000 tokens — while
+  `LOOP_ITEM_CONTEXT_MAX` records 200 000 and `LOOP_ITEM_CONTEXT_WARN` records 143 124, and the wall clock still has
+  45 min to run
+- **THEN** the run prints the checkpoint once, naming the recorded 143 124, ends the child's process group, writes
+  `LOOP-TIMEOUT: the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000
+  tokens — the run ended it and everything it started` into the child's transcript with the wall clock's own exit
+  status, records the item `cut` with `bound` as its stop reason and that line as its note, and closes nothing
+- **Case**: `run#childPastItsContextBoundIsCut`
+
+#### Scenario: A recorded zero keeps the context bound off
+
+- **WHEN** the profile records `LOOP_ITEM_CONTEXT_MAX=0` and `LOOP_ITEM_CONTEXT_WARN=0` and a child's stream reports a
+  210 000-token context before it outlives a two-second wall clock
+- **THEN** the header names the bound as off (`item-context-max=0`), no checkpoint line is printed, the transcript
+  carries only the wall clock's `LOOP-TIMEOUT` and names no context bound, and the item is recorded `cut`
+- **Case**: `run#theRecordedZeroKeepsTheContextBoundOff`
+
+### Requirement: A wait ends when the writer of the record it waits for is gone
+
+The wait for a child's completion record SHALL read, beside the clocks and the spend bounds it already enforces, whether the subshell that writes that record is still running, and SHALL end the wait when it is not: the record is written by the run's own subshell, so its pid is the only reading that tells a child still working from a child whose writer was killed before it wrote one. That reading SHALL be taken only while the record is absent, SHALL be used only to end the wait, and SHALL NOT make the wait depend on the pid in any other way — a pid the shell has already reaped answers nothing, and a `wait` on a pid the shell no longer tracks returns no status (issue #227). A wait it ends SHALL be recorded as a bound the run enforces: one machine-readable line naming the vanished writer (`LOOP-TIMEOUT: the child's writer (pid <n>) vanished before it wrote its completion record …`), everything the child left ended as the other bounds end it, and the item `cut` with `bound` as its stop reason, no decision label and no decision slot (issue #790). A child that is merely slow SHALL be waited for exactly as before, and a pid that answers `kill -0` SHALL NOT end a wait.
+
+#### Scenario: A child whose writer vanished ends the wait
+
+Measured 2026-11-06: the run started at 06:27:14Z was reparented to `systemd --user` when the session that owned it
+died and sat in this poll with a single `sleep 0.05` 17 minutes into a 600-minute budget, its lock still held and item
+#793 still `agent/in-progress`; the child cap would have ended the wait at 45 minutes (issue #795).
+
+- **WHEN** the subshell writing a child's completion record is killed before it writes the record, with the child's
+  wall clock an hour away and the run's deadline not reached
+- **THEN** the run ends the wait within seconds, appends `LOOP-TIMEOUT: the child's writer (pid <n>) vanished before it
+  wrote its completion record` to the child's transcript, and records the item `cut` with `bound` as its stop
+  reason, its note naming the vanished writer, no `agent/needs-decision` label and no decision slot
+- **Case**: `run#aVanishedWriterEndsTheWait`
+
+#### Scenario: A child that is merely slow is still waited for
+
+- **WHEN** a child is running and has written nothing — a worker reading its package looks like this — and the pid its
+  record is written by answers `kill -0`
+- **THEN** the run keeps waiting, writes no `LOOP-TIMEOUT` line for it, and ends the wait on the record the child writes
+  when it finishes
+- **Case**: `run#aSlowChildIsNotMistakenForAVanishedWriter`
+
+### Requirement: A closing line is read where it stands, fence or no fence
+
+The run SHALL NOT read the fence a child puts around its closing block as the absence of the line: one backtick at
+each end of a `LOOP-BLOCKING:` or `VERDICT:` line SHALL be taken off before that line is read as a field, a count or
+the closing line. Taking it off SHALL NOT weaken either fact the completeness rule is made of: a report with no
+closing line, or whose last byte is not the adapter's newline, is still cut, and one that states no count is still a
+refusal.
+
+#### Scenario: A closing block written as inline code is a complete answer
+
+Measured 2026-11-06 on item #788: both of its pre-gate reports ended `` `LOOP-BLOCKING: 3` `` then
+`` `VERDICT: FAIL` ``, each file's last byte the newline the adapter prints, and the run read both as cut answers —
+it blocked the item and escalated *no reviewer refused this change* while the report in its hand carried three
+blocking findings (issue #793).
+
+- **WHEN** a review round's report ends with its `LOOP-BLOCKING:` and `VERDICT:` lines written as inline code, with
+  the adapter's newline after the last of them
+- **THEN** the answer is complete: the round is not asked again, the count inside the fence is the count the round is
+  decided by, and a fenced `VERDICT: FAIL` whose count is zero closes the item with its `NOTE:` findings recorded
+- **Case**: `run#aFencedClosingBlockIsACompleteAnswer`
+
+### Requirement: A step that refuses a delta in seconds is owed before the suites
+
+The profile SHALL name the steps the gate owes before its build and before its suites, in the suite map's
+`<glob>|<command>` shape, read in that order. A delta that writes a case's first-line `# files:` declaration SHALL
+owe the case that reads it before the build and before the suite that would refuse it at its end. The child's step
+SHALL send it to the plan's first line, which is what saves the attempt. The case that reads the declaration SHALL
+stay the one owner of the reach table.
+
+#### Scenario: A delta that writes a declaration owes its reader first
+
+- **WHEN** a delta writes a case into `tools/loop-cases.sh` and touches a compiled file, and the gate is asked what
+  that delta owes
+- **THEN** the plan's first line is
+  `tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach`, before the suite the declaration narrows
+  and before the profile's compiled command
+- **AND** the child's own step sends it to that same plan line and names no case of this project, so a project that has
+  no such case still has a step to run
+- **Case**: `gate#theDeclarationCaseIsOwedFirst`
+
+### Requirement: The suite states what it cost as well as what it ran
+
+The self-test SHALL report the elapsed time of each group and of the whole selection in its summary, so a case set
+that grows is visible where it is paid rather than at the next hand-run. A passing case's `PASS` line SHALL NOT
+carry a figure unless the invocation asks for one. The report SHALL be that run's own measurement and SHALL NOT be
+compared against a recorded baseline.
+
+#### Scenario: The summary names what each group cost
+
+- **WHEN** a suite of stub cases in two groups is run to completion
+- **THEN** the summary carries one line per group with that group's elapsed time and its case count, and one line
+  for the selection, and the counts and the exit status are what they were
+- **Case**: `driver#theSummaryNamesWhatEachGroupCost`
+
+#### Scenario: A passing case's line keeps its shape
+
+- **WHEN** the same suite runs without `--times`, which is how the mutation harness and the leftovers cases invoke
+  the driver
+- **THEN** each case's line is its `PASS` and its name and nothing else, and with `--times` the figure is added
+  without changing the name the line is read for
+- **Case**: `driver#theTimesFigureIsAskedForNotAssumed`
+
+#### Scenario: The figure is this run's own
+
+- **WHEN** a run finishes on a host whose previous run was slower, or faster, by minutes
+- **THEN** the summary states the elapsed time this run measured, and no line of it compares that number with a
+  stored one — a baseline's disagreement is a disagreement about the host
+- **Case**: none — a negative: nothing in the report may read a stored figure, and the summary's own text is the
+  reading (`design.md`, "Why not the alternatives")
+
+### Requirement: An adoption the tree refuses is recorded as `unmergeable`, not escalated
+
+An adoption of a previous attempt's branch that the branch's own inputs admit — one archived change of its own, a
+green verification record, no reviewer's refusal and no review round left unanswered — but whose merge the project
+tree, the base or the replay refuses SHALL be recorded with the item's mechanism `unmergeable`. The pre-screen's
+entry for that item SHALL keep its reason, its verdict and the branch as the evidence, SHALL carry the adoption's
+own refusal beside them, SHALL NOT be reported as a decision the owner owes and SHALL NOT be escalated on the
+tracker. No item record SHALL be written for it, so the item neither enters the two-blocked streak nor counts
+against the decision cap, and the branch SHALL be left where the next run's pre-screen finds it. An adoption refused
+by the branch's own evidence SHALL stay the owner's decision, unchanged. The mechanism SHALL be printed beside the
+exclusion in the run's report, so the run's own output says which refusal it decided for itself, and a pre-screen
+that runs again during the same run SHALL NOT erase it from the entry it rewrites.
+
+#### Scenario: A tree that refuses the merge leaves work, not a question
+
+- **WHEN** the run adopts an excluded branch that carries exactly one archived change of its own and a green
+  verification record, and the project tree the merge would land in is not clean
+- **THEN** nothing is merged and nothing is closed, no `agent/needs-decision` label is written for the item and the
+  report's decision list names none, while the run's own record carries the adoption's refusal with `unmergeable`
+  as the excluded item's mechanism and the branch as its evidence — the item the next run retries, not a question
+  only its owner can answer
+- **Case**: `run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable`
+
+#### Scenario: The refusal is recorded on the exclusion and on no other record
+
+- **WHEN** the run records an adoption's refusal for an item the pre-screen excluded and has not worked
+- **THEN** the entry keeps its verdict, its reason and the branch as its evidence and gains the mechanism
+  `unmergeable` and the refusal's own text — kept there when a second pre-screen of the same run rewrites the
+  exclusions — the table prints it as `#21 needs-decision (unmergeable)` and names no
+  decision the owner owes, while an issue that is not one of the run's exclusions and an issue that already carries
+  the item record the run wrote are both refused with their reason and the state is left unwritten
+- **Case**: `state#anAdoptionRefusalIsRecordedBesideTheExclusion`
+
+#### Scenario: A branch without a green verification stays the owner's decision
+
+- **WHEN** the adoption of an excluded branch is refused because the change it carries has no green verification
+  record
+- **THEN** the exclusion stays the run's decision — the item is escalated and nothing is merged — so the refusal
+  that is the branch's own is not read as one the tree made
+- **Case**: `run#doesNotMergeAnAttemptWithoutAGreenVerification`
+
+### Requirement: A child is started with a tree search that runs
+
+A process the run starts SHALL be started with a search call it can make: the directory this project's agent keeps
+its tools in SHALL be on the child's `PATH`, the project's tree-search wrapper SHALL be able to scope its walk to one
+document, and every phase prompt SHALL name that wrapper rather than a shell command the child's own policy refuses.
+
+#### Scenario: A child inherits the agent's tool directory
+
+- **WHEN** the adapter the run's configuration names starts a child, and this project's agent keeps its tools in its
+  own directory
+- **THEN** that directory is the first entry of the child's `PATH`, the `PATH` the child inherited stands behind it,
+  and a directory that does not exist changes nothing
+- **Case**: `adapter#theChildIsStartedWithItsToolDirectoryOnPath`
+
+#### Scenario: A document's section list is one scoped call
+
+- **WHEN** a child asks the wrapper for the section list of one document
+- **THEN** one call answers it — the matches with their line numbers, no other document searched, and the answer's
+  first line naming what was walked — and a path the root does not hold is a refusal and not an empty answer
+- **Case**: `look#aPathScopesTheWalkToIt`
+
+#### Scenario: A phase prompt names a call its own policy allows
+
+- **WHEN** a phase prompt tells a child how to read a document's section list
+- **THEN** it names the wrapper's scoped call and not the shell `grep` the policy that every child is started with
+  refuses
+- **Case**: `prompt#thePhasePromptsCarryTheirOwnRoute`
+
+### Requirement: An item's kept event stream is bounded
+
+The adapter that keeps a child's event stream SHALL bound the file it appends to at `LOOP_CHILD_EVENTS_MAX_BYTES`.
+When the file outgrows its bound the oldest events SHALL be dropped and the newest event SHALL survive. `0`, or a
+project that records no key, SHALL keep every line.
+
+#### Scenario: A stream past its bound is rotated and the rotation is recorded
+
+- **WHEN** a child writes more events than `LOOP_CHILD_EVENTS_MAX_BYTES` allows
+- **THEN** the file stops growing, its first line is a `stream_rotation` record naming the lines, bytes and
+  `turn_end` events that were dropped, the newest event is still the last line, and the dropped plus the remaining
+  turns are every turn the child took
+- **Case**: `adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded`
+
+#### Scenario: A stream under its bound is kept whole
+
+- **WHEN** a child writes fewer events than the bound allows
+- **THEN** every line is kept and no rotation record is written
+- **Case**: `adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded`
+
+### Requirement: The count a rotation reports never falls
+
+A rotation SHALL be recorded in the stream itself — how many lines, how many bytes and how many `turn_end` events
+went — so a reader can tell a rotated stream from a short one. The count of turns a stream reports SHALL NOT fall
+when the writer rotates: the turn bound a child is ended by SHALL count the turns the record says were dropped as
+well as the ones the stream still holds.
+
+#### Scenario: A rotated stream still counts the turns it dropped
+
+- **WHEN** the run bounds a child's turns and the child's stream carries a rotation record plus the turns still
+  present, and their sum reaches that bound
+- **THEN** the run ends the child at the recorded bound, its transcript names the count it reached, and the item is
+  recorded `blocked` with the run's own bound as the mechanism
+- **Case**: `run#aRotatedStreamStillCountsTheTurnsItDropped`
+
+### Requirement: The gate runs the steps that share nothing together
+
+The gate SHALL keep the order the profile's lists give it, SHALL run one first step and one compiled step at a time,
+and SHALL run the suite steps a delta owes up to `LOOP_GATE_POOL_JOBS` at a time. `LOOP_GATE_POOL_JOBS=1` SHALL be
+the serial gate.
+
+#### Scenario: The suites a delta owes run together
+
+- **WHEN** a profile owes three suite steps that share nothing, each of which spends a known wall clock, and the pool
+  names a size above one
+- **THEN** every step keeps its own output, status, clock and tally, the gate's wall clock is nearer its longest step
+  than the sum of the three, and the verdict carries all three steps' numbers in the profile's order
+- **Case**: `gate#independentStepsRunTogether`
+
+#### Scenario: A pooled step's numbers are its own
+
+- **WHEN** a pooled wave carries one failing suite between two passing ones
+- **THEN** each step's tally carries that step's own case and failure counts, the verdict is their sum, only the
+  failing command is named in the `— failing:` list, and the gate exits non-zero
+- **Case**: `gate#aFailingSuitesTallyIsUnchangedByItsNeighbours`
+
+### Requirement: A write the run can place is recorded where it is read
+
+The reading taken while a child runs SHALL be recorded **where it is taken**, and not only in the branch that runs
+after the gate: when it places a process of the worker's own tree in the project's own tree, the run SHALL record
+that reading as a step of the item under the name `outside-write`, and SHALL start no pre-gate reviewer, no gate
+child and no tail for that item, because the item's work is not the run's to verify against a tree the run cannot
+vouch for. The step's note SHALL name what changed and the child the process was placed in. The item's `blocked`
+result and the reason for that shape are the outcome block's, written from that same reading.
+
+#### Scenario: A placed write is recorded before any gate child starts
+
+- **WHEN** the heartbeat's reading of the project's own tree places a process of the worker's own tree outside the
+  worktree while the worker runs
+- **THEN** the item's steps carry exactly one `outside-write` step holding that reading, its note names the changed
+  paths and the child the process was tied to and says the item ends at that reading, and neither a pre-gate
+  reviewer nor a gate child is started for the item
+- **Case**: `run#aWriterTheRunCanPlaceBlocksTheItem`
+
+### Requirement: A child is given one scratch directory
+
+Every child the run starts to write for an item's change SHALL be handed one directory it may write that is not
+the change root — a scratch directory inside that item's own directory, created before the child starts and named in the
+prompt beside the change root — and the prompt SHALL say that a write with a relative path lands in the project's own
+tree and not in the change root. A file a child writes there SHALL NOT be a difference in the project's own tree,
+and SHALL NOT change the outcome the item's work earned.
+
+#### Scenario: The child's prompt names a scratch directory that exists
+
+- **WHEN** a child is started for an item
+- **THEN** its prompt names a scratch directory inside the item's own directory, that directory exists before the
+  child runs, a file the child writes there is there when it ends, and the item keeps the outcome its own work
+  earned
+- **Case**: `run#aChildIsGivenOneScratchDirectory`
+
+### Requirement: A child pays for the full gate at most the recorded number of times
+
+The gate SHALL leave one record of each **full run it starts**, beside the child's own event stream
+(`LOOP_CHILD_EVENTS`), where it bounds the runs and the stream names a session, and SHALL count only the records that
+carry the id of the session it is running in — the id the stream's last `session` line names, so the gate is charged
+for this child's runs and not for a previous child's. A config that records no `LOOP_GATE_RUNS_MAX`, or records `0`,
+SHALL refuse nothing; a run started with no stream, or with a stream that names no session, SHALL be refused nothing
+either. A `--plan` call SHALL NOT be counted and SHALL NOT be refused: it runs no step, and it is the answer a refused
+run is given.
+
+A full run past the recorded number SHALL be refused rather than run: it SHALL exit `3`, name each earlier run with the
+command it ran, name the recorded bound, print the commands the delta owes — the same list `--plan` prints — instead of
+running them, and leave no record of its own, so the child is handed the scoped command and never a third full round.
+
+#### Scenario: The third full run in one child is refused with the scoped command
+
+- **WHEN** a child whose session the stream names has already started the number of full runs the profile records, and
+  it starts one more
+- **THEN** that run exits `3` without running a step, its output names the runs already made and the recorded bound,
+  and prints the command the delta owes as the scoped one
+- **AND** the runs before the limit measure the step the delta owes, a `--plan` call is neither refused nor recorded,
+  and a run recorded under another session id is not charged to this child
+- **Case**: `gate#aThirdFullRunInOneSessionIsRefused`
+
+### Requirement: The change child grades its own diff before it reports
+
+The change child SHALL read the diff it is about to hand over against this contract's blocking predicates before
+it prints its diff-ready line, and SHALL answer what it finds there or record it as a note: a scenario the case
+that names it does not exercise, a claim in the change's own prose the diff contradicts, an artifact the change
+cites that is not where it says it is, and the guideline section phase C named.
+
+#### Scenario: The rendered prompt carries the self-check and what answers each predicate
+
+- **WHEN** the worker prompt is rendered for an item
+- **THEN** it carries a block that grades the diff before the line that ends the session, names each of this
+  contract's blocking predicates in its own words, and names the one check that answers each
+- **AND** it says that a finding made there is fixed in the session or recorded as a note, so the reviewer meets it
+  already named rather than spending a round to find it
+- **AND** the rule it points at is this contract's, so the prompt states no second definition of *blocking*
+- **Case**: `prompt#workerGradesItsOwnDiffBeforeItReports`
+
+### Requirement: A finished run is analysed in one read-only pass that ends in items
+
+A run that has ended SHALL be analysable by one pass that reads its state, its item records and its item streams,
+quotes the numbers they already hold rather than recomputing them, and ends with a table of changes worth paying
+for. The pass SHALL write nothing — no gate, no build, no edit under `tools/loop/`, `.pi/` or `guidelines/` — and a
+defect it finds SHALL become a tracker item, never an inline fix. The entry document SHALL name the skill's path.
+
+#### Scenario: The pass reads the run that ended and never the one in place
+
+- **WHEN** the pass starts and a run's lock owner is alive and its state records no stop
+- **THEN** it reads the newest archived state and says in its report which run in place it excluded and when that
+  run started
+- **AND** with no live run it reads the state in place, including the case where the process was killed: the run
+  recorded no stop and its state is still the record
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+
+#### Scenario: The numbers are quoted from what the state and the spend tool printed
+
+- **WHEN** the report carries a run's items, outcomes, wall times, roles, tokens or gate tallies
+- **THEN** each figure is the one `tools/loop/report.sh`, `tools/loop/state.sh show` or `tools/loop-spend.py`
+  printed for that run, and a figure the state does not hold is printed as not measured rather than as zero
+- **AND** any claim about the loop rather than about this run is supported by the per-run table over the archived
+  states, naming how many runs it covers
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+
+#### Scenario: The skill the entry document names is the read-only pass, not a name
+
+- **WHEN** a reader follows the entry document's path to the analysis skill
+- **THEN** the skill states that the pass is read-only and that a `do` row is filed as an item and never with the
+  opt-in label, so the pointer cannot resolve to a text that would authorise a write
+- **AND** the case that holds the pointer fails when either sentence is dropped, which is what makes the route a
+  contract rather than a mention
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`

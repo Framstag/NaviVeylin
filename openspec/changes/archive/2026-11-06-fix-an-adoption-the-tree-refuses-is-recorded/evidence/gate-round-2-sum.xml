@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Derived summary, not a run: the 26 per-step tallies tools/loop/gate.sh left in
+     evidence/gate-tallies-round2/, whose attributes are copied here unchanged. Their sum is
+     the gate's own printed line, LOOP-GATE: tests=925 failures=0 errors=0. No suite was run
+     to produce this file; it exists so the summed number is carried by an XML and not only by
+     gate-round-2.txt and gate.log. -->
+<testsuites name="loop-gate round 2 (sum of the 26 step tallies)" tests="925" failures="0" errors="0">
+  <testsuite name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0" errors="0" time="3"/>
+  <testsuite name="bash tools/loop-mutations.sh --check" tests="249" failures="0" errors="0" time="2"/>
+  <testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="0" time="259"/>
+  <testsuite name="tools/check-compose-sandbox-rule-selftest.sh" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/check-compose-sandbox-rule.sh" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/check-doc-routes-selftest.sh" tests="34" failures="0" errors="0" time="8"/>
+  <testsuite name="tools/check-doc-routes.sh" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools/check-openspec-hygiene-selftest.sh" tests="7" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/check-openspec-hygiene.sh" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/check-portability-selftest.sh" tests="29" failures="0" errors="0" time="22"/>
+  <testsuite name="tools/check-portability.sh" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools/check-todo-references.sh" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools/issue-tooling-selftest.sh" tests="158" failures="0" errors="0" time="89"/>
+  <testsuite name="tools/loop-mutations-selftest.sh" tests="34" failures="0" errors="0" time="245"/>
+  <testsuite name="tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach" tests="0" failures="0" errors="0" time="10"/>
+  <testsuite name="tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d" tests="330" failures="0" errors="0" time="420"/>
+  <testsuite name="tools/mutate-selftest.sh" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/mutate.sh --mutations tools/close-mutations.json --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/mutate.sh --mutations tools/create-mutations.json --list" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools/mutate.sh --mutations tools/decision-question-mutations.json --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/mutate.sh --mutations tools/duplicates-mutations.json --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/mutate.sh --mutations tools/portability-mutations.json --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/mutate.sh --mutations tools/status-mutations.json --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="0"/>
+  <testsuite name="tools/sensor-selftest.sh" tests="84" failures="0" errors="0" time="77"/>
+</testsuites>

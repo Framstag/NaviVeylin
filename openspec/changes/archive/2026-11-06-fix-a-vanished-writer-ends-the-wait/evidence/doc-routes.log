@@ -1,0 +1,5 @@
+# tools/check-doc-routes.sh — run on the change tree for BuildGate.md §2a (item #795)
+# 2026-11-06T07:09:42Z @ 9b681b64
+
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+# exit: 0

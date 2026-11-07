@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.naviveylin.test.stepOf
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
@@ -58,6 +59,49 @@ class NextTurnOverlayTest {
         100.0, nextNextType, "native next-next", "native next-next short",
         exit, true, nextNextExit
     )
+
+    // --- the signposted destination (spec: next-turn-overlay - The second line carries it) ---
+
+    /** A motorway change onto the A8: the manoeuvre a signposted destination exists for. */
+    private fun motorwayChange(destination: String? = "München"): RouteStep = RouteStep().apply {
+        kind = RouteStep.Kind.MOTORWAY_CHANGE
+        remainingDistance = 450.0
+        motorwayChange = RouteStep.MotorwayChange().apply {
+            from = RouteStep.Name("", "A3")
+            to = RouteStep.Name("", "A8")
+            move = TurnType.RIGHT
+        }
+        this.destination = destination
+    }
+
+    @Test
+    fun `a motorway change's second line carries the signposted destination`() {
+        composeRule.setContent { NextTurnOverlay(step = motorwayChange()) }
+
+        // The first line stays the manoeuvre alone; the destination joins the second one.
+        composeRule.onNodeWithText("Keep right").assertIsDisplayed()
+        composeRule.onNodeWithText("A8 towards München").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a motorway change without a destination keeps the bare reference`() {
+        composeRule.setContent { NextTurnOverlay(step = motorwayChange(destination = null)) }
+
+        composeRule.onNodeWithText("A8").assertExists()
+        composeRule.onNodeWithText("towards", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the destination clause wraps inside the existing line limit`() {
+        // The longer line stays inside the overlay's own budget: the description keeps its existing
+        // limit and ellipsis, and the card gains no third text row.
+        composeRule.setContent {
+            NextTurnOverlay(step = motorwayChange(destination = "Garmisch-Partenkirchen"))
+        }
+
+        composeRule.onNodeWithText("A8 towards Garmisch-Partenkirchen").assertExists()
+        composeRule.onNodeWithTag("nextTurnNextNextArrow").assertDoesNotExist()
+    }
 
     @Test
     fun `a roundabout exit icon carries the exit number`() {

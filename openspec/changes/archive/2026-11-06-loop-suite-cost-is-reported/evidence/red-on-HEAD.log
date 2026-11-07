@@ -1,0 +1,25 @@
+# red on HEAD (0fb7a80) — the run's base driver, the change's two cases
+2026-11-06T10:19:27Z
+=== driver#theSummaryNamesWhatEachGroupCost ===
+driver#theSummaryNamesWhatEachGroupCost| loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox): 'loop-selftest: alpha 2 cases ' not found in: PASS alpha#two
+driver#theSummaryNamesWhatEachGroupCost| PASS alpha#one
+driver#theSummaryNamesWhatEachGroupCost| PASS beta#three
+driver#theSummaryNamesWhatEachGroupCost| loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox)
+--- driver#theSummaryNamesWhatEachGroupCost[0] (exit 1)
+  the alpha group's line names its two cases: PASS alpha#two
+PASS alpha#one
+PASS beta#three
+loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox): 'loop-selftest: alpha 2 cases ' not found in: PASS alpha#two
+PASS alpha#one
+PASS beta#three
+loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox)
+FAIL driver#theSummaryNamesWhatEachGroupCost
+loop-selftest: 1 of 1 cases failed
+exit=1
+=== driver#theTimesFigureIsAskedForNotAssumed ===
+driver#theTimesFigureIsAskedForNotAssumed|   and the same suite passes with --times: loop-selftest: unknown argument --times: expected '0', got '2'
+--- driver#theTimesFigureIsAskedForNotAssumed[0] (exit 1)
+  and the same suite passes with --times: loop-selftest: unknown argument --times: expected '0', got '2'
+FAIL driver#theTimesFigureIsAskedForNotAssumed
+loop-selftest: 1 of 1 cases failed
+exit=1

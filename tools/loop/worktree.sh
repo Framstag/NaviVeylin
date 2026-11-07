@@ -24,7 +24,7 @@
 #   worktree.sh merge-item <issue> <branch>
 #   worktree.sh release-branch <branch>
 #   worktree.sh prune-landed [--apply]
-#   worktree.sh record-review-round <issue> <change> <round> requested|passed
+#   worktree.sh record-review-round <issue> <change> <round> requested|passed|cut
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -398,21 +398,28 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
 #
 #   review-round-<n>-requested.md   the run announced the round; no answer arrived yet
 #   review-round-<n>-passed.md      the round answered, and the change passed it
+#   review-round-<n>-cut.md         the run ended the round at a bound it records, so no answer was owed
+#                                   and none arrived either (issue #785)
 #   review-failed-round-<n>.md      the round answered, and it refused the change (#185)
 #
 # A round that carries an answer reads as that answer, and a refusal outranks a pass if a branch ever carries
-# both: the reading is the conservative one, as an old-shaped review never passes.
-carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested>", or nothing
+# both: the reading is the conservative one, as an old-shaped review never passes. A round the run itself cut is
+# **not** an unanswered one — the run announced it and the run ended it, before any reviewer could answer — so it
+# is read as its own value (issue #785): `blocked` for a round nobody refused spent a decision slot and a person's
+# evening on #780, #783, #767 and #763 on 2026-11-05, whose changes were archived, gated green and cut at a bound.
+carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested|cut>", or nothing
   local branch="$1" change="$2" files round
   files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null) || return 0
   round=$(printf '%s\n' "$files" |
     sed -n -e 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-requested\.md$#\1#p' \
+      -e 's#.*/review-round-\([0-9][0-9]*\)-cut\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-passed\.md$#\1#p' |
     sort -n | tail -1)
   [ -n "$round" ] || return 0
   case "$files" in *"/review-failed-round-$round.md"*) printf '%s failed\n' "$round"; return 0 ;; esac
   case "$files" in *"/review-round-$round-passed.md"*) printf '%s passed\n' "$round"; return 0 ;; esac
+  case "$files" in *"/review-round-$round-cut.md"*) printf '%s cut\n' "$round"; return 0 ;; esac
   printf '%s requested\n' "$round"
 }
 
@@ -421,7 +428,8 @@ carried_review_state() { # <branch> <change> → "<round> <passed|failed|request
 # `start-item` may only set aside what carries nothing of its own (#232).
 #
 #   adoptable          one archived change of its own, a green verification, no reviewer's refusal, and no
-#                      review round left unanswered
+#                      review round left unanswered and unread — a round the run itself cut asks nobody anything
+#                      (issue #785), so it does not make the branch a person's
 #   review-refused     the same, and the reviewer refused it — the owner's (#185)
 #   review-unanswered  the same, and the last review round was announced and never answered — the owner's (#262)
 #   archived-not-green the change is there and never verified — the owner's (#176)
@@ -545,15 +553,17 @@ $dirty"
 }
 
 # The run's record of a review round, written onto the item's branch: the *announcement* before the reviewer
-# starts, and the answer when it arrives (#262). The branch is what a later run reads — the item's own directory
-# (`.pi/issue-loop/items/<n>/`) is machine-local and is gone or unreadable to it — so a reviewer that is killed
-# mid-answer has to leave a round that says "never answered" rather than no trace at all.
-cmd_record_review_round() { # <issue> <change> <round> <requested|passed>
+# starts, the answer when it arrives (#262), and — when the run's own bound ended the round — the cut that says so
+# (#785). The branch is what a later run reads — the item's own directory (`.pi/issue-loop/items/<n>/`) is
+# machine-local and is gone or unreadable to it — so a reviewer that is killed mid-answer has to leave a round that
+# says "never answered" rather than no trace at all, and a round the run cut has to say that instead of reading as
+# one nobody ever asked.
+cmd_record_review_round() { # <issue> <change> <round> <requested|passed|cut>
   local issue="$1" change="$2" round="$3" what="${4:-}" dir file who_name who_email
-  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed" ;; esac
+  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut" ;; esac
   [ -n "$change" ] && [ -n "$round" ] ||
-    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed"
-  case "$what" in requested|passed) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed" ;; esac
+    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut"
+  case "$what" in requested|passed|cut) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut" ;; esac
   [ -d "$worktree" ] || loop_die "record-review-round: no worktree at $worktree"
   [ -d "$worktree/openspec/changes/archive/$change" ] ||
     loop_refuse "record-review-round: $change is not an archived change in the worktree"
@@ -568,6 +578,22 @@ cmd_record_review_round() { # <issue> <change> <round> <requested|passed>
       printf 'can see: a round whose answer never arrives must not read like a round that passed, and this file\n'
       printf 'is the only record that the round existed at all.\n'
     } > "$file" || loop_die "record-review-round: could not write $file"
+  elif [ "$what" = cut ]; then
+    # The announcement is withdrawn in the same commit that records the cut: the run made both statements, so a
+    # branch that carried "nobody answered round n" beside "the run ended round n at its bound" would ask a person
+    # about a round the loop itself ended. What the round found is then simply nothing — no reviewer graded it.
+    {
+      printf 'The run ended review round %s of this change at a bound it records, before the reviewer answered.\n\n' "$round"
+      printf 'Recorded by the run for issue #%s at %s, on the item branch: the round was cut, not refused, and no\n' \
+        "$issue" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'reviewer graded this change. The transcript of the round the run ended names the bound — the role%s\n' \
+        "'"
+      printf 'turn bound or the run%s own deadline — in the item directory this run recorded.\n' "'"
+    } > "$file" || loop_die "record-review-round: could not write $file"
+    if [ -f "$dir/review-round-$round-requested.md" ]; then
+      gitw rm -q -- "$dir/review-round-$round-requested.md" >&2 ||
+        loop_die "record-review-round: could not withdraw the announcement of round $round"
+    fi
   else
     {
       printf 'The reviewer passed this change in review round %s.\n\n' "$round"
@@ -622,6 +648,22 @@ prune_base() {
   printf '%s\n' "$base"
 }
 
+# The base the ref sweep compares against, and the reason it is not `prune_base`'s answer: `run.base` is the commit
+# the run started on, so a branch that landed while the run was open is not landed in it, and the sweep kept a fully
+# landed branch with the note "carries work the base does not have" (issue #763, the second reading recorded on
+# #727). The published base is fetched first, and a project with no remote falls back to the recorded one — the
+# sweep is offline-skippable, never silently comparing against a pin it could not refresh.
+sweep_base() {
+  local branch
+  branch=$(loop_base_ref)
+  if gitr fetch --quiet origin "$branch" >/dev/null 2>&1; then
+    gitr rev-parse --verify --quiet "origin/$branch" && return 0
+  fi
+  printf 'worktree: no published %s could be fetched — the sweep compares against the base the run recorded\n' \
+    "$branch" >&2
+  prune_base
+}
+
 # The archived changes a branch adds, one directory name per line. The branch's own change is what the refusal for
 # a refused review reads, and what must be on the base before a branch can be called landed on that reading.
 branch_added_changes() { # <branch> <base> → one change name per line
@@ -634,20 +676,21 @@ branch_added_changes() { # <branch> <base> → one change name per line
 # A reviewer's refusal is its owner's verdict (#185), not a leftover: the branch stays even when its patch is in the
 # base. The marker is read from the change the branch's tip commit adds: `record-review-failure` writes it last, so
 # it is the tip's own diff even after a fast-forward put the branch in the base, where a diff against the base can
-# no longer say what the branch added.
-branch_carries_refused_review() { # <branch>
-  local branch="$1" issue subject change
+# no longer say what the branch added. The name it is parsed from is the second argument when the rev is a remote
+# ref (`origin/fix/issue-3-refused`), because the sweep reads both arms with the same refusal.
+branch_carries_refused_review() { # <rev> [<branch name>] → 0 when the change the rev carries was refused
+  local rev="$1" branch="${2:-$1}" issue subject change
   case "$branch" in fix/issue-*) ;; *) return 1 ;; esac
   issue=${branch#fix/issue-}
   issue=${issue%%-*}
   case "$issue" in ''|*[!0-9]*) return 1 ;; esac
-  subject=$(gitr log -1 --format=%s "$branch" 2>/dev/null)
+  subject=$(gitr log -1 --format=%s "$rev" 2>/dev/null)
   case "$subject" in *"(#$issue)"*) ;; *) return 1 ;; esac
   while IFS= read -r change; do
     [ -n "$change" ] || continue
-    gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
+    gitr ls-tree -r --name-only "$rev" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
       grep -Eq 'review-failed-round-[0-9][0-9]*\.md$' && return 0
-  done <<< "$(gitr diff-tree --no-commit-id --name-only -r --diff-filter=A "$branch" -- openspec/changes/archive 2>/dev/null |
+  done <<< "$(gitr diff-tree --no-commit-id --name-only -r --diff-filter=A "$rev" -- openspec/changes/archive 2>/dev/null |
     awk -F/ 'NF > 3 { print $4 }' | sort -u)"
   return 1
 }
@@ -678,17 +721,25 @@ branch_is_landed() { # <branch> <base> → 0 when the base carries every patch t
 
 # The ref sweep at the run's end, and the command a person can repeat. It is deliberately narrower than
 # `loop-clean.sh`: it touches refs only, never a tree, a scratch path or a process. `--apply` deletes exactly the
-# branches it named, and every refusal is a branch that stays.
+# branches it named, and every refusal is a branch that stays. Two arms, because a branch the loop published is a
+# remote ref no local namespace holds (issue #763), and both are compared against the base the remote publishes.
 cmd_prune_landed() {
-  local apply=0 base held branch kept_work=0 kept_checked=0 kept_refused=0 removed=0
+  local apply=0 base remote held remote_refs branch ref tip pr_heads="" pr_unread=0 extra=""
+  local kept_work=0 kept_checked=0 kept_refused=0 kept_pr=0 kept_unread=0 removed=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --apply) apply=1; shift ;;
       *) loop_die "prune-landed: unknown argument $1" ;;
     esac
   done
-  base=$(prune_base) || loop_die "prune-landed: no base to compare against — run 'state.sh init' or name the base branch"
+  base=$(sweep_base) || loop_die "prune-landed: no base to compare against — run 'state.sh init' or name the base branch"
   held=$(loop_worktree_branches "$LOOP_ROOT" | tr '\n' ' ')
+  # The remote arm's candidates, and the one reading a shared remote owes before anything on it can be deleted: a
+  # ref that is the head of an open pull request is somebody's review, and an unreadable forge is not a forge with
+  # no pull requests.
+  remote=origin
+  remote_refs=$(loop_remote_branches "$LOOP_ROOT" "$remote")
+  [ -z "$remote_refs" ] || pr_heads=$(loop_open_pull_request_heads) || pr_unread=1
   while IFS= read -r branch; do
     [ -n "$branch" ] || continue
     case " $held " in
@@ -717,14 +768,62 @@ cmd_prune_landed() {
     fi
     removed=$((removed + 1))
   done <<< "$(loop_own_branches "$LOOP_ROOT")"
-  if [ "$removed" -eq 0 ] && [ "$kept_work" -eq 0 ] && [ "$kept_checked" -eq 0 ] && [ "$kept_refused" -eq 0 ]; then
+  while IFS= read -r ref; do
+    [ -n "$ref" ] || continue
+    branch=${ref#"$remote"/}
+    # The tip this ref was judged at, and the lease the delete below carries: the candidates were read a moment
+    # ago, and this is a shared remote — a ref that moved since must not be removed with the commits it gained.
+    tip=$(gitr rev-parse --verify --quiet "refs/remotes/$remote/$branch" 2>/dev/null) || tip=""
+    if [ "$pr_unread" -eq 1 ]; then
+      printf 'kept %s — the open pull requests could not be read\n' "$ref"
+      kept_unread=$((kept_unread + 1))
+      continue
+    fi
+    case " $pr_heads " in
+      *" $branch "*)
+        printf 'kept %s — the head of an open pull request\n' "$ref"
+        kept_pr=$((kept_pr + 1))
+        continue ;;
+    esac
+    case " $held " in
+      *" $branch "*)
+        printf 'kept %s — checked out\n' "$ref"
+        kept_checked=$((kept_checked + 1))
+        continue ;;
+    esac
+    if branch_carries_refused_review "$ref" "$branch"; then
+      printf 'kept %s — the reviewer refused it\n' "$ref"
+      kept_refused=$((kept_refused + 1))
+      continue
+    fi
+    if ! branch_is_landed "$ref" "$base"; then
+      printf 'kept %s — carries work the base does not have\n' "$ref"
+      kept_work=$((kept_work + 1))
+      continue
+    fi
+    if [ "$apply" -eq 1 ]; then
+      # The remote's own delete, never a forced refspec: the remote keeps a protected branch. The lease pins the
+      # delete to the tip the judgement was made on (`--force-with-lease` refuses a ref that moved), and a ref it no
+      # longer holds needs no removal from here.
+      gitr push --quiet --force-with-lease="refs/heads/$branch:$tip" "$remote" --delete "$branch" >/dev/null 2>&1 ||
+        { printf 'kept %s — could not be removed\n' "$ref"; kept_work=$((kept_work + 1)); continue; }
+      printf 'removed %s (its patches are in the base)\n' "$ref"
+    else
+      printf 'would remove %s (its patches are in the base)\n' "$ref"
+    fi
+    removed=$((removed + 1))
+  done <<< "$remote_refs"
+  [ "$kept_pr" -eq 0 ] || extra="$extra · $kept_pr kept (an open pull request)"
+  [ "$kept_unread" -eq 0 ] || extra="$extra · $kept_unread kept (the open pull requests could not be read)"
+  if [ "$removed" -eq 0 ] && [ "$kept_work" -eq 0 ] && [ "$kept_checked" -eq 0 ] && [ "$kept_refused" -eq 0 ] &&
+     [ "$kept_pr" -eq 0 ] && [ "$kept_unread" -eq 0 ]; then
     printf 'worktree: no branch of the loop to prune\n'
   elif [ "$apply" -eq 1 ]; then
-    printf 'worktree: %s landed branch(es) removed · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)\n' \
-      "$removed" "$kept_work" "$kept_checked" "$kept_refused"
+    printf 'worktree: %s landed branch(es) removed · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)%s\n' \
+      "$removed" "$kept_work" "$kept_checked" "$kept_refused" "$extra"
   else
-    printf 'worktree: would remove %s landed branch(es) · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)\n' \
-      "$removed" "$kept_work" "$kept_checked" "$kept_refused"
+    printf 'worktree: would remove %s landed branch(es) · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)%s\n' \
+      "$removed" "$kept_work" "$kept_checked" "$kept_refused" "$extra"
   fi
 }
 

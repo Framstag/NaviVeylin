@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The gate's own tally for round 2: the 21 step tallies under evidence/gate-results-round2/ summed. No single step writes the total, so this file is the carrier of the number the change quotes, produced from those files by
+
+       sed -n 's/.*tests="\([0-9]*\)" failures="\([0-9]*\)" errors="\([0-9]*\)".*/\1 \2 \3/p' evidence/gate-results-round2/*.xml \
+         | awk '{t+=$1;f+=$2;e+=$3} END {printf "sum tests=%d failures=%d errors=%d\n",t,f,e}'
+
+     and checked against evidence/gate-round2.log, whose last line is the same tally. -->
+<testsuite name="tools/loop/gate.sh --plan --base 4522a4124feec63c0394343f7420e5ce8176b6a7 (sum of 21 step tallies)" tests="854" failures="0" errors="0">
+  <system-out>evidence/gate-round2.log</system-out>
+</testsuite>

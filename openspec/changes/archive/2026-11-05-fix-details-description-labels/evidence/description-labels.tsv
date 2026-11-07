@@ -1,0 +1,74 @@
+Access	Zugang
+AccessRestricted	Zugangsbeschränkung
+Address	Adresse
+AdminLevel	Verwaltungsebene
+Bicycle	Fahrrad
+BoundingBox	Begrenzungsrahmen
+Brand	Marke
+Bridge	Brücke
+Capacity	Kapazität
+Car	Auto
+CarriagewayRef	Fahrbahnreferenz
+CellLevel	Zellenebene
+Center	Mittelpunkt
+ChargingStation	Ladestation
+Clockwise	Im Uhrzeigersinn
+Commercial	Gewerblich
+Condition	Bedingung
+ConstructionYear	Baujahr
+Contact	Kontakt
+Coordinate	Koordinate
+CycleLane	Radweg
+CycleTrack	Radfahrstreifen
+Destination	Ziel
+DestinationBackward	Ziel rückwärts
+DestinationForward	Ziel vorwärts
+Distance	Entfernung
+Embankment	Damm
+Fee	Gebühr
+Foot	Fußgänger
+From	Von
+General	Allgemein
+Geometry	Geometrie
+Grade	Steigung
+HighwayMilestone	Kilometerstein
+Id	ID
+IsIn	Liegt in
+Kind	Art
+Lanes	Spuren
+LanesBackward	Spuren rückwärts
+LanesForward	Spuren vorwärts
+Layer	Ebene
+Level	Stufe
+Location	Ort
+Marker	Markierung
+MaxSpeed	Höchstgeschwindigkeit
+MaxStay	Max. Aufenthalt
+Name	Name
+NameAlt	Name (alternativ)
+NameRef	Name (Referenz)
+NameShort	Kurzname
+Navigation	Navigation
+Network	Netzwerk
+Oneway	Einbahnstraße
+OpeningHours	Öffnungszeiten
+Operator	Betreiber
+Output	Leistung
+Payment	Zahlung
+Phone	Telefon
+PostalCode	Postleitzahl
+Presence	Anwesenheit
+Ref	Referenz
+Roundabout	Kreisverkehr
+Sideways	Seitenstreifen
+Socket	Anschluss
+To	Nach
+Tunnel	Tunnel
+TurnBackward	Abbiegen rückwärts
+TurnForward	Abbiegen vorwärts
+Type	Typ
+Value	Wert
+WalkTrack	Fußweg
+Way	Weg
+Website	Webseite
+Width	Breite

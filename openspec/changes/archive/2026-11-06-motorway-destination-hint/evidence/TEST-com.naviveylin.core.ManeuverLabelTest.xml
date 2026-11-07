@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.ManeuverLabelTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-06T21:36:58.877Z" hostname="dingens" time="0.01">
+  <properties/>
+  <testcase name="a motorway leave is worded as a leave" classname="com.naviveylin.core.ManeuverLabelTest" time="0.004"/>
+  <testcase name="a name change says which street the route continues on" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="the keep wording follows the move as well" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="a motorway entry carries the signposted destination" classname="com.naviveylin.core.ManeuverLabelTest" time="0.001"/>
+  <testcase name="a named turn composes the street into the row" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="an unmapped manoeuvre renders the neutral wording" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="an empty street leaves the manoeuvre alone" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="a plain turn does not show a destination record it carries" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="every turn move has its own wording" classname="com.naviveylin.core.ManeuverLabelTest" time="0.002"/>
+  <testcase name="a roundabout leave without an ordinal does not invent one" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="a motorway manoeuvre without a destination keeps today's wording" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="a motorway enter names the motorway entered" classname="com.naviveylin.core.ManeuverLabelTest" time="0.001"/>
+  <testcase name="a motorway change carries the signposted destination" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="a roundabout enter is the bare roundabout" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="a motorway change is worded as a keep onto the next motorway" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <testcase name="the start and the arrival carry no street composition" classname="com.naviveylin.core.ManeuverLabelTest" time="0.001"/>
+  <testcase name="a roundabout leave names its ordinal" classname="com.naviveylin.core.ManeuverLabelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

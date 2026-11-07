@@ -16,7 +16,7 @@ carries the parity rule, the shared data resolution, the map presentation both v
 dark mode, localisation and the maintenance rule for both documents.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/UI.md`; AGENTS.md's Documentation Map routes a kind of change
+`tools/look.sh '^## ' --path guidelines/UI.md`; AGENTS.md's Documentation Map routes a kind of change
 here.
 
 ---

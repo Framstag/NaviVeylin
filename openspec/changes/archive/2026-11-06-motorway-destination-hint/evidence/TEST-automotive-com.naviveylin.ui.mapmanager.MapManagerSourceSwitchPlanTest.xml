@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-06T21:39:00.933Z" hostname="dingens" time="0.523">
+  <properties/>
+  <testcase name="noDialogWhenNothingWouldBeDeleted" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.057"/>
+  <testcase name="aSwitchThatDeletesTheBasemapUnloadsItFromTheRunningClient" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.043"/>
+  <testcase name="dialogNamesCountAndSize" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.048"/>
+  <testcase name="cancelDropsThePlanAndKeepsTheActiveSource" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.051"/>
+  <testcase name="selectingTheRepositoryWithoutAUrlRevealsTheFieldInsteadOfSwitching" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.043"/>
+  <testcase name="selectSourceUsesTheUrlThatWasTypedAfterTheSelectorWasBuilt" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.07"/>
+  <testcase name="theBasemapIsCountedWhenItBelongsToTheOtherSource" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.088"/>
+  <testcase name="aBasemapOfTheTargetSourceIsNotDeleted" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.056"/>
+  <testcase name="aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.06"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

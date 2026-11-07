@@ -1,0 +1,16 @@
+loop-mutations: selected 4 of 261 records (labels: 92.1 92.2 81.1 23.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.aZp5Aa
+RED    23.1  run#childOutlastingTheWallClockIsCut   (the wall-clock that ends a child instead of waiting for it for ever)
+       2026-11-07T00:51:24Z — the run was still waiting after 60 s on a child that outlasted its 2 s cap
+restore 23.1 run#childOutlastingTheWallClockIsCut green again
+RED    81.1  run#childPastItsTurnBoundIsCut   (the mechanism a bound-ended item records, so a bound reads as a refusal (issue #786))
+       2026-11-07T00:51:42Z — an item whose child crossed the bound is recorded cut, not blocked (issue #790): expected 'cut', got 'blocked'
+restore 81.1 run#childPastItsTurnBoundIsCut green again
+RED    92.1  run#childPastItsTurnBoundIsCut   (the result a bound-ended child records, so the item is read as a refusal the run's own bound never measured (issues #786, #790))
+       2026-11-07T00:51:59Z — an item whose child crossed the bound is recorded cut, not blocked (issue #790): expected 'cut', got 'blocked'
+restore 92.1 run#childPastItsTurnBoundIsCut green again
+RED    92.2  run#childPastItsTurnBoundIsCut   (the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790))
+       2026-11-07T00:52:15Z — the cut records the run's own bound as its mechanism: expected 'bound', got ''
+restore 92.2 run#childPastItsTurnBoundIsCut green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

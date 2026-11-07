@@ -1,0 +1,5 @@
+== the entry document as HEAD has it (no skill path), against the case's three names
+FAIL  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three
+        the entry document names no path for .pi/skills/analyse-loop-run — a reader reaches those skills only by listing .pi/skills/
+check-doc-routes-selftest: 1 of 1 cases failed
+exit=1

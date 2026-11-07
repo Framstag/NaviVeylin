@@ -82,12 +82,19 @@ jobs:
       # from the build pipeline's artifact, with the conclusion the build's run ended with reported beside it.
       # `ready=false` (exit 3) means the build has not finished yet — a skipped run that writes nothing and
       # reports no failed check, rather than four `error` rows.
+      #
+      # `--jobs-record` adds one thing the artifact cannot carry: the wall time of the run's own jobs and steps,
+      # which only GitHub's post-run jobs API answers — a running job cannot read its own step durations. The
+      # record is written for exactly the run restored here, which is what lets `build-duration` measure the
+      # pipeline instead of one Gradle invocation inside it (issue #778). The scan's fetch below does not pass
+      # the flag: its run's jobs are not the build's.
       - name: Fetch this commit's build record
         id: record
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --jobs-record build/job-timings.json \
                --conclusion-file "$RUNNER_TEMP/build-conclusion"; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "conclusion=$(cat "$RUNNER_TEMP/build-conclusion")" >> "$GITHUB_OUTPUT"

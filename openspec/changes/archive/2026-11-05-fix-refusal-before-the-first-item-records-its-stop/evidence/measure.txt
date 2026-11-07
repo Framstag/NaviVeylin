@@ -1,0 +1,100 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=b114e2d04b9f643949358ac4a5db606666dd4d1d paths=65 insertions=3095 deletions=20
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/DescriptionLabels.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationDetailsSheet.kt
+LOOP-MEASURE-PATH app/src/main/res/values-de/strings.xml
+LOOP-MEASURE-PATH app/src/main/res/values/strings.xml
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationDetailsDialogComposeTest.kt
+LOOP-MEASURE-PATH guidelines/BacklogTooling.md
+LOOP-MEASURE-PATH guidelines/UIPhone.md
+LOOP-MEASURE-PATH guidelines/UI.why.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/description-labels.tsv
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/gate-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/revert-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/review-round-1-withdrawn.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/scope-run.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-applied-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/specs/i18n-l10n/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/gate-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1-cut.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1.diff
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/sensor-suite.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_sensor-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/tasks.md
+LOOP-MEASURE-PATH openspec/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/specs/i18n-l10n/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/sensor-cases.sh
+LOOP-MEASURE-PATH tools/sensors/run.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=319 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-refusal-before-the-first-item-records-its-stop scenarios=10 cases=10 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-refusal-before-the-first-item-records-its-stop/evidence/green-dirtyKeptWorktreeIsARecordedRefusal.xml tests=1 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-refusal-before-the-first-item-records-its-stop/evidence/green-resetWorktreeNamesTheDirtItCannotDiscard.xml tests=1 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-refusal-before-the-first-item-records-its-stop/evidence/green-theDecisionCapRecordsItsStopReason.xml tests=1 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-refusal-before-the-first-item-records-its-stop/evidence/red-on-HEAD-run-theDecisionCapRecordsItsStopReason.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-SURFACE surface: 1 case added, 2 rewritten, 0 fixtures realigned, 0 mutations changed — `grep -n 'stop_run\|loop_refuse\|exit "\$LOOP_' tools/loop/run.sh` (3 of 6 refusals in the window record no reason) and `grep -c 'decisionCapRefusesToStart' tools/loop-mutations.sh` (1, on the line this change keeps)
+LOOP-MEASURE-END

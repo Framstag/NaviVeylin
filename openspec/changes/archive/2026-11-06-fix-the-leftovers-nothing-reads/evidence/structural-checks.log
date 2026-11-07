@@ -1,0 +1,11 @@
+2026-11-06T17:56:52Z
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
+portability exit=0
+loop-mutations: selected 13 of 256 records (files: tools/loop/lib.sh tools/loop/loop-clean.sh tools/loop-cases.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.4XRypV
+loop-mutations: all 13 cases passed — every selected record applies to the file it names
+loop-selftest: worktree 24 cases 166.84 s
+loop-selftest: all 24 cases passed (JDK 27, offline, no token, no sandbox) — 20.52 s, selection: --case worktree#*
+2026-11-06T17:57:14Z

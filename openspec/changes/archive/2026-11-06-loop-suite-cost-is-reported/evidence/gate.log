@@ -1,0 +1,1847 @@
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate: tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+gate: tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach — 10s
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileVendoredJava UP-TO-DATE
+> Task :osmscout-client-java:processVendoredResources NO-SOURCE
+> Task :osmscout-client-java:vendoredClasses UP-TO-DATE
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :osmscout-client-java:compileTestJava UP-TO-DATE
+> Task :osmscout-client-java:processTestResources UP-TO-DATE
+> Task :osmscout-client-java:testClasses UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :core:compileDebugKotlin UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :core:preDebugUnitTestBuild
+> Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
+> Task :core:koverFindJar UP-TO-DATE
+> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :core:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :core:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :core:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:hiltSyncDebugUnitTest UP-TO-DATE
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug UP-TO-DATE
+> Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
+> Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
+> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
+> Task :auto:koverFindJar UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig UP-TO-DATE
+> Task :app:generateAutomotiveDebugResources UP-TO-DATE
+> Task :app:packageAutomotiveDebugResources UP-TO-DATE
+> Task :app:processAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:parseAutomotiveDebugLocalResources UP-TO-DATE
+> Task :app:generateAutomotiveDebugRFile UP-TO-DATE
+> Task :app:kspAutomotiveDebugKotlin UP-TO-DATE
+> Task :app:compileAutomotiveDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileAutomotiveDebug UP-TO-DATE
+> Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncAutomotiveDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsAutomotiveDebug UP-TO-DATE
+> Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
+> Task :app:checkAutomotiveDebugAarMetadata UP-TO-DATE
+> Task :app:mapAutomotiveDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:mergeAutomotiveDebugResources UP-TO-DATE
+> Task :app:createAutomotiveDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksAutomotiveDebug UP-TO-DATE
+> Task :app:processAutomotiveDebugMainManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifestForPackage UP-TO-DATE
+> Task :app:processAutomotiveDebugResources UP-TO-DATE
+> Task :app:checkAutomotiveDebugAarMetadata UP-TO-DATE
+> Task :app:mapAutomotiveDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:mergeAutomotiveDebugResources UP-TO-DATE
+> Task :app:createAutomotiveDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksAutomotiveDebug UP-TO-DATE
+> Task :app:processAutomotiveDebugMainManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifestForPackage UP-TO-DATE
+> Task :app:processAutomotiveDebugResources UP-TO-DATE
+> Task :app:transformAutomotiveDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:generateAutomotiveDebugAssets UP-TO-DATE
+> Task :app:mergeAutomotiveDebugAssets UP-TO-DATE
+> Task :app:preAutomotiveDebugUnitTestBuild
+> Task :app:packageAutomotiveDebugUnitTestForUnitTest UP-TO-DATE
+> Task :app:mergeAutomotiveDebugUnitTestManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateAutomotiveDebugUnitTestConfig UP-TO-DATE
+> Task :app:koverFindJar UP-TO-DATE
+> Task :app:processAutomotiveDebugJavaRes UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspAutomotiveDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileAutomotiveDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processAutomotiveDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileAutomotiveDebugUnitTest UP-TO-DATE
+> Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncAutomotiveDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsAutomotiveDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileAutomotiveDebugUnitTest NO-SOURCE
+> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :osmscout-client-java:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :core:testDebugUnitTest
+> Task :core:test
+> Task :auto:testDebugUnitTest
+> Task :app:testAutomotiveDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :auto:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig UP-TO-DATE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
+> Task :app:kspMobileDebugKotlin UP-TO-DATE
+> Task :app:compileMobileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileMobileDebug UP-TO-DATE
+> Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncMobileDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:checkMobileDebugAarMetadata UP-TO-DATE
+> Task :app:mapMobileDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileMobileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeMobileDebugResources UP-TO-DATE
+> Task :app:createMobileDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugMainManifest UP-TO-DATE
+> Task :app:processMobileDebugManifest UP-TO-DATE
+> Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :app:processMobileDebugResources UP-TO-DATE
+> Task :app:transformMobileDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:mergeMobileDebugAssets UP-TO-DATE
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:packageMobileDebugUnitTestForUnitTest UP-TO-DATE
+> Task :app:mergeMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateMobileDebugUnitTestConfig UP-TO-DATE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :app:testMobileDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:test
+
+BUILD SUCCESSFUL in 4m 27s
+167 actionable tasks: 18 executed, 149 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 268s
+gate: tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d
+loop-selftest: selected 328 of 328 cases (files: app/src/main/java/com/naviveylin/ui/map/DescriptionLabels.kt app/src/main/java/com/naviveylin/ui/map/LocationDetailsSheet.kt app/src/main/res/values-de/strings.xml app/src/main/res/values/strings.xml app/src/test/java/com/naviveylin/ui/map/LocationDetailsDialogComposeTest.kt guidelines/Backlog.md guidelines/Backlog.recipes.md guidelines/BacklogTooling.md guidelines/UI.why.md guidelines/UIPhone.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/design.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/checks.log openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/context-distribution.txt openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-attribution.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-map-covers-base-inputs.txt openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-summary.txt openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs-mutations.sh_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs.sh_--check.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-action-runtimes-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-action-runtimes.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-doc-routes.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-portability-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-portability.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-sonar-workflow-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-sonar-workflow.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-todo-references.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_ci-vcpkg-cache-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_gen-feature-list-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_issues_check-metadata.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_122cc2f9.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_aee35ca6fe60bb243fc6d4227d5a50e2675a87c3.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_sensor-mutations.sh_--list.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_sensor-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate.log openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/green-cases.log openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/green-review-case.log openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/hand-merge.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/measure.txt openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/pre-gate-review.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/red-on-head.log openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/red-summary.txt openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/review-corrections.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/tasks-verification.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/proposal.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/specs/agent-issue-loop/spec.md openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/tasks.md openspec/changes/archive/2026-11-05-fix-details-description-labels/design.md openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-GermanTranslationCompletenessTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-applied-LocationDetailsDialogComposeTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-GermanTranslationCompletenessTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-LocationDetailsDialogComposeTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-GermanTranslationCompletenessTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-LocationDetailsDialogComposeTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/description-labels.tsv openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/gate-summary.txt openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/measure.txt openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/revert-check.txt openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/review-round-1-withdrawn.md openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/scope-run.txt openspec/changes/archive/2026-11-05-fix-details-description-labels/proposal.md openspec/changes/archive/2026-11-05-fix-details-description-labels/specs/i18n-l10n/spec.md openspec/changes/archive/2026-11-05-fix-details-description-labels/tasks.md openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/.openspec.yaml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/design.md openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/bash_tools_loop-mutations.sh_--check.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/checks.txt openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/gate-summary.txt openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/gate.log openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/green-dirtyKeptWorktreeIsARecordedRefusal.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/green-resetWorktreeNamesTheDirtItCannotDiscard.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/green-theDecisionCapRecordsItsStopReason.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/measure.txt openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/red-on-HEAD-run-theDecisionCapRecordsItsStopReason.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/revert-check-run.sh.txt openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/review-round-1-requested.md openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/review-round-2-cut.md openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/round2-correction.txt openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-compose-sandbox-rule-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-compose-sandbox-rule.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-doc-routes-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-doc-routes.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-openspec-hygiene-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-openspec-hygiene.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-portability-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-portability.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-todo-references.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_issue-tooling-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_loop-mutations-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_loop-selftest.sh_--from-git_b114e2d04b9f643949358ac4a5db606666dd4d1d.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_sensor-mutations.sh_--list.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_sensor-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/proposal.md openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/specs/agent-issue-loop/spec.md openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/tasks.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/design.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/evidence.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/gate-summary.txt openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/gate.log openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/measure.txt openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/red-on-HEAD.log openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/red-on-HEAD.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/revert-check.log openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1-cut.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1.diff openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/sensor-suite.log openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-doc-routes-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-doc-routes.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-openspec-hygiene-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-openspec-hygiene.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-portability-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-portability.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-todo-references.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_issue-tooling-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_sensor-mutations.sh_--list.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_sensor-selftest.sh.xml openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/proposal.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/specs/backlog-sensors/spec.md openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/tasks.md openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/design.md openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/bound-census.txt openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-doc-routes.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-openspec-hygiene.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-portability.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-todo-references.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/evidence.md openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/gate-loop-selftest.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/mutations.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/red-on-HEAD.log openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/role-census.txt openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/proposal.md openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/specs/agent-issue-loop/spec.md openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/tasks.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/design.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/corrections-round-2.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/evidence-check.log openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/focused-cases.log openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/gate-summary.txt openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/green-on-change.log openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/green-on-change.xml openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/mutation-84.1.log openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/red-on-HEAD.log openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/red-on-HEAD.xml openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/review-round-1-requested.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/review-round-2-passed.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/evidence/review-round-2-requested.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/proposal.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/specs/agent-issue-loop/spec.md openspec/changes/archive/2026-11-06-fix-a-declaration-is-refused-before-the-suites/tasks.md openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/design.md openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/diff-stat.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/doc-routes.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/evidence-check.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/focused-cases.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/focused-prompt-cases.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/green-on-change.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/incident-788-tail.txt openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/measure.txt openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/mutation-79.3.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/mutation-83.1.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/mutation-check.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/openspec-hygiene.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/red-on-HEAD.log openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/review-round-1-passed.md openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/review-round-1-requested.md openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/evidence/surface-counts.txt openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/proposal.md openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/specs/agent-issue-loop/spec.md openspec/changes/archive/2026-11-06-fix-a-fenced-closing-block-is-read/tasks.md openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/design.md openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/doc-routes.log openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/evidence-check.log openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/green-on-change.log openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/green-on-change.xml openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/measure.txt openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/mutation-82.1.log openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/openspec-doctor.log openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/red-on-HEAD.log openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/red-on-HEAD.xml openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/review-round-1-passed.md openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/evidence/review-round-1-requested.md openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/proposal.md openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/specs/agent-issue-loop/spec.md openspec/changes/archive/2026-11-06-fix-a-vanished-writer-ends-the-wait/tasks.md openspec/specs/agent-issue-loop/spec.md openspec/specs/backlog-sensors/spec.md openspec/specs/i18n-l10n/spec.md tools/loop-cases.sh tools/loop-mutations.sh tools/loop-selftest.sh tools/loop/gate.sh tools/loop/loop.conf tools/loop/prompts/reviewer.md tools/loop/prompts/worker.md tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/sensor-cases.sh tools/sensors/run.sh)
+state#recordsTheBaseBranchNotTheCheckout| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+state#recordsTheBaseBranchNotTheCheckout| HEAD ist jetzt bei 1582d55 a change landed on main
+PASS state#aDeadOwnersLockIsTakenOver
+PASS state#initKeepsTheStateItReplaces
+state#projectKeysAreReadFromLoopConf| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103353')
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei bbbc7cf init
+PASS state#initAnnouncesARunWithoutAStop
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+PASS state#recordsTheBaseBranchNotTheCheckout
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b8169d8)
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (53d36e5)
+PASS state#baseBranchIsAConfigurationKey
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei 53d36e5 review: 2026-01-01-fix-demo round 1 passed (#21)
+state#projectKeysAreReadFromLoopConf| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 53d36e5).
+state#projectKeysAreReadFromLoopConf| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+PASS state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#projectKeysAreReadFromLoopConf| closed #21 (completed)
+state#projectKeysAreReadFromLoopConf|   landing #21 53d36e5acaf0499b534d743ab63123d79c8241c6: unscored — the pipeline runs of this commit could not be read
+state#projectKeysAreReadFromLoopConf| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+state#projectKeysAreReadFromLoopConf|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+state#projectKeysAreReadFromLoopConf| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS state#defaultsComeFromLoopConf
+PASS state#projectKeysAreReadFromLoopConf
+state#doneRecordsTheCommitItLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/10/tree/case.6jbvsq/repo/.pi/issue-loop/runs/2026-11-06T10:34:00Z.json
+PASS state#initAndShowRoundTrips
+state#agentCommandIsTheOnlyIndirection| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103402')
+state#agentCommandIsTheOnlyIndirection| HEAD ist jetzt bei 09090d6 init
+prescreen#aRefusedClassStillStopsTheScreen| stub gh: recorded `gh issue edit`
+prescreen#aRefusedClassStillStopsTheScreen| exclude-feature #25
+PASS state#nextHonoursEveryStopCondition
+state#agentCommandIsTheOnlyIndirection| stub gh: recorded `gh issue edit`
+PASS state#aBlockAtTheRunsBoundIsNoRefusal
+state#agentCommandIsTheOnlyIndirection| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (8122a38)
+state#agentCommandIsTheOnlyIndirection| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f13c184)
+state#agentCommandIsTheOnlyIndirection| HEAD ist jetzt bei f13c184 review: 2026-01-01-fix-demo round 1 passed (#21)
+state#agentCommandIsTheOnlyIndirection| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f13c184).
+state#agentCommandIsTheOnlyIndirection| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+state#agentCommandIsTheOnlyIndirection| stub gh: recorded `gh issue edit`
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+state#agentCommandIsTheOnlyIndirection| stub gh: recorded `gh issue edit`
+state#agentCommandIsTheOnlyIndirection| closed #21 (completed)
+state#agentCommandIsTheOnlyIndirection|   landing #21 f13c18434fb23f132b6743f80b7fa4d7120adbcc: unscored — the pipeline runs of this commit could not be read
+PASS state#secondRunRefusesWithExit5
+state#agentCommandIsTheOnlyIndirection| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+state#agentCommandIsTheOnlyIndirection|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+state#agentCommandIsTheOnlyIndirection| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+PASS state#agentCommandIsTheOnlyIndirection
+PASS state#agentCommandRefusesAnEmptyValue
+PASS state#aRolesOwnCommandStartsOnlyThatRolesChild
+PASS state#doneRecordsTheCommitItLanded
+PASS state#theLandingScoreIsReadOnceAndStored
+PASS state#aLandingWithNoRunIsUnscored
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+PASS prescreen#aRefusedClassStillStopsTheScreen
+prescreen#landedBranchIsNotADecision| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/9/tree/case.Z9mhuH/repo/.pi/issue-loop/runs/2026-11-06T10:34:14Z.json
+PASS prescreen#readsTheVerdictsFromTheProfile
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#aBlockedAttemptBranchIsWork
+PASS prescreen#landedBranchIsNotADecision
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+worktree#seedsAllFourInputs| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#seedsAllFourInputs| HEAD ist jetzt bei 385e63b init
+PASS prescreen#missingPathIsReportedNotRefused
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#settledItemIsDropped
+PASS prescreen#deviceItemIsAVerdictNotWork
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS prescreen#refusalLeavesATraceInTheTracker
+PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
+PASS prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim
+PASS prescreen#oneUnreadableCandidateDoesNotStopTheScreen
+PASS prescreen#anUnansweredTrackerIsNotAnEmptyQueue
+PASS worktree#seedsAllFourInputs
+PASS evidence#scansWhatTheProfileNames
+worktree#oneBranchPerItemOffTheBase| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#oneBranchPerItemOffTheBase| HEAD ist jetzt bei c545c9b init
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| HEAD ist jetzt bei c545c9b init
+worktree#reusesABranchWhoseWorkAlreadyLanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesABranchCarryingAPreviousAttempt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchWhoseWorkAlreadyLanded| HEAD ist jetzt bei c545c9b init
+worktree#setsAsideABlockedAttemptAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesABranchCarryingAPreviousAttempt| HEAD ist jetzt bei c545c9b init
+worktree#setsAsideABlockedAttemptAndStartsFresh| HEAD ist jetzt bei c545c9b init
+worktree#refusesWhenMainAdvanced| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesWhenMainAdvanced| HEAD ist jetzt bei c545c9b init
+worktree#reusesABranchWhoseWorkAlreadyLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/10/tree/case.Gccsz4/repo/.pi/issue-loop/runs/2026-11-06T10:34:36Z.json
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesABranchCarryingAPreviousAttempt| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#setsAsideABlockedAttemptAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesWhenMainAdvanced| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/9/tree/case.YXh9Ox/repo/.pi/issue-loop/runs/2026-11-06T10:34:36Z.json
+worktree#oneBranchPerItemOffTheBase| Zu neuem Branch 'fix/issue-22-other' gewechselt
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+worktree#keepsByDefaultAndRemovesOnRequest| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103438')
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei c545c9b init
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103438')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei c545c9b init
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+PASS worktree#checksOutTheNewPinWhenItReusesTheWorktree
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (35f6c04)
+PASS worktree#placesAPinOnlyTheRootCheckoutHolds
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (35f6c04)
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a363045)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a363045)
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei a363045 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#keepsByDefaultAndRemovesOnRequest| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a363045).
+worktree#keepsByDefaultAndRemovesOnRequest| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei a363045 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a363045).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS worktree#oneBranchPerItemOffTheBase
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| closed #21 (completed)
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+worktree#keepsByDefaultAndRemovesOnRequest|   landing #21 a363045175b48ee5a795a7c6053de30ebca350dd: unscored — the pipeline runs of this commit could not be read
+PASS worktree#refusesWhenMainAdvanced
+worktree#noPushWithoutTheFlag|   landing #21 a363045175b48ee5a795a7c6053de30ebca350dd: unscored — the pipeline runs of this commit could not be read
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+worktree#keepsByDefaultAndRemovesOnRequest| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS worktree#reusesABranchWhoseWorkAlreadyLanded
+worktree#keepsByDefaultAndRemovesOnRequest| Zu neuem Branch 'loop-20261106-103445' gewechselt
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+PASS worktree#setsAsideABlockedAttemptAndStartsFresh
+PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| unpick #21
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| commented on #21 (left open)
+worktree#keepsByDefaultAndRemovesOnRequest| escalate #21
+PASS worktree#refusesABranchWhoseReviewFailed
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| HEAD ist jetzt bei 83657c4 init
+worktree#keepsByDefaultAndRemovesOnRequest| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#refusesToMergeOverADirtyProjectTree| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeOverADirtyProjectTree| HEAD ist jetzt bei 83657c4 init
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| HEAD ist jetzt bei 83657c4 init
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theNamedChangeIsCopiedIntoTheItem| change add-prepared-change copied into the worktree for #31 (4 file(s), 32768 B) — source openspec/changes/add-prepared-change
+worktree#refusesToMergeOverADirtyProjectTree| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theNamedChangeIsCopiedIntoTheItem| Zu neuem Branch 'fix/issue-31-a-prepared-change' gewechselt
+PASS worktree#keepsSourcesNotBuildOutput
+prompt#aTierAItemSaysSo| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103451')
+prompt#aTierAItemSaysSo| HEAD ist jetzt bei 83657c4 init
+prompt#aTierAItemSaysSo| stub gh: recorded `gh issue edit`
+PASS worktree#noPushWithoutTheFlag
+prompt#aTierAItemSaysSo| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4277b0c)
+PASS worktree#pushSkipsABranchItAlreadyMerged
+prompt#aTierAItemSaysSo| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (7bcfe7d)
+prompt#aTierAItemSaysSo| HEAD ist jetzt bei 7bcfe7d review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#aTierAItemSaysSo| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 7bcfe7d).
+prompt#aTierAItemSaysSo| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#aTierAItemSaysSo| stub gh: recorded `gh issue edit`
+PASS prescreen#aTierAItemPassesUnchanged
+prompt#aTierAItemSaysSo| stub gh: recorded `gh issue edit`
+prompt#aTierAItemSaysSo| closed #21 (completed)
+prompt#aTierAItemSaysSo|   landing #21 7bcfe7ddc551d578b568f868ec962a040d858305: unscored — the pipeline runs of this commit could not be read
+PASS prescreen#aChangeThatIsNoLongerReadyIsRefused
+prompt#aTierAItemSaysSo| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#aTierAItemSaysSo|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#aTierAItemSaysSo| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prescreen#aClosedItemIsNotSelected
+PASS prompt#aTierAItemSaysSo
+PASS run#aTierBItemWritesNoSecondChange
+PASS run#aForkTheChangeDoesNotAnswerIsNamed
+PASS worktree#refusesToMergeOverADirtyProjectTree
+labels#writesOnlyBetweenChildren| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103504')
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei afbd7ca init
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (187f712)
+PASS worktree#refusesToMergeIntoATreeOffTheBaseBranch
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4136fe6)
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei 4136fe6 review: 2026-01-01-fix-demo round 1 passed (#21)
+labels#writesOnlyBetweenChildren| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4136fe6).
+labels#writesOnlyBetweenChildren| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+labels#writesOnlyBetweenChildren| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4136fe6).
+labels#writesOnlyBetweenChildren| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+PASS worktree#theNamedChangeIsCopiedIntoTheItem
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| closed #21 (completed)
+labels#writesOnlyBetweenChildren|   landing #21 4136fe66fdb04b794f142167300400ddeb3e8901: unscored — the pipeline runs of this commit could not be read
+PASS worktree#aMissingChangeRefusesTheItem
+labels#writesOnlyBetweenChildren| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+labels#writesOnlyBetweenChildren|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+labels#writesOnlyBetweenChildren| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+PASS run#aChangeWhosePremiseMovedIsNotRePlanned
+PASS clean#aConsumedChangeIsReported
+PASS clean#aSecondRunFindsNothing
+PASS labels#verdictToLabelMatrix
+PASS labels#holdCarriesItsReason
+PASS labels#trapRemovesInProgressOnSignal
+PASS prompt#thePackageCarriesTheChange
+PASS labels#neverWritesReservedLabel
+PASS labels#writesOnlyBetweenChildren
+PASS labels#closeRemovesTheDecisionLabel
+PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
+prompt#workerNamesTheDecisionField| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#reviewerIsBoundedToReading| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#workerCarriesTheFeaturePath| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#reviewerIsBoundedToReading| HEAD ist jetzt bei 977e52d init
+prompt#workerNamesTheDecisionField| HEAD ist jetzt bei 977e52d init
+prompt#workerCarriesTheFeaturePath| HEAD ist jetzt bei 977e52d init
+prompt#workerNamesEveryPhaseAndSkill| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#workerNamesEveryPhaseAndSkill| HEAD ist jetzt bei 977e52d init
+prompt#packageIsAFileAndNotInlined| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#packageIsAFileAndNotInlined| HEAD ist jetzt bei 977e52d init
+prompt#reviewerCarriesTheEightItems| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#workerTreatsARecordedDecisionAsSettled| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei 977e52d init
+prompt#workerTreatsARecordedDecisionAsSettled| HEAD ist jetzt bei 977e52d init
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103523')
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| HEAD ist jetzt bei 977e52d init
+PASS prompt#iterationProtocolNamesTheChangeSurface
+prompt#workerCarriesTheFeaturePath| stub gh: recorded `gh issue edit`
+prompt#reviewerIsBoundedToReading| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheDecisionField| stub gh: recorded `gh issue edit`
+prompt#workerNamesEveryPhaseAndSkill| stub gh: recorded `gh issue edit`
+prompt#workerTreatsARecordedDecisionAsSettled| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#packageIsAFileAndNotInlined| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| stub gh: recorded `gh issue edit`
+prompt#workerCarriesTheFeaturePath| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#reviewerIsBoundedToReading| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#workerNamesTheDecisionField| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+PASS labels#closeRemovesTheShapingLabel
+prompt#workerTreatsARecordedDecisionAsSettled| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#workerNamesEveryPhaseAndSkill| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#packageIsAFileAndNotInlined| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e4f2bd1)
+prompt#reviewerIsBoundedToReading| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#workerCarriesTheFeaturePath| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#workerNamesTheDecisionField| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#workerTreatsARecordedDecisionAsSettled| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#workerNamesEveryPhaseAndSkill| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#packageIsAFileAndNotInlined| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5824fea)
+prompt#reviewerIsBoundedToReading| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerIsBoundedToReading| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#reviewerIsBoundedToReading| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerCarriesTheFeaturePath| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerCarriesTheFeaturePath| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#workerCarriesTheFeaturePath| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerNamesTheDecisionField| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesTheDecisionField| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#workerNamesTheDecisionField| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerTreatsARecordedDecisionAsSettled| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerTreatsARecordedDecisionAsSettled| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#workerTreatsARecordedDecisionAsSettled| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerNamesEveryPhaseAndSkill| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesEveryPhaseAndSkill| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#workerNamesEveryPhaseAndSkill| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#packageIsAFileAndNotInlined| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#packageIsAFileAndNotInlined| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#packageIsAFileAndNotInlined| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerCarriesTheEightItems| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#reviewerCarriesTheEightItems| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| HEAD ist jetzt bei 5824fea review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5824fea).
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerCarriesTheFeaturePath| stub gh: recorded `gh issue edit`
+PASS labels#closeNamesTheSettledTransition
+prompt#reviewerIsBoundedToReading| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheDecisionField| stub gh: recorded `gh issue edit`
+prompt#workerTreatsARecordedDecisionAsSettled| stub gh: recorded `gh issue edit`
+prompt#packageIsAFileAndNotInlined| stub gh: recorded `gh issue edit`
+prompt#workerNamesEveryPhaseAndSkill| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| stub gh: recorded `gh issue edit`
+prompt#workerCarriesTheFeaturePath| stub gh: recorded `gh issue edit`
+prompt#reviewerIsBoundedToReading| stub gh: recorded `gh issue edit`
+prompt#workerCarriesTheFeaturePath| closed #21 (completed)
+prompt#reviewerIsBoundedToReading| closed #21 (completed)
+prompt#workerNamesTheDecisionField| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheDecisionField| closed #21 (completed)
+prompt#packageIsAFileAndNotInlined| stub gh: recorded `gh issue edit`
+prompt#workerNamesEveryPhaseAndSkill| stub gh: recorded `gh issue edit`
+prompt#packageIsAFileAndNotInlined| closed #21 (completed)
+prompt#workerNamesEveryPhaseAndSkill| closed #21 (completed)
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#workerTreatsARecordedDecisionAsSettled| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| closed #21 (completed)
+prompt#workerTreatsARecordedDecisionAsSettled| closed #21 (completed)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| closed #21 (completed)
+prompt#workerCarriesTheFeaturePath|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerIsBoundedToReading|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#workerNamesTheDecisionField|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#packageIsAFileAndNotInlined|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#workerNamesEveryPhaseAndSkill|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerCarriesTheEightItems|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#workerTreatsARecordedDecisionAsSettled|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+prompt#workerNamesTheChangeSurfaceBeforeThePlan|   landing #21 5824feafafd3fdd2baa15ade5fbfc4c4e2925a53: unscored — the pipeline runs of this commit could not be read
+PASS run#aShapingVerdictWritesTheLabel
+prompt#workerCarriesTheFeaturePath| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerCarriesTheFeaturePath|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerIsBoundedToReading| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerIsBoundedToReading|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesTheDecisionField| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesTheDecisionField|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesEveryPhaseAndSkill| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesEveryPhaseAndSkill|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#packageIsAFileAndNotInlined| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#packageIsAFileAndNotInlined|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#packageIsAFileAndNotInlined|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerCarriesTheEightItems| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerTreatsARecordedDecisionAsSettled| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerCarriesTheEightItems|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerTreatsARecordedDecisionAsSettled|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerCarriesTheFeaturePath| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#reviewerIsBoundedToReading| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerNamesTheDecisionField| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#packageIsAFileAndNotInlined| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerNamesEveryPhaseAndSkill| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#reviewerCarriesTheEightItems| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerTreatsARecordedDecisionAsSettled| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#aVerdictOutsideTheListWritesNoLabel
+PASS run#theShapingInboxDoesNotCountAgainstTheCeiling
+PASS prompt#workerNamesEveryPhaseAndSkill
+PASS prompt#workerCarriesTheFeaturePath
+PASS prompt#workerNamesTheDecisionField
+PASS prompt#workerTreatsARecordedDecisionAsSettled
+PASS prompt#reviewerCarriesTheEightItems
+PASS prompt#reviewerIsBoundedToReading
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan
+PASS run#preflightRefusalStopsBeforeAnyWork
+PASS prompt#packageIsAFileAndNotInlined
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition
+PASS gate#theMapCoversEveryPipelineStep
+PASS gate#aPipelineCheckIsOwedByItsPaths
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen
+PASS run#decisionCapRefusesToStart
+PASS run#theDecisionCapRecordsItsStopReason
+PASS run#aFailedPreScreenRecordsItsStopReason
+PASS run#refusesARepositoryThatIsNotAWorkTree
+PASS gate#theDeltaSelectsTheSuitesItTouches
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+PASS gate#aStepEndsWithItsCommandNotWithItsWatchers
+PASS gate#aStepIsBoundedAndTheOverrunNamesIt
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS run#blockedItemAsksItsOwnQuestion
+PASS run#falsifiedSkipClosesWithItsMeasurement
+PASS run#falsificationWithoutAMeasurementIsEscalated
+PASS run#mayCloseNoKeepsAFalsificationOpen
+PASS run#falsificationWithAChangedTreeIsBlocked
+PASS gate#aCompiledStepsTallyIsNotHidden
+PASS run#decisionCapCountsOnlyCandidates
+PASS gate#theSummaryNamesWhatEachSuiteCost
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS driver#theSummaryNamesWhatEachGroupCost
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS gate#anArchivedArtefactOwesNoBuild
+PASS gate#aModuleResourceOwesTheBuild
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+run#oneItemOrderIsFixed| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103612')
+run#oneItemOrderIsFixed| HEAD ist jetzt bei 9f527e6 init
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103612')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei fc2b000 an engine of its own
+prompt#workerIsHandedTheMeasureBlock| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103612')
+prompt#workerIsHandedTheMeasureBlock| HEAD ist jetzt bei 9f527e6 init
+run#oneItemOrderIsFixed| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+prompt#workerIsHandedTheMeasureBlock| stub gh: recorded `gh issue edit`
+PASS gate#theGateNamesTheProfileItRead
+run#oneItemOrderIsFixed| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (9232786)
+prompt#workerIsHandedTheMeasureBlock| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (9232786)
+run#oneItemOrderIsFixed| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (d5aa32f)
+prompt#workerIsHandedTheMeasureBlock| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (d5aa32f)
+PASS mutation#everyDeclaredRecordApplies
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (3125f9e)
+run#oneItemOrderIsFixed| HEAD ist jetzt bei d5aa32f review: 2026-01-01-fix-demo round 1 passed (#21)
+run#oneItemOrderIsFixed| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d5aa32f).
+run#oneItemOrderIsFixed| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerIsHandedTheMeasureBlock| HEAD ist jetzt bei d5aa32f review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerIsHandedTheMeasureBlock| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d5aa32f).
+prompt#workerIsHandedTheMeasureBlock| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (96a8341)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 96a8341 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 96a8341).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#oneItemOrderIsFixed| stub gh: recorded `gh issue edit`
+prompt#workerIsHandedTheMeasureBlock| stub gh: recorded `gh issue edit`
+PASS mutation#aStaleRecordIsNamed
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+run#oneItemOrderIsFixed| stub gh: recorded `gh issue edit`
+run#oneItemOrderIsFixed| closed #21 (completed)
+prompt#workerIsHandedTheMeasureBlock| stub gh: recorded `gh issue edit`
+prompt#workerIsHandedTheMeasureBlock| closed #21 (completed)
+run#oneItemOrderIsFixed|   landing #21 d5aa32ff233ef4c688c3b895d597c7bca223250c: unscored — the pipeline runs of this commit could not be read
+prompt#workerIsHandedTheMeasureBlock|   landing #21 d5aa32ff233ef4c688c3b895d597c7bca223250c: unscored — the pipeline runs of this commit could not be read
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 96a8341b9b0b119b4177a79d6a845a050a317b57: unscored — the pipeline runs of this commit could not be read
+run#oneItemOrderIsFixed| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#oneItemOrderIsFixed|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS measure#namesTheOwedChecksInOneBlock
+prompt#workerIsHandedTheMeasureBlock| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerIsHandedTheMeasureBlock|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#oneItemOrderIsFixed| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerIsHandedTheMeasureBlock| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS measure#printsTheNumbersTheReviewerAsksFor
+PASS measure#refusesToGuessWhichChangeItMeasures
+PASS measure#saysHowManyTalliesItWithheld
+PASS measure#printsTheSuiteCountAndTheGateTiming
+PASS prompt#workerIsHandedTheMeasureBlock
+PASS run#oneItemOrderIsFixed
+PASS run#childClaimWithoutCommitIsBlocked
+PASS run#blockedItemIsEscalatedWithItsReason
+PASS run#aFailedEscalationWriteIsNamed
+PASS run#aFailedUnpickIsNamed
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+run#childStartsInTheProjectRoot| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103632')
+run#childStartsInTheProjectRoot| HEAD ist jetzt bei 2ecd63a init
+run#childStartsInTheProjectRoot| stub gh: recorded `gh issue edit`
+PASS state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes
+run#childStartsInTheProjectRoot| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d921eb4)
+run#childStartsInTheProjectRoot| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (fa65e1c)
+run#childStartsInTheProjectRoot| HEAD ist jetzt bei fa65e1c review: 2026-01-01-fix-demo round 1 passed (#21)
+run#childStartsInTheProjectRoot| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war fa65e1c).
+run#childStartsInTheProjectRoot| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#headerNamesTheLiveView
+run#childStartsInTheProjectRoot| stub gh: recorded `gh issue edit`
+run#childStartsInTheProjectRoot| stub gh: recorded `gh issue edit`
+run#childStartsInTheProjectRoot| closed #21 (completed)
+run#childStartsInTheProjectRoot|   landing #21 fa65e1cc79b809d9c7c7316f28ba10ff7f5c0777: unscored — the pipeline runs of this commit could not be read
+run#childStartsInTheProjectRoot| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childStartsInTheProjectRoot|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#theWaitEndsWhenTheChildDoes| the wait for a 150 ms child cost 290 ms
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+run#childStartsInTheProjectRoot| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#theChildCapIsNeverBelowWhatOneItemsGateOwes
+PASS run#childIsEndedAtTheRunsDeadline
+run#theProgressLineKeepsItsInterval| 2 running line(s) for a 4 s child at a 2 s interval
+PASS run#aVanishedWriterEndsTheWait
+PASS run#aSlowChildIsNotMistakenForAVanishedWriter
+PASS run#reviewerEndedAtTheRunsDeadlineIsNotADecision
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#childStartsInTheProjectRoot
+PASS run#childReportsWhileItWaits
+PASS run#detachedProcessInTheWorktreeIsEndedByTheCap
+PASS run#theWaitEndsWhenTheChildDoes
+PASS run#theProgressLineKeepsItsInterval
+PASS run#treeOfACapEndedChildIsKeptAsAPatch
+PASS run#noProcessOfASignalledRunOutlivesIt
+PASS run#everyPhaseBoundaryIsPrinted
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#treeOfAChildTheCapEndedIsNotCommitted
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+PASS run#hostBelowTheFloorBlocksTheItemAndStops
+PASS run#hostAboveTheFloorRunsTheItem
+PASS run#hostWithoutTheReadingPasses
+PASS run#theRemoteSweepKeepsAnOpenPullRequest
+PASS run#theSweepComparesAgainstTheFetchedBase
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#aHostWithoutThePlacementReadingIsRefused
+PASS run#mergesItsCommittedBranchBeforeClosing
+PASS run#aMergedBranchIsRemoved
+PASS run#theEndSweepsTheLandedBranchesItMade
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#dirtyBaseRefusesTheMergeAndNamesThePath
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#leftoverBranchIsRecordedNotDropped
+PASS run#branchThatAppearsWhileTheRunIsOpenIsSetAside
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#staleTestResultsAreNotThisChildsGate
+PASS run#announcesAndRecordsTheReviewRound
+PASS run#thePreGateReviewRunsBeforeTheGate
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+PASS run#theBaseAdvancesWithEveryMerge
+PASS run#recordsAFailedReviewOnTheBranch
+run#dirtyKeptWorktreeIsARecordedRefusal| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103800')
+run#resetWorktreeDiscardsWhatItNames| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103800')
+run#dirtyKeptWorktreeIsARecordedRefusal| HEAD ist jetzt bei 455f312 init
+run#resetWorktreeDiscardsWhatItNames| HEAD ist jetzt bei 455f312 init
+run#resetWorktreeNamesTheDirtItCannotDiscard| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103800')
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei 4e7daff the submodule the loop configuration names
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei 4e7daff the submodule the loop configuration names
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103800')
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| HEAD ist jetzt bei 0a9b3f9 the submodule the loop configuration names
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.Tb1vyD/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103800')
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.Tb1vyD/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| HEAD ist jetzt bei da25a0b the submodule the loop configuration names
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.tzseVJ/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.tzseVJ/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/9/tree/case.SzWSct/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Fertig.
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Submodul-Pfad 'app/src/main/cpp/libosmscout': '27aebfbc8bb3bc186ab8c0e8a4c7057efe91343c' ausgecheckt
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.Tb1vyD/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.Tb1vyD/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/6/tree/case.zblKLd/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeNamesTheDirtItCannotDiscard| worktree: the submodule could not be checked out — the build may not be able to run
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.tzseVJ/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.tzseVJ/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/5/tree/case.JhhCsD/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| worktree: the submodule could not be checked out — the build may not be able to run
+run#resetWorktreeDiscardsWhatItNames| stub gh: recorded `gh issue edit`
+run#dirtyKeptWorktreeIsARecordedRefusal| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| stub gh: recorded `gh issue edit`
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| stub gh: recorded `gh issue edit`
+PASS run#childWriteOutsideTheWorktreeIsNoted
+run#resetWorktreeDiscardsWhatItNames| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (022da30)
+run#dirtyKeptWorktreeIsARecordedRefusal| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (022da30)
+run#resetWorktreeNamesTheDirtItCannotDiscard| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (3b5995d)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (681358a)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (88f1d94)
+run#resetWorktreeDiscardsWhatItNames| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a37d8e0)
+run#dirtyKeptWorktreeIsARecordedRefusal| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a37d8e0)
+run#resetWorktreeNamesTheDirtItCannotDiscard| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (23f0f75)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (34b63a0)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (525e217)
+run#resetWorktreeDiscardsWhatItNames| HEAD ist jetzt bei a37d8e0 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeDiscardsWhatItNames| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a37d8e0).
+run#resetWorktreeDiscardsWhatItNames| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#dirtyKeptWorktreeIsARecordedRefusal| HEAD ist jetzt bei a37d8e0 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#dirtyKeptWorktreeIsARecordedRefusal| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a37d8e0).
+run#dirtyKeptWorktreeIsARecordedRefusal| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei 23f0f75 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeNamesTheDirtItCannotDiscard| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 23f0f75).
+run#resetWorktreeNamesTheDirtItCannotDiscard| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| HEAD ist jetzt bei 34b63a0 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 34b63a0).
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| HEAD ist jetzt bei 525e217 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 525e217).
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#resetWorktreeDiscardsWhatItNames| stub gh: recorded `gh issue edit`
+run#dirtyKeptWorktreeIsARecordedRefusal| stub gh: recorded `gh issue edit`
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeDiscardsWhatItNames| stub gh: recorded `gh issue edit`
+run#resetWorktreeDiscardsWhatItNames| closed #21 (completed)
+run#dirtyKeptWorktreeIsARecordedRefusal| stub gh: recorded `gh issue edit`
+run#dirtyKeptWorktreeIsARecordedRefusal| closed #21 (completed)
+PASS run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| stub gh: recorded `gh issue edit`
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| closed #21 (completed)
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeDiscardsWhatItNames|   landing #21 a37d8e07ae6b1d7e48ce0d59d245b3f11ff23021: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeNamesTheDirtItCannotDiscard| closed #21 (completed)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| closed #21 (completed)
+run#dirtyKeptWorktreeIsARecordedRefusal|   landing #21 a37d8e07ae6b1d7e48ce0d59d245b3f11ff23021: unscored — the pipeline runs of this commit could not be read
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin|   landing #21 34b63a02abde6f5ed8b8dcaba3df11db92efee49: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeNamesTheDirtItCannotDiscard|   landing #21 23f0f75336f4cf551627b90debb2a4f41571e640: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard|   landing #21 525e217de72b7db7964612cae777f0e4f2b10d1f: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeDiscardsWhatItNames| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeDiscardsWhatItNames|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#dirtyKeptWorktreeIsARecordedRefusal| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#dirtyKeptWorktreeIsARecordedRefusal|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeNamesTheDirtItCannotDiscard| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeNamesTheDirtItCannotDiscard|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeNamesTheDirtItCannotDiscard|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeDiscardsWhatItNames| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#dirtyKeptWorktreeIsARecordedRefusal| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#resetWorktreeNamesTheDirtItCannotDiscard| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#staleSkipAsksItsQuestion
+PASS run#staleSkipKeepsTheWorkersQuestion
+PASS run#dirtyKeptWorktreeIsARecordedRefusal
+PASS run#resetWorktreeDiscardsWhatItNames
+PASS run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard
+PASS run#resetWorktreeNamesTheDirtItCannotDiscard
+PASS run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+PASS run#aRefusedStartKeepsTheLeftoversItFound
+PASS run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin
+PASS run#claimedGateWithoutEvidenceIsBlocked
+PASS run#theStartAfterTheRunsOwnEndedChildIsNotRefused
+PASS run#aRetriedStartStopsWithItsOwnReason
+PASS run#aSkipClearsTheInProgressMark
+PASS run#citedEvidenceMustTravelWithTheChange
+PASS run#needsDecisionIsEscalatedWithTheWork
+PASS run#stateNamesTheItemInProgress
+run#noGateStillRuns| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103836')
+run#noGateStillRuns| HEAD ist jetzt bei babda39 init
+run#dryRunTouchesNothing| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/4/tree/case.ItIiFY/repo/.pi/issue-loop/runs/2026-11-06T10:38:33Z.json
+run#dryRunTouchesNothing| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+run#dryRunTouchesNothing| HEAD ist jetzt bei babda39 init
+PASS run#skipEscalationCarriesTheDecision
+run#noGateStillRuns| stub gh: recorded `gh issue edit`
+run#noGateStillRuns| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ba37022)
+run#noGateStillRuns| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3ce39d6)
+PASS run#workPackageCarriesTheRecordedDecision
+run#noGateStillRuns| HEAD ist jetzt bei 3ce39d6 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#noGateStillRuns| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 3ce39d6).
+run#noGateStillRuns| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#noGateStillRuns| stub gh: recorded `gh issue edit`
+PASS run#aZeroRoundBudgetIsRefused
+run#noGateStillRuns| stub gh: recorded `gh issue edit`
+run#noGateStillRuns| closed #21 (completed)
+run#noGateStillRuns|   landing #21 3ce39d6207ac6583ce4f40651711515e7cd3d25b: unscored — the pipeline runs of this commit could not be read
+run#noGateStillRuns| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#noGateStillRuns|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#dryRunTouchesNothing
+run#noGateStillRuns| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#mayCloseNoLeavesTheIssueOpen| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103850')
+run#mayCloseNoLeavesTheIssueOpen| HEAD ist jetzt bei 2fd2aa4 init
+run#childUsageIsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103850')
+run#metricsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103850')
+run#metricsRecordedPerItem| HEAD ist jetzt bei 2fd2aa4 init
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei 2fd2aa4 init
+run#metricsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#mayCloseNoLeavesTheIssueOpen| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+run#plainTextChildStillReports| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103853')
+run#plainTextChildStillReports| HEAD ist jetzt bei c11bf50 init
+run#metricsRecordedPerItem| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0c290b2)
+run#mayCloseNoLeavesTheIssueOpen| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0c290b2)
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei 542c486 fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+run#childUsageIsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 542c486).
+run#childUsageIsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#metricsRecordedPerItem| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c90fc86)
+run#mayCloseNoLeavesTheIssueOpen| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c90fc86)
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+run#metricsRecordedPerItem| HEAD ist jetzt bei c90fc86 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#metricsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c90fc86).
+run#metricsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#mayCloseNoLeavesTheIssueOpen| HEAD ist jetzt bei c90fc86 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#mayCloseNoLeavesTheIssueOpen| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c90fc86).
+run#mayCloseNoLeavesTheIssueOpen| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#aFencedClosingBlockIsACompleteAnswer
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#metricsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#mayCloseNoLeavesTheIssueOpen| stub gh: recorded `gh issue edit`
+run#mayCloseNoLeavesTheIssueOpen| commented on #21 (left open)
+run#plainTextChildStillReports| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ebc668e)
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| closed #21 (completed)
+run#mayCloseNoLeavesTheIssueOpen|   landing #21 c90fc8645559d19b231ad7780e96d2f5de4a5404: unscored — the pipeline runs of this commit could not be read
+run#plainTextChildStillReports| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (78bd030)
+run#childUsageIsRecordedPerItem|   landing #21 542c486fc45506c7174a2c574f5bcf86ad7e9643: unscored — the pipeline runs of this commit could not be read
+run#metricsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#metricsRecordedPerItem| closed #21 (completed)
+PASS run#escalationCarriesTheDecision
+run#plainTextChildStillReports| HEAD ist jetzt bei 78bd030 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#plainTextChildStillReports| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 78bd030).
+run#plainTextChildStillReports| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#metricsRecordedPerItem|   landing #21 c90fc8645559d19b231ad7780e96d2f5de4a5404: unscored — the pipeline runs of this commit could not be read
+run#mayCloseNoLeavesTheIssueOpen| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#mayCloseNoLeavesTheIssueOpen|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+run#metricsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#metricsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#mayCloseNoLeavesTheIssueOpen| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#noGateStillRuns
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+run#plainTextChildStillReports| closed #21 (completed)
+run#metricsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#plainTextChildStillReports|   landing #21 78bd030ed22b88bfd62e1975b6998af744dde0e3: unscored — the pipeline runs of this commit could not be read
+run#plainTextChildStillReports| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#plainTextChildStillReports|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#reviewRoundsCapAtTwo
+run#plainTextChildStillReports| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#childUsageIsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103902')
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei c72eef6 init
+PASS run#reviewBudgetIsARecordedValue
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+PASS run#aRedGateIsBlockedByTheTail
+run#childUsageIsRecordedPerItem| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (60015f9)
+run#childUsageIsRecordedPerItem| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (39a6a41)
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei 39a6a41 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#childUsageIsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 39a6a41).
+run#childUsageIsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| closed #21 (completed)
+PASS run#aCorrectiveRoundIsHandedTheCorrections
+run#childUsageIsRecordedPerItem|   landing #21 39a6a41c0411d3687f03aadbdde52997285995a1: unscored — the pipeline runs of this commit could not be read
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#emptyQueueIsNotAFailure
+PASS run#stopReasonIsPrintedAndReported
+PASS run#staleBaseStopsTheRunWithItsReason
+PASS run#mayCloseNoLeavesTheIssueOpen
+run#commitsWithoutAnAmbientIdentity| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103913')
+run#commitsWithoutAnAmbientIdentity| HEAD ist jetzt bei d97aedf init
+run#engineNamesNoProjectFact| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103913')
+run#engineNamesNoProjectFact| HEAD ist jetzt bei d97aedf init
+PASS run#metricsRecordedPerItem
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4d95e3b)
+PASS run#awaitingDecisionIsNotEscalatedAgain
+run#engineNamesNoProjectFact| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (db1cbc3)
+run#commitsWithoutAnAmbientIdentity| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (156bf26)
+run#engineNamesNoProjectFact| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8888398)
+run#commitsWithoutAnAmbientIdentity| HEAD ist jetzt bei 156bf26 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#commitsWithoutAnAmbientIdentity| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 156bf26).
+run#commitsWithoutAnAmbientIdentity| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#engineNamesNoProjectFact| HEAD ist jetzt bei 8888398 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#engineNamesNoProjectFact| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8888398).
+run#engineNamesNoProjectFact| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+PASS run#childUsageIsRecordedPerItem
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity| closed #21 (completed)
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+run#engineNamesNoProjectFact| closed #21 (completed)
+run#commitsWithoutAnAmbientIdentity|   landing #21 156bf268a53f875c605d6f188b16561ea0ac2c5b: unscored — the pipeline runs of this commit could not be read
+run#engineNamesNoProjectFact|   landing #21 8888398833b4148c0704938187c5d50414364d10: unscored — the pipeline runs of this commit could not be read
+PASS run#plainTextChildStillReports
+run#commitsWithoutAnAmbientIdentity| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#commitsWithoutAnAmbientIdentity|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#engineNamesNoProjectFact| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#engineNamesNoProjectFact|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#commitsWithoutAnAmbientIdentity| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#engineNamesNoProjectFact| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS adapter#modeFlagIsItsOwnArgument
+PASS adapter#theChildIsStartedWithoutContextFiles
+PASS adapter#theChildIsStartedWithTheResultBound
+PASS trim#aResultAboveTheBoundIsTrimmedAndNamed
+PASS trim#aResultUnderTheBoundIsHandedOverWhole
+PASS trim#theTrimIsRecorded
+PASS run#commitsWithoutAnAmbientIdentity
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103926')
+report#headerAndTableShape| HEAD ist jetzt bei 42160da init
+PASS run#reviewerWriteInvalidatesTheRound
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d88f955)
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b37ad77)
+PASS run#reviewDiffExcludesTheEvidenceArchive
+report#headerAndTableShape| HEAD ist jetzt bei b37ad77 review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b37ad77).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS run#engineNamesNoProjectFact
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| closed #21 (completed)
+report#headerAndTableShape|   landing #21 b37ad772036c209b7e367b9cdf0379aa4d59c237: unscored — the pipeline runs of this commit could not be read
+PASS report#yieldIsCountedFromState
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#aVerdictAloneIsNoEscalation
+PASS report#misdiagnosedIsCountedApart
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/12/tree/case.bMiKa0/repo/.pi/issue-loop/runs/2026-11-06T10:39:34Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/7/tree/case.kG0CDT/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (607526e26a23ff43 → 902aec22293dfdb1); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/9/tree/case.Su1JWR/repo/.pi/issue-loop/runs/2026-11-06T10:39:34Z.json
+PASS look#oneCallAnswersTheWholeTree
+PASS look#aResultOverTheBoundIsCutAndNamed
+PASS policy#aShellTreeSearchIsRefusedAndARecipeIsNot
+PASS adapter#theChildIsStartedWithTheShellPolicy
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+PASS report#archivedStateIsReported
+PASS report#impossibleBudgetNamesAnotherRun
+PASS report#aKilledRunIsNotALiveRun
+PASS report#wallTimeAndReasonInTheTable
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#headerAndTableShape
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#emptyRunSaysNone
+PASS report#anItemOverTheTokenBoundIsFlagged
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/2/tree/case.4BtMpo/repo/.pi/issue-loop/runs/2026-11-06T10:39:46Z.json
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FMusla/cases/1/tree/case.c7Rshy/repo/.pi/issue-loop/runs/2026-11-06T10:39:46Z.json
+clean#reportsWithoutApplyAndRemovesWithIt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103949')
+clean#reportsTheWorktreesScratchTreesToo| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-103949')
+clean#reportsWithoutApplyAndRemovesWithIt| HEAD ist jetzt bei 1388a10 init
+clean#reportsTheWorktreesScratchTreesToo| HEAD ist jetzt bei 1388a10 init
+PASS report#landingsAreTheStoredNumber
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+PASS clean#interruptedSuiteRemovesItsScratchTree
+clean#reportsTheWorktreesScratchTreesToo| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0d5759a)
+clean#reportsWithoutApplyAndRemovesWithIt| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0d5759a)
+clean#reportsTheWorktreesScratchTreesToo| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4c02691)
+clean#reportsWithoutApplyAndRemovesWithIt| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4c02691)
+clean#reportsTheWorktreesScratchTreesToo| HEAD ist jetzt bei 4c02691 review: 2026-01-01-fix-demo round 1 passed (#21)
+clean#reportsTheWorktreesScratchTreesToo| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4c02691).
+clean#reportsTheWorktreesScratchTreesToo| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+clean#reportsWithoutApplyAndRemovesWithIt| HEAD ist jetzt bei 4c02691 review: 2026-01-01-fix-demo round 1 passed (#21)
+clean#reportsWithoutApplyAndRemovesWithIt| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4c02691).
+clean#reportsWithoutApplyAndRemovesWithIt| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS clean#sweepsOnlyWhatIsInTheBase
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+PASS clean#interruptedSuiteEndsItsProcessGroup
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+clean#reportsTheWorktreesScratchTreesToo| closed #21 (completed)
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+clean#reportsWithoutApplyAndRemovesWithIt| closed #21 (completed)
+clean#reportsTheWorktreesScratchTreesToo|   landing #21 4c026917c2d56e6bcbb7c45acc0d111db2efdfb4: unscored — the pipeline runs of this commit could not be read
+clean#reportsWithoutApplyAndRemovesWithIt|   landing #21 4c026917c2d56e6bcbb7c45acc0d111db2efdfb4: unscored — the pipeline runs of this commit could not be read
+clean#reportsTheWorktreesScratchTreesToo| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+clean#reportsTheWorktreesScratchTreesToo|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+clean#reportsWithoutApplyAndRemovesWithIt| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+clean#reportsWithoutApplyAndRemovesWithIt|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+clean#reportsTheWorktreesScratchTreesToo| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+clean#reportsWithoutApplyAndRemovesWithIt| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS clean#worktreeDotSweepsTheOneRootOnce
+PASS clean#endsARunWhoseTreeIsAlreadyDeleted
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+PASS run#interruptedRunEndsTheChildItStarted
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#trendFiguresFromState
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS usage#noUnguardedValueFlagRemains
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS clean#reportsTheWorktreesScratchTreesToo
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#theCaseBoundScalesWithThePool
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#noFixtureFifoIsOpenedWriteOnly
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+PASS gate#theDeclarationCaseIsOwedFirst
+PASS gate#aGreenLogNamesNoFailingCase
+PASS gate#aFailingCaseCarriesItsFactsAndItsRerun
+PASS gate#twoFailuresNameTheFirstAndCountTheRest
+PASS gate#aStepThatNamesNoCaseIsAttributedByItsStep
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS gate#theBlockStaysInsideTheRecordedBound
+PASS gate#theStepBoundIsClampedByTheCeilingTheCallerNamed
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS phase#oneCallPrintsThePhaseState
+PASS phase#aResultOverTheBoundIsCutAndNamed
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain
+PASS repeat#aRepeatAfterAnEditIsHandedOverWhole
+PASS repeat#theRecordedZeroKeepsTheRepeatRuleOff
+PASS repeat#aBrokenLedgerLeavesTheResultAsReturned
+PASS run#childPastItsTurnBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheTurnBoundOff
+PASS run#eachChildIsBoundedByItsOwnRolesTurns
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+PASS run#childPastItsContextBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+loop-selftest: state 24 cases 217.34 s
+loop-selftest: prescreen 30 cases 250.64 s
+loop-selftest: worktree 22 cases 248.13 s
+loop-selftest: evidence 1 cases 11.71 s
+loop-selftest: prompt 15 cases 230.39 s
+loop-selftest: run 124 cases 2534.99 s
+loop-selftest: clean 11 cases 110.39 s
+loop-selftest: labels 8 cases 107.71 s
+loop-selftest: gate 24 cases 154.39 s
+loop-selftest: driver 22 cases 245.73 s
+loop-selftest: mutation 2 cases 11.50 s
+loop-selftest: measure 5 cases 60.56 s
+loop-selftest: adapter 4 cases 42.44 s
+loop-selftest: trim 3 cases 38.19 s
+loop-selftest: look 2 cases 19.14 s
+loop-selftest: policy 1 cases 10.93 s
+loop-selftest: report 20 cases 170.00 s
+loop-selftest: usage 4 cases 23.96 s
+loop-selftest: phase 2 cases 13.24 s
+loop-selftest: repeat 4 cases 36.93 s
+loop-selftest: all 328 cases passed (JDK 27, offline, no token, no sandbox) — 415.47 s, selection: --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d
+gate: tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d — 418s
+gate: bash tools/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.JaQNF5
+loop-mutations: all 248 cases passed — every selected record applies to the file it names
+gate: bash tools/loop-mutations.sh --check — 1s
+gate: tools/loop-mutations-selftest.sh
+ok   a non-matching mutation exits non-zero
+ok   and it is named as such
+ok   and the copy was restored after the non-matching probe
+ok   an unnoticed mutation exits non-zero
+ok   and it says the case did not notice
+ok   and the copy was restored after the stays-green probe
+ok   a real mutation exits zero
+ok   the case noticed it
+ok   and the restore went green
+ok   the mutated copy is byte-identical to the pristine one again
+ok   the scratch tree is the project's, not the host's tmpfs
+ok   and it is removed afterwards
+ok   and TMPDIR still moves it
+ok   a restore from an empty backup exits 2
+ok   and it says it refused
+ok   and nothing was copied over it
+ok   the file the empty backup would have replaced still holds its content
+ok   the mutation set lists what it declares
+ok   the file this check scopes by is owned by at least one declared record
+ok   a file set lists exactly the records its file owns
+ok   and it says how many of the declared set the file set selects
+ok   a file set runs the records its file owns
+ok   the selection line names the count and the declared set
+ok   exactly the owned records ran
+ok   no record outside the file set ran
+ok   and the copy is byte-identical to the pristine one again
+ok   a file set no record owns exits 2
+ok   the empty-selection guard message
+ok   and no record ran
+ok   and nothing was mutated
+ok   a git diff names the records its file owns
+ok   and nothing else
+ok   and it says the same selection the file set named
+ok   and the copy is byte-identical to the pristine one again
+loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
+gate: tools/loop-mutations-selftest.sh — 247s
+gate: tools/sensor-selftest.sh
+PASS guard#eachCheckHasItsOwnReason
+PASS guard#refusesOffMain
+PASS guard#refusesARowWithoutThresholdOrConsecutive
+PASS guard#remoteIsConfigurable
+PASS sensors#usesTheReservedNamespacesAndAddsNone
+PASS Registry#everyRowIsComplete
+PASS lib#rejectsAMalformedFinding
+PASS run#selectsOnlyDueRows
+PASS run#aDelayedTickSelectsTheRowsItWasScheduledFor
+PASS run#aSkippedTickLeavesItsRowsForTheNextTick
+PASS run#theWindowDoesNotSelectThePreviousTicksRow
+PASS run#rowsSelectsSeveralRows
+PASS run#rowsRefusesAnUndeclaredId
+PASS run#dryRunTouchesNothing
+PASS run#errorPostsNothingAndFails
+PASS run#errorIsNeverTreatedAsClear
+PASS run#noBaselineFileWritten
+PASS run#aClearWithNoIssueReachesTheRecord
+PASS lib#theRecordIsNotACondition
+PASS lib#aRowBoundIsACount
+PASS report#printsACountingLinePerRow
+PASS report#aGreenRowIsNotNever
+PASS report#aFiledRowIsReported
+PASS report#aTrendIsBetweenOneCondition
+PASS run#aFilingSetsTheBaseline
+PASS update#commentPostsExactlyOnce
+PASS update#commentRefusesOnPolicyFailure
+PASS close#sensorScopeRefusesAForeignIssue
+PASS close#sensorScopeAllowsItsOwnIssue
+PASS reopen#refusesANotPlannedClosure
+PASS reopen#neverWritesEligibility
+PASS run#dispatchMatrix
+PASS run#dispatchMatrixNotPlannedClosure
+PASS create#sensorFingerprintIsTheAnchor
+PASS run#aRowPastItsBoundFilesItsBoundAndOneSummary
+PASS run#aRowUnderItsBoundFilesNoSummary
+PASS run#aRowDeclaresItsOwnBound
+PASS run#theSummaryClearsWhenTheRowIsBackUnderItsBound
+PASS run#aSummaryClosedByAPersonIsNotReopened
+PASS run#aSecondOverBoundRunListsWhatItDidNotFile
+PASS run#aFailedCheckDoesNotClearTheSummary
+PASS run#aFirstExerciseOnATickReportsInsteadOfFiling
+PASS run#aDispatchedFirstExerciseRecordsItsMeasurement
+PASS run#hysteresisBothDirections
+PASS run#hysteresisCountersSurviveARestart
+PASS run#escalatesPastKRecurrences
+PASS run#anEscalationOnASettledIssueFilesANewItem
+PASS run#aRefusedEscalationPastTheBoundFailsTheRun
+PASS run#theFiledConditionIsOpenWorkOnTheNextTick
+PASS run#aRowDeclaresItsOwnRecurrenceBound
+PASS run#libosmscoutLagReadsThreeOutcomes
+PASS run#escalationNeverSetsEligibility
+PASS sensors#buildDurationRow
+PASS hotspot#ranksBySizeTimesChanges
+PASS hotspot#theBoundIsAboveOneChangedFile
+PASS sensors#packageSizeConsumesAnArtifact
+PASS sensors#coverageRow
+PASS sensors#sourceSizeRow
+PASS sensors#sourceSizeSkipsTheChangeTree
+PASS sensors#routedSectionSizeRow
+PASS sensors#routedSectionSizeSkipsUnrouted
+PASS sensors#entryDocumentSizeRow
+PASS sensors#documentSizeRow
+PASS sensors#normativePurityRow
+PASS layers#aFigureInANormativeDocumentIsACondition
+PASS layers#aWhyHeadingInANormativeDocumentIsACondition
+PASS layers#aCommandThatIsTheRuleIsNotACondition
+PASS sensors#metadataDriftRow
+PASS sensors#metadataDriftClearsUnderItsOwnIdentity
+PASS sensors#brokenMainFingerprintDistinguishesCauses
+PASS sensors#prConflictsOnlyOwnPRs
+PASS sensors#brokenMainGreenReportsClear
+PASS sensors#aFailedScanIsItsOwnCondition
+PASS sensors#aGreenScanClearsItsCondition
+PASS sensors#aRecordedConditionParsesToItsObject
+PASS sensors#prConflictsNothingReportsClear
+PASS workflow#onlyTwoTriggers
+PASS workflow#theScanRecordIsFetchedBeforeItsRowRuns
+PASS workflow#aRedRecordRunsNoRecordRow
+PASS workflow#theTickDeclaresItsWindow
+PASS sensors#engineNamesNoProjectValue
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+PASS sensors#loopSpendRow
+PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing
+sensor-selftest: all 84 cases passed (JDK 27, offline, no token)
+gate: tools/sensor-selftest.sh — 77s
+gate: tools/sensor-mutations.sh --list
+8.1 guard#refusesOffMain — HEAD is the remote main branch (tools/sensors/guard.sh)
+8.2 workflow#onlyTwoTriggers — the trigger cap — schedule and dispatch only (.github/workflows/sensors.yml)
+8.3 close#sensorScopeRefusesAForeignIssue — a check closes only what carries its own label (tools/issues/close.sh)
+8.4 run#errorIsNeverTreatedAsClear — a failed check posts nothing and fails the run (tools/sensors/run.sh)
+8.5 run#hysteresisBothDirections — a close needs N consecutive clear runs (tools/sensors/run.sh)
+8.6 run#escalatesPastKRecurrences — past K recurrences a check stops reopening (tools/sensors/run.sh)
+8.7 reopen#refusesANotPlannedClosure — only a completed closure is reopened (tools/issues/reopen.sh)
+8.8 sensors#brokenMainFingerprintDistinguishesCauses — the condition fingerprint, not the check id, is the anchor (tools/issues/create.sh)
+8.9 sensors#engineNamesNoProjectValue — every row's command comes from the registry (tools/sensors/run.sh)
+8.10 run#rowsRefusesAnUndeclaredId — a row a step names must be a row the registry declares (tools/sensors/run.sh)
+8.11 workflow#aRedRecordRunsNoRecordRow — the record rows wait for a build that succeeded (.github/workflows/sensors.yml)
+8.12 run#aDelayedTickSelectsTheRowsItWasScheduledFor — the window reaches back over the minutes since the previous tick (tools/sensors/lib.sh)
+8.13 workflow#theTickDeclaresItsWindow — every scheduled tick declares the interval it selects over (.github/workflows/sensors.yml)
+8.14 run#theWindowDoesNotSelectThePreviousTicksRow — a window that is not a count of minutes is refused (tools/sensors/run.sh)
+8.15 sensors#aRecordedConditionParsesToItsObject — the recorded condition parses to its object, not to the marker tail (tools/sensors/lib.sh)
+8.16 guard#eachCheckHasItsOwnReason — the identity guard reports an unread tracker instead of turning it into a verdict (issue #231) (tools/sensors/guard.sh)
+8.17 sensors#sourceSizeRow — a file past the row bound is a violation (tools/sensors/metrics/source-size.sh)
+8.18 run#aClearWithNoIssueReachesTheRecord — a clear with no condition issue reaches the tracker on the row's record (issue #257) (tools/sensors/run.sh)
+8.19 sensors#metadataDriftRow — a drifted priority pair is a condition, not a clear (issue #292) (tools/sensors/metrics/metadata-invariant.sh)
+8.20 report#aFiledRowIsReported — the filing marker in the issue body is part of the row history (issue #668) (tools/sensors/lib.sh)
+8.21 run#aFilingSetsTheBaseline — the baseline is the newest marker the row carries, a filing included (issue #668) (tools/sensors/run.sh)
+8.22 report#aTrendIsBetweenOneCondition — the marker carries its condition fingerprint, not the one the issue body would give it (issue #668) (tools/sensors/lib.sh)
+8.23 run#aRowPastItsBoundFilesItsBoundAndOneSummary — a run files at most the bound its row declares (issue #666) (tools/sensors/run.sh)
+8.24 run#aRowUnderItsBoundFilesNoSummary — a summary is filed only when the bound left a condition over (issue #666) (tools/sensors/run.sh)
+8.25 run#aSummaryClosedByAPersonIsNotReopened — a summary a person closed is annotated, never reopened (issue #666) (tools/sensors/run.sh)
+8.26 run#aFailedCheckDoesNotClearTheSummary — a run in which a finding failed clears no summary (issue #666) (tools/sensors/run.sh)
+8.27 run#aSecondOverBoundRunListsWhatItDidNotFile — each over-bound run names the conditions it did not file (issue #666) (tools/sensors/run.sh)
+8.28 sensors#sourceSizeSkipsTheChangeTree — the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670) (tools/sensors/metrics/source-size.sh)
+8.29 run#aDispatchedFirstExerciseRecordsItsMeasurement — only the unattended tick reports a first exercise, so a dispatched run still records it (issue #667) (tools/sensors/run.sh)
+8.30 run#aFirstExerciseOnATickReportsInsteadOfFiling — a row with no measurement on record is reported by the tick and never filed (issue #667) (tools/sensors/run.sh)
+8.31 hotspot#theBoundIsAboveOneChangedFile — a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665) (tools/sensors/sensors.json)
+8.32 sensors#routedSectionSizeRow — a routed section past the row bound is a violation (issue #197) (tools/sensors/metrics/doc-context.sh)
+8.33 sensors#entryDocumentSizeRow — an entry document past its own row bound is a violation (issue #197) (tools/sensors/metrics/doc-context.sh)
+3.1 sensors#documentSizeRow — a normative document past the row bound is a violation (design D4) (tools/sensors/metrics/doc-context.sh)
+3.2 layers#aFigureInANormativeDocumentIsACondition — a measured figure inside a normative document is a condition (documentation-ownership, "A normative document carries no rationale and no procedure") (tools/sensors/metrics/doc-context.sh)
+gate: tools/sensor-mutations.sh --list — 0s
+gate: tools/check-compose-sandbox-rule.sh
+compose sandbox rule: 73 Compose test classes carry it.
+gate: tools/check-compose-sandbox-rule.sh — 0s
+gate: tools/check-compose-sandbox-rule-selftest.sh
+ok: a Compose class carrying the ordered sandbox rule passes
+ok: a Compose class without the rule fails
+ok: the rule without @get:Rule(order = 0) fails
+ok: a tree without a Compose test class passes
+gate: tools/check-compose-sandbox-rule-selftest.sh — 1s
+gate: bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  auto/off-route-indicator
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+  tooling-test-layout
+specs read: 184
+classified: 189
+unclassified: 0
+delta spec ids: 4
+stale: 5
+car-only areas: 1
+highlights: 19
+gate: bash tools/gen-feature-list.sh --check-classification — 3s
+gate: tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+gate: tools/check-doc-routes.sh — 0s
+gate: tools/check-doc-routes-selftest.sh
+PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
+PASS  routes#aDanglingSectionNumberIsReported — a dangling section number fails naming the reference (exit 1)
+PASS  routes#aBareDuplicatedNumberIsAmbiguous — a bare duplicated number is reported as ambiguous (exit 1)
+PASS  routes#headingTextThatMatchesNothingIsReported — heading text that matches nothing fails (exit 1)
+PASS  routes#aReferencedDocumentThatDoesNotExistIsReported — a document the table references but that does not exist is reported (exit 1)
+PASS  routes#anAgentsFileWithoutTheMapIsReported — an AGENTS.md without a Documentation Map is reported (exit 2)
+PASS  routes#anUnroutedGuidelineIsReported — an extra guideline that no route names is reported (exit 1)
+PASS  routes#anExtraGuidelineIsRoutedWithoutEditingTheCheck — an extra guideline that is routed and resolves passes without editing the check (exit 0)
+PASS  routes#anExtraGuidelineWithADanglingSectionIsReported — an extra guideline whose section does not exist is reported (exit 1)
+PASS  routes#aSkillTheTreeCarriesResolvesWithoutEditingTheCheck — a skill the tree carries resolves without editing the check (exit 0)
+PASS  routes#aSkillPathThatNoLongerResolvesIsReported — a skill path that no longer resolves is reported (exit 1)
+PASS  routes#aSkillDirectoryWithoutItsSkillFileIsReported — a skill directory without a SKILL.md is reported (exit 1)
+PASS  routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported — a skill name that only prefixes an existing one is reported (exit 1)
+PASS  routes#aBareDuplicatedNumberInAGuidelineBodyIsReported — a bare duplicated number in a guideline body is reported as ambiguous (exit 1)
+PASS  routes#aHeadingTextInAGuidelineBodyResolvesItsNumber — a heading text in a guideline body resolves its duplicated number (exit 0)
+PASS  routes#aReferenceInsideAFencedBlockIsNotAReference — a reference inside a fenced block is not a reference (exit 0)
+PASS  routes#aGuidelineBodyNamingAMissingSectionIsReported — a guideline body naming a section its document lacks is reported (exit 1)
+PASS  routes#aReferenceInAChangeArtifactIsNotChecked — a reference in a change artifact is not checked (exit 0)
+PASS  routes#aCompanionIsReadAndNotRouted — a companion no row names is read and not reported as unrouted (exit 0)
+PASS  layers#aRuleIsNormativeAndItsRationaleIsACompanion — a fixture concern whose normative document holds a named rule and whose companion holds the measurement resolves (exit 0)
+PASS  layers#aCompanionAnchorThatNoSectionCarriesIsReported — a companion anchor that names no section of its base document is reported (exit 1)
+PASS  layers#aDroppedSectionIsReportedInItsCompanion — a companion whose base document dropped its section is reported (exit 1)
+PASS  rules#aNameTwiceInOneDocumentIsReported — one document stating a rule name twice is reported (exit 1)
+PASS  rules#aNameTwoDocumentsStateIsReported — two documents stating one rule name are reported (exit 1)
+PASS  rules#aReferenceResolvesToTheNamedRule — a rule reference that resolves passes (exit 0)
+PASS  rules#aStaleRuleReferenceIsReported — a reference whose name the section does not carry is reported with the names it carries (exit 1)
+PASS  rules#aRuleWithNoNameIsReported — a rule with no name is reported with its file and line (exit 1)
+PASS  routed-read#numbers — a split keeps its parent number, every citation resolves, and the route check accepts the document set
+        220 section(s) printed, 155 routed pair(s), each equal to the ruler's own sed count
+PASS  routed-read#bound — every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed
+PASS  routed-read#route — a row that routes a lettered sub-section of any document states its cost, here and over the project's own table
+        a row stating 0.1 kB for a 1012-byte (1.0 kB) section is reported with both numbers, the same row stating 1.0 kB passes, and the project’s own figures are the measurements
+PASS  routed-read#figure — a figure a row writes after a lettered reference is that section's measurement, here and over the project's own table
+        a row stating 1.2–2.0 kB for sections measuring 1.0–3.1 kB is reported, the same row stating 1.0–3.1 kB passes, and the 23.2 kB it writes as a past measurement is not compared
+PASS  routed-read#range — a range a row states is the span of the lettered sections it names, and a past measurement in the same row is not compared
+        the entry document names .pi/skills/create-issue .pi/skills/device-check; check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both
+PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
+check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+gate: tools/check-doc-routes-selftest.sh — 8s
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+# tools/check-doc-routes-mutations.json — 11 mutation(s), case command: bash tools/check-doc-routes-selftest.sh --case {case}
+skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
+route-states-its-cost	routed-read#route	a row that routes a lettered sub-section states what those sections cost, so a row naming sub-sections and pricing nothing is reported instead of passing as routed
+guideline-body-reference	routed-read#numbers	a citation a guideline body writes is resolved beside the routing table's, so a split's parent number that stops being a heading fails the case when a body still cites it
+section-cost-ruler	routed-read#bound	a section's cost is the byte count of its lines from the `## ` heading through the line before the next one, so a printed cost that is not that count fails the case
+route-figure-is-measured	routed-read#figure	a figure a row writes after a lettered reference is that section's cost, so a row pricing a kilobyte of section at 0.1 kB is reported instead of passing as priced
+route-range-is-the-span	routed-read#range	a range a row states is the cheapest and the costliest of the lettered sections it names, so a range the measurement does not give is reported instead of passing as a span
+companion-anchor	layers#aCompanionAnchorThatNoSectionCarriesIsReported	a companion's `## §N` anchor is resolved against its base document, so an anchor no section carries is reported instead of the companion becoming a document of its own
+rule-name-one-document	rules#aNameTwiceInOneDocumentIsReported	one rule name stated twice in one document is the duplicate the one-normative-home rule forbids, so the name is counted per section and the second statement is reported
+rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory
+rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry
+rule-with-no-name	rules#aRuleWithNoNameIsReported	a rule with no name is reported with its file and line instead of being skipped by the extraction, so the empty case cannot pass as a rule the tree does not count
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list — 0s
+gate: tools/check-todo-references.sh
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/check-todo-references-selftest.sh                  the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 8923 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 1s
+gate: tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 10 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+gate: tools/check-openspec-hygiene.sh — 0s
+gate: tools/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
+gate: tools/check-openspec-hygiene-selftest.sh — 0s
+gate: tools/check-portability.sh
+check-portability: engines checked (56 files):
+  tools/issues/answer.sh
+  tools/issues/check-metadata.sh
+  tools/issues/citations.awk
+  tools/issues/classify.sh
+  tools/issues/close.sh
+  tools/issues/core/Bands.java
+  tools/issues/core/Fingerprint.java
+  tools/issues/core/Json.java
+  tools/issues/core/Policy.java
+  tools/issues/core/Profile.java
+  tools/issues/core/Taxonomy.java
+  tools/issues/core/WorkPackage.java
+  tools/issues/create.sh
+  tools/issues/decisions.sh
+  tools/issues/duplicates.sh
+  tools/issues/import.sh
+  tools/issues/labels.sh
+  tools/issues/lib.sh
+  tools/issues/list.sh
+  tools/issues/policy.sh
+  tools/issues/prioritise.sh
+  tools/issues/purge-sensor-batch.sh
+  tools/issues/reopen.sh
+  tools/issues/resolve-stale.sh
+  tools/issues/rewrite.awk
+  tools/issues/shaping.sh
+  tools/issues/update.sh
+  tools/loop/evidence-check.sh
+  tools/loop/gate.sh
+  tools/loop/labels.sh
+  tools/loop/lib.sh
+  tools/loop/loop-clean.sh
+  tools/loop/measure.sh
+  tools/loop/phase.sh
+  tools/loop/prescreen.sh
+  tools/loop/report.sh
+  tools/loop/run.sh
+  tools/loop/state.sh
+  tools/loop/worktree.sh
+  tools/sensors/conditions/broken-main.sh
+  tools/sensors/conditions/broken-scan.sh
+  tools/sensors/conditions/pr-conflicts.sh
+  tools/sensors/guard.sh
+  tools/sensors/hotspot-report.sh
+  tools/sensors/lib.sh
+  tools/sensors/metrics/build-duration.sh
+  tools/sensors/metrics/coverage.sh
+  tools/sensors/metrics/doc-context.sh
+  tools/sensors/metrics/libosmscout-lag.sh
+  tools/sensors/metrics/loop-spend.sh
+  tools/sensors/metrics/metadata-invariant.sh
+  tools/sensors/metrics/package-size.sh
+  tools/sensors/metrics/source-size.sh
+  tools/sensors/metrics/stale-citations.sh
+  tools/sensors/report.sh
+  tools/sensors/run.sh
+check-portability: templates checked (7 files):
+  tools/loop/prompts/gate-deferred.md
+  tools/loop/prompts/gate-own.md
+  tools/loop/prompts/pre-gate-review.md
+  tools/loop/prompts/reviewer.md
+  tools/loop/prompts/worker-gate.md
+  tools/loop/prompts/worker.md
+  tools/loop/prompts/worker-tail.md
+check-portability: excluded, printed so the proof names its own scope:
+  tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose record's format, and is allowed to
+  tools/issues/core/TodoAdapter.java	the same adapter: it names the record format and the provenance value it
+  tools/issues/core/TodoSections.java	the adapter's grammar — the headings and the metadata line of that format
+  tools/issues/core/Cases.java	the case runner
+  tools/issues/metadata-mutations.sh	the falsification harness
+  tools/issues/check-metadata-selftest.sh	the self-test
+  tools/sensors/fixtures/**	test data
+  tools/issues/fixtures/**	test data
+  tools/loop/fixtures/**	test data
+  tools/fixtures/**	test data — the synthetic project and the mutation runner's toy tree
+  tools/*-mutations*.json	the mutation sets — they plant the very values the check forbids
+  .pi/**	machine-local state: worktrees, captures, session logs
+  openspec/**	the project's documents
+  guidelines/**	the project's documents
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
+gate: tools/check-portability.sh — 1s
+gate: tools/check-portability-selftest.sh
+PASS portability#plantedRepoNameFails
+PASS portability#plantedCategoryFails
+PASS portability#plantedValueInEveryNamespaceFails
+PASS portability#plantedSubmodulePathFails
+PASS portability#authorisationLabelIsTheOneException
+PASS portability#excludesTheAdapterAndFixtures
+PASS portability#valueSetIsReadNotHardCoded
+PASS portability#passesOnTheRealTree
+PASS discovery#fromASubdirectory
+PASS discovery#fromAWorktree
+PASS discovery#ignoresGithubRepositoryEnv
+PASS discovery#outsideAGitTree
+PASS preconditions#refusesOutsideAGitTree
+PASS preconditions#refusesUnderMachineLocalState
+PASS preconditions#runsInALinkedWorkingTree
+PASS foreign#profileDiffersFromOurs
+PASS foreign#noProjectNameInTheStub
+stub gh: recorded `gh issue edit`
+PASS foreign#toolchainRunsEndToEnd
+PASS foreign#duplicateIsRefused
+PASS foreign#identityIsRefusedToo
+PASS foreign#emptyGateCommandStillRunsThePhases
+PASS foreign#fixtureIsVersioned
+PASS foreign#fixtureDeclaresEveryBudgetDefault
+PASS foreign#baseBranchIsTheFixturesConfiguration
+PASS foreign#statesWhatItDoesNotModel
+PASS porting#everyCommandInTheRecipeRuns
+PASS porting#recipeDoesNotAssumeOurBuild
+PASS porting#namesTheAdaptationPoint
+PASS porting#statesTheCopyCost
+check-portability-selftest: all 29 cases passed (JDK 27, offline, no token, no Gradle)
+gate: tools/check-portability-selftest.sh — 23s
+gate: tools/mutate-selftest.sh
+PASS  a real mutation exits 0
+PASS  the transcript reports the red run
+PASS  the transcript reports the restored green run
+PASS  the byte-for-byte restore is reported
+PASS  the toy tree is pristine after the run
+PASS  a mutation that does not apply exits 1
+PASS  MUTATION-DID-NOT-APPLY is reported
+PASS  MUTATION-DID-NOT-APPLY is reported
+PASS  the toy tree is pristine after the failed mutation
+PASS  a mutation the case does not notice exits 1
+PASS  STAYS-GREEN is reported
+PASS  the toy tree is pristine after the unnoticed mutation
+PASS  a record for a missing file exits 1
+PASS  MUTATION-FILE-MISSING is reported
+PASS  --list exits 0
+PASS  --list names the label, the case and the reason
+PASS  --only selecting no mutation exits 2
+PASS  the portability set lists cleanly
+PASS  the portability set lists every record it declares
+PASS  the portability set declares 5.1
+PASS  the portability set declares 5.2
+PASS  the portability set declares 5.3
+PASS  the portability set declares 5.3b
+PASS  the portability set declares 5.4
+PASS  the portability set declares 5.5
+PASS  the portability set declares 5.6
+PASS  the portability set declares 5.7
+PASS  the portability set declares 6.1
+PASS  the portability set declares 6.2
+PASS  the portability set declares 6.3
+PASS  the portability set declares 6.4
+PASS  the portability set declares 6.5
+PASS  the portability set declares 6.6
+PASS  the portability set declares 6.7
+PASS  the portability set declares 7.1
+PASS  the portability set declares 7.2
+PASS  the portability set names the check's own self-test as its gate
+
+mutate-selftest: 36 passed, 0 failed
+gate: tools/mutate-selftest.sh — 0s
+gate: tools/mutate.sh --mutations tools/portability-mutations.json --list
+# tools/portability-mutations.json — 17 mutation(s), case command: bash tools/check-portability-selftest.sh --case {case}
+5.1	portability#valueSetIsReadNotHardCoded	the value set is read from the profile, not hard-coded
+5.2	portability#excludesTheAdapterAndFixtures	the source adapter is excluded from the engine set
+5.3	discovery#fromASubdirectory	the profile is resolved from the working tree, not from $HOME
+5.3b	discovery#fromAWorktree	…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)
+5.4	discovery#ignoresGithubRepositoryEnv	GITHUB_REPOSITORY does not override the working tree
+5.5	foreign#profileDiffersFromOurs	the synthetic project's repository differs from this one
+5.6	foreign#emptyGateCommandStillRunsThePhases	the prompt substitutes the project's gate command instead of owning one
+5.7	porting#everyCommandInTheRecipeRuns	every command in the porting recipe runs
+6.1	portability#plantedValueInEveryNamespaceFails	every namespace's value set is read and forbidden, not the category's alone
+6.2	portability#plantedSubmodulePathFails	the submodule path is read from loop.conf, not named in the engine
+6.3	portability#authorisationLabelIsTheOneException	the reserved label is asserted as the one read-only exception, not tolerated
+6.4	preconditions#refusesOutsideAGitTree	the suite refuses when its root is not a git working tree
+6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
+6.6	preconditions#runsInALinkedWorkingTree	a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)
+6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)
+7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)
+7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project's base branch is its own configuration value, not the engine's default (issue #303)
+gate: tools/mutate.sh --mutations tools/portability-mutations.json --list — 0s
+gate: tools/issue-tooling-selftest.sh
+PASS Profile#everySectionIsPresent
+PASS Taxonomy#vocabulariesAreClosed
+PASS Taxonomy#mapsEveryFixtureEntry
+PASS Taxonomy#renamesTheTwoProjectCategories
+PASS Taxonomy#unknownValueRefuses
+PASS Policy#allowlistIsNotEmptyAndNamesTheAuthenticatedUser
+PASS Policy#gateMatrix
+PASS WorkPackage#bodyCannotBreakOutOfTheDataBlock
+PASS WorkPackage#oversizedBodyRefuses
+PASS WorkPackage#recordedDecisionIsCarried
+PASS WorkPackage#noDecisionIsRecorded
+PASS WorkPackage#questionIsNotTheVerdictWord
+PASS Fingerprint#stableAcrossWhitespaceAndLineNumbers
+PASS Fingerprint#separatesDistinctEntries
+PASS Bands#coversTheWholeRange
+PASS Bands#labelSpellingComesFromTheProfile
+PASS Bands#refusesAScoreOutsideEveryBand
+PASS TodoSections#parsesEveryStatusShape
+PASS labels#dryRunListsTaxonomy
+PASS lib#discoversTheCurrentProject
+PASS lib#refusesOutsideAGitTree
+PASS lib#noProjectValueInTheEngine
+PASS lib#exitCodeConstants
+PASS lib#statusPrefixNeedsTheProfile
+PASS lib#questionIsReadFromANonEmptyComment
+PASS lib#coreIsCompiledNotLaunched
+PASS lib#retriesATransientFailure
+PASS lib#reportsAnUnreachableTrackerAfterTheLastRetry
+PASS lib#doesNotRetryAnAuthoritativeFailure
+PASS lib#doesNotRetryAnAppend
+PASS lib#onlyTheSeamCallsTheRealCli
+PASS policy#preflightRefusesUnknownLogin
+PASS policy#preflightReportsAnUnreachableTracker
+PASS policy#checkAnswersWithoutAnIdentityRead
+PASS create#duplicateRefusesAndNamesTheIssue
+PASS create#writesMarkerAndLabels
+PASS create#refusesTwoValuesOfOneNamespace
+PASS create#carriesTheFindingsClassAndCategory
+PASS create#refusesAClassItsLabelsContradict
+PASS create#refusesADoubledCitation
+PASS create#bareValueFlagNeedsAValue
+PASS create#aShapelessFindingIsRefused
+PASS create#aFindingWithBothShapesIsRefused
+PASS create#aCauseWithAResolvingPointerIsFiled
+PASS create#aCauseWhosePointerIsGoneIsRefused
+PASS create#aCauseWithoutACaseIsRefused
+PASS create#aNamedChangeThatDoesNotExistIsRefused
+PASS create#aChangeThatIsNotReadyIsRefused
+PASS create#aTierBWithNoDecisionIsRefused
+PASS create#anEmptyGatePathRefusesTierB
+PASS create#theDeclaredGatePathIsTheOneRun
+PASS create#aTierBIsFiledWithItsDecisions
+PASS create#theShapeIsInTheBodyRecord
+PASS create#aTierAIsFiled
+PASS create#aTierBIsFiled
+PASS create#aSensorFindingIsExemptFromTheShape
+PASS update#refusesUnknownLabel
+PASS update#reportsAnUnreachableTrackerInsteadOfARefusal
+PASS close#requiresReasonAndEvidence
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+PASS close#recordsStateReason
+PASS close#refusesOnPolicyFailure
+PASS close#notPlannedNeedsNoOptIn
+PASS list#filtersByEachCriterion
+PASS list#idResolvesTheMarker
+PASS list#idDoesNotMatchASubstring
+PASS surface#noDeletePath
+PASS surface#reservedLabelRefusesInEveryWritePath
+PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+PASS surface#theStubRefusesAnEditWithNoField
+PASS import#dryRunEmitsOnePreviewPerFinding
+PASS import#secondRunIsANoOp
+PASS import#theImportedItemNamesItsExemption
+PASS adapter#emitsOneFindingPerFixtureSection
+PASS update#removeLabelRunsThroughTheSameGate
+PASS update#refusesABandLabelWithoutItsMarker
+PASS update#writesABandLabelWithTheBodysMarker
+PASS create#refusesABandLabelAtFilingTime
+PASS update#statusReplacesTheOldStatus
+PASS update#statusReplacementIsIdempotent
+PASS update#statusRejectsTwoStatesInOneCall
+PASS update#statusReportNamesImpliedRemoval
+PASS update#refusesToDisplaceASettledState
+PASS update#statusWriteReportsAnEmptyTransition
+PASS update#commentOnlyReportsNoStatusWrite
+PASS update#stateNamedAsALabelReplacesTheOldState
+PASS close#commentOnlyLeavesTheIssueOpen
+PASS close#writesTheSettledStatus
+PASS close#keepsTheItemOpenWhenTheStateCannotBeWritten
+PASS close#writesNothingWhenTheItemAlreadyCarriesTheState
+PASS close#refusesAProfileThatNamesNoSettledState
+PASS close#namesTheSettledStateItDisplaces
+PASS decisions#listsTheQueueAndItsQuestions
+PASS decisions#theQuestionIsNotTheVerdictWord
+PASS decisions#emptyQueueIsNotAnError
+PASS shaping#theQueuePrintsTheVerdictAndClause
+PASS shaping#anItemWithNoStatementIsNamed
+PASS shaping#anEmptyQueueExitsZero
+PASS shaping#anEmptyListIsAnEmptyQueue
+PASS shaping#theDecisionQueueIgnoresTheShapingLabel
+PASS shaping#answeringAShapingItemIsRefused
+PASS shaping#aReshapedItemLeavesTheQueue
+PASS shaping#aClosedItemLeavesNoLabel
+PASS shaping#anUndeclaredLabelIsRefused
+PASS shaping#theConsumerProposesFromTheItemsOwnStatement
+PASS shaping#theConsumerWritesNothingBeforeTheOwnerChooses
+PASS shaping#theApprovedReshapeLeavesThroughTheExistingWriters
+PASS duplicates#dryRunWritesNothing
+PASS duplicates#youngerDuplicateIsClosedWithAPointer
+PASS duplicates#olderItemSurvives
+PASS duplicates#unauthorisedDuplicateIsCommentedNotClosed
+PASS duplicates#aMarkedDuplicateIsNotCommentedTwice
+PASS duplicates#collisionIsReportedAndNothingIsWritten
+PASS duplicates#landedCandidateIsPrintedNotClosed
+PASS duplicates#cleanTrackerExitsZeroWithoutAWrite
+PASS duplicates#differentFingerprintsAreNotMerged
+PASS answer#requiresTheDecisionText
+PASS answer#refusesWhatIsNotADecision
+PASS answer#continueReturnsTheItemToTheQueue
+PASS answer#theAnswerNamesTheQuestion
+PASS answer#theAnswerQuotesTheQuestionNotTheVerdictWord
+PASS answer#deviceMovesToTheDeviceLane
+PASS answer#retireClosesAsRetired
+PASS basis#stableAcrossWhitespaceOnlyBodyEdit
+PASS basis#changesWhenAClassLabelChanges
+PASS basis#changesWhenTheCitedCodeGoesAway
+PASS basis#anAgedScoreIsRevisited
+PASS prioritise#readsEveryIssueAndSkipsByBasis
+PASS prioritise#capsTheDueSet
+PASS prioritise#secondRunScoresNothing
+PASS prioritise#writesLabelAndMarkerTogether
+PASS prioritise#theWriteKeepsAQuotation
+PASS prioritise#refusesATaxonomyOutsideValue
+PASS prioritise#commentsOnlyOnABandTransition
+PASS prioritise#occurrenceAbsenceIsOne
+PASS prioritise#occurrenceChangeInvalidatesTheBasis
+PASS prioritise#writesNoGateLabel
+PASS prioritise#reportsEveryCounter
+PASS prioritise#bodiesAreDelimitedData
+PASS prioritise#refusesABodyThatClosesTheFence
+PASS classify#selectsOnlyUnclassified
+PASS classify#refusesAnOutOfVocabularyProposal
+PASS classify#reportsAnOutOfVocabularyCategoryWithoutWriting
+PASS classify#writesOnlyClassAndCategory
+PASS list#prioSelector
+PASS list#unrankedSelector
+PASS list#eligibleOnlyIgnoresTheBand
+PASS list#closedItemIsNotASelection
+PASS check#markerLabelMismatchFails
+PASS check#outOfRangeBandFails
+PASS check#neverWritesEligibility
+PASS check#incompleteMarkerFails
+PASS check#labelWithoutMarkerFails
+PASS check#aQuotationIsNotAMarker
+PASS check#aMarkerLineBesideAQuotationIsTheRecord
+PASS check#aDisplacedSettledStateIsReported
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+PASS prioritise#recordsOutgrowOneArgument
+issue-tooling-selftest: all 158 cases passed (JDK 27, offline, no token, HEAD 723c7998, tools e3b0c44298fc, 2026-11-06T10:48:19Z)
+gate: tools/issue-tooling-selftest.sh — 91s
+gate: tools/mutate.sh --mutations tools/status-mutations.json --list
+# tools/status-mutations.json — 6 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
+5.1	update#statusReplacesTheOldStatus	the displaced state labels being read from the item, so the add and the removals ride one edit
+5.2	update#statusReplacementIsIdempotent	the difference-only rule — a state write does not add the label the item already carries
+5.3	update#statusRejectsTwoStatesInOneCall	a call naming two states being refused instead of silently resolved
+5.4	update#statusReportNamesImpliedRemoval	the report carrying the displaced labels the caller never named
+7.1	update#stateNamedAsALabelReplacesTheOldState	a state named as the namespaced label being the same act as one named through the state flag
+8.1	update#refusesToDisplaceASettledState	the guard refusing a routine write that would displace a settled state instead of letting every caller through
+gate: tools/mutate.sh --mutations tools/status-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/create-mutations.json --list
+# tools/create-mutations.json — 3 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+gate: tools/mutate.sh --mutations tools/create-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/close-mutations.json --list
+# tools/close-mutations.json — 5 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
+A1.1	close#writesTheSettledStatus	the settled state being written before the closure — without it an item is closed and still reads on-hold
+A1.2	close#writesTheSettledStatus	a person's not-planned decision recording the state a fix records
+A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry
+A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state
+A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a state (#182)
+gate: tools/mutate.sh --mutations tools/close-mutations.json --list — 1s
+gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+# tools/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
+D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
+D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
+D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
+D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
+gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+# tools/decision-question-mutations.json — 2 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+gate: tools/mutate.sh --mutations tools/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=922 failures=0 errors=0 (tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 10s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 268s, tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d 418s, bash tools/loop-mutations.sh --check 1s, tools/loop-mutations-selftest.sh 247s, tools/sensor-selftest.sh 77s, tools/sensor-mutations.sh --list 0s, tools/check-compose-sandbox-rule.sh 0s, tools/check-compose-sandbox-rule-selftest.sh 1s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 23s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 91s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s)

@@ -1,0 +1,46 @@
+# Round 1's correction — #787, applied 2026-11-05T22:48Z
+
+The reviewer's single BLOCKING finding: `tools/loop/run.sh:694` (base) recorded the `--reset-worktree` refusal's
+stop reason without the paths the refusal printed, while the change's own new scenario says every one of the
+three refusals is "written as the run's stop reason, naming what the refusal printed". Corrected the way the
+finding recommended (its first option): the reason carries the paths, and that one case asserts the path.
+
+## The change
+
+`tools/loop/run.sh` (tree line 695-702, base `:694`) — the reset arm reads the status the repair left behind and
+joins it into the reason, exactly as the kept-worktree arm at tree `:739` (base `:731`) joins `${leftovers}`.
+The status is read **again** after the failed repair rather than the `$leftovers` the attempt started from: the
+repair's own console line names `reset_after`, the status after `reset --hard` and `clean -fd`, so a file the
+reset did discard is not named as work a reader still owes. Same `; `-joined form as its neighbour.
+
+```
++      remaining=$(git -C "$worktree" status --porcelain)
++      remaining_reason=""
++      [ -z "$remaining" ] ||
++        remaining_reason=" — $(printf '%s' "$remaining" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
++      stop_run "the kept worktree is still not clean after --reset-worktree${remaining_reason} — nothing was started; the paths it printed are removed by hand"
+```
+
+`tools/loop-cases.sh:6812` — `run#resetWorktreeNamesTheDirtItCannotDiscard` gains one assertion: the stop reason
+names `app/src/main/cpp/libosmscout`, the path the console already asserted beside it.
+
+`design.md` and `tasks.md` in the change carry the same fact (the reason's content, and the second assertion on
+this case), so the record does not claim the round-1 shape.
+
+## What was run
+
+| command | result |
+|---|---|
+| `bash -n tools/loop/run.sh` and `bash -n tools/loop-cases.sh` | both parse (`SYNTAX-OK`) |
+| `bash tools/loop-selftest.sh --case run#resetWorktreeNamesTheDirtItCannotDiscard`, run.sh reverted to its round-1 text at that line | `FAIL run#resetWorktreeNamesTheDirtItCannotDiscard` — the new assertion is not vacuous |
+| same case, corrected tree | `PASS run#resetWorktreeNamesTheDirtItCannotDiscard` |
+| `bash tools/loop-selftest.sh --case run#dirtyKeptWorktreeIsARecordedRefusal` | `PASS` — the sibling arm unchanged |
+| `bash tools/loop-selftest.sh --case run#theDecisionCapRecordsItsStopReason` | `PASS` — the cap arm unchanged |
+| `bash tools/loop-mutations.sh --check --files tools/loop/run.sh` | `selected 92 of 241 records`, `all 92 cases passed — every selected record applies to the file it names` |
+| `./tools/loop/gate.sh` | see `gate-summary.txt` in the change's `evidence/` |
+
+All of the above were taken in that order on 2026-11-05, before the `2026-11-05T22:48Z` the shell printed at the
+green case; only that one stamp was read off a clock, so only it is quoted.
+
+`gate-summary.txt` and `gate.log` are the gate's own files, rewritten by this round's one run; the archived tally
+copies beside them are that run's.

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally `bash tools/loop-selftest.sh --case 'run#child*IsCut'` printed on the run's base tree (HEAD
+     6e9319f1, before the engine change; the case file is this change's own): the shell runner writes no JUnit
+     XML, so this file is the carrier of the number the change quotes (tests=3 failures=3), kept beside
+     red-on-HEAD.log so the claim has both halves. -->
+<testsuite name="bash tools/loop-selftest.sh --case run#child*IsCut (HEAD 6e9319f1)" tests="3" failures="3" errors="0" time="22" timestamp="2026-11-07T00:37:14Z">
+  <testcase name="run#childPastItsTurnBoundIsCut" classname="loop-selftest">
+    <failure message="an item whose child crossed the bound is recorded cut, not blocked (issue #790)">expected 'cut', got 'blocked'</failure>
+  </testcase>
+  <testcase name="run#childPastItsContextBoundIsCut" classname="loop-selftest">
+    <failure message="an item whose child crossed the bound is recorded cut, not blocked (issue #790)">expected 'cut', got 'blocked'</failure>
+  </testcase>
+  <testcase name="run#childOutlastingTheWallClockIsCut" classname="loop-selftest">
+    <failure message="an item whose child was ended is recorded cut, not blocked">expected 'cut', got 'blocked'</failure>
+  </testcase>
+  <system-out>2026-11-07T00:37:14Z run#childPastItsTurnBoundIsCut FAIL, run#childPastItsContextBoundIsCut FAIL, run#childOutlastingTheWallClockIsCut FAIL; 3 of 3 cases failed</system-out>
+</testsuite>

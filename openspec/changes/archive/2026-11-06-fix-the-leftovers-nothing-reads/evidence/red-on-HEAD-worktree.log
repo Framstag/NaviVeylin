@@ -1,0 +1,23 @@
+2026-11-06T17:53:16Z
+clean#reportsAWorktreeNoRunKeeps| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+clean#reportsAWorktreeNoRunKeeps| HEAD ist jetzt bei e3b9ee5 init
+clean#reportsAWorktreeNoRunKeeps|   the report names the tree no run keeps: '.pi/worktrees/767' not found in: loop-clean: build output in .pi/worktrees/loop
+clean#reportsAWorktreeNoRunKeeps| loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+clean#reportsAWorktreeNoRunKeeps| loop-clean: self-test scratch trees under .pi/worktrees/loop/.pi/tmp older than 120 min
+clean#reportsAWorktreeNoRunKeeps| loop-clean: branches of the loop whose patches are in the base
+clean#reportsAWorktreeNoRunKeeps|   kept loop-test — a worktree holds it
+clean#reportsAWorktreeNoRunKeeps| loop-clean: change sources the landed items consumed
+clean#reportsAWorktreeNoRunKeeps| loop-clean: nothing to remove — 1 path(s) kept
+--- clean#reportsAWorktreeNoRunKeeps[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei e3b9ee5 init
+  the report names the tree no run keeps: '.pi/worktrees/767' not found in: loop-clean: build output in .pi/worktrees/loop
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+loop-clean: self-test scratch trees under .pi/worktrees/loop/.pi/tmp older than 120 min
+loop-clean: branches of the loop whose patches are in the base
+  kept loop-test — a worktree holds it
+loop-clean: change sources the landed items consumed
+loop-clean: nothing to remove — 1 path(s) kept
+FAIL clean#reportsAWorktreeNoRunKeeps
+loop-selftest: 1 of 1 cases failed
+2026-11-06T17:53:18Z

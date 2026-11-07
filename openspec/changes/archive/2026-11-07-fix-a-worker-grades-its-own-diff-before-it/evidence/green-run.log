@@ -1,0 +1,18 @@
+2026-11-07T07:36:27Z
+prompt#workerGradesItsOwnDiffBeforeItReports| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-073629')
+prompt#workerGradesItsOwnDiffBeforeItReports| HEAD ist jetzt bei 1a6093c init
+prompt#workerGradesItsOwnDiffBeforeItReports| stub gh: recorded `gh issue edit`
+prompt#workerGradesItsOwnDiffBeforeItReports| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (8e7ba27)
+prompt#workerGradesItsOwnDiffBeforeItReports| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1d5ed2e)
+prompt#workerGradesItsOwnDiffBeforeItReports| HEAD ist jetzt bei 1d5ed2e review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerGradesItsOwnDiffBeforeItReports| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1d5ed2e).
+prompt#workerGradesItsOwnDiffBeforeItReports| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerGradesItsOwnDiffBeforeItReports| stub gh: recorded `gh issue edit`
+prompt#workerGradesItsOwnDiffBeforeItReports| stub gh: recorded `gh issue edit`
+prompt#workerGradesItsOwnDiffBeforeItReports| closed #21 (completed)
+prompt#workerGradesItsOwnDiffBeforeItReports|   landing #21 1d5ed2e0a93862393453ec08c5a783ff7b1ccb0e: unscored — the pipeline runs of this commit could not be read
+prompt#workerGradesItsOwnDiffBeforeItReports| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerGradesItsOwnDiffBeforeItReports|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerGradesItsOwnDiffBeforeItReports| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#workerGradesItsOwnDiffBeforeItReports
+exit=0

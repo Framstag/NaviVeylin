@@ -9,7 +9,7 @@ route-planning card, overlay sizing and layering — are `guidelines/UIPhoneMap.
 cross-variant parity rule and the car surfaces stay in `guidelines/UI.md`.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/UIPhone.md`; AGENTS.md's Documentation Map routes a kind of
+`tools/look.sh '^## ' --path guidelines/UIPhone.md`; AGENTS.md's Documentation Map routes a kind of
 change here.
 
 ---
@@ -36,7 +36,16 @@ Source: spec `enhanced-details-sheet`.
   the dialer prefilled (`ACTION_DIAL`, never `ACTION_CALL`); each `;`-separated part is its own link. A value
   the allow-list refuses — `http`/`https` only, three digits minimum — stays plain text, no entry outside the
   `Contact` section becomes tappable, and a tap no installed app handles shows a transient hint while the
-  dialog stays open. The labels stay the native English keys (their translation is issue #767).
+  dialog stays open.
+- **Rule: the rows' words come from the surface's resources.** (spec `i18n-l10n` — Native description labels are
+  localized at the frontend; change `fix-details-description-labels`.) The native description vocabulary crosses the
+  boundary as values only (`"Contact"`, `"Phone"`, `"Website"`, `"Lanes"`, …), so `ui/map/DescriptionLabels.kt`
+  maps that value to `R.string.description_label_*` — keyed on the raw key, never on text a row has already
+  rendered — and the section header, the subsection header and the label row read it through `descriptionLabel(...)`.
+  A key the table does not carry renders as itself: the surface has no word of its own for it, and a row never
+  disappears. English is unchanged by construction, because the English value of each key is the key. The car's
+  identical rows still print the raw key — the parity follow-up, since `:auto` keeps its own `res/` rather than a
+  copy of this table.
 
 ## 6a. Phone search surface (unified search dialog)
 
@@ -228,14 +237,18 @@ Source: specs `navigation-ongoing-notification` (changes `background-navigation-
 - **Rule: labels and guidance wording are shared.** One formatter produces the phone text and the car
   hint, and the manoeuvre instruction uses the same wording as the on-screen next-turn display. The car
   MAY use car-only text roles through `CarAppExtender` (the instruction its primary text, the
-  distance/arrival its secondary), while the phone notification keeps the destination name first —
+  distance, arrival time and, for a motorway enter or change, the signposted destination its
+  secondary), while the phone notification keeps the destination name first —
   a rendering difference from one content source, not a second set of strings.
 - **Rule: NAVIGATION content is destination, manoeuvre, distance, arrival and the stop action.** The
   notification carries the destination name (or the neutral "Navigation active" when unknown), the
   manoeuvre instruction in the same wording as the on-screen next-turn display, the distance-to-turn,
   arrival/remaining time and remaining distance, and the "Stop Navigation" action (the same label as
   the on-screen stop button, `UIPhoneMap.md` §7b). The car hint shows the instruction, the
-  distance-to-turn with the arrival time, the manoeuvre arrow as large icon and the same stop action.
+  distance-to-turn with the arrival time, the manoeuvre arrow as large icon and the same stop action;
+  for a motorway enter or change that carries a destination record its secondary text also carries the
+  signposted destination, worded by the same `:core` function as the phone overlay's second line
+  (`auto-navigation-hints` — The car hint names the signposted destination).
 - **Rule: a known zero distance is not an unknown distance.** The distance-to-turn SHALL render a
   **known zero** as `0 m`, while a distance that is absent or `NaN` renders `--` — on the phone
   notification's stats line and the car hint's secondary text alike.

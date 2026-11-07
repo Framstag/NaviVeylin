@@ -99,7 +99,7 @@ MUTATIONS=(
   '9.1@-@tools/loop/state.sh@state#secondRunRefusesWithExit5@the lock that keeps one run per repository@s|^  if ! mkdir "$LOCK_FILE" 2>/dev/null; then|  if false; then|'
   '9.2@-@tools/loop/worktree.sh@worktree#refusesWhenMainAdvanced@the stale-base refusal@s|^  if \[ "$current" != "$base" \]; then|  if false; then|'
   '9.3@writes@tools/loop/run.sh@labels#writesOnlyBetweenChildren@one writer per tree: the child runs while the wrapper writes state@s|^  run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$item_dir/worker-prompt.md" ) > "$item_dir/worker-report.md" 2>\&1 \&\n  worker_pid=$!\n  ( while kill -0 "$worker_pid" 2>/dev/null; do bash "$LOOP_DIR/state.sh" step A --name during-child --status running >/dev/null 2>\&1; sleep 0.02; done ) \&\n  wait "$worker_pid"|'
-  '9.4@-@tools/loop/run.sh@labels#trapRemovesInProgressOnSignal@the signal trap that removes the in-progress label@s|^    loop_labels unpick "$in_progress" >&2 \|\| true$|    : # the mutation keeps the in-progress label|'
+  '9.4@-@tools/loop/run.sh@labels#trapRemovesInProgressOnSignal@the signal trap that removes the in-progress label@s|^      loop_labels unpick "$in_progress" >&2 \|\| true$|      : # the mutation keeps the in-progress label|'
   '9.5@-@tools/loop/run.sh@run#childClaimWithoutCommitIsBlocked@the run verifying instead of trusting the child@s|^  elif \[ "\$last_exit" -ne 0 \]; then|  elif false; then|;;s|^  elif \[ "\$verdict_claim" = "skipped" \]; then|  elif false; then|;;s|^  elif \[ "\$head_now" = "\$base" \]; then|  elif false; then|;;s|^  elif \[ -z "\$change" \]; then|  elif false; then|;;s|^  elif \[ -n "\$LOOP_GATE_CMD" \] && \[ "\$gate_found" -eq 0 \]; then|  elif false; then|;;s|^  elif \[ "\$cited_evidence" -eq 1 \] && \[ "\$carried" -eq 0 \]; then|  elif false; then|'
   '9.6@-@tools/loop/run.sh@run#decisionCapRefusesToStart@the decision cap that stops a run@s|^if \[ "${open_decisions:-0}" -ge "$max_decisions" \]; then|if false; then|'
   '9.7@-@tools/loop/run.sh@run#mayCloseNoLeavesTheIssueOpen@the closure opt-out@s|^      if \[ "$may_close" = "no" \]; then close_args+=(--no-close); fi$|      : # the mutation closes anyway|'
@@ -115,6 +115,10 @@ MUTATIONS=(
   # `stop_run` call and leaves the arm's console text in place, so the case fails on the reason it reads out of
   # `run.stop` — not on the refusal firing, which 9.6 owns.
   '9.12@-@tools/loop/run.sh@run#theDecisionCapRecordsItsStopReason@the cap'"'"'s refusal written as the run'"'"'s stop reason@s|^  stop_run "the decision cap refuses the start: |  : "the decision cap refuses the start: |'
+  # 9.13 is issue #755's invariant: the signal the trap took written as the run's own stop. The record removes only the
+  # `loop_state stop` write, so the HUP case fails on the reason it reads out of `run.stop` and not on the trap, the
+  # label or the lock, which the case asserts around it.
+  '9.13@-@tools/loop/run.sh@run#aHupEndedRunRecordsItsStopAndUnpicksItsItem@the run recording the signal it took as its own stop (issue #755)@s|^    loop_state stop "interrupted by SIG\${signal_taken}" >&2 \|\| true$|    : # the mutation records no signal|'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
   '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$worktree" \&\& $child_cmd "$1"; printf|'
   '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'

@@ -689,6 +689,14 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
 
+A run a signal ended records the signal as its own stop: `HUP` is trapped beside `INT` and `TERM` — a terminal or a
+harness that goes away sends it — and the trap writes `interrupted by SIG<NAME>` into the run's record before the
+in-progress mark comes off and before the lock is released, whether or not an item was in flight. 50 of the 105 runs
+this repository has archived record no stop, 18 of them having worked items, so a third of the loop's own history has
+no cause, and an item a run left in progress is the one thing a person has to find by hand before the queue can take
+it again (#755). The item's own record is the one it always was — `blocked`, with "interrupted by a signal" — and the
+cases are `run#interruptedRunEndsTheChildItStarted` and `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem`.
+
 What it does with a tree the child claims and did not commit: the reading that needs no child at all is the item's
 HEAD against the run's base, so it is taken where the run itself makes the commit — the child the gate is deferred to
 stops at the diff, the run commits that tree and reads the HEAD it just made, and a HEAD still at the base ends the

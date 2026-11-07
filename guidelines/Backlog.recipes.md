@@ -771,6 +771,14 @@ branch, `main` does not move, the run re-reads the unchanged base and closes the
 a fix the base never had (issue #308, from #301's review, 2026-10-24). For the same reason the base the run
 records is only ever a commit the base *branch* carries: `set-base` asks the branch and refuses anything else,
 so a closure cannot be recorded against a tree the base does not have.
+The same pre-flight reads that tree's **uncommitted work**, because every merge the landing step makes lands there
+and refuses dirt: a run whose project tree carries a modified, staged or untracked path git does not ignore is
+refused at exit 5 before the pre-screen, before any item and before any adoption, with the paths printed and
+recorded in the stop reason `report.sh` prints. It is a refusal and not a cleanup: the kept worktree's
+dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may be its owner's edit made while no
+run was live, and nothing the run can read tells the two apart, so the refusal discards nothing. Measured over this
+loop's archive (#798): four items were recorded `unmergeable` for a tree the landing step refused only after their
+budget and their gate (#668, #675, #769, #782), the last of them for two files that cost one run and two items.
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
 decision, taken on what a stranger to the run can check. A review round is part of that record, in both
 directions: the run commits the round onto the branch before its reviewer starts and commits the answer when

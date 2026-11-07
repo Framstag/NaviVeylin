@@ -816,6 +816,39 @@ pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
 }
 [ -z "$pin_out" ] || printf '%s\n' "$pin_out"
 
+# 5c. the project tree's uncommitted work, read once the arm above has had its say: a base whose gitlink names a
+#     commit no clone holds puts the module's path in this tree's status, and that is the pin arm's refusal — with the
+#     repair it names — not dirt the run may only report. The landing step merges into this tree and both of its
+#     merges refuse dirt there (`worktree.sh`'s `merge-item` and `adopt-item`), so that state had exactly one reader
+#     and it ran after the item's whole budget and its gate: measured over this loop's archive (issue #798), four items
+#     were recorded `unmergeable` for it (#668, #675, #769, #782), and #782's two files cost one run and two items
+#     before any refusal was read. It is read here, before the decision cap is counted — and therefore before the
+#     pre-screen is paid for and before any adoption the pre-screen would attempt. Nothing is repaired: the kept
+#     worktree's dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may be an edit its owner
+#     made while no run was live, and no reading available here tells the two apart — the run's own leftovers are its
+#     items' patches, which git ignores. So the refusal names the paths and discards nothing.
+project_dirt=$(git -C "$LOOP_ROOT" status --porcelain 2>/dev/null)
+# …less the run's own state directory, which this process wrote seconds ago: it locked and initialised the state above,
+# so a project that does not ignore `.pi/` would have every run refuse itself. The directory is the run's, not the
+# owner's, and the two are told apart without a reading: this process created it (issue #798).
+state_rel="${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
+state_dir_rel=$(dirname "$state_rel")
+project_dirt=$(printf '%s\n' "$project_dirt" | awk -v sd="$state_dir_rel" 'NF {
+  p = $0; sub(/^.../, "", p); sub(/\/$/, "", p)
+  if (p == sd || index(p, sd "/") == 1 || index(sd, p "/") == 1) next
+  print }')
+if [ -n "$project_dirt" ]; then
+  printf 'refusing to start: the project tree carries uncommitted work, and the landing step merges into it\n'
+  printf '%s\n' "$project_dirt" | sed 's/^/  /'
+  printf 'the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded here\n'
+  printf 'commit or discard these paths and run again — the list:\n'
+  printf '  git -C %s status --porcelain\n' "$LOOP_ROOT"
+  project_dirt_paths=$(printf '%s' "$project_dirt" | sed 's/^...//' | tr '\n' ' ')
+  stop_run "the project tree carries uncommitted work the landing step would merge over: ${project_dirt_paths% } — the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded; commit or discard them and re-run"
+  bash "$LOOP_DIR/report.sh"
+  exit "$LOOP_REFUSE"
+fi
+
 # 6. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 #    The cap counts the *candidate* decisions — the items that carry both the decision label and the loop's
 #    opt-in — because that is the population the pre-screen offers and the only one a person can answer: an item

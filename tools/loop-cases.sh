@@ -130,6 +130,7 @@ LOOP_SHELL_CASES=(
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
+  'prompt#workerGradesItsOwnDiffBeforeItReports'
   'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#reviewerIsBoundedToReading'
@@ -528,6 +529,7 @@ loop_run_shell_case() {
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
+    'prompt#workerGradesItsOwnDiffBeforeItReports') fn=case_prompt_workerGradesItsOwnDiffBeforeItReports ;;
     'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#reviewerIsBoundedToReading') fn=case_prompt_reviewerIsBoundedToReading ;;
@@ -3305,6 +3307,26 @@ case_prompt_workerNamesTheDecisionField() {
   # in the rendered prompt the worker cannot answer the shape the run reads.
   assert_contains "$(cat "$prompt")" 'LOOP-FALSIFIED:' "the worker prompt asks what the item blames"
   assert_contains "$(cat "$prompt")" 'LOOP-MEASURED:' "and what was measured instead, with how it was taken"
+}
+
+# The change child grades the diff it hands over against the review contract's own three predicates (issue #812).
+# Measured over the loop's item archive: 103 of 165 round-1 reports refuse, and their blocking findings are
+# dominantly a scenario clause the case that names it does not exercise, or a `design.md`/`tasks.md` claim the
+# diff contradicts — both readable by the writer, who holds the diff before anybody else does.
+case_prompt_workerGradesItsOwnDiffBeforeItReports() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt text
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'Grade your own diff before you hand it over' "the worker grades its own diff before it reports"
+  assert_contains "$text" 'clauses against the case that names it' "and reads each clause against the case that names it"
+  assert_contains "$text" 'prose against the diff' "and each claim design.md, tasks.md or proposal.md makes against a hunk"
+  assert_contains "$text" 'artifact your change cites' "and every artifact the change cites, where it says it is"
+  assert_contains "$text" 'owning guideline section phase C named' "and the owning guideline section phase C named"
+  assert_contains "$text" 'A review finding is blocking or it is not' "all four are the review contract's own words, not a second rule"
 }
 
 case_run_skipEscalationCarriesTheDecision() {

@@ -1,0 +1,9 @@
+2026-11-07T12:36:10Z
+loop-mutations: selected 1 of 271 records (labels: 258.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.aqcmJK
+RED    258.1  prompt#thePhasePromptsCarryTheirOwnRoute   (the sentence that names the marker a cut read carries, so a reviewer that holds a window grades it as the file (issue #818))
+       2026-11-07T12:36:12Z — reviewer.md names the marker a cut result carries (issue #818): 'LOOP-TRIMMED' not found in: # Reviewer — the fixed contract
+restore 258.1 prompt#thePhasePromptsCarryTheirOwnRoute green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+2026-11-07T12:36:13Z

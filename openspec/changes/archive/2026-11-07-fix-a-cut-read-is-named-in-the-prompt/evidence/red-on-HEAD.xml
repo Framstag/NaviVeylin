@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case prompt#thePhasePromptsCarryTheirOwnRoute (HEAD a3cefa93; transcribed from the runner's own summary, which writes no JUnit XML)" tests="1" failures="1" errors="0" time="2">
+  <failure message="worker.md names the marker a cut result carries (issue #818): 'LOOP-TRIMMED' not found in: # Worker — one item, phases A–D">worker.md names the marker a cut result carries (issue #818): 'LOOP-TRIMMED' not found in the rendered worker skeleton</failure>
+  <system-out>2026-11-07T12:32:32Z FAIL prompt#thePhasePromptsCarryTheirOwnRoute loop-selftest: 1 of 1 cases failed 2026-11-07T12:32:34Z</system-out>
+</testsuite>

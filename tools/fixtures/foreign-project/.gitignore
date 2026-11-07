@@ -1,0 +1,14 @@
+# The foreign project ignores what its own tooling writes, the way this project's `.gitignore` ignores `.pi/*`:
+# the loop's state directory, the fixture's stub records, and the metadata pass's score list. Without it the loop's
+# start-time guard reads the run's own state — created by the run itself, seconds before it reads the tree — as an
+# owner's uncommitted work (issue #798, measured by this fixture's own `foreign#toolchainRunsEndToEnd`).
+.pi/
+nohome.gitconfig
+gh.log
+gh.log.bodies/
+pi.log
+scores.json
+findings.jsonl
+worker-action.sh
+worker-report.txt
+reviewer-report.txt

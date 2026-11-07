@@ -828,6 +828,15 @@ pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
 #     made while no run was live, and no reading available here tells the two apart — the run's own leftovers are its
 #     items' patches, which git ignores. So the refusal names the paths and discards nothing.
 project_dirt=$(git -C "$LOOP_ROOT" status --porcelain 2>/dev/null)
+# …less the run's own state directory, which this process wrote seconds ago: it locked and initialised the state above,
+# so a project that does not ignore `.pi/` would have every run refuse itself. The directory is the run's, not the
+# owner's, and the two are told apart without a reading: this process created it (issue #798).
+state_rel="${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
+state_dir_rel=$(dirname "$state_rel")
+project_dirt=$(printf '%s\n' "$project_dirt" | awk -v sd="$state_dir_rel" 'NF {
+  p = $0; sub(/^.../, "", p); sub(/\/$/, "", p)
+  if (p == sd || index(p, sd "/") == 1 || index(sd, p "/") == 1) next
+  print }')
 if [ -n "$project_dirt" ]; then
   printf 'refusing to start: the project tree carries uncommitted work, and the landing step merges into it\n'
   printf '%s\n' "$project_dirt" | sed 's/^/  /'

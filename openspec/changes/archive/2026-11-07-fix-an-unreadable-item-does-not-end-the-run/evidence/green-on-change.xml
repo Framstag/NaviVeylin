@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the loop's shell runner: `tools/loop-selftest.sh` writes no JUnit XML. The one testcase is the
+     runner's own line from `green-on-change.log`, 2026-11-07T21:14:11Z, with this change's engine in the tree
+     (`git diff --stat` over `tools/loop/run.sh` and `tools/loop/state.sh` non-empty at the time of the run). -->
+<testsuite name="loop-selftest" tests="1" failures="0" errors="0">
+  <testcase classname="run" name="oneUnreadableItemDoesNotEndTheRun"/>
+</testsuite>

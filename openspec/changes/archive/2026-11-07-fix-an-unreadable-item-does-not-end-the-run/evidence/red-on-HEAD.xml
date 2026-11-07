@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the loop's shell runner: `tools/loop-selftest.sh` writes no JUnit XML. The one testcase and its
+     failure message are the runner's own lines from `red-on-HEAD.log`, 2026-11-07T21:13:59Z (the run's own header):
+     the case as it stands, with the base's engine restored into the tree for the run
+     (`git show fc9e0eb012dcfc781bf744d128acfac1cd9138f8:tools/loop/run.sh` and `…:tools/loop/state.sh` written over
+     this change's files, which were written back byte-identically after the run). The failure is the run's own
+     `stop: gh could not read #21 — the tracker did not answer`, printed twice by that run and quoted in the
+     message. -->
+<testsuite name="loop-selftest" tests="1" failures="1" errors="0">
+  <testcase classname="run" name="oneUnreadableItemDoesNotEndTheRun">
+    <failure message="and the run's stop is not that sentence: 'the tracker did not answer' should not appear in the run's output">and the run's stop is not that sentence: 'the tracker did not answer' should not appear in: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,reviewer:110,reviewer-pre-gate:110 … run: gh could not read #21 · stop: gh could not read #21 — the tracker did not answer</failure>
+  </testcase>
+</testsuite>

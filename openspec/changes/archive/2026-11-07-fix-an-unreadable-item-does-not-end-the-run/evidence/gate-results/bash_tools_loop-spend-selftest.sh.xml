@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-spend-selftest.sh" tests="27" failures="0" errors="0" time="1">
+  <system-out>  ok   spend#aMissingItemDirectoryIsRefused  loop-spend-selftest: all 27 cases passed</system-out>
+</testsuite>

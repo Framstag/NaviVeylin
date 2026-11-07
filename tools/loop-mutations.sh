@@ -761,7 +761,7 @@ MUTATIONS=(
   # were charged after the first `LOOP-GATE` line. The condition below is the one line that decides whether the tail
   # child exists at all, so a tail made unreachable puts the item's whole derivation back into the archive phase — and
   # the case that owns it counts the children (`run#childUsageIsRecordedPerItem`), which one child cannot satisfy.
-  '76.1@-@tools/loop/run.sh@run#childUsageIsRecordedPerItem@the tail child the gate line starts, and the item spend as the sum of two children (issue #744)@s|^  if \[ -z "\$pre_gate_refusal" \] \&\& \[ -z "\$empty_tree_reading" \] \&\& \[ "\$gate_exit" -eq 0 \] \&\& \[ "\$gate_write_decides" -eq 0 \] \&\&$|  if [ -z "$pre_gate_refusal" ] \&\& [ "$gate_exit" -eq 0 ] \&\& [ "$gate_write_decides" -eq 99 ] \&\&|'
+  '76.1@-@tools/loop/run.sh@run#childUsageIsRecordedPerItem@the tail child the gate line starts, and the item spend as the sum of two children (issue #744)@s|^  if \[ -z "\$pre_gate_refusal" \] \&\& \[ -z "\$empty_tree_reading" \] \&\& \[ -z "\$phase_failure" \] \&\& \[ "\$gate_exit" -eq 0 \] \&\& \[ "\$gate_write_decides" -eq 0 \] \&\&$|  if [ -z "$pre_gate_refusal" ] \&\& [ "$gate_exit" -eq 0 ] \&\& [ "$gate_write_decides" -eq 99 ] \&\&|'
   # 76.2 — the arm that records a red gate as the tail reported it (issue #744, review round 1). Without it the item
   # falls to "no archived change appears in the run's diff", which is the opposite of what the tail said and drops the
   # gate's own numbers; the case asks the reason for the gate's line and for the absence of that sentence.
@@ -970,6 +970,11 @@ MUTATIONS=(
   # candidate in the queue and the run takes it again — the case would be killed by its own timeout instead of
   # failing at its first assertion, which is the shape `tools/loop-mutations.sh:1175–1182` names as unreadable.
   '100.1@-@tools/loop/run.sh@run#anUnreadableItemIsNotTheEndOfTheRun@the record an item the tracker did not answer for gets and the break that follows it, so a read that fails is the whole stop again and the item is left unrecorded (issue #808)@s|^    loop_state done "\$issue" --result blocked --verdict unreadable \\$|    stop_run "gh could not read #\$issue — the tracker did not answer" \\|;;s|^    continue$|    break|'
+  # 101.1 — the reading that asks a phase whose answer is not an answer once more (issue #810). Without it the gate
+  # child's 0-byte report starts no tail and the item is decided from the empty file, so its reason is the arm that
+  # names the item's own tree: "reported success but no archived change appears in the run's diff" over a branch that
+  # carries a commit, which is the note item #755 was recorded with after 11 m 49 s.
+  '101.1@-@tools/loop/run.sh@run#aPhaseThatAnswersNothingIsThatPhasesFailure@the reading that asks a phase whose report carries no closing line once more, so a child that exits 0 and answers nothing is read as the item'"'"'s own tree (issue #810)@s|^        if \[ "\$gate_exit" -eq 0 \] && ! gate_answered "\$gate_report"; then$|        if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

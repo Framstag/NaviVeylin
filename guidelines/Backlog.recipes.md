@@ -734,6 +734,21 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
 
+What it does with a phase that answers nothing: a phase's report is that phase's **answer**, not optional text
+beside it, and the reading is taken where the phase ends. The gate child is a phase of its own (#758), and a child
+that exits 0 and leaves a report with no closing line (`LOOP-GATE`, or the `LOOP-VERDICT` an older-shaped report
+carries) has answered nothing: `tail_after_gate` finds no gate line and starts no tail, so without this reading the
+item is decided from the empty file — whose verdict is neither `skipped` nor `blocked` and whose change claim is
+empty beside a commit the change child did make — and the reason a person reads is the arm that names the item's own
+tree, "reported success but no archived change appears in the run's diff" (measured 2026-11-06, issue #810: item
+#755, exit 0, a 0-byte `worker-gate-report.md`, 11 m 49 s and 13.0 Mtok charged, over a branch that carries a
+commit). The rule the review rounds already follow (#224) is asked of the phase: the answer is read for
+completeness — the file, the newline the adapter prints after every answer, the closing line the prompt asks for
+last — an answer that is not one is asked once more with the same contract, and the second silence records the
+phase `fail` with the note `exit 0 and no report`, starts no tail, and blocks the item with a reason that names the
+phase. A child the run itself ended is not retried: its report carries the `LOOP-TIMEOUT` or `LOOP-DEADLINE` line that
+says so, and a retry would spend the bound again.
+
 What it does with an item the tracker does not answer for: nothing is decided about that item, so nothing ends the
 run on it. The read is the seam's own — `tools/loop/lib.sh` sources `tools/issues/lib.sh`, so what reaches the run is
 the failure the seam handed back: a refusal it passes through without retrying, or a transport failure it retried and

@@ -229,6 +229,7 @@ LOOP_SHELL_CASES=(
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
+  'run#aPhaseThatAnswersNothingIsThatPhasesFailure'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
@@ -651,6 +652,7 @@ loop_run_shell_case() {
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
+    'run#aPhaseThatAnswersNothingIsThatPhasesFailure') fn=case_run_aPhaseThatAnswersNothingIsThatPhasesFailure ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
@@ -7038,6 +7040,53 @@ case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
   assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "nothing is written about it"
   assert_contains "$log" "--remove-label agent/in-progress" "and the in-progress mark comes off again"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# A phase's report is the phase's **answer**, not optional text beside it (issue #810). Measured 2026-11-06 on item
+# #755: the gate child exited 0 and left a 0-byte `worker-gate-report.md`, so `tail_after_gate` found no `LOOP-GATE`
+# line and started no tail, the item's final report stayed that empty file, and the outcome block — whose first three
+# arms read a verdict the file does not carry — fell through to the arm that names the item's own tree: "reported
+# success but no archived change appears in the run's diff", over a branch that carries a commit. The item's work was
+# kept and its record named the wrong cause, and the run paid 11 m 49 s for a phase that produced no evidence and no
+# gate. The rule the review rounds already follow (#224) is asked of the phase here: an answer that is not complete
+# is asked once more, and the second silence is that phase's failure — named as such, never read as the item's tree.
+case_run_aPhaseThatAnswersNothingIsThatPhasesFailure() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The change child stops at the diff and leaves the work the run commits; the round that reads it passes; the gate
+  # child then exits 0 with an answer of nothing at all, twice.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker-prompt.md) printf "the fix\n" > demo-fix.txt ;; worker-tail*) ;; esac'
+  : > "$d/no-answer.txt"
+  export PI_STUB_REPORT_GATE="$d/no-answer.txt"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  unset PI_STUB_REPORT_GATE
+  f=$(state_file "$p")
+  # The phase is asked once more, and the retry is the same prompt contract written to a name of its own.
+  assert_eq "1" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the phase that would run the gate is started"
+  assert_eq "1" "$(grep -c '^prompt: worker-gate-prompt-retry.md$' "$PI_STUB_LOG" || true)" \
+    "and is asked once more when its answer is not an answer"
+  # The phase's own record says what happened, in the words of the reading rather than the exit status.
+  assert_eq "fail" "$(jq -r '[.steps[] | select(.name == "worker-gate") | .status] | join(",")' "$f")" \
+    "the phase is recorded failed although its child exited 0"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "worker-gate") | .note] | join(" | ")' "$f")" \
+    "exit 0 and no report" "and its note names the reading, not the status"
+  # The item is the phase's, and the reason a person reads names that phase instead of the item's own tree.
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item is recorded blocked"
+  note=$(jq -r '.items[0].note' "$f")
+  assert_contains "$note" "the gate worker" "the reason names the phase that answered nothing"
+  assert_contains "$note" "wrote no report" "and what it left"
+  assert_not_contains "$note" "no archived change appears" \
+    "and never reads the silence as a missing archive in the item's tree"
+  assert_not_contains "$note" "still at the base commit" "nor as a tree that committed nothing"
+  # Nothing was archived, so nothing is closed and no tail is invented for a phase whose answer never arrived.
+  [ ! -e "$p/.pi/issue-loop/items/21/worker-tail-report.md" ] || fail "a tail ran for a gate that never reported"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+  out=$(cat "$GH_STUB_RECORD")
+  assert_contains "$out" "--remove-label agent/in-progress" "and the in-progress mark comes off again"
 }
 
 # ── the host the run works on (issue #209) ──────────────────────────────────────────────────────────

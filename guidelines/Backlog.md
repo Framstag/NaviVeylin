@@ -301,8 +301,8 @@ The gate's configuration, `{base}` narrowing, the case pool and the suite lease 
 
 ## 7d. Refusals, records and the landing
 
-A child that never started, a dirty tree, commit identity, the branch and the merge, adoption and the numbers are
-`guidelines/Backlog.recipes.md` §7d.
+A child that never started, a phase that answered nothing, a dirty tree, commit identity, the branch and the merge,
+adoption and the numbers are `guidelines/Backlog.recipes.md` §7d.
 
 ## 7e. Leftovers, the report and the queue
 

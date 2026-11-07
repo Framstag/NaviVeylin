@@ -1048,6 +1048,16 @@ answer_complete() { # answer_complete <report file> <closing-line regex>
   report_lines "$1" | grep -qE "$2" 2>/dev/null
 }
 
+# Whether a phase's own report is an answer at all (issue #810). A child that exits 0 and leaves a report with no
+# closing line has answered nothing, and every arm the run decides an item from reads such a file as an answer it does
+# not carry — so the shape of the answer is asked before any of them: the file, the newline the adapter prints after
+# every answer, and the last line the phase's own prompt asks for. A child the run itself ended at a bound says so in
+# its report and is read as it stands, never retried, which is the rule the rounds already follow (#224).
+gate_answered() { # gate_answered <gate report> → 0 when the phase's answer arrived whole
+  [ -z "$(report_field "$1" LOOP-TIMEOUT)" ] && [ -z "$(report_field "$1" LOOP-DEADLINE)" ] &&
+    answer_complete "$1" '^LOOP-(GATE|VERDICT):'
+}
+
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
 # count zero blocking findings, which is a pass whose notes are recorded; a report that says nothing at all is
 # empty here, and an empty count keeps the loop's conservative reading — an old-shaped review never passes.
@@ -2178,6 +2188,11 @@ while true; do
   # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
   # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
   empty_tree_reading=""
+  # Whether the phase that ran the gate answered nothing at all — measured in the phase itself, because a child that
+  # exits 0 and writes no report is that phase's failure and no reading about the item's tree (issue #810). Empty for
+  # every other shape, and kept beside `empty_tree_reading` for the same reason: it is decided before the outcome block
+  # and it names a phase, not a verdict.
+  phase_failure=""
   if [ "$pre_gate" = on ] && [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ]; then
     change_diff_ready=$(report_field "$gate_report" LOOP-DIFF-READY)
     change_gate_claim=$(report_field "$gate_report" LOOP-GATE)
@@ -2273,14 +2288,17 @@ while true; do
           --note "the diff was read before the gate: $(if [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
         # The gate child is a phase of its own: it is handed what the change child established, and the findings when
         # there are any, and it decides nothing the change child already decided.
-        render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
-          "ISSUE=$issue" "CHANGE_ROOT=$worktree" "EVIDENCE_DIR=$item_dir" "BASE=$base" \
-          "SCRATCH_DIR=$scratch_dir" \
-          "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
-          "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)" \
-          "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)" \
-          "RED_TEST=$(report_field "$gate_report" LOOP-RED-TEST)" \
+        gate_prompt_values=(
+          "ISSUE=$issue" "CHANGE_ROOT=$worktree" "EVIDENCE_DIR=$item_dir" "BASE=$base"
+          "SCRATCH_DIR=$scratch_dir"
+          "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+          "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)"
+          "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)"
+          "RED_TEST=$(report_field "$gate_report" LOOP-RED-TEST)"
           "FINDINGS_PATH=${pre_gate_findings:-none — the round read before the gate found no blocking finding}"
+        )
+        render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
+          "${gate_prompt_values[@]}"
         # The findings are appended rather than substituted, for the reason the post-gate rework appends them: a
         # report is arbitrary text, and a value substituted into a skeleton is a value the skeleton's own
         # placeholders would then rewrite.
@@ -2296,9 +2314,31 @@ while true; do
         gate_write_note="$outside_write_note"
         gate_write_decides=0
         outside_write_decides && gate_write_decides=1
+        # A phase's report is the phase's **answer**, not optional text beside it (issue #810). Measured 2026-11-06 on
+        # item #755: the gate child exited 0 and left a 0-byte report, `tail_after_gate` found no gate line and started
+        # no tail, the item was decided from that empty file — whose change claim is empty — and the arm that names the
+        # item's own tree wrote "reported success but no archived change appears in the run's diff" over a branch that
+        # carries a commit. The rule the rounds already follow (#224) is asked of the phase here: an answer that is not
+        # an answer is asked once more, the same prompt contract written to a name of its own, and the second silence is
+        # this phase's failure — carried to the item's reason by `phase_failure`, never read as the item's tree.
+        gate_note="exit $gate_exit"
+        if [ "$gate_exit" -eq 0 ] && ! gate_answered "$gate_report"; then
+          printf 'run: the gate answer is not an answer (%s) — retrying the phase once\n' \
+            "$(last_line "$gate_report")" >&2
+          gate_report="$item_dir/worker-gate-report-retry.md"
+          render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt-retry.md" \
+            "${gate_prompt_values[@]}"
+          run_child "$item_dir/worker-gate-prompt-retry.md" "$gate_report"
+          gate_exit=$?
+          gate_note="exit $gate_exit"
+          if [ "$gate_exit" -eq 0 ] && ! gate_answered "$gate_report"; then
+            phase_failure="the gate worker exited 0 and wrote no report, twice — the phase that would have run the gate produced no answer the run could read, so the item is stopped by that phase and not by its own tree"
+            gate_note="exit 0 and no report"
+          fi
+        fi
         loop_state step A --name worker-gate \
-          --status "$(if [ "$gate_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
-          --note "exit $gate_exit" >/dev/null
+          --status "$(if [ "$gate_exit" -eq 0 ] && [ -z "$phase_failure" ]; then printf ok; else printf fail; fi)" \
+          --note "$gate_note" >/dev/null
       fi
     fi
   fi
@@ -2312,7 +2352,7 @@ while true; do
   # tree the item never changed. `closed` is the one verdict that does not settle it here, because it is the shape a
   # report written against the older one-child contract carries; the tail then verifies the archive the same way.
   first_verdict=$(report_field "$gate_report" LOOP-VERDICT)
-  if [ -z "$pre_gate_refusal" ] && [ -z "$empty_tree_reading" ] && [ "$gate_exit" -eq 0 ] && [ "$gate_write_decides" -eq 0 ] &&
+  if [ -z "$pre_gate_refusal" ] && [ -z "$empty_tree_reading" ] && [ -z "$phase_failure" ] && [ "$gate_exit" -eq 0 ] && [ "$gate_write_decides" -eq 0 ] &&
     { [ -z "$first_verdict" ] || [ "$first_verdict" = closed ]; } &&
     [ -z "$(report_field "$gate_report" LOOP-TIMEOUT)" ] &&
     [ -z "$(report_field "$gate_report" LOOP-DEADLINE)" ]; then
@@ -2489,6 +2529,12 @@ while true; do
     # that said the gate failed — and the gate's own numbers would be dropped from the reason a person reads.
     outcome="blocked"
     blocked_reason="${root_cause:+$root_cause — }the item's verdict is blocked${gate_claim:+ — the gate reported $gate_claim}"
+  elif [ -n "$phase_failure" ]; then
+    # A phase that answered nothing is that phase's failure (issue #810). The arms below read a report the phase never
+    # wrote — its empty verdict is neither `skipped` nor `blocked`, and its empty change claim fails beside a commit
+    # the change child did make — so the reading taken in the phase decides here, and the reason names the phase a
+    # person has to look at instead of the item's tree.
+    outcome="blocked"; blocked_reason="$phase_failure"
   elif [ "$head_now" = "$base" ]; then
     outcome="blocked"; blocked_reason="reported success but the tree is still at the base commit — nothing was committed"
   elif [ -z "$change" ]; then

@@ -356,9 +356,7 @@ turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past
 (44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
 is a runaway and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
 the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
-`cut` with that count and `bound` as its mechanism (issues #786, #790) — so no decision label is written for it,
-`state.sh next` never reads it as a refusal, and the report counts it on the bound line rather than in the blocks,
-because what the bound ended is the phase the next run resumes.
+`cut` with that count and `bound` as its mechanism (issues #786, #790).
 
 **Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
 role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),

@@ -352,9 +352,8 @@ the item is left open and no child was started: shape $changes_family/${named_ch
   # (#176, #185); so is one whose last round was announced and never answered, or refused (#262). A **blocked**
   # attempt, and one whose reviewer's refusal the run's own bound cut the rework of (#788), carry no verdict of
   # their own: nothing on them states a question a person could answer, and `start-item` keeps their commits by
-  # renaming the branch aside, so the
-  # item is queued as work. Before this, any commit parked the item forever — measured on #230, whose branch
-  # held an unmerged fix and whose refusal named an unrelated change (issue #232).
+  # renaming the branch aside, so the item is queued as work. Before this, any commit parked the item forever —
+  # measured on #230, whose branch held an unmerged fix and whose refusal named an unrelated change (issue #232).
   #
   # It is asked before the awaiting-decision clause as well, and that ordering is load-bearing: an item the run
   # escalated *and* whose branch carries a finished attempt is the one #176 exists to adopt, and the branch is

@@ -901,6 +901,13 @@ MUTATIONS=(
   # 60 % of all tool wall clock, and 117 of the 245 sessions that ran it at all (48 %) ran it three or more times. The
   # mutation drops the comparison the refusal hangs on, so a third full run in one child is measured again.
   '93.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the refusal of a full gate run past the number the profile records, so a child cannot pay for the same suites three times (issue #756)@s|^    if \[ "\$count" -ge "\$runs_max" \]; then$|    if false; then|'
+
+  # 94.x — a rework worker the run's own bound ended leaves a record on its branch, not a question for a person
+  # (issue #817). #788 wrote `cut`/`bound` on the item and nothing on the branch, so `carried_review_state` read the
+  # reviewer's own refusal as the branch's highest round and the next pre-screen named a phase the run had ended
+  # itself `agent/needs-decision`. The sibling record 80.2 quotes the reviewer's cut (`"\$1" cut >&2`) and cannot
+  # reach a line that ends `"\$1" rework-cut`, so this one site is the record the guard that writes it owes.
+  '94.1@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the rework record written on the branch, so a later pre-screen reads the phase the run ended as work instead of a question its owner owes an answer to (issue #817)@s|^        record_rework_cut "\$round"$|        : # the mutation leaves the rework cut recorded nowhere|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

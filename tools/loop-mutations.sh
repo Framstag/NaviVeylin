@@ -894,6 +894,15 @@ MUTATIONS=(
   # 60 % of all tool wall clock, and 117 of the 245 sessions that ran it at all (48 %) ran it three or more times. The
   # mutation drops the comparison the refusal hangs on, so a third full run in one child is measured again.
   '93.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the refusal of a full gate run past the number the profile records, so a child cannot pay for the same suites three times (issue #756)@s|^    if \[ "\$count" -ge "\$runs_max" \]; then$|    if false; then|'
+
+  # 94.x — a gate record names the tree it measured (issue #819). Measured 2026-10-22: a change archived with a gate
+  # its own round-2 corrections never ran, and no evidence in the tree able to say so (the archive's `evidence/gate/`
+  # XMLs are stamped 12:23–12:26 against round-2's 12:42–12:43). The record loses the identity (94.1), the run stops
+  # writing the same identity beside the diff a round is handed (94.2), and the digest stops depending on the change
+  # at all (94.3), so a corrected tree reads as the one the gate saw.
+  '94.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the tree a full run records, so its record cannot be attributed to the content it measured (issue #819)@s|^    printf '\''%s\\t%s\\t%s\\n'\'' "\$session_key" "\$gate_argv" "\${tree_identity:-head=unknown diff=unknown}" >> "\$runs_record" 2>/dev/null \|\| true$|    printf '\''%s\\t%s\\n'\'' "$session_key" "$gate_argv" >> "$runs_record" 2>/dev/null \|\| true|'
+  '94.2@-@tools/loop/run.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_tree_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
+  '94.3@-@tools/loop/lib.sh@gate#aThirdFullRunInOneSessionIsRefused@the digest of the change itself, so a tree corrected after the gate reads as the tree the gate measured (issue #819)@s|^  printf '\''head=%s diff=%s'\'' "\$head" "\$digest"$|  printf '\''head=%s diff=%s'\'' "$head" "0000000000000000"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

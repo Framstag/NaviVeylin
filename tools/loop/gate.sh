@@ -199,6 +199,17 @@ fi
 [ -n "$base" ] || loop_die "gate: cannot resolve a base to compare against — pass --base <sha>"
 git rev-parse --verify --quiet "$base" >/dev/null || loop_die "gate: '$base' is not a commit this tree knows"
 paths=$( { git diff --name-only "$base" 2>/dev/null; git status --porcelain 2>/dev/null | sed 's/^...//'; } | sort -u)
+# The tree this run measures, named before the first step and written into the run's own record (issue #819): the
+# commit it was taken on and a digest of the change itself, so a tree corrected after the gate is a record a reader
+# can set apart from the tree the gate saw. `run.sh` derives the same identity for the diff a round is handed, so the
+# reviewer compares two recorded values instead of inferring one — and a `--plan` call measures nothing, so it names
+# no tree and prints only the commands the delta owes.
+tree_identity=""
+if [ "$plan" -eq 0 ]; then
+  tree_identity=$(loop_tree_identity "$LOOP_ROOT" "$base")
+  [ -n "$tree_identity" ] || tree_identity="head=unknown diff=unknown"
+  say "LOOP-GATE-TREE: $tree_identity"
+fi
 
 # A pattern is data, and only the second argument is a path: unquoted, `for glob in $1` lets the shell expand the
 # profile's *pattern list* against the directory the gate happens to run in, so a pattern that names a tree is
@@ -288,20 +299,24 @@ if [ "$runs_max" -gt 0 ] && [ -n "${LOOP_CHILD_EVENTS:-}" ]; then
     # and it is one directory the run already owns and sweeps. A child's session is the only thing that separates one
     # child's runs from the next's, so a line without a session is another child's and is not counted.
     runs_record="$LOOP_CHILD_EVENTS.gate-runs"
-    earlier=$(awk -F'\t' -v k="$session_key" '$1 == k { print $2 }' "$runs_record" 2>/dev/null) || true
+    earlier=$(awk -F'\t' -v k="$session_key" '$1 == k { print $2 "\t" $3 }' "$runs_record" 2>/dev/null) || true
     count=$(printf '%s\n' "$earlier" | grep -c . || true)
     case "$count" in ''|*[!0-9]*) count=0 ;; esac
     if [ "$count" -ge "$runs_max" ]; then
       printf 'LOOP-GATE-REFUSED: %s full runs of this gate were already started in this child (LOOP_GATE_RUNS_MAX=%s) — a further full run is not a measurement:\n' \
         "$count" "$runs_max"
-      printf '%s\n' "$earlier" | while IFS= read -r cmd; do
-        [ -n "$cmd" ] && printf '  earlier run: %s\n' "$cmd"
+      printf '%s\n' "$earlier" | while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        cmd=${line%%$'\t'*}
+        tree=${line#*$'\t'}
+        [ "$tree" = "$line" ] && tree=""
+        printf '  earlier run: %s — tree: %s\n' "$cmd" "${tree:-unrecorded}"
       done
       printf 'run the command this delta owes instead:\n'
       printf '%s\n' "${owed_cmd[@]}" | sed 's/^/  scoped: /'
       exit 3
     fi
-    printf '%s\t%s\n' "$session_key" "$gate_argv" >> "$runs_record" 2>/dev/null || true
+    printf '%s\t%s\t%s\n' "$session_key" "$gate_argv" "${tree_identity:-head=unknown diff=unknown}" >> "$runs_record" 2>/dev/null || true
   fi
 fi
 

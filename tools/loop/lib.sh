@@ -251,6 +251,40 @@ loop_bytes_of() {
   printf '%s\n' "$(( ${k:-0} * 1024 ))"
 }
 
+# ── the tree a measurement was taken on ────────────────────────────────────────────────────────
+# A record that names no tree cannot be attributed to one (issue #819): the gate wrote the child's session and its
+# arguments and nothing else, so a run over a tree and a run over that tree corrected afterwards read alike, and a
+# change could be archived with a gate taken before its corrections
+# (`openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` §5.6 claims a round-2 gate
+# re-run, and every XML in its `evidence/gate/` is stamped 12:23–12:26 against round-2's own 12:42–12:43).
+#
+# The digest is over the change itself and is **commit-invariant**: every path the base names, plus every path git
+# does not track, each with the hash of its worktree content. A digest of `HEAD` or of `git status` would make the
+# ordinary flow read as a corrected one, because the change child measures an uncommitted tree and the run commits
+# it before the diff a reviewer reads is written — and the two moments must agree about the tree between them.
+#
+# Usage: loop_tree_identity <tree> <base> → `head=<sha> diff=<digest>`, or nothing when git cannot answer
+loop_tree_identity() {
+  local tree=${1:-} base=${2:-} head listing digest p h
+  [ -n "$tree" ] && [ -n "$base" ] || return 0
+  head=$(git -C "$tree" rev-parse HEAD 2>/dev/null) || return 0
+  [ -n "$head" ] || return 0
+  listing=$( { git -C "$tree" diff --name-only "$base" 2>/dev/null
+    git -C "$tree" ls-files --others --exclude-standard 2>/dev/null; } | sort -u |
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      if [ -e "$tree/$p" ]; then
+        h=$(git -C "$tree" hash-object -- "$p" 2>/dev/null) || h="unreadable"
+      else
+        h="deleted"
+      fi
+      printf '%s\t%s\n' "$p" "$h"
+    done )
+  digest=$(printf '%s' "$listing" |
+    { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+  printf 'head=%s diff=%s' "$head" "$digest"
+}
+
 # Remove one recorded build path inside a tree, or say why it stays — never both, and never by guessing.
 # The four refusals are the whole safety argument: an absolute or `..`-carrying entry is not a path inside
 # the tree; a path that IS a symlink is never followed (a directory holding one loses only the link); a

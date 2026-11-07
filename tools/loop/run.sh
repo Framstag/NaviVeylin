@@ -1222,6 +1222,12 @@ write_review_diff() { # write_review_diff <base> <file>
   else
     git -C "$worktree" diff "$1"..HEAD > "$2"
   fi
+  # The tree the diff was written from, beside it (issue #819): the commit and a digest of the change itself, which
+  # is what the gate's own record names for the tree it measured. A gate run before a correction and a diff written
+  # after it then read as two trees, which is the whole of what item 3 asks — and the digest is `lib.sh`'s
+  # `loop_tree_identity`, derived from the run's own base whatever range this diff is taken over, so a correction
+  # round's narrower diff is still compared against the change the gate measured.
+  loop_tree_identity "$worktree" "${base:-$1}" > "$2.identity"
 }
 
 # The round a corrective refusal buys is handed the corrections, not the change again (issue #245; the decision

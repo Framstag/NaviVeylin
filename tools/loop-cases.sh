@@ -291,6 +291,7 @@ LOOP_SHELL_CASES=(
   'run#reviewerWriteInvalidatesTheRound'
   'run#reviewReadOnlyOffOnlyForDiagnosis'
   'run#reviewDiffExcludesTheEvidenceArchive'
+  'run#aReviewDiffNamesTheTreeItWasWrittenFrom'
   'run#engineNamesNoProjectFact'
   'adapter#modeFlagIsItsOwnArgument'
   'adapter#theChildIsStartedWithoutContextFiles'
@@ -694,6 +695,7 @@ loop_run_shell_case() {
     'run#reviewerWriteInvalidatesTheRound') fn=case_run_reviewerWriteInvalidatesTheRound ;;
     'run#reviewReadOnlyOffOnlyForDiagnosis') fn=case_run_reviewReadOnlyOffOnlyForDiagnosis ;;
     'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
+    'run#aReviewDiffNamesTheTreeItWasWrittenFrom') fn=case_run_aReviewDiffNamesTheTreeItWasWrittenFrom ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
@@ -8744,6 +8746,49 @@ esac'
   assert_contains "$(cat "$prompt")" "**/evidence/**" "and names the exclusion its diff was built with"
 }
 
+# A gate's record that names no tree cannot be attributed (issue #819): the run hands the reviewer a diff, and the
+# one question item 3 asks — is this a real execution *for this change*? — is answered by comparing the two
+# identities. So the diff carries the tree it was written from, and the reviewer's contract says where it is and
+# what it is compared with. Measured 2026-10-22: a change archived with a gate the corrected tree never ran, and no
+# evidence in the tree that could say so
+# (`openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` §5.6, whose
+# `evidence/gate/` XMLs are stamped 12:23–12:26 against the round-2 runs at 12:42–12:43).
+case_run_aReviewDiffNamesTheTreeItWasWrittenFrom() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  local d p diff identity prompt
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # One committed change, so the round is handed a diff at all: the worker's own report is the one the run reads.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'case "$1" in
+  worker*)
+    printf "val fixed = 1\n" > Demo.kt
+    ;;
+esac'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 ||
+    fail "the run itself failed"
+  diff="$p/.pi/issue-loop/items/21/review-1.diff"
+  [ -f "$diff" ] || fail "the review round was handed no diff"
+  identity="$diff.identity"
+  [ -f "$identity" ] || fail "the diff under review was handed no tree identity"
+  # The head is the commit the diff was written on, which is not the tree's HEAD by the time the run ends: the run's
+  # own archive commit follows the write. What must hold is that it names a commit this tree knows, and a digest of
+  # the change beside it.
+  identity_head=$(sed -n 's/^head=\([0-9a-f][0-9a-f]*\) diff=.*/\1/p' "$identity")
+  identity_diff=$(sed -n 's/^.*diff=\([0-9a-f][0-9a-f]*\)$/\1/p' "$identity")
+  [ -n "$identity_head" ] && [ -n "$identity_diff" ] || \
+    fail "the identity carries a commit and a digest of the change: $(cat "$identity")"
+  git -C "$p/.pi/worktrees/loop" cat-file -e "$identity_head^{commit}" 2>/dev/null || \
+    fail "the commit it names is one this tree knows: $identity_head"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$prompt" ] || fail "the reviewer prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "review-1.diff.identity" \
+    "the reviewer is told where the diff's own tree is recorded"
+  assert_contains "$(cat "$prompt")" "LOOP-GATE-TREE:" \
+    "and the line in the gate's record it is compared against"
+  assert_contains "$(cat "$prompt")" "is not this diff's gated a tree this" \
+    "with a mismatch stated to be a gate over a tree the round is not reading"
+}
+
 case_run_engineNamesNoProjectFact() {
   # files: tools/check-portability.sh tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local hits sbxdir newpath d p
@@ -11688,7 +11733,18 @@ case_gate_aThirdFullRunInOneSessionIsRefused() {
     assert_eq "0" "$status" "full run $i of the gate in one child measures the step the delta owes: $out"
     assert_not_contains "$out" "LOOP-GATE-REFUSED" "and nothing refuses it: $out"
     assert_contains "$out" "LOOP-GATE: " "it reports the gate's own verdict: $out"
+    assert_contains "$out" "LOOP-GATE-TREE: head=" "and names the tree it measured (issue #819): $out"
   done
+
+  # The record names that tree, and not only the child that paid for the run (issue #819): the commit the
+  # measurement was taken on and a digest of the change itself, so a run over a corrected tree is a record a
+  # reader can tell apart from the run over the tree the gate saw.
+  recorded_head=$(awk -F'\t' '{print $3}' "$events.gate-runs" | sed -n 's/^head=\([^ ]*\) diff=.*/\1/p' | sort -u)
+  assert_eq "$(git -C "$p" rev-parse HEAD)" "$recorded_head" \
+    "each record names the commit the run measured: $recorded_head"
+  first_tree=$(awk -F'\t' 'NR == 1 {print $3}' "$events.gate-runs")
+  [ -n "$(printf '%s' "$first_tree" | sed -n 's/^head=[^ ]* diff=\([0-9a-f][0-9a-f]*\)$/\1/p')" ] || \
+    fail "the record carries a digest of the change it measured: $first_tree"
 
   # The third is refused: it names the runs already made, names the bound, and prints the command the delta owes
   # instead of running it.
@@ -11698,6 +11754,7 @@ case_gate_aThirdFullRunInOneSessionIsRefused() {
   assert_contains "$out" "LOOP_GATE_RUNS_MAX=2" "and names the recorded bound it counted against: $out"
   assert_contains "$out" "earlier run: gate.sh --base $base" "it names the runs already made: $out"
   assert_contains "$out" "scoped: true" "and the command the delta owes instead of a third full round: $out"
+  assert_contains "$out" "tree: head=" "it names the tree each earlier run measured (issue #819): $out"
   assert_not_contains "$out" "LOOP-GATE: tests=" "the refused run measured nothing and claims no verdict: $out"
   assert_eq "2" "$(grep -c '' "$events.gate-runs")" \
     "and only the two measurements were recorded, never the run that was refused"
@@ -11713,9 +11770,20 @@ case_gate_aThirdFullRunInOneSessionIsRefused() {
   # The record carries the child it was made in: the run's own phase split gives the gate child its first full run, so
   # a new `session` line in the stream starts the count at nothing.
   printf '{"type":"session","version":"3","id":"01a1a18b"}\n' >> "$events"
+  # A correction that follows a gate is a tree the gate never saw (issue #819) — the state
+  # `openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` §5.6 claims and its
+  # `evidence/gate/` does not carry. The commit does not move; the digest of the change does, and the two records
+  # already made keep the tree they measured.
+  printf 'a corrected note\n' > "$p/notes/a.md"
   out=$(one_run); status=$?
   assert_eq "0" "$status" "the runs a previous child made are not charged to this one: $out"
   assert_not_contains "$out" "LOOP-GATE-REFUSED" "so a child that has not run this gate is not refused: $out"
+  last_tree=$(awk -F'\t' 'END {print $3}' "$events.gate-runs")
+  [ "$last_tree" != "$first_tree" ] || \
+    fail "a tree corrected after the gate is a tree the gate never saw: $last_tree"
+  assert_eq "$first_tree" "$(awk -F'\t' 'NR == 1 {print $3}' "$events.gate-runs")" \
+    "and the records already made keep the tree they measured"
+  assert_contains "$out" "LOOP-GATE-TREE: $last_tree" "and the console names the tree it measured: $out"
   return 0
 }
 

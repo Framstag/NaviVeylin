@@ -580,6 +580,18 @@ wall clock — 245 sessions ran it at all, and **117 of those (48 %) ran it thre
 174 turns, #116 39 times in 152). A full round is 600–1 100 s, so a 480-minute run could spend its budget on gate
 rounds and never reach the review (issue #756).
 
+The record names the tree the run measured, not only the child that paid for it: the gate prints
+`LOOP-GATE-TREE: head=<commit> diff=<digest>` before its first step and writes the same identity into the line the
+count is read from, and the run writes it beside the diff a round is handed (`<diff>.identity`), so the reviewer's
+third item compares two recorded values instead of reading timestamps. The digest is over the change's own paths,
+each with the hash of its worktree content — never over `HEAD` or `git status` — because the change child measures an
+uncommitted tree and the run commits it before a reviewer reads the diff, and a commit-shaped digest would make the
+ordinary flow read as a corrected one. Measured 2026-10-22 (issue #819): a change was archived with a gate its own
+round-2 corrections never ran — §5.6 of
+`openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` claims a re-run, every XML in
+that archive's `evidence/gate/` is stamped `12:23:41.923Z`–`12:26:30.823Z`, and the round-2 runs are stamped
+`12:42:56.420Z` and `12:43:06.048Z` — and nothing in the tree could say so, because the record named no tree.
+
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a

@@ -1137,9 +1137,18 @@ bound it, and the same group SHALL be ended by the run's own traps.
 
 - **WHEN** a run is waiting for a child that is in the middle of its phase (a child blocked on a fifo is what
   that looks like) and the run receives `TERM`
-- **THEN** the run exits with the signal's status rather than a finished run's, and the child it started is no
-  longer running
+- **THEN** the run exits with the signal's status rather than a finished run's, the child it started is
+  no longer running, and the run's own record names `TERM` as the reason it stopped
 - **Case**: `run#interruptedRunEndsTheChildItStarted`
+
+#### Scenario: A run a vanished terminal ended takes the same path and leaves no item looking in progress
+
+- **WHEN** a run is waiting for a child mid-item and receives `HUP`, the signal a terminal or a harness sends when
+  it goes away
+- **THEN** the run exits with status `129`, the child it started is no longer running, the item it was working is
+  recorded `blocked`, its in-progress marking is removed, the run's record names `HUP` as the reason it stopped, and
+  no lock is left behind
+- **Case**: `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem`
 
 ### Requirement: The leftover report names the processes, not only the trees
 
@@ -2087,9 +2096,11 @@ the run ends, and the stop reason SHALL name that file beside the files.
 
 A case SHALL declare the files it can be affected by in the first line of its body (`# files: <token> …`), and
 the self-test SHALL select on that declaration with `--files <path> …` and `--from-git <base>`. A file set that
-names no case SHALL be refused with exit 2 before any case runs, the selection SHALL be stated against the
-declared set, a core file SHALL owe every case, and a profile's `{base}` SHALL be replaced by the base the gate
-resolved.
+names no case SHALL be refused with exit 2 before any case runs — unless the invocation names `--allow-empty`,
+which SHALL instead run no case, state the file set it read and the declared set it selected against, print
+`LOOP-SELFTEST: no case declares the delta`, and exit 0, so an empty intersection of a real delta is told apart
+from a file set a typo made unresolvable. The selection SHALL be stated against the declared set, a core file
+SHALL owe every case, and a profile's `{base}` SHALL be replaced by the base the gate resolved.
 
 #### Scenario: A file set runs the cases that declare it and no others
 
@@ -2103,6 +2114,13 @@ resolved.
 - **WHEN** `--files` names a path no case declares, and then a path the tree has but no case declares
 - **THEN** the driver exits 2 naming the declared set it could not resolve, and no case has been executed
 - **Case**: `driver#aFileSetThatNamesNoCaseIsRefused`
+
+#### Scenario: An empty intersection is stated when the caller allows it
+
+- **WHEN** a file set no case declares is run twice, once with `--allow-empty` and once without it
+- **THEN** the run with the flag executes no case, prints `LOOP-SELFTEST: no case declares the delta` with the file
+  set it read, and exits 0, while the run without it exits 2 exactly as it does today
+- **Case**: `driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt`
 
 #### Scenario: A core file owes every case
 
@@ -3660,3 +3678,54 @@ running them, and leave no record of its own, so the child is handed the scoped 
 - **AND** the runs before the limit measure the step the delta owes, a `--plan` call is neither refused nor recorded,
   and a run recorded under another session id is not charged to this child
 - **Case**: `gate#aThirdFullRunInOneSessionIsRefused`
+
+### Requirement: The change child grades its own diff before it reports
+
+The change child SHALL read the diff it is about to hand over against this contract's blocking predicates before
+it prints its diff-ready line, and SHALL answer what it finds there or record it as a note: a scenario the case
+that names it does not exercise, a claim in the change's own prose the diff contradicts, an artifact the change
+cites that is not where it says it is, and the guideline section phase C named.
+
+#### Scenario: The rendered prompt carries the self-check and what answers each predicate
+
+- **WHEN** the worker prompt is rendered for an item
+- **THEN** it carries a block that grades the diff before the line that ends the session, names each of this
+  contract's blocking predicates in its own words, and names the one check that answers each
+- **AND** it says that a finding made there is fixed in the session or recorded as a note, so the reviewer meets it
+  already named rather than spending a round to find it
+- **AND** the rule it points at is this contract's, so the prompt states no second definition of *blocking*
+- **Case**: `prompt#workerGradesItsOwnDiffBeforeItReports`
+
+### Requirement: A finished run is analysed in one read-only pass that ends in items
+
+A run that has ended SHALL be analysable by one pass that reads its state, its item records and its item streams,
+quotes the numbers they already hold rather than recomputing them, and ends with a table of changes worth paying
+for. The pass SHALL write nothing — no gate, no build, no edit under `tools/loop/`, `.pi/` or `guidelines/` — and a
+defect it finds SHALL become a tracker item, never an inline fix. The entry document SHALL name the skill's path.
+
+#### Scenario: The pass reads the run that ended and never the one in place
+
+- **WHEN** the pass starts and a run's lock owner is alive and its state records no stop
+- **THEN** it reads the newest archived state and says in its report which run in place it excluded and when that
+  run started
+- **AND** with no live run it reads the state in place, including the case where the process was killed: the run
+  recorded no stop and its state is still the record
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+
+#### Scenario: The numbers are quoted from what the state and the spend tool printed
+
+- **WHEN** the report carries a run's items, outcomes, wall times, roles, tokens or gate tallies
+- **THEN** each figure is the one `tools/loop/report.sh`, `tools/loop/state.sh show` or `tools/loop-spend.py`
+  printed for that run, and a figure the state does not hold is printed as not measured rather than as zero
+- **AND** any claim about the loop rather than about this run is supported by the per-run table over the archived
+  states, naming how many runs it covers
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+
+#### Scenario: The skill the entry document names is the read-only pass, not a name
+
+- **WHEN** a reader follows the entry document's path to the analysis skill
+- **THEN** the skill states that the pass is read-only and that a `do` row is filed as an item and never with the
+  opt-in label, so the pointer cannot resolve to a text that would authorise a write
+- **AND** the case that holds the pointer fails when either sentence is dropped, which is what makes the route a
+  contract rather than a mention
+- **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`

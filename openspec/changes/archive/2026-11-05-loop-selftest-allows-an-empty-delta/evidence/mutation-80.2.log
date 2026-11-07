@@ -1,0 +1,8 @@
+## 2026-11-05T18:56:37Z mutation 80.2 (re-run on the rebased tree, 61a75744)
+loop-mutations: selected 1 of 237 records (labels: 80.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/779/.pi/tmp/loop-mutations.MmQF9U
+RED    80.2  gate#theMapCoversEveryPipelineStep   (the run-time substitution the pipeline makes stripped before the map is compared (issue #779))
+       2026-11-05T18:56:48Z — the suite map carries none of these commands the pipeline's Check steps run: tools/loop-selftest.sh ${{ steps.delta.outputs.args }}
+restore 80.2 gate#theMapCoversEveryPipelineStep green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

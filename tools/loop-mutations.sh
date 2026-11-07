@@ -99,7 +99,7 @@ MUTATIONS=(
   '9.1@-@tools/loop/state.sh@state#secondRunRefusesWithExit5@the lock that keeps one run per repository@s|^  if ! mkdir "$LOCK_FILE" 2>/dev/null; then|  if false; then|'
   '9.2@-@tools/loop/worktree.sh@worktree#refusesWhenMainAdvanced@the stale-base refusal@s|^  if \[ "$current" != "$base" \]; then|  if false; then|'
   '9.3@writes@tools/loop/run.sh@labels#writesOnlyBetweenChildren@one writer per tree: the child runs while the wrapper writes state@s|^  run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$item_dir/worker-prompt.md" ) > "$item_dir/worker-report.md" 2>\&1 \&\n  worker_pid=$!\n  ( while kill -0 "$worker_pid" 2>/dev/null; do bash "$LOOP_DIR/state.sh" step A --name during-child --status running >/dev/null 2>\&1; sleep 0.02; done ) \&\n  wait "$worker_pid"|'
-  '9.4@-@tools/loop/run.sh@labels#trapRemovesInProgressOnSignal@the signal trap that removes the in-progress label@s|^    loop_labels unpick "$in_progress" >&2 \|\| true$|    : # the mutation keeps the in-progress label|'
+  '9.4@-@tools/loop/run.sh@labels#trapRemovesInProgressOnSignal@the signal trap that removes the in-progress label@s|^      loop_labels unpick "$in_progress" >&2 \|\| true$|      : # the mutation keeps the in-progress label|'
   '9.5@-@tools/loop/run.sh@run#childClaimWithoutCommitIsBlocked@the run verifying instead of trusting the child@s|^  elif \[ "\$last_exit" -ne 0 \]; then|  elif false; then|;;s|^  elif \[ "\$verdict_claim" = "skipped" \]; then|  elif false; then|;;s|^  elif \[ "\$head_now" = "\$base" \]; then|  elif false; then|;;s|^  elif \[ -z "\$change" \]; then|  elif false; then|;;s|^  elif \[ -n "\$LOOP_GATE_CMD" \] && \[ "\$gate_found" -eq 0 \]; then|  elif false; then|;;s|^  elif \[ "\$cited_evidence" -eq 1 \] && \[ "\$carried" -eq 0 \]; then|  elif false; then|'
   '9.6@-@tools/loop/run.sh@run#decisionCapRefusesToStart@the decision cap that stops a run@s|^if \[ "${open_decisions:-0}" -ge "$max_decisions" \]; then|if false; then|'
   '9.7@-@tools/loop/run.sh@run#mayCloseNoLeavesTheIssueOpen@the closure opt-out@s|^      if \[ "$may_close" = "no" \]; then close_args+=(--no-close); fi$|      : # the mutation closes anyway|'
@@ -115,6 +115,10 @@ MUTATIONS=(
   # `stop_run` call and leaves the arm's console text in place, so the case fails on the reason it reads out of
   # `run.stop` — not on the refusal firing, which 9.6 owns.
   '9.12@-@tools/loop/run.sh@run#theDecisionCapRecordsItsStopReason@the cap'"'"'s refusal written as the run'"'"'s stop reason@s|^  stop_run "the decision cap refuses the start: |  : "the decision cap refuses the start: |'
+  # 9.13 is issue #755's invariant: the signal the trap took written as the run's own stop. The record removes only the
+  # `loop_state stop` write, so the HUP case fails on the reason it reads out of `run.stop` and not on the trap, the
+  # label or the lock, which the case asserts around it.
+  '9.13@-@tools/loop/run.sh@run#aHupEndedRunRecordsItsStopAndUnpicksItsItem@the run recording the signal it took as its own stop (issue #755)@s|^    loop_state stop "interrupted by SIG\${signal_taken}" >&2 \|\| true$|    : # the mutation records no signal|'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
   '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$worktree" \&\& $child_cmd "$1"; printf|'
   '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'
@@ -347,7 +351,7 @@ MUTATIONS=(
   # 54.11 — a leg's group selection is the map's own driver entry with a narrowing appended (issue #781): without
   # the strip, the suite the pipeline runs as three legs names the driver as a command the map does not carry, so
   # the loop's suite is red for a landing the pipeline would accept.
-  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip=.*$|  strip='"'"'s/ --from-git {base}$//'"'"'|'
+  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip() .*$|  strip() { sed -e '"'"'s/ --from-git [^ ]*$//'"'"'; }|'
   # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
   # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
   # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
@@ -481,6 +485,16 @@ MUTATIONS=(
   '53.9@-@../loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
   '53.10@-@../loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
   '53.11@-@../loop-selftest.sh@clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft@the sweep of the suite own scratch root on the way out, so a process a case left behind does not outlive it (issue #233)@s|^  loop_end_pids_under "\$tmp"$|  : # the mutation leaves the process behind|'
+  # A delta no case declares (issue #779). The driver answered that file set with one outcome only — the refusal — and a
+  # CI step handed a real delta needs the second: with `--allow-empty` the empty intersection is a statement naming the
+  # delta, and without the flag the refusal stands byte for byte. One mutation, the flag's branch removed, so the
+  # statement goes back to being a refusal; the case that reads the pair is the one named here.
+  '80.1@-@../loop-selftest.sh@driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt@the empty intersection stated rather than refused when the caller has declared it expects one (issue #779)@s|^  if \[ "\$allow_empty" -eq 1 \]; then$|  if false; then|'
+  # The pin compares the pipeline's command against the map's, and the delta the step is now handed is written as a
+  # run-time substitution (`${{ steps.delta.outputs.args }}`). Removing that half of the strip line puts the
+  # expression back into the comparison, so the pin reports the step as missing from the map — which is the state
+  # this tree was in from the leg split, before the normalisation existed.
+  '80.2@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the run-time substitution the pipeline makes stripped before the map is compared (issue #779)@s|^  strip() { sed -e .*--from-git \[\^ \]\*\$//.; }$|  strip() { sed -e '\''s/ --group [^ ]*$//'\'' -e '\''s/ --from-git [^ ]*$//'\''; }|'
   # One suite per repository (issue #295): the lock is taken at all, the pattern that is a suite is told from the one
   # named case that is not, the lease lets a suite whose owner is gone take it over, and the release leaves the
   # repository free for the suite after it.

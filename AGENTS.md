@@ -148,8 +148,9 @@ guarded**) — are `guidelines/Design.md` §8, `guidelines/UICar.md` §3, §3a, 
 
 ## Backlog maintenance
 
-The tracker is the live backlog, and the nine skills under `.pi/skills/*` (`create-issue`, `list-issues`,
-`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `process-failure-log`) own it;
+The tracker is the live backlog, and the ten skills under `.pi/skills/*` (`create-issue`, `list-issues`,
+`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `reshape-issue`,
+`answer-decision`, `process-failure-log`) own it;
 read `guidelines/Backlog.md` §1 "Status, and what this document owns", §3 "What the tracker holds", §4 "The
 invariants", §5 "Who may write what" and §9 "Checks". An item filed **before** the migration also carries `§N`
 in its title and a
@@ -173,11 +174,12 @@ whose single visual symptom needed many review rounds, rule 4 from the shared-wo
   `tools/loop/prompts/worker.md`, and the entry is `tools/loop/run.sh` (the gate for `tools/loop/**` is
   `tools/loop-selftest.sh`, offline).
 
-- two skills are the loop's ends, and they are named here by their paths: `.pi/skills/create-issue` files one
-  finding as one tracker item, and `.pi/skills/device-check` turns one on-device verification into evidence. The
-  case `routed-read#theEntryDocumentNamesTheLoopSkillsByPath` holds both names, so a dropped pointer fails the
-  suite instead of a run — an absent reference is the one failure a check that only resolves the paths still
-  written cannot report.
+- three skills are the loop's ends, and they are named here by their paths: `.pi/skills/create-issue` files one
+  finding as one tracker item, `.pi/skills/device-check` turns one on-device verification into evidence, and
+  `.pi/skills/analyse-loop-run` reads one finished run into its numbers, what it did well and badly, and the
+  changes worth paying for. The case `routed-read#theEntryDocumentNamesTheLoopSkillsByPath` holds all three names,
+  so a dropped pointer fails the suite instead of a run — an absent reference is the one failure a check that only
+  resolves the paths still written cannot report.
 
 ## OpenSpec Workflow
 

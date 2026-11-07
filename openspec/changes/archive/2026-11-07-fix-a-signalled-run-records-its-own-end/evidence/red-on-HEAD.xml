@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the two case commands printed on the base tree (HEAD fca2c857 with the base `tools/loop/run.sh` and this
+     change's two cases in place): the shell runner writes no JUnit XML, so this file is the carrier of the number the
+     change quotes (tests=2 failures=2), kept beside red-on-HEAD.log so the claim has both halves. The failure lines are
+     the runner's own. The declaration case the delta owes was run first on the same tree and passed
+     (`PASS driver#everyCaseDeclaresTheFilesItCanReach`, 2026-11-07T07:32:43Z), so what is red here is the record and
+     not the new case's `# files:` line. -->
+<testsuite name="bash tools/loop-selftest.sh --case 'run#interruptedRunEndsTheChildItStarted'; bash tools/loop-selftest.sh --case 'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'" tests="2" failures="2" errors="0" time="9" timestamp="2026-11-07T07:32:43Z">
+  <testcase name="run#interruptedRunEndsTheChildItStarted" classname="run">
+    <failure>the run records the signal that ended it as its own stop, not only the item it was working (issue #755): 'SIGTERM' not found in: </failure>
+  </testcase>
+  <testcase name="run#aHupEndedRunRecordsItsStopAndUnpicksItsItem" classname="run">
+    <failure>the run records the signal that ended it as its own stop: 'SIGHUP' not found in: </failure>
+  </testcase>
+  <system-out>loop-selftest: 1 of 1 cases failed (each command); the pair is 2 of 2 red</system-out>
+</testsuite>

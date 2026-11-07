@@ -1,0 +1,13 @@
+== after the archive merged the delta into openspec/specs/agent-issue-loop/spec.md
+2026-11-07T07:53:52Z
+-- bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 24 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+-- bash tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+exit=0
+-- openspec validate agent-issue-loop --type spec
+⚠ [WARNING] requirements[107]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[108]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[109]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.

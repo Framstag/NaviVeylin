@@ -92,7 +92,12 @@ round the budget bounds is the one after the gate, which is where a change is ju
 `--pre-gate-review off` (`LOOP_PRE_GATE_REVIEW_DEFAULT`) keeps the older shape — one child from the diagnosis to the
 gate — and is folded to `off` by every run with `--review off`, because a run with no reviewer has none to place in
 front of the gate. A change child that runs the gate anyway is read as it always was: the run does not re-run a gate,
-and a round before a gate that has already run has nothing to read.
+and a round before a gate that has already run has nothing to read. The child **grades its own diff first**, against
+the review contract's own three predicates — a clause the case that names it does not exercise, a claim in
+`design.md`/`tasks.md`/`proposal.md` that the diff contradicts, an artifact the change cites that is not where it
+says — because the writer holds the diff before the reviewer does and the finding costs it nothing to make (issue
+#812; measured: of the 165 round-1 reports the loop's item archive holds, 103 refuse, and those three classes are
+what their 141 blocking findings say).
 
 The gate is where a gated item's **first** child ends, and the archive is written by a second one. Measured on the
 archive (`python3 tools/loop-spend.py`, 2026-11-02, 213 items / 524 sessions / 30 795 turns): of the 274 sessions
@@ -580,7 +585,15 @@ the gate replaces with the base it resolved, and the loop's self-test is run tha
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
 directory), `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
 set that names no case is refused with exit 2 rather than read as an empty suite — the rule the mutation harness
-has applied to its own records since #235. A delta to the library, the profile, the case file or the driver itself
+has applied to its own records since #235. A caller handed a real delta asks a different question — does this delta
+owe any case? — and its ordinary answer is no: most paths in this repository, application code and capability specs
+among them, are declared by no case, because a case declares the engine scripts it can be reached through. That is
+why the refusal has a third outcome beside it: `--allow-empty` is the caller saying it expects emptiness, and it is
+answered with `LOOP-SELFTEST: no case declares the delta` beside the file set it read and the declared set it
+selected against, nothing run and exit 0, so the step's log says which delta was covered by nothing rather than
+saying nothing. The flag states the intersection and nothing else: without it, a path the tree has and no case
+declares is the refusal it was, and CI's own step passes it (`--allow-empty --from-git <base>`, the pull request's
+base else the pushed branch's `before`, the whole set when that value is the all-zeros SHA). A delta to the library, the profile, the case file or the driver itself
 owes the whole set, and so does the archive: a case reaches behaviour through the scripts it starts, and only a
 hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
 `tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to
@@ -688,6 +701,14 @@ recorded two items `blocked`, escalated both, and stopped on "two consecutive it
 into an 8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
+
+A run one of the traps it installs ended records that signal as its own stop: `HUP` is trapped beside `INT` and
+`TERM` — a terminal or a harness that goes away sends it — and the trap writes `interrupted by SIG<NAME>` into the
+run's record before the in-progress mark comes off and before the lock is released. 50 of the 105 runs
+this repository has archived record no stop, 18 of them having worked items, so a third of the loop's own history has
+no cause, and an item a run left in progress is the one thing a person has to find by hand before the queue can take
+it again (#755). The item's own record is the one it always was — `blocked`, with "interrupted by a signal" — and the
+cases are `run#interruptedRunEndsTheChildItStarted` and `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem`.
 
 What it does with a tree the child claims and did not commit: the reading that needs no child at all is the item's
 HEAD against the run's base, so it is taken where the run itself makes the commit — the child the gate is deferred to

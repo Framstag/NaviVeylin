@@ -130,6 +130,7 @@ LOOP_SHELL_CASES=(
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
+  'prompt#workerGradesItsOwnDiffBeforeItReports'
   'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#reviewerIsBoundedToReading'
@@ -211,6 +212,7 @@ LOOP_SHELL_CASES=(
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
   'run#noProcessOfASignalledRunOutlivesIt'
+  'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
@@ -346,6 +348,7 @@ LOOP_SHELL_CASES=(
   'driver#theCoreIsCompiledOncePerSuite'
   'driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns'
   'driver#aFileSetThatNamesNoCaseIsRefused'
+  'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt'
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#theSuiteRunsItsCasesInAPool'
@@ -529,6 +532,7 @@ loop_run_shell_case() {
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
+    'prompt#workerGradesItsOwnDiffBeforeItReports') fn=case_prompt_workerGradesItsOwnDiffBeforeItReports ;;
     'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#reviewerIsBoundedToReading') fn=case_prompt_reviewerIsBoundedToReading ;;
@@ -610,6 +614,7 @@ loop_run_shell_case() {
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
     'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
+    'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem') fn=case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
@@ -744,6 +749,7 @@ loop_run_shell_case() {
     'driver#theCoreIsCompiledOncePerSuite') fn=case_driver_theCoreIsCompiledOncePerSuite ;;
     'driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns') fn=case_driver_aFileFilterRunsOnlyTheCasesTheDeltaOwns ;;
     'driver#aFileSetThatNamesNoCaseIsRefused') fn=case_driver_aFileSetThatNamesNoCaseIsRefused ;;
+    'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt') fn=case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
@@ -3311,6 +3317,26 @@ case_prompt_workerNamesTheDecisionField() {
   assert_contains "$(cat "$prompt")" 'LOOP-MEASURED:' "and what was measured instead, with how it was taken"
 }
 
+# The change child grades the diff it hands over against the review contract's own three predicates (issue #812).
+# Measured over the loop's item archive: 103 of 165 round-1 reports refuse, and their blocking findings are
+# dominantly a scenario clause the case that names it does not exercise, or a `design.md`/`tasks.md` claim the
+# diff contradicts — both readable by the writer, who holds the diff before anybody else does.
+case_prompt_workerGradesItsOwnDiffBeforeItReports() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt text
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'Grade your own diff before you hand it over' "the worker grades its own diff before it reports"
+  assert_contains "$text" 'clauses against the case that names it' "and reads each clause against the case that names it"
+  assert_contains "$text" 'prose against the diff' "and each claim design.md, tasks.md or proposal.md makes against a hunk"
+  assert_contains "$text" 'artifact your change cites' "and every artifact the change cites, where it says it is"
+  assert_contains "$text" 'owning guideline section phase C named' "and the owning guideline section phase C named"
+  assert_contains "$text" 'A review finding is blocking or it is not' "all four are the review contract's own words, not a second rule"
+}
+
 case_run_skipEscalationCarriesTheDecision() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p skip_report out
@@ -4146,9 +4172,14 @@ case_gate_theMapCoversEveryPipelineStep() {
   # The commands a check step runs: a step named `Check …` is a check (a publish step writes the tree and is not
   # one), and its commands are the `bash <path> …` lines it runs — inline after `run:` or one per line inside a
   # `run: |` block. A trailing `|| { … }` is the workflow's own error handling, not part of the command.
-  # The narrowing the gate appends is not part of the pipeline's command, and neither is a selection the pipeline
-  # varies per leg: both are stripped from the map's values and the pipeline's commands before they are compared.
-  strip='s/ --from-git {base}$//; s/ --group [^ ]*$//'
+  #
+  # The map names the command the pipeline runs, and the pipeline varies parts of it *at run time*: a leg narrows the
+  # run with `--group <selection>`, and the step is handed the delta it owes as `${{ steps.delta.outputs.args }}`,
+  # which carries `--from-git <base>`. A substitution the pipeline makes is not part of the command the map names,
+  # and neither is the gate's own `--from-git {base}` narrowing on the map's side, so both sides are compared on
+  # what they have in common. A leg runs *fewer* of the cases the map's driver entry runs — the map's entry is the
+  # broader claim — so a leg answers to that entry and needs no pair of its own (issue #781, issue #779).
+  strip() { sed -e 's/ \${{[^}]*}}//' -e 's/ --group [^ ]*$//' -e 's/ --from-git [^ ]*$//'; }
   cmds=$(awk '
     /^[[:space:]]*- name:/ { name=$0; sub(/^[[:space:]]*- name:[[:space:]]*/, "", name); incheck=(name ~ /^Check /); next }
     incheck {
@@ -4159,10 +4190,10 @@ case_gate_theMapCoversEveryPipelineStep() {
         sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*[|&;].*$/, "", line); print line
       }
     }' "$LOOP_PROJECT_ROOT/$pipeline" \
-    | sed -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
+    | sed -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | strip | sort -u)
   [ -n "$cmds" ] || fail "the pipeline at $pipeline names no shell gate command: the pin would pass over nothing"
   map=$(sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' "$conf" | tr ';' '\n' \
-    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
+    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | strip | sort -u)
   [ -n "$map" ] || fail "the profile's suite map is empty"
   missing=$(comm -13 <(printf '%s\n' "$map") <(printf '%s\n' "$cmds"))
   [ -z "$missing" ] || fail "the suite map carries none of these commands the pipeline's Check steps run: $(printf '%s' "$missing" | tr '\n' ' ')"
@@ -10965,6 +10996,12 @@ case_run_interruptedRunEndsTheChildItStarted() {
   kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
   wait "$pid"; status=$?
   assert_eq "143" "$status" "a run ended by TERM reports the signal it took"
+  # The signal went to the whole group, so the subshell this case waited for is gone while the run's own trap is still
+  # finishing — and the record this case reads is the trap's last work. The lock is released after the run's stop and
+  # the item's record are written, so a lock that is gone is the run's end having happened, not a sleep long enough.
+  for i in $(seq 1 100); do [ -d "$p/.pi/issue-loop/lock" ] || break; sleep 0.1; done
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "SIGTERM" \
+    "the run records the signal that ended it as its own stop, not only the item it was working (issue #755)"
   # The child is checked while it is still blocked on the fifo: releasing it first would end it here, and a child
   # this case ended is no evidence about the run.
   for i in $(seq 1 50); do kill -0 "$child" 2>/dev/null || break; sleep 0.1; done
@@ -10978,6 +11015,65 @@ case_run_interruptedRunEndsTheChildItStarted() {
   fi
   exec 8>&-
   [ "$alive" -eq 0 ] || fail "the run ended but the child it started (pid $child) is still running — an interrupted run must end its child"
+}
+
+# HUP is the signal a terminal or a harness sends when it goes away, and it was the signal the run did not trap
+# (issue #755): the shell died with no trap run at all, so the item kept `agent/in-progress` — the one label no script
+# clears, because `state.sh`'s `unlock` releases the lock and nothing else — and the next pre-screen excluded the item
+# as one another change already held. A trapped HUP takes the path TERM takes, and the run's own end is recorded on it:
+# `run.stop` is the reason a report read after this process is gone prints, and 50 of the 105 runs this repository has
+# archived record no stop, 18 of them having worked items (measured 2026-11-07).
+case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p block first status f owner child i alive
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # The child names the process the run started for it: the stub `pi`, which is this action's parent.
+  printf 'printf "%%s\\n" "$PPID" > %s\n' "'$d/child.pid'" >> "$d/worker-action.sh"
+  block="$d/wait.fifo"; mkfifo "$block"
+  # The run is started inside a subshell that exits with the run's status instead of dying of the same signal, so the
+  # case's own shell is left with no job killed by a signal — its notice of one is a locale's word on the suite's
+  # output. The signal goes to the run's own pid, which the state it writes names (`run.ownerPid`), so the case also
+  # reads the field the pre-screen's stale-mark repair would read.
+  ( export PI_STUB_WAIT="$block"
+    run_loop "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
+  first=$!
+  # Held read-write before anything can end the child, so the release below never waits for a reader that is already
+  # gone (issue #259 — `labels#trapRemovesInProgressOnSignal` explains the hang that shape cured).
+  exec 8<> "$block"
+  wait_for_stub_child "$block.ready" || true
+  [ -f "$block.ready" ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the run never reached its child"; }
+  f=$(state_file "$p"); owner=0
+  for i in $(seq 1 100); do
+    owner=$(jq -r '.run.ownerPid // 0' "$f" 2>/dev/null || printf 0)
+    [ "$owner" != 0 ] && break
+    sleep 0.1
+  done
+  [ "$owner" != 0 ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the run never recorded the process that wrote its state"; }
+  child=""
+  for i in $(seq 1 100); do [ -f "$d/child.pid" ] && { child=$(cat "$d/child.pid"); break; }; sleep 0.1; done
+  [ -n "$child" ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the child never named the process the run started"; }
+  kill -HUP "$owner"
+  wait "$first"; status=$?
+  assert_eq "129" "$status" "a run ended by HUP reports the signal it took"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$f")" "SIGHUP" \
+    "the run records the signal that ended it as its own stop"
+  assert_eq "1" "$(grep -c 'remove-label agent/in-progress' "$GH_STUB_RECORD" || true)" \
+    "the interrupted item's in-progress label is removed exactly once"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the interrupted item is recorded blocked"
+  # The child is checked while it is still blocked on the fifo, the way `run#interruptedRunEndsTheChildItStarted` does:
+  # a trap that leaked the child would pass every assertion above.
+  for i in $(seq 1 50); do kill -0 "$child" 2>/dev/null || break; sleep 0.1; done
+  alive=0
+  kill -0 "$child" 2>/dev/null && alive=1
+  if [ "$alive" -eq 1 ]; then
+    printf 'go\n' >&8 2>/dev/null || true
+    kill -9 "$child" 2>/dev/null
+  fi
+  exec 8>&-
+  [ "$alive" -eq 0 ] || fail "the run HUP ended but the child it started (pid $child) is still running — the trap must end it"
+  [ ! -d "$p/.pi/issue-loop/lock" ] || fail "the lock was left behind by the run HUP ended"
 }
 
 # A process still standing in a scratch tree is a leftover whatever its tree's state, and the kernel shows a
@@ -11740,6 +11836,49 @@ case_driver_aFileSetThatNamesNoCaseIsRefused() {
 
   out=$(LOOP_CONF="$conf" bash "$driver" --files tools/loop-cases.sh 2>&1); status=$?
   assert_eq "2" "$status" "a path in the tree that no case declares is the same refusal: $out"
+  return 0
+}
+
+# The refusal above is written for a caller who mistyped a path, and it is right there. A caller handed a real delta
+# asks a different question — "does this delta owe any case?" — and "no" is its ordinary answer: most paths in this
+# repository are declared by no case, because a case declares the engine scripts it can be reached through. The two
+# answers share one status and one sentence, so a caller that narrows cannot tell them apart and must refuse both.
+# `--allow-empty` is the caller saying which question it is asking: the empty intersection becomes a statement that
+# names the delta and the declared set, runs nothing and exits 0, while the same file set without the flag is the
+# refusal it always was. The flag states emptiness; it does not make a file set valid, and it does not swallow a
+# selection that is not empty.
+case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d driver conf out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_SELECTION_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+
+  # A real delta the case set does not declare — an application path, which no case reaches. With the flag it is a
+  # statement carrying the file set and the declared set it selected against, and no case runs.
+  out=$(LOOP_CONF="$conf" bash "$driver" --allow-empty \
+    --files app/src/main/java/com/naviveylin/MainActivity.kt 2>&1); status=$?
+  assert_eq "0" "$status" "an empty delta the caller declared is not a failure: $out"
+  assert_contains "$out" "LOOP-SELFTEST: no case declares the delta" "and it is stated, not swallowed: $out"
+  assert_contains "$out" "files: app/src/main/java/com/naviveylin/MainActivity.kt" "naming the file set it read: $out"
+  assert_contains "$out" "0 of 4 declared" "and the declared set it selected against: $out"
+  assert_eq "" "$(cat "$STUB_RUN_LOG")" "no case ran"
+
+  # The same file set without the flag is the refusal, byte for byte: a caller that has not said it expects emptiness
+  # cannot be told by the driver that emptiness is what it found.
+  out=$(LOOP_CONF="$conf" bash "$driver" \
+    --files app/src/main/java/com/naviveylin/MainActivity.kt 2>&1); status=$?
+  assert_eq "2" "$status" "the same file set without the flag is still refused: $out"
+  assert_contains "$out" "names no case of the 4 declared" "with the refusal it always printed: $out"
+  assert_eq "" "$(cat "$STUB_RUN_LOG")" "and neither invocation ran a case"
+
+  # The flag is about the intersection and never about the selection: a file set that does name a case still runs it.
+  out=$(LOOP_CONF="$conf" bash "$driver" --allow-empty --files tools/loop/gate.sh 2>&1); status=$?
+  assert_eq "0" "$status" "a delta that owes a case runs it under the flag: $out"
+  assert_eq "stub#ownsGate" "$(cat "$STUB_RUN_LOG")" "and the case it names is the one that ran"
+  assert_contains "$out" "selected 1 of 4 cases" "with the selection stated as the flag narrowed nothing: $out"
   return 0
 }
 

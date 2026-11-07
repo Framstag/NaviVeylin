@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the loop's shell runner: `tools/loop-selftest.sh` writes no JUnit XML. The one testcase and its
+     failure message are the runner's own lines from `red-on-HEAD.log`, 2026-11-07T16:21:45Z: the case as it now
+     stands, with `tools/loop/run.sh` at the base 233cd286bc3e213125a69b99ce6ac8dc5ac6b19c (`git diff --stat
+     tools/loop/run.sh` empty at the time of the run). -->
+<testsuite name="loop-selftest" tests="1" failures="1" errors="0">
+  <testcase classname="run" name="aRedGateIsBlockedByTheTail">
+    <failure message="the gate tally the tail read, not the emptiness of a field nobody wrote: expected 'tests=1 failures=2 (the gate)', got ''">the gate tally the tail read, not the emptiness of a field nobody wrote: expected 'tests=1 failures=2 (the gate)', got ''</failure>
+  </testcase>
+</testsuite>

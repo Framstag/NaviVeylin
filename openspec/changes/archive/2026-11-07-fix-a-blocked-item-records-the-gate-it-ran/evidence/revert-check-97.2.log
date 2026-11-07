@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 277 records (labels: 97.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.A3m0Is
+RED    97.2  run#aBlockedItemRecordsTheRoundThatReadIt   (the verdict and the count of the round that read the diff, so an item that read one records `off`/`0` beside the spend that round made (issue #813))
+       2026-11-07T16:27:17Z — the verdict of the round that read the diff, not the off of a round nobody read: expected 'PASS', got 'off'
+restore 97.2 run#aBlockedItemRecordsTheRoundThatReadIt green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

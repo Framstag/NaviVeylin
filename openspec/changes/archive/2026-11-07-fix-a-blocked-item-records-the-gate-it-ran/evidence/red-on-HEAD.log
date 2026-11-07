@@ -1,0 +1,5 @@
+run#aRedGateIsBlockedByTheTail|   the gate tally the tail read, not the emptiness of a field nobody wrote: expected 'tests=1 failures=2 (the gate)', got ''
+--- run#aRedGateIsBlockedByTheTail[0] (exit 1)
+  the gate tally the tail read, not the emptiness of a field nobody wrote: expected 'tests=1 failures=2 (the gate)', got ''
+FAIL run#aRedGateIsBlockedByTheTail
+loop-selftest: 1 of 1 cases failed

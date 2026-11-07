@@ -1,0 +1,51 @@
+# evidence-check — what the pointer check reported, and what was corrected
+
+Every line is a command's own output; the command is above it. Run from the change root
+`/home/tim/projects/NaviVeylin/.pi/worktrees/loop`, before the archive.
+
+## First run, as the tail found the change
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-blocked-item-records-the-gate-it-ran --root .
+    FAIL C1 dangling §7 in openspec/changes/fix-a-blocked-item-records-the-gate-it-ran (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    (the same line twice more)
+    FAIL C2 quoted tally tests=1 failures=2 is carried by no XML under ./app/build/test-results or openspec/changes/fix-a-blocked-item-records-the-gate-it-ran/evidence
+    FAIL C2 quoted tally tests=880 failures=2 is carried by no XML under ./app/build/test-results or openspec/changes/fix-a-blocked-item-records-the-gate-it-ran/evidence
+    FAIL C2 quoted tally tests=1 failures=2 is carried by no XML under ./app/build/test-results or openspec/changes/fix-a-blocked-item-records-the-gate-it-ran/evidence
+    ok   C2 test tallies: 8 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 314 resolved and in range, 26 unresolved or ambiguous
+    ----
+    evidence-check: FAIL (6)
+
+## What the six were
+
+Three C1s: `§7d` in `proposal.md:65` and `design.md:80`, and `§7e` in `design.md:85`. Each is a **guideline section**,
+not a backlog `§`-issue: `guidelines/Backlog.recipes.md`:710 "Refusals, records and the landing" and `:892`. The
+check's pattern is `§[0-9]\+` (`tools/loop/evidence-check.sh:68`), so it read the `§7` inside `§7d`/`§7e` as a
+citation of the migration's `§ → issue` numbering, where no row 7 exists — two namespaces the check does not tell
+apart. Repointed at the same sections by line, dropping the `§` the check misreads; no claim changed.
+
+Three C2s, on two shapes:
+
+- `LOOP-GATE: tests=880 failures=2 errors=0` — issue #798's own gate line, quoted from another item's tree before this
+  work. No XML of that run is in this change's evidence, and it is not a tally this change took: the line now carries
+  "not retained as a tally here" beside the numbers.
+- `tests=1 failures=2` — twice, in the *expected string* inside `run#aRedGateIsBlockedByTheTail`'s failure message
+  (`proposal.md`, `evidence/evidence.md`). That is neither a tally nor a run: the case's own `tests=1 failures=1` is the
+  red tally, and `evidence/red-on-HEAD.xml` carries it. The quote now carries "not retained as one" beside it.
+
+## The run after the correction
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-blocked-item-records-the-gate-it-ran --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 5 pairs confirmed, 3 exempted (not retained), 1 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 312 resolved and in range, 26 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+The 26 unresolved `file:line` citations are bare basenames (`run.sh:2353`, `state.sh:616`, …) that the tree-wide
+basename search cannot single out; each resolves against `tools/loop/<name>`, and none points past the end of that
+file. The count is the check's ambiguity report, not a dangling claim.

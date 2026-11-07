@@ -1,0 +1,45 @@
+# Archive — fix-a-blocked-item-records-the-gate-it-ran (item #813)
+
+Tail process (phase F), 2026-11-07, from the change root `/home/tim/projects/NaviVeylin/.pi/worktrees/loop`.
+
+    $ openspec archive fix-a-blocked-item-records-the-gate-it-ran --yes
+    Task status: ✓ Complete
+    Specs to update:
+      agent-issue-loop: update
+    Applying changes to openspec/specs/agent-issue-loop/spec.md:
+      + 1 added
+    Totals: + 1, ~ 0, - 0, → 0
+    Specs updated successfully.
+    Change 'fix-a-blocked-item-records-the-gate-it-ran' archived as '2026-11-07-fix-a-blocked-item-records-the-gate-it-ran'.
+
+Checks after the archive, in the change root:
+
+    $ ls -d openspec/changes/archive/2026-11-07-fix-a-blocked-item-records-the-gate-it-ran
+    openspec/changes/archive/2026-11-07-fix-a-blocked-item-records-the-gate-it-ran
+
+    $ ls -d openspec/changes/fix-a-blocked-item-records-the-gate-it-ran
+    ls: no such file or directory      # the unarchived directory is gone, as intended
+
+    $ grep -n "An item's record keeps what the run measured to decide it" \
+        openspec/specs/agent-issue-loop/spec.md "$archive/specs/agent-issue-loop/spec.md"
+    openspec/specs/agent-issue-loop/spec.md:3869:### Requirement: An item's record keeps what the run measured to decide it
+    openspec/changes/archive/2026-11-07-fix-a-blocked-item-records-the-gate-it-ran/specs/agent-issue-loop/spec.md:3:### Requirement: An item's record keeps what the run measured to decide it
+
+The delta merged: the requirement "An item's record keeps what the run measured to decide it" now stands in the
+capability spec `openspec/specs/agent-issue-loop/spec.md:3869`, and the archived change keeps its own copy of the
+delta under `specs/agent-issue-loop/spec.md`.
+
+## Pointer check, archived mode
+
+    $ bash tools/loop/evidence-check.sh "$archive" --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 5 pairs confirmed, 3 exempted (not retained), 1 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 312 resolved and in range, 26 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+Nothing was committed, staged, pushed or labelled here: the run's script owns git and the tracker. The tree carries
+the archive move, the evidence copies (the gate's log, its 21 per-step tallies and their sum, the two red XMLs that
+were already there) and the pointer corrections as working-tree changes on top of `233cd286`.

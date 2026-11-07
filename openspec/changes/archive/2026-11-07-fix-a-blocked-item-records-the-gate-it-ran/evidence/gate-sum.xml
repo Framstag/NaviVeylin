@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Derived, not a run: the gate prints one line for 21 per-step tallies and writes one JUnit XML per step.
+     This file carries the gate's own summed attributes — tests="902" failures="0" errors="0" — so the line quoted
+     in evidence.md has a carrier. The 21 step files are unchanged beside it under evidence/gate-tallies/; their
+     tests attributes sum to 902 (0+277+34+0+7+0+29+0+0+163+34+0+358+0+0+0+0+0+0+0+0), summed with awk over the
+     files, never taken from the gate line. -->
+<testsuite name="tools/loop/gate.sh (sum of 21 per-step tallies)" tests="902" failures="0" errors="0">
+  <system-out>LOOP-GATE: tests=902 failures=0 errors=0 (21 entries)</system-out>
+</testsuite>

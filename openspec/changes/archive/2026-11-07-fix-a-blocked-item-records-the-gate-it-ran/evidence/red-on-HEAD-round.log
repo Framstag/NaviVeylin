@@ -1,0 +1,5 @@
+run#aBlockedItemRecordsTheRoundThatReadIt|   the verdict of the round that read the diff, not the off of a round nobody read: expected 'PASS', got 'off'
+--- run#aBlockedItemRecordsTheRoundThatReadIt[0] (exit 1)
+  the verdict of the round that read the diff, not the off of a round nobody read: expected 'PASS', got 'off'
+FAIL run#aBlockedItemRecordsTheRoundThatReadIt
+loop-selftest: 1 of 1 cases failed

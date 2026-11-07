@@ -233,6 +233,9 @@ MUTATIONS=(
   # the rank the class and category keys give it, so a pinned harness improvement sits at the tail the interval puts
   # it in and the case sees no rank 1. One expression, because the whole of the pin is that one select.
   '259.1@-@tools/loop/prescreen.sh@prescreen#aPinnedItemLeadsTheQueue@the pin lifting a pinned item ahead of the category lead@s#| map(select(.pinned)) |#| map(select(.pinned and false)) |#'
+  # The rank is the order the run works (issue #824's first live run started #823, rank 29, while a next-up item stood
+  # at rank 1): the records leave the pre-screen sorted by the rank the previous stage computed.
+  '260.1@-@tools/loop/prescreen.sh@prescreen#theQueueIsWrittenInRankOrder@the sort that makes the rank the order the run works@s#^records=$(printf .%s. "$ranked" | jq -c .sort_by.*$#records="$ranked"#'
   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
   '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsCut@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'

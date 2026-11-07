@@ -549,7 +549,11 @@ ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$work
       . as $records | ($order[$i].issue) as $id
       | map(if .issue == $id then .rank = ($i + 1) else . end))
 ' --arg queued "$queued_verdict") || loop_die "prescreen: could not rank the candidates"
-records="$ranked"
+# The queue is consumed in the order it is written — `state.sh next` reads its head, and the run starts what it finds
+# there — so the records leave this script in **rank** order rather than in the order the tracker listed them. Measured
+# 2026-11-07: without this sort the run worked #823 (rank 29) while a next-up item stood at rank 1, because the tracker
+# answers newest-first and the rank was a field beside the order rather than the order itself.
+records=$(printf '%s' "$ranked" | jq -c 'sort_by(if .rank == null then 1e9 else .rank end)')
 
 eligible_count=$(printf '%s' "$records" | jq --arg queued "$queued_verdict" '[.[] | select(.verdict == $queued)] | length')
 excluded_count=$(printf '%s' "$records" | jq --arg queued "$queued_verdict" '[.[] | select(.verdict != $queued)] | length')

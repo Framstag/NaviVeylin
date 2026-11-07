@@ -73,6 +73,7 @@ LOOP_SHELL_CASES=(
   'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#aHoldWithNoDecisionIsNotADecision'
   'prescreen#harnessItemsLeadTheQueue'
+  'prescreen#theQueueIsWrittenInRankOrder'
   'prescreen#aPinnedItemLeadsTheQueue'
   'prescreen#aProfileWithNoPinPinsNothing'
   'prescreen#aRenamedLeadingCategoryLeads'
@@ -487,6 +488,7 @@ loop_run_shell_case() {
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
     'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
+    'prescreen#theQueueIsWrittenInRankOrder') fn=case_prescreen_theQueueIsWrittenInRankOrder ;;
     'prescreen#aPinnedItemLeadsTheQueue') fn=case_prescreen_aPinnedItemLeadsTheQueue ;;
     'prescreen#aProfileWithNoPinPinsNothing') fn=case_prescreen_aProfileWithNoPinPinsNothing ;;
     'prescreen#aRenamedLeadingCategoryLeads') fn=case_prescreen_aRenamedLeadingCategoryLeads ;;
@@ -2667,6 +2669,25 @@ case_prescreen_harnessItemsLeadTheQueue() {
     "the app bug follows the harness bugs, because a harness improvement does not lead"
   assert_eq "6" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .rank')" \
     "the harness improvement is mixed in, not ranked inside the leading group"
+}
+
+# The rank is the order the run works, not a field beside it: `state.sh next` reads the head of the queue, so the
+# pre-screen emits its records in rank order. Measured 2026-11-07 (issue #824's first live run): without this the run
+# took the head of the tracker's newest-first answer and started #823 (rank 29) while a next-up item stood at rank 1.
+case_prescreen_theQueueIsWrittenInRankOrder() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "22 26 21 28 24 23" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible") | .issue] | join(" ")')" \
+    "the records leave the pre-screen in the order their ranks state"
+  assert_eq "22" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" \
+    "so the head of the queue is the item the ranking put first"
+  assert_eq "21" "$(jq -r '.queue[2].issue' "$(state_file "$p")")" \
+    "and the third item of the queue is rank 3"
 }
 
 # A pin is the queue's one per-item override: the item a person pinned leads, in the class and issue order the

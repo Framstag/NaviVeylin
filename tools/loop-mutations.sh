@@ -833,6 +833,15 @@ MUTATIONS=(
   '87.6@-@../look.sh@look#aPathScopesTheWalkToIt@the refusal that keeps a scope inside the tree, so `--path ../outside.md` reads the tree'"'"'s parent (issue #796)@s|^    \*/\.\./\*) printf |    */../*) : # |'
   '88.1@-@tools/loop/lib.sh@worktree#aSetAsideBranchWhosePatchesLandedIsRemoved@the set-aside namespace among the branches a sweep enumerates, so a branch the run set aside is invisible to both removal paths again (issue #803)@s|loop/leftover/\*|loop/leftover-never/\*|'
 
+  # 256.x — the report splits a run's spend where it was spent (issue #759). Measured over 227 items (2026-11-03):
+  # 89.6 h spent, model 30.1 h, the loop's gate 35.1 h and the loop's own self-tests 11.6 h, and 1 581 of 2 591 Mtok
+  # (61 %) spent after the item's first gate — three splits no report carried, readable only by summing the raw
+  # event streams by hand. Three sites, one recording and two lines: the phase figures the state records, the gate
+  # bucket the trend totals, and the numerator of the share after the first gate.
+  '256.1@-@tools/loop/state.sh@report#theSpendIsSplitByPhaseRoleAndGate@the phase split the stream records, so no phase the trend totals has a duration (issue #759)@s|else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end)|else {modelMs: 0, gateMs: 0, otherMs: 0} end)|'
+  '256.2@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the gate bucket the trend totals, so the phase that costs the most is printed as one that cost nothing (issue #759)@s#{n: "gate", ms: (\[$phs\[\].gateMs\] | add)}#{n: "gate", ms: 0}#'
+  '256.3@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the numerator of the share spent after an item first gate, pinned to a constant so every run reads as fully after its gate (issue #759)@s#(((\$a / \$tot) \* 100)#((1 \* 100)#'
+
   # 89.x — an item's kept stream is bounded and reported (issue #802). Measured 2026-11-06 over this archive: 254 event
   # streams held 3 483 MiB (p50 11.84, p90 29.88, max 63.47 MiB), and no cleanup arm named the 3 563 MiB of item
   # directories. Four invariants: the writer rotates at its bound, the turn count survives a rotation, the report's age

@@ -443,6 +443,22 @@ are that rule, `tools/look.sh` (#687) and the session split at the first gate (#
 the per-role turn bounds (`LOOP_CHILD_TURNS_MAX_<ROLE>`) and the item's context bound (`LOOP_ITEM_CONTEXT_MAX`, issue
 #760), which end a child inside one unbounded grind.
 
+The shape was one number; **where the spend went** was none (issue #759). Measured over the same archive (227
+items, 2026-11-03, the streams' own `tool_execution_end` durations): **89.6 h spent, of which model time 30.1 h,
+the loop's gate 35.1 h and the loop's own self-tests 11.6 h — and 1 581 of 2 591 Mtok, 61 %, spent after the
+item's first gate**, the reviewer holding 402 Mtok against the worker's 2 168. Not one of those splits was in a
+report the loop had written; they were readable only by summing the raw streams by hand. A run that paid two
+thirds of its clock inside the gate and a run that paid it reading printed the same shapes — the defect
+`LOOP_ITEM_TOKENS_WARN` was added to cure one level down (#662). The item's record now carries the three splits,
+read from the stream `state.sh done` already opens: `metrics.phases` (the turns' own `durationMs` as model time, the
+`tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) as the
+gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
+and a tool's the execution after it), `metrics.roles` (each session's tokens keyed by the role its prompt **path**
+names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), and
+`metrics.afterGate` (the tokens from a session's first gate turn on, and that session's own tokens). The report's
+trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured. It is a
+figure, never a stop: nothing in the run reads it, and the keys it would bound do not exist yet.
+
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it
 reports on elapsed **seconds** (`SECONDS` against its own base), not on the number of looks it took, so
@@ -941,9 +957,11 @@ an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.
 
 Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
-faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, and
-the run's tool calls per turn beside the items below its recorded floor (#757),
-both totalled from the state the report already reads, with `-` and its reason where nobody measured one. The
+faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, the
+run's tool calls per turn beside the items below its recorded floor (#757), and — since #759 — where the spend went,
+the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
+share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
+with `-` and its reason where nobody measured one. The
 rate is counted from the **verdict** a round ended on (`done --review-verdict`), never from the round count: the
 count is the round the loop *attempted* — `run.sh` writes it before the reviewer runs — so a round 1 that refused
 and then blocked carries the same `1` as one that passed, and review round 1 of #247 measured exactly that on

@@ -27,7 +27,8 @@ internal fun voiceAnnouncementLine(
 /** What the native sample sequence carried: a turn instruction, or a GPS state. */
 internal enum class VoiceAnnouncementKind(val entryValue: String) {
     TURN("turn"),
-    GPS("gps")
+    GPS("gps"),
+    OFF_ROUTE("off-route")
 }
 
 /** What the engine did with it. */

@@ -16,6 +16,7 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DeepLinkResult
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.FailureReason
 import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.hasMapManagerAction
@@ -138,6 +139,16 @@ class NavigationSession : Session() {
 
     /** The removal owed to the end of the notice's minimum visible dwell, while one is pending. */
     private var calculationNoticeDwellJob: Job? = null
+
+    /**
+     * The pending end of a calculation-failure report drawn on the map surface (spec:
+     * `route-calculation-feedback` — The failure notice ends by itself). One job, cancelled by a
+     * retried calculation, a session end and nothing else.
+     */
+    private var surfaceFailureJob: Job? = null
+
+    /** When the surface's failure report was raised (monotonic), while one is showing. */
+    private var surfaceFailureShownAtMs: Long? = null
 
     @Volatile
     private var sessionDestroyed = false
@@ -749,7 +760,15 @@ class NavigationSession : Session() {
                 .distinctUntilChanged()
                 .collect { failure ->
                     if (failure != null) {
-                        showError(failureNoticeText(failure))
+                        val navState = navigationViewModel.state.value
+                        if (calculationFailureShownOnSurface(navState.isNavigating, failure.reason)) {
+                            // A failed reroute is reported on the map surface, never in a pane over
+                            // the navigation view (spec: `route-calculation-feedback` — A failed
+                            // route calculation during navigation is reported on the map surface).
+                            scheduleSurfaceFailureReport(failure)
+                        } else {
+                            showError(failureNoticeText(failure))
+                        }
                     }
                 }
         }
@@ -779,6 +798,7 @@ class NavigationSession : Session() {
         noticeArmJob = null
         noticeArmToken = null
         cancelNoticeDwell()
+        cancelSurfaceFailureReport()
     }
 
     private fun getNavigationScreen(): NavigationScreen {
@@ -959,6 +979,13 @@ class NavigationSession : Session() {
      */
     private fun applyCalculationNotice(calculation: RouteCalculation?) {
         if (sessionDestroyed) return
+        // A reroute runs with the navigation view on screen, and a pushed screen IS the displayed
+        // template: the wait is the map surface's strip instead, however long the calculation runs
+        // (spec: `auto/navigation-view` — Reroute keeps the navigation view on screen).
+        if (calculationWaitOnSurface(navigationViewModel.state.value.isNavigating)) {
+            cancelNoticeArm()
+            return
+        }
         if (calculation == null) {
             cancelNoticeArm()
             if (noticeIsStale(calculation, noticeShown = calculationNotice != null)) {
@@ -969,6 +996,12 @@ class NavigationSession : Session() {
         // A notice for a live calculation must stay: a removal owed to the previous notice's
         // dwell would take it down (spec: `route-calculation-feedback` — One notice only).
         cancelNoticeDwell()
+        // A new calculation replaces a failure the surface is still reporting, and clears it so a
+        // successful retry leaves no stale report behind (spec: `route-calculation-feedback` — A
+        // retried calculation clears the failure).
+        cancelSurfaceFailureReport()
+        val navState = navigationViewModel.state.value
+        if (navState.failure != null) navigationViewModel.clearError()
         val notice = calculationNotice
         if (notice != null) {
             // A notice is up: update it instead of stacking a second screen (spec:
@@ -988,6 +1021,7 @@ class NavigationSession : Session() {
         }
         if (!needsNoticeArm(
                 live = calculation,
+                navigating = navState.isNavigating,
                 noticeShown = false,
                 armedToken = noticeArmToken,
                 arming = noticeArmJob?.isActive == true
@@ -1104,6 +1138,36 @@ class NavigationSession : Session() {
     private fun cancelNoticeDwell() {
         calculationNoticeDwellJob?.cancel()
         calculationNoticeDwellJob = null
+    }
+
+    /**
+     * Report [failure] on the map surface for [ERROR_DISPLAY_MS], then clear it: the report ends by
+     * itself, with no tap and no host screen (spec: `route-calculation-feedback` — The failure notice
+     * ends by itself). A newer failure restarts the window; a retried calculation cancels it through
+     * [cancelSurfaceFailureReport].
+     */
+    private fun scheduleSurfaceFailureReport(failure: NavigationFailure) {
+        cancelSurfaceFailureReport()
+        surfaceFailureShownAtMs = SystemClock.elapsedRealtime()
+        DiagnosticsLog.log(CAR_HOST_DIAG_TAG, "calculation failure reported on the surface")
+        surfaceFailureJob = scope.launch(CoroutineName("surface-failure-report")) {
+            delay(ERROR_DISPLAY_MS)
+            val navState = navigationViewModel.state.value
+            val elapsed = surfaceFailureShownAtMs
+                ?.let { SystemClock.elapsedRealtime() - it }
+                ?: ERROR_DISPLAY_MS
+            if (sessionDestroyed || !surfaceFailureReportElapsed(elapsed)) return@launch
+            if (!navState.isNavigating || navState.failure !== failure) return@launch
+            navigationViewModel.clearError()
+            surfaceFailureShownAtMs = null
+            DiagnosticsLog.log(CAR_HOST_DIAG_TAG, "calculation failure report end")
+        }
+    }
+
+    private fun cancelSurfaceFailureReport() {
+        surfaceFailureJob?.cancel()
+        surfaceFailureJob = null
+        surfaceFailureShownAtMs = null
     }
 
     /**
@@ -1232,7 +1296,15 @@ class NavigationSession : Session() {
 
     companion object {
         private const val TAG = "NavigationSession"
-        private const val ERROR_DISPLAY_MS = 4000L
+
+        /**
+         * How long a notice the session pushed stays up without a tap (spec:
+         * `car-host-fault-isolation` — A pushed notice dismisses itself within a bounded time).
+         * Ten seconds: long enough to read a routing failure at a junction, short enough that the
+         * driver does not have to dismiss it. Also the dwell of a failed reroute's surface report
+         * (spec: `route-calculation-feedback`).
+         */
+        internal const val ERROR_DISPLAY_MS = 10_000L
 
         /**
          * How long a route calculation may run before the car shows the wait notice. Provisional
@@ -1288,11 +1360,54 @@ internal fun noticeNeedsUpdate(showingBucket: Int?, reportedPercent: Int?): Bool
  */
 internal fun needsNoticeArm(
     live: RouteCalculation?,
+    navigating: Boolean = false,
     noticeShown: Boolean,
     armedToken: Long?,
     arming: Boolean
 ): Boolean =
-    live != null && !noticeShown && !(arming && armedToken == live.token)
+    live != null && !navigating && !noticeShown && !(arming && armedToken == live.token)
+
+/**
+ * Whether a route calculation's wait belongs on the map surface instead of a pushed screen. A
+ * reroute runs with the navigation view on screen, and the Car App Library has no overlay layer: a
+ * pushed screen IS the displayed template (spec: `auto/navigation-view` — Reroute keeps the
+ * navigation view on screen). Pure seam for unit testing ([NavigationSession] cannot be constructed
+ * in Robolectric).
+ */
+internal fun calculationWaitOnSurface(isNavigating: Boolean): Boolean = isNavigating
+
+/**
+ * Whether [reason] is a route-calculation failure: the reasons the router itself reports. A
+ * navigation-start failure (no GPS fix, no location grant) is not one of them and keeps its pane.
+ */
+internal fun FailureReason.isCalculationFailure(): Boolean = when (this) {
+    FailureReason.ROUTING_DATA_UNAVAILABLE,
+    FailureReason.DATABASE_NOT_LOADED,
+    FailureReason.START_UNROUTABLE,
+    FailureReason.TARGET_UNROUTABLE,
+    FailureReason.NO_ROUTE_FOUND,
+    FailureReason.ROUTING_DATA_FAILURE,
+    FailureReason.ENGINE_FAILURE -> true
+    FailureReason.UNKNOWN,
+    FailureReason.GPS_SIGNAL_MISSING,
+    FailureReason.PRECISE_LOCATION_REQUIRED -> false
+}
+
+/**
+ * Whether a calculation failure is reported on the map surface rather than in a pane: only while
+ * navigation is active, because the map is what a pane would take away (spec:
+ * `route-calculation-feedback` — A failed route calculation during navigation is reported on the map
+ * surface). Pure seam for unit testing.
+ */
+internal fun calculationFailureShownOnSurface(isNavigating: Boolean, reason: FailureReason?): Boolean =
+    isNavigating && reason != null && reason.isCalculationFailure()
+
+/**
+ * Whether a surface failure report has served its bounded time (spec: `route-calculation-feedback` —
+ * The failure notice ends by itself). Pure seam for unit testing.
+ */
+internal fun surfaceFailureReportElapsed(elapsedMs: Long): Boolean =
+    elapsedMs >= NavigationSession.ERROR_DISPLAY_MS
 
 /**
  * Whether the notice on the stack belongs to a calculation that is no longer in flight: it has

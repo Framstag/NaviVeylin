@@ -55,6 +55,10 @@
     <string name="search_history_hint">Orte auf der Karte suchen, um Verlauf aufzubauen</string>
     <string name="route_calculation_title">Route wird berechnet</string>
     <string name="route_calculation_percent">%1$d %%</string>
+    <string name="route_calculation_strip_wait">Route wird berechnet …</string>
+    <string name="route_calculation_strip_percent">Route wird berechnet … %1$d %%</string>
+    <string name="route_calculation_strip_failed">Neuberechnung fehlgeschlagen</string>
+    <string name="off_route_panel_cue">Nicht auf der geplanten Route</string>
     <string name="cancel">Abbrechen</string>
     <string name="retry">Erneut versuchen</string>
     <string name="back">Zurück</string>

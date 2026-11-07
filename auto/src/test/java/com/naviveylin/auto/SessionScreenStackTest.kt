@@ -28,7 +28,7 @@ class SessionScreenStackTest {
     }
 
     @Test
-    fun aRejectedNavigationPushIsNotRecordedAndIsRetried() {
+    fun aRejectedPushIsNotRecordedAsPresent() {
         // A rejected push must leave the record unset: recording it makes
         // showNavigationScreen early-return forever, and the next state emission never
         // re-pushes (the defect this change fixes).
@@ -64,7 +64,7 @@ class SessionScreenStackTest {
     }
 
     @Test
-    fun repeatedErrorsNeverStackASecondNotice() {
+    fun repeatedErrorsDoNotGrowTheStack() {
         val stack = SessionScreenStack()
 
         // Five errors in one session: exactly one push, four updates.
@@ -78,6 +78,68 @@ class SessionScreenStackTest {
 
         assertEquals(1, pushes)
         assertTrue(stack.hasErrorNotice)
+    }
+
+    @Test
+    fun aDismissalRemovesOnlyTheNotice() {
+        val stack = SessionScreenStack()
+        stack.onNavigationPush(landed = true)
+        val notice = Any()
+        stack.onErrorNoticePushed(notice)
+
+        assertTrue(stack.onErrorNoticeDismissed(notice))
+
+        assertFalse("the notice is gone", stack.hasErrorNotice)
+        assertTrue("the navigation view underneath is untouched", stack.isNavigationShown)
+        assertTrue("a later error needs its own notice", stack.needsErrorNoticePush())
+        assertFalse("a dismissal leaves no removal owed", stack.isDismissalOwed)
+    }
+
+    /**
+     * A reroute keeps the navigation view on screen for the calculation's whole duration: the
+     * wait is drawn on the map surface, so no calculation notice is ever pushed — at any
+     * percentage, however many updates arrive (spec: `auto/navigation-view` — Reroute keeps the
+     * navigation view on screen).
+     */
+    @Test
+    fun aReroutePushesNoScreenHoweverLongItRuns() {
+        val stack = SessionScreenStack()
+        stack.onNavigationPush(landed = true)
+
+        repeat(101) { percent ->
+            assertFalse(
+                "a navigating calculation at $percent % pushes no screen",
+                stack.needsCalculationNoticePush(navigating = true)
+            )
+        }
+
+        assertFalse("nothing was recorded on the stack", stack.hasCalculationNotice)
+        assertTrue("the navigation view stays the displayed screen", stack.isNavigationShown)
+    }
+
+    /**
+     * A failed reroute keeps the map on screen: the failure is reported on the surface, so neither
+     * a calculation notice nor an error pane is pushed over the navigation view (spec:
+     * `route-calculation-feedback` — A failed route calculation during navigation is reported on
+     * the map surface).
+     */
+    @Test
+    fun aFailedReroutePushesNoScreen() {
+        val stack = SessionScreenStack()
+        stack.onNavigationPush(landed = true)
+
+        val shownOnSurface = calculationFailureShownOnSurface(
+            isNavigating = true,
+            reason = com.naviveylin.core.FailureReason.NO_ROUTE_FOUND
+        )
+        if (!shownOnSurface) {
+            stack.onErrorNoticePushed(Any())
+        }
+
+        assertTrue("the failure is the surface's to report", shownOnSurface)
+        assertFalse("no error pane was pushed", stack.hasErrorNotice)
+        assertFalse("the calculation notice is not used either", stack.hasCalculationNotice)
+        assertTrue("the navigation view stays the displayed screen", stack.isNavigationShown)
     }
 
     @Test
@@ -107,7 +169,7 @@ class SessionScreenStackTest {
     }
 
     @Test
-    fun anErrorWhileNavigatingLeavesTheNavigationViewOnTheStack() {
+    fun anErrorNoticeLeavesTheNavigationViewOnTheStack() {
         // The defect this pins: showError pushed the notice and dismissed it with
         // popToRoot(), which took the navigation view with it while the session still
         // believed it was shown — guidance disappeared for the rest of the drive.

@@ -185,6 +185,9 @@
     <string name="voice_arrive">you have arrived</string>
     <string name="voice_gps_found">GPS signal restored</string>
     <string name="voice_gps_lost">GPS signal lost</string>
+    <!-- Spoken once per departure from the planned route (spec: voice-guidance — A departure from
+         the planned route is announced once). It carries no position, distance or bearing. -->
+    <string name="voice_off_route">You have left the planned route</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
     <!-- Free-driving notification title (spec: i18n-l10n — All user-facing text is

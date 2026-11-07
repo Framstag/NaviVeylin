@@ -120,6 +120,37 @@ class CalculationNoticeDecisionTest {
         )
     }
 
+    /**
+     * A reroute is never armed, whatever percentage it reports and however long it runs: while
+     * navigation is active the map surface carries the wait (spec: `route-calculation-feedback` —
+     * A reroute shows no notice).
+     */
+    @Test
+    fun aRerouteIsNeverArmed() {
+        assertFalse(
+            "a calculation that runs while navigating arms no notice",
+            needsNoticeArm(
+                live = calculation(1L),
+                navigating = true,
+                noticeShown = false,
+                armedToken = null,
+                arming = false
+            )
+        )
+        repeat(101) { percent ->
+            assertFalse(
+                "the same holds at $percent %",
+                needsNoticeArm(
+                    live = calculation(1L, percent = percent),
+                    navigating = true,
+                    noticeShown = false,
+                    armedToken = 1L,
+                    arming = true
+                )
+            )
+        }
+    }
+
     @Test
     fun theDelayMayOnlyRaiseTheNoticeOfItsOwnCalculation() {
         assertTrue(noticeIsStillArmedFor(1L, calculation(1L, percent = 40)))

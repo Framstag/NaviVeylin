@@ -234,7 +234,28 @@ object NavigationTemplateMapper {
         }
 
         val builder = RoutingInfo.Builder()
-            .setCurrentStep(
+        if (state.isOffRoute) {
+            // Off route, the panel's current step must not describe a road the vehicle is not on:
+            // it states the condition, keeps the route step's manoeuvre type, and carries neither the
+            // previous cue, its road, nor its distance. The next step still names the route's next
+            // manoeuvre, so "where does this route still go" stays readable (spec:
+            // `auto/off-route-indicator` — The car instruction panel states when the vehicle is off
+            // the planned route).
+            val offRoute = Step.Builder()
+                .setManeuver(stepForStep(current, iconFor(current), resolver = resolver).maneuver!!)
+                .setCue(resolver.get(R.string.off_route_panel_cue))
+                .build()
+            // The car-app 1.7 builder requires a distance beside the current step. The distance
+            // shown is the one that is still true off route — to the route's next manoeuvre, or to
+            // the destination when there is none — never the distance to the manoeuvre the vehicle
+            // has already missed (spec: `auto/off-route-indicator` — The coming manoeuvre stays
+            // readable; the off-route step carries no last distance).
+            builder.setCurrentStep(
+                offRoute,
+                distanceForDisplay(next?.remainingMeters ?: state.remainingDistance)
+            )
+        } else {
+            builder.setCurrentStep(
                 stepForStep(
                     current,
                     iconFor(current),
@@ -244,6 +265,7 @@ object NavigationTemplateMapper {
                 ),
                 distanceForDisplay(current.remainingMeters)
             )
+        }
         if (next != null) {
             builder.setNextStep(stepForStep(next, iconFor(next), resolver = resolver))
         }

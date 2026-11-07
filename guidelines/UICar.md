@@ -184,8 +184,21 @@ placeholder MUST use [`SettingsLoadGuard`]:
 A car screen MUST NOT leave the driver looking at nothing while the app works: any wait
 that can last longer than a blink gets a notice, and a notice never outlives the thing it
 describes (spec: `route-calculation-feedback`). The route-calculation wait notice
-(`RouteCalculatingScreen`) is the reference implementation:
+(`RouteCalculatingScreen`) is the reference implementation, and it is **the cold-start path only**:
 
+- **Rule: while navigation is active the wait is drawn, never pushed.** A reroute keeps the
+  navigation view on screen for the calculation's whole duration, however long it runs: the map,
+  the instruction panel and the trip metadata stay live, and the wait is the map surface's
+  calculation strip (`CalculationStrip`, spec: `route-calculation-feedback` — A route calculation
+  during navigation is drawn on the map surface; `auto-map-layout` — The route-calculation strip has
+  one place on the navigation surface). The Car App Library has no overlay layer — a pushed screen
+  **is** the displayed template — so "a notice over the navigation view" was never available, and
+  the pushed pane took the map away and paused the surface's renderer (spec: `auto/navigation-view`
+  — Reroute keeps the navigation view on screen). No screen is pushed for a navigating calculation,
+  and none offers Cancel.
+- **Rule: a failed reroute is reported on the map surface.** The failure keeps the map on screen and
+  ends by itself after `ERROR_DISPLAY_MS` (10 s); a failure raised while not navigating keeps its
+  pane (spec: `car-host-fault-isolation` — A pushed notice dismisses itself within a bounded time).
 - **Rule: a wait notice appears only after a delay, armed for a calculation token.** The notice is pushed only after `CALCULATION_NOTICE_DELAY_MS`
   (400 ms) with the calculation still in flight — a fast result must never flash a screen.
   The delay is armed for a **calculation token**: a calculation that ends, or that a newer
@@ -202,15 +215,16 @@ describes (spec: `route-calculation-feedback`). The route-calculation wait notic
 - **Rule: a notice never outlives its work.** When the calculation ends the notice is removed by identity
   (`ScreenManager.remove`, never `popToRoot()`, which takes the navigation view with it);
   a calculation that ended while the session was not started MUST NOT leave a notice behind.
-- **Rule: a notice offers a way out only when leaving is safe.** The notice offers Cancel while navigation is **not** active,
-  and that Cancel is its **only** exit — car-app 1.7's `Screen` has no back callback (`onBackPressed`
-  does not exist; back is a host-driven stack pop), so a back affordance could only *pop* the notice
-  while the routing work keeps running invisibly. During a reroute guidance is still live, so the
-  notice is neither cancellable nor dismissable — a driver off route must keep the instruction panel
-  (spec: `auto/navigation-view`).
+- **Rule: a notice offers a way out only when leaving is safe.** The notice is only pushed while navigation is **not** active,
+  and there it offers Cancel — its **only** exit — because car-app 1.7's `Screen` has no back callback
+  (`onBackPressed` does not exist; back is a host-driven stack pop), so a back affordance could only
+  *pop* the notice while the routing work keeps running invisibly. A navigating calculation pushes no
+  notice at all, so it offers no Cancel: the map stays interactive instead (spec:
+  `auto/navigation-view`).
 - **Rule: the wait notice bounds its host traffic.** The percentage is displayed in 5 % steps
   (`displayedCalculationPercent`), so a progressing calculation costs ~20 host pushes, not
-  one per percent.
+  one per percent. On the surface the same step bounds render requests, never a template
+  `invalidate()`.
 - **Rule: a wait notice is guarded like every other host path.** The template build goes through `carPaneTemplate`,
   the push/removal through `guardedHostCall`, and the sync is deferred (and re-applied once)
   while the session is not started — see the car-host rules in AGENTS.md.

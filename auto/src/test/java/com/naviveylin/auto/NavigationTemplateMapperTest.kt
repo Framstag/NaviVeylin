@@ -831,4 +831,101 @@ class NavigationTemplateMapperTest {
         )
         assertTrue(NavigationTemplateMapper.hasStateChanged(old, new))
     }
+
+    // --- off-route instruction panel (spec: `auto/off-route-indicator`) ---
+
+    private fun offRouteState(
+        isOffRoute: Boolean = true,
+        isRerouting: Boolean = false,
+        calculation: com.naviveylin.core.RouteCalculation? = null
+    ) = NavigationState(
+        isNavigating = true,
+        isOffRoute = isOffRoute,
+        isRerouting = isRerouting,
+        calculation = calculation,
+        currentStepIndex = 0,
+        steps = listOf(
+            instr(800.0, TurnType.LEFT, "Main St"),
+            instr(900.0, TurnType.RIGHT, "Elm St")
+        ),
+        nextStep = instr(800.0, TurnType.LEFT, "Main St")
+    )
+
+    private fun routingInfo(state: NavigationState) = NavigationTemplateMapper.routingInfoFromState(
+        state, { testIcon }, includeLanes = false, resolver = resolver
+    )!!
+
+    @Test
+    fun theOffRouteStateReplacesTheManoeuvreCue() {
+        val info = routingInfo(offRouteState())
+        val current = info.currentStep!!
+
+        assertEquals(
+            "the panel states the condition",
+            resolver.get(R.string.off_route_panel_cue),
+            current.cue.toString()
+        )
+        assertNull("no road the vehicle is not on", current.road)
+        assertNotEquals(
+            "and never the manoeuvre it has already missed",
+            "Turn left",
+            current.cue.toString()
+        )
+        assertEquals(
+            "the distance shown is the next manoeuvre's, not the missed step's 800 m",
+            900.0,
+            info.currentDistance!!.displayDistance,
+            0.01
+        )
+    }
+
+    @Test
+    fun theNextStepSurvivesTheOffRouteState() {
+        val info = routingInfo(offRouteState())
+
+        assertEquals("Elm St", info.nextStep!!.road.toString())
+        assertEquals(Maneuver.TYPE_TURN_NORMAL_RIGHT, info.nextStep!!.maneuver!!.type)
+    }
+
+    @Test
+    fun aCalculationInFlightLeavesThePanelInTheOffRouteState() {
+        val info = routingInfo(
+            offRouteState(
+                isRerouting = true,
+                calculation = com.naviveylin.core.RouteCalculation(
+                    token = 1L, destLat = 52.5, destLon = 13.4, percent = 40
+                )
+            )
+        )
+
+        assertEquals(
+            resolver.get(R.string.off_route_panel_cue),
+            info.currentStep!!.cue.toString()
+        )
+        assertEquals("Elm St", info.nextStep!!.road.toString())
+    }
+
+    @Test
+    fun theManoeuvreCueReturnsWhenBackOnRoute() {
+        val info = routingInfo(offRouteState(isOffRoute = false))
+
+        assertEquals("Main St", info.currentStep!!.road.toString())
+        assertNotEquals(
+            "the panel describes the route again",
+            resolver.get(R.string.off_route_panel_cue),
+            info.currentStep!!.cue.toString()
+        )
+    }
+
+    @Test
+    fun noOffRouteStateWithoutNavigation() {
+        assertNull(
+            NavigationTemplateMapper.routingInfoFromState(
+                offRouteState().copy(isNavigating = false),
+                { testIcon },
+                includeLanes = false,
+                resolver = resolver
+            )
+        )
+    }
 }

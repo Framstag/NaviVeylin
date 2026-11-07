@@ -15,6 +15,7 @@ import com.naviveylin.core.StringResolver
 import com.naviveylin.core.stringResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -311,5 +312,83 @@ class NavigationTripTest {
         val current = previous.copy(isNavigating = false)
 
         assertTrue(NavigationTemplateMapper.hasTripChanged(previous, current))
+    }
+
+    // --- current street name in the travel-estimate card (spec: auto/navigation-view —
+    // Current street name shown during navigation) ---
+
+    private fun roadState(ref: String, name: String) = navigatingState().copy(
+        currentRoadInfo = com.framstag.libosmscout.client.CurrentRoadInfo(ref, "", name)
+    )
+
+    @Test
+    fun theStreetNameRidesTheTravelEstimateTripText() {
+        val state = roadState(ref = "", name = "Hauptstrasse")
+        val street = NavigationScreen.streetNameFromState(state)
+
+        assertEquals("Hauptstrasse", street)
+        assertEquals(
+            "what the screen hands to TravelEstimate.setTripText",
+            "Hauptstrasse",
+            NavigationScreen.etaCardText(street)
+        )
+    }
+
+    @Test
+    fun theRefIsShownWithTheStreetName() {
+        val street = NavigationScreen.streetNameFromState(roadState(ref = "B 1", name = "Hauptstrasse"))
+
+        assertEquals("B 1 Hauptstrasse", street)
+        assertEquals("B 1 Hauptstrasse", NavigationScreen.etaCardText(street))
+    }
+
+    @Test
+    fun theTripTextFollowsTheRoadChange() {
+        val first = NavigationScreen.streetNameFromState(roadState(ref = "", name = "Hauptstrasse"))
+        val second = NavigationScreen.streetNameFromState(roadState(ref = "", name = "Bahnhofstrasse"))
+
+        assertNotEquals(first, second)
+        assertEquals("Bahnhofstrasse", NavigationScreen.etaCardText(second))
+    }
+
+    @Test
+    fun noTripTextWithoutAStreetName() {
+        val state = navigatingState().copy(currentRoadInfo = null)
+
+        assertNull(NavigationScreen.streetNameFromState(state))
+        assertNull("no trip text without a name", NavigationScreen.etaCardText(null))
+        assertNull("a blank name is not a trip text", NavigationScreen.etaCardText("  "))
+    }
+
+    @Test
+    fun theStreetNameStaysInTheCardWhenTheAreaIsUnsafe() {
+        // The card's text has no surface geometry: the host positions the card, so a host that
+        // delivers no stable area changes nothing about it (spec: auto/navigation-view — Street
+        // name in host ETA card when map area is not safe).
+        val street = NavigationScreen.streetNameFromState(roadState(ref = "", name = "Hauptstrasse"))
+        val parameters = NavigationScreen.Companion::class.java.declaredMethods
+            .first { it.name == "streetNameFromState" }
+            .parameterTypes
+
+        assertTrue(
+            "streetNameFromState takes no surface rect: ${parameters.toList()}",
+            parameters.none { it.name == "android.graphics.Rect" }
+        )
+        assertEquals("Hauptstrasse", NavigationScreen.etaCardText(street))
+    }
+
+    @Test
+    fun theStreetNameStaysInTheCardWithASafeArea() {
+        // A bottom-clear stable area does not move the street name off the card either.
+        val street = NavigationScreen.streetNameFromState(roadState(ref = "B 2", name = "Ringstrasse"))
+        val parameters = NavigationScreen.Companion::class.java.declaredMethods
+            .first { it.name == "streetNameFromState" }
+            .parameterTypes
+
+        assertTrue(
+            "streetNameFromState takes no surface rect: ${parameters.toList()}",
+            parameters.none { it.name == "android.graphics.Rect" }
+        )
+        assertEquals("B 2 Ringstrasse", NavigationScreen.etaCardText(street))
     }
 }

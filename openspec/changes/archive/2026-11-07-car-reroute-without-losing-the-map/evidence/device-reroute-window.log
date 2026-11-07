@@ -1,0 +1,50 @@
+11-07 11:49:22.121  7351  7351 D Diag/HOST: navigationEnded
+11-07 11:53:00.257  7351  7351 D Diag/HOST: navigationStarted
+11-07 11:53:00.274  7351  7351 D Diag/HOST: trip update remaining=645m eta=0
+11-07 11:53:16.920  7351  7351 D Diag/HOST: trip update remaining=645m eta=0
+11-07 11:53:16.942  7351  7351 D Diag/HOST: trip update remaining=645m eta=0
+11-07 11:53:49.913  7351  7351 D Diag/HOST: trip update remaining=645m eta=1794048873798
+11-07 11:53:50.907  7351  7351 D Diag/HOST: trip update remaining=645m eta=1794048874798
+11-07 11:53:51.102  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048869877
+11-07 11:53:51.161  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048869877
+11-07 11:53:52.110  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048870877
+11-07 11:53:52.315  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048870877
+11-07 11:54:38.078  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048870877
+11-07 11:54:40.069  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048870877
+11-07 11:54:41.092  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048870877
+11-07 11:54:43.108  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048870877
+11-07 11:54:44.144  7351  7351 D Diag/HOST: trip update remaining=577m eta=1794048923333
+11-07 11:54:45.146  7351  7351 D Diag/HOST: trip update remaining=577m eta=1794048924363
+11-07 11:54:46.152  7351  7351 D Diag/HOST: trip update remaining=577m eta=1794048925363
+11-07 11:54:47.176  7351  7351 D Diag/HOST: trip update remaining=571m eta=1794048925939
+11-07 11:54:48.201  7351  7351 D Diag/HOST: trip update remaining=554m eta=1794048925763
+11-07 11:54:49.206  7351  7351 D Diag/HOST: trip update remaining=554m eta=1794048926763
+11-07 11:54:50.242  7351  7351 D Diag/HOST: trip update remaining=547m eta=1794048927232
+11-07 11:54:50.316  7351  7351 D Diag/HOST: trip update remaining=547m eta=1794048927232
+11-07 11:54:51.251  7351  7351 D Diag/HOST: trip update remaining=547m eta=1794048927232
+11-07 11:54:53.288  7351  7351 D Diag/HOST: trip update remaining=547m eta=1794048927232
+11-07 11:55:08.468  7351  7351 D Diag/HOST: trip update remaining=547m eta=1794048927232
+11-07 11:55:08.469  7351  7351 D Diag/HOST: strip pct=null shown=1
+11-07 11:55:08.535  7351  7351 D Diag/HOST: strip pct=0 shown=1
+11-07 11:55:08.703  7351  7351 D Diag/ROUTE: calc done: source=reroute duration=242ms percents=1 outcome=ok reachedPct=0 reason=- nearestRoadM=-1
+11-07 11:55:08.712  7351  7351 D Diag/HOST: trip update remaining=1622m eta=1794048927232
+11-07 11:55:08.715  7351  7351 D Diag/HOST: strip hidden
+11-07 11:55:23.198  7351  7351 D Diag/HOST: trip update remaining=1622m eta=1794048927232
+11-07 11:58:42.474  7351  7351 D Diag/HOST: trip update remaining=1622m eta=1794048927232
+11-07 12:11:36.674  7351  7351 D Diag/HOST: trip update remaining=1622m eta=1794048927232
+11-07 12:12:05.829  7351  7351 D Diag/HOST: trip update remaining=1622m eta=1794048927232
+11-07 12:12:05.833  7351  7351 D Diag/HOST: strip pct=null shown=1
+11-07 12:12:05.944  7351  7351 D Diag/HOST: strip pct=20 shown=1
+11-07 12:12:06.189  7351  7351 D Diag/ROUTE: calc done: source=reroute duration=362ms percents=1 outcome=ok reachedPct=24 reason=- nearestRoadM=-1
+11-07 12:12:06.201  7351  7351 D Diag/HOST: trip update remaining=2656m eta=1794048927232
+11-07 12:12:06.206  7351  7351 D Diag/HOST: strip hidden
+11-07 12:12:06.802  7351  7351 D Diag/HOST: trip update remaining=2656m eta=1794048927232
+11-07 12:12:06.929  7351  7351 D Diag/HOST: trip update remaining=2656m eta=1794048927232
+11-07 12:12:07.452  7351  7351 D Diag/HOST: trip update remaining=2656m eta=1794048927232
+11-07 12:12:09.288  7351  7351 D Diag/HOST: trip update remaining=2560m eta=1794050103206
+11-07 12:12:09.572  7351  7351 D Diag/HOST: trip update remaining=2560m eta=1794050103206
+11-07 12:12:10.219  7351  7351 D Diag/HOST: trip update remaining=2562m eta=1794050104117
+11-07 12:12:10.950  7351  7351 D Diag/HOST: trip update remaining=2563m eta=1794050105018
+11-07 12:12:12.613  7351  7351 D Diag/HOST: trip update remaining=2564m eta=1794050105872
+11-07 12:12:14.999  7351  7351 D Diag/HOST: trip update remaining=2564m eta=1794050105872
+11-07 12:12:18.265  7351  7351 D Diag/HOST: trip update remaining=2564m eta=1794050105872

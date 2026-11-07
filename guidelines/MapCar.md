@@ -110,6 +110,14 @@ car Surface:
   freeze). `CancellationException` is rethrown by the guard — a cancelled scope must end the loop.
   `frameIteration()` additionally returns early for `isShutdown`/`paused`/`surfaceFailed`, so a
   stopped screen neither draws nor counts a fault (it cannot drive the ladder).
+- **Rule: the navigation surface's app-drawn elements are the compass rose, the speed badge and
+  speed-limit sign, the attribution, the map-unavailable notice and the calculation strip.** All of
+  them are drawn inside the host-reported `stableArea` when one is known, through the session's one
+  `setOverlayDrawer` lambda; none is a control (the AAOS template host forwards no surface gestures).
+  The strip lives at the top-left edge, clear of the right-edge indicator column and of the
+  attribution, and its palette follows the presentation the surface actually renders (spec:
+  `auto-map-layout` — The route-calculation strip has one place on the navigation surface; change
+  `car-reroute-without-losing-the-map`).
 - **Rule: A requested frame that never lands is re-requested** (change `car-frame-wait-bound`, spec
   `auto-map-renderer` — A requested car frame that never lands is re-requested; the documented silence (`MapCar.why.md` §14) is what the
   old silence looked like to a driver: a black surface with host chrome and no message).

@@ -170,6 +170,7 @@
     <string name="voice_arrive">Sie haben Ihr Ziel erreicht</string>
     <string name="voice_gps_found">GPS-Signal wiederhergestellt</string>
     <string name="voice_gps_lost">GPS-Signal verloren</string>
+    <string name="voice_off_route">Sie haben die geplante Route verlassen</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Zeigt während der Fahrt die aktuelle Navigationsführung an</string>
     <string name="navigation_notification_title_free_driving">Freie Fahrt</string>

@@ -94,6 +94,15 @@ Source: specs `smooth-follow`, `auto-map-layout`, `location-options-ui`, `rerout
   Auto — only the layout container differs (Compose alignment vs Canvas anchor). Routing on Android
   Auto keeps the street name in the host travel-estimate card via `TravelEstimate.setTripText`, never
   on the map surface.
+- **Rule: the car's reroute wait is a surface strip, the phone's is a card tint.** The deliberate
+  cross-variant deviation (spec: `route-calculation-feedback`, `rerouting-visual-feedback`,
+  `auto/off-route-indicator`): the car draws the reroute's wait on the map surface — a
+  `CalculationStrip` inside `stableArea`, top edge, clear of the indicator column and the attribution,
+  with the percentage in 5 % steps — and states the off-route condition in the host instruction panel
+  (the current step carries the off-route cue; the route's next manoeuvre stays the next step). The
+  phone keeps its status-card tint for the reroute and has no percentage, and its own
+  `off-route-indicator` owns the tint there. The difference is forced by the platform: the car has no
+  overlay layer, so a pushed pane would be the displayed template and would take the map away.
 - **Rule: the free-driving street label shows the road's ref name.** The phone free-driving street
   label SHALL be a bottom-center pill (`surfaceVariant` at 0.92 alpha, 10dp rounded, `titleMedium`
   text), shown only when no route is active and a road is resolved; its text is the road's "ref name"

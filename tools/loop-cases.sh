@@ -1704,6 +1704,9 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   out=$(run_state "$p" done 23 --result done --verdict closed --stop-reason refused 2>&1); status=$?
   assert_eq "2" "$status" "a stop reason belongs to a block, not to a closure"
   assert_eq "$before" "$(cat "$f")" "and that one writes nothing either"
+  out=$(run_state "$p" done 23 --result done --verdict closed --stop-reason bound 2>&1); status=$?
+  assert_eq "2" "$status" "bound is the one mechanism a cut carries, and a closure is neither a block nor a cut"
+  assert_eq "$before" "$(cat "$f")" "and that one writes nothing either"
   # A second account of an item joins the note it already has and fills no mechanism the first record left empty:
   # the field is the blocked attempt's own fact, not something a later account may add (issue #284's rule).
   run_state "$p" done 23 --result blocked --verdict blocked --stop-reason refused \
@@ -5599,6 +5602,8 @@ case_run_childIsEndedAtTheRunsDeadline() {
   assert_not_contains "$(cat "$report")" "3600 s" "the cap is not the bound that ended it"
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
     "an item whose child was ended is recorded cut, not blocked (issue #790)"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "and carries bound as its stop reason, the fact its note spells out in prose (issue #790)"
   assert_contains "$(jq -r '.items[0].note' "$state")" "exceeded" \
     "and the reason on the item names the bound that ended it"
   # The clock that ended it is the run's, not the item's (issue #674): the item is left for the next run, so the
@@ -12938,6 +12943,8 @@ EOF
     "and says the attempt is left for the next run"
   assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
     "no decision label is written for an item the run's own bound ended"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "and no retry-or-abandon comment is written for it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   # The report reads the item off its result alone (issue #790): it is on the run's own bound line and not in the
   # block tally, so no later reader needs the mechanism's vocabulary to tell work from a refusal.

@@ -23,8 +23,8 @@ ended is recorded cut, not blocked" and "A child the item's own wall clock ended
       `tools/loop/report.sh`). Verify: `tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'`
       green — it refused the first version of this case with
       `a case does not declare what it can be reached by: run#childPastItsTurnBoundIsCut:tools/loop/report.sh(run_report)`
-      (2026-11-06 gate, `.pi/issue-loop/items/790/gate.log`). The green reading is the gate child's own case step,
-      which has not run yet.
+      (2026-11-06 gate, `.pi/issue-loop/items/790/gate.log`). The green reading is the gate child's own case step —
+      `PASS driver#everyCaseDeclaresTheFilesItCanReach` (`.pi/issue-loop/items/790/gate-child.log:4`).
 
 ## 2. The cases the result realigns
 
@@ -72,8 +72,7 @@ ended is recorded cut, not blocked" and "A child the item's own wall clock ended
       reads the result, not the mechanism.
 - [x] 3.6 `tools/loop-mutations.sh`: 23.1 and 81.1 renamed to the renamed cases; 68.2 and 68.6 retired with the guard
       they quoted, and 92.1–92.3 added for the result, the mechanism the item's own child keeps beside it and the same
-      mechanism at the rework arm — the ids `85.x`–`91.x` are taken on the base by #782, #794, #796, #803, #802 and
-      #797. Verify: `bash tools/loop-mutations.sh --check` (262 records, every one applies); 92.1, 92.2, 92.3, 81.1
+      mechanism at the rework arm. Verify: `bash tools/loop-mutations.sh --check` (262 records, every one applies); 92.1, 92.2, 92.3, 81.1
       and 23.1 red-when-mutated and green again on restore (2026-11-07, `evidence/mutations-92.log`,
       `evidence/mutations-92.3.log`).
 
@@ -113,3 +112,38 @@ ended is recorded cut, not blocked" and "A child the item's own wall clock ended
       `run#childPastItsTurnBoundIsCut` (no comment), which that tally predates.
 - [x] 5.2 The gate is **not** this worker's (the run deferred it): the diff is left for the gate child, and no
       `tools/loop/gate.sh` run is claimed here.
+
+## 6. Round 2 — the corrections the review of round 1 required
+
+- [x] 6.1 The scenario "A recorded zero keeps the context bound off" said the item is recorded `cut` **with `bound` as
+      its stop reason**, and its `Case:` reads only the result (`tools/loop-cases.sh:13334`, `assert_eq "cut"`). Its
+      THEN now states what the case exercises — the header, the absent checkpoint, the wall clock's `LOOP-TIMEOUT`
+      with no context bound named, and the `cut` result — and leaves the mechanism to the requirement and to
+      `run#childPastItsContextBoundIsCut`, whose case asserts `stopReason=bound`. Verify: the delta and the shipped
+      spec carry the same sentence and the scenario count is unchanged (`measure.txt`,
+      `scenarios=39 cases=37 unnamed=2`).
+- [x] 6.2 The evidence's tallies added up: the stale `--from-git b114e2d` tally (the previous gate's red step, 320
+      cases, 1 failure) is deleted, and `evidence.md` now names the seven step tallies the gate line's 871 is summed
+      over instead of claiming a sum over the whole directory.
+- [x] 6.3 Counts no command produced are deleted rather than restated: the "9 cases", "13 records", "nine cases" and
+      `85.x`–`91.x` figures are gone from `proposal.md`, `design.md` and `tasks.md` (the rosters they led are kept),
+      and 1.3's "which has not run yet" now cites the green reading
+      (`.pi/issue-loop/items/790/gate-child.log:4`).
+- [x] 6.4 The two normative sentences round 1 dropped from "A block records the mechanism that stopped it" are back —
+      the `unmergeable` second home on the pre-screen's exclusion, and "no other mechanism SHALL be written on a
+      result that is not a block" — and the refusal clause names the one exception this change makes, a `cut`
+      carrying `bound`. Verify: delta and shipped spec carry the same text;
+      `tools/check-openspec-hygiene.sh` green.
+- [x] 6.5 "A child whose answer arrived empty is the run's fault too" excludes every bound again — "one of its spend
+      bounds", the base's own words — not only the turn bound round 1 narrowed it to; and "An item the run's own
+      bound cut" no longer states the report's implementation ("the line and the tally read the item's `result`
+      alone"). Verify: delta and shipped spec carry the same text.
+- [x] 6.6 The structural checks after the corrections: `openspec validate --all` (this archived change is not among
+      the four red items, which are other open deltas), `tools/check-openspec-hygiene.sh`,
+      `tools/check-doc-routes.sh` (329 sections, 5 skills), `tools/check-todo-references.sh` and the evidence check
+      over the archived copy — all green (`evidence/change-checks-round2.log`,
+      `evidence/evidence-check-round2.log`). No compiled file is touched by this round, so no build and no suite is
+      owed (`BuildGate.md` §2a).
+- [x] 6.7 `guidelines/Backlog.recipes.md` §7b ends at the result and its mechanism again: the added clause about the
+      report's bound line restated a predicate `agent-issue-loop` owns, and it is gone rather than restated in a
+      second home. Verify: `tools/check-doc-routes.sh` green after it (`evidence/change-checks-round2.log`).

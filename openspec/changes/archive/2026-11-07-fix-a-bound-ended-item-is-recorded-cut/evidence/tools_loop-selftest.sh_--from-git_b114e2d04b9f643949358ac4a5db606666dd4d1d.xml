@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d" tests="320" failures="1" errors="0" time="435">
-  <system-out>PASS run#eachChildIsBoundedByItsOwnRolesTurns PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded loop-selftest: 1 of 320 cases failed</system-out>
-</testsuite>

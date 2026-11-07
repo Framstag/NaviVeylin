@@ -57,18 +57,18 @@ section 7b (`:297`, the paragraph that ended "the item is recorded `blocked` wit
 
 surface: 6 requirements modified (39 scenarios, every scenario name the shipped spec has for them carried — the
 adoption-refusal scenario #794 landed after this change's plan is carried too; the two scenarios of "One command
-starts a budgeted run" that carry no `Case:` line carry none in the shipped spec either), 9 cases
-realigned — 3 renamed and rewritten (`run#childPastItsTurnBoundIsCut`, `run#childOutlastingTheWallClockIsCut`,
+starts a budgeted run" that carry no `Case:` line carry none in the shipped spec either), cases realigned — 3
+renamed and rewritten (`run#childPastItsTurnBoundIsCut`, `run#childOutlastingTheWallClockIsCut`,
 `run#childPastItsContextBoundIsCut`), 6 asserted on the new result (`run#childIsEndedAtTheRunsDeadline`,
 `run#treeOfAChildTheCapEndedIsNotCommitted`, `run#theRecordedZeroKeepsTheTurnBoundOff`,
 `run#theRecordedZeroKeepsTheContextBoundOff`, `run#aVanishedWriterEndsTheWait`,
-`run#aRotatedStreamStillCountsTheTurnsItDropped`) — plus `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted`,
+`run#aRotatedStreamStillCountsTheTurnsItDropped`) and `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted`,
 whose arm this change converts — 6 engine sites (`run.sh`'s result choice, its `cut` arm's record and note, its block
 arm's escalation guard, its rework-worker arm; `state.sh`'s stop-reason pairing; `report.sh`'s bound row), 2 guideline
-sections, and 13 records of `tools/loop-mutations.sh` (14.3, 14.5, 14.6 and 19.3 repointed; 23.1 and 81.1 renamed
-with their case; 68.2 and 68.6 retired with the guard they quoted; 92.1–92.3 added for the new result, the mechanism
-the item's own child keeps beside it and the same rule at the rework arm — the ids 85.x–91.x are taken on the base
-by #782, #794, #796, #803, #802 and #797) — counted with `tools/loop/measure.sh --change
+sections, and the records of `tools/loop-mutations.sh` this change touches (14.3, 14.5, 14.6 and 19.3 repointed; 23.1
+and 81.1 renamed with their case; 68.2 and 68.6 retired with the guard they quoted; 92.1–92.3 added for the new
+result, the mechanism the item's own child keeps beside it and the same rule at the rework arm) — counted with
+`tools/loop/measure.sh --change
 fix-a-bound-ended-item-is-recorded-cut` (`LOOP-MEASURE-SUITE cases=345`, `LOOP-MEASURE-CHANGE … scenarios=39
 cases=37 unnamed=2`), `grep -c '^case_run_' tools/loop-cases.sh` (128) and `bash tools/loop-mutations.sh --check`
 (262 records).

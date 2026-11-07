@@ -9,9 +9,9 @@ ending a review round, and the role's turn bound, the context bound, the child c
 It SHALL carry `bound` as its stop reason when the bound ended the item's own child, while a round the run ended
 carries none, as it did before — so the mechanism's spend is totalled beside the result — SHALL write no
 decision label and no comment, SHALL NOT enter the two-blocked streak `state.sh next` stops on, and SHALL be named on
-a line of its own in the report and counted there as a cut rather than a block — the line and the tally read the
-item's `result` alone, so no reader needs the mechanism's vocabulary to tell work from a refusal. The work an ended
-child left SHALL stay where the child left it, SHALL be named in the item's own record, and SHALL NOT be committed.
+a line of its own in the report and counted there as a cut rather than a block, so no reader needs the mechanism's
+vocabulary to tell work from a refusal. The work an ended child left SHALL stay where the child left it, SHALL be
+named in the item's own record, and SHALL NOT be committed.
 The round a review bound ended SHALL be written on the branch as a cut with its announcement withdrawn. A state a
 tree wrote before `cut` carried a bound keeps that `blocked` + `bound` pair out of the streak, while a pre-mechanism
 pair with no stop reason still stops the run, and an answer the *transport* cut twice is not this case: no bound
@@ -73,8 +73,12 @@ ended it, so it stays a block with its reason.
 An item recorded `blocked` SHALL carry the mechanism that stopped it, from a closed vocabulary — `refused` when a
 review round refused the change, `unmergeable` when the base would not take the branch, `bound` when the run ended a
 child at a bound it enforces — and a block none caused SHALL carry none. `bound` is also the one mechanism an item
-recorded `cut` carries, because the same bound is the phase the next run resumes; every other value SHALL be a usage
-error before anything is written, so a mechanism's spend is totalled without the note's prose.
+recorded `cut` carries, because the same bound is the phase the next run resumes. The vocabulary SHALL carry one
+second home: `unmergeable` SHALL be written beside the pre-screen's exclusion of an item whose admissible finished
+branch the project tree, the base or the replay refused to merge, with the refusal's own text, and no other mechanism
+SHALL be written on a result that is not a block. A value outside the vocabulary, and one on any other result than a
+block, that exclusion or a `cut` carrying `bound`, SHALL be refused before anything is written, so a mechanism's
+spend is totalled without the note's prose.
 
 #### Scenario: The refusing round is named
 
@@ -277,7 +281,7 @@ still at the base commit" and escalated — two decision slots no reviewer and n
 stopped on two consecutive blocked items 121 s into a 360-minute budget.
 
 - **WHEN** an agent process ends with a zero status, wrote no verdict line, was not ended by the run's own
-  wall-clock or its turn bound, and left the item's tree at the run's base commit
+  wall-clock or one of its spend bounds, and left the item's tree at the run's base commit
 - **THEN** the run records that once as its own stop reason, naming the status, the size of the answer it left and
   the child's own last line, and stops without escalating an item: no item record is written for it, no decision
   label and no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` —
@@ -416,8 +420,7 @@ The run SHALL bound a child in what a turn costs, not in how many turns it takes
 - **WHEN** the profile records `LOOP_ITEM_CONTEXT_MAX=0` and `LOOP_ITEM_CONTEXT_WARN=0` and a child's stream reports a
   210 000-token context before it outlives a two-second wall clock
 - **THEN** the header names the bound as off (`item-context-max=0`), no checkpoint line is printed, the transcript
-  carries only the wall clock's `LOOP-TIMEOUT`, and the item is recorded `cut` with `bound` as its stop reason
-  exactly as a child the recorded wall clock ended
+  carries only the wall clock's `LOOP-TIMEOUT` and names no context bound, and the item is recorded `cut`
 - **Case**: `run#theRecordedZeroKeepsTheContextBoundOff`
 
 ### Requirement: A wait ends when the writer of the record it waits for is gone

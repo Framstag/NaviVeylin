@@ -27,8 +27,7 @@ child's arm put them:
 - the `cut` arm adds the sentence the block's note used to carry ("left for the next run rather than asked about"),
   because that sentence is the reading the result now states;
 - the block arm's escalation guard excused a block whose cause was the run's deadline or a bound. Both causes leave a
-  `cut` above it, so the guard is removed and every block that arm records is escalated — the item that could still
-  reach it with a deadline claim and no bound is a block nobody asked about, which is the defect #682 names;
+  `cut` above it, so the guard is removed and every block that arm records is escalated;
 - `report.sh`'s bound row reads `select(.result == "cut")` again.
 - The rework worker of a refusing review round is the same rule at the second commit site (`tools/loop/run.sh:2617`):
   the arm that skips that worker's commit wrote `blocked` with no mechanism, so an item a bound ended there reached
@@ -50,8 +49,8 @@ child's arm put them:
 - **Files.** `tools/loop/run.sh`, `tools/loop/state.sh`, `tools/loop/report.sh`, `tools/loop-cases.sh`,
   `tools/loop-mutations.sh`, the change's spec delta (six modified requirements) and two guideline sections. No
   compiled file, no Gradle path.
-- **What the surface grew after the plan.** The plan counted six cases against the base it was written on; nine
-  cases now assert the same rule, and the change realigns them rather than leaving them red:
+- **What the surface grew after the plan.** The plan counted six cases against the base it was written on, and the
+  cases that assert the same rule grew after it; the change realigns them rather than leaving them red:
   `run#childPastItsContextBoundIsBlocked` renamed to `run#childPastItsContextBoundIsCut` (the context bound
   is the same arm and the same `bound` mechanism), `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted` moved to
   `cut` with the arm that records it, `run#aRotatedStreamStillCountsTheTurnsItDropped` (#802 landed after the plan)

@@ -164,6 +164,7 @@ LOOP_SHELL_CASES=(
   'run#decisionCapCountsOnlyCandidates'
   'run#theDecisionCapRecordsItsStopReason'
   'run#aFailedPreScreenRecordsItsStopReason'
+  'run#oneUnreadableItemDoesNotEndTheRun'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
   'gate#theMapCoversEveryPipelineStep'
@@ -585,6 +586,7 @@ loop_run_shell_case() {
     'run#decisionCapCountsOnlyCandidates') fn=case_run_decisionCapCountsOnlyCandidates ;;
     'run#theDecisionCapRecordsItsStopReason') fn=case_run_theDecisionCapRecordsItsStopReason ;;
     'run#aFailedPreScreenRecordsItsStopReason') fn=case_run_aFailedPreScreenRecordsItsStopReason ;;
+    'run#oneUnreadableItemDoesNotEndTheRun') fn=case_run_oneUnreadableItemDoesNotEndTheRun ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'gate#theMapCoversEveryPipelineStep') fn=case_gate_theMapCoversEveryPipelineStep ;;
@@ -4663,6 +4665,46 @@ case_run_aFailedPreScreenRecordsItsStopReason() {
   assert_contains "$reason" "no work was started" "naming what the exit did not do"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although no item was picked"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+# One candidate the tracker refuses to answer for is an unknown about *that* candidate, not the end of the run
+# (issue #753). `tools/loop/run.sh` read the item it was about to work — after the seam's recorded backoff had
+# already asked four times — and ended the whole window on the first unreadable candidate: measured 2026-11-03, one
+# run stopped after 1 h 9 min with 12 candidates unread, and 3 of the 86 archived runs ended this way. The
+# pre-screen's own rule one level up (`prescreen#oneUnreadableCandidateDoesNotStopTheScreen`, cured 2026-10-27)
+# never carried to the run's own read of the item it picked. The read's failure spends no item — an unknown is not
+# work the run did — so the candidate after it is what the run works, and the item is recorded where the run keeps
+# what it excluded without deciding anything about it.
+case_run_oneUnreadableItemDoesNotEndTheRun() {
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/gh
+  local d p out status f
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  stub_success "$d"
+  # The read that fails is the run's own, and the pre-screen's is not: both ask for the same candidate, and only the
+  # run's asks for its comments (`loop_issue_json --comments`), so the number and that one field name the read this
+  # case is about. The pre-screen queues both candidates — neither category leads and both are bugs, so #21 is read
+  # first — and the run then meets #21's unreadable read before it works anything.
+  export GH_STUB_READ_FAIL="21 --json number,title,body,labels,author,state,comments"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  unset GH_STUB_READ_FAIL
+  f=$(state_file "$p")
+  assert_eq "0" "$status" "an item the tracker did not answer for does not end the run: $out"
+  assert_not_contains "$out" "the tracker did not answer" "and the run's stop is not that sentence"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$f")" "item cap reached (1/1)" \
+    "and the run ends on its own item count, not on the read that failed"
+  assert_eq "unreadable" "$(jq -r '[.excluded[] | select(.issue == 21) | .verdict] | join(" ")' "$f")" \
+    "the item that could not be read is recorded as unreadable: $out"
+  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .reason' "$f")" "Could not resolve" \
+    "and its record carries the CLI's own words, which the seam no longer discards"
+  assert_eq "0" "$(jq -r '[.queue[] | select(.issue == 21)] | length' "$f")" \
+    "the unreadable item is taken out of the queue rather than read again"
+  assert_eq "22" "$(jq -r '.items[0].issue // ""' "$f")" "the run works the candidate after the unreadable one: $out"
+  assert_eq "1" "$(jq -r '.items | length' "$f")" "and spends no item on the one it could not read"
+  # The run's own pre-screen answers again after the item, and this time it reads #21 and queues it: the record of the
+  # read that failed and the queue entry it removed are the run's own and outlive that rewrite (issue #753).
+  assert_eq "2" "$(printf '%s\n' "$out" | grep -c 'pre-screen: 2 eligible')" \
+    "the screen answered for both candidates a second time: $out"
 }
 
 # A repository whose `core.bare` is true is not a work tree. `git status` still answers, so the run looks healthy

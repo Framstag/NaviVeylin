@@ -54,6 +54,10 @@
 #   state.sh adoption-refused <issue> --reason TEXT
 #                         # an admissible branch the tree, the base or the replay refused: the item's mechanism
 #                         # `unmergeable` beside the pre-screen's exclusion, and no decision written for it
+#   state.sh unreadable <issue> --reason TEXT
+#                         # the candidate the run went to read and the tracker did not answer for (issue #753): out of
+#                         # the queue, recorded as `unreadable` beside the pre-screen's exclusions, no item spent and
+#                         # no verdict written — its stop stays the queue and the clock
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -386,7 +390,11 @@ cmd_queue() {
   # them is the run's own output, and an exclusion reported only to a console would be lost (D6).
   local queue excluded kept
   # What an exclusion of this run already carries, so a second pre-screen does not erase the run's own record.
-  kept=$(jq -c '[.excluded[] | select(has("mechanism")) | {issue, mechanism, adoptionRefusal}]' "$STATE_FILE" 2>/dev/null || printf '[]')
+  # Two records are the run's and outlive a re-screen: the mechanism `unmergeable` with the adoption's own refusal
+  # (issue #794), and a candidate the run went to read and the tracker did not answer for (issue #753 — the screen
+  # reads the tracker again, so its own answer about that item is newer than the record but not the same fact).
+  kept=$(jq -c '[.excluded[] | select(has("mechanism") or ((.verdict // "") == "unreadable"))
+    | {issue, mechanism, adoptionRefusal, verdict, reason}]' "$STATE_FILE" 2>/dev/null || printf '[]')
   queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates, pinned}]')
   # The exclusion carries the one clause of evidence that produced it (the branch a previous attempt left
   # behind, or the label that states why): the run escalates the decisions among the exclusions, and it cannot
@@ -394,16 +402,20 @@ cmd_queue() {
   # — the mechanism `unmergeable` and the adoption's own refusal (issue #794) — is carried over: the pre-screen
   # reads the tracker and git again, and a branch it excluded twice is the same branch, so the run must not
   # escalate on its second reading what it recorded as work on its first.
-  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" --argjson kept "${kept:-[]}" '[
-    .[] | select((.verdict // $queued) != $queued)
-    | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}
-    | . as $e | ($kept | map(select(.issue == $e.issue)) | .[0] // {}) as $d
-    | $e + (if ($d | has("mechanism")) then {mechanism: $d.mechanism, adoptionRefusal: ($d.adoptionRefusal // "")} else {} end)]')
+  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" --argjson kept "${kept:-[]}" '
+    [.[] | select((.verdict // $queued) != $queued)
+     | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}
+     | . as $e | ($kept | map(select(.issue == $e.issue)) | .[0] // {}) as $d
+     | $e + (if ($d | has("mechanism")) then {mechanism: $d.mechanism, adoptionRefusal: ($d.adoptionRefusal // "")} else {} end)] as $screen
+    | $screen + [$kept[] | select((.verdict // "") == "unreadable")
+        | select(.issue as $i | ($screen | map(.issue) | index($i)) == null)]')
   # An item this run has already recorded is never queued again: the pre-screen reads the tracker, and a
-  # second pass over the same tracker would hand back the item the run has just finished with.
+  # second pass over the same tracker would hand back the item the run has just finished with — or, for the record
+  # of a read that did not answer, one the run must not read again in the same window (issue #753).
   patch_state '
     ([.items[].issue] | unique) as $handled
-    | .queue = ($q | map(select(.issue as $i | ($handled | index($i)) | not)))
+    | ([.excluded[]? | select((.verdict // "") == "unreadable") | .issue] | unique) as $unreadable
+    | .queue = ($q | map(select(.issue as $i | (($handled + $unreadable) | index($i)) | not)))
     | .excluded = $e' --argjson q "$queue" --argjson e "$excluded"
   printf 'queue: %s candidate(s), %s excluded\n' \
     "$(jq -r '.queue | length' "$STATE_FILE")" "$(jq -r '.excluded | length' "$STATE_FILE")"
@@ -961,6 +973,44 @@ cmd_adoption_refused() {
   printf 'adoption refused: #%s recorded as unmergeable — the item stays work, and no decision is written for it\n' "$issue"
 }
 
+# One candidate's record, which the run reads only to start that candidate, is not the run's own precondition: a
+# read the tracker does not answer for is an unknown about *this* candidate, never the end of the queue and the
+# clock with it (issue #753). The pre-screen already answers a failed read that way one level up
+# (`prescreen#oneUnreadableCandidateDoesNotStopTheScreen`, cured 2026-10-27, and `prescreen.sh`'s own record for the
+# same fact), and the seam below the run has spent its recorded retries and reported `tracker-unreachable` by the
+# time this command is reached — which is why the answer is "record it and take the next candidate" rather than
+# "read it again".
+#
+# The record is an **exclusion** and not an item: the run decided nothing about the item and started nothing for it,
+# so it must not spend one of `run.items` (`next` reads the cap as `.items | length`) and must not answer as a
+# verdict. `.excluded` is the run's own bucket for "not worked, nothing decided" — the report prints it as
+# `excluded before any work` — and the queue entry goes with it, because the next turn's `next` is the run's next
+# read. The record is the run's own, so the next pre-screen pass keeps it and leaves its issue out of the queue
+# (`cmd_queue`): the screen's answer is newer than the record but not the same fact, and a run does not read the
+# same candidate twice on one settled failure.
+cmd_unreadable() {
+  require_state
+  local issue="${1:-}" reason=""
+  shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
+      --*) loop_die "unreadable: unknown argument $1" ;;
+      *) loop_die "unreadable: usage: state.sh unreadable <issue> --reason TEXT" ;;
+    esac
+  done
+  case "$issue" in ''|*[!0-9]*) loop_die "unreadable: usage: state.sh unreadable <issue> --reason TEXT" ;; esac
+  [ -n "$reason" ] || loop_die "unreadable: --reason is required — the CLI's own words are what the record quotes"
+  jq -e --argjson i "$issue" 'any((.queue // [])[]; .issue == $i)' "$STATE_FILE" >/dev/null ||
+    loop_refuse "unreadable: #$issue is not a candidate of this run — only the item the run went to read is recorded unreadable"
+  patch_state '
+    .queue = [.queue[] | select(.issue != $i)]
+    | .excluded = ([(.excluded // [])[] | select(.issue != $i)]
+        + [{issue:$i, class:"", verdict:"unreadable", reason:$r, evidence:"", alreadyEscalated:false}])' \
+    --argjson i "$issue" --arg r "$reason"
+  printf 'unreadable: #%s — recorded and not worked, and the run takes the next candidate\n' "$issue"
+}
+
 # The table answers the run's questions on its own (#208, #211): which items were handled and how each ended —
 # `outcome` plus the item's own recorded reason when that outcome is not a closure — what each one cost in
 # clock time (the wall time `done --wall` records) and in spend (the tools it called, the tokens it used and
@@ -1114,6 +1164,7 @@ case "$cmd" in
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
   adoption-refused) cmd_adoption_refused "$@" ;;
+  unreadable) cmd_unreadable "$@" ;;
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
   stop) cmd_stop "$@" ;;

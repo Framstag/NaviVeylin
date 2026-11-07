@@ -1875,11 +1875,29 @@ while true; do
     stop_run "$shortfall; free memory and re-run — a starved host cannot become productive by taking the next item"
     break
   fi
-  issue_json=$(loop_issue_json "$issue" --comments) || {
-    printf 'run: gh could not read #%s\n' "$issue" >&2
-    stop_run "gh could not read #$issue — the tracker did not answer"
-    break
-  }
+  # One candidate's record, read for that candidate alone: a read the tracker does not answer for is an unknown
+  # about *this* candidate, never the run's own end (issue #753). The pre-screen already answers a failed read that
+  # way one level up (`prescreen#oneUnreadableCandidateDoesNotStopTheScreen`, cured 2026-10-27), and the seam below
+  # this line has spent its recorded retries and reported `tracker-unreachable` by the time the failure arrives here —
+  # which is why the answer is "record it and take the next candidate" and not "read it again". Nothing was started
+  # for the item and nothing in the tree was touched, so nothing is escalated and no item is spent: `state.sh
+  # unreadable` takes the queue entry out and records the candidate in `.excluded`, where the report already prints
+  # what the run excluded without deciding anything about it. Measured 2026-11-03 (issue #753): one run stopped with
+  # `gh could not read #720 — the tracker did not answer` after 1 h 9 min with 12 candidates unread and its queue and
+  # clock still open, and 3 of that day's 86 archived runs ended this way.
+  read_err=$(mktemp) || loop_die "run: could not create the file the read's own message is kept in"
+  if issue_json=$(loop_issue_json "$issue" --comments 2>"$read_err"); then
+    rm -f "$read_err"
+  else
+    read_error=$(tr '\n' ' ' < "$read_err" | sed -e 's/  */ /g' -e 's/ $//')
+    rm -f "$read_err"
+    printf 'run: the tracker could not be read for #%s — %s (recorded as unreadable, the run takes the next candidate)\n' \
+      "$issue" "${read_error:-the CLI gave no message}" >&2
+    loop_state unreadable "$issue" \
+      --reason "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" ||
+      loop_die "run: #$issue could not be read and could not be recorded as unreadable — the run will not forget that in silence"
+    continue
+  fi
   title=$(printf '%s' "$issue_json" | jq -r '.title // ""')
   # The item's class is a work input, not a label the worker guesses: a feature takes the propose-first path
   # while a bug and an improvement take the fix path (`tools/loop/prompts/worker.md`).

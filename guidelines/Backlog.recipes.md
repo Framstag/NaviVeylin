@@ -734,6 +734,20 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
 
+What it does with a candidate the tracker would not answer for: the run's read of the item it has just taken
+(`tools/loop/run.sh:1888`) is one candidate's record, not the run's precondition, so a failure there is an unknown
+about *that* item and not the end of the queue and the clock with it. The rule is the pre-screen's, one level up
+(`prescreen#oneUnreadableCandidateDoesNotStopTheScreen`, cured 2026-10-27), and the seam underneath
+(`tools/issues/lib.sh`) has already spent its recorded retries (5 s, 20 s, 60 s) by the time the run sees the
+failure, so there is nothing left to wait for. The candidate is recorded `unreadable` in the run's own `.excluded`
+with the CLI's words as its reason, its queue entry goes, no item of `run.items` is spent, nothing is escalated and
+no verdict is written, and the run takes the next candidate: its stop stays the queue and the clock. The record is
+the run's, so the next pre-screen pass in the same run keeps it and leaves the candidate out of the queue
+(`state.sh`'s `cmd_queue`). Measured 2026-11-03 (issue #753): a run ended on `gh could not read #720 — the tracker
+did not answer` after 1 h 9 min of 480 with 12 candidates unread, and 3 of that day's 86 archived runs ended that
+way. The case is `run#oneUnreadableItemDoesNotEndTheRun`, and it drives both halves — the record and the second
+pass that would otherwise erase it.
+
 A run one of the traps it installs ended records that signal as its own stop: `HUP` is trapped beside `INT` and
 `TERM` — a terminal or a harness that goes away sends it — and the trap writes `interrupted by SIG<NAME>` into the
 run's record before the in-progress mark comes off and before the lock is released. 50 of the 105 runs

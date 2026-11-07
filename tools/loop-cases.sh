@@ -1750,7 +1750,8 @@ EOF
   # The seam is a configuration key, so the case sets it where the loop reads it — the role's key beside the
   # project's one, and the roles the case does not name keep it.
   conf="$d/loop.conf"
-  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/worker-agent.sh --print\"|" \
+  sed -e "s|^\(LOOP_AGENT_CMD_[A-Z_]*\)=.*|\1=\"\"|" \
+      -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/worker-agent.sh --print\"|" \
       -e "s|^LOOP_AGENT_CMD_REVIEWER=.*|LOOP_AGENT_CMD_REVIEWER=\"$d/reviewer-agent.sh --print\"|" "$LOOP_CONF" > "$conf"
   export LOOP_CONF="$conf"
   out=$(run_one_item "$p" "$d" 2>&1) || fail "the run failed with a role-scoped agent command"
@@ -1804,7 +1805,8 @@ EOF
   : > "$d/agent.log"
   # The role the case is about records nothing of its own, so its command can only come from the role it inherits.
   conf="$d/loop.conf"
-  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/project-agent.sh --print\"|" \
+  sed -e "s|^\(LOOP_AGENT_CMD_[A-Z_]*\)=.*|\1=\"\"|" \
+      -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/project-agent.sh --print\"|" \
       -e "s|^LOOP_AGENT_CMD_REVIEWER=.*|LOOP_AGENT_CMD_REVIEWER=\"$d/reviewer-agent.sh --print\"|" \
       -e 's|^LOOP_AGENT_CMD_REVIEWER_PRE_GATE=.*|LOOP_AGENT_CMD_REVIEWER_PRE_GATE=""|' "$LOOP_CONF" > "$conf"
   export LOOP_CONF="$conf"

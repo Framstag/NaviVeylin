@@ -1,0 +1,64 @@
+# evidence-check — what the pointer check reported, and what was corrected
+
+Every line is the check's own output; the command is above it. Run by the tail process (phase F), 2026-11-07, in
+the change root `/home/tim/projects/NaviVeylin/.pi/worktrees/loop`.
+
+## First run, as the tail found the change
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-repeat-read-is-a-counted-number --root .
+    FAIL C1 dangling §7 in openspec/changes/fix-a-repeat-read-is-a-counted-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    (the same line four more times)
+    ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 265 resolved and in range, 7 unresolved or ambiguous
+    ----
+    evidence-check: FAIL (5)
+
+C2–C5 were green: the quoted tally `tests=1 failures=1` is carried by `evidence/red-on-HEAD.xml`, no `/tmp` pointer
+is cited, no mutation marker survives, and every cited `file:line` resolves (the 7 unresolved are bare basenames
+`run.sh:…`/`state.sh:…` the tree-wide search cannot single out; each resolves against `tools/loop/<name>`).
+
+## What the five were
+
+The five citations (`proposal.md` two, `design.md` one, `tasks.md` two) were **guideline sections**,
+`guidelines/Backlog.recipes.md` §7b "What an item costs, and the bounds on it" (`:254`) and §7e "Leftovers, the
+report and the queue" (`:892`), not backlog `§`-issue citations. The check's pattern is `§[0-9]\+`
+(`tools/loop/evidence-check.sh:68`), so it read the `§7` inside `§7b`/`§7e` as the migration's `§ → issue` numbering,
+where no row 7 exists — two namespaces the check does not tell apart (the same class the tail of
+`2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded` corrected, `evidence/evidence-check.txt` there).
+
+## The correction
+
+The five citations were repointed at the same sections by line, dropping the `§` the check misreads:
+`guidelines/Backlog.recipes.md`:254 and `guidelines/Backlog.recipes.md`:892. No claim, figure or observation changed
+— only the form of the five pointers.
+
+## Second run, after the correction
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-repeat-read-is-a-counted-number --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 266 resolved and in range, 7 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+## Third run, after `evidence/evidence.md` and `evidence/gate-sum.xml` were written
+
+The evidence file itself was new markdown, so the check read it too: an earlier wording in it spelled the two
+guideline sub-section numbers with `§`, which C1 flagged once the same way, and was reworded to the line form.
+Final run:
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-repeat-read-is-a-counted-number --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 3 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 311 resolved and in range, 7 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+The three confirmed pairs are `tests=1 failures=1` (the red case), `tests=899 failures=0` (the gate's summed line)
+and the gate step's own tally; the one unparsable line is a prose sentence that carries the words without a pair.

@@ -1,0 +1,5 @@
+report#anItemRecordsItsRepeatReads|   the item's file reads are counted from its event stream, read and ctx_read alike: expected '5', got 'null'
+--- report#anItemRecordsItsRepeatReads[0] (exit 1)
+  the item's file reads are counted from its event stream, read and ctx_read alike: expected '5', got 'null'
+FAIL report#anItemRecordsItsRepeatReads
+loop-selftest: 1 of 1 cases failed

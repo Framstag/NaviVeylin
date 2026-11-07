@@ -1,0 +1,47 @@
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/12/tree/case.zwRTKr/repo/.pi/issue-loop/runs/2026-11-07T15:50:52Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/8/tree/case.UwmlxY/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (8d103baf23e4a344 → 278a09c08db06e8a); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/10/tree/case.vKAwyp/repo/.pi/issue-loop/runs/2026-11-07T15:50:52Z.json
+PASS report#emptyRunSaysNone
+PASS report#anItemOverTheTokenBoundIsFlagged
+PASS report#yieldIsCountedFromState
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-155055')
+report#headerAndTableShape| HEAD ist jetzt bei 8a259a7 init
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/15/tree/case.H9ia9u/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (2915f1973c1175eb → 09405c6a099c0990); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/15/tree/case.H9ia9u/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (2915f1973c1175eb → 09405c6a099c0990); a field was edited outside this script
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#aVerdictAloneIsNoEscalation
+PASS report#misdiagnosedIsCountedApart
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (94f5453)
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2c5bc26)
+report#headerAndTableShape| HEAD ist jetzt bei 2c5bc26 review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2c5bc26).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS report#archivedStateIsReported
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#impossibleBudgetNamesAnotherRun
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| closed #21 (completed)
+report#headerAndTableShape|   landing #21 2c5bc264a2021c91bac86a0f99bca8471390fc0c: unscored — the pipeline runs of this commit could not be read
+PASS report#aKilledRunIsNotALiveRun
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#wallTimeAndReasonInTheTable
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#anItemRecordsItsRepeatReads
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/6/tree/case.G6QZtg/repo/.pi/issue-loop/runs/2026-11-07T15:51:03Z.json
+PASS report#headerAndTableShape
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.UXzWDW/cases/5/tree/case.vtSDAi/repo/.pi/issue-loop/runs/2026-11-07T15:51:03Z.json
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#trendFiguresFromState
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#landingsAreTheStoredNumber
+loop-selftest: report 23 cases 138.07 s
+loop-selftest: all 23 cases passed (JDK 27, offline, no token, no sandbox) — 16.80 s, selection: --group report

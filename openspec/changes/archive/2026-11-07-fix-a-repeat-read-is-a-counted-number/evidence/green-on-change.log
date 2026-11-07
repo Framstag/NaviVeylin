@@ -1,0 +1,3 @@
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.qcSbmn/cases/0/tree/case.VUfX6w/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (1287e6610823e49f → 2eebb5f5f668ab06); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.qcSbmn/cases/0/tree/case.VUfX6w/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (1287e6610823e49f → 2eebb5f5f668ab06); a field was edited outside this script
+PASS report#anItemRecordsItsRepeatReads

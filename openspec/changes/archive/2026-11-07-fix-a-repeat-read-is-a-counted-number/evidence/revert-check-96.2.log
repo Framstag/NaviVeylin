@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 275 records (labels: 96.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.bmtuF6
+RED    96.2  report#anItemRecordsItsRepeatReads   (the worst item the repeat-reads line names, so the rate is printed beside nothing it can be acted on (issue #814))
+       2026-11-07T15:47:30Z — the trend prints the run's repeats with the two counts they came from, the characters re-injected and the worst item: '3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars re-injected · worst #21 2 of 5' 
+restore 96.2 report#anItemRecordsItsRepeatReads green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

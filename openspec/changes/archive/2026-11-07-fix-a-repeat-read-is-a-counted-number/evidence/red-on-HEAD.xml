@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the loop's shell runner: `tools/loop-selftest.sh` writes no JUnit XML. The one testcase and its
+     failure message are the runner's own lines from `red-on-HEAD.log`, 2026-11-07T15:51:44Z: the case as it now
+     stands, with `tools/loop/state.sh` and `tools/loop/report.sh` restored to the base
+     49afe102ef979f7b1d1c1bd9afe8155a55ce629d (`git show 49afe102:tools/loop/<file>`, `git diff --stat` empty for both
+     at the time of the run; the change's own versions were copied back immediately after). -->
+<testsuite name="loop-selftest" tests="1" failures="1" errors="0">
+  <testcase classname="report" name="anItemRecordsItsRepeatReads">
+    <failure message="the item's file reads are counted from its event stream, read and ctx_read alike: expected '5', got 'null'">the item's file reads are counted from its event stream, read and ctx_read alike: expected '5', got 'null'</failure>
+  </testcase>
+</testsuite>

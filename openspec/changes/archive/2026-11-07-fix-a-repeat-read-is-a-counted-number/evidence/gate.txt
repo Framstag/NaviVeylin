@@ -1,0 +1,50 @@
+# Gate — item #814, change fix-a-repeat-read-is-a-counted-number
+
+Ran once, in the change root `/home/tim/projects/NaviVeylin/.pi/worktrees/loop`, at HEAD `0d33bd8f`
+(change commit `fix: nothing-counts-repeat-file-reads-so-the (#814)`), base `49afe102`.
+
+    ./tools/loop/gate.sh
+
+Findings to apply before the gate: none — the pre-gate review round found no blocking finding
+(`pre-gate-review.md`).
+
+Owed steps: 21 (`measure.txt`, `LOOP-MEASURE-CHECK` × 21). Tallies written: 21, one per owed step, under
+`app/build/test-results/loop-gate/` and copied here to `gate-tallies/` (the build tree is not kept).
+
+Summary line, as the gate prints it (the child's console was cut by the result bound, so the line is
+recomposed from the gate's own tallies, which carry the same per-step `tests`/`failures`/`errors` the
+summary accumulates):
+
+    LOOP-GATE: tests=899 failures=0 errors=0 (21 entries)
+
+Per-suite detail (all green; `tests="0"` is a step whose summary carries no case count):
+
+| step | tests | failures | errors | time (s) |
+|---|---|---|---|---|
+| bash tools/gen-feature-list.sh --check-classification | 0 | 0 | 0 | 4 |
+| bash tools/loop-mutations.sh --check | 275 | 0 | 0 | 3 |
+| tools/check-doc-routes-selftest.sh | 34 | 0 | 0 | 7 |
+| tools/check-doc-routes.sh | 0 | 0 | 0 | 1 |
+| tools/check-openspec-hygiene-selftest.sh | 7 | 0 | 0 | 1 |
+| tools/check-openspec-hygiene.sh | 0 | 0 | 0 | 0 |
+| tools/check-portability-selftest.sh | 29 | 0 | 0 | 22 |
+| tools/check-portability.sh | 0 | 0 | 0 | 1 |
+| tools/check-todo-references.sh | 0 | 0 | 0 | 1 |
+| tools/issue-tooling-selftest.sh | 163 | 0 | 0 | 87 |
+| tools/loop-mutations-selftest.sh | 34 | 0 | 0 | 363 |
+| tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach | 0 | 0 | 0 | 10 |
+| tools/loop-selftest.sh --from-git a3cefa934793b341e0d9290034a39b482e4e93dc | 357 | 0 | 0 | 358 |
+| tools/mutate-selftest.sh | 0 | 0 | 0 | 1 |
+| tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list | 0 | 0 | 0 | 0 |
+| tools/mutate.sh --mutations tools/close-mutations.json --list | 0 | 0 | 0 | 0 |
+| tools/mutate.sh --mutations tools/create-mutations.json --list | 0 | 0 | 0 | 0 |
+| tools/mutate.sh --mutations tools/decision-question-mutations.json --list | 0 | 0 | 0 | 0 |
+| tools/mutate.sh --mutations tools/duplicates-mutations.json --list | 0 | 0 | 0 | 0 |
+| tools/mutate.sh --mutations tools/portability-mutations.json --list | 0 | 0 | 0 | 0 |
+| tools/mutate.sh --mutations tools/status-mutations.json --list | 0 | 0 | 0 | 0 |
+
+The build step is not among them: the delta touches `tools/loop/*` and rule/markdown paths only, so no
+compiled path changed and the compiled gate was not owed (`tools/loop/loop.conf`, `LOOP_GATE_COMPILED_PATTERNS`).
+
+This gate was run once (`events.jsonl.gate-runs`: one entry, `LOOP_GATE_RUNS_MAX=2`). It is not re-run,
+not repaired, and the tree was not edited after it.

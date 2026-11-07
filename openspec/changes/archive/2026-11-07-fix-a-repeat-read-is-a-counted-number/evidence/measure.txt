@@ -1,0 +1,90 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=a3cefa934793b341e0d9290034a39b482e4e93dc paths=62 insertions=4852 deletions=51
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/final-verify.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/focused-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/focused-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/green-on-change.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/green-on-change.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/mutation-94.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/red-report-resume-action.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/evidence/superseded.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-bound-ended-rework-spends-no-decision-slot/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/doc-routes.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/first-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/green-on-change.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/mutation-258.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/mutation-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/readiness.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-a-cut-read-is-named-in-the-prompt/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/declaration-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/driver-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/green-on-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/report-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/revert-check-95.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/run-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/evidence/state-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-07-fix-the-tool-result-cap-is-8-000-characters/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/prescreen.sh
+LOOP-MEASURE-PATH tools/loop/prompts/reviewer.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker-gate.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker-tail.md
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-PATH tools/loop/worktree.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git a3cefa934793b341e0d9290034a39b482e4e93dc
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=357 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-repeat-read-is-a-counted-number scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 4 rule files carry the new figure (`./tools/look.sh 'dupReads' --files` — 16 matches in 6 files: the four
+LOOP-MEASURE-END

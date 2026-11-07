@@ -2459,6 +2459,16 @@ while true; do
     stop_reason="refused"
     blocked_reason="the gate did not pass ($gate_field) and the close records no waiver — LOOP-GATE-WAIVED is the one clause the item closed over, and a close without it is a judgement nobody can read"
   fi
+  # The same refusal has a reverse side, and it landed in the same place (issue #811): `state.sh done` refuses a
+  # clause written beside a tally that *passed*, and a suite written with no clause to name, and both of those fields
+  # come from the child's own report. Left to travel they would fail the closed arm's state write — after the tracker
+  # was closed — so they are dropped here, where the outcome is still the run's to decide: a clause for a gate that
+  # passed waives nothing, and a suite with no clause names nothing.
+  if [ -n "$gate_waived" ] && [ "$(gate_tally_state "$gate_field")" = green ]; then
+    gate_waived=""
+    gate_waived_suite=""
+  fi
+  if [ -n "$gate_waived_suite" ] && [ -z "$gate_waived" ]; then gate_waived_suite=""; fi
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"

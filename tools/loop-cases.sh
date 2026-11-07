@@ -8893,7 +8893,7 @@ case_run_aRedGateIsBlockedByTheTail() {
 # the same red tally without one is blocked **before** the branch is merged and the item closed on the tracker.
 case_run_aCloseOverARedGateIsWaivedOrBlocked() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d d2 p p2 f f2 out clause suite
+  local d d2 p p2 f f2 out clause suite d3 p3 f3 d4 p4 f4
   clause='the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path'
   suite='MapManagerSourceSwitchPlanTest#aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered'
   d=$(scratch); p=$(new_project)
@@ -8931,6 +8931,36 @@ case_run_aCloseOverARedGateIsWaivedOrBlocked() {
   assert_eq 'tests=880 failures=2 errors=0 (mobile)' "$(jq -r '.items[0].metrics.gate' "$f2")" \
     "the tally is still the record's, so the report orders no re-run of a gate that ran"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and nothing is closed on the tracker"
+  # The reverse input, and the one the run has to answer itself (issue #811): a clause written beside a tally that
+  # *passed*. `state.sh done` refuses it, and the refusal lands after the tracker was told the item closed, so the run
+  # drops both fields and the green close stands — the item has a record, and it records no waiver.
+  p3=$(new_project); d3=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d3"
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: tests=880 failures=0 errors=0 (mobile)\nLOOP-GATE-WAIVED: %s\nLOOP-GATE-WAIVED-SUITE: %s\n' \
+    "$clause" "$suite" > "$d3/worker-report.txt"
+  out=$(run_loop "$p3" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f3=$(state_file "$p3")
+  assert_eq "done" "$(jq -r '.items[0].result' "$f3")" \
+    "a clause written beside a passing tally does not fail the write the tracker's close already earned"
+  assert_eq 'tests=880 failures=0 errors=0 (mobile)' "$(jq -r '.items[0].metrics.gate' "$f3")" \
+    "the green tally stays the record's"
+  assert_eq "null" "$(jq -r '.items[0].metrics.gateWaived' "$f3")" "and no clause is recorded on a gate that passed"
+  assert_eq "null" "$(jq -r '.items[0].metrics.gateWaivedSuite' "$f3")" "nor a suite beside it"
+  assert_eq "1" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and the green close closes the item"
+  # The other input the closed arm refuses: a suite that names a waiver's clause when there is no clause. It is
+  # dropped for the same reason and in the same place, so the green close has a record and records no waiver.
+  p4=$(new_project); d4=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d4"
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: tests=880 failures=0 errors=0 (mobile)\nLOOP-GATE-WAIVED-SUITE: %s\n' \
+    "$suite" > "$d4/worker-report.txt"
+  out=$(run_loop "$p4" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f4=$(state_file "$p4")
+  assert_eq "done" "$(jq -r '.items[0].result' "$f4")" \
+    "a suite with no clause to name does not fail the close it has no waiver for"
+  assert_eq "null" "$(jq -r '.items[0].metrics.gateWaivedSuite' "$f4")" "and no suite survives beside an empty clause"
+  assert_eq "1" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and this close reaches the tracker too"
 }
 
 # The round that reads the diff before the gate is a round the run read and paid for, and the item's record says so

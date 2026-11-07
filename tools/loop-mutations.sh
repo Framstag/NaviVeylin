@@ -228,7 +228,11 @@ MUTATIONS=(
   '21.1@-@tools/loop/prescreen.sh@prescreen#aHoldWithNoDecisionIsNotADecision@a hold with no recorded decision reported as a hold rather than as a decision@s|^      verdict="$held_verdict"$|      verdict="$decision_verdict"|'
   '21.2@-@tools/loop/labels.sh@labels#holdCarriesItsReason@the reason a hold writes travelling with the state as a comment@s|^    comment_only=1$|    comment_only=0|'
   '21.3@-@tools/loop/run.sh@run#staleSkipAsksItsQuestion@the escalation a stale skip owes instead of a bare hold nobody can answer@s|^        \|\| \[ "\$skip_verdict" = "falsified" \] \|\| \[ "\$skip_verdict" = "stale" \]; then$|        \|\| [ "$skip_verdict" = "falsified" ]; then|'
-  '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category lead ranking a leading defect ahead of every other item@s#^  | ($lead + $tail) as $order$#  | (($lead + $tail) | sort_by([class_rank($worked), .issue])) as $order#'
+  '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category lead ranking a leading defect ahead of every other item@s#^  | ($lead + $tail) as $ranked$#  | (($lead + $tail) | sort_by([class_rank($worked), .issue])) as $ranked#'
+  # The pin is the queue's one per-item override (capability `loop-queue-pin`): without the lift a pinned item keeps
+  # the rank the class and category keys give it, so a pinned harness improvement sits at the tail the interval puts
+  # it in and the case sees no rank 1. One expression, because the whole of the pin is that one select.
+  '259.1@-@tools/loop/prescreen.sh@prescreen#aPinnedItemLeadsTheQueue@the pin lifting a pinned item ahead of the category lead@s#| map(select(.pinned)) |#| map(select(.pinned and false)) |#'
   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
   '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsCut@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'

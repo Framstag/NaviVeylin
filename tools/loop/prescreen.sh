@@ -87,6 +87,12 @@ priority_classes="$(loop_role firstCategoryClasses)"
 # and leaves those items in the class order. A non-number is read as 0 rather than as a broken queue.
 priority_every=$(loop_role firstCategoryEvery | head -1)
 case "$priority_every" in ''|*[!0-9]*) priority_every=0 ;; esac
+# The label a person writes on an item to say "work this next" — the queue's only per-item override, read from the
+# profile so that no engine spells the value (D16). Empty is a project whose backlog nobody pins, and the queue then
+# ranks by the category key, the class order and the issue number alone.
+next_up_agent=$(loop_role nextUpAgent)
+next_up_label=""
+[ -z "$next_up_agent" ] || next_up_label="agent${separator}${next_up_agent}"
 refused_classes="$(loop_role refusedClasses)"
 inflight_status=$(loop_role inFlightStatus)
 device_status=$(loop_role deviceStatus)
@@ -216,7 +222,7 @@ while [ "$i" -lt "$count" ]; do
     record=$(jq -n --argjson issue "$number" --arg verdict "$unreadable_verdict" \
       --arg reason "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" '
       {issue:$issue, title:"", class:"", category:"", status:"", author:"", verdict:$verdict, reason:$reason,
-       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false,
+       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false, pinned:false,
        gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
     records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
     continue
@@ -228,6 +234,14 @@ while [ "$i" -lt "$count" ]; do
   class=$(label_value "$labels" class)
   category=$(label_value "$labels" category)
   status=$(label_value "$labels" status)
+  # The pin is a rank, never a gate: it is read here beside the class and the category and decides nothing about the
+  # item's verdict, so a pinned item that is on hold, unauthorised or in flight is excluded exactly as it would be
+  # without the label.
+  pinned=0
+  if [ -n "$next_up_label" ] &&
+     printf '%s' "$labels" | jq -e --arg l "$next_up_label" 'any(.[]; .name == $l)' >/dev/null; then
+    pinned=1
+  fi
   gh_state=$(printf '%s' "$issue" | jq -r '.state // "OPEN"')
 
   verdict="$queued_verdict"
@@ -491,9 +505,11 @@ the item is left open and no child was started: shape $changes_family/${named_ch
     --arg category "$category" --arg status "$status" --arg author "$author" \
     --arg verdict "$verdict" --arg reason "$reason" --arg evidence "$evidence" \
     --arg absent "$absent_citation" \
-    --argjson escalated "$([ "$already_escalated" -eq 1 ] && printf true || printf false)" '
+    --argjson escalated "$([ "$already_escalated" -eq 1 ] && printf true || printf false)" \
+    --argjson pinned "$([ "$pinned" -eq 1 ] && printf true || printf false)" '
     {issue:$issue, title:$title, class:$class, category:$category, status:$status, author:$author,
      verdict:$verdict, reason:$reason, evidence:$evidence, absentCitation:$absent, rank:null, alreadyEscalated:$escalated,
+     pinned:$pinned,
      gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done
@@ -523,7 +539,12 @@ ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$work
      else
        (($rest + $mix) | sort_by([class_rank($worked), .issue]))
      end) as $tail
-  | ($lead + $tail) as $order
+  # The per-item override a person writes lifts its item ahead of every other (capability `loop-queue-pin`): the
+  # pinned items lead, in the class and issue order every other stream keeps, and the rest keep their own relative
+  # order. A pin lifts; it excludes nothing and changes no verdict, label or count.
+  | ($lead + $tail) as $ranked
+  | (($ranked | map(select(.pinned)) | sort_by([class_rank($worked), .issue]))
+     + ($ranked | map(select(.pinned | not)))) as $order
   | reduce range(0; ($order | length)) as $i ($all;
       . as $records | ($order[$i].issue) as $id
       | map(if .issue == $id then .rank = ($i + 1) else . end))
@@ -565,7 +586,7 @@ else
   printf 'pre-screen: %s eligible, %s excluded — gates 2-5 stay the worker'"'"'s (design D6)\n' "$eligible_count" "$excluded_count"
   printf '%s' "$records" | jq -r --arg queued "$queued_verdict" '.[] |
     if .verdict == $queued
-    then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])\(if (.absentCitation // "") != "" then " (cites absent `\(.absentCitation)`)" else "" end)"
+    then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank)\(if .pinned then " pinned" else "" end) — \(.title | .[0:80])\(if (.absentCitation // "") != "" then " (cites absent `\(.absentCitation)`)" else "" end)"
     else "  excluded #\(.issue) \(.verdict): \(.reason)" end'
 fi
 # An empty queue has two causes and they are not the same answer (#231): the tracker refused every candidate, or it

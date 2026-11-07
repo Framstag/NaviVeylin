@@ -387,7 +387,7 @@ cmd_queue() {
   local queue excluded kept
   # What an exclusion of this run already carries, so a second pre-screen does not erase the run's own record.
   kept=$(jq -c '[.excluded[] | select(has("mechanism")) | {issue, mechanism, adoptionRefusal}]' "$STATE_FILE" 2>/dev/null || printf '[]')
-  queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates}]')
+  queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates, pinned}]')
   # The exclusion carries the one clause of evidence that produced it (the branch a previous attempt left
   # behind, or the label that states why): the run escalates the decisions among the exclusions, and it cannot
   # cite evidence it threw away here. What the run itself decided about an exclusion before a re-screen arrives

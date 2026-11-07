@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 281 records (labels: 22.1 259.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.2qy5h2
+RED    22.1  prescreen#harnessItemsLeadTheQueue   (the category lead ranking a leading defect ahead of every other item)
+       2026-11-07T17:29:10Z — the two harness bugs lead, then the app work, and the harness improvement is mixed in at the end: expected '22 26 21 28 24 23', got '21 22 26 28 23 24'
+restore 22.1 prescreen#harnessItemsLeadTheQueue green again
+RED    259.1  prescreen#aPinnedItemLeadsTheQueue   (the pin lifting a pinned item ahead of the category lead)
+       2026-11-07T17:29:15Z — a pinned harness improvement leads the queue instead of being mixed in at the interval: expected '1', got 'null'
+restore 259.1 prescreen#aPinnedItemLeadsTheQueue green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

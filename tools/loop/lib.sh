@@ -527,13 +527,15 @@ loop_required_labels() {
 # (like the namespace names); a value another project does not need is declared empty, never omitted.
 LOOP_ROLES=""
 LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories firstCategoryClasses firstCategoryEvery proposeClass refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
-# The two keys the shaping inbox reads (`tools/tooling.json`, capability `shaping-inbox`): `shapingAgent` is the
-# label an item carries when a run's verdict said a person must reshape it, and `shapingVerdicts` names the run
-# verdicts that write it. They are read with the same `loop_role`, but they are **not** required: a profile that
-# omits them reads as "this project has no shaping inbox", so a profile written before the capability still starts
-# a run instead of stopping on a key it never declared (the rule "declare it empty, never omit it" is what the
-# *required* keys keep, and `tools/check-portability.sh` reports neither of these two).
-LOOP_SHAPING_ROLE_KEYS="shapingAgent shapingVerdicts"
+# The keys a capability added later reads, so a profile written before it keeps working: `shapingAgent` is the
+# label an item carries when a run's verdict said a person must reshape it, `shapingVerdicts` names the run
+# verdicts that write it (`tools/tooling.json`, capability `shaping-inbox`), and `nextUpAgent` is the label a person
+# writes to say "work this next" (capability `loop-queue-pin`). They are read with the same `loop_role`, but they are
+# **not** required: a profile that omits them reads as "this project has no shaping inbox and pins nothing", so a
+# profile written before either capability still starts a run instead of stopping on a key it never declared (the
+# rule "declare it empty, never omit it" is what the *required* keys keep, and `tools/check-portability.sh` reports
+# none of these three).
+LOOP_OPTIONAL_ROLE_KEYS="shapingAgent shapingVerdicts nextUpAgent"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""
@@ -543,10 +545,10 @@ loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop th
     printf '%s\n' "$LOOP_ROLES" | jq -e --arg k "$key" 'has($k)' >/dev/null ||
       loop_die "the roles section in $(loop_profile) does not declare $key — declare it empty when this project has no such value"
   done
-  # The shaping keys may be absent (see above), but a key that is present must be a name or a list of them: a
-  # number or an object there reads as "no shaping verdict" and would silently empty an inbox the project meant
+  # The optional keys may be absent (see above), but a key that is present must be a name or a list of them: a
+  # number or an object there reads as "no such value" and would silently empty an inbox or a pin the project meant
   # to declare.
-  for key in $LOOP_SHAPING_ROLE_KEYS; do
+  for key in $LOOP_OPTIONAL_ROLE_KEYS; do
     printf '%s\n' "$LOOP_ROLES" |
       jq -e --arg k "$key" 'if has($k) then (.[$k] | type | . == "string" or . == "array") else true end' >/dev/null ||
       loop_die "the roles section in $(loop_profile) declares $key as neither a name nor a list of names"

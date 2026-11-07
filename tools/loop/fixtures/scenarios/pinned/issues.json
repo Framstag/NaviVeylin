@@ -1,0 +1,90 @@
+[
+  {
+    "number": 31,
+    "title": "§31 A pinned harness improvement — the one per-item override the queue honours",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" },
+      { "name": "agent/next-up" }
+    ]
+  },
+  {
+    "number": 32,
+    "title": "§32 An unpinned app bug — the head the class and category keys would give it",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 33,
+    "title": "§33 An unpinned harness bug — the item the category key leads with",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/build-and-harness" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  },
+  {
+    "number": 34,
+    "title": "§34 A pinned app bug that is on hold — a pin is a rank, not a gate",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/on-hold" },
+      { "name": "agent/eligible" },
+      { "name": "agent/next-up" }
+    ]
+  },
+  {
+    "number": 35,
+    "title": "§35 A pinned app bug authored elsewhere — the pin does not authorise it either",
+    "body": "no citation at all",
+    "author": { "login": "someone-else" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" },
+      { "name": "agent/next-up" }
+    ]
+  },
+  {
+    "number": 36,
+    "title": "§36 A second pinned improvement — the class order and the issue number still decide among pins",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/verification" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" },
+      { "name": "agent/next-up" }
+    ]
+  },
+  {
+    "number": 37,
+    "title": "§37 An app improvement — after every bug, unpinned or not",
+    "body": "no citation at all",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ]
+  }
+]

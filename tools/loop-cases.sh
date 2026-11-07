@@ -73,6 +73,8 @@ LOOP_SHELL_CASES=(
   'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#aHoldWithNoDecisionIsNotADecision'
   'prescreen#harnessItemsLeadTheQueue'
+  'prescreen#aPinnedItemLeadsTheQueue'
+  'prescreen#aProfileWithNoPinPinsNothing'
   'prescreen#aRenamedLeadingCategoryLeads'
   'prescreen#priorityCategoriesAreReadFromTheProfile'
   'prescreen#priorityDoesNotBypassTheGate'
@@ -485,6 +487,8 @@ loop_run_shell_case() {
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
     'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
+    'prescreen#aPinnedItemLeadsTheQueue') fn=case_prescreen_aPinnedItemLeadsTheQueue ;;
+    'prescreen#aProfileWithNoPinPinsNothing') fn=case_prescreen_aProfileWithNoPinPinsNothing ;;
     'prescreen#aRenamedLeadingCategoryLeads') fn=case_prescreen_aRenamedLeadingCategoryLeads ;;
     'prescreen#priorityCategoriesAreReadFromTheProfile') fn=case_prescreen_priorityCategoriesAreReadFromTheProfile ;;
     'prescreen#priorityDoesNotBypassTheGate') fn=case_prescreen_priorityDoesNotBypassTheGate ;;
@@ -2663,6 +2667,60 @@ case_prescreen_harnessItemsLeadTheQueue() {
     "the app bug follows the harness bugs, because a harness improvement does not lead"
   assert_eq "6" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .rank')" \
     "the harness improvement is mixed in, not ranked inside the leading group"
+}
+
+# A pin is the queue's one per-item override: the item a person pinned leads, in the class and issue order the
+# rest of the queue keeps, and nothing else about the queue moves. It is a rank like the category key, so a pinned
+# item that is on hold or whose author is unauthorised is excluded exactly as it would be without the label — the
+# pin can never queue work the gate refused.
+case_prescreen_aPinnedItemLeadsTheQueue() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario pinned)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a pinned backlog"
+  assert_eq "31 36 33 32 37" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "the pinned items lead, then the category lead and the rest keep their own order"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .rank')" \
+    "a pinned harness improvement leads the queue instead of being mixed in at the interval"
+  assert_eq "2" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 36) | .rank')" \
+    "the class order and the issue number decide among the pins too"
+  assert_eq "3" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 33) | .rank')" \
+    "the unpinned category lead keeps the rank the pin did not take"
+  assert_eq "held" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 34) | .verdict')" \
+    "a pinned item on hold is still held"
+  assert_eq "null" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 34) | .rank')" \
+    "and it takes no rank"
+  assert_eq "author-not-allowlisted" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 35) | .verdict')" \
+    "a pinned item authored elsewhere is excluded as unauthorised, not ranked"
+  assert_eq "null" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 35) | .rank')" \
+    "and it takes no rank either"
+  assert_eq "5" "$(jq -r '.queue | length' "$(state_file "$p")")" \
+    "the queue holds the five eligible items and neither excluded one"
+}
+
+# The pin is the profile's value like every other decision: a project that declares no pin label ranks on the
+# category key, the class order and the issue number alone, exactly as it did before the key existed.
+case_prescreen_aProfileWithNoPinPinsNothing() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 5 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario pinned)
+
+  jq '.roles.nextUpAgent = ""' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not declare an empty pin label"
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on an empty pin label"
+  assert_eq "33 32 37 31 36" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "with no pin label the category key, the class order and the issue number decide alone"
+
+  jq 'del(.roles.nextUpAgent)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not remove the pin role"
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "0" "$status" "an absent pin role reads as no pin at all, not as a half-adapted profile"
 }
 
 # A renamed set is ordered on, not merely scanned: the profile declares `ui` as its leading category and the

@@ -936,7 +936,7 @@ esac
 
 if [ "$dry_run" -eq 1 ]; then
   printf '\ndry run: what would happen, and nothing else\n'
-  jq -r '.queue[] | "  rank \(.rank) · #\(.issue) [\(.class)/\(.category)] \(.title)"' "$LOOP_STATE_FILE"
+  jq -r '.queue[] | "  rank \(.rank)\(if .pinned then " pinned" else "" end) · #\(.issue) [\(.class)/\(.category)] \(.title)"' "$LOOP_STATE_FILE"
   jq -r '.excluded[] | "  excluded #\(.issue) \(.verdict): \(.reason)"' "$LOOP_STATE_FILE"
   bash "$LOOP_DIR/report.sh"
   printf 'dry run: no worktree, no label and no agent process was created or started\n'

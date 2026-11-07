@@ -304,6 +304,15 @@ input and not a gate, and the category beside it is ranked the same way: the pro
 queue in the classes `firstCategoryClasses` names (harness bugs), and their other classes are mixed in one after
 every `firstCategoryEvery` item.
 
+**One label overrides that order, and it is the only per-item lever the queue has.** An item carrying the profile's
+`roles.nextUpAgent` value (`agent/next-up` here, written by a person through `update.sh --label`) leads the queue: the
+pinned items take the first ranks in the class order and issue-number order every other stream keeps, and everything
+else keeps its own relative order behind them. It is a rank exactly as the category key is — a pinned item that is on
+hold or whose author is not authorised is excluded as it would be without the label — and a project that declares the
+key empty pins nothing. Measured 2026-11-07: a harness improvement pinned this way led a six-item backlog at rank 1,
+where the interval would have placed it last (`prescreen#aPinnedItemLeadsTheQueue`). The capability is
+`loop-queue-pin`.
+
 The state a run replaces, and what a kept tree keeps. `.pi/issue-loop/run.json` is the run's only record, and
 `state.sh init` writes over it — so it copies the file it replaces to `runs/<run.startedAt>.json` beside it
 (`LOOP_RUNS_DIR` moves that directory) and announces on stderr, without refusing, when the state it replaces never

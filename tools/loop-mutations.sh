@@ -347,7 +347,7 @@ MUTATIONS=(
   # 54.11 — a leg's group selection is the map's own driver entry with a narrowing appended (issue #781): without
   # the strip, the suite the pipeline runs as three legs names the driver as a command the map does not carry, so
   # the loop's suite is red for a landing the pipeline would accept.
-  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip=.*$|  strip='"'"'s/ --from-git {base}$//'"'"'|'
+  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip() .*$|  strip() { sed -e '"'"'s/ --from-git [^ ]*$//'"'"'; }|'
   # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
   # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
   # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a

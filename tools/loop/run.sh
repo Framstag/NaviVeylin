@@ -2106,6 +2106,11 @@ while true; do
   # not run is not re-run, and a round before a gate that has already run has nothing to read.
   pre_gate_refusal=""
   pre_gate_refusal_verdict=""
+  # What the round answered, when it answered and refused nothing (issue #813). The refusal verdicts above are what
+  # the run's outcome reads; this is what the item's record keeps, and it is the round's own answer — `PASS` or `FAIL`,
+  # the two the prompt asks for — so that an item which read a round and then ended on its gate does not record
+  # `reviewVerdict: "off"` / `reviewRounds: 0` beside that round's spend.
+  pre_gate_verdict=""
   # Whether the round that never finished was ended by a **bound** — the run's own deadline or the reviewer's role's
   # turn bound — rather than by the transport (issue #785). A bound's round is a cut, and a cut is not the item's: it
   # is recorded `cut`, escalated to nobody and resumed by the next run, where a report the transport cut twice is a
@@ -2200,7 +2205,9 @@ while true; do
         # notes are recorded, and a report with no count line at all refuses nothing.
         blocking=$(blocking_count "$pre_gate_report")
         pre_gate_findings=""
-        if [ "$(report_verdict "$pre_gate_report")" = FAIL ] && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
+        pre_gate_verdict=$(report_verdict "$pre_gate_report")
+        case "$pre_gate_verdict" in PASS|FAIL|NOTES) ;; *) pre_gate_verdict="" ;; esac
+        if [ "$pre_gate_verdict" = FAIL ] && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
           pre_gate_findings="$pre_gate_report"
         fi
         loop_state step A --name pre-gate-review --status ok \
@@ -2439,6 +2446,13 @@ while true; do
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"
+  # The round that read the diff is one this run read and paid for, and it is not a round `--max-review-rounds` bounds
+  # (issue #813): when it answered and no refusal took precedence, the record carries its verdict and its count, so the
+  # report's review line counts it instead of printing the item as one no round was read for.
+  if [ -z "$pre_gate_refusal_verdict" ] && [ -n "$pre_gate_verdict" ]; then
+    review_verdict="$pre_gate_verdict"
+    review_rounds=1
+  fi
   review_notes_text=""
   # The report the round is decided from: the reviewer's answer, or the retry's when the first one arrived cut.
   reviewer_report=""
@@ -2792,6 +2806,7 @@ $review_notes_text"
       fi
       loop_state done "$issue" --result falsified --verdict falsified \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --closed "$closure" \
+        --gate "$gate_field" \
         --root-cause "$falsified_mechanism" --red-test "$falsified_measurement" \
         --events "$events_file" --note "the premise does not hold" --review-verdict "$review_verdict" >/dev/null
       ;;
@@ -2836,6 +2851,7 @@ $review_notes_text"
       fi
       loop_state done "$issue" --result skipped --verdict "${skip_verdict:-unspecified}" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
+        --gate "$gate_field" \
         --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
         --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" >/dev/null
       ;;
@@ -2866,6 +2882,7 @@ $review_notes_text"
       fi
       loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
+        --gate "$gate_field" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
         --events "$events_file" --leftover "$leftover_patch" \
         --stop-reason "$stop_reason" \
@@ -2931,6 +2948,7 @@ question the item asked; a retry costs another attempt, and an abandonment remov
       fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
+        --gate "$gate_field" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
         --label-failures "$label_failures" --stop-reason "$stop_reason" \

@@ -782,7 +782,7 @@ MUTATIONS=(
   # the hand-off of the findings to that child, and the outcome arm a round the run cut records.
   '79.1@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the section `worker.md` is handed, so the change child is told which end its session has (issue #758)@s|^  if \[ "\${1:-off}" = on \]; then cat "\$LOOP_DIR/prompts/gate-deferred.md"; else cat "\$LOOP_DIR/prompts/gate-own.md"; fi$|  if false; then cat "$LOOP_DIR/prompts/gate-deferred.md"; else cat "$LOOP_DIR/prompts/gate-own.md"; fi|'
   '79.2@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the block that reads the diff before the gate and starts the child that runs it (issue #758)@s|^  if \[ "\$pre_gate" = on \] \&\& \[ "\$worker_exit" -eq 0 \] \&\& \[ "\$worker_write_decides" -eq 0 \]; then$|  if false; then|'
-  '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758; the reading moved to the verdict reader with issue #793)@s|^        if \[ "\$(report_verdict "\$pre_gate_report")" = FAIL \] && \[ -n "\$blocking" \] && \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
+  '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758; the reading moved to the verdict reader with issue #793)@s|^        if \[ "\$pre_gate_verdict" = FAIL \] && \[ -n "\$blocking" \] && \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
   '79.4@-@tools/loop/run.sh@run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun@the outcome arm a round the run cut records, so a change nobody read is left for the next run instead of closing (issue #758)@s|^  if \[ -n "\$pre_gate_refusal" \]; then$|  if false; then|'
 
   # 80.x — a round the run's own bound ended is recorded `cut`, not `blocked` (issue #785). Measured 2026-11-05: #780
@@ -922,6 +922,15 @@ MUTATIONS=(
   # item. Both halves carry the case `report#anItemRecordsItsRepeatReads`.
   '96.1@-@tools/loop/state.sh@report#anItemRecordsItsRepeatReads@the count of reads a session repeated, so an item that reopens a path it already read is a record a report can show (issue #814)@s|^         dupReads: (if \$reads > 0 then \$dup.dup else null end),$|         dupReads: null,|'
   '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the worst item the repeat-reads line names, so the rate is printed beside nothing it can be acted on (issue #814)@s| chars re-injected| characters re-injected|'
+
+  # 97.x — the gate an item ran and the round that read its diff reach the item's record whichever arm it ended on
+  # (issue #813). `gate_field` was computed 448 lines before the `falsified` arm and passed by the `closed` arm alone, so
+  # a blocked item — the arm most gates end in — recorded `metrics.gate: ""` and `report.sh` ordered a re-run of a gate
+  # whose tally was on disk (the item's own record: #798 ran its gate for 856 s and recorded an empty field); the round
+  # before the gate was read for its blocking count and its verdict was dropped, so the same item said no round was
+  # read beside that round's own spend. Both halves carry one case each.
+  '97.1@-@tools/loop/run.sh@run#aRedGateIsBlockedByTheTail@the gate tally the four arms that do not close pass, so an item that ran the gate and then blocked records an empty field and is ordered a re-run it already paid for (issue #813)@s|^        --gate "\$gate_field" \\$|        --gate "" \\|'
+  '97.2@-@tools/loop/run.sh@run#aBlockedItemRecordsTheRoundThatReadIt@the verdict and the count of the round that read the diff, so an item that read one records `off`/`0` beside the spend that round made (issue #813)@s|^  if \[ -z "\$pre_gate_refusal_verdict" \] \&& \[ -n "\$pre_gate_verdict" \]; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

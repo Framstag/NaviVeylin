@@ -283,6 +283,7 @@ LOOP_SHELL_CASES=(
   'run#metricsRecordedPerItem'
   'run#childUsageIsRecordedPerItem'
   'run#aRedGateIsBlockedByTheTail'
+  'run#aBlockedItemRecordsTheRoundThatReadIt'
   'run#plainTextChildStillReports'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
@@ -692,6 +693,7 @@ loop_run_shell_case() {
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
     'run#childUsageIsRecordedPerItem') fn=case_run_childUsageIsRecordedPerItem ;;
     'run#aRedGateIsBlockedByTheTail') fn=case_run_aRedGateIsBlockedByTheTail ;;
+    'run#aBlockedItemRecordsTheRoundThatReadIt') fn=case_run_aBlockedItemRecordsTheRoundThatReadIt ;;
     'run#plainTextChildStillReports') fn=case_run_plainTextChildStillReports ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
@@ -8763,8 +8765,8 @@ LOOP-GATE: tests=1 failures=0 from the first child' \
 # arm for it, and without that arm the item was recorded with the opposite of what the tail said — "reported success
 # but no archived change appears in the run's diff" — dropping the gate's own numbers from the reason a person reads.
 case_run_aRedGateIsBlockedByTheTail() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p f note
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f note out actions
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The gate child reports its gate line and nothing else; the gate is red. The tree carries the work it did — the
@@ -8786,13 +8788,52 @@ case_run_aRedGateIsBlockedByTheTail() {
   assert_contains "$note" "the item's verdict is blocked" "the reason is the tail's verdict, not the missing archive"
   assert_contains "$note" "tests=1 failures=2" "and carries the gate's own numbers"
   assert_not_contains "$note" "no archived change appears" "and never claims the tail reported success"
-  # The verdict is the tail's own report, which the run keeps: only a closure records `--gate` in the item, so the
-  # blocked record carries the gate line in its reason instead (asserted above).
+  # The tally is the item's own record, not only the sentence a person reads in its reason (issue #813): every arm of
+  # the outcome block passes the field the block computed, and a blocked item is the arm the gate most often ends in.
+  assert_eq 'tests=1 failures=2 (the gate)' "$(jq -r '.items[0].metrics.gate' "$f")" \
+    "the gate tally the tail read, not the emptiness of a field nobody wrote"
+  # …and the report reads that field as its predicate, so a recorded tally is a gate the caller is not asked to re-run.
+  out=$(run_report "$p") || fail "the report failed"
+  actions=$(actions_block "$out")
+  assert_not_contains "$actions" "re-run the gate for #21" \
+    "no gate is re-run for an item whose record carries its tally"
+  # The verdict is the tail's own report, which the run keeps.
   [ -f "$p/.pi/issue-loop/items/21/worker-tail-report.md" ] || fail "the tail child's report was not kept"
   assert_contains "$(cat "$p/.pi/issue-loop/items/21/worker-tail-report.md")" "LOOP-VERDICT: blocked" \
     "the tail child is the process that reported the item's verdict"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "nothing is closed"
   assert_contains "$(cat "$d/gh.log")" "agent/needs-decision" "and the item is escalated with the question"
+}
+
+# The round that reads the diff before the gate is a round the run read and paid for, and the item's record says so
+# (issue #813). `run.sh` seeded its verdict from the pre-gate *refusal* alone, so an item whose round answered and
+# refused nothing, and which then blocked on its gate, recorded `reviewVerdict: "off"` and `reviewRounds: 0` beside the
+# round's own spend in `metrics.roles.reviewer` — and `report.sh` printed it as an item whose rounds never ended in a
+# verdict, and as never reviewed.
+case_run_aBlockedItemRecordsTheRoundThatReadIt() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker-prompt.md) printf "the fix\n" > demo-fix.txt ;; worker-tail*) ;; esac'
+  printf 'LOOP-VERDICT: blocked\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-GATE: tests=1 failures=2 (the gate)\nLOOP-DECISION: fix the failing case, or abandon the item | recommended: fix it\n' \
+    > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  unset PI_STUB_REPORT_TAIL
+  f=$(state_file "$p")
+  assert_eq "1" "$(grep -c '^prompt: reviewer-pre-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the round before the gate is the one this case is about"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item is recorded blocked on its gate"
+  assert_eq "PASS" "$(jq -r '.items[0].metrics.reviewVerdict' "$f")" \
+    "the verdict of the round that read the diff, not the off of a round nobody read"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "and its count"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "1/1 first rounds passed" \
+    "the report counts the round that read the diff as one that passed"
+  assert_not_contains "$out" "no round of this run ended in a verdict" \
+    "and does not print the item as a round this run read and never decided"
 }
 
 # A project whose agent command writes plain text — no event stream at all — must keep working exactly as it

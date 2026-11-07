@@ -1,0 +1,2 @@
+stub gh: recorded `gh issue edit`
+PASS foreign#toolchainRunsEndToEnd

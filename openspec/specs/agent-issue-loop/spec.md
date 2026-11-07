@@ -2341,8 +2341,10 @@ one named case, SHALL take no lease.
 A run SHALL record the base branch's commit as the base every item descends from, never the tree's checked-out
 commit. `LOOP_BASE_REF` SHALL be a key of the project's own configuration, `main` when it names none, written so
 an inherited value wins over it. A run whose project tree is on any other branch, or on a detached HEAD, SHALL be
-refused before the pre-screen. A stop on a base that no longer matches SHALL name the two commits and SHALL make
-no claim about when the base moved.
+refused before the pre-screen, and so SHALL a run whose project tree carries uncommitted work — a modified, staged or
+untracked path git does not ignore — because the landing step merges into that tree and both of its merges refuse
+dirt there. A stop on a base that no longer matches SHALL name the two commits and SHALL make no claim about when the
+base moved.
 
 #### Scenario: A checkout off the base branch is refused before the pre-screen
 
@@ -2351,6 +2353,15 @@ no claim about when the base moved.
 - **THEN** it is refused with the branch the tree is on, the base branch and the command that switches to it, and
   the pre-screen is not run, so no item is worked on a tree the landing step cannot merge into
 - **Case**: `run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen`
+
+#### Scenario: A project tree carrying uncommitted work is refused before the pre-screen
+
+- **WHEN** a run starts and the project tree it would merge the item into carries one uncommitted file
+- **THEN** it is refused before the pre-screen is run, before any item is started and before any previous attempt's
+  branch is adopted, the path it found is printed and is the stop reason the run records — so the printed report names
+  it too — and nothing is discarded: the refusal states that the run cannot tell its own leftover from an edit its
+  owner made while no run was live, which is why the kept worktree's `--reset-worktree` repair is not offered here
+- **Case**: `run#aDirtyProjectTreeIsRefusedBeforeThePreScreen`
 
 #### Scenario: A checkout on another branch is not a moved base
 

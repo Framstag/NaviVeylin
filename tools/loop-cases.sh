@@ -211,6 +211,7 @@ LOOP_SHELL_CASES=(
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
   'run#noProcessOfASignalledRunOutlivesIt'
+  'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
@@ -610,6 +611,7 @@ loop_run_shell_case() {
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
     'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
+    'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem') fn=case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
@@ -10939,6 +10941,12 @@ case_run_interruptedRunEndsTheChildItStarted() {
   kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
   wait "$pid"; status=$?
   assert_eq "143" "$status" "a run ended by TERM reports the signal it took"
+  # The signal went to the whole group, so the subshell this case waited for is gone while the run's own trap is still
+  # finishing — and the record this case reads is the trap's last work. The lock is released after the run's stop and
+  # the item's record are written, so a lock that is gone is the run's end having happened, not a sleep long enough.
+  for i in $(seq 1 100); do [ -d "$p/.pi/issue-loop/lock" ] || break; sleep 0.1; done
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "SIGTERM" \
+    "the run records the signal that ended it as its own stop, not only the item it was working (issue #755)"
   # The child is checked while it is still blocked on the fifo: releasing it first would end it here, and a child
   # this case ended is no evidence about the run.
   for i in $(seq 1 50); do kill -0 "$child" 2>/dev/null || break; sleep 0.1; done
@@ -10952,6 +10960,65 @@ case_run_interruptedRunEndsTheChildItStarted() {
   fi
   exec 8>&-
   [ "$alive" -eq 0 ] || fail "the run ended but the child it started (pid $child) is still running — an interrupted run must end its child"
+}
+
+# HUP is the signal a terminal or a harness sends when it goes away, and it was the signal the run did not trap
+# (issue #755): the shell died with no trap run at all, so the item kept `agent/in-progress` — the one label no script
+# clears, because `state.sh`'s `unlock` releases the lock and nothing else — and the next pre-screen excluded the item
+# as one another change already held. A trapped HUP takes the path TERM takes, and the run's own end is recorded on it:
+# `run.stop` is the reason a report read after this process is gone prints, and 50 of the 105 runs this repository has
+# archived record no stop, 18 of them having worked items (measured 2026-11-07).
+case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p block first status f owner child i alive
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # The child names the process the run started for it: the stub `pi`, which is this action's parent.
+  printf 'printf "%%s\\n" "$PPID" > %s\n' "'$d/child.pid'" >> "$d/worker-action.sh"
+  block="$d/wait.fifo"; mkfifo "$block"
+  # The run is started inside a subshell that exits with the run's status instead of dying of the same signal, so the
+  # case's own shell is left with no job killed by a signal — its notice of one is a locale's word on the suite's
+  # output. The signal goes to the run's own pid, which the state it writes names (`run.ownerPid`), so the case also
+  # reads the field the pre-screen's stale-mark repair would read.
+  ( export PI_STUB_WAIT="$block"
+    run_loop "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
+  first=$!
+  # Held read-write before anything can end the child, so the release below never waits for a reader that is already
+  # gone (issue #259 — `labels#trapRemovesInProgressOnSignal` explains the hang that shape cured).
+  exec 8<> "$block"
+  wait_for_stub_child "$block.ready" || true
+  [ -f "$block.ready" ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the run never reached its child"; }
+  f=$(state_file "$p"); owner=0
+  for i in $(seq 1 100); do
+    owner=$(jq -r '.run.ownerPid // 0' "$f" 2>/dev/null || printf 0)
+    [ "$owner" != 0 ] && break
+    sleep 0.1
+  done
+  [ "$owner" != 0 ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the run never recorded the process that wrote its state"; }
+  child=""
+  for i in $(seq 1 100); do [ -f "$d/child.pid" ] && { child=$(cat "$d/child.pid"); break; }; sleep 0.1; done
+  [ -n "$child" ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the child never named the process the run started"; }
+  kill -HUP "$owner"
+  wait "$first"; status=$?
+  assert_eq "129" "$status" "a run ended by HUP reports the signal it took"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$f")" "SIGHUP" \
+    "the run records the signal that ended it as its own stop"
+  assert_eq "1" "$(grep -c 'remove-label agent/in-progress' "$GH_STUB_RECORD" || true)" \
+    "the interrupted item's in-progress label is removed exactly once"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the interrupted item is recorded blocked"
+  # The child is checked while it is still blocked on the fifo, the way `run#interruptedRunEndsTheChildItStarted` does:
+  # a trap that leaked the child would pass every assertion above.
+  for i in $(seq 1 50); do kill -0 "$child" 2>/dev/null || break; sleep 0.1; done
+  alive=0
+  kill -0 "$child" 2>/dev/null && alive=1
+  if [ "$alive" -eq 1 ]; then
+    printf 'go\n' >&8 2>/dev/null || true
+    kill -9 "$child" 2>/dev/null
+  fi
+  exec 8>&-
+  [ "$alive" -eq 0 ] || fail "the run HUP ended but the child it started (pid $child) is still running — the trap must end it"
+  [ ! -d "$p/.pi/issue-loop/lock" ] || fail "the lock was left behind by the run HUP ended"
 }
 
 # A process still standing in a scratch tree is a leftover whatever its tree's state, and the kernel shows a

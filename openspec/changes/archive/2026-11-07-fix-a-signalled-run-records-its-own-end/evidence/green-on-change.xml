@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the same four case commands printed on the change (`PASS` and status 0 for each, 2026-11-07T07:33:22Z–
+     07:33:43Z), beside green-on-change.log because the shell runner writes no JUnit XML. `time` is the span that log's
+     four pairs of timestamps bracket, the four cases alone. -->
+<testsuite name="bash tools/loop-selftest.sh --case &lt;the two cases this delta names, plus the two the interrupted path already had&gt;" tests="4" failures="0" errors="0" time="21" timestamp="2026-11-07T07:33:22Z">
+  <testcase name="run#interruptedRunEndsTheChildItStarted" classname="run"/>
+  <testcase name="run#aHupEndedRunRecordsItsStopAndUnpicksItsItem" classname="run"/>
+  <testcase name="labels#trapRemovesInProgressOnSignal" classname="labels"/>
+  <testcase name="run#noProcessOfASignalledRunOutlivesIt" classname="run"/>
+  <system-out>PASS (each); the pair of cases that name the record is green and the two the path already had stay green</system-out>
+</testsuite>

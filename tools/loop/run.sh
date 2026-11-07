@@ -477,6 +477,8 @@ loop_state lock --owner "$$" || exit $?
 
 in_progress=""
 interrupted=0
+# The signal the run took, named by the trap and written into the run's own stop (issue #755). Empty until one arrives.
+signal_taken=""
 # The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
 # and clears it once it has waited, so the traps below can end the child (and everything the child started) when
 # the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
@@ -576,19 +578,34 @@ on_exit() {
   # wait returns — which a signal never takes.
   loop_end_pid "$active_hb"
   active_hb=""
-  if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
-    # A killed run must leave no item looking in progress: the label comes off and the item is recorded
-    # blocked, so the next run's pre-screen can take it up again (D7).
-    loop_labels unpick "$in_progress" >&2 || true
-    loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
+  if [ "$interrupted" -eq 1 ]; then
+    # The run's own end, written before the lock comes off (issue #755): the item's block below says what became of the
+    # item, and `run.stop` is what a report read after this process is gone prints instead of "it recorded no reason".
+    # It is outside the item test because the write does not depend on an item being in flight, and the reason names
+    # the signal rather than its status, which is `128+N` and a table a reader would have to decode.
+    loop_state stop "interrupted by SIG${signal_taken}" >&2 || true
+    if [ -n "$in_progress" ]; then
+      # A killed run must leave no item looking in progress: the label comes off and the item is recorded
+      # blocked, so the next run's pre-screen can take it up again (D7).
+      loop_labels unpick "$in_progress" >&2 || true
+      loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
+    fi
   fi
   loop_state unlock --owner "$$" >&2 || true
   exit "$rc"
 }
-on_signal() { interrupted=1; exit "$1"; }
+# The trap keeps the signal's own name, so the record above can name it (issue #755). `HUP` is trapped beside `INT` and
+# `TERM`: a terminal or a harness that goes away sends it, and a signal the run does not trap kills the shell before any
+# trap runs — the item kept its in-progress label, the state recorded no stop, and the next pre-screen excluded the item.
+# A signal that arrives while `on_exit` is running returns instead of re-entering it: the trap writes the record last, and
+# a second `exit` would abort it before the stop, the unpick and the unlock (a terminal teardown can send `HUP`, then
+# `TERM`). `QUIT`, `USR1`, `USR2` and `ALRM` stay untrapped — each is either a run a person ends on purpose or a clock the
+# host sends, and the gap this change closes is the one a vanished terminal leaves.
+on_signal() { [ "$interrupted" -eq 1 ] && return 0; interrupted=1; signal_taken="$2"; exit "$1"; }
 trap on_exit EXIT
-trap 'on_signal 130' INT
-trap 'on_signal 143' TERM
+trap 'on_signal 129 HUP' HUP
+trap 'on_signal 130 INT' INT
+trap 'on_signal 143 TERM' TERM
 
 # 3. the state: this run's own record, written now that this run is the only one that can write it. The
 # process that writes it is named in it, so a reader can tell a run that is going from one that was killed.

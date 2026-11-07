@@ -179,6 +179,16 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   list for a window one item larger than the count, and refuses with exit 3 when the read comes back full — a read
   the tracker overran — printing the set its count was taken over instead of a count over a set it could not cover.
 
+**The queue's reader is a skill, and it answers the owner's questions rather than the item's.** An item carrying the
+decision label is read by `.pi/skills/answer-decision`, which takes its URL, its number or a pre-migration `§N` — or,
+with nothing named, lists `tools/issues/decisions.sh` and asks which item — and then lays the fork out in the order a
+decider asks for it: what the item states, every option with at least one worked example, and a pro/contra in two
+views kept apart, the short-term one priced in this tree's own numbers (files touched, gate minutes, decisions still
+parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items hitting the same
+mechanism would do to it). The recommendation then states which view decided, because an average of the two is exactly
+the judgement this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through
+`answer.sh` — the same transition every other answer takes, so a skill that skipped it would be a second writer.
+
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Four of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `needs-diagnosis`, `unspecifiable`,
 `too-wide` and `not-spec-shaped`, which `roles.shapingVerdicts` names so a project declares its own list. For those

@@ -101,6 +101,9 @@ ISSUES_SHELL_CASES=(
   'shaping#theConsumerProposesFromTheItemsOwnStatement'
   'shaping#theConsumerWritesNothingBeforeTheOwnerChooses'
   'shaping#theApprovedReshapeLeavesThroughTheExistingWriters'
+  'decision-queue#theReaderTakesAnIdOrTheQueue'
+  'decision-queue#everyOptionCarriesAnExampleAndTwoViews'
+  'decision-queue#theReaderWritesNothingBeforeTheChoice'
   'duplicates#dryRunWritesNothing'
   'duplicates#youngerDuplicateIsClosedWithAPointer'
   'duplicates#olderItemSurvives'
@@ -251,6 +254,9 @@ issues_run_shell_case() {
     'shaping#theConsumerProposesFromTheItemsOwnStatement') case_shaping_theConsumerProposesFromTheItemsOwnStatement ;;
     'shaping#theConsumerWritesNothingBeforeTheOwnerChooses') case_shaping_theConsumerWritesNothingBeforeTheOwnerChooses ;;
     'shaping#theApprovedReshapeLeavesThroughTheExistingWriters') case_shaping_theApprovedReshapeLeavesThroughTheExistingWriters ;;
+    'decision-queue#theReaderTakesAnIdOrTheQueue') case_decision_queue_theReaderTakesAnIdOrTheQueue ;;
+    'decision-queue#everyOptionCarriesAnExampleAndTwoViews') case_decision_queue_everyOptionCarriesAnExampleAndTwoViews ;;
+    'decision-queue#theReaderWritesNothingBeforeTheChoice') case_decision_queue_theReaderWritesNothingBeforeTheChoice ;;
     'duplicates#dryRunWritesNothing') case_duplicates_dryRunWritesNothing ;;
     'duplicates#youngerDuplicateIsClosedWithAPointer') case_duplicates_youngerDuplicateIsClosedWithAPointer ;;
     'duplicates#olderItemSurvives') case_duplicates_olderItemSurvives ;;
@@ -1326,6 +1332,61 @@ case_shaping_theApprovedReshapeLeavesThroughTheExistingWriters() {
     case "$body" in
       *"$forbidden"*) fail "the reader writes through '$forbidden', a path beside the writers" ;;
     esac
+  done
+}
+
+# The decision queue's reader is a skill too, so its contract is prose — and it is prose with three things a case
+# can hold it to: the three input forms and the queue it lists when none is given, the shape every option must
+# carry (one example, two separated views, a recommendation), and the sentence that ends its authority before the
+# owner chooses. The cases assert the contract, not the judgement — the same split the shaping inbox's reader is
+# held to.
+decision_reader_skill() {
+  printf '%s\n' "$ISSUES_REPO_ROOT/.pi/skills/answer-decision/SKILL.md"
+}
+
+decision_reader_body() {
+  local skill
+  skill=$(decision_reader_skill)
+  [ -f "$skill" ] || fail "the decision queue has no reader: ${skill#$ISSUES_REPO_ROOT/} does not exist"
+  cat "$skill"
+}
+
+case_decision_queue_theReaderTakesAnIdOrTheQueue() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "https://github.com/" "the reader accepts an issue URL"
+  assert_contains "$body" "tools/issues/list.sh --id 163" "and resolves a pre-migration id through the marker that holds it"
+  assert_contains "$body" "never the number" "which is not the issue number"
+  assert_contains "$body" "tools/issues/decisions.sh" "with no item named, it lists the queue"
+  assert_contains "$body" "ask_user" "and asks the owner which item, rather than choosing"
+  assert_contains "$body" "retry the item, or abandon it" "it names the run's boilerplate as not being the fork"
+}
+
+case_decision_queue_everyOptionCarriesAnExampleAndTwoViews() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "Example:" "every option is offered with a worked example"
+  assert_contains "$body" "before → after" "whose shape is a state and its consequence"
+  assert_contains "$body" "unmeasured" "a claim it could not measure is named as one"
+  assert_contains "$body" "**Short term**" "the pro/contra carries the short-term view"
+  assert_contains "$body" "**Strategic**" "and the strategic view beside it, never merged into it"
+  assert_contains "$body" "never one score" "which is the sentence forbidding a single ranking"
+  assert_contains "$body" "**Recommendation: <option>**" "and a recommendation whose rejected options name their clause"
+}
+
+case_decision_queue_theReaderWritesNothingBeforeTheChoice() {
+  local body section forbidden
+  body=$(decision_reader_body)
+  assert_contains "$body" "It writes nothing before the owner chooses: no label, no comment and no body edit." \
+    "the sentence that ends the reader's authority before a write, and what it forbids"
+  assert_contains "$body" "tools/issues/answer.sh" "the answer leaves through the writer that already exists"
+  assert_contains "$body" "--retire" "including the closure outcome, with its evidence"
+  # A direct tracker write named as forbidden is fine; a second mention is a path beside the writer, so each of the
+  # four appears exactly once — in the section that forbids them.
+  section=$(sed -n '/## What this skill never does/,$p' <<< "$body")
+  for forbidden in 'gh issue comment' 'gh issue edit' 'gh issue create' 'gh issue close'; do
+    assert_contains "$section" "$forbidden" "the never-list names '$forbidden' as outside the reader"
+    assert_eq "1" "$(grep -cF "$forbidden" <<< "$body")" "and it is named once, so no second mention is a write path"
   done
 }
 

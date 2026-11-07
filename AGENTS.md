@@ -148,8 +148,9 @@ guarded**) — are `guidelines/Design.md` §8, `guidelines/UICar.md` §3, §3a, 
 
 ## Backlog maintenance
 
-The tracker is the live backlog, and the nine skills under `.pi/skills/*` (`create-issue`, `list-issues`,
-`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `process-failure-log`) own it;
+The tracker is the live backlog, and the ten skills under `.pi/skills/*` (`create-issue`, `list-issues`,
+`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `reshape-issue`,
+`answer-decision`, `process-failure-log`) own it;
 read `guidelines/Backlog.md` §1 "Status, and what this document owns", §3 "What the tracker holds", §4 "The
 invariants", §5 "Who may write what" and §9 "Checks". An item filed **before** the migration also carries `§N`
 in its title and a

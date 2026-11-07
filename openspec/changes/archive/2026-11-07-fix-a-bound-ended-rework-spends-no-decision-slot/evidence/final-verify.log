@@ -1,0 +1,12 @@
+== 2026-11-07T13:20:56Z mutations --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.jNFFML
+loop-mutations: all 271 cases passed — every selected record applies to the file it names
+== 2026-11-07T13:20:58Z --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+== 2026-11-07T13:21:08Z --case run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+== 2026-11-07T13:21:18Z --case prescreen#aReworkCutBranchIsWork
+PASS prescreen#aReworkCutBranchIsWork
+== 2026-11-07T13:21:20Z --case worktree#setsAsideAReworkCutBranchAndStartsFresh
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#setsAsideAReworkCutBranchAndStartsFresh

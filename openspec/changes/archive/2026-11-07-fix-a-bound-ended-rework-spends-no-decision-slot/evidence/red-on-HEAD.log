@@ -1,0 +1,20 @@
+# red on HEAD 9b3f9d5b — a copy of that base (`git archive 9b3f9d5b` in items/817/scratch/red817) with only tools/loop-cases.sh taken from the change; supersedes the 83d8cea3 record the branch carried
+# base: 9b3f9d5b99f7578ad26edf461c462fc1b395bb4c
+== 2026-11-07T13:10:04Z --case run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted|   the branch records the rework the run's own bound ended: expected '1', got '0'
+--- run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted[0] (exit 1)
+  the branch records the rework the run's own bound ended: expected '1', got '0'
+FAIL run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+loop-selftest: 1 of 1 cases failed
+== 2026-11-07T13:10:12Z --case prescreen#aReworkCutBranchIsWork
+prescreen#aReworkCutBranchIsWork|   a branch whose rework a bound ended reads as its own value, not as the refusal: expected 'rework-cut', got 'review-refused'
+--- prescreen#aReworkCutBranchIsWork[0] (exit 1)
+  a branch whose rework a bound ended reads as its own value, not as the refusal: expected 'rework-cut', got 'review-refused'
+FAIL prescreen#aReworkCutBranchIsWork
+loop-selftest: 1 of 1 cases failed
+== 2026-11-07T13:10:14Z --case worktree#setsAsideAReworkCutBranchAndStartsFresh
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  a branch whose rework a bound ended does not park the item: loop: branch fix/issue-21-demo already exists and carries commits the base does not — a previous attempt's work is on it:
+f5d21bc fix: the reworked change (#21): expected '0', got '5'
+FAIL worktree#setsAsideAReworkCutBranchAndStartsFresh
+loop-selftest: 1 of 1 cases failed

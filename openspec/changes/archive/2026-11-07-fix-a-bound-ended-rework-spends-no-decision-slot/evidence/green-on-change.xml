@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest" tests="3" failures="0" errors="0" time="14" timestamp="2026-11-07T13:09:45Z">
+  <testcase classname="run" name="treeOfACapEndedReworkOfARefusingRoundIsNotCommitted"/>
+  <testcase classname="prescreen" name="aReworkCutBranchIsWork"/>
+  <testcase classname="worktree" name="setsAsideAReworkCutBranchAndStartsFresh"/>
+</testsuite>

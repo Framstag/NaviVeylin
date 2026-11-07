@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest" tests="3" failures="3" errors="0" time="12" timestamp="2026-11-07T13:10:04Z">
+  <testcase classname="run" name="treeOfACapEndedReworkOfARefusingRoundIsNotCommitted">
+    <failure message="the branch records the rework the run's own bound ended: expected '1', got '0'">the run's own bound ended the rework, and nothing on the branch says so</failure>
+  </testcase>
+  <testcase classname="prescreen" name="aReworkCutBranchIsWork">
+    <failure message="a branch whose rework a bound ended reads as its own value, not as the refusal: expected 'rework-cut', got 'review-refused'">the pre-screen names the item a decision the loop asked itself</failure>
+  </testcase>
+  <testcase classname="worktree" name="setsAsideAReworkCutBranchAndStartsFresh">
+    <failure message="a branch whose rework a bound ended does not park the item: loop: branch fix/issue-21-demo already exists and carries commits the base does not …: expected '0', got '5'">start-item refuses the item on a phase the run itself ended</failure>
+  </testcase>
+</testsuite>

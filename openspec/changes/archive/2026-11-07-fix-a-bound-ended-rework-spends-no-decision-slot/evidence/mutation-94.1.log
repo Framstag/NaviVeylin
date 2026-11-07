@@ -1,0 +1,5 @@
+RED    94.1  run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted   (the rework record written on the branch, so a later pre-screen reads the phase the run ended as work instead of a question its owner owes an answer to (issue #817))
+       2026-11-07T13:26:18Z — the branch records the rework the run's own bound ended: expected '1', got '0'
+restore 94.1 run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

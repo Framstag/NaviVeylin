@@ -1,0 +1,10 @@
+# green on the change (base 9b3f9d5b + the change applied) — the three cases the red run failed
+== 2026-11-07T13:09:45Z --case run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+== 2026-11-07T13:09:55Z --case prescreen#aReworkCutBranchIsWork
+PASS prescreen#aReworkCutBranchIsWork
+== 2026-11-07T13:09:57Z --case worktree#setsAsideAReworkCutBranchAndStartsFresh
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideAReworkCutBranchAndStartsFresh| HEAD ist jetzt bei 898b9a9 init
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#setsAsideAReworkCutBranchAndStartsFresh

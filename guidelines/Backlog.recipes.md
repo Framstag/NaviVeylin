@@ -92,7 +92,12 @@ round the budget bounds is the one after the gate, which is where a change is ju
 `--pre-gate-review off` (`LOOP_PRE_GATE_REVIEW_DEFAULT`) keeps the older shape — one child from the diagnosis to the
 gate — and is folded to `off` by every run with `--review off`, because a run with no reviewer has none to place in
 front of the gate. A change child that runs the gate anyway is read as it always was: the run does not re-run a gate,
-and a round before a gate that has already run has nothing to read.
+and a round before a gate that has already run has nothing to read. The child **grades its own diff first**, against
+the review contract's own three predicates — a clause the case that names it does not exercise, a claim in
+`design.md`/`tasks.md`/`proposal.md` that the diff contradicts, an artifact the change cites that is not where it
+says — because the writer holds the diff before the reviewer does and the finding costs it nothing to make (issue
+#812; measured: of the 165 round-1 reports the loop's item archive holds, 103 refuse, and those three classes are
+what their 141 blocking findings say).
 
 The gate is where a gated item's **first** child ends, and the archive is written by a second one. Measured on the
 archive (`python3 tools/loop-spend.py`, 2026-11-02, 213 items / 524 sessions / 30 795 turns): of the 274 sessions

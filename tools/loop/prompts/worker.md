@@ -247,6 +247,28 @@ would otherwise refuse the declaration arrives at the end of the gate, and the a
 recorded `blocked` with nothing archived (issue #792). Do not write a second reading of the declaration — the one
 case that reads it stays its only owner.
 
+## Grade your own diff before you hand it over
+
+The reader who follows you refuses a diff on three predicates, and each one is answerable from the diff in your
+hands — `openspec/specs/agent-issue-loop/spec.md`, "A review finding is blocking or it is not". Read your own
+diff against them before you print the line that ends this session, and answer what you find instead of handing
+it over:
+
+1. **Every scenario's clauses against the case that names it.** For each `- **THEN**` clause of your delta, point at
+   the line of the case that fails once the production change is removed. A case whose name matches and whose
+   assertions cover the first clause only is the finding a reader writes next.
+2. **Your own prose against the diff.** Every sentence of `design.md`, `tasks.md` and `proposal.md` that claims
+   something about the tree — "no guideline section states it", "keeps today's text byte for byte", a
+   `path:line` pointer — is either made true by a hunk you can name or deleted. The claim you cannot point at is
+   the one a reader cannot check without you.
+3. **Every artifact your change cites.** A log, XML, evidence file or case name your change or your report names
+   exists where it says, now. Copy it into `{{EVIDENCE_DIR}}` when it is produced, never after.
+4. **The owning guideline section phase C named.** It carries the edit this diff owes, or the change states why it
+   owes none — and a `design.md` that asserts no section owns the rule is a claim this item proves or withdraws.
+
+A finding you make here is not a reason to stop. Fix it, or — when it is outside this item — name it as a `NOTE:`
+in your report, so the reviewer meets it already named rather than paying a round to find it.
+
 {{GATE_STEP}}
 
 ## What the run reads back from your report

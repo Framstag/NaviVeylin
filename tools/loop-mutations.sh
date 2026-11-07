@@ -868,6 +868,12 @@ MUTATIONS=(
   '92.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the result a bound-ended child records, so the item is read as a refusal the run'"'"'s own bound never measured (issues #786, #790)@s|^  if \[ "\$pre_gate_cut" -eq 1 \] \|\| \[ "\$stop_reason" = bound \]; then outcome="cut"; fi$|  if [ "$pre_gate_cut" -eq 1 ]; then outcome="cut"; fi|'
   '92.2@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790)@s|^        --stop-reason "\$stop_reason" \\$|        --stop-reason "" \\|'
   '92.3@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the result a rework worker the bound ends records, so the item is read as a refusal the run'"'"'s own bound never measured (issue #790)@s|^        stop_reason="bound"$|        stop_reason=""|'
+
+  # 93.x — a child pays for the full gate only the number of times the profile records (issue #756). Measured
+  # 2026-11-03 over the archive's 227 items and 558 child sessions: the gate was started 910 times and spent 35.1 h,
+  # 60 % of all tool wall clock, and 117 of the 245 sessions that ran it at all (48 %) ran it three or more times. The
+  # mutation drops the comparison the refusal hangs on, so a third full run in one child is measured again.
+  '93.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the refusal of a full gate run past the number the profile records, so a child cannot pay for the same suites three times (issue #756)@s|^    if \[ "\$count" -ge "\$runs_max" \]; then$|    if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

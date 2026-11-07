@@ -78,7 +78,10 @@ with: each is what the process you are started in refuses, before any rule of th
    does not complete inside the run's budget — the run ends a child that outlasts its configured wall-clock, and that
    includes every command you started — is not yours to report: the run records the item `blocked` with your log
    itself, and a second attempt is not yours to make. Two attempts at one gate is how a run spends its whole budget
-   inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them.
+   inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them. The
+   gate counts its own runs: a full one beyond `LOOP_GATE_RUNS_MAX` in this child is refused with exit `3` and hands
+   you the command the delta owes instead, and that refusal is not a red gate — it is the engine saying this child has
+   spent its measurements.
 3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
    result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy.
 4. **A gate that did not pass is not yours to repair.** The tail child records the item `blocked` with the failing

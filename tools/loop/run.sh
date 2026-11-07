@@ -230,15 +230,45 @@ free_mib=$(host_free_mib)
 # could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
 # fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
 # `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
-# A role that runs on a command of its own is named in the header, because a run that spends a different model
-# on part of its work is not the same run as one that does not, and nothing else in the run's own line would say
-# so (`LOOP_AGENT_CMD_<ROLE>` in loop.conf). `-` is the ordinary case: every child through `LOOP_AGENT_CMD`.
+# The command a child is started on, resolved from the two dimensions the run knows before it forks that child (issue
+# #821): the role its prompt's name gives it (`child_role`, defined below beside `run_child`) and the class the item's
+# own label carries (`class/<value>`, read before the item's first child starts). The chain is most specific first:
+#
+#   LOOP_AGENT_CMD_<ROLE>_<CLASS>   the role, refined by the item's class
+#   LOOP_AGENT_CMD_<ROLE>           the role
+#   LOOP_AGENT_CMD_<HEAD>_<CLASS>   the role it belongs to, refined by the class
+#   LOOP_AGENT_CMD_<HEAD>           the role it belongs to — where `reviewer-pre-gate` inherits `REVIEWER`
+#   LOOP_AGENT_CMD                  the project's one command
+#
+# `<HEAD>` is the role up to its first hyphen, so a qualifier inherits the command of the role it qualifies by one rule
+# and not by a case per family. The class is a refinement of the role it is spelled after, which is why a role that
+# records a command of its own still beats its head's class key. The spelling is derived and not invented: the role's
+# transform is the one `run_child` already applied, extended to the class.
+child_agent_cmd_key() { # child_agent_cmd_key <role> <class> → the key recording that child's command
+  local head candidate cls
+  head="${1%%-*}"
+  cls=$(printf '%s' "$2" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_' | sed 's/_*$//')
+  for candidate in \
+    "LOOP_AGENT_CMD_$(printf '%s' "$1" | tr '[:lower:]-' '[:upper:]_')${cls:+_$cls}" \
+    "LOOP_AGENT_CMD_$(printf '%s' "$1" | tr '[:lower:]-' '[:upper:]_')" \
+    "LOOP_AGENT_CMD_$(printf '%s' "$head" | tr '[:lower:]-' '[:upper:]_')${cls:+_$cls}" \
+    "LOOP_AGENT_CMD_$(printf '%s' "$head" | tr '[:lower:]-' '[:upper:]_')"; do
+    if [ -n "$(loop_conf_value "$candidate" | tr -d '[:space:]')" ]; then printf '%s' "$candidate"; return 0; fi
+  done
+  printf 'LOOP_AGENT_CMD'
+}
+
+# A role that does not run on the project's command is named in the header, because a run that spends a different
+# model on part of its work is not the same run as one that does not, and nothing else in the run's own line would say
+# so (`LOOP_AGENT_CMD_<ROLE>` in loop.conf). The reading is the child's own resolution and not the role's recorded
+# value (issue #821): a role that inherits — the round before the gate on the reviewer's key — is named here too. A
+# class-qualified command is per item while the header is written before any item is read, so it is named by the
+# child's transcript instead. `-` is the ordinary case: every child through `LOOP_AGENT_CMD`.
 agent_roles="-"
-for role in WORKER WORKER_GATE WORKER_TAIL REVIEWER REVIEWER_PRE_GATE; do
-  role_value=$(loop_conf_value "LOOP_AGENT_CMD_$role")
-  [ -n "$(printf '%s' "$role_value" | tr -d '[:space:]')" ] || continue
-  if [ "$agent_roles" = "-" ]; then agent_roles=$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-');
-  else agent_roles="$agent_roles,$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-')"; fi
+for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-gate; do
+  [ "$(child_agent_cmd_key "$role" "")" != LOOP_AGENT_CMD ] || continue
+  if [ "$agent_roles" = "-" ]; then agent_roles="$role";
+  else agent_roles="$agent_roles,$role"; fi
 done
 printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
   "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
@@ -1338,17 +1368,23 @@ child_context() { # child_context <events file> <lines already read> → "<large
 # time looks like (issue #191).
 
 # Which role a child plays, derived from the prompt's name — the same ones the fixture stub distinguishes
-# (`worker`, `worker-gate`, `worker-tail`, `reviewer`, `reviewer-pre-gate`) and the naming `phase` already carries.
-# The role names two configuration keys — `LOOP_AGENT_CMD_<ROLE>` and `LOOP_CHILD_TURNS_MAX_<ROLE>` — so a prompt file
-# renamed for a round or a retry cannot move a child to another command or under another bound:
+# (`worker`, `worker-rework`, `worker-gate`, `worker-tail`, `reviewer`, `reviewer-pre-gate`) and the naming `phase`
+# already carries. The role names two configuration keys — `LOOP_AGENT_CMD_<ROLE>` and `LOOP_CHILD_TURNS_MAX_<ROLE>` —
+# so a prompt file renamed for a round or a retry cannot move a child to another command or under another bound:
 # `reviewer-prompt-2-retry.md` and `reviewer-prompt-1.md` are both `reviewer`. The order of the arms is the rule: a
-# tail and the round before the gate are named before the plain worker and reviewer shapes they also match
-# (issue #784).
-child_role() { # child_role <prompt-file> → worker | worker-gate | worker-tail | reviewer | reviewer-pre-gate
+# tail and the round before the gate are named before the plain worker and reviewer shapes they also match, and the
+# rework round before the worker it is rendered from (issue #784).
+#
+# The rework round is a role and not a round (issue #821): the child a refusal buys answers a findings list and plans
+# nothing, so it is priced and bounded apart from the item's first worker pass. What makes it a role is that the run
+# renders its prompt at a site of its own — `worker-prompt-round2.md` — and the prompt's name is the only input
+# `child_role` reads, so the arm reads the artifact the run already writes.
+child_role() { # child_role <prompt-file> → worker | worker-rework | worker-gate | worker-tail | reviewer | reviewer-pre-gate
   case "${1##*/}" in
     *-tail*) printf 'worker-tail' ;;
     *pre-gate*) printf 'reviewer-pre-gate' ;;
     *gate*) printf 'worker-gate' ;;
+    *round2*) printf 'worker-rework' ;;
     reviewer-*) printf 'reviewer' ;;
     worker-*) printf 'worker' ;;
     *) printf '%s' "$(basename "$1" .md)" ;;
@@ -1374,17 +1410,19 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   leftover_patch=""
   before=$(project_state)
   phase=$(basename "$1" .md)
-  # Which command starts this child — the same one indirection, one step finer. A role whose key the project
-  # recorded runs its children through it (`LOOP_AGENT_CMD_REVIEWER`, say) and every other role keeps the single
-  # `LOOP_AGENT_CMD`; the key is derived from the prompt's name by `child_role`, so the mapping is mechanical and
-  # a project that wants one command for everything sets nothing (the keys are empty in this project's
-  # `loop.conf`). What it buys is the difference the transcript already measures: over 227 items (2026-11-03,
-  # `tools/loop-spend.py --json`) the reviewer's 7 522 turns carry 53.6 k tokens each against the worker's 84.5 k
-  # at 25 654 turns, and the reviewer's job is a diff against the item's own checklist. Which model a role runs on
-  # is a value this project records, not a fact the engine knows: no script under `tools/loop/` names a model.
+  # Which command starts this child — the same one indirection, one step finer, and now read from two dimensions rather
+  # than one (issue #821): the role, its head, and the item's class, in that order of specificity
+  # (`child_agent_cmd_key`, above). A role whose key the project recorded runs its children through it
+  # (`LOOP_AGENT_CMD_REVIEWER`, say); a role that records none inherits the key of the role its name qualifies, and only
+  # a role whose head records nothing keeps the single `LOOP_AGENT_CMD`, so a project that configures nothing runs one
+  # command everywhere (the keys are empty in this project's `loop.conf`). What it buys is the difference the transcript
+  # already measures: over 227 items (2026-11-03, `tools/loop-spend.py --json`) the reviewer's 7 522 turns carry 53.6 k
+  # tokens each against the worker's 84.5 k at 25 654 turns, and the reviewer's job is a diff against the item's own
+  # checklist. Which model a role runs on is a value this project records, not a fact the engine knows: no script under
+  # `tools/loop/` names a model.
   child_cmd="$LOOP_AGENT_CMD"
   role=$(child_role "$1")
-  role_key="LOOP_AGENT_CMD_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')"
+  role_key=$(child_agent_cmd_key "$role" "${class:-}")
   role_cmd=$(loop_conf_value "$role_key")
   if [ -n "$(printf '%s' "$role_cmd" | tr -d '[:space:]')" ]; then child_cmd="$role_cmd"; fi
   # …and the turns this role may spend, read from its own key rather than from one count the whole item shares (#784).

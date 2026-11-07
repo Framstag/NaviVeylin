@@ -52,6 +52,9 @@ LOOP_SHELL_CASES=(
   'state#agentCommandIsTheOnlyIndirection'
   'state#agentCommandRefusesAnEmptyValue'
   'state#aRolesOwnCommandStartsOnlyThatRolesChild'
+  'state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo'
+  'state#theReworkRoundIsARoleOfItsOwn'
+  'state#anItemsClassSelectsTheWorkerCommand'
   'state#doneRecordsTheCommitItLanded'
   'state#theLandingScoreIsReadOnceAndStored'
   'state#aLandingWithNoRunIsUnscored'
@@ -465,6 +468,9 @@ loop_run_shell_case() {
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
     'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
     'state#aRolesOwnCommandStartsOnlyThatRolesChild') fn=case_state_aRolesOwnCommandStartsOnlyThatRolesChild ;;
+    'state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo') fn=case_state_aRolesChildInheritsTheCommandOfTheRoleItBelongsTo ;;
+    'state#theReworkRoundIsARoleOfItsOwn') fn=case_state_theReworkRoundIsARoleOfItsOwn ;;
+    'state#anItemsClassSelectsTheWorkerCommand') fn=case_state_anItemsClassSelectsTheWorkerCommand ;;
     'state#doneRecordsTheCommitItLanded') fn=case_state_doneRecordsTheCommitItLanded ;;
     'state#theLandingScoreIsReadOnceAndStored') fn=case_state_theLandingScoreIsReadOnceAndStored ;;
     'state#aLandingWithNoRunIsUnscored') fn=case_state_aLandingWithNoRunIsUnscored ;;
@@ -1689,7 +1695,7 @@ case_state_projectKeysAreReadFromLoopConf() {
 
 case_state_agentCommandIsTheOnlyIndirection() {
   # files: tools/loop/fixtures/pi tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p wrapper
+  local d p wrapper out
   d=$(scratch); p=$(new_project)
   wrapper="$d/my-agent.sh"
   cat > "$wrapper" <<EOF
@@ -1708,15 +1714,23 @@ EOF
   sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$wrapper --print\"|" \
       -e 's|^\(LOOP_AGENT_CMD_[A-Z_]*\)=.*|\1=""|' "$LOOP_CONF" > "$conf"
   export LOOP_CONF="$conf"
-  run_one_item "$p" "$d" >/dev/null || fail "the run failed with a substituted agent command"
+  # The stub's own log is the one file this case reads back outside the run, and `run_one_item` exports it inside the
+  # substitution below, so it is named here where it survives it.
+  export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
+  out=$(run_one_item "$p" "$d" 2>&1) || fail "the run failed with a substituted agent command"
   # every child — the worker phase's two children and the reviewer — went through the configured value
   assert_eq "3" "$(grep -c 'AGENT-CMD' "$d/agent.log")" "every child invocation expands the configured command"
   assert_eq "3" "$(grep -c '^invocation' "$PI_STUB_LOG")" "and every one arrived at the child"
+  # …and no role is named in the header, because no role's effective command is anything but the project's one
+  # (issue #821): the header lists the roles that do not run on `LOOP_AGENT_CMD`, and here that set is empty.
+  assert_contains "$out" "agent-roles=-" "the header names no role when every child runs on the project's command"
 }
 
 # A role can be started by a command of its own — how a project puts its reviewer on a cheaper model without
 # touching a phase. The key is derived from the prompt's name, so the case asserts both halves: the reviewer's
-# child went through the configured command, and no child of the other roles did.
+# child went through the configured command, and no child of the roles that record nothing did. What the header says
+# changed with issue #821: it names the roles that do not run on the project's command, and the round before the gate
+# is one of them, because it inherits the reviewer's key rather than falling to the project's one.
 case_state_aRolesOwnCommandStartsOnlyThatRolesChild() {
   # files: tools/loop/fixtures/pi tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf out
@@ -1746,7 +1760,8 @@ EOF
     "the reviewer's child went through the role's own command"
   assert_eq "2" "$(grep -c '^WORKER-CMD' "$d/agent.log")" \
     "and every other child went through the project's one"
-  assert_contains "$out" "agent-roles=reviewer" "the run's own header names the role that was given its own command"
+  assert_contains "$out" "agent-roles=reviewer,reviewer-pre-gate" \
+    "the run's own header names the roles that do not run on the project's command, the pre-gate round among them"
 }
 
 case_state_agentCommandRefusesAnEmptyValue() {
@@ -1762,6 +1777,163 @@ case_state_agentCommandRefusesAnEmptyValue() {
   assert_eq "2" "$status" "an empty agent command is a usage error"
   assert_contains "$out" "LOOP_AGENT_CMD is empty" "the refusal names the configuration key"
   [ ! -f "$PI_STUB_LOG" ] || [ ! -s "$PI_STUB_LOG" ] || fail "an agent process was started anyway"
+}
+
+# A role the engine starts is never left on the project's one command when the role it belongs to records a command
+# (issue #821): the pre-gate round reads the largest diff of an item and is a `REVIEWER_*` role, so it inherits
+# `LOOP_AGENT_CMD_REVIEWER` — the key of the role its name qualifies — rather than the project's command, and the
+# header names it, because a run that spends a different command on part of its work is not the same run as one that
+# does not.
+case_state_aRolesChildInheritsTheCommandOfTheRoleItBelongsTo() {
+  # files: tools/loop/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out
+  d=$(scratch); p=$(new_project)
+  # Each command writes the prompt it was handed, because `run_child` starts a child as `$cmd <prompt-file>`: the log
+  # then says which child took which command, and not only how many children there were.
+  cat > "$d/project-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf '%s PROJECT-CMD\n' "\$(basename "\${@: -1}")" >> $(printf '%q' "$d")/agent.log
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  cat > "$d/reviewer-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf '%s REVIEWER-CMD\n' "\$(basename "\${@: -1}")" >> $(printf '%q' "$d")/agent.log
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  chmod +x "$d/project-agent.sh" "$d/reviewer-agent.sh"
+  : > "$d/agent.log"
+  # The role the case is about records nothing of its own, so its command can only come from the role it inherits.
+  conf="$d/loop.conf"
+  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/project-agent.sh --print\"|" \
+      -e "s|^LOOP_AGENT_CMD_REVIEWER=.*|LOOP_AGENT_CMD_REVIEWER=\"$d/reviewer-agent.sh --print\"|" \
+      -e 's|^LOOP_AGENT_CMD_REVIEWER_PRE_GATE=.*|LOOP_AGENT_CMD_REVIEWER_PRE_GATE=""|' "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The pre-gate shape: the change child stops at the diff (`STUB_CHANGE_REPORT`), so the round before the gate is the
+  # child that reads it, and the tail writes the item's verdict.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS'
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  assert_eq "1" "$(grep -c '^reviewer-pre-gate-prompt.md REVIEWER-CMD$' "$d/agent.log" || true)" \
+    "the pre-gate round ran on the command of the role it belongs to, recording no key of its own"
+  assert_eq "1" "$(grep -c '^reviewer-prompt-1.md REVIEWER-CMD$' "$d/agent.log" || true)" \
+    "and the round after the gate ran on the same one"
+  assert_eq "0" "$(grep -c '^reviewer-pre-gate-prompt.md PROJECT-CMD$' "$d/agent.log" || true)" \
+    "so the round that reads the largest diff is not left on the project's one command"
+  assert_contains "$out" "agent-roles=reviewer,reviewer-pre-gate" \
+    "and the header names both roles that do not run on the project's command"
+}
+
+# The round a refusal buys answers a findings list and plans nothing, so it is a role of its own and not the worker's
+# second pass (issue #821): it is started on `LOOP_AGENT_CMD_WORKER_REWORK` and ended at
+# `LOOP_CHILD_TURNS_MAX_WORKER_REWORK`, both read through the same `child_role` indirection the other roles use.
+case_state_theReworkRoundIsARoleOfItsOwn() {
+  # files: tools/loop/fixtures/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out action rework
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  cat > "$d/project-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf '%s PROJECT-CMD\n' "\$(basename "\${@: -1}")" >> $(printf '%q' "$d")/agent.log
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  cat > "$d/rework-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf '%s REWORK-CMD\n' "\$(basename "\${@: -1}")" >> $(printf '%q' "$d")/agent.log
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  chmod +x "$d/project-agent.sh" "$d/rework-agent.sh"
+  : > "$d/agent.log"
+  # The rework role's own bound is the one that can end this child, and it is short so the case does not pay for the
+  # worker's: the worker's key is left at the project's recorded value and cannot fire at three turns.
+  conf="$d/loop.conf"
+  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/project-agent.sh --print\"|" \
+      -e "s|^LOOP_AGENT_CMD_WORKER_REWORK=.*|LOOP_AGENT_CMD_WORKER_REWORK=\"$d/rework-agent.sh --print\"|" \
+      -e 's|^LOOP_CHILD_TURNS_MAX_WORKER_REWORK=.*|LOOP_CHILD_TURNS_MAX_WORKER_REWORK=3|' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER_REWORK=3' "$conf" ||
+    printf 'LOOP_CHILD_TURNS_MAX_WORKER_REWORK=3\n' >> "$conf"
+  grep -qx 'LOOP_AGENT_CMD_WORKER_REWORK=".* --print"' "$conf" ||
+    printf 'LOOP_AGENT_CMD_WORKER_REWORK="%s --print"\n' "$d/rework-agent.sh" >> "$conf"
+  export LOOP_CONF="$conf"
+  # The round after the gate refuses the change once, which buys the rework round. That child appends three turns to
+  # the item's stream and then waits, so the only clock that can end it is the rework role's own bound.
+  action=$(cat <<'ACTION'
+case "$1" in
+  worker-prompt-round2.md)
+    ev="${LOOP_CHILD_EVENTS:-}"
+    if [ -n "$ev" ]; then
+      for _ in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n' >> "$ev"; done
+    fi
+    sleep 5
+    ;;
+  reviewer-prompt-2.md)
+    printf 'VERDICT: PASS\n' > "$PI_STUB_REPORT_REVIEWER"
+    ;;
+esac
+ACTION
+)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the change leaves one clause of its own spec unexercised
+LOOP-BLOCKING: 1
+VERDICT: FAIL' "$action"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  assert_eq "1" "$(grep -c '^worker-prompt-round2.md REWORK-CMD$' "$d/agent.log" || true)" \
+    "the rework round was started on its own role's command"
+  assert_eq "0" "$(grep -c '^worker-prompt-round2.md PROJECT-CMD$' "$d/agent.log" || true)" \
+    "and not on the command the project starts its worker on"
+  rework="$p/.pi/issue-loop/items/21/worker-report-round2.md"
+  [ -f "$rework" ] || fail "the rework round left no transcript"
+  assert_contains "$(cat "$rework")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_WORKER_REWORK for the worker-rework role)" \
+    "and its own role's turn bound ended it, the transcript naming the key and the role"
+}
+
+# The item's class is a work input the run reads before any child starts (`run.sh`'s label read), so a project can
+# price a feature's worker pass apart from a bug's (issue #821): the class refines the key of the role it is spelled
+# after, and a role's own key still wins over its head's class key.
+case_state_anItemsClassSelectsTheWorkerCommand() {
+  # files: tools/loop/fixtures/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out s
+  d=$(scratch); p=$(new_project)
+  # Two items of different classes: the fixture's two-item scenario with the second item's class changed.
+  s="$d/scenario"
+  cp -r "$(scenario two)" "$s"
+  jq '(.[] | select(.number == 22) | .labels) |= map(if .name == "class/bug" then {name: "class/feature"} else . end)' \
+    "$s/issues.json" > "$s/issues.json.tmp" && mv "$s/issues.json.tmp" "$s/issues.json" ||
+    fail "this case could not give the second item the class it needs"
+  export GH_STUB_DIR="$s"
+  for label in project bug feature; do
+    cat > "$d/$label-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf '%s $(printf '%s' "$label" | tr '[:lower:]' '[:upper:]')-CMD\n' "\$(basename "\${@: -1}")" >> $(printf '%q' "$d")/agent.log
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+    chmod +x "$d/$label-agent.sh"
+  done
+  : > "$d/agent.log"
+  # A command per class, and the tail's own key recorded on the project's command: the class key is a refinement of
+  # the worker role, so it must not reach a role that records a command of its own.
+  conf="$d/loop.conf"
+  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/project-agent.sh --print\"|" \
+      -e "s|^LOOP_AGENT_CMD_WORKER_BUG=.*|LOOP_AGENT_CMD_WORKER_BUG=\"$d/bug-agent.sh --print\"|" \
+      -e "s|^LOOP_AGENT_CMD_WORKER_FEATURE=.*|LOOP_AGENT_CMD_WORKER_FEATURE=\"$d/feature-agent.sh --print\"|" \
+      -e "s|^LOOP_AGENT_CMD_WORKER_TAIL=.*|LOOP_AGENT_CMD_WORKER_TAIL=\"$d/project-agent.sh --print\"|" \
+      "$LOOP_CONF" > "$conf"
+  # The class keys are the project's own vocabulary and this project records none of them, so the case records the two
+  # it is about beside the keys the profile already carries.
+  printf 'LOOP_AGENT_CMD_WORKER_BUG="%s --print"\nLOOP_AGENT_CMD_WORKER_FEATURE="%s --print"\n' \
+    "$d/bug-agent.sh" "$d/feature-agent.sh" >> "$conf"
+  grep -qx 'LOOP_AGENT_CMD_WORKER_BUG=".* --print"' "$conf" || fail "this case could not record a command per class"
+  export LOOP_CONF="$conf"
+  stub_success "$d"
+  out=$(run_loop "$p" --items 2 --minutes 90 --review off 2>&1) || fail "the run failed: $out"
+  assert_eq "1" "$(grep -c '^worker-prompt.md BUG-CMD$' "$d/agent.log" || true)" \
+    "the bug item's worker pass ran on the command its class records"
+  assert_eq "1" "$(grep -c '^worker-prompt.md FEATURE-CMD$' "$d/agent.log" || true)" \
+    "and the feature item's on the command its own class records"
+  assert_eq "0" "$(grep -c '^worker-prompt.md PROJECT-CMD$' "$d/agent.log" || true)" \
+    "so neither worker pass took the project's one command"
+  assert_eq "2" "$(grep -c '^worker-tail-prompt.md PROJECT-CMD$' "$d/agent.log" || true)" \
+    "while the tail's own key still wins over the class key of the role it belongs to"
 }
 
 # An item that ends `blocked` records **which mechanism** stopped it — a review round that refused the change,

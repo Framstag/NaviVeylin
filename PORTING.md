@@ -53,7 +53,8 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    green row's measurements land on carries, so no work selector takes it (`backlog-sensors`, issue #257);
    plus `maxFilings`, the most items one run of one row may file, which a row may override — what a run does
    not file leaves as one summary item (`backlog-sensors`, issue #666).
-3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`), which of the
+3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`, and per role
+   `LOOP_AGENT_CMD_<ROLE>`), which of the
    project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), **how the project's gate is
    run** (`LOOP_GATE_CMD`), the submodule a worktree — fresh, reused or reset by `--reset-worktree` — has to
    check out

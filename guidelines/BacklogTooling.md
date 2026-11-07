@@ -126,10 +126,17 @@ configuration**, not a rewrite:
 
 ```
 LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
+LOOP_AGENT_CMD_<ROLE>[_<CLASS>]   how one role's child, or one class of item's, is started   empty = the key of the
+                                                       role the name qualifies (`WORKER_GATE`, `WORKER_TAIL`,
+                                                       `WORKER_REWORK` inherit `WORKER`; `REVIEWER_PRE_GATE`
+                                                       inherits `REVIEWER`), then `LOOP_AGENT_CMD`; the most
+                                                       specific key wins, so a role's own key beats its head's
+                                                       class key (issue #821)
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
 LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
 LOOP_CHILD_TURNS_MAX_<ROLE>  the turns one child may spend    one key per role (`WORKER` 170, `WORKER_GATE` 80,
-                                                       `WORKER_TAIL` 65, `REVIEWER` 75, `REVIEWER_PRE_GATE` 75);
+                                                       `WORKER_TAIL` 65, `WORKER_REWORK` 100, `REVIEWER` 75,
+                                                       `REVIEWER_PRE_GATE` 75);
                                                        counted as the turns that child added to the item's event
                                                        stream; a child that reaches its role's bound is ended, its
                                                        item is recorded `blocked` with mechanism `bound`, and no

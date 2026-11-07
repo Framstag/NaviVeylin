@@ -770,6 +770,11 @@ MUTATIONS=(
   # `run_child` resolves is the resolution itself: with it gone every child is back on `LOOP_AGENT_CMD`, which is the
   # shape before the key existed — so the case that names the invariant must see the reviewer's child move.
   '77.1@-@tools/loop/run.sh@state#aRolesOwnCommandStartsOnlyThatRolesChild@the role-scoped agent command that lets one role run on a command of its own@s#^  if \[ -n "\$.*then child_cmd="\$role_cmd"; fi$#  : the mutation keeps every child on the project command#'
+  # 77.2 is the chain that resolution is read through (issue #821): a role's own key, the key of the role it belongs to,
+  # then the project's one — with the item's class refining the role it is spelled after. The candidate walk that
+  # returns the first recorded key is the chain; with it gone every child is back on `LOOP_AGENT_CMD`, which is what the
+  # case's first assertion measures (the round before the gate is started on the reviewer's key it inherits).
+  '77.2@-@tools/loop/run.sh@state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo@the chain that gives a role the key of its head role rather than the project one (issue #821)@s#^    if \[ -n "\$(loop_conf_value "\$candidate" | tr -d .\[:space:\].)" \]; then printf .%s. "\$candidate"; return 0; fi$#    if false; then :; fi#'
 
   # 78.x — a run reports the shape it spent its budget in, and names an item below the recorded floor (issue #757).
   # Measured over the archive: 36 825 tool calls in 33 183 turns, 1.11 per turn, at 78 k tokens a turn and 97 % cache

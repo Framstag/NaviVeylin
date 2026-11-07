@@ -624,6 +624,21 @@ names neither this case nor this command — a project value in the template wou
 and order it to run a case that project does not have — because the order saves the gate's tail and only the child's
 step saves the attempt. Measured on `528d8e2a`: the case alone is 10 s.
 
+Which child runs a selection is one rule, and until issue #816 both prompts left it to be inferred: the change child
+was told the measuring block "runs none of them" while the round before its gate refused the checks no log carried,
+so the child ran the gate's own selection to satisfy the round and the gate ran it again. The split is stated in two
+places and owned here. The `LOOP-MEASURE-CHECK` lines the block prints are the **gate's** selection — the child that
+runs the gate once, or the change child's own last phase when the gate is not deferred — and the change child's own
+selection is the named red case plus the cases its delta's declaration reaches; every other check it cites from the
+block and never runs. `tools/loop/prompts/worker.md` states that beside the sentence that the block runs no check,
+and `tools/loop/prompts/pre-gate-review.md` tells the round before the gate that a check the gate will run is graded
+on the block's check line and never `UNPROVEN` for want of a log the change child did not produce — the refusal that
+sent item #798's child to run `tools/loop-selftest.sh --case run#*` (129 cases, 219.93 s) and `--from-git fca2c857`
+(349 cases, 446.01 s) inside its own session, after which its gate child ran both again (`items/798/scoped-run-group.log:394-395`,
+`items/798/scoped-from-git.log`; the refusal is `items/798/pre-gate-review.md:83`). Two cases hold the
+rule: `prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite` in `tools/loop-cases.sh` and its sibling
+`prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle`.
+
 The suite runs its cases in a bounded pool rather than one after another (issue #260). A case owns a throwaway
 repository, a scratch tree under the suite's root and a process group of its own, and shares nothing but the
 read-only engine, so the serialization bought nothing and cost the sum of every case. Measured 2026-10-25 with

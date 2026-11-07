@@ -188,6 +188,8 @@ LOOP_SHELL_CASES=(
   'measure#saysHowManyTalliesItWithheld'
   'measure#printsTheSuiteCountAndTheGateTiming'
   'prompt#workerIsHandedTheMeasureBlock'
+  'prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite'
+  'prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
   'run#anEmptyTreeIsRefusedBeforeTheGateChild'
@@ -595,6 +597,8 @@ loop_run_shell_case() {
     'measure#saysHowManyTalliesItWithheld') fn=case_measure_saysHowManyTalliesItWithheld ;;
     'measure#printsTheSuiteCountAndTheGateTiming') fn=case_measure_printsTheSuiteCountAndTheGateTiming ;;
     'prompt#workerIsHandedTheMeasureBlock') fn=case_prompt_workerIsHandedTheMeasureBlock ;;
+    'prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite') fn=case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite ;;
+    'prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle') fn=case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#anEmptyTreeIsRefusedBeforeTheGateChild') fn=case_run_anEmptyTreeIsRefusedBeforeTheGateChild ;;
@@ -5186,6 +5190,62 @@ case_prompt_workerIsHandedTheMeasureBlock() {
   assert_contains "$text" 'command in its record' "the rule names where a number's proof lives"
   assert_contains "$text" 'LOOP-MEASURE-SUITE cases=' "the declared case count is named as a block line"
   assert_contains "$text" 'LOOP-MEASURE-GATE seconds=' "and so is the gate's own measured timing"
+  return 0
+}
+
+# The split between the two children, which neither prompt named before issue #816: the block's `LOOP-MEASURE-CHECK`
+# lines are the gate's selection, and the change child's own selection is the named red case plus the cases its delta
+# reaches. Item #798's change child ran 129 cases in 219.93 s and 349 cases in 446.01 s inside its own session
+# (`items/798/scoped-run-group.log:394-395`, `items/798/scoped-from-git.log`), and the round before its gate still
+# graded the four checks it had not run `UNPROVEN` for want of a carried log (`items/798/pre-gate-review.md:83`) — the
+# same round the gate child then answered by running both selections again.
+case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt text
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'gate owns the full selection' \
+    "the change child is told the block's check lines belong to the gate (issue #816)"
+  assert_contains "$text" 'the named red case and the cases your delta reaches' \
+    "and which selection is its own"
+  assert_contains "$text" 'cite the block' \
+    "so every other check is cited from the block rather than run"
+  # The absence half: the template is an engine file, so it names no project command — and the gate's own narrowed
+  # selection is the one command a child that ran it would be handed.
+  assert_not_contains "$text" '--from-git' \
+    "no gate selection stands in the change child's prompt as a command to run"
+  assert_not_contains "$text" 'run the whole suite' \
+    "and no instruction to run the suite stands beside the split"
+  return 0
+}
+
+# The other half of the same rule (issue #816): the round before the gate may refuse a claim the gate cannot settle,
+# and a check the gate will run is not one of them — graded `UNPROVEN` for want of a log, it is the refusal that sends
+# the change child back to run the selection the gate owns. The prompt rendered here is the one the run hands that
+# round, so the section `pre-gate-review.md` is the text under test.
+case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt text
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS'
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt.md"
+  [ -f "$prompt" ] || fail "the round before the gate was not rendered: no prompt at $prompt"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'check the gate will run' \
+    "the round is told a check the gate owns is not its to refuse (issue #816)"
+  assert_contains "$text" 'for want of a log' \
+    "and that no log the change child did not produce makes such a check unproven"
+  assert_contains "$text" 'the gate cannot settle' \
+    "and what it may refuse instead"
+  assert_contains "$text" "the measuring command's block" \
+    "citing the measuring command's block as the line such a verdict stands on"
   return 0
 }
 

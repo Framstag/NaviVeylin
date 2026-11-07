@@ -7,6 +7,12 @@ starts after you: that child applies your findings in one pass, and then runs th
   `the gate has not run — this round precedes it`, and grade nothing else about it. Do not run the gate and do not run
   a suite or a case to fill the gap: a gate you ran is the item's second, and its result would be quoted as if the
   change had earned it.
+- **A check the gate will run is not yours to refuse.** Every check the measuring command's block names — the
+  `LOOP-MEASURE-CHECK` lines the change child quotes into the evidence you are given — is a step the gate child runs:
+  grade it `PASS` on that line, beside the case the change names for it, and never `UNPROVEN` for want of a log the
+  change child did not produce — that refusal is what sends the child back to run the selection the gate owns. What you
+  may refuse is a claim the gate cannot settle: a scenario no case in the diff exercises, a number no command in the
+  record produced, a task marked done whose case is absent.
 - **A `BLOCKING:` finding here is a correction, not a refusal.** This round does not block the item and is not a round
   of the review budget: it hands one list to the child that runs the gate, and the round after the gate decides the
   change. So name each thing to change exactly — the line, the claim, the pointer — in the shape one pass can answer.

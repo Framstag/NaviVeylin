@@ -908,6 +908,13 @@ MUTATIONS=(
   # itself `agent/needs-decision`. The sibling record 80.2 quotes the reviewer's cut (`"\$1" cut >&2`) and cannot
   # reach a line that ends `"\$1" rework-cut`, so this one site is the record the guard that writes it owes.
   '94.1@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the rework record written on the branch, so a later pre-screen reads the phase the run ended as work instead of a question its owner owes an answer to (issue #817)@s|^        record_rework_cut "\$round"$|        : # the mutation leaves the rework cut recorded nowhere|'
+
+  # 95.x — which child owns a selection (issue #816). The change child was told "It runs none of them" and the round
+  # before the gate refused the checks it had not run for want of a log, so item #798's child ran the gate's own
+  # selection inside its own session — 129 cases in 219.93 s and 349 cases in 446.01 s — and the gate child then ran
+  # both again. One record per prompt that states the split, each mutating the sentence its case asserts.
+  '95.1@-@tools/loop/prompts/worker.md@prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite@the gate named as the owner of the full selection, so the change child runs that check itself (issue #816)@s|gate owns the full selection|the gate is run by the child that runs it|'
+  '95.2@-@tools/loop/prompts/pre-gate-review.md@prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle@the claim the round before the gate may refuse, so a check the gate will run is refused for want of a log the change child never produced (issue #816)@s|a claim the gate cannot settle|a claim nobody has logged|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -17,7 +17,7 @@ the cap on a question the loop asked itself.
 The tree shows one fact read two ways, not two mechanisms:
 
 - the result word already moved: a bound that ends the item's own child **or** its rework worker is recorded `cut`
-  with `stop_reason="bound"` and no decision label (issue #790, `tools/loop/run.sh:2535`, `:2684`), so the item
+  with `stop_reason="bound"` and no decision label (issue #790, `tools/loop/run.sh:2404`, `:2685`), so the item
   itself is no longer escalated;
 - the *branch* half of the same fact did not: the rework-cut arm writes nothing for the branch, so the highest round
   the branch names is the reviewer's refusal. `review-round-<n>-cut.md` is the record for a round the **reviewer's**

@@ -4,7 +4,7 @@
 
 The run records *which of its arms* ended a child instead of the fact that its own bound did. The result word of
 that fact already moved (issue #790): a bound that ends the item's own child or its rework worker is recorded `cut`
-with `stop_reason="bound"` (`tools/loop/run.sh:2535`, `:2684`), so the item is no longer escalated. What did not
+with `stop_reason="bound"` (`tools/loop/run.sh:2404`, `:2685`), so the item is no longer escalated. What did not
 move is the **branch**: the arm reading the rework worker of a refusing round writes nothing onto it, so the highest
 round the branch names is the reviewer's refusal — `carried_review_state` (`tools/loop/worktree.sh:418`) reads it
 `failed`, `branch_state_of` (`:454`) reports `review-refused`, the next pre-screen names the item
@@ -37,8 +37,9 @@ No state schema changes: `stop_reason` already carries `bound`, and `state.sh` a
 
 ## Blast radius
 
-- The result word does not move: the item stays `blocked` with the mechanism `bound`, as every other bound-ended
-  child does (#786). Nothing adopts, closes or merges a change on the strength of this change.
+- The result word does not move: a bound that ends the rework worker is already recorded `cut` with `bound` beside it
+  (`tools/loop/run.sh:2684-2685`), and no decision label is written for it. Nothing adopts, closes or merges a change
+  on the strength of this change.
 - The new branch state is read by three callers of `branch-state` (`run.sh`'s adoption exclusions, `prescreen.sh`,
   `start-item`); the first two treat an unknown state exactly as before (the adoption arm only acts on `adoptable`),
   and `start-item` gains one arm. `adopt-item` gains a refusal for it, so a phase can never be merged as a verdict.
@@ -49,6 +50,19 @@ No state schema changes: `stop_reason` already carries `bound`, and `state.sh` a
 - The worktree the cut child left dirty is the run's own pre-flight's question, not this arm's: `run.sh` keeps it and
   names it, and `--reset-worktree` discards it (#664). That reading is unchanged here — the branch record is what
   makes the *item* work for the next pre-screen, and the kept tree is repaired by the run that starts it.
+
+## Known gaps
+
+Three claims this change carries are asserted by no case. They are named here rather than promised a case this
+correction round does not write:
+
+- `tools/loop/prescreen.sh:373-380` — a stated question of the item's own outranks `rework-cut` exactly as it outranks
+  `unfinished`, because the two states share the arm; the case that exercises the ordering
+  (`prescreen#itemAwaitingADecisionIsNotQueued`) carries an `unfinished` branch only.
+- `tools/loop/worktree.sh:518-519` — `cmd_adopt_item`'s `rework-cut` refusal is reached only by a hand-run
+  `adopt-item`, since `run.sh:415` acts on `adoptable` alone; no case calls it.
+- The record's own text (`tools/loop/worktree.sh:616-628`, "the round was asked and answered") is asserted by no case:
+  the two branch cases write their own fixture text, and the run case asserts the file's presence.
 
 ## Alternatives the evidence eliminated
 

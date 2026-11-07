@@ -1,0 +1,27 @@
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal|   the action list names the item the run's bound cut as work the next run takes up: 'resume #21' not found in: actions the caller owes:
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal|   1. land fix/issue-21-an-eligible-bug-whose-cited-path-still-e — 4 commit(s) the base does not have — item #21
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal|   2. re-run the gate for #21 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/issue-loop/items/21/worker-report.md
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal|   3. recover #21 — the run's clock ended it and its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal|   4. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| worktree: removed app/build (16384 B)
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| worktree: 1 build path(s) removed from the kept worktree: 16384 B — its sources and its git state stay
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/worktrees/loop
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| kept fix/issue-21-an-eligible-bug-whose-cited-path-still-e — checked out
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| removed loop-20261107-092535 (its patches are in the base)
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal| worktree: 1 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it)
+--- run#aReviewerEndedAtItsTurnBoundIsNotARefusal[0] (exit 1)
+  the action list names the item the run's bound cut as work the next run takes up: 'resume #21' not found in: actions the caller owes:
+  1. land fix/issue-21-an-eligible-bug-whose-cited-path-still-e — 4 commit(s) the base does not have — item #21
+  2. re-run the gate for #21 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/issue-loop/items/21/worker-report.md
+  3. recover #21 — the run's clock ended it and its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch
+  4. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: removed app/build (16384 B)
+worktree: 1 build path(s) removed from the kept worktree: 16384 B — its sources and its git state stay
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/788/.pi/tmp/loop-selftest.U1lcMH/cases/0/tree/case.lig2S1/repo/.pi/worktrees/loop
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+kept fix/issue-21-an-eligible-bug-whose-cited-path-still-e — checked out
+removed loop-20261107-092535 (its patches are in the base)
+worktree: 1 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it)
+FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+loop-selftest: 1 of 1 cases failed

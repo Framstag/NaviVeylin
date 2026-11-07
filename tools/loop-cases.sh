@@ -5907,7 +5907,7 @@ case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
 # loop finishes rather than as `review-unanswered`, a question only its owner can answer.
 case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal() {
   # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
-  local d p conf fifo fixture action pid i status out state review_report retry rework branch tree
+  local d p conf fifo fixture action pid i status out state review_report retry rework branch tree actions
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
@@ -5974,6 +5974,13 @@ EOF
   assert_contains "$out" "decisions the owner owes: none" "and the report asks the owner no question about it"
   assert_contains "$out" "cut short by the run's own bound: #21 cut-short" \
     "the report names the item the run's bound cut, beside the blocks it did not cause"
+  # A cut item is work and not a question (issue #788): the caller's list says to resume it, and never to re-run a gate
+  # it was not owed — the phase the run ended came before the gate.
+  actions=$(actions_block "$out")
+  assert_contains "$actions" "resume #21" \
+    "the action list names the item the run's bound cut as work the next run takes up"
+  assert_not_contains "$actions" "re-run the gate for #21" \
+    "and does not ask for a gate a cut item never owed"
   # The branch is what the next run reads, and the round the run ended is written on it as a cut: the announcement
   # the run itself withdrew, and a state the pre-screen offers as work the loop finishes rather than as a decision
   # a person owes (#262's `review-unanswered` is the branch of a round nobody graded, which this is not).

@@ -444,11 +444,20 @@ done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
   | [(.issue | tostring), ((.labelFailures // []) | join(" "))] | @tsv' "$state_file")
 
 # An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
-# the transcript beside its id says how far the item got.
+# the transcript beside its id says how far the item got. A `cut` is not that (issue #788): a gate of its own was
+# never owed, because the run ended its child first, and the block below names it as the item to take up again.
 while IFS=$'\t' read -r issue; do
   [ -n "${issue:-}" ] || continue
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
-done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
+done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select(.result != "cut") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
+
+# The item a bound ended is work and not a question (issue #788): it carries no decision label, so this is where a
+# caller learns it is waiting — with the phase that was cut and the branch the attempt left, which the next run
+# takes up.
+while IFS=$'\t' read -r issue note; do
+  [ -n "${issue:-}" ] || continue
+  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable} · transcript $state_dir/items/$issue"
+done < <(jq -r '.items[] | select(.result == "cut") | [(.issue | tostring), (.note // "")] | @tsv' "$state_file")
 
 # The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An
 # item the run's deadline cut carries no decision label, so this line is the only place the report tells a caller
@@ -465,8 +474,8 @@ fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the six sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no leftover patch, no label write the tracker refused\n'
+  # Empty only when every one of the seven sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no item ended at a bound, no leftover patch, no label write the tracker refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

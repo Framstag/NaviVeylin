@@ -10,9 +10,11 @@ item the loop cannot work is visible as work a person owes, instead of ending in
 ### Requirement: A shaping verdict carries the shaping label
 
 The run SHALL write the project's shaping label, in the same call as the hold and the one line accounting for it,
-for every verdict its profile names as a shaping verdict — the answers "one root cause does not explain this",
-"this is not a falsifiable acceptance condition", "this exceeds one change" and "this is not spec-shaped". A verdict
-the profile does not name SHALL write no such label.
+for every verdict its profile names as a shaping verdict — the answers "this is not a falsifiable acceptance
+condition", "this exceeds one change" and "this is not spec-shaped". A verdict the profile names as a shaping
+verdict is one the run holds rather than escalates, so a verdict that states a question is never one: `needs-diagnosis` is escalated
+with the decision label, writes no shaping label, and the labels that skip leaves are the set the profile names for
+it. A verdict the profile does not name SHALL write no such label.
 
 #### Scenario: A shaping verdict writes the label beside the hold
 
@@ -26,6 +28,14 @@ the profile does not name SHALL write no such label.
 - **WHEN** the run skips an item with a verdict outside `roles.shapingVerdicts`
 - **THEN** the item keeps the bare hold it writes today, and no shaping label appears
 - **Case**: `run#aVerdictOutsideTheListWritesNoLabel`
+
+#### Scenario: The labels a skip leaves are the set the profile names
+
+- **WHEN** the run skips an item with `needs-diagnosis`, which this project's `roles.shapingVerdicts` does not name
+- **THEN** the write that records the skip adds exactly the labels the profile's list implies for that verdict —
+  the decision label and the hold, and a shaping label only if the list names it — so the labels the item carries and
+  the declaration are one answer
+- **Case**: `run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames`
 
 #### Scenario: A project that names no verdict declares the list empty
 

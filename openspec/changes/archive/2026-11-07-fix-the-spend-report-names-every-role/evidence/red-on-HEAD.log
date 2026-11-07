@@ -1,0 +1,38 @@
+loop-spend-selftest
+  ok   spend#exitCode
+  ok   spend#itemsCounted
+  ok   spend#sessionsCounted
+  ok   spend#turnsCounted
+  ok   spend#inputTokens
+  ok   spend#cacheReadTokens
+  ok   spend#outputTokens
+  ok   spend#totalTokens
+  ok   spend#baselineIsTheMedianFirstTurn
+  ok   spend#baselineIsChargedOncePerTurn
+  ok   spend#aRepeatedReadIsADuplicate
+  ok   spend#readsAreCounted
+  ok   spend#spendAfterTheGateIsCounted
+  ok   spend#noCapSavingWithoutALargeResult
+  ok   spend#anUnreportedCostIsADash
+  ok   spend#aReviewerSessionIsChargedToTheReviewer
+  ok   spend#aWorkerSessionIsChargedToTheWorker
+  FAIL spend#eachRoleTheEngineStartsIsChargedToItsOwnName
+         expected: reviewer=1/1/16000,reviewer-pre-gate=1/1/32000,worker=1/1/1000,worker-gate=1/1/4000,worker-rework=1/1/2000,worker-tail=1/1/8000
+         actual:   reviewer=2/2/48000,worker=4/4/15000
+  FAIL spend#theRoundBeforeTheGateIsChargedApart
+         expected: 1/32000 1/16000 1/1000
+         actual:   0/0 2/48000 4/15000
+  FAIL spend#thePerRoleTableNamesWhatTheJsonCarries
+         expected: reviewer-reviewer-pre-gate-worker-worker-gate-worker-rework-worker-tail|reviewer-reviewer-pre-gate-worker-worker-gate-worker-rework-worker-tail
+         actual:   reviewer-worker|reviewer-worker
+  FAIL spend#anUnmatchedPromptKeepsItsOwnReading
+         expected: prompt-something-else=1/1/128000,reviewer=1/1/64000,worker=1/1/32000
+         actual:   reviewer=1/1/64000,worker=2/2/160000
+  ok   spend#sinceFiltersEarlierItems
+  ok   spend#quietPrintsOnlySpanLines
+  ok   spend#jsonCarriesTheSameTotal
+  ok   spend#jsonCarriesTheSameDuplicateCount
+  ok   spend#anEmptyItemDirectoryIsRefused
+  ok   spend#aMissingItemDirectoryIsRefused
+
+loop-spend-selftest: 4 of 27 cases failed

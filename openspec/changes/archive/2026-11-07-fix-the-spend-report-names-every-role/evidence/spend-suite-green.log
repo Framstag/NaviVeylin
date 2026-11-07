@@ -1,0 +1,30 @@
+loop-spend-selftest
+  ok   spend#exitCode
+  ok   spend#itemsCounted
+  ok   spend#sessionsCounted
+  ok   spend#turnsCounted
+  ok   spend#inputTokens
+  ok   spend#cacheReadTokens
+  ok   spend#outputTokens
+  ok   spend#totalTokens
+  ok   spend#baselineIsTheMedianFirstTurn
+  ok   spend#baselineIsChargedOncePerTurn
+  ok   spend#aRepeatedReadIsADuplicate
+  ok   spend#readsAreCounted
+  ok   spend#spendAfterTheGateIsCounted
+  ok   spend#noCapSavingWithoutALargeResult
+  ok   spend#anUnreportedCostIsADash
+  ok   spend#aReviewerSessionIsChargedToTheReviewer
+  ok   spend#aWorkerSessionIsChargedToTheWorker
+  ok   spend#eachRoleTheEngineStartsIsChargedToItsOwnName
+  ok   spend#theRoundBeforeTheGateIsChargedApart
+  ok   spend#thePerRoleTableNamesWhatTheJsonCarries
+  ok   spend#anUnmatchedPromptKeepsItsOwnReading
+  ok   spend#sinceFiltersEarlierItems
+  ok   spend#quietPrintsOnlySpanLines
+  ok   spend#jsonCarriesTheSameTotal
+  ok   spend#jsonCarriesTheSameDuplicateCount
+  ok   spend#anEmptyItemDirectoryIsRefused
+  ok   spend#aMissingItemDirectoryIsRefused
+
+loop-spend-selftest: all 27 cases passed

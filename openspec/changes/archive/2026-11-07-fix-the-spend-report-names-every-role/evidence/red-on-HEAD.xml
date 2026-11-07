@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the suite's own lines: `tools/loop-spend-selftest.sh` writes no JUnit XML, and the gate's tally
+     is the gate child's to write. The four testcases and their failure messages are `red-on-HEAD.log`,
+     2026-11-07T18:54:56Z: the cases as they now stand, with `tools/loop-spend.py` restored to the run's base
+     580c2106c9a9294d63d2bd621fb8e265dbb7dca8 for the run (`git show 580c2106:tools/loop-spend.py > tools/loop-spend.py`,
+     `git status --porcelain tools/loop-spend.py` empty) and the change's own file written back immediately after it,
+     byte-identical (`cmp`). -->
+<testsuite name="loop-spend-selftest" tests="27" failures="4" errors="0">
+  <testcase classname="spend" name="eachRoleTheEngineStartsIsChargedToItsOwnName">
+    <failure message="expected: reviewer=1/1/16000,reviewer-pre-gate=1/1/32000,worker=1/1/1000,worker-gate=1/1/4000,worker-rework=1/1/2000,worker-tail=1/1/8000; actual: reviewer=2/2/48000,worker=4/4/15000">the six sessions of the engine's six roles are charged to two: the round before the gate is inside the reviewer's 48 000, the gate, the tail and the rework round inside the worker's 15 000</failure>
+  </testcase>
+  <testcase classname="spend" name="theRoundBeforeTheGateIsChargedApart">
+    <failure message="expected: 1/32000 1/16000 1/1000; actual: 0/0 2/48000 4/15000">`reviewer-pre-gate` is absent, the reviewer carries two sessions and the worker four</failure>
+  </testcase>
+  <testcase classname="spend" name="thePerRoleTableNamesWhatTheJsonCarries">
+    <failure message="expected: reviewer-reviewer-pre-gate-worker-worker-gate-worker-rework-worker-tail|reviewer-reviewer-pre-gate-worker-worker-gate-worker-rework-worker-tail; actual: reviewer-worker|reviewer-worker">both the table and the JSON name two roles where the stream holds a session of each of the six the engine starts</failure>
+  </testcase>
+  <testcase classname="spend" name="anUnmatchedPromptKeepsItsOwnReading">
+    <failure message="expected: prompt-something-else=1/1/128000,reviewer=1/1/64000,worker=1/1/32000; actual: reviewer=1/1/64000,worker=2/2/160000">the prompt text naming a reviewer is read correctly, and the `.md` name no arm of `child_role` matches is folded into the worker (2 sessions / 160 000) instead of being charged to the name it carries</failure>
+  </testcase>
+</testsuite>

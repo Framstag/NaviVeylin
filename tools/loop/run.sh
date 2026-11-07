@@ -1787,6 +1787,17 @@ record_cut_round() { # <round>
       "$1" "$change" >&2
 }
 
+# The same statement for the other child the run ends: the rework worker of a refusing round (issue #788). Its
+# record stays beside the refusal it reworks, because the round *was* asked and answered — withdrawing it would
+# leave a branch a later pre-screen reads as a question its owner owes an answer to, and that question is the
+# decision slot the run spent on itself.
+record_rework_cut() { # <round>
+  [ -n "${change:-}" ] || return 0
+  bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$1" rework-cut >&2 ||
+    printf 'run: the cut of the rework of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n' \
+      "$1" "$change" >&2
+}
+
 # ── the item loop ───────────────────────────────────────────────────────────────────────────────
 
 queue_passes=1
@@ -2672,6 +2683,9 @@ while true; do
         # result (issues #786, #790).
         outcome="cut"
         stop_reason="bound"
+        # …and the branch says it too (issue #788): the round's refusal stays on it, and this record beside the
+        # announcement is what stops the next pre-screen reading the item as a question the run asked itself.
+        record_rework_cut "$round"
         blocked_reason="the run ended the rework worker of the refusing round (its wall-clock or the run's own deadline), so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
         break
       fi

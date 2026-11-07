@@ -24,7 +24,7 @@
 #   worktree.sh merge-item <issue> <branch>
 #   worktree.sh release-branch <branch>
 #   worktree.sh prune-landed [--apply]
-#   worktree.sh record-review-round <issue> <change> <round> requested|passed|cut
+#   worktree.sh record-review-round <issue> <change> <round> requested|passed|cut|rework-cut
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -297,14 +297,19 @@ $dirty"
     if [ -z "$carried" ] || [ "$state" = "landed" ]; then
       gitw switch -C "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
       printf 'item #%s on branch %s (reused — the branch carries no commit of its own)\n' "$issue" "$branch"
-    elif [ "$state" = "unfinished" ]; then
+    elif [ "$state" = "unfinished" ] || [ "$state" = "rework-cut" ]; then
       set_aside="loop/leftover/issue-$issue-$slug-$(date -u +%Y%m%dT%H%M%SZ)"
       gitw branch -m "$branch" "$set_aside" >&2 ||
         loop_die "start-item: could not set the blocked attempt's branch aside"
-      printf 'set-aside: branch %s carries a blocked attempt (no archived change of its own) — renamed to %s, its commits are kept\n' \
-        "$branch" "$set_aside"
+      if [ "$state" = "rework-cut" ]; then
+        printf 'set-aside: branch %s carries a refusal whose rework the run ended at a bound — renamed to %s, its commits are kept\n' \
+          "$branch" "$set_aside"
+      else
+        printf 'set-aside: branch %s carries a blocked attempt (no archived change of its own) — renamed to %s, its commits are kept\n' \
+          "$branch" "$set_aside"
+      fi
       gitw switch -c "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
-      printf 'item #%s on branch %s (fresh — the blocked attempt was set aside)\n' "$issue" "$branch"
+      printf 'item #%s on branch %s (fresh — the previous attempt was set aside)\n' "$issue" "$branch"
     else
       loop_refuse "branch $branch already exists and carries commits the base does not — a previous attempt's work is on it:
 $(printf '%s\n' "$carried" | head -5)"
@@ -410,16 +415,21 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
 # **not** an unanswered one — the run announced it and the run ended it, before any reviewer could answer — so it
 # is read as its own value (issue #785): `blocked` for a round nobody refused spent a decision slot and a person's
 # evening on #780, #783, #767 and #763 on 2026-11-05, whose changes were archived, gated green and cut at a bound.
-carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested|cut>", or nothing
+carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested|cut|rework-cut>", or nothing
   local branch="$1" change="$2" files round
   files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null) || return 0
   round=$(printf '%s\n' "$files" |
     sed -n -e 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-requested\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-cut\.md$#\1#p' \
+      -e 's#.*/review-round-\([0-9][0-9]*\)-rework-cut\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-passed\.md$#\1#p' |
     sort -n | tail -1)
   [ -n "$round" ] || return 0
+  # The rework of a refusal, ended by a bound the run enforces, outranks the refusal it reworks (issue #788): the
+  # round was asked and the reviewer answered, and what did not finish is the answer to that answer. Read as the
+  # refusal, the branch asks its owner about a question the loop itself ended.
+  case "$files" in *"/review-round-$round-rework-cut.md"*) printf '%s rework-cut\n' "$round"; return 0 ;; esac
   case "$files" in *"/review-failed-round-$round.md"*) printf '%s failed\n' "$round"; return 0 ;; esac
   case "$files" in *"/review-round-$round-passed.md"*) printf '%s passed\n' "$round"; return 0 ;; esac
   case "$files" in *"/review-round-$round-cut.md"*) printf '%s cut\n' "$round"; return 0 ;; esac
@@ -437,6 +447,8 @@ carried_review_state() { # <branch> <change> → "<round> <passed|failed|request
 #   review-unanswered  the same, and the last review round was announced and never answered — the owner's (#262)
 #   archived-not-green the change is there and never verified — the owner's (#176)
 #   unfinished         commits and no archived change of its own: a blocked attempt, so work rather than a question
+#   rework-cut         the reviewer's refusal of the last round and the rework of it that the run's own bound
+#                      ended: a phase, not a finding, so work the next run resumes (#788)
 #   landed             every commit is already in the base — the item is startable on that branch again
 #   absent             there is no such branch
 branch_state_of() { # <issue> <branch> <base> → the state, one word
@@ -454,6 +466,7 @@ branch_state_of() { # <issue> <branch> <base> → the state, one word
   case "$review_state" in
     *' failed') printf 'review-refused\n'; return 0 ;;
     *' requested') printf 'review-unanswered\n'; return 0 ;;
+    *' rework-cut') printf 'rework-cut\n'; return 0 ;;
   esac
   printf 'adoptable\n'
 }
@@ -465,7 +478,7 @@ cmd_branch_state() { # <issue> <branch> → <state> TAB <change> TAB <evidence>
   base=$(state_base)
   state=$(branch_state_of "$issue" "$branch" "$base")
   case "$state" in
-    adoptable|review-refused|review-unanswered|archived-not-green)
+    adoptable|review-refused|review-unanswered|archived-not-green|rework-cut)
       change=$(carried_change "$issue" "$branch" "$base")
       evidence=$(carried_verification "$branch" "$base" "$change")
       ;;
@@ -502,6 +515,8 @@ cmd_adopt_item() {
       loop_refuse "branch $branch is not adopted — the reviewer refused $change in round ${review_state%% *} (evidence/review-failed-round-${review_state%% *}.md); apply the reviewer's corrections and merge it by hand, or delete that file deliberately if the verdict no longer applies" ;;
     *' requested')
       loop_refuse "branch $branch is not adopted — review round ${review_state%% *} of $change was announced and never answered (evidence/review-round-${review_state%% *}-requested.md): no reviewer graded that change, so it is reviewed and merged by hand, or that announcement is deleted deliberately when the round is not to be waited for" ;;
+    *' rework-cut')
+      loop_refuse "branch $branch is not adopted — the rework of the refusal in review round ${review_state%% *} of $change was ended by a bound the run enforces (evidence/review-round-${review_state%% *}-rework-cut.md): the phase is the item's work, not a verdict, so the item is worked again and this branch is set aside" ;;
   esac
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
@@ -556,17 +571,18 @@ $dirty"
 }
 
 # The run's record of a review round, written onto the item's branch: the *announcement* before the reviewer
-# starts, the answer when it arrives (#262), and — when the run's own bound ended the round — the cut that says so
-# (#785). The branch is what a later run reads — the item's own directory (`.pi/issue-loop/items/<n>/`) is
+# starts, the answer when it arrives (#262), the cut that says the run ended the round (#785), and — when the
+# run's own bound ended the *rework* of a refusal — the rework's cut beside the refusal it reworks (#788). The
+# branch is what a later run reads — the item's own directory (`.pi/issue-loop/items/<n>/`) is
 # machine-local and is gone or unreadable to it — so a reviewer that is killed mid-answer has to leave a round that
 # says "never answered" rather than no trace at all, and a round the run cut has to say that instead of reading as
 # one nobody ever asked.
-cmd_record_review_round() { # <issue> <change> <round> <requested|passed|cut>
+cmd_record_review_round() { # <issue> <change> <round> <requested|passed|cut|rework-cut>
   local issue="$1" change="$2" round="$3" what="${4:-}" dir file who_name who_email
-  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut" ;; esac
+  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut|rework-cut" ;; esac
   [ -n "$change" ] && [ -n "$round" ] ||
-    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut"
-  case "$what" in requested|passed|cut) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut" ;; esac
+    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut|rework-cut"
+  case "$what" in requested|passed|cut|rework-cut) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut|rework-cut" ;; esac
   [ -d "$worktree" ] || loop_die "record-review-round: no worktree at $worktree"
   [ -d "$worktree/openspec/changes/archive/$change" ] ||
     loop_refuse "record-review-round: $change is not an archived change in the worktree"
@@ -597,6 +613,19 @@ cmd_record_review_round() { # <issue> <change> <round> <requested|passed|cut>
       gitw rm -q -- "$dir/review-round-$round-requested.md" >&2 ||
         loop_die "record-review-round: could not withdraw the announcement of round $round"
     fi
+  elif [ "$what" = rework-cut ]; then
+    # The refusal of this round stays, and the announcement stays beside it: the round was asked *and* answered,
+    # and what the bound ended is the rework of that answer. Withdrawing either would make the branch read as a
+    # question nobody asked, which is the shape that spent a decision slot and a person's evening (issue #788).
+    {
+      printf 'The reviewer refused this change in review round %s, and the run ended the rework of that\n' "$round"
+      printf 'refusal at a bound it records, before the rework answered it.\n\n'
+      printf 'Recorded by the run for issue #%s at %s, on the item branch: the round was asked and answered, and\n' \
+        "$issue" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'what did not finish is the answer to the refusal, so nothing here states a question its owner owes\n'
+      printf 'a decision on. The transcript of the child the run ended names the bound in the item directory this\n'
+      printf 'run recorded.\n'
+    } > "$file" || loop_die "record-review-round: could not write $file"
   else
     {
       printf 'The reviewer passed this change in review round %s.\n\n' "$round"

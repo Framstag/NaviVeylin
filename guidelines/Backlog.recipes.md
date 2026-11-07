@@ -949,11 +949,16 @@ rule, one result wider). The same holds one level down, for the **item's own chi
 child, a tail or the rework worker of a refusing round the run ended at its role's turns, at the child clock or at
 the run's deadline leaves a phase, not a finding — #788, #778 and #759 each sat in one run's state as `blocked`
 with a bound's reason and a 4–6 k-line patch beside them, so the next reader had to read the mechanism to know the
-item was work. What the branch carries is the round as a **cut** — `review-round-<n>-cut.md`, with the
-announcement of the same round withdrawn in that commit — so `branch-state` reads `adoptable` rather than
-`review-unanswered`, and the next pre-screen offers the attempt as work the loop finishes instead of as a question
-only its owner can answer. A round the *transport* cut twice is not this: no bound ended it, so it stays a block
-with its reason, because nothing about it says the item is converging.
+item was work. What the branch carries is that phase, recorded where a later run reads it: a round the **reviewer's
+child** never answered is `review-round-<n>-cut.md`, with the announcement of the same round withdrawn in that
+commit, so `branch-state` reads `adoptable` rather than `review-unanswered`; a refusal whose **rework** the bound
+ended keeps both the announcement and the refusal, and puts `review-round-<n>-rework-cut.md` beside them (issue
+#788), so `branch-state` reads `rework-cut` — a phase its next attempt resumes, never a question — and the next
+pre-screen offers the item as work with its branch named, `start-item` setting that branch aside. Both readings
+are the same rule: nothing the loop ended itself may arrive at the pre-screen as an item its owner owes an answer
+to, because that answer is a slot of the decision ceiling spent on a question the loop asked itself. A round the
+*transport* cut twice is not this: no bound ended it, so it stays a block with its reason, because nothing about it
+says the item is converging.
 
 A **block** the run's own bound caused was the same fact one result over (issue #786), and is now that fact: the
 item's tree was left mid-phase, its work is kept exactly as the child left it and its patch is named in the

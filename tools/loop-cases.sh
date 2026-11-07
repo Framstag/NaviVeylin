@@ -377,6 +377,8 @@ LOOP_SHELL_CASES=(
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'run#childPastItsTurnBoundIsCut'
+  'prescreen#aReworkCutBranchIsWork'
+  'worktree#setsAsideAReworkCutBranchAndStartsFresh'
   'run#aRotatedStreamStillCountsTheTurnsItDropped'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
   'run#eachChildIsBoundedByItsOwnRolesTurns'
@@ -469,6 +471,7 @@ loop_run_shell_case() {
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#aFinishedAttemptBranchIsADecision') fn=case_prescreen_aFinishedAttemptBranchIsADecision ;;
     'prescreen#aBlockedAttemptBranchIsWork') fn=case_prescreen_aBlockedAttemptBranchIsWork ;;
+    'prescreen#aReworkCutBranchIsWork') fn=case_prescreen_aReworkCutBranchIsWork ;;
     'prescreen#landedBranchIsNotADecision') fn=case_prescreen_landedBranchIsNotADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
@@ -499,6 +502,7 @@ loop_run_shell_case() {
     'worktree#reusesABranchWhoseWorkAlreadyLanded') fn=case_worktree_reusesABranchWhoseWorkAlreadyLanded ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
     'worktree#setsAsideABlockedAttemptAndStartsFresh') fn=case_worktree_setsAsideABlockedAttemptAndStartsFresh ;;
+    'worktree#setsAsideAReworkCutBranchAndStartsFresh') fn=case_worktree_setsAsideAReworkCutBranchAndStartsFresh ;;
     'worktree#doesNotAdoptAChangeCreditedToAnotherIssue') fn=case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'worktree#refusesABranchWhoseReviewRoundNeverAnswered') fn=case_worktree_refusesABranchWhoseReviewRoundNeverAnswered ;;
@@ -2308,6 +2312,57 @@ case_prescreen_aBlockedAttemptBranchIsWork() {
     "it is queued as work instead"
 }
 
+# A refund the reviewer refused and whose rework the run's own bound ended is the same kind of thing (issue #788):
+# nothing on the branch states a question a person could answer — the round was asked and answered, and the phase
+# that did not finish is the answer to the refusal — so the item is work the next run resumes, not a decision it
+# asks its owner for. Read as the refusal (or as a round that passed), the branch spends a slot of the decision cap
+# on a question the loop itself created: measured 2026-11-05, 8 of the 14 eligible decisions read "retry the item, or
+# abandon it — the child reached the recorded turn bound", against a cap of 10, and the 12:45:35Z run never started.
+case_prescreen_aReworkCutBranchIsWork() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p out base branch state
+  p=$(new_project)
+  init_state "$p" 3 90
+  base=$(git -C "$p" rev-parse HEAD)
+  branch="fix/issue-21-a-rework-the-bound-ended"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-reworked/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-reworked/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-reworked/evidence/TEST-reworked.xml"
+  # Round 1: announced, refused — and then the rework of that refusal ended at a bound the run enforces.
+  printf 'The run announced review round 1 of this change before its reviewer started.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-reworked/evidence/review-round-1-requested.md"
+  printf 'The reviewer refused this change in review round 1.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-reworked/evidence/review-failed-round-1.md"
+  printf 'The reviewer refused this change in review round 1, and the run ended the rework of that\nrefusal at a bound it records.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-reworked/evidence/review-round-1-rework-cut.md"
+  printf 'the reworked change\n' > "$p/reworked.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the reworked change (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the reworked change"
+  git -C "$p" checkout -q main
+
+  state=$(run_worktree "$p" branch-state 21 "$branch" 2>&1 | cut -f1)
+  assert_eq "rework-cut" "$state" "a branch whose rework a bound ended reads as its own value, not as the refusal"
+
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
+    "an item whose rework the run's own bound ended is work, not a decision"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .reason')" "$branch" \
+    "and the record names the branch the run sets aside"
+  assert_eq "$branch" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .evidence')" \
+    "with the branch as the record's evidence"
+  assert_eq "0" "$(jq -r '[.excluded[]? | select(.issue == 21)] | length' "$(state_file "$p")")" \
+    "so nothing is recorded as awaiting a decision"
+  assert_eq "21" "$(jq -r '.queue[] | select(.issue == 21) | .issue' "$(state_file "$p")")" \
+    "it is queued as work instead"
+  assert_eq "0" "$(grep -c 'agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "and no decision label is written for it, so the cap's population does not grow"
+}
+
 
 # The same question is asked of *patch* identity. A branch the base's history carries by patch is a leftover,
 # and a leftover is not a decision: the item is startable, and a run's own branch that was landed by hand stops
@@ -2818,6 +2873,42 @@ case_worktree_setsAsideABlockedAttemptAndStartsFresh() {
   [ -n "$left_branch" ] || fail "the blocked attempt's branch was not kept: $(git -C "$p" branch --list 'fix/issue-21-*')"
   assert_eq "$attempt" "$(git -C "$p" rev-parse "$left_branch")" \
     "the commits are kept under the name the run gives them"
+  assert_eq "$base" "$(git -C "$p" rev-parse fix/issue-21-demo)" \
+    "and the item's own branch was recreated from the base"
+}
+
+# The same branch rule for the phase a bound cut (issue #788): a reviewer's refusal whose rework the run ended is
+# nothing a person can answer, so the branch is set aside and the item is worked — never parked as a question the
+# loop asked itself, which is the shape that refused the next run at the decision cap.
+case_worktree_setsAsideAReworkCutBranchAndStartsFresh() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p w out status base leftover
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the first item did not start"
+  mkdir -p "$w/openspec/changes/archive/2026-01-01-fix-reworked/evidence"
+  printf 'archived\n' > "$w/openspec/changes/archive/2026-01-01-fix-reworked/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$w/openspec/changes/archive/2026-01-01-fix-reworked/evidence/TEST-reworked.xml"
+  printf 'The run announced review round 1 of this change before its reviewer started.\n' \
+    > "$w/openspec/changes/archive/2026-01-01-fix-reworked/evidence/review-round-1-requested.md"
+  printf 'The reviewer refused this change in review round 1.\n' \
+    > "$w/openspec/changes/archive/2026-01-01-fix-reworked/evidence/review-failed-round-1.md"
+  printf 'The reviewer refused this change in review round 1, and the run ended the rework of that\nrefusal at a bound it records.\n' \
+    > "$w/openspec/changes/archive/2026-01-01-fix-reworked/evidence/review-round-1-rework-cut.md"
+  printf 'the rework the bound ended\n' > "$w/reworked.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the reworked change (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the reworked change"
+  base=$(run_state "$p" get run.base)
+
+  out=$(run_worktree "$p" start-item 21 demo 2>&1); status=$?
+  assert_eq "0" "$status" "a branch whose rework a bound ended does not park the item: $out"
+  assert_contains "$out" "set-aside:" "the run says what it did with the branch"
+  assert_eq "$base" "$(git -C "$w" rev-parse HEAD)" "the item starts at the run's base instead"
+  leftover=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-21-*')
+  [ -n "$leftover" ] || fail "the cut rework's branch was not kept: $(git -C "$p" branch --list 'fix/issue-21-*')"
   assert_eq "$base" "$(git -C "$p" rev-parse fix/issue-21-demo)" \
     "and the item's own branch was recreated from the base"
 }
@@ -6280,8 +6371,8 @@ case_run_treeOfACapEndedChildIsKeptAsAPatch() {
 # skipped there too, the item is blocked with the round's own transcript, and the tree stays as the child left it.
 # Measured 2026-10-23: the shipped requirement was universal while this call site was left as it stood.
 case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p conf status out tree report files
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf status out tree report files branch carried
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
@@ -6319,8 +6410,35 @@ esac"
     "and the mechanism the bound ended it with is kept beside the result"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not committed" \
     "and the reason says the round's tree was not committed"
+  # The branch is what a later run reads, so the cut of the rework is recorded there (issue #788): beside the round's
+  # announcement and the refusal it answers, so nothing on the branch reads as a question its owner owes.
+  branch=$(git -C "$tree" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the item's branch is gone: $(git -C "$tree" branch --list 'fix/issue-21-*')"
+  carried=$(git -C "$tree" ls-tree -r --name-only "$branch")
+  assert_eq "1" "$(printf '%s\n' "$carried" | grep -c 'review-round-1-rework-cut.md' || true)" \
+    "the branch records the rework the run's own bound ended"
+  assert_eq "1" "$(printf '%s\n' "$carried" | grep -c 'review-round-1-requested.md' || true)" \
+    "beside the announcement, which stays: the round was asked and its refusal answered"
+  assert_eq "rework-cut" "$(run_worktree "$p" branch-state 21 "$branch" 2>/dev/null | cut -f1)" \
+    "so a later run reads the branch as a phase its next attempt resumes, not as a question it must ask"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" \
     "nothing is closed on a rework worker the run ended"
+  # …and nothing else is written for it either (issue #788): the requirement's "nothing else is written for it" is
+  # the clause a case that stops at the branch never observes, so the four lines the sibling case carries for the
+  # same rule (`run#childPastItsTurnBoundIsCut`) are here too, and the cap's own count is read from the report the
+  # state was written for rather than inferred from the label writes alone.
+  assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is written for the rework a bound ended, so the cap's population does not grow"
+  assert_eq "0" "$(grep -c 'status/on-hold' "$GH_STUB_RECORD" || true)" \
+    "and the item is not parked on a hold"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "and no question is posted for it"
+  out=$(run_report "$p")
+  assert_contains "$out" "blocked 0 · cut 1" "the report counts the rework the bound ended as a cut, not as a block"
+  assert_contains "$out" "cut short by the run's own bound: #21" \
+    "and names it on the line the run's own bound owns"
+  assert_contains "$out" "decisions the owner owes: none" \
+    "and the report's decisions the owner owes do not hold it, so the cap's count for this state does not grow"
 }
 
 # `run_child` returns the child's status and nothing else, so the caller could not tell a child whose argv the

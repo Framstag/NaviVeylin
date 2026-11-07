@@ -350,8 +350,9 @@ the item is left open and no child was started: shape $changes_family/${named_ch
   # What the branch *carries* decides the verdict (#232). A finished attempt — one archived change of its own
   # plus a green verification, with its last review round answered by a pass — is a question for its owner
   # (#176, #185); so is one whose last round was announced and never answered, or refused (#262). A **blocked**
-  # attempt carries commits and no archived change of its own: nothing on it states a question a person could
-  # answer, and `start-item` keeps its commits by renaming the branch aside, so the
+  # attempt, and one whose reviewer's refusal the run's own bound cut the rework of (#788), carry no verdict of
+  # their own: nothing on them states a question a person could answer, and `start-item` keeps their commits by
+  # renaming the branch aside, so the
   # item is queued as work. Before this, any commit parked the item forever — measured on #230, whose branch
   # held an unmerged fix and whose refusal named an unrelated change (issue #232).
   #
@@ -366,14 +367,23 @@ the item is left open and no child was started: shape $changes_family/${named_ch
       # misread is a discarded attempt, and that is the one thing the branch rule exists to prevent.
       attempt_state=$(bash "$LOOP_DIR/worktree.sh" branch-state "$number" "$attempt_branch" 2>/dev/null | cut -f1)
       case "$attempt_state" in
-        unfinished)
+        unfinished|rework-cut)
           # A stated question outranks the branch (#110, #193): an item that already awaits a decision is its
           # owner's, and a blocked attempt beside that question is more of the same item's evidence, not a
           # licence to work it again. Only the item nobody asked about is work.
           if [ "$awaiting_decision" -eq 1 ]; then
             verdict="$decision_verdict"
-            reason="the item awaits a decision (${awaiting_why}) — a blocked attempt's branch is on it too, so the question its owner was asked still decides"
+            if [ "$attempt_state" = "rework-cut" ]; then
+              reason="the item awaits a decision (${awaiting_why}) — a refusal whose rework the run ended at a bound is on its branch too, so the question its owner was asked still decides"
+            else
+              reason="the item awaits a decision (${awaiting_why}) — a blocked attempt's branch is on it too, so the question its owner was asked still decides"
+            fi
             [ "$awaiting_label" -eq 1 ] && already_escalated=1
+          elif [ "$attempt_state" = "rework-cut" ]; then
+            # The reviewer refused, and the run's own bound ended the rework of that refusal (issue #788): the
+            # branch holds a phase and not a verdict, so it states no question a person could answer, and the
+            # item is work the run resumes on the branch it sets aside.
+            reason="branch $attempt_branch carries a refusal whose rework the run's own bound ended — no reviewer graded that phase, so the run sets the branch aside at the start and works the item"
           else
             reason="branch $attempt_branch carries a blocked attempt — no archived change of its own, so the run sets the branch aside at the start and works the item"
           fi

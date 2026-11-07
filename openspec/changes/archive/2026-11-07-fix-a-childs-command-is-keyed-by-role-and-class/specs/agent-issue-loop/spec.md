@@ -10,7 +10,8 @@ records nothing SHALL fall back to `LOOP_AGENT_CMD`; so no role the engine start
 command when the role it belongs to records one. The rework round a refusal buys SHALL be a role of its own, with its
 own command and turn-bound keys, rather than the worker's. An item's class SHALL be able to select a command for the
 role it is spelled after, and the most specific key SHALL win: a role's own key beats its head's class key. The run's
-header SHALL name every role whose effective command is not the project's one.
+header SHALL name every role whose command, resolved without the item's class, is not the project's one; a
+class-qualified command is named by the child's own transcript.
 
 #### Scenario: A role inherits the command of the role it belongs to
 

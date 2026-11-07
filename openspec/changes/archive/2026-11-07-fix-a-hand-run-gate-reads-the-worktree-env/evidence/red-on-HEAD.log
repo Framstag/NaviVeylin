@@ -1,0 +1,15 @@
+gate#runsUnderTheWorktreeEnvironment|   the gate itself runs under the worktree's recorded environment (LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/267/tools/loop/loop.conf)
+gate#runsUnderTheWorktreeEnvironment| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#runsUnderTheWorktreeEnvironment| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#runsUnderTheWorktreeEnvironment| gate: /home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/probe.sh
+gate#runsUnderTheWorktreeEnvironment| gate: /home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/probe.sh — 0s
+gate#runsUnderTheWorktreeEnvironment| LOOP-GATE: tests=0 failures=0 errors=0 (/home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/probe.sh 0s)): expected 'from-the-worktree', got 'unset'
+--- gate#runsUnderTheWorktreeEnvironment[0] (exit 1)
+  the gate itself runs under the worktree's recorded environment (LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/267/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate: /home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/probe.sh
+gate: /home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/probe.sh — 0s
+LOOP-GATE: tests=0 failures=0 errors=0 (/home/tim/projects/NaviVeylin/.pi/worktrees/267/.pi/tmp/loop-selftest.pGjrOh/cases/0/tree/case.QHLHaW/probe.sh 0s)): expected 'from-the-worktree', got 'unset'
+FAIL gate#runsUnderTheWorktreeEnvironment
+loop-selftest: 1 of 1 cases failed

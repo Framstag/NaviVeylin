@@ -902,6 +902,10 @@ MUTATIONS=(
 PROBE_RECORDS=(
   'probe-no-apply@-@tools/loop/state.sh@state#initAndShowRoundTrips@a pattern that matches nothing@s|^# this line is not in the file$|# mutation|'
   'probe-stays-green@-@tools/loop/report.sh@report#headerAndTableShape@a real edit no case in the set asserts@s|^set -uo pipefail$|&\n# a probe as a second line|'
+  # 43.x — the environment a kept worktree records, which the gate itself must run under (measured 2026-10-23,
+  # issue #267: a hand-run gate in the worktree died at configuration in 21 s, having executed no test, because
+  # only `run.sh` sourced the file).
+  '257.1@-@tools/loop/gate.sh@gate#runsUnderTheWorktreeEnvironment@the worktree environment the gate itself runs under@s|^if \[ -f "\$LOOP_ROOT/.pi/loop-env.sh" \]; then$|if false; then|'
 )
 
 # `--from-git <base>` adds the paths a change touched to the file set, from the same two sources the loop's gate

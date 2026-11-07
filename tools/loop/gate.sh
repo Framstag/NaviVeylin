@@ -57,6 +57,20 @@ done
 
 loop_resolve
 
+# The environment a kept worktree carries is the gate's own, not only its children's (issue #267). `worktree.sh`
+# writes the machine-local values into `<worktree>/.pi/loop-env.sh` — a file rather than a `vcpkg` symlink, because a
+# symlink is untracked and pollutes the `git status` the run reads for evidence — and until this line existed only
+# `run.sh` sourced it for the children it starts. A gate typed by hand in that tree therefore ran without the
+# dependency root and failed at configuration, in 21 s, having executed no test (a Gradle task could not even be
+# created: `vcpkg installed-status file not found`): a red indistinguishable from a real one, and faster than a
+# working gate, which is the trap. The file is read from the tree git resolves, not from the cwd, so a gate invoked
+# from a subdirectory of that tree still gets it; a tree that carries no such file gates exactly as before.
+# Sourcing it twice (a run's child already inherits it) is harmless: the file assigns, it never appends.
+if [ -f "$LOOP_ROOT/.pi/loop-env.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$LOOP_ROOT/.pi/loop-env.sh"
+fi
+
 compiled_cmd=$(loop_conf_value LOOP_GATE_COMPILED_CMD)
 compiled_patterns=$(loop_conf_value LOOP_GATE_COMPILED_PATTERNS)
 first_steps=$(loop_conf_value LOOP_GATE_FIRST_STEPS)

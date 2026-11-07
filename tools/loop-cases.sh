@@ -179,6 +179,7 @@ LOOP_SHELL_CASES=(
   'gate#theGateNamesTheProfileItRead'
   'gate#theChildReadsTheProfileOfTheTreeItWorksIn'
   'gate#aThirdFullRunInOneSessionIsRefused'
+  'gate#runsUnderTheWorktreeEnvironment'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -581,6 +582,7 @@ loop_run_shell_case() {
     'gate#theGateNamesTheProfileItRead') fn=case_gate_theGateNamesTheProfileItRead ;;
     'gate#theChildReadsTheProfileOfTheTreeItWorksIn') fn=case_gate_theChildReadsTheProfileOfTheTreeItWorksIn ;;
     'gate#aThirdFullRunInOneSessionIsRefused') fn=case_gate_aThirdFullRunInOneSessionIsRefused ;;
+    'gate#runsUnderTheWorktreeEnvironment') fn=case_gate_runsUnderTheWorktreeEnvironment ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -13732,4 +13734,53 @@ EOF
   assert_not_contains "$(cat "$report")" "context bound" "and no context bound is named in its transcript"
   assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded cut, as before"
   return 0
+}
+
+# The environment a kept worktree carries is the gate's own, not only its children's (issue #267): `worktree.sh`
+# writes `.pi/loop-env.sh` instead of a `vcpkg` symlink — a symlink is untracked and pollutes the `git status` the
+# run reads for evidence — and until this case existed only `run.sh` sourced it. A gate typed by hand in that tree
+# therefore gated without the dependency root and failed at configuration, in 21 s, having executed no test; the
+# red is indistinguishable from a real one and arrives faster than a working gate, which is the trap.
+case_gate_runsUnderTheWorktreeEnvironment() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base out
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  # The engine's own configuration, not the copy the caller's environment may name — the run exports `LOOP_CONF`
+  # from the project tree while the engine under test sits in the worktree (the same reason the measure cases do).
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  # The compiled gate's only job is to report what its own environment held — into a canary file, because the gate
+  # keeps a suite's stdout to itself (it prints the summary line and the tally, not the output). The path stands
+  # alone because a configuration value is *shell*: `KEY=word word` would run the second word while the file is
+  # sourced, and read the rest of the owed list as its stdin.
+  printf '#!/usr/bin/env bash\nprintf "%%s" "${LOOP_ENV_PROBE:-unset}" > "%s/canary"\n' "$d" > "$d/probe.sh"
+  chmod +x "$d/probe.sh"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=%s/probe.sh\n' "$d"
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*.kt"\n'
+    printf 'LOOP_GATE_SUITES=""\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  printf 'export LOOP_ENV_PROBE=%s\n' 'from-the-worktree' > "$p/.pi/loop-env.sh"
+
+  printf 'fun main() {}\n' > "$p/Main.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a compiled change' >/dev/null 2>&1
+  base=$(git -C "$p" rev-parse HEAD~1)
+
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  assert_eq "from-the-worktree" "$(cat "$d/canary" 2>/dev/null)" \
+    "the gate itself runs under the worktree's recorded environment ($out)"
+
+  # …and the same gate invoked from a subdirectory of that tree finds it too: the file belongs to the tree git
+  # resolves, not to wherever the caller happened to stand.
+  rm -f "$d/canary"
+  out=$( cd "$p/tools" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  assert_eq "from-the-worktree" "$(cat "$d/canary" 2>/dev/null)" \
+    "a gate started below the tree root still runs under its environment ($out)"
+
+  # …and a tree that carries no such file gates exactly as before: the file is an addition, never a requirement.
+  rm -f "$p/.pi/loop-env.sh"
+  rm -f "$d/canary"
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  assert_eq "unset" "$(cat "$d/canary" 2>/dev/null)" "a tree without the file still gates ($out)"
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#anUnreadableItemIsNotTheEndOfTheRun" tests="1" failures="1" errors="0" time="4" timestamp="2026-11-07T22:07:39Z">
+  <testcase name="run#anUnreadableItemIsNotTheEndOfTheRun" classname="loop-selftest" time="4">
+    <failure message="the item the tracker did not answer for is recorded rather than left unrecorded: expected '21', got 'none'"/>
+  </testcase>
+  <system-out>FAIL run#anUnreadableItemIsNotTheEndOfTheRun loop-selftest: 1 of 1 cases failed (2026-11-07T22:07:39Z–22:07:43Z)</system-out>
+</testsuite>

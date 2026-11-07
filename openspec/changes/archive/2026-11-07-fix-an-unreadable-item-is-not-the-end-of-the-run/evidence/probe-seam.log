@@ -1,0 +1,5 @@
+cli=gh
+status=75
+attempts=4
+stderr-last=tracker-unreachable: gh issue did not answer after 4 attempt(s) — Post "https://api.github.com/graphql": dial tcp 20.250.119.72:443: i/o timeout
+stdout-bytes=0

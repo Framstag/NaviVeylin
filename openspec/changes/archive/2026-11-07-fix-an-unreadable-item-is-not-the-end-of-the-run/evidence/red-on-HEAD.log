@@ -1,0 +1,133 @@
+run#anUnreadableItemIsNotTheEndOfTheRun|   the item the tracker did not answer for is recorded rather than left unrecorded: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 min-free-mib=1024 free-mib=7058 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate
+run#anUnreadableItemIsNotTheEndOfTheRun| run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop
+run#anUnreadableItemIsNotTheEndOfTheRun| lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop/lock (owner 1680583)
+run#anUnreadableItemIsNotTheEndOfTheRun| state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base 74ad57edd102
+run#anUnreadableItemIsNotTheEndOfTheRun| state: bounds result 8000 · context warn 143124 · context max 200000
+run#anUnreadableItemIsNotTheEndOfTheRun| state: deadline 2026-11-07T23:37:40Z
+run#anUnreadableItemIsNotTheEndOfTheRun| loop: pre-screen · 1s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop/prescreen.log
+run#anUnreadableItemIsNotTheEndOfTheRun| pre-screen: 2 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#anUnreadableItemIsNotTheEndOfTheRun|   #21 [bug/car] rank 1 — §21 A bug
+run#anUnreadableItemIsNotTheEndOfTheRun|   #22 [bug/ui] rank 2 — §22 A bug
+run#anUnreadableItemIsNotTheEndOfTheRun| loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+run#anUnreadableItemIsNotTheEndOfTheRun| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-220741')
+run#anUnreadableItemIsNotTheEndOfTheRun| HEAD ist jetzt bei 74ad57e init
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop on branch loop-20261107-220741 from 74ad57edd102 (1 local.prop* copied)
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop on loop-20261107-220741 from 74ad57edd102
+run#anUnreadableItemIsNotTheEndOfTheRun| loop: worktree · 2s · ready — loop on loop-20261107-220741 from 74ad57edd102
+run#anUnreadableItemIsNotTheEndOfTheRun| GraphQL: Could not resolve to an issue or pull request with the number of 21. (repository.issue)
+run#anUnreadableItemIsNotTheEndOfTheRun| run: gh could not read #21
+run#anUnreadableItemIsNotTheEndOfTheRun| stop: gh could not read #21 — the tracker did not answer
+run#anUnreadableItemIsNotTheEndOfTheRun| **agent-issue-loop — 2026-11-07T22:07:42Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 10 · base 74ad57edd102)
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| bounds: result bound 8000 · context warn 143124 · context max 200000
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 0 · budget left 1 items / 90 min · spent 0 min
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| stop: gh could not read #21 — the tracker did not answer
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| over the item token bound (16858818 tokens): none
+run#anUnreadableItemIsNotTheEndOfTheRun| closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 0 of 1 items · budget 90 min
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| | issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+run#anUnreadableItemIsNotTheEndOfTheRun| |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+run#anUnreadableItemIsNotTheEndOfTheRun| | — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — |
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| merged finished attempts: none
+run#anUnreadableItemIsNotTheEndOfTheRun| no exclusions
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| skipped: none
+run#anUnreadableItemIsNotTheEndOfTheRun| mis-diagnosed: none
+run#anUnreadableItemIsNotTheEndOfTheRun| excluded before any work: none
+run#anUnreadableItemIsNotTheEndOfTheRun| cut short by the run's own bound: none
+run#anUnreadableItemIsNotTheEndOfTheRun| decisions the owner owes: none
+run#anUnreadableItemIsNotTheEndOfTheRun| branches: loop-20261107-220741
+run#anUnreadableItemIsNotTheEndOfTheRun| landed, removable: loop-20261107-220741
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop (kept for the next run)
+run#anUnreadableItemIsNotTheEndOfTheRun| state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop/run.json
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| trend — this run's own items; no rate is green or red in one run:
+run#anUnreadableItemIsNotTheEndOfTheRun|   review: - · no round of this run ended in a verdict · 0 undecided · 0 never reviewed
+run#anUnreadableItemIsNotTheEndOfTheRun|   waived: - · no item of this run closed
+run#anUnreadableItemIsNotTheEndOfTheRun|   wall:   - · no item recorded a wall time
+run#anUnreadableItemIsNotTheEndOfTheRun|   calls:  - · no item recorded a turn
+run#anUnreadableItemIsNotTheEndOfTheRun|   reads:  - · no item recorded a file read
+run#anUnreadableItemIsNotTheEndOfTheRun|   phases: - · no item recorded a phase duration
+run#anUnreadableItemIsNotTheEndOfTheRun|   roles:  - · no item recorded a session role
+run#anUnreadableItemIsNotTheEndOfTheRun|   after the first gate: - · no item of this run ran a gate in its stream
+run#anUnreadableItemIsNotTheEndOfTheRun|   landings: - · no item of this run landed
+run#anUnreadableItemIsNotTheEndOfTheRun| 
+run#anUnreadableItemIsNotTheEndOfTheRun| actions the caller owes:
+run#anUnreadableItemIsNotTheEndOfTheRun|   1. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree: no recorded build output in the kept worktree (0 B)
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#anUnreadableItemIsNotTheEndOfTheRun| kept loop-20261107-220741 — checked out
+run#anUnreadableItemIsNotTheEndOfTheRun| worktree: 0 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it): expected '21', got 'none'
+--- run#anUnreadableItemIsNotTheEndOfTheRun[0] (exit 1)
+  the item the tracker did not answer for is recorded rather than left unrecorded: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 min-free-mib=1024 free-mib=7058 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop/lock (owner 1680583)
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base 74ad57edd102
+state: bounds result 8000 · context warn 143124 · context max 200000
+state: deadline 2026-11-07T23:37:40Z
+loop: pre-screen · 1s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop/prescreen.log
+pre-screen: 2 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 A bug
+  #22 [bug/ui] rank 2 — §22 A bug
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-220741')
+HEAD ist jetzt bei 74ad57e init
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop on branch loop-20261107-220741 from 74ad57edd102 (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop on loop-20261107-220741 from 74ad57edd102
+loop: worktree · 2s · ready — loop on loop-20261107-220741 from 74ad57edd102
+GraphQL: Could not resolve to an issue or pull request with the number of 21. (repository.issue)
+run: gh could not read #21
+stop: gh could not read #21 — the tracker did not answer
+**agent-issue-loop — 2026-11-07T22:07:42Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 10 · base 74ad57edd102)
+
+bounds: result bound 8000 · context warn 143124 · context max 200000
+
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 0 · budget left 1 items / 90 min · spent 0 min
+
+stop: gh could not read #21 — the tracker did not answer
+
+over the item token bound (16858818 tokens): none
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — |
+
+merged finished attempts: none
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+cut short by the run's own bound: none
+decisions the owner owes: none
+branches: loop-20261107-220741
+landed, removable: loop-20261107-220741
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/issue-loop/run.json
+
+trend — this run's own items; no rate is green or red in one run:
+  review: - · no round of this run ended in a verdict · 0 undecided · 0 never reviewed
+  waived: - · no item of this run closed
+  wall:   - · no item recorded a wall time
+  calls:  - · no item recorded a turn
+  reads:  - · no item recorded a file read
+  phases: - · no item recorded a phase duration
+  roles:  - · no item recorded a session role
+  after the first gate: - · no item of this run ran a gate in its stream
+  landings: - · no item of this run landed
+
+actions the caller owes:
+  1. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: no recorded build output in the kept worktree (0 B)
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.fgFNBn/cases/0/tree/case.dBHVqU/repo/.pi/worktrees/loop
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+kept loop-20261107-220741 — checked out
+worktree: 0 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it): expected '21', got 'none'
+FAIL run#anUnreadableItemIsNotTheEndOfTheRun
+loop-selftest: 1 of 1 cases failed

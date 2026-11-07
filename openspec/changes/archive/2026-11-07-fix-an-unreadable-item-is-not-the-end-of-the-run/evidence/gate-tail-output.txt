@@ -1,0 +1,232 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+ 443|     m=$(printf '%s\n' "$out" | sed -n 's/.*: \([0-9][0-9]*\) of \([0-9][0-9]*\) cases failed.*/\2/p' | tail -1)
+ 444|     n="${m:-}"
+ 445|   fi
+ 446|   case "$n" in ''|*[!0-9]*) n=0 ;; esac
+ 447|   f=0
+ 448|   [ "$rc" -eq 0 ] || f=$(printf '%s\n' "$out" | sed -n 's/.*: \([0-9][0-9]*\) of [0-9][0-9]* cases failed.*/\1/p' | tail -1)
+ 449|   case "$f" in ''|*[!0-9]*) f=0 ;; esac
+ 450|   # A failed suite's *absence of a summary* is not a failing case: `n` and `f` stay the suite's own numbers, and the
+ 451|   # failure is kept apart as an error. Measured 2026-10-23 (issue #268): a compiled step that died at configuration
+ 452|   # (`BUILD FAILED in 21s`, no test task reached its action) was tallied `tests="1" failures="1"`, because the
+ 453|   # former `n=1`/`f=1` fallbacks stated a case and a failure the suite never reported — a tally meant to prove what
+ 454|   # ran became evidence that something did.
+ 455|   err=0
+ 456|   [ "$rc" -eq 0 ] || [ "$f" -gt 0 ] || err=1
+ 457|   cases=$((cases + n))
+ 458|   failures=$((failures + f))
+ 459|   errors=$((errors + err))
+ 460|   # One tally per suite, under the directory the profile names (`*test-results*`, so the run's own check finds
+ 461|   # it) and only when it names one: the engine may hold no project path, and the portability check is what says so.
+ 462|   if [ -n "$tally_root" ]; then
+ 463|     mkdir -p "$tally_root" 2>/dev/null || true
+ 464|     # The name is the command, and a tally's name is never a dotfile: the profile's compiled command is the `./`-form
+ 465|     # a program in the project root needs, and that leading `.` survived sanitising into `._<name>.xml`, so a plain
+ 466|     # `ls` printed five files where the directory held six and the pattern a reader globs missed the one tally that
+ 467|     # records the build — the round-3 reviewer of #273 read that copy as short and refused a round on a tally that
+ 468|     # was present (measured 2026-10-23, issue #278).
+ 469|     name=$(printf '%s' "${cmd#./}" | tr '/ ' '__' | cut -c1-80)
+ 470|     printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s" time="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
+ 471|       "$cmd" "$n" "$f" "$err" "$took" \
+ 472|       "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
+ 473|       > "$tally_root/$name.xml" 2>/dev/null || true
+ 474|   fi
+ 475| }
+ 476| 
+ 477| run_wave() { # <slot> … → the steps started together, waited for, then each recorded in the profile's order
+ 478|   local slot
+ 479|   for slot in "$@"; do start_step "$slot" "${owed_cmd[slot]}"; done
+ 480|   if [ "$#" -eq 1 ]; then
+ 481|     # A wave of one is announced before it runs, which is where the console carried the header before (issue #269).
+ 482|     say "gate: ${owed_cmd[$1]}"
+ 483|     st_announced[$1]=1
+ 484|   else
+ 485|     say "gate-pool: $# steps start together — at most ${pool_jobs} in flight"
+ 486|   fi
+ 487|   wave_wait "$@"
+ 488|   for slot in "$@"; do finish_step "$slot"; done
+ 489| }
+ 490| 
+ 491| # The owed list is walked in the order the profile gave it, and the kind of the list that owed a step decides the
+ 492| # wave: a first step and the build run alone, and a run of adjacent suites runs up to `LOOP_GATE_POOL_JOBS` at once.
+ 493| slot_next=0
+ 494| while [ "$slot_next" -lt "${#owed_cmd[@]}" ]; do
+ 495|   if [ "${owed_kind[slot_next]}" != "suite" ] || [ "$pool_jobs" -le 1 ]; then
+ 496|     run_wave "$slot_next"
+ 497|     slot_next=$((slot_next + 1))
+ 498|     continue
+ 499|   fi
+ 500|   wave_slots=()
+ 501|   last=$slot_next
+ 502|   j=$slot_next
+ 503|   while [ "$j" -lt "${#owed_cmd[@]}" ] && [ "${#wave_slots[@]}" -lt "$pool_jobs" ] && [ "${owed_kind[j]}" = "suite" ]; do
+ 504|     wave_slots+=("$j")
+ 505|     last=$j
+ 506|     j=$((j + 1))
+ 507|   done
+ 508|   run_wave "${wave_slots[@]}"
+ 509|   slot_next=$((last + 1))
+ 510| done
+ 511| 
+ 512| if [ -n "$failed_suites" ]; then
+ 513|   printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s\n' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites"
+ 514|   exit 1
+ 515| fi
+ 516| printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)\n' "$cases" "$failures" "$errors" "$ran_entries"
+ 517| exit 0
+
+Compressed 7589 → 1123 tokens (-85%)
+378:LOOP_TOOL_RESULT_MAX_CHARS=8000
+332:LOOP_GATE_POOL_JOBS=4
+499:LOOP_GATE_RUNS_MAX=2
+534:# step runs is a value of `LOOP_GATE_SUITES`, and every path a step's tools read is a glob that owes that step's
+555:LOOP_GATE_TALLY_DIR="app/build/test-results/loop-gate"
+567:LOOP_GATE_COMPILED_CMD="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache"
+626:LOOP_GATE_SUITES="tools/loop/*|tools/loop-selftest.sh --from-git {base};tools/loop/*|bash tools/loop-mutations.sh --check;tools/loop-cases.sh|tools/loop-selftest.sh --from-git {base};tools/loop-mutations.sh|tools/loop-mutations-selftest.sh;tools/loop-mutations.sh|bash tools/loop-mutations.sh --check;tools/loop-mutations-selftest.sh|tools/loop-mutations-selftest.sh;tools/loop-selftest.sh|tools/loop [... omitted end of long line]
+633:# is already a suite in `LOOP_GATE_SUITES`, and the order is the pair's order here, which is the order the gate reads.
+634:LOOP_GATE_FIRST_STEPS="tools/loop-cases.sh|tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach"
+── /home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate ──
+bash_tools_gen-feature-list.sh_--check-classification.xml
+bash_tools_loop-mutations.sh_--check.xml
+bash_tools_loop-spend-selftest.sh.xml
+tools_check-doc-routes-selftest.sh.xml
+tools_check-doc-routes.sh.xml
+tools_check-openspec-hygiene-selftest.sh.xml
+tools_check-openspec-hygiene.sh.xml
+tools_check-portability-selftest.sh.xml
+tools_check-portability.sh.xml
+tools_check-rule-routes.sh.xml
+tools_check-todo-references.sh.xml
+tools_issue-tooling-selftest.sh.xml
+tools_issues_check-metadata.sh.xml
+tools_issues_metadata-mutations.sh_--list.xml
+tools_loop-mutations-selftest.sh.xml
+tools_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanReach.xml
+tools_loop-selftest.sh_--from-git_a3cefa934793b341e0d9290034a39b482e4e93dc.xml
+tools_mutate-selftest.sh.xml
+tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/bash_tools_loop-spend-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_a3cefa934793b341e0d9290034a39b482e4e93dc.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_issues_check-metadata.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-todo-references.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanReach.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-portability.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-rule-routes.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_issues_metadata-mutations.sh_--list.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml:1:<?xml version="1.0" encoding="UTF-8"?>
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-prompt.md:300:LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-gate-prompt.md:111:LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:52:{"type":"tool_execution_end","toolCallId":"call_l62qqx60","toolName":"ctx_read","result":{"content":[{"type":"text","text":"worker-prompt.md 336L lines:245-336\n 245| so; test sources only — the red case plus the affected cases; code — the gate. Do not re-run a gate\n 246| to \"refresh\" evidence: the re-run is what destroys it, so copy the XMLs you cite into `/home/tim/projects/NaviVeylin/.pi/iss [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:53:{"type":"message_start","message":{"role":"toolResult","toolCallId":"call_l62qqx60","toolName":"ctx_read","content":[{"type":"text","text":"worker-prompt.md 336L lines:245-336\n 245| so; test sources only — the red case plus the affected cases; code — the gate. Do not re-run a gate\n 246| to \"refresh\" evidence: the re-run is what destroys it, so copy the XMLs you cite into `/home/tim/projects/Na [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:54:{"type":"message_end","message":{"role":"toolResult","toolCallId":"call_l62qqx60","toolName":"ctx_read","content":[{"type":"text","text":"worker-prompt.md 336L lines:245-336\n 245| so; test sources only — the red case plus the affected cases; code — the gate. Do not re-run a gate\n 246| to \"refresh\" evidence: the re-run is what destroys it, so copy the XMLs you cite into `/home/tim/projects/Navi [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:55:{"type":"turn_end","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Let me read remaining lines 245-336.","thinkingSignature":"reasoning"},{"type":"toolCall","id":"call_l62qqx60","name":"ctx_read","arguments":{"mode":"lines:245-336","path":"/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-prompt.md"}}],"api":"openai-completions","provider":"ollama-cloud","model" [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:14500:{"type":"agent_end","messages":[{"role":"system","content":"","sections":{"preamble":"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.","tools":"<tools>\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\n- write: Create or overwrite files\n- subagent: Delegate foc [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29349:{"type":"tool_execution_end","toolCallId":"call_1wfujhi9","toolName":"ctx_read","result":{"content":[{"type":"text","text":"worker-gate-prompt.md 119L lines:100-200\n 100| \n 101| ## What the run reads back from your report\n 102| \n 103| End your output with exactly these lines, and keep them the last lines. The run verifies them against the tree itself,\n 104| and it starts the tail child from t [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29350:{"type":"message_start","message":{"role":"toolResult","toolCallId":"call_1wfujhi9","toolName":"ctx_read","content":[{"type":"text","text":"worker-gate-prompt.md 119L lines:100-200\n 100| \n 101| ## What the run reads back from your report\n 102| \n 103| End your output with exactly these lines, and keep them the last lines. The run verifies them against the tree itself,\n 104| and it starts the t [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29351:{"type":"message_end","message":{"role":"toolResult","toolCallId":"call_1wfujhi9","toolName":"ctx_read","content":[{"type":"text","text":"worker-gate-prompt.md 119L lines:100-200\n 100| \n 101| ## What the run reads back from your report\n 102| \n 103| End your output with exactly these lines, and keep them the last lines. The run verifies them against the tree itself,\n 104| and it starts the tai [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29352:{"type":"turn_end","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Read rest of prompt.","thinkingSignature":"reasoning"},{"type":"toolCall","id":"call_1wfujhi9","name":"ctx_read","arguments":{"path":"/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-gate-prompt.md","mode":"lines:100-200"}}],"api":"openai-completions","provider":"ollama-cloud","model":"mimo-v2.6 [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29497:{"type":"tool_execution_update","toolCallId":"call_t8mhpmic","toolName":"ctx_shell","args":{"command":"cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && ./tools/loop/gate.sh","timeout":1800},"partialResult":{"content":[{"type":"text","text":"PASS trim#aResultAboveTheBoundIsTrimmedAndNamed\nPASS run#reviewDiffExcludesTheEvidenceArchive\nPASS run#engineNamesNoProjectFact\nPASS trim#aResultUnder [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29498:{"type":"tool_execution_end","toolCallId":"call_t8mhpmic","toolName":"ctx_shell","result":{"content":[{"type":"text","text":"PASS trim#aResultAboveTheBoundIsTrimmedAndNamed\nPASS run#reviewDiffExcludesTheEvidenceArchive\nPASS run#engineNamesNoProjectFact\nPASS trim#aResultUnderTheBoundIsHandedOverWhole\nPASS trim#theTrimIsRecorded\nPASS look#oneCallAnswersTheWholeTree\nPASS look#aResultOverTheBoun [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29499:{"type":"message_start","message":{"role":"toolResult","toolCallId":"call_t8mhpmic","toolName":"ctx_shell","content":[{"type":"text","text":"PASS trim#aResultAboveTheBoundIsTrimmedAndNamed\nPASS run#reviewDiffExcludesTheEvidenceArchive\nPASS run#engineNamesNoProjectFact\nPASS trim#aResultUnderTheBoundIsHandedOverWhole\nPASS trim#theTrimIsRecorded\nPASS look#oneCallAnswersTheWholeTree\nPASS look#aR [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29500:{"type":"message_end","message":{"role":"toolResult","toolCallId":"call_t8mhpmic","toolName":"ctx_shell","content":[{"type":"text","text":"PASS trim#aResultAboveTheBoundIsTrimmedAndNamed\nPASS run#reviewDiffExcludesTheEvidenceArchive\nPASS run#engineNamesNoProjectFact\nPASS trim#aResultUnderTheBoundIsHandedOverWhole\nPASS trim#theTrimIsRecorded\nPASS look#oneCallAnswersTheWholeTree\nPASS look#aRes [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29501:{"type":"turn_end","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Phase E: no findings to apply. Run gate once from change root.\n\ncd change root, run ./tools/loop/gate.sh. Then copy test result into evidence dir. Print LOOP lines.\n\nRun gate.","thinkingSignature":"reasoning"},{"type":"text","text":"No findings — straight to gate."},{"type":"toolCall","id":"call_t8mhpmic [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29863:{"type":"tool_execution_end","toolCallId":"call_gus8wcg5","toolName":"ctx_read","result":{"content":[{"type":"text","text":"gate.sh 517L lines:1-120\n   1| #!/usr/bin/env bash\n   2| # gate.sh — the gate a change owes is the one its own pathspec asks for, not one command for every item.\n   3| #\n   4| # `guidelines/Build.md` §2 already states the rule (\"verification follows the changed files\"), [... omitted end of long line]
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/events.jsonl:29865:{"type":"message_start","message":{"role":"to
+[LOOP-TRIMMED: ctx_grep returned 14636 characters; the first 8000 are shown — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]
+
+LOOP-GATE: tests=951 failures=0 errors=1 (tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 11s, tools/loop-selftest.sh --from-git a3cefa934793b341e0d9290034a39b482e4e93dc 417s, bash tools/loop-mutations.sh --check 2s, tools/loop-mutations-selftest.sh 425s, tools/issue-tooling-selftest.sh 137s, tools/issues/check-metadata.sh 0s, tools/issues/metadata-mutations.sh --list 1s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/check-portability-selftest.sh 23s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, bash tools/loop-spend-selftest.sh 1s, tools/check-rule-routes.sh 2s) — failing: tools/check-rule-routes.sh
+(no output)
+
+Command exited with code 1
+tool_execution_end
+[
+  "content",
+  "details",
+  "isError"
+]
+8189
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-rule-routes.sh" tests="0" failures="0" errors="1" time="2">
+  <system-out>::error file=tools/doc-routes.json::the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob — a rule no change is told to obey check-rule-routes: 0 glob(s) match no tracked path, 6 rule(s) are reached by no glob, 0 rule(s) state no name check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob </system-out>
+</testsuite>
+
+Compressed 143 → 142 tokens (-1%)
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git a3cefa934793b341e0d9290034a39b482e4e93dc" tests="370" failures="0" errors="0" time="417">
+  <system-out>loop-selftest: phase 2 cases 12.44 s loop-selftest: repeat 4 cases 33.54 s loop-selftest: all 370 cases passed (JDK 27, offline, no token, no sandbox) — 413.11 s, selection: --from-git a3cefa934793b341e0d9290034a39b482e4e93dc</system-out>
+</testsuite>
+25
+worker-report.md 19L lines:1-20
+   1| Item #808 worked. Diff is at the change root, nothing archived, gate not run (deferred).
+   2| 
+   3| What the tree said:
+   4| - Item's blamed mechanism is false on base `fc9e0eb0`: `tools/loop/lib.sh:35-36` **does** source `tools/issues/lib.sh`, so `loop_issue_json`'s `gh issue view` runs through the seam. Probe: `attempts=4`, `status=75`, `tracker-unreachable` — retries already there.
+   5| - Real mechanism: `tools/loop/run.sh:1878` turned the read's failure (after the seam) into `stop_run` + `break` — one item's socket ended the run.
+   6| - Fix: record item `blocked`/`unreadable` + CLI words, `continue`. Existing blocked-pair stop (`state.sh:338`) still bounds a dead tracker at two records.
+   7| 
+   8| Surface: 4 files — `tools/loop/run.sh` (arm), `tools/loop-cases.sh` (case + registrations), `tools/loop-mutations.sh` (100.1), `guidelines/Backlog.recipes.md` §7d (paragraph). Change dir (gitignored until archive): proposal / design / tasks / `specs/agent-issue-loop/spec.md` + `evidence/`.
+   9| 
+  10| Verification: red on base (`expected '21', got 'none'`), green on change, mutation 100.1 RED→restore green, `--check` 107/107 records apply, full delta selection `--from-git fc9e0eb0` all 370 pass (377.80 s), hygiene ok, doc-routes 329/329, readiness `ok`.
+  11| 
+  12| NOTE: `tools/check-rule-routes.sh` reports 6 rules reached by no glob (2 `::error` lines about `UIPhone.md`/`UI.md`). Pre-existing, unrelated to this diff, exit 0 — named so the reviewer does not pay a round for it.
+  13| 
+  14| ```
+  15| LOOP-CHANGE: fix-an-unreadable-item-is-not-the-end-of-the-run
+  16| LOOP-ROOT-CAUSE: the run's per-item read turned one failed read into a stop_run over the whole run, where the pre-screen reads the same seam's same exit status as an unknown about one item
+  17| LOOP-RED-TEST: run#anUnreadableItemIsNotTheEndOfTheRun fails on HEAD — XML tests=1 failures=1 (2026-11-07T22:07:39Z)
+  18| LOOP-DIFF-READY: fix-an-unreadable-item-is-not-the-end-of-the-run
+  19| ```
+Successfully wrote to /home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-gate-report.md
+
+# the gate child's own closing answer
+Gate run once, exit 1. Red — not repaired, tree untouched after gate. Evidence copied: `items/808/gate-tally/` (25 XMLs), `items/808/gate-red-check-rule-routes.xml`. Report: `items/808/worker-gate-report.md`.
+
+Single error: `tools/check-rule-routes.sh` — `the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob` (6 rules reached by no glob). Worker's earlier note flags this as pre-existing.
+
+```
+LOOP-CHANGE: fix-an-unreadable-item-is-not-the-end-of-the-run
+LOOP-ROOT-CAUSE: the run's per-item read turned one failed read into a stop_run over the whole run, where the pre-screen reads the same seam's same exit status as an unknown about one item
+LOOP-RED-TEST: run#anUnreadableItemIsNotTheEndOfTheRun fails on HEAD — XML tests=1 failures=1 (2026-11-07T22:07:39Z)
+LOOP-GATE: tests=951 failures=0 errors=1 (loop engine + issue tooling + doc/mutate/portability shell suites, 25 steps; no compiled step owed) — failing: tools/check-rule-routes.sh
+```
+check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, bash tools/loop-spend-selftest.sh 1s, tools/check-rule-routes.sh 2s) — failing: tools/check-rule-routes.sh
+```
+
+The single error is `tools/check-rule-routes.sh` (tests=0 failures=0 errors=1, 2s). Its tally's system-out:
+
+```
+::error file=tools/doc-routes.json::the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob — a rule no change is told to obey check-rule-routes: 0 glob(s) match no tracked path, 6 rule(s) are reached by no glob, 0 rule(s) state no name check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob
+```
+
+Evidence copied at the moment of production: `gate-tally/` (all 25 suite tallies) and `gate-red-check-rule-routes.xml` beside this file. No compiled step was owed (no compiled path in the delta), so no Gradle tally exists.
+
+Findings left unapplied: none — the round before the gate found no blocking finding.
+
+```
+LOOP-CHANGE: fix-an-unreadable-item-is-not-the-end-of-the-run
+LOOP-ROOT-CAUSE: the run's per-item read turned one failed read into a stop_run over the whole run, where the pre-screen reads the same seam's same exit status as an unknown about one item
+LOOP-RED-TEST: run#anUnreadableItemIsNotTheEndOfTheRun fails on HEAD — XML tests=1 failures=1 (2026-11-07T22:07:39Z)
+LOOP-GATE: tests=951 failures=0 errors=1 (loop engine + issue tooling + doc/mutate/portability shell suites, 25 steps; no compiled step owed) — failing: tools/check-rule-routes.sh
+```

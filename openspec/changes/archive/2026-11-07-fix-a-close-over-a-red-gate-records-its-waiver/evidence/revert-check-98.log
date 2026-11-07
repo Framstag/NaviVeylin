@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 280 records (labels: 98.1 98.2 98.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.UchicP
+RED    98.1  state#aCloseOverARedGateWithoutAWaiverIsRefused   (the refusal of a close over a red tally that records no waiver, so the judgement lives in a transcript and the item reads `closed` with `errors=1` (issue #811))
+       2026-11-07T17:02:29Z — a close over a red tally that records no waiver is a usage error: expected '2', got '0'
+restore 98.1 state#aCloseOverARedGateWithoutAWaiverIsRefused green again
+RED    98.2  state#aCloseOverARedGateRecordsWhyItWasWaived   (the clause a close over a red gate was waived with, so a report can count the waiver instead of trusting prose (issue #811))
+       2026-11-07T17:02:33Z — and the clause the item closed over is the record's own field, not only prose in a transcript: expected 'the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path', got 'null'
+restore 98.2 state#aCloseOverARedGateRecordsWhyItWasWaived green again
+RED    98.3  run#aCloseOverARedGateIsWaivedOrBlocked   (the clause the closing child recorded, so the run blocks an item it was handed a waiver for and the record never says why the red was taken (issue #811))
+       2026-11-07T17:02:41Z — the waived close is the item's own verdict: expected 'done', got 'blocked'
+restore 98.3 run#aCloseOverARedGateIsWaivedOrBlocked green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

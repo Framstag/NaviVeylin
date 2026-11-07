@@ -1,0 +1,4 @@
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#landingsAreTheStoredNumber
+loop-selftest: report 23 cases 143.13 s
+loop-selftest: all 23 cases passed (JDK 27, offline, no token, no sandbox) — 17.32 s, selection: --group report

@@ -1,0 +1,17 @@
+red-on-HEAD at 2026-11-07T17:06:18Z
+state#aCloseOverARedGateRecordsWhyItWasWaived|   the waived close was refused
+--- state#aCloseOverARedGateRecordsWhyItWasWaived[0] (exit 1)
+loop: done: unknown argument --gate-waived
+  the waived close was refused
+FAIL state#aCloseOverARedGateRecordsWhyItWasWaived
+loop-selftest: 1 of 1 cases failed
+state#aCloseOverARedGateWithoutAWaiverIsRefused|   a close over a red tally that records no waiver is a usage error: expected '2', got '0'
+--- state#aCloseOverARedGateWithoutAWaiverIsRefused[0] (exit 1)
+  a close over a red tally that records no waiver is a usage error: expected '2', got '0'
+FAIL state#aCloseOverARedGateWithoutAWaiverIsRefused
+loop-selftest: 1 of 1 cases failed
+run#aCloseOverARedGateIsWaivedOrBlocked|   and the clause travels from the child's report into the record: expected 'the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path', got 'null'
+--- run#aCloseOverARedGateIsWaivedOrBlocked[0] (exit 1)
+  and the clause travels from the child's report into the record: expected 'the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path', got 'null'
+FAIL run#aCloseOverARedGateIsWaivedOrBlocked
+loop-selftest: 1 of 1 cases failed

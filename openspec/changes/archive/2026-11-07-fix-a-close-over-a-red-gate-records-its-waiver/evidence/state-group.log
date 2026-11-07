@@ -1,0 +1,2 @@
+loop-selftest: state 29 cases 187.14 s
+loop-selftest: all 29 cases passed (JDK 27, offline, no token, no sandbox) — 22.46 s, selection: --group state

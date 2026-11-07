@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The loop's shell runner writes no JUnit XML, so this is the red-on-HEAD run of 2026-11-07T17:06:18Z
+transcribed: the three cases this change adds, run against the base eb513ca5's engine (tools/loop/state.sh, lib.sh,
+report.sh and run.sh restored from that commit), failing on the defect they exist for. The runner's own lines are in
+red-on-HEAD.log, whose first line is that timestamp, and the tree they were taken in is this change's. -->
+<testsuite name="loop-selftest case" tests="3" failures="3" errors="0" timestamp="2026-11-07T17:06:18Z">
+  <testcase classname="loop" name="state#aCloseOverARedGateRecordsWhyItWasWaived">
+    <failure message="loop: done: unknown argument --gate-waived">the waived close was refused — the base records the tally and has no field for the clause the close was waived with</failure>
+  </testcase>
+  <testcase classname="loop" name="state#aCloseOverARedGateWithoutAWaiverIsRefused">
+    <failure message="a close over a red tally that records no waiver is a usage error: expected '2', got '0'">the base writes the item `done` over a red tally and records nothing about the judgement</failure>
+  </testcase>
+  <testcase classname="loop" name="run#aCloseOverARedGateIsWaivedOrBlocked">
+    <failure message="and the clause travels from the child's report into the record: expected 'the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path', got 'null'">the base closes the item and `metrics.gateWaived` is null — the field the report would count does not exist</failure>
+  </testcase>
+</testsuite>

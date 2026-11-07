@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 280 records (labels: 98.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.TegCjm
+RED    98.1  state#aCloseOverARedGateWithoutAWaiverIsRefused   (the refusal of a close over a red tally that records no waiver, so the judgement lives in a transcript and the item reads `closed` with `errors=1` (issue #811))
+       2026-11-07T17:04:22Z — a close over a red tally that records no waiver is a usage error: expected '2', got '0'
+restore 98.1 state#aCloseOverARedGateWithoutAWaiverIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

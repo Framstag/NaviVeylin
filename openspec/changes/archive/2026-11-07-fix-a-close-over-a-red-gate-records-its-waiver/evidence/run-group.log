@@ -1,0 +1,4 @@
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+PASS run#childPastItsContextBoundIsCut
+loop-selftest: run 132 cases 1735.63 s
+loop-selftest: all 132 cases passed (JDK 27, offline, no token, no sandbox) — 147.08 s, selection: --group run

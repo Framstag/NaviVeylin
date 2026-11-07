@@ -616,6 +616,7 @@ cmd_done() {
                            gate:$gate,
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
+                           reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
                            phases:$usage.phases, roles:$usage.roles, afterGate:$usage.afterGate}}]
@@ -752,7 +753,7 @@ num_or_null() {
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,afterGate}
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,afterGate,reads,dupReads,dupChars}
   local events="${1:-}" blob="" gate_cmd gate_prog="" word
   # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
   # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
@@ -825,6 +826,45 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          | group_by(.) | map({key: .[0], value: length}) | from_entries) as $tools
       | ([$all[] | select(.type == "tool_execution_end")] | length) as $calls
       | ([$all[] | select(.type == "turn_end")] | length) as $turns
+      # The reads a session repeated (issue #814): the one figure of the worker prompt rule (#246) that nothing
+      # counted, so a child that follows it and one that ignores it read the same in every report. A read is a call of
+      # the two read tools the offline reader counts (`tools/loop-spend.py`), its path what the call named — the
+      # `args` of its `tool_execution_start`, or the `arguments` of its `toolCall` block for a harness that reports the
+      # call only there — and its size the characters of the `tool_execution_end` result. The path is collected over the
+      # whole stream before the walk below, because a real stream closes the call before it closes the turn
+      # (`tool_execution_end` precedes the `turn_end` that names it). A repeat is a path the **session** had already
+      # read, because a reviewer reading what the worker read is a new conversation and not a second read of a fact the
+      # item holds. `reads` is recorded beside the two because a count of repeats with no base says nothing; all three
+      # are null when the stream measured no read at all, never a zero.
+      | ([[$all[] | select(.type == "tool_execution_start")
+                   | select(((.toolName? // "") == "ctx_read") or ((.toolName? // "") == "read"))
+                   | {id: (.toolCallId? // ""),
+                      p: (((.args? // {}) | (.path? // .file_path? // "")) | tostring)}],
+           [$all[] | select(.type == "turn_end") | ((.message.content? // [])[])
+                   | select(.type == "toolCall")
+                   | select(((.name? // "") == "ctx_read") or ((.name? // "") == "read"))
+                   | {id: (.id? // ""),
+                      p: (((.arguments? // {}) | (.path? // .file_path? // "")) | tostring)}]]
+          | add) as $named
+      | (reduce $named[] as $x ({}; if $x.p != "" then .[$x.id] = $x.p else . end)) as $paths
+      | (reduce $all[] as $e ({s: 0, reads: []};
+           if $e.type == "session" then .s += 1
+           elif $e.type == "tool_execution_end" then
+             (($e.toolName? // "")) as $n
+             | ($paths[($e.toolCallId? // "")] // "") as $p
+             | if (($n == "ctx_read" or $n == "read") and $p != "") then
+                 .reads += [{s: .s, p: $p,
+                             chars: (($e.result?.content? // [])
+                                     | if type == "array"
+                                       then ([.[] | (.text? // "") | tostring | length] | add // 0)
+                                       else 0 end)}]
+               else . end
+           else . end)) as $r
+      | (reduce $r.reads[] as $x ({seen: {}, dup: 0, chars: 0};
+           (($x.s | tostring) + "|" + $x.p) as $k
+           | if (.seen[$k] // 0) > 0 then .dup += 1 | .chars += $x.chars | .seen[$k] += 1
+             else .seen[$k] = 1 end)) as $dup
+      | ($r.reads | length) as $reads
       | ([$all[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) as $compacted
       | ([$t[] | ((.input // 0) + (.cacheRead // 0))] | max) as $turnMax
       | ([$turnMax // 0, $compacted // 0] | max) as $context
@@ -847,6 +887,9 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
                  | if $c > 0 then $c else null end
             end),
          context: (if $context > 0 then $context else null end),
+         reads: (if $reads > 0 then $reads else null end),
+         dupReads: (if $reads > 0 then $dup.dup else null end),
+         dupChars: (if $reads > 0 then $dup.chars else null end),
          phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
                   else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
          roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
@@ -857,7 +900,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"afterGate":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null}' ;;
   esac
 }
 
@@ -914,9 +957,9 @@ cmd_report() {
   jq -r --argjson over "$tokens_warn" '
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -957,7 +1000,13 @@ cmd_report() {
           | (.metrics.turns // null) as $turns
           | if $calls == null or $turns == null or $turns == 0 then "-"
             else "\(((($calls / $turns) * 100) | round) / 100)" end) as $callscol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) |") end),
+        # The reads the item repeated (issue #814), appended for the reason every column since the band was: every
+        # index a reader already quotes keeps its number. The cell is `repeat/total` — a count of repeats with no base
+        # is a figure nobody can read — and an item whose stream measured no read prints `-`, never a zero.
+        | ((.metrics.dupReads // null) as $dup
+           | (.metrics.reads // null) as $reads
+           | if $dup == null or $reads == null or $reads == 0 then "-" else "\($dup)/\($reads)" end) as $dupcol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

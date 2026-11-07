@@ -169,6 +169,20 @@ prompt has asked for that since #246, and the archive still records `LOOP-SPEND-
 the adapter owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`,
 `trim#aResultAboveTheBoundIsTrimmedAndNamed`).
 
+That count used to be readable only offline, in the archive's own streams (issue #814): the item's record now carries
+it, so a report says whether the rule holds without `tools/loop-spend.py` being run first. `state.sh done` counts —
+per session, from the stream it already opens — the file reads whose path the **session** had already read
+(`metrics.dupReads`), the characters those repeats re-injected (`metrics.dupChars`, result characters of the repeat
+only) and the reads they are a share of (`metrics.reads`, the same `ctx_read`/`read` pair the offline reader counts),
+and the report prints all three: the row's column after the calls-per-turn one as `repeat/total`, the trend's `reads:`
+line as the run's rate with the characters re-injected and the item that repeated most, beside the `calls:` line the
+paragraph below owns. The repeat is counted per session and not per item, because a reviewer reading what the worker
+read is a new conversation rather than a second read of a fact the item holds; the figure is a **warning, never a
+stop** — no key gates it and no outcome reads it — and an item whose stream measured no read records `null`, which
+the row and the trend print as `-` with their own reasons (a record that predates the field is told apart from one
+that met a run of items which opened no file). `report#anItemRecordsItsRepeatReads` is the case, and mutation
+records `96.1` and `96.2` are what prove it notices the count and the line go.
+
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round
 that does not page grades its head: over one 891 687 B diff the probe's seven children answered the diff's own last
@@ -1006,8 +1020,10 @@ their count, the tokens it used and what they cost, the largest context it reach
 reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`, and each item's tokens read against the band
 `LOOP_ITEM_TOKENS_WARN` records: the row of an item above it carries how far above it is in a column of its own
 and the run-level line names the items above it, which is a **warning and never a stop** (#662), and the row's
-last column carries the item's tool calls per turn, the shape the spend was made in, read against the floor
-`LOOP_ITEM_CALLS_PER_TURN_MIN` records and named for the items below it (#757); and **what the
+column after the band carries the item's tool calls per turn, the shape the spend was made in, read against the floor
+`LOOP_ITEM_CALLS_PER_TURN_MIN` records and named for the items below it (#757), and the column appended after that
+one carries the reads the item's sessions repeated, `repeat/total`, with the run's rate and its worst item in the
+trend (#814); and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
@@ -1028,7 +1044,8 @@ edits between runs, which is exactly how the experiment #791 asks for (one run a
 
 Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
 faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, the
-run's tool calls per turn beside the items below its recorded floor (#757), and — since #759 — where the spend went,
+run's tool calls per turn beside the items below its recorded floor (#757), and — since #814 — the reads the run's
+sessions repeated beside the characters they re-injected and the item that repeated most, and — since #759 — where the spend went,
 the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
 share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
 with `-` and its reason where nobody measured one. The

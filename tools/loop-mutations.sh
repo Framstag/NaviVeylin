@@ -914,6 +914,14 @@ MUTATIONS=(
   # figures nobody could read back as that bound's. The record writes the value it read from the configuration; the
   # mutation writes a number no configuration holds.
   '95.1@-@tools/loop/state.sh@state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst@the character bound the run recorded for every tool result it cut, so a run at another bound is a record a reader can tell apart (issue #815)@s|--argjson toolResultMaxChars "\$tool_result_max"|--argjson toolResultMaxChars 0|'
+
+  # 96.x — a run reports the reads its sessions repeated (issue #814). The worker prompt has stated the rule since
+  # #246 and nothing counted it: #798 repeated 49 of 79 file reads and #791 30 of 55, and no report line could be
+  # quoted either way, so the rule and the seam that caps it (#685) read the same as a child that ignores both. The
+  # state records the count, the characters and the base it is a share of; the report prints them and names the worst
+  # item. Both halves carry the case `report#anItemRecordsItsRepeatReads`.
+  '96.1@-@tools/loop/state.sh@report#anItemRecordsItsRepeatReads@the count of reads a session repeated, so an item that reopens a path it already read is a record a report can show (issue #814)@s|^         dupReads: (if \$reads > 0 then \$dup.dup else null end),$|         dupReads: null,|'
+  '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the worst item the repeat-reads line names, so the rate is printed beside nothing it can be acted on (issue #814)@s| chars re-injected| characters re-injected|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

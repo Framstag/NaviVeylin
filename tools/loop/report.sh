@@ -318,6 +318,31 @@ trend=$(jq -r --argjson floor "$calls_floor" '
               else "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · floor off — LOOP_ITEM_CALLS_PER_TURN_MIN records \($floor), so no item is flagged"
               end )
       end ) as $callline
+  # What the shape above cannot show is the rule the worker prompt has stated since #246 and nothing counted (issue
+  # #814): a path a child has already read is cited rather than opened again. `tools/loop-spend.py` measures it
+  # offline (`LOOP-SPEND-READS calls= duplicate=`), and until the state recorded it the report could not say whether
+  # an item followed the rule or ignored it. The line prints the run repeats with the file reads they are a share
+  # of, the characters those repeats re-injected once and re-read for every turn after them, and the item that
+  # repeated most — the same three-part shape the calls line prints. A **warning, never a stop**: no key gates it, no
+  # item outcome reads it. The field absence is told apart from its null: a record written before the figure
+  # existed has no `dupReads` key at all, while one of this era that met an item which opened no file has it as
+  # `null` — and the two dashes say which of the two it is.
+  | ([.items[]
+      | select((.metrics.dupReads // null) != null and (.metrics.reads // 0) > 0)
+      | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0)}]) as $dups
+  | ( if ($dups | length) == 0 then
+        if ([.items[] | select((.metrics | has("dupReads")) | not)] | length) > 0
+           and ([.items[] | select(.metrics.tokens != null or (.metrics.calls // null) != null)] | length) > 0
+          then "- · this state records no repeat reads — it was written before the report counted them"
+          else "- · no item recorded a file read" end
+      else ([$dups[].d] | add) as $td
+        | ([$dups[].r] | add) as $tr
+        | ([$dups[].c] | add) as $tc
+        | if $tr == 0 then "- · no item recorded a file read"
+          elif $td == 0 then "\($td) of \($tr) file reads were a second read of a path the session already had · no item repeated a path"
+          else "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars re-injected · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
+          end
+      end ) as $readsline
   # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so
   # the line names how many items it is over — a rate over 3 items and one over 227 are not the same claim. A bucket
   # nobody spent time in is left out of the phase line rather than printed as `0 s`, because a zero there reads as a
@@ -368,7 +393,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else "\((($a / $tot) * 100) | round) % — \($a | mtok_n) of \($tot | mtok_n) Mtok, from the first gate of \($n) session\(if $n == 1 then "" else "s" end)"
           end
       end ) as $gateline
-  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
+  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

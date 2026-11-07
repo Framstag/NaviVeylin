@@ -324,6 +324,7 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
+  'report#anItemRecordsItsRepeatReads'
   'report#theSpendIsSplitByPhaseRoleAndGate'
   'report#aStreamWithoutDurationsPrintsDash'
   'report#trendFiguresFromState'
@@ -735,6 +736,7 @@ loop_run_shell_case() {
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
+    'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
@@ -10055,15 +10057,15 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
   assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
     "whose reason is its own note, so - in the stop column is not a row without a reason"
-  # Seventeen columns, so eighteen separators: the wall, the reason and the three spend columns were added, then
+  # Eighteen columns, so nineteen separators: the wall, the reason and the three spend columns were added, then
   # the block's mechanism, then the band an item's spend is read against (issue #662), then the shape it spent it
-  # in (#757), and nothing was dropped. The row keeps its shape with the new column, and the block neither
-  # mechanism caused has the same shape as the others.
-  assert_eq "18" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its seventeen columns"
-  assert_eq "18" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # in (#757), then the reads it repeated (#814), and nothing was dropped. The row keeps its shape with the new
+  # column, and the block neither mechanism caused has the same shape as the others.
+  assert_eq "19" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its eighteen columns"
+  assert_eq "19" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
-  assert_eq "18" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "19" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
     "and so does a block no mechanism caused"
 }
 
@@ -10309,6 +10311,115 @@ JSONL
   out=$(run_report "$p") || fail "the report failed for a state written before the figure existed"
   assert_contains "$out" "calls:  - · this state records no calls or turns — it was written before the report read them" \
     "a state that predates the two counts says so, instead of naming a run of items that answered without a tool"
+}
+
+# The prompt has told a child since #246 that a path it already read is cited rather than opened again, and #685 capped
+# what a repeat is handed over — but no figure counted the repeats, so a child that follows the rule and one that
+# ignores it read the same in every report (issue #814). The state now records the count and the characters the repeats
+# re-injected (`metrics.dupReads`, `metrics.dupChars`) beside the file reads they are a share of (`metrics.reads`),
+# read from the same stream `done` already opens: a read is a call of `ctx_read`/`read` (the pair the offline
+# `tools/loop-spend.py` counts), its path the `arguments` of the `toolCall` block, its size the characters of the
+# matching `tool_execution_end` result — and a repeat is a path the **session** had already read, because a reviewer
+# reading what the worker read is a new conversation and not a second read of a fact the item holds. The row carries
+# `repeat/total` in a column appended after the calls-per-turn one, and the trend names the worst item, the characters
+# re-injected and the rate. A **warning, never a stop**: nothing in the run reads the figure.
+case_report_anItemRecordsItsRepeatReads() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend reads_line row_repeats row_twice row_none
+  d=$(scratch); p=$(new_project)
+  # #21 reads `a` three times and `b` once in one session, and `a` once more in a second session; #22 reads `a` twice
+  # in one session; #23 opens no file at all. The result texts are the sizes the case asserts: 10, 5, 20, 30, 40 and
+  # 10, 40 — so #21's repeats re-injected 50 characters and #22's 40. The records are in the order a real child writes
+  # them — `tool_execution_start`, then the `tool_execution_end` that carries the result, then the `turn_end` that names
+  # the call — and `c4`'s path is left out of its `start` and named only in its `turn_end`, which is the shape a harness
+  # that reports the call only with the turn leaves (the fallback the state reads beside `args`).
+  cat > "$d/repeats.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"tool_execution_start","toolCallId":"c1","toolName":"ctx_read","args":{"path":"a"}}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"0123456789"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c1","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+{"type":"tool_execution_start","toolCallId":"c2","toolName":"ctx_read","args":{"path":"b"}}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"abcde"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c2","name":"ctx_read","arguments":{"path":"b"}}]},"toolResults":[]}
+{"type":"tool_execution_start","toolCallId":"c3","toolName":"ctx_read","args":{"path":"a","offset":100}}
+{"type":"tool_execution_end","toolCallId":"c3","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"01234567890123456789"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c3","name":"ctx_read","arguments":{"path":"a","offset":100}}]},"toolResults":[]}
+{"type":"tool_execution_start","toolCallId":"c4","toolName":"read","args":{}}
+{"type":"tool_execution_end","toolCallId":"c4","toolName":"read","isError":false,"result":{"content":[{"type":"text","text":"abcdefghijklmnopqrstuvwxyz0123"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c4","name":"read","arguments":{"file_path":"a"}}]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-prompt-1.md"}]}}
+{"type":"tool_execution_start","toolCallId":"c5","toolName":"ctx_read","args":{"path":"a"}}
+{"type":"tool_execution_end","toolCallId":"c5","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"0123456789012345678901234567890123456789"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c5","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+JSONL
+  cat > "$d/twice.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
+{"type":"tool_execution_start","toolCallId":"d1","toolName":"ctx_read","args":{"path":"a"}}
+{"type":"tool_execution_end","toolCallId":"d1","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"0123456789"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"d1","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+{"type":"tool_execution_start","toolCallId":"d2","toolName":"ctx_read","args":{"path":"a"}}
+{"type":"tool_execution_end","toolCallId":"d2","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"0123456789012345678901234567890123456789"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"d2","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+JSONL
+  cat > "$d/noread.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/23/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0},"content":[{"type":"toolCall","id":"e1","name":"bash","arguments":{"command":"true"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"e1","toolName":"bash","isError":false}
+JSONL
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/repeats.jsonl" >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/twice.jsonl" >/dev/null
+  run_state "$p" done 23 --result done --verdict closed --wall 42 --events "$d/noread.jsonl" >/dev/null
+  f=$(state_file "$p")
+  # The count and its two companions are recorded, not derived at print time: a report that summed the stream itself
+  # would have to find it again, and the state is the file every reader already opens.
+  assert_eq "5" "$(jq -r '.items[] | select(.issue == 21) | .metrics.reads' "$f")" \
+    "the item's file reads are counted from its event stream, read and ctx_read alike"
+  assert_eq "2" "$(jq -r '.items[] | select(.issue == 21) | .metrics.dupReads' "$f")" \
+    "and a path the session already read is counted as a repeat — the third read of a and the fourth, not the first"
+  assert_eq "50" "$(jq -r '.items[] | select(.issue == 21) | .metrics.dupChars' "$f")" \
+    "the characters the repeats re-injected: their own results, not the first read's"
+  # The reviewer's read of `a` is a new conversation, so it is a read and not a repeat: an item total would have
+  # counted it, and told the trend the worker's rule had been broken a third time.
+  assert_eq "5" "$(jq -r '.items[] | select(.issue == 21) | .metrics.reads' "$f")" \
+    "the second session's read of a is counted as a read, so it is in the total the repeats are a share of"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 23) | .metrics.dupReads' "$f")" \
+    "an item whose stream opened no file records nothing, never a zero"
+  out=$(run_report "$p") || fail "the report failed"
+  row_repeats=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
+  row_twice=$(printf '%s\n' "$out" | grep '^| #22 |' || true)
+  row_none=$(printf '%s\n' "$out" | grep '^| #23 |' || true)
+  [ -n "$row_repeats" ] || fail "no table row for #21"
+  assert_eq "2/5" "$(table_cell "$row_repeats" 18)" "the row carries the item's repeats out of its file reads"
+  assert_eq "1/2" "$(table_cell "$row_twice" 18)" "in a column appended after the calls per turn"
+  assert_eq "-" "$(table_cell "$row_none" 18)" "and an item that opened no file prints -, not a zero"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  reads_line=$(printf '%s\n' "$trend" | grep '^  reads:' || true)
+  [ -n "$reads_line" ] || fail "the trend printed no repeat-reads line"
+  assert_contains "$reads_line" \
+    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars re-injected · worst #21 2 of 5" \
+    "the trend prints the run's repeats with the two counts they came from, the characters re-injected and the worst item"
+  # Two states that print a dash and its reason instead of a zero — the rule every spend figure keeps. `del` removes
+  # the three keys, which is the shape a state written before this figure has; the second state is of this era and
+  # simply met a run whose items opened no file.
+  jq 'del(.items[].metrics.reads, .items[].metrics.dupReads, .items[].metrics.dupChars)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the figure existed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "- · this state records no repeat reads — it was written before the report counted them" \
+    "a state that predates the three figures says so, instead of naming no repeats"
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":51,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 51 --result done --verdict closed --events "$d/noread.jsonl" >/dev/null
+  out=$(run_report "$p") || fail "the report failed for a run that opened no file"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" "- · no item recorded a file read" \
+    "and a run of items that answered without opening a file prints the other dash"
 }
 
 # The report totalled a run's spend and never said which phase spent it (issue #759): a run that paid two thirds

@@ -137,6 +137,7 @@ LOOP_SHELL_CASES=(
   'run#aShapingVerdictWritesTheLabel'
   'run#aVerdictOutsideTheListWritesNoLabel'
   'run#theShapingInboxDoesNotCountAgainstTheCeiling'
+  'run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames'
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
@@ -557,6 +558,7 @@ loop_run_shell_case() {
     'run#aShapingVerdictWritesTheLabel') fn=case_run_aShapingVerdictWritesTheLabel ;;
     'run#aVerdictOutsideTheListWritesNoLabel') fn=case_run_aVerdictOutsideTheListWritesNoLabel ;;
     'run#theShapingInboxDoesNotCountAgainstTheCeiling') fn=case_run_theShapingInboxDoesNotCountAgainstTheCeiling ;;
+    'run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames') fn=case_run_aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
@@ -3619,15 +3621,16 @@ case_labels_verdictToLabelMatrix() {
   # displaced label, so a verdict that only ever added one would leave two states on the item and fail here.
   check_labels pick "agent/in-progress" ""
   check_labels unpick "" "agent/in-progress"
-  # The four the profile's `roles.shapingVerdicts` names also take the shaping label (capability `shaping-inbox`),
-  # in the same write: `needs-diagnosis` keeps the decision label it wrote before that capability.
+  # The three the profile's `roles.shapingVerdicts` names also take the shaping label (capability `shaping-inbox`),
+  # in the same write. `needs-diagnosis` is not one of them (#738): it states a question, so it keeps the decision
+  # label and writes no shaping label.
   check_labels unspecifiable "agent/needs-shaping status/on-hold" "status/open"
   check_labels too-wide "agent/needs-shaping status/on-hold" "status/open"
   check_labels not-spec-shaped "agent/needs-shaping status/on-hold" "status/open"
   check_labels needs-target "status/on-hold" "status/open"
   check_labels needs-device "agent/needs-device status/on-hold" "status/open"
   check_labels needs-decision "agent/needs-decision status/on-hold" "status/open"
-  check_labels needs-diagnosis "agent/needs-decision agent/needs-shaping status/on-hold" "status/open"
+  check_labels needs-diagnosis "agent/needs-decision status/on-hold" "status/open"
 
   # `stale` left the vocabulary with issue #682: the run escalates that skip instead of parking it, so the
   # label writer must refuse it rather than write a hold nobody can answer — an unrefused verdict is a row
@@ -4276,8 +4279,8 @@ case_run_aShapingVerdictWritesTheLabel() {
   assert_contains "$(cat "$log")" "too-wide: the item wants splitting" "the comment's first line names the verdict"
   assert_contains "$(cat "$log")" '**The shaping:** six capability deltas' "and carries the clause that produced it"
 
-  # The other three verdicts the profile names behave the same way, and `needs-diagnosis` keeps the decision label
-  # it wrote before this capability existed.
+  # The other two verdicts the profile names behave the same way, and `needs-diagnosis` keeps the decision label
+  # it already wrote and takes no shaping label (#738).
   for verdict in unspecifiable not-spec-shaped; do
     : > "$log"
     run_labels "$p" "$verdict" 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
@@ -4287,8 +4290,8 @@ case_run_aShapingVerdictWritesTheLabel() {
   : > "$log"
   run_labels "$p" needs-diagnosis 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
     fail "needs-diagnosis was refused"
-  assert_contains "$(cat "$log")" "--add-label agent/needs-shaping" "needs-diagnosis writes the shaping label"
-  assert_contains "$(cat "$log")" "--add-label agent/needs-decision" "beside the decision label it already wrote"
+  assert_contains "$(cat "$log")" "--add-label agent/needs-decision" "needs-diagnosis keeps the decision label"
+  assert_eq "0" "$(grep -c 'needs-shaping' "$log" || true)" "and writes no shaping label, which the profile does not name"
 }
 
 # A verdict the profile does not name as a shaping verdict keeps the bare hold it wrote before this capability:
@@ -4342,6 +4345,37 @@ case_run_theShapingInboxDoesNotCountAgainstTheCeiling() {
   assert_not_contains "$out" "await a decision" "the ceiling counts the decision label only"
   assert_contains "$out" "nothing eligible" "the shaping items are holds, so no work is queued"
   assert_eq "0" "$(grep -c 'needs-decision' "$GH_STUB_RECORD" || true)" "and nothing is escalated for them"
+}
+
+# The profile's declaration and the run's write agree (issue #738): `roles.shapingVerdicts` is the one place that
+# says which skip verdicts carry the shaping label, so the labels a `needs-diagnosis` skip leaves on the item are
+# exactly the set that list implies — no more. On the base the two disagreed: the list named the verdict while the
+# run's skipped arm escalates it, so the item landed in the decision queue carrying no shaping label at all, and
+# nothing said the two artifacts were meant to be one answer.
+case_run_aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out log expected adds
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" 'LOOP-VERDICT: skipped
+LOOP-SKIP-VERDICT: needs-diagnosis
+LOOP-ROOT-CAUSE: two mechanisms explain the symptom
+LOOP-RED-TEST: Demo#case was never reached
+LOOP-DECISION: split the item into the two mechanisms, or retire it?' 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run failed: $out"
+  log=$(cat "$GH_STUB_RECORD")
+  # The set is read from the profile itself, so the case asserts the two artifacts agree rather than repeating one
+  # of them: the decision label the escalation always writes, the hold it records, and the shaping label only when
+  # `roles.shapingVerdicts` names the verdict. The write read is the skip's own — the one that adds the hold — so
+  # the `agent/in-progress` the run's pick added earlier is not counted as part of the skip.
+  expected=$(jq -r --arg v needs-diagnosis '.roles
+    | ([("agent/" + .decisionAgent), "status/on-hold"]
+       + (if ((.shapingVerdicts // []) | index($v)) then ["agent/" + .shapingAgent] else [] end))
+    | sort | join(" ")' "$p/tools/tooling.json") || fail "could not read the label set the profile names"
+  adds=$(printf '%s\n' "$log" | grep 'issue edit' | grep -- '--add-label status/on-hold' \
+    | grep -o -- '--add-label [a-z/-]*' | sed 's/--add-label //' | sort | paste -sd' ' -)
+  assert_eq "$expected" "$adds" \
+    "the item carries exactly the labels roles.shapingVerdicts names for a needs-diagnosis skip (issue #738)"
 }
 
 # A block whose cause is the run's own child is not a question the item asked. Rather than escalate a reason

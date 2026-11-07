@@ -191,12 +191,14 @@ mechanism would do to it). The recommendation then states which view decided, be
 the judgement this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through
 `answer.sh` — the same transition every other answer takes, so a skill that skipped it would be a second writer.
 
-**The shaping inbox is a third state, and it is neither a hold nor a decision.** Four of the run's verdicts say
-that the item's *shape* is wrong rather than that a question is open — `needs-diagnosis`, `unspecifiable`,
-`too-wide` and `not-spec-shaped`, which `roles.shapingVerdicts` names so a project declares its own list. For those
+**The shaping inbox is a third state, and it is neither a hold nor a decision.** Three of the run's verdicts say
+that the item's *shape* is wrong rather than that a question is open — `unspecifiable`, `too-wide` and
+`not-spec-shaped`, which `roles.shapingVerdicts` names so a project declares its own list. For those
 the run writes `agent/needs-shaping` in the same call as the hold and its one comment, whose first line is the
 verdict and whose `**The shaping:**` line is the clause behind it; `tools/issues/shaping.sh` lists every open item
 carrying the label with exactly that record, and an item carrying it with no statement is named as carrying none.
+A `needs-diagnosis` skip is not one of them: it states a question, so the run escalates it with
+`agent/needs-decision` and writes no shaping label (#738).
 Its reader is the `.pi/skills/reshape-issue` skill, which reads that listing and proposes the one mechanism the item
 lacks or the children it splits into, each with a `file:line`; it writes nothing until the owner chooses, and then
 files children with `create.sh` and records the item's shape with `update.sh`, whose write takes the label off.

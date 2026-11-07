@@ -15,8 +15,8 @@
 #     · not-spec-shaped · needs-target           and a comment that names the verdict and its one clause
 #                                                of evidence — a state change nobody can read is the
 #                                                defect #192, so the reason travels with the hold)
-#   (a verdict the profile's `roles.shapingVerdicts` names — `unspecifiable`, `too-wide`,
-#    `not-spec-shaped`, `needs-diagnosis` in this project — additionally takes `agent/needs-shaping`, in the
+#   (a verdict the profile's `roles.shapingVerdicts` names — `unspecifiable`, `too-wide` and
+#    `not-spec-shaped` in this project — additionally takes `agent/needs-shaping`, in the
 #    same write, and its comment opens with the verdict word. That state is neither a hold nor a decision:
 #    it states that a person must reshape the item, and `tools/issues/shaping.sh` is its queue. The decision
 #    ceiling counts the decision label only, so nothing on this path can stop a run — capability
@@ -146,8 +146,9 @@ esac
 
 args=("$issue")
 # A verdict the profile names as a shaping verdict carries the shaping label in the same write that records the
-# hold (or, for `needs-diagnosis`, the decision): one `update.sh` call, so there is no window in which the item
-# is held and nameless to the queue that exists for it (capability `shaping-inbox`, D5).
+# hold: one `update.sh` call, so there is no window in which the item is held and nameless to the queue that
+# exists for it (capability `shaping-inbox`, D5). `needs-diagnosis` is not one of them (#738): it states a
+# question, so it keeps the decision label and writes no shaping label.
 wrote_shaping=0
 if [ -n "$shaping_label" ] && loop_shaping_verdicts "$verdict"; then
   add_labels+=("$shaping_label")

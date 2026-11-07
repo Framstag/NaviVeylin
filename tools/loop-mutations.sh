@@ -957,6 +957,12 @@ MUTATIONS=(
   # one case each: the tooling's own refusal (`tools/close-mutations.json` A1.6) and the loop's ask, which happens
   # *before* the state write so a refused closure leaves the item unsettled.
   '99.1@-@tools/loop/lib.sh@labels#closeRefusesACommitTheBaseDoesNotCarry@the loop asking the base branch before it settles the item, so the state write lands and the closure is refused after it — the item reads settled on a fix the tree does not have, which no later run revisits (issue #715)@s|^  git -C "\$LOOP_ROOT" merge-base --is-ancestor "\$commit" "\$base" >/dev/null 2>&1 \&\& return 0$|  return 0|'
+  # 261.1 — the profile's shaping list and the run's write are one answer (issue #738). The list named
+  # `needs-diagnosis` while `run.sh`'s skipped arm escalated that verdict to the decision label and never wrote the
+  # shaping one, so the declaration and the write disagreed and no case compared them: the matrix case called
+  # `labels.sh` directly, which is not a path a run takes. Putting the verdict back in the list is what the new case
+  # reads.
+  '261.1@-@../tooling.json@run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames@the verdict the profile declares a shaping verdict while the run escalates it, so the list and the labels a skip leaves disagree (issue #738)@s%^    "shapingVerdicts": \["unspecifiable", "too-wide", "not-spec-shaped"\],$%    "shapingVerdicts": ["needs-diagnosis", "unspecifiable", "too-wide", "not-spec-shaped"],%'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -1051,8 +1051,8 @@ answer_complete() { # answer_complete <report file> <closing-line regex>
 # Whether a phase's own report is an answer at all (issue #810). A child that exits 0 and leaves a report with no
 # closing line has answered nothing, and every arm the run decides an item from reads such a file as an answer it does
 # not carry — so the shape of the answer is asked before any of them: the file, the newline the adapter prints after
-# every answer, and the last line the phase's own prompt asks for. A child the run itself ended at a bound says so in
-# its report and is read as it stands, never retried, which is the rule the rounds already follow (#224).
+# every answer, and the last line the phase's own prompt asks for. A child the run itself ended at a bound never returns 0
+# (`LOOP_CHILD_TIMEOUT`, `tools/loop/lib.sh:27`), so the retry's `gate_exit -eq 0` guard leaves it as it stands (#224).
 gate_answered() { # gate_answered <gate report> → 0 when the phase's answer arrived whole
   [ -z "$(report_field "$1" LOOP-TIMEOUT)" ] && [ -z "$(report_field "$1" LOOP-DEADLINE)" ] &&
     answer_complete "$1" '^LOOP-(GATE|VERDICT):'
@@ -2311,9 +2311,6 @@ while true; do
         gate_exit=$?
         gate_child="gate worker"
         gate_report="$item_dir/worker-gate-report.md"
-        gate_write_note="$outside_write_note"
-        gate_write_decides=0
-        outside_write_decides && gate_write_decides=1
         # A phase's report is the phase's **answer**, not optional text beside it (issue #810). Measured 2026-11-06 on
         # item #755: the gate child exited 0 and left a 0-byte report, `tail_after_gate` found no gate line and started
         # no tail, the item was decided from that empty file — whose change claim is empty — and the arm that names the
@@ -2336,6 +2333,9 @@ while true; do
             gate_note="exit 0 and no report"
           fi
         fi
+        gate_write_note="$outside_write_note"
+        gate_write_decides=0
+        outside_write_decides && gate_write_decides=1
         loop_state step A --name worker-gate \
           --status "$(if [ "$gate_exit" -eq 0 ] && [ -z "$phase_failure" ]; then printf ok; else printf fail; fi)" \
           --note "$gate_note" >/dev/null

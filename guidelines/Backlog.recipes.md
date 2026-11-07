@@ -741,7 +741,8 @@ carries) has answered nothing: `tail_after_gate` finds no gate line and starts n
 item is decided from the empty file — whose verdict is neither `skipped` nor `blocked` and whose change claim is
 empty beside a commit the change child did make — and the reason a person reads is the arm that names the item's own
 tree, "reported success but no archived change appears in the run's diff" (measured 2026-11-06, issue #810: item
-#755, exit 0, a 0-byte `worker-gate-report.md`, 11 m 49 s and 13.0 Mtok charged, over a branch that carries a
+#755, exit 0, a 0-byte `worker-gate-report.md`, 11 m 49 s and 13.0 Mtok charged — figures from #755's tracker text
+and the run's state record — over a branch that carries a
 commit). The rule the review rounds already follow (#224) is asked of the phase: the answer is read for
 completeness — the file, the newline the adapter prints after every answer, the closing line the prompt asks for
 last — an answer that is not one is asked once more with the same contract, and the second silence records the

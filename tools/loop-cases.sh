@@ -7047,7 +7047,8 @@ case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
 # line and started no tail, the item's final report stayed that empty file, and the outcome block — whose first three
 # arms read a verdict the file does not carry — fell through to the arm that names the item's own tree: "reported
 # success but no archived change appears in the run's diff", over a branch that carries a commit. The item's work was
-# kept and its record named the wrong cause, and the run paid 11 m 49 s for a phase that produced no evidence and no
+# kept and its record named the wrong cause, and the run paid 11 m 49 s (#755's tracker text; the run's state record)
+# for a phase that produced no evidence and no
 # gate. The rule the review rounds already follow (#224) is asked of the phase here: an answer that is not complete
 # is asked once more, and the second silence is that phase's failure — named as such, never read as the item's tree.
 case_run_aPhaseThatAnswersNothingIsThatPhasesFailure() {

@@ -747,8 +747,10 @@ commit). The rule the review rounds already follow (#224) is asked of the phase:
 completeness — the file, the newline the adapter prints after every answer, the closing line the prompt asks for
 last — an answer that is not one is asked once more with the same contract, and the second silence records the
 phase `fail` with the note `exit 0 and no report`, starts no tail, and blocks the item with a reason that names the
-phase. A child the run itself ended is not retried: its report carries the `LOOP-TIMEOUT` or `LOOP-DEADLINE` line that
-says so, and a retry would spend the bound again.
+phase. A child the run itself ended is not retried: it never returns 0 (`LOOP_CHILD_TIMEOUT`,
+`tools/loop/lib.sh:27`), so the retry's exit-status guard leaves it as it stands, and a report that carries the
+`LOOP-TIMEOUT` or `LOOP-DEADLINE` line is excluded from the reading for the same reason — a retry would spend the
+bound again.
 
 What it does with an item the tracker does not answer for: nothing is decided about that item, so nothing ends the
 run on it. The read is the seam's own — `tools/loop/lib.sh` sources `tools/issues/lib.sh`, so what reaches the run is

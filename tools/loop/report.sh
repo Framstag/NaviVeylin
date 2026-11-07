@@ -164,12 +164,13 @@ printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#
 # change `falsified-items-close-in-the-loop`).
 printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified") | "#\(.issue) \(.metrics.rootCause // "")"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)\(if (.mechanism // "") == "" then "" else " (\(.mechanism))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
-# The items a bound cut are named apart from the blocks, in the reader's own language: a round the run ended at
+# The items a bound cut are named apart from the blocks, in the reader's own language: a phase the run ended at
 # its own bound asked nobody a question, so the line says which phase was cut and what the next run resumes
-# (issue #785). A **block** the run's own bound caused is named on the same line (issue #786): its result is
-# `blocked` because the item's tree was left mid-phase, but its mechanism is `bound`, so it asked the owner
-# nothing either and the next run resumes it. Empty for a run with none, exactly as the other named lists are.
-printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut" or (.result == "blocked" and (.stopReason // "") == "bound")) | "#\(.issue) \(if .result == "cut" then (.metrics.reviewVerdict // "-") else "blocked at a bound" end)\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# (issues #785, #790). The row reads the item's own `result` and nothing else — the mechanism vocabulary is what
+# a state carries for a reader who asks *which* bound it was, not a second predicate the report needs to tell work
+# from a refusal. A state a tree wrote before `cut` carried a bound keeps its two `blocked` items in the block
+# tally, exactly as that tree counted them. Empty for a run with none, exactly as the other named lists are.
+printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the

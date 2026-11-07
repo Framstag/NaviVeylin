@@ -332,10 +332,10 @@ only to end the wait — this poll never `wait`s on the pid, which is the shape 
 child gone and then blocked for ever behind a `wait`). Measured 2026-11-06: the run started at 06:27:14Z was
 reparented to `systemd --user` when the session that owned it died, and it sat in that poll 17 minutes into a
 600-minute budget with its lock still held and item #793 still `agent/in-progress`; the cap would have ended the wait
-at 45 minutes, an item blocked for a dead child and a lock that would have refused every run after it. The transcript
+at 45 minutes, an item ended at a bound for a dead child and a lock that would have refused every run after it. The transcript
 names what happened (`LOOP-TIMEOUT: the child's writer (pid <n>) vanished before it wrote its completion record`), the
-item is recorded `blocked` with `bound` as its mechanism, and a child that is merely slow is waited for exactly as it
-was.
+item is recorded `cut` with `bound` as its mechanism (issues #786, #790), and a child that is merely slow is waited for
+exactly as it was.
 
 A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (170 for the worker, 80 for the
 gate child, 65 for the tail, 75 for a review round and 75 for the round before the gate; `0` or absent = no bound)
@@ -356,8 +356,9 @@ turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past
 (44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
 is a runaway and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
 the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
-`blocked` with that count and `bound` as its mechanism — so no decision label is written for it, and `state.sh next`
-never reads it as a refusal (issue #786).
+`cut` with that count and `bound` as its mechanism (issues #786, #790) — so no decision label is written for it,
+`state.sh next` never reads it as a refusal, and the report counts it on the bound line rather than in the blocks,
+because what the bound ended is the phase the next run resumes.
 
 **Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
 role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),
@@ -876,22 +877,29 @@ bound cut is therefore recorded **`cut`**, the fifth result beside `done`, `skip
 it writes no decision label, it is named on a line of its own (`cut short by the run's own bound: …`) instead of in
 the blocks, it does not enter the two-blocked streak `state.sh next` stops on, and the run takes no second pass over
 the queue after it, because that pass would re-exclude the item whose branch the cut child had just made (#674's
-rule, one result wider). What the branch carries is the round as a **cut** — `review-round-<n>-cut.md`, with the
+rule, one result wider). The same holds one level down, for the **item's own child** (issue #790): a worker, a gate
+child, a tail or the rework worker of a refusing round the run ended at its role's turns, at the child clock or at
+the run's deadline leaves a phase, not a finding — #788, #778 and #759 each sat in one run's state as `blocked`
+with a bound's reason and a 4–6 k-line patch beside them, so the next reader had to read the mechanism to know the
+item was work. What the branch carries is the round as a **cut** — `review-round-<n>-cut.md`, with the
 announcement of the same round withdrawn in that commit — so `branch-state` reads `adoptable` rather than
 `review-unanswered`, and the next pre-screen offers the attempt as work the loop finishes instead of as a question
 only its owner can answer. A round the *transport* cut twice is not this: no bound ended it, so it stays a block
 with its reason, because nothing about it says the item is converging.
 
-A **block** the run's own bound caused is the same fact one result over (issue #786): the item's tree was left
-mid-phase, so its result stays `blocked` and its tree is kept exactly as the child left it, but its mechanism is
-`bound` — the third value of the vocabulary beside `refused` and `unmergeable`. That one word is what makes such a
-block a thing the next run resumes rather than a question: no decision label is written (so it spends none of the
-decision ceiling), the note says the attempt waits for the next run, and `state.sh next` never reads it as a refusal,
-because a refusal predicts the next item's failure — the same gate, the same provider, the same tree — and a bound
-predicts nothing about an item that starts a fresh worker on a fresh tree. Measured 2026-11-05: five of six runs
-stopped on the two-block streak with 758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound
-cuts, and the first run carrying the per-role turn bounds ended after 156 of its 480 minutes with three of six items
-ended at exactly 110 turns.
+A **block** the run's own bound caused was the same fact one result over (issue #786), and is now that fact: the
+item's tree was left mid-phase, its work is kept exactly as the child left it and its patch is named in the
+record — but its result is `cut`, like every other phase the run's own bound ended (issue #790), and the mechanism
+`bound` rides beside it as the third value of the vocabulary beside `refused` and `unmergeable`. That one word is
+what a state's own table and a mechanism's spend are read from, and it is never the word a reader needs to tell
+work from a refusal: no decision label is written (so the cut spends none of the decision ceiling), the note says
+the attempt waits for the next run, and `state.sh next` never reads a cut as a refusal, because a refusal predicts
+the next item's failure — the same gate, the same provider, the same tree — and a bound predicts nothing about an
+item that starts a fresh worker on a fresh tree. A state a run wrote before issue #790 carries the same fact as
+`blocked` with `stopReason: bound`, and `next` still keeps that pair out of the streak, so a run that resumes an
+older state reads it as it always did. Measured 2026-11-05: five of six runs stopped on the two-block streak with
+758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound cuts, and the first run carrying the
+per-role turn bounds ended after 156 of its 480 minutes with three of six items ended at exactly 110 turns.
 
 What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
 `LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide

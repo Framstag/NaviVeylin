@@ -2366,10 +2366,15 @@ while true; do
   elif [ "$cited_evidence" -eq 1 ] && [ "$carried" -eq 0 ]; then
     outcome="blocked"; blocked_reason="the change cites a test result but carries no evidence in its own evidence/ directory"
   fi
-  # …and a round the run's own bound ended is not a block at all (issue #785): the item's own work finished, its gate
-  # is green and its change is archived, so what is left is the phase the bound cut and the next run resumes it. The
-  # reason the refusal above recorded is kept word for word — it is what the report and the state's own table print.
-  if [ "$pre_gate_cut" -eq 1 ]; then outcome="cut"; fi
+  # …and a phase the run's own bound ended is not a block at all (issues #785, #790): a review round the run cut
+  # leaves an item whose work finished — its change archived, its gate answered and its branch carrying the commits
+  # — and a child the run ended at a bound leaves an item whose tree was left mid-phase. Either way what remains is
+  # a phase the next run resumes rather than a finding about the item, so the result is the fifth one and the reason
+  # the arms above recorded is kept word for word — it is what the report and the state's own table print. The bound
+  # is read off the mechanism the non-zero-exit arm wrote instead of the exit status a second time: `run_child`
+  # reports `LOOP_CHILD_TIMEOUT` and the child's own `LOOP-TIMEOUT` line for every bound it enforces — the child
+  # clock, the run's deadline and the role's turns — and that arm turns all three into the one word `bound`.
+  if [ "$pre_gate_cut" -eq 1 ] || [ "$stop_reason" = bound ]; then outcome="cut"; fi
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"
@@ -2611,7 +2616,12 @@ while true; do
       if [ -n "$round2_deadline" ]; then deadline_claim="$round2_deadline"; fi
       if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
         review_verdict="round2-ended"
-        outcome="blocked"
+        # …and the result is the fifth one (issue #790): a bound the run enforced on its rework worker is the same
+        # bound it enforces on the item's own, so what it leaves is a phase the next run resumes rather than a
+        # finding about the item. The mechanism rides beside it, so the spend a bound caused is one field on either
+        # result (issues #786, #790).
+        outcome="cut"
+        stop_reason="bound"
         blocked_reason="the run ended the rework worker of the refusing round (its wall-clock or the run's own deadline), so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
         break
       fi
@@ -2778,6 +2788,12 @@ $review_notes_text"
       # pre-screen asking about them would name the item the run has just recorded — with a question the run answered.
       bound_cut=1
       cut_note="${blocked_reason:-the run ended the phase at a bound}"
+      # A child the run ended says in the item's own note that the attempt is the next run's to resume (issues
+      # #786, #790): the tree it left was mid-phase, so nothing about the item was measured, and a reader of the
+      # state — the next run's pre-screen among them — must not have to derive that from the absence of a label.
+      if [ "$stop_reason" = bound ]; then
+        cut_note="$cut_note · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about"
+      fi
       if [ -n "$leftover_patch" ]; then
         cut_note="$cut_note · its work is kept at $leftover_patch"
       fi
@@ -2788,6 +2804,7 @@ $review_notes_text"
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
         --events "$events_file" --leftover "$leftover_patch" \
+        --stop-reason "$stop_reason" \
         --label-failures "$label_failures" \
         --review-verdict "$review_verdict" >/dev/null
       ;;
@@ -2809,41 +2826,37 @@ $review_notes_text"
       escalated_label=""
       # The block's escalation carries the decision itself, not only the news that one is needed: the reviewer
       # already answered the question when it wrote its report, so the owner reads the options and the
-      # recommendation instead of re-deriving them (#186).
-      if [ -z "$deadline_claim" ] && [ "$stop_reason" != bound ]; then
-        escalation_reason="${blocked_reason:-the item was blocked}"
-        decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
-        if [ -n "$decision_field" ]; then
-          escalation_reason="$escalation_reason
+      # recommendation instead of re-deriving them (#186). Every block that reaches this arm is escalated: the two
+      # causes that used to be excused here — the run's deadline and a bound — leave a `cut` above (issues #674,
+      # #786, #790), so a block nobody asked about was the one thing this arm could still produce.
+      escalation_reason="${blocked_reason:-the item was blocked}"
+      decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
+      if [ -n "$decision_field" ]; then
+        escalation_reason="$escalation_reason
 
 **The decision:** $decision_field"
-        else
-          # A block that never reached a review round asked the item no question — most often because the cause is
-          # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
-          # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
-          # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
-          # states it, with the reason it holds as the ground for either answer.
-          escalation_reason="$escalation_reason
+      else
+        # A block that never reached a review round asked the item no question — most often because the cause is
+        # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
+        # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
+        # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
+        # states it, with the reason it holds as the ground for either answer.
+        escalation_reason="$escalation_reason
 
 **The decision:** retry the item, or abandon it — $blocked_reason. The reason above is the run's finding, not a
 question the item asked; a retry costs another attempt, and an abandonment removes it from the loop."
-        fi
-        if loop_labels escalate "$issue" --reason "$escalation_reason" \
-          --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
-          escalated_label="$decision_label"   # the block's own escalation
-        else
-          label_failures="${label_failures:+$label_failures }escalate"
-        fi
+      fi
+      if loop_labels escalate "$issue" --reason "$escalation_reason" \
+        --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
+        escalated_label="$decision_label"   # the block's own escalation
+      else
+        label_failures="${label_failures:+$label_failures }escalate"
       fi
       # The item's own reason carries the failure too, so the state's own table (`state.sh report`) names an item
       # whose decision was never written, and not only the report's action list does.
       blocked_note="${blocked_reason:-the item was blocked}"
-      # …and a block the run's own bound caused says what happens to it instead, because no decision label was
-      # written for it (issue #786): the item is work the next run resumes, and a reader of the state must not have
-      # to derive that from the absence of a label.
-      if [ "$stop_reason" = bound ]; then
-        blocked_note="$blocked_note · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about"
-      fi
+      # A bound-ended attempt says the same sentence on the `cut` arm above (issues #786, #790): the one block
+      # whose cause was the run's own bound is written there now, so nothing here has to tell it apart.
       # The work an ended child left is named in the item's own record, not only in its transcript: a clock-cut
       # item writes no comment on the tracker, so the state and the report are the only places a caller reads it.
       if [ -n "$leftover_patch" ]; then

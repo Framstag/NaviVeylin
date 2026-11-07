@@ -581,8 +581,8 @@ on_exit() {
   if [ "$interrupted" -eq 1 ]; then
     # The run's own end, written before the lock comes off (issue #755): the item's block below says what became of the
     # item, and `run.stop` is what a report read after this process is gone prints instead of "it recorded no reason".
-    # It is outside the item test because a run interrupted between items has an end as well, and the reason names the
-    # signal rather than its status, which is `128+N` and a table a reader would have to decode.
+    # It is outside the item test because the write does not depend on an item being in flight, and the reason names
+    # the signal rather than its status, which is `128+N` and a table a reader would have to decode.
     loop_state stop "interrupted by SIG${signal_taken}" >&2 || true
     if [ -n "$in_progress" ]; then
       # A killed run must leave no item looking in progress: the label comes off and the item is recorded
@@ -597,7 +597,11 @@ on_exit() {
 # The trap keeps the signal's own name, so the record above can name it (issue #755). `HUP` is trapped beside `INT` and
 # `TERM`: a terminal or a harness that goes away sends it, and a signal the run does not trap kills the shell before any
 # trap runs — the item kept its in-progress label, the state recorded no stop, and the next pre-screen excluded the item.
-on_signal() { interrupted=1; signal_taken="$2"; exit "$1"; }
+# A signal that arrives while `on_exit` is running returns instead of re-entering it: the trap writes the record last, and
+# a second `exit` would abort it before the stop, the unpick and the unlock (a terminal teardown can send `HUP`, then
+# `TERM`). `QUIT`, `USR1`, `USR2` and `ALRM` stay untrapped — each is either a run a person ends on purpose or a clock the
+# host sends, and the gap this change closes is the one a vanished terminal leaves.
+on_signal() { [ "$interrupted" -eq 1 ] && return 0; interrupted=1; signal_taken="$2"; exit "$1"; }
 trap on_exit EXIT
 trap 'on_signal 129 HUP' HUP
 trap 'on_signal 130 INT' INT

@@ -47,12 +47,15 @@ carries the model; this file is how to read it and what to do next.
 
 ## The per-role split is the engine's own
 
-`--json`'s `byRole` and the `Per session role` table charge each session to the role **the prompt file's name gives
-it**, exactly as `child_role` (`tools/loop/run.sh`) resolves that child — `*-tail*` → `worker-tail`, `*pre-gate*` →
-`reviewer-pre-gate`, `*gate*` → `worker-gate`, `*round2*` → `worker-rework`, `reviewer-*` → `reviewer`, `worker-*` →
-`worker`, in that order — because the run hands every child its prompt path (`run_child`) and that path is the
-session's first user message. So the roles the engine starts are the rows a model decision can be taken from: over
-this archive the same 730 sessions read `worker` 444 / `reviewer` 286 under the two-value rule, and `worker` 256 ·
+`--json`'s `byRole` and the `Per session role` table charge each session to the role **the name of its prompt `.md`
+path gives it**, exactly as `child_role` (`tools/loop/run.sh`) resolves that child — `*-tail*` → `worker-tail`,
+`*pre-gate*` → `reviewer-pre-gate`, `*gate*` → `worker-gate`, `*round2*` → `worker-rework`, `reviewer-*` → `reviewer`,
+`worker-*` → `worker`, in that order — because the run hands every child its prompt path (`run_child` writes
+`*-prompt.md`) and that path is the session's first user message. A first user message in any other form — prompt
+text, or a path whose name does not end `.md` — keeps the older reading of its words (a `reviewer` word, else
+`worker`); the run renders no other form. So the roles the engine starts are the rows a model decision can be taken
+from: over this archive the same 730 sessions read `worker` 444 / `reviewer` 286 under the two-value rule, and
+`worker` 256 ·
 `worker-rework` 110 · `worker-tail` 46 · `worker-gate` 32 · `reviewer` 264 · `reviewer-pre-gate` 22 under it, at an
 unchanged total. The `roles` an item's record carries (`tools/loop/state.sh`, three names, written when the item
 closed) is a different reading with its own requirement, and is never this one.
@@ -105,6 +108,7 @@ changes the loop's contract and owes a case in `tools/loop-selftest.sh` plus the
 ## Extending it
 
 Keep the shape: a section added to the report is a section whose number a reader will act on, so add the
-matching case to `tools/loop-spend-selftest.sh` first (the fixture is two items, a worker session with a
-repeated read and a gate call, and a reviewer session — every expected value there is arithmetic). A new
+matching case to `tools/loop-spend-selftest.sh` first (the fixtures are three item directories — a worker session
+with a repeated read and a gate call, a reviewer session, and one session per role across the six `child_role`
+names, plus the prompt forms that name no role path — and every expected value there is arithmetic). A new
 `LOOP-SPEND-<NAME>` line is the contract for anything quoting the tool; a table is for a person.

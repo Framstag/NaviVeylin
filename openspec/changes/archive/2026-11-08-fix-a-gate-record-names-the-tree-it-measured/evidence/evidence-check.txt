@@ -1,4 +1,4 @@
-# evidence-check on the change, 2026-11-08T07:35:54Z
+# evidence-check on the change, 2026-11-08T07:45:42Z
 ok   C1 §references: 16 checked, 1 exempted as archived pointers
 ok   C2 test tallies: 0 pairs confirmed, 2 exempted (not retained), 0 unparsable, 0 drift
 ok   C3 /tmp pointers: none cited

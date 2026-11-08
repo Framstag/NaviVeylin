@@ -89,3 +89,5 @@ $ tools/check-todo-references.sh
 check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
 check-todo-references: 66 citation(s) resolve through the recorded table; 10137 file(s) excluded by the allowlist above
 2026-11-07T23:54:29Z
+
+— correction (2026-11-08, evidence/doc-checks-round3.log): the body figures in the line above — "from 438 to 669 bytes" — are not this requirement body's length under either ruler. The two bodies measure 327 characters / 331 bytes at the base and 448 / 452 now (the four commands in evidence/doc-checks-round3.log), and the validator's own count for the shipped spec is 36 warnings, none of them requirements[5] — the base's 36 is the count recorded in the line above.

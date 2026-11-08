@@ -1,7 +1,8 @@
 # The gate's one failing step, and why this change does not answer for it
 
-The gate ran twice over this change's tree — once by the gate child of round 1 and once by the correction round's
-own session (`evidence/gate-round2.log`) — and both tallied the same. The gate child's own line — carried verbatim by
+The gate ran three times over this change's tree — the gate child of round 1, the first correction round's
+own session (`evidence/gate-round2.log`) and this round's own session (`evidence/gate-round3.log`) — and all three
+tallied the same. The gate child's own line — carried verbatim by
 the tail report and copied here with the step's output as `evidence/check-rule-routes-gate-step.log` — reads
 `tests=953 failures=0 errors=1`, failing: `tools/check-rule-routes.sh`, and this tally is not retained as one JUnit XML (the gate is a shell suite whose aggregate is the sum of the per-step prints `gate.log` lists one by one, of which the failing step carries no case at all). The 953 counted cases carry no failure; the one error is the step named below.
 
@@ -63,7 +64,13 @@ started, and its record is copied here as `evidence/check-rule-routes-red-before
 The gate's own print after the change is the six lines above with the same `6 rule(s) are reached by no glob`
 summary (`evidence/check-rule-routes-gate-step.log`), and the first process's pre-gate measurement of the same four
 check commands ends with that same summary (`evidence/doc-checks.log`). The correction round's gate prints the same six
-lines and the same summary (`evidence/gate-round2.log`). Red before, red after, same six rules, same inputs.
+lines and the same summary (`evidence/gate-round2.log`), and this round's gate — run once on the tree as it stands
+after the round-2 finding was applied — prints them again (`evidence/check-rule-routes-gate-step-round3.log`,
+`evidence/gate-round3.log`) with the same `6 rule(s) are reached by no glob` summary and the same tally the gate child
+read — `tests=953 failures=0 errors=1`, a shell-suite sum not retained as one JUnit XML. The correction's diff adds no path to this check's inputs: it touches
+`openspec/specs/agent-issue-loop/spec.md` and the change's own archive directory, neither of which this check reads,
+and a grep of the whole diff for `**Rule` still returns zero matches. Red before, red after, same six rules, same
+inputs.
 
 ## The waiver
 

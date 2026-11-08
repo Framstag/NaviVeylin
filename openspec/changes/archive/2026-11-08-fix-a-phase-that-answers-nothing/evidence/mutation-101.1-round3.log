@@ -1,0 +1,8 @@
+loop-mutations: selected 1 of 287 records (labels: 101.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.76T5s9
+2026-11-08T00:04:16Z
+RED    101.1  run#aPhaseThatAnswersNothingIsThatPhasesFailure   (the reading that asks a phase whose report carries no closing line once more, so a child that exits 0 and answers nothing is read as the item's own tree (issue #810))
+       2026-11-08T00:04:06Z — and is asked once more when its answer is not an answer: expected '1', got '0'
+restore 101.1 run#aPhaseThatAnswersNothingIsThatPhasesFailure green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

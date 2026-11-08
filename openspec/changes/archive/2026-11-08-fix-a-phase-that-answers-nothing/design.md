@@ -18,8 +18,9 @@ the path asks whether the phase answered at all:
 - `head_now` differs from the base, because the change child's tree was committed at the diff, so the "nothing was
   committed" arm declines and the "no archived change appears in the run's diff" arm fires (`run.sh:2541`).
 
-Item #755 is that path with its numbers: exit 0, a 0-byte `worker-gate-report.md`, `11 m 49 s` and `13.0 Mtok` charged,
-the record naming the item's tree. Two other shapes reach the same arm through the same silence — a child killed
+Item #755 is that path with its numbers: exit 0, a 0-byte `worker-gate-report.md`, `11 m 49 s` and `13.0 Mtok` charged —
+the two figures `#755`'s tracker text and the run's state record carry, and no command in this change's record prints
+them — the record naming the item's tree. Two other shapes reach the same arm through the same silence — a child killed
 mid-report, and a report written to a path the run does not read — so the mechanism is the missing reading, not the
 empty file.
 

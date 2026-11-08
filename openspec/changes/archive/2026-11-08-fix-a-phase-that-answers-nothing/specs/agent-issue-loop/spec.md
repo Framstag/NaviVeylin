@@ -5,9 +5,8 @@
 The run SHALL determine whether an item closed from artifacts it reads itself — the working tree, the
 change's archive and the gate's evidence — and SHALL NOT accept an agent's claim of success. The tree's
 own state SHALL be read as soon as the run can read it, and before any child the reading would make
-pointless is started. Each phase's own report SHALL be read as that phase's answer: a phase whose child
-exits 0 and leaves no answer is a failed phase, and the reason recorded for the item SHALL name that phase
-rather than the state of the item's tree.
+pointless is started. Each phase's own report SHALL be read as that phase's answer, and a phase whose
+child answers nothing is a failed phase.
 
 #### Scenario: A claim without a commit is blocked
 

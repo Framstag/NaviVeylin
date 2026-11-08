@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/check-rule-routes.sh" tests="0" failures="0" errors="0" time="2">
-  <system-out>check-rule-routes: every glob matches the tree and all 585 named rule(s) are reached</system-out>
-</testsuite>

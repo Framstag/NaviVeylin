@@ -25,10 +25,17 @@
       `TEST-NavigationScreenActionsTest-green-after-restore.xml` (`tests="13" failures="0"`), falsified by dropping
       *end navigation* from the factory (`TEST-NavigationScreenActionsTest-revert-check-end-action-mutation.xml`,
       `failures="1"`: `expected:<4> but was:<3>`); the case cannot compile at the base (`red-on-HEAD.log`).
+      Re-proven on the finalize tree (merged and corrected): `revert-check-finalize-mutation.log` (`tests="13"
+      failures="1"`, `expected:<4> but was:<3>`) and the restored forced green `revert-check-finalize-green.log`
+      (`tests="13" failures="0"`, `2026-11-08T19:17:57.818Z`).
 - [ ] 3.2 On the AAOS AVD: plan a route, change its destination from the strip, then end the session — the host
       shows the root screen and the trip updates stop. **NOT TAKEN in this pass: no device is attached**
       (`adb devices` lists none), so this change is host-verified only; recorded as the blocker rather than faked.
-- [x] 3.3 The gate the delta owes — run by the gate child that follows this diff: the worker's Phase D defers the
-      gate, so this worker ran none and the plan's one step is
-      `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache`. That child ran it and it passed; its full
-      output is `evidence/gate.log` in this change directory.
+- [x] 3.3 The gate the delta owes — the plan's one step is
+      `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache`. Round 1 refused the item because the archived
+      record named a tree the review did not: `LOOP-GATE-TREE: head=d735b938 diff=5288eb2f` against the reviewed
+      `head=f4cc5c7e diff=6177dd9d`. The finalize gate re-ran on the merged tree against `--base main`:
+      `LOOP-GATE-TREE: head=f5153888 diff=39a1a376` and `LOOP-GATE: tests=41 failures=0 errors=0`; its full output
+      is `evidence/gate.log` and the changed class's tally `evidence/gate-NavigationScreenActionsTest.xml`
+      (`tests="13" failures="0"`, `2026-11-08T19:19:14.805Z`). The earlier record measured a different tree and is
+      not reused.

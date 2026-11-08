@@ -8,8 +8,8 @@ The engine SHALL expose navigation state — active/inactive, current step and i
 distance, arrival estimate, current and maximum speed, position and bearing, lane guidance, current
 road, route geometry, destination identity, vehicle profile and the in-flight route calculation
 including its progress — as a single observable state, so
-every surface renders the same navigation session. The state's step list SHALL be part of that session from its
-start: a start SHALL publish the steps of the route it started on, before any position update.
+every surface renders the same navigation session. The state's step list SHALL be part of that session
+from its start.
 
 #### Scenario: Position update reaches both surfaces
 

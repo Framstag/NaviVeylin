@@ -14,14 +14,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * The seam the car session's two presence publishes run through (spec:
- * `car-session-presence` — Session start is published / Session end is published, and the publish
- * is one host-free seam).
+ * The lifecycle-specific seams the car session's two presence publishes run through (spec:
+ * `car-session-presence` — Session start is published / Session end is published, and the
+ * lifecycle callbacks select matching presence-publish seams).
  *
- * [NavigationSession] needs a host-provided `CarContext` and cannot be constructed in Robolectric,
- * so its lifecycle callbacks are unreachable from a unit case; the seam they call carries the
- * direction each callback publishes, and these cases assert it host-free — the same pattern as
- * [SessionEndArrivalDecisionTest] and [SessionHostGateTest].
+ * [NavigationSession] needs a host-provided `CarContext` and cannot be constructed in Robolectric.
+ * The runtime cases therefore drive lifecycle-specific host-free seams, while one source-level case
+ * binds the production `onStart` and `onDestroy` callbacks to the matching seam. Together they catch
+ * both a seam with the wrong direction and swapped callback wiring.
  *
  * Robolectric is required because a rejection records through `android.util.Log`.
  */
@@ -54,10 +54,34 @@ class SessionPresencePublishTest {
     }
 
     @Test
+    fun sessionCallbacksSelectMatchingPublishDirection() {
+        val source = File("src/main/java/com/naviveylin/auto/NavigationSession.kt").readText()
+        val startCallback = callbackBody(source, "onStart")
+        val destroyCallback = callbackBody(source, "onDestroy")
+
+        assertTrue(
+            "the onStart callback selects the live publish",
+            startCallback.contains("publishCarSessionPresenceOnStart(presence = ::carSessionPresence)")
+        )
+        assertFalse(
+            "the onStart callback does not select the clearing publish",
+            startCallback.contains("publishCarSessionPresenceOnDestroy(presence = ::carSessionPresence)")
+        )
+        assertTrue(
+            "the onDestroy callback selects the clearing publish",
+            destroyCallback.contains("publishCarSessionPresenceOnDestroy(presence = ::carSessionPresence)")
+        )
+        assertFalse(
+            "the onDestroy callback does not select the live publish",
+            destroyCallback.contains("publishCarSessionPresenceOnStart(presence = ::carSessionPresence)")
+        )
+    }
+
+    @Test
     fun sessionStartPublishesLive() {
         val presence = FakePresence()
 
-        val landed = publishCarSessionPresence(presence = { presence }, live = true)
+        val landed = publishCarSessionPresenceOnStart(presence = { presence })
 
         assertTrue("the start publish landed", landed)
         assertTrue("a started session is published live", presence.active.value)
@@ -68,7 +92,7 @@ class SessionPresencePublishTest {
         val presence = FakePresence()
         presence.setActive(true)
 
-        val landed = publishCarSessionPresence(presence = { presence }, live = false)
+        val landed = publishCarSessionPresenceOnDestroy(presence = { presence })
 
         assertTrue("the end publish landed", landed)
         assertFalse("an ended session leaves no stale signal", presence.active.value)
@@ -78,7 +102,7 @@ class SessionPresencePublishTest {
     fun aFaultingPublishIsConfinedAndNamed() {
         val presence = FakePresence(IllegalStateException("publish failed"))
 
-        val landed = publishCarSessionPresence(presence = { presence }, live = true)
+        val landed = publishCarSessionPresenceOnStart(presence = { presence })
 
         assertFalse("a rejected publish must not report success", landed)
         assertTrue(
@@ -93,7 +117,7 @@ class SessionPresencePublishTest {
     fun clearingAFaultingPublishIsNamedForTheClear() {
         val presence = FakePresence(IllegalStateException("clear failed"))
 
-        val landed = publishCarSessionPresence(presence = { presence }, live = false)
+        val landed = publishCarSessionPresenceOnDestroy(presence = { presence })
 
         assertFalse(landed)
         assertTrue(
@@ -102,5 +126,24 @@ class SessionPresencePublishTest {
                 it.contains("clear car session presence rejected:")
             }
         )
+    }
+
+    /** The body of one lifecycle callback in the production session source. */
+    private fun callbackBody(source: String, callback: String): String {
+        val marker = "override fun $callback(owner: LifecycleOwner) {"
+        val start = source.indexOf(marker)
+        assertTrue("production source has the $callback callback", start >= 0)
+        val open = source.indexOf('{', start)
+        var depth = 0
+        for (index in open until source.length) {
+            when (source[index]) {
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) return source.substring(open + 1, index)
+                }
+            }
+        }
+        throw AssertionError("production source never closes the $callback callback")
     }
 }

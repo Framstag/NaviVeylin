@@ -12,7 +12,6 @@ import com.naviveylin.core.EngineDispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,10 +20,11 @@ import org.robolectric.Shadows.shadowOf
 import com.naviveylin.test.engineUnderTest
 
 /**
- * Verifies the phone navigation engine's reroute-restart state handling
- * (spec: auto/navigation-view — "Distance correct after reroute", next-turn-overlay): starting
- * navigation on a new route clears the previous route's steps, and the live step-index lookup
- * advances monotonically through repeated manoeuvres.
+ * Verifies the phone navigation engine's start-state and step-index handling
+ * (spec: navigation-engine — "One navigation state shared by all surfaces"; auto/navigation-view —
+ * "Distance correct after reroute", next-turn-overlay): a start publishes the steps of the route it
+ * started on and no step of the route before it, and the live step-index lookup advances
+ * monotonically through repeated manoeuvres.
  *
  * Default Robolectric sandbox (no @Config, no @GraphicsMode) per the AGENTS.md
  * "JNI stub for unit tests" classloader rule — this class instantiates
@@ -73,6 +73,11 @@ class NavigationEngineStepIndexTest {
         distance = 1000.0
     }
 
+    /** The same entry carrying the manoeuvres the calculation published, as a live route does. */
+    private fun routeEntryWithSteps(vararg steps: RouteStep) = routeEntry().apply {
+        this.steps = arrayOf(*steps)
+    }
+
     /** A left turn at [distanceFromStart], so the live step carries a stable identity. */
     private fun step(distanceFromStart: Double = 100.0) = RouteStep().apply {
         kind = RouteStep.Kind.TURN
@@ -97,11 +102,35 @@ class NavigationEngineStepIndexTest {
             vm.state.value.steps.isNotEmpty() && vm.state.value.nextStep != null
         }
 
-        // A reroute restart starts a fresh engine — stale steps must not survive.
-        vm.start(routeEntry(), Vehicle.CAR)
+        // A reroute restart starts a fresh engine — no stale step survives, and the steps the new route
+        // carries are listed from the start (spec: navigation-engine — One navigation state shared by
+        // all surfaces).
+        vm.start(routeEntryWithSteps(step(700.0), step(950.0)), Vehicle.CAR)
 
-        assertTrue(vm.state.value.steps.isEmpty())
-        assertNull(vm.state.value.nextStep)
+        assertEquals(
+            listOf(700.0, 950.0),
+            vm.state.value.steps.map { it.distanceFromStart }
+        )
+        assertEquals(0, vm.state.value.currentStepIndex)
+    }
+
+    @Test
+    fun startNavigation_publishesTheRoutesStepsBeforeAnyPositionUpdate() {
+        val client = FakeOSMScoutClient().apply {
+            routeToDeliver = routeEntryWithSteps(step(100.0), step(500.0), step(900.0))
+        }
+        val vm = buildViewModel(client)
+
+        vm.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
+        awaitState { vm.state.value.isNavigating }
+
+        // No position has been delivered, so the native guidance dispatch has published no list: the steps
+        // the started route carries are the only ones a surface can list (spec: navigation-engine — One
+        // navigation state shared by all surfaces).
+        assertEquals(
+            listOf(100.0, 500.0, 900.0),
+            vm.state.value.steps.map { it.distanceFromStart }
+        )
         assertEquals(0, vm.state.value.currentStepIndex)
     }
 

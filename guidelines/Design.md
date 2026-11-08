@@ -94,10 +94,12 @@ full-screen sheet, a details sheet or a native function are procedure and live i
   execution time, never snapshotted into queued work.
 - **Rule: platform-object side effects live in `DisposableEffect`, not the ViewModel** Platform-object side effects (window refs, keep-screen-on) live in
   `DisposableEffect`, not the ViewModel.
-- **Progress and wall-clock state start at the invariant, not at the data-class default** (§40.61): initialise
-  a progress state to "0 % travelled" (`remainingDistance = totalDistance`) rather than the field default,
-  and give a state machine with wall-clock state a "never set" sentinel plus an explicit first-event branch —
-  otherwise the first tick reads a plausible-looking zero that was never measured.
+- **Progress, wall-clock and list state start at the invariant, not at the data-class default** (§40.61):
+  initialise a progress state to "0 % travelled" (`remainingDistance = totalDistance`) rather than the field
+  default, seed a session's step list from the route it started on (`routeEntry.steps`) rather than leaving the
+  list's empty default standing until the first live dispatch arrives (spec `navigation-engine` — One navigation
+  state shared by all surfaces), and give a state machine with wall-clock state a "never set" sentinel plus an
+  explicit first-event branch — otherwise the first tick reads a plausible-looking zero that was never measured.
 
 ## 4. Threading
 

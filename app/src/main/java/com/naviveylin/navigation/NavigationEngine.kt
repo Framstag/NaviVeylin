@@ -415,10 +415,12 @@ class NavigationEngine @Inject constructor(
         _state.update { it.copy(
             isNavigating = true,
             currentStepIndex = 0,
-            // Clear the previous route's steps (reroute restart): the old route's
-            // last maneuver must not render over the new route until the engine
-            // emits its first instruction list.
-            steps = emptyList(),
+            // The steps of the route this start was handed, from its start: the native guidance
+            // dispatch publishes the live list only with a position update, so the field's default
+            // would leave a parked session with nothing to render until the vehicle moves (spec:
+            // navigation-engine — One navigation state shared by all surfaces). The first dispatch
+            // replaces this seed, so no step of a previous route survives a reroute restart.
+            steps = routeEntry.steps?.toList() ?: emptyList(),
             nextStep = null,
             totalDistance = totalDistance,
             // Progress starts at 0%: remaining distance equals the total until the

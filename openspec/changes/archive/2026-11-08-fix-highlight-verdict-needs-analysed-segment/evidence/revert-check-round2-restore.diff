@@ -1,0 +1,25 @@
+diff --git a/tools/measure-highlight.py b/tools/measure-highlight.py
+index 4bd4ffb5..f2c6b75e 100644
+--- a/tools/measure-highlight.py
++++ b/tools/measure-highlight.py
+@@ -111,15 +111,16 @@ def find_casing(pixels, width, height, target):
+     return {"bbox": [x0, x1, y0, y1], "count": count}
+ 
+ 
+-# The same-moment diagnostics: the app logs one `segment focus:` line per analysed step
++# The same-moment diagnostics: the app logs one `MapCanvasVM: segment focus:` line per analysed step
+ # (`MapCanvasViewModelRoute.logSegmentFit`, the call site at `:432`) and the band on it is the card it measured in
+ # that moment. The line exists only when a step was analysed, so its presence is what
+ # tells the detector the frame is in the state it assumes a verdict for — and its band is
+-# the band the shot has to be measured against (issue #90).
+-FOCUS_BAND = re.compile(r"segment focus:.*?\bband=\[0,(\d+)\]")
++# the band the shot has to be measured against (issue #90). The literal tag matters: a
++# lookalike `segment focus:` line under another tag does not establish the app's state.
++FOCUS_BAND = re.compile(r"MapCanvasVM: segment focus:.*?\bband=\[0,(\d+)\]")
+ 
+ def segment_focus_band(path):
+-    """Band bottom of the last `segment focus:` line in a same-moment capture, or None."""
++    """Band bottom of the last `MapCanvasVM: segment focus:` line, or None."""
+     band = None
+     try:
+         with open(path, "r", encoding="utf-8", errors="replace") as handle:

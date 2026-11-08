@@ -1,0 +1,3 @@
+<testsuite name="bash tools/measure-highlight-selftest.sh" tests="12" failures="1" errors="0" timestamp="2026-11-08T12:02:36Z">
+  <testcase name="wrong-tag"><failure>measured output does not carry &quot;highlight&quot;: null: &quot;inside&quot;: true, exit 0</failure></testcase>
+</testsuite>

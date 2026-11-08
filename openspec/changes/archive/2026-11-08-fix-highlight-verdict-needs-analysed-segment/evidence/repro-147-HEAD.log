@@ -1,0 +1,22 @@
+== date: 2026-11-08T11:34:11Z
+== python: Python 3.14.9  PIL: 13.0.0
+== case: no-route glyph (no card measured, band = canvas)
+highlight (dark): bbox=[619, 628, 413, 734] px=18
+canvas=1080x2400 band=[0,2400] margin=126
+verdict: inside
+   exit=0
+== case: no-route glyph with a measured card (band [0,2164])
+highlight (dark): bbox=[619, 628, 413, 734] px=18
+canvas=1080x2400 band=[0,2164] margin=126
+verdict: inside
+   exit=0
+== case: 9 px cap (smallest real highlight)
+highlight (dark): bbox=[496, 504, 898, 902] px=45
+canvas=1080x2400 band=[0,2164] margin=126
+verdict: inside
+   exit=0
+== case: 8x201 stroke (a real highlight)
+highlight (dark): bbox=[300, 308, 900, 1100] px=1809
+canvas=1080x2400 band=[0,2164] margin=126
+verdict: inside
+   exit=0

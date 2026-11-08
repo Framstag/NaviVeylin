@@ -1,0 +1,8 @@
+mutation: FOCUS_BAND literal `MapCanvasVM: segment focus:` prefix removed
+red timestamp=2026-11-08T12:03:50Z
+measure-highlight selftest: 11 passed, 1 failed
+FAIL wrong-tag — measured output does not carry "highlight": null: {"presentation": "dark", "bbox": [10, 18, 5, 15], "highlight_px": 18, "band": [0, 15], "clipped": [], "inside": true}; exit=0
+restore=exact
+green timestamp=2026-11-08T12:03:53Z
+measure-highlight selftest: 12 passed, 0 failed
+exit=0

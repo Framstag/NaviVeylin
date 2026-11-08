@@ -15,8 +15,13 @@ unique to the highlight (`RouteSegmentHighlightOverlay`: day `#00454F`, dark
 (the canvas minus the overlay card).
 
 Usage:
-  measure-highlight.py SHOT.png [--dump XML] [--band-bottom N] [--margin N] [--json]
+  measure-highlight.py SHOT.png --state LOG [--dump XML] [--band-bottom N]
+                       [--margin N] [--json]
 
+  --state LOG       logcat capture of the same moment (`adb logcat -d`), which must
+                    carry the app's `MapCanvasVM: segment focus:` line — the only
+                    evidence that an analysed segment was on screen. Without it the
+                    tool refuses instead of reporting a verdict (issue #90)
   --dump XML        uiautomator dump of the same moment; the card top is derived
                     from the bottom-most node that spans the screen width
   --band-bottom N   card top in px (overrides --dump)
@@ -24,11 +29,14 @@ Usage:
   --json            machine-readable single line
 
 Exit code 0 when the highlight is inside the band, 1 when it is clipped, 2 when
-no highlight was found (e.g. no step analysed).
+no highlight was found (e.g. no step analysed) **and** when the same-moment state
+does not establish one — a refusal, printed as `verdict: REFUSED (<reason>)` with
+`"refused": "<reason>"` in `--json`, and never as `inside` or `clipped`.
 """
 
 import argparse
 import json
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -52,6 +60,8 @@ TOLERANCE = 4
 # applied to a row's longest run, so a run to the right of the highlight cannot drop the row
 # (TODO.md §169) — while a longer glyph or label run *is* that row's longest run, so it does
 # qualify the row and is counted (that is §147's false positive, which this rule leaves open).
+# What stops such a row being reported is the same-moment state below: a frame whose diagnostics
+# carry no analysed-segment line is refused before any row is read (issue #90).
 MIN_RUN_PX = 8
 
 
@@ -100,6 +110,44 @@ def find_casing(pixels, width, height, target):
         return None
     return {"bbox": [x0, x1, y0, y1], "count": count}
 
+
+# The same-moment diagnostics: the app logs one `MapCanvasVM: segment focus:` line per analysed step
+# (`MapCanvasViewModelRoute.logSegmentFit`, the call site at `:432`) and the band on it is the card it measured in
+# that moment. The line exists only when a step was analysed, so its presence is what
+# tells the detector the frame is in the state it assumes a verdict for — and its band is
+# the band the shot has to be measured against (issue #90). The literal tag matters: a
+# lookalike `segment focus:` line under another tag does not establish the app's state.
+FOCUS_BAND = re.compile(r"MapCanvasVM: segment focus:.*?\bband=\[0,(\d+)\]")
+
+def segment_focus_band(path):
+    """Band bottom of the last `MapCanvasVM: segment focus:` line, or None."""
+    band = None
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                match = FOCUS_BAND.search(line)
+                if match:
+                    band = int(match.group(1))
+    except OSError:
+        return None
+    return band
+
+def refused_reason(state_path, band_bottom, height):
+    """Why the same-moment state is not established, or None when it is.
+
+    A reason is decided before the pixels are read: a refused frame prints no box and no
+    verdict, so a colour coincidence can never be reported as a measurement.
+    """
+    if not state_path or not os.path.exists(state_path):
+        return "no-state"
+    band = segment_focus_band(state_path)
+    if band is None:
+        return "no-focus-line"
+    if band >= height:
+        return "no-card"
+    if band != band_bottom:
+        return "band-disagrees"
+    return None
 
 def card_top_from_dump(path):
     """Top of the bottom-most full-width view with real height = the overlay card."""
@@ -157,6 +205,7 @@ def verdict(width, height, band_bottom, box, margin):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("image")
+    parser.add_argument("--state")
     parser.add_argument("--dump")
     parser.add_argument("--band-bottom", type=int, default=0)
     parser.add_argument("--margin", type=int, default=0)
@@ -165,6 +214,18 @@ def main():
 
     band_bottom = args.band_bottom or (card_top_from_dump(args.dump) if args.dump else 0)
     width, height, band_bottom, boxes = measure(args.image, band_bottom)
+    refused = refused_reason(args.state, band_bottom, height)
+    if refused:
+        if args.json:
+            print(json.dumps({"image": args.image, "highlight": None,
+                              "refused": refused,
+                              "image_size": [width, height],
+                              "band": [0, band_bottom],
+                              "margin_px": args.margin}))
+        else:
+            print("verdict: REFUSED (%s)" % refused)
+            print("canvas=%dx%d band=[0,%d] margin=%d" % (width, height, band_bottom, args.margin))
+        return 2
     if not boxes:
         print(json.dumps({"image": args.image, "highlight": None,
                           "image_size": [width, height], "band_bottom": band_bottom}))

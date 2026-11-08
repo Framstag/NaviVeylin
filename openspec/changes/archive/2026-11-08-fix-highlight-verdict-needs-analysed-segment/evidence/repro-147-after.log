@@ -1,0 +1,14 @@
+2026-11-08T11:35:40Z
+== after: no state (the issue's command)
+verdict: REFUSED (no-state)
+canvas=1080x2400 band=[0,2400] margin=126
+   exit=2
+== after: state whose band is the canvas bottom (the printed tell)
+verdict: REFUSED (no-card)
+canvas=1080x2400 band=[0,2400] margin=126
+   exit=2
+== after: state with a measured card, glyph pair (this change leaves the extent open)
+highlight (dark): bbox=[619, 628, 413, 734] px=18
+canvas=1080x2400 band=[0,2164] margin=126
+verdict: inside
+   exit=0

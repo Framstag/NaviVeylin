@@ -1,0 +1,13 @@
+<testsuite name="bash tools/measure-highlight-selftest.sh" tests="11" failures="11" errors="0" timestamp="2026-11-08T11:34:56Z">
+  <testcase name="no-state"><failure>exit 2 but no &#34;refused&#34;: HEAD prints verdict: inside</failure></testcase>
+  <testcase name="no-focus-line"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="no-card"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="band-disagrees"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="longest-run-not-last"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="longest-run-is-last"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="longest-run-per-row"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="single-run"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="short-only"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="two-short-runs"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+  <testcase name="behind-card"><failure>measure-highlight.py: error: unrecognized arguments: --state</failure></testcase>
+</testsuite>

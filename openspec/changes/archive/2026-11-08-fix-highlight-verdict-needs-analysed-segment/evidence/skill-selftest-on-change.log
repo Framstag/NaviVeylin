@@ -1,0 +1,4 @@
+ok   inside -> inside=true
+ok   behind-card -> inside=false
+ok   dot -> no highlight
+selftest FAIL=0

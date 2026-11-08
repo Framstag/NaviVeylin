@@ -52,7 +52,8 @@ subagent({agent: "delegate", cwd: "/home/tim/projects/NaviVeylin",
           task: "read .pi/logs/<check>/shot.png and describe the screen in words — no coordinates,
                  no numbers; write nothing, change nothing"})
   -> the answer is text; it goes into the evidence file (or the change's tasks.md as triage)
-python3 tools/measure-highlight.py "$D/shot.png" --dump "$D/ui.xml" --margin 126   <- the verdict
+adb logcat -d > "$D/state.log"   # the same moment: the app's `MapCanvasVM: segment focus:` line
+python3 tools/measure-highlight.py "$D/shot.png" --dump "$D/ui.xml" --state "$D/state.log" --margin 126   <- the verdict
 ```
 
 Why the shape, and the one rule behind it:
@@ -75,7 +76,9 @@ Why the shape, and the one rule behind it:
   text-only model receives a placeholder; in that case the workflow degrades to the measurement script alone,
   which answers *where* but not *what*.
 - **Look first, then measure** with `tools/measure-highlight.py`: the look is triage, the script's numbers and
-  exit code are the evidence (`pixel-check` skill, §11 below).
+  exit code are the evidence (`pixel-check` skill, §11 below). The script refuses — `verdict: REFUSED
+  (<reason>)`, exit 2 — when the same-moment diagnostics do not establish an analysed segment, so the dump, the
+  frame and the `segment focus:` line are captured together or not at all.
 
 ## 2. Common behavior
 

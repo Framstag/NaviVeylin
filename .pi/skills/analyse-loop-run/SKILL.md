@@ -172,8 +172,8 @@ Rules that keep the table worth reading:
   them).
 - **Contra** states the cost in the currency that decides the change: **size** (files touched, approximate lines
   added, and the share of the engine that is), **complexity** (a new phase, a new configuration key, a new state
-  field, a new child), **maintenance** (a case that must be added to `tools/loop-selftest.sh` /
-  `tools/loop-cases.sh`, a mutation in `tools/loop-mutations.sh`, a doc route, a line in `guidelines/`), and the
+  field, a new child), **maintenance** (a case that must be added to `tools/loop/tests/loop-selftest.sh` /
+  `tools/loop/tests/loop-cases.sh`, a mutation in `tools/loop/tests/loop-mutations.sh`, a doc route, a line in `guidelines/`), and the
   risk of the change misfiring in a run that is already long.
 - Anchor the size in measurement: the engine is **8 265 lines / 525 kB of shell** under `tools/loop/` (of which
   `run.sh` is 2 892 lines / 201 kB, `state.sh` 1 019, `lib.sh` 585, `report.sh` 476) plus a 628-line

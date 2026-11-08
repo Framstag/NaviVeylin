@@ -111,7 +111,7 @@ The checks' runner, the guards and the registry's `input` fields are unchanged �
 the producer's manifest is what proves that path exists, and the artifact carries the declared tree as it is
 declared.
 
-The proof is a **synthetic project** in the repository's fixtures (`tools/fixtures/foreign-project/`) — a
+The proof is a **synthetic project** in the repository's fixtures (`tools/tests/fixtures/foreign-project/`) — a
 different repository, a different allowlist, a different vocabulary — on which the whole toolchain runs,
 and a porting recipe (`PORTING.md`) whose every command is executed by that same check. Distribution is a
 copy per project; sharing the engines from one place stays deferred, and it stays cheap precisely because

@@ -258,7 +258,7 @@ builder and merge steps for a plain variant, `minify<Variant>WithR8` for a minif
   the `intermediates/dex/<variant>` tree the gate reads
 - **AND** the gate's action therefore sees a non-empty tree instead of failing with "No dex archives to scan"
 - **Case**: `dexGateGraph#mobileReleaseGateFollowsR8` and `dexGateGraph#automotiveReleaseGateFollowsR8`
-  (`tools/check-dex-gate-graph-selftest.sh`) — red on the merge-only dependency set, whose graph is the gate
+  (`tools/tests/check-dex-gate-graph-selftest.sh`) — red on the merge-only dependency set, whose graph is the gate
   alone (`:app:checkClientApiInDexAutomotiveRelease SKIPPED`, the reported `./gradlew release` failure);
   green with the producer named. The tree identity in the THEN is measured rather than asserted: one
   `find` after `:app:minifyAutomotiveReleaseWithR8` (`openspec/changes/archive/2026-10-28-fix-dex-gate-waits-for-r8/tasks.md`
@@ -270,7 +270,7 @@ builder and merge steps for a plain variant, `minify<Variant>WithR8` for a minif
 - **THEN** it holds `dexBuilder<Variant>` and the three merge steps, and no R8 task, because no such task exists
   for that variant
 - **Case**: `dexGateGraph#mobileDebugGateFollowsTheDexChain` and
-  `dexGateGraph#automotiveDebugGateFollowsTheDexChain` (`tools/check-dex-gate-graph-selftest.sh`) — the wiring
+  `dexGateGraph#automotiveDebugGateFollowsTheDexChain` (`tools/tests/check-dex-gate-graph-selftest.sh`) — the wiring
   that was already correct, asserted so a single shape cannot replace the other
 
 #### Scenario: The packaging graph holds the gate and its producer
@@ -279,5 +279,5 @@ builder and merge steps for a plain variant, `minify<Variant>WithR8` for a minif
 - **THEN** it holds both `checkClientApiInDex<Variant>` and `minify<Variant>WithR8`, so the command that builds a
   shippable artifact carries the guard and the dex it reads
 - **Case**: `dexGateGraph#mobileBundleFollowsTheGate` and `dexGateGraph#automotiveBundleFollowsTheGate`
-  (`tools/check-dex-gate-graph-selftest.sh`); `./gradlew release` green afterwards, both AABs written
+  (`tools/tests/check-dex-gate-graph-selftest.sh`); `./gradlew release` green afterwards, both AABs written
   (2026-10-28, `NaviVeylin release: 2026-10-28-2 (versionCode 107)`)

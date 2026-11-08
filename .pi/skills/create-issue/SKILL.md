@@ -10,7 +10,7 @@ check — and you supply the judgement: the claim, its kind, its area, and the a
 
 **Prerequisites.** `gh` authenticated as an allowlisted author (`gh auth status`), `jq` and a JDK ≥ 17 on
 `PATH` (the core runs as single-file Java). Nothing in this skill needs network access beyond the `gh` calls
-it makes; the self-test that covers it needs neither (`tools/issue-tooling-selftest.sh`, offline).
+it makes; the self-test that covers it needs neither (`tools/issues/tests/issue-tooling-selftest.sh`, offline).
 
 ## When to use it, and when not to
 

@@ -91,7 +91,7 @@ split.
   the submodule's raster leaf re-executed `syncSubmoduleIcons` → `mergeMobileDebugAssets` →
   `packageMobileDebugUnitTestForUnitTest` and the APK stopped carrying it, while an unchanged tree left the task
   `UP-TO-DATE` (7 s). The 2026-09-29 note came from deleting a file from a `Sync` task's *output*. Both halves
-  are cases (`tools/check-gate-artifacts-selftest.sh`).
+  are cases (`tools/tests/check-gate-artifacts-selftest.sh`).
 - One mutation per revert check: §40.12. Grep for a moved observable: §40.32 (`lastRenderMag` holds the raw
   scale now, `2^level`).
 - New native method: `native-bridge-signature-change` skill; two-`#ifdef` verification, `TODO.md` §40.47/§40.48.
@@ -157,8 +157,8 @@ split.
 
 Change `route-planning-session` spent nine review rounds on a pixel finding (`ki_processing_failures.log`) and
 found both real causes only after measuring. The detector is covered device-free by
-`bash tools/measure-highlight-selftest.sh` and by the older `.pi/skills/pixel-check/selftest.sh`
+`bash tools/tests/measure-highlight-selftest.sh` and by the older `.pi/skills/pixel-check/selftest.sh`
 (ImageMagick). Measured 2026-10-06 on a frame with no route: `px=18`, `band=[0,2400]`, `verdict: inside` —
 the look caught the colour coincidence (`TODO.md` §147). Since issue #90 that frame is refused instead: a
 verdict requires the app's same-moment `MapCanvasVM: segment focus:` line, and a capture without one prints
-`verdict: REFUSED (no-focus-line)`, exit 2 (harness case `no-focus-line`, `tools/measure-highlight-selftest.sh`).
+`verdict: REFUSED (no-focus-line)`, exit 2 (harness case `no-focus-line`, `tools/tests/measure-highlight-selftest.sh`).

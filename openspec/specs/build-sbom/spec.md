@@ -227,21 +227,21 @@ be refused when it asks for a JVM-only test run.
   holds no installed vcpkg tree
 - **THEN** the invocation SHALL configure (exit 0) and its graph SHALL hold no licence-asset, SBOM or native-SBOM
   task
-- **Case**: `buildGraph#aJvmOnlyTestRunNeedsNoNativeTree` (`tools/check-jvm-test-graph-selftest.sh`)
+- **Case**: `buildGraph#aJvmOnlyTestRunNeedsNoNativeTree` (`tools/tests/check-jvm-test-graph-selftest.sh`)
 
 #### Scenario: The property is refused for a packaging invocation
 
 - **WHEN** the JVM-only property is requested together with a task that packages the application or checks the
   licence policy
 - **THEN** the build SHALL fail before any task runs, naming the property and the packaging task it refused
-- **Case**: `buildGraph#aPackagingGraphRefusesTheProperty` (`tools/check-jvm-test-graph-selftest.sh`)
+- **Case**: `buildGraph#aPackagingGraphRefusesTheProperty` (`tools/tests/check-jvm-test-graph-selftest.sh`)
 
 #### Scenario: A missing tree fails its own task
 
 - **WHEN** the native SBOM task is requested without the JVM-only property in a tree that has no vcpkg status file
 - **THEN** the configuration SHALL succeed and the task SHALL fail naming the missing installed-status file, not
   as a task-creation failure
-- **Case**: `buildGraph#aMissingNativeTreeFailsItsOwnTask` (`tools/check-jvm-test-graph-selftest.sh`)
+- **Case**: `buildGraph#aMissingNativeTreeFailsItsOwnTask` (`tools/tests/check-jvm-test-graph-selftest.sh`)
 
 #### Scenario: The toggle is read like the other build switches
 

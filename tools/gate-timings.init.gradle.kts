@@ -5,7 +5,7 @@
 //     ./gradlew -I tools/gate-timings.init.gradle.kts <tasks…>
 // and written to <invocation directory>/build/gate-timings.json. Read it with
 // tools/gate-timing-report.sh; the report and this record are covered by
-// tools/gate-timings-selftest.sh (fixtures, no Gradle, no device).
+// tools/tests/gate-timings-selftest.sh (fixtures, no Gradle, no device).
 //
 // Threading: `onFinish` is called on the thread that finishes the task — Gradle may finish
 // tasks from several threads in a parallel build — so entries are collected in a concurrent

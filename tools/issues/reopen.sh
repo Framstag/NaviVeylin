@@ -133,7 +133,7 @@ if [ "$json" -eq 1 ]; then
       removed: ($removed | if . == "" then [] else split(" ") end)}'
 else
   # The settled value it removed is a clause of the same line rather than a line of its own: every existing
-  # reader matches the `reopened #N (occurrence X, ` prefix (`tools/sensor-cases.sh`), and a settled state that
+  # reader matches the `reopened #N (occurrence X, ` prefix (`tools/sensors/tests/sensor-cases.sh`), and a settled state that
   # went unmentioned is the defect this item is about.
   printf 'reopened #%s (occurrence %s, %s' "$number" "$occurrence" "$status_label"
   [ -z "$settled_removed" ] || printf ', removed %s' "$settled_removed"

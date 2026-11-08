@@ -1,0 +1,142 @@
+{
+  "comment": "The revert-checks of `stale-citation-resolution` as a runnable set: one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/issues/tests/resolve-stale-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. Every search is a single line, because the runner's replacement is literal and line-based. The transcript is the archived change's `evidence/revert-checks.md`.",
+  "case-cmd": "bash tools/issues/tests/resolve-stale-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "5.1",
+      "case": "classifier#fragmentIsNotACitation",
+      "file": "tools/issues/citations.awk",
+      "search": "    if (r ~ /[A-Za-z0-9_]/) continue",
+      "replace": "    if (0) continue",
+      "why": "the trailing-boundary check that keeps a token cut out of a longer one out of the citation set"
+    },
+    {
+      "label": "5.2",
+      "case": "classifier#bareHeaderIsNotAPath",
+      "file": "tools/issues/lib.sh",
+      "search": "    case \"$tok\" in */*) return 0 ;; *) return 1 ;; esac",
+      "replace": "    return 0",
+      "why": "the rule that a header is only a citation when it is written as a path"
+    },
+    {
+      "label": "5.3",
+      "case": "classifier#bareSourceNameResolvesBySuffix",
+      "file": "tools/issues/lib.sh",
+      "search": "      < <(awk -v t=\"$tok\" -v s=\"/$tok\" '$0 == t || substr($0, length($0) - length(s) + 1) == s' \"$idx\")",
+      "replace": "      < <(awk -v t=\"$tok\" '$0 == t' \"$idx\")",
+      "why": "the suffix test — a bare class-file name is a citation, not a bug"
+    },
+    {
+      "label": "5.4",
+      "case": "classifier#submodulePathResolves",
+      "file": "tools/issues/lib.sh",
+      "search": "    [ -d \"$sub\" ] || continue",
+      "replace": "    continue",
+      "why": "the submodule files joining the index, so a citation inside one resolves"
+    },
+    {
+      "label": "5.5",
+      "case": "resolver#markersSurviveTheRepair",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "    new_body=$(printf '%s\\n' \"$new_body\" | awk -v old=\"$tok\" -v new=\"$canon\" -v standalone=1 -f \"$here/rewrite.awk\")",
+      "replace": "    new_body=$(printf '%s\\n' \"$new_body\" | grep -v '^<!-- fingerprint:' | sed \"s|$tok|$canon|\")",
+      "why": "the repair editing the citation token in place, so the body's markers survive"
+    },
+    {
+      "label": "5.6",
+      "case": "resolver#ambiguityIsReportedNotRepaired",
+      "file": "tools/issues/lib.sh",
+      "search": "    [ \"$n\" -eq 1 ] && printf '%s\\n' \"$first\"",
+      "replace": "    [ \"$n\" -ge 1 ] && printf '%s\\n' \"$first\"",
+      "why": "an ambiguous citation being reported rather than resolved to the first candidate"
+    },
+    {
+      "label": "5.7",
+      "case": "resolver#unrepairableCitationIsReportedNotWritten",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      unresolved_items=$((unresolved_items + 1))",
+      "replace": "      bash \"$here/update.sh\" \"$number\" --status on-hold --comment \"unresolved citation \u2014 $park_marker\" >/dev/null || issues_die \"resolve-stale: could not park #$number\"; writes=$((writes + 2)); unresolved_items=$((unresolved_items + 1))", 
+      "why": "an unresolvable citation being reported and written for nowhere — a comment for it would put the verdict back on the item (#281)"
+    },
+    {
+      "label": "5.8",
+      "case": "resolver#personsHoldIsNotReopened",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  printf '%s' \"$1\" | jq -e --arg l \"$excluded_stale_label\" 'any(.[]; .name == $l)' >/dev/null 2>&1 && return 0",
+      "replace": "  return 0",
+      "why": "only a park this tool wrote is reversed — a mutation that claims every hold makes a person's own hold reopenable (#281, --revisit-parked)"
+    },
+    {
+      "label": "5.9",
+      "case": "prescreen#missingCitationIsReportedNotRefused",
+      "file": "tools/loop/prescreen.sh",
+      "search": "    absent_citation=$(stale_citations_of \"$title\" \"$body\" | head -1)",
+      "replace": "    absent_citation=\"\"",
+      "why": "the pre-screen naming the absent token it reports, through the shared classifier rather than a rule of its own"
+    },
+    {
+      "label": "5.10",
+      "case": "resolver#doubledPrefixIsCollapsed",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      if [ -n \"$collapsed\" ] && [ \"$(issues_citation_class \"$collapsed\")\" != \"absent\" ]; then",
+      "replace": "      if false; then",
+      "why": "the collapse of a citation that repeats its own directory, before the rename and symbol steps (#189)"
+    },
+    {
+      "label": "5.11",
+      "case": "resolver#ambiguityDoesNotConsumeTheBound",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  if [ -n \"$repairs\" ]; then",
+      "replace": "  if true; then",
+      "why": "the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)"
+    },
+    {
+      "label": "5.12",
+      "case": "resolver#basenameRepairLeavesALongerPathAlone",
+      "file": "tools/issues/rewrite.awk",
+      "search": "    if (l ~ /[A-Za-z0-9_.-]/ || (standalone && l == \"/\") || r ~ /[A-Za-z0-9_]/) {",
+      "replace": "    if (l ~ /[A-Za-z0-9_.-]/ || r ~ /[A-Za-z0-9_]/) {",
+      "why": "a basename repair refusing an occurrence that stands inside a longer path, so the two loops cannot cancel (#200)"
+    },
+    {
+      "label": "5.13",
+      "case": "resolver#repairWithoutAChangeIsNotReported",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      if [ \"$new_body\" = \"$body\" ]; then",
+      "replace": "      if false; then",
+      "why": "a repair counting only when the produced body differs from the input (#200)"
+    },
+    {
+      "label": "5.14",
+      "case": "resolver#repairIsVerifiedByReclassification",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "      if [ \"$(issues_citation_class \"$new\")\" = \"absent\" ]; then",
+      "replace": "      if false; then",
+      "why": "a repair counting only when its rewritten citation re-classifies as a path the tree holds (#200)"
+    },
+    {
+      "label": "5.15",
+      "case": "resolver#titleSuffixBesideItsCanonicalPathIsSettled",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  printf '%s\\n' \"$body_matrix\" | awk -F'\\t' -v t=\"$1\" '$2 == t { found = 1 } END { exit !found }'",
+      "replace": "  return 0",
+      "why": "a token the body does not carry being settled instead of rewritten into a no-op the item keeps being reported for (#226)"
+    },
+    {
+      "label": "5.16",
+      "case": "resolver#ambiguityLineNamesTheAmbiguity",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "elif (.ambiguous > 0) then \"AMBIGUOUS\"",
+      "replace": "elif (.ambiguous > 0) then \"repaired\"",
+      "why": "an item the ladder only found ambiguous being named as one it repaired, contradicting the summary that counts no write (#258)"
+    },
+    {
+      "label": "5.17",
+      "case": "resolver#cleanParkedItemIsReopened",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  if records_settled_state \"$body\"; then",
+      "replace": "  if true; then",
+      "why": "only an item whose body keeps a settled state being restored to it — a mutation that restores every reversal settles an item nobody wanted settled (#681)"
+    }
+  ]
+}

@@ -10,7 +10,7 @@ this area", "what may automated work touch" — and bodies are fetched only for 
 query.
 
 **Prerequisites.** `gh` authenticated as an allowlisted author, `jq`, a JDK ≥ 17 on `PATH`
-(`tools/issue-tooling-selftest.sh` runs the same surface offline).
+(`tools/issues/tests/issue-tooling-selftest.sh` runs the same surface offline).
 
 ## The call
 

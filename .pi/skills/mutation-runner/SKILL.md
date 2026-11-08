@@ -7,16 +7,16 @@ description: Runs a versioned set of shell-gate mutations — one per invariant,
 
 `.pi/skills/revert-check` owns the **rule**: one mutation per invariant, the mutation must actually land, the
 named case must fail for the right reason, restore, green again. This skill owns the **mechanism** for the
-gates that are shell self-tests rather than Gradle suites — `tools/issue-tooling-selftest.sh`,
-`tools/sensor-selftest.sh`, `tools/loop-selftest.sh`, `tools/check-portability-selftest.sh` — where there is
+gates that are shell self-tests rather than Gradle suites — `tools/issues/tests/issue-tooling-selftest.sh`,
+`tools/sensors/tests/sensor-selftest.sh`, `tools/loop/tests/loop-selftest.sh`, `tools/tests/check-portability-selftest.sh` — where there is
 no build cache to force and no JUnit XML to quote.
 
 ```bash
-tools/mutate.sh --mutations tools/portability-mutations.json              # the whole set
+tools/mutate.sh --mutations tools/tests/portability-mutations.json              # the whole set
 tools/mutate.sh --mutations <file> --only 5.1 5.2                         # while iterating
 tools/mutate.sh --mutations <file> --list                                 # labels, cases, reasons
 tools/mutate.sh --mutations <file> --out evidence/revert-checks.log       # transcript to a file as well
-tools/mutate-selftest.sh                                                  # the runner's own guards
+tools/tests/mutate-selftest.sh                                                  # the runner's own guards
 ```
 
 Exit `0` every selected mutation went red and its restore went green; `1` a problem (the four below); `2`
@@ -45,7 +45,7 @@ of a session's scratch directory.
 ```json
 {
   "comment": "what this set proves, and where its evidence is recorded",
-  "case-cmd": "bash tools/check-portability-selftest.sh --case {case}",
+  "case-cmd": "bash tools/tests/check-portability-selftest.sh --case {case}",
   "mutations": [
     { "label": "5.7", "case": "porting#everyCommandInTheRecipeRuns",
       "file": "PORTING.md",
@@ -103,7 +103,7 @@ search before adding the record tells you whether it is unique.
 ## References
 
 - `.pi/skills/revert-check/SKILL.md` — the rule this runner implements, including the Gradle form
-- `tools/mutate.sh`, `tools/mutate-selftest.sh`, `tools/fixtures/mutate/` — the runner and its own guards
-- `tools/portability-mutations.json` — a worked set (17 records: the portability invariants, one of them naming two cases, plus the value-set, exception, precondition, worktree-precondition, fixture-budget-default and foreign-base-branch ones)
+- `tools/mutate.sh`, `tools/tests/mutate-selftest.sh`, `tools/tests/fixtures/mutate/` — the runner and its own guards
+- `tools/tests/portability-mutations.json` — a worked set (17 records: the portability invariants, one of them naming two cases, plus the value-set, exception, precondition, worktree-precondition, fixture-budget-default and foreign-base-branch ones)
 - `openspec/changes/archive/2026-10-18-tooling-portability/evidence/revert-checks.md` — the transcript and the reasoning
 - `guidelines/Build.md` §4 — result evaluation; "a cached run is not a run"

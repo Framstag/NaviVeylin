@@ -9,21 +9,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The core's cases, run by {@code tools/issue-tooling-selftest.sh} (design D9). Each case is a named
+ * The core's cases, run by {@code tools/issues/tests/issue-tooling-selftest.sh} (design D9). Each case is a named
  * method-shaped entry: the name is the contract — a task names the case that proves it, and the revert
  * checks in `tasks.md` mutate the code until a named case goes red.
  *
  * Usage: {@code java -cp <classes> Cases [--list | <Case#name>]}
  *
  * Environment: {@code ISSUES_REPO_ROOT} (default: cwd), {@code ISSUES_FIXTURE_DIR} (default:
- * {@code <root>/tools/issues/fixtures}).
+ * {@code <root>/tools/issues/tests/fixtures}).
  */
 public final class Cases {
 
     private static final Path ROOT = Path.of(System.getenv().getOrDefault("ISSUES_REPO_ROOT", "."))
             .toAbsolutePath().normalize();
     private static final Path FIXTURES = Path.of(System.getenv().getOrDefault("ISSUES_FIXTURE_DIR",
-            ROOT.resolve("tools/issues/fixtures").toString())).toAbsolutePath().normalize();
+            ROOT.resolve("tools/issues/tests/fixtures").toString())).toAbsolutePath().normalize();
     private static final Path PROFILE = ROOT.resolve("tools/tooling.json");
     // The parser's subject is a file format, so the cases drive it over the committed fixtures. The live
     // backlog file is not part of this surface: it is what the migration removed, and a case that read it

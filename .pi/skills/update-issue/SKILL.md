@@ -8,7 +8,7 @@ description: Change an existing tracker issue's labels, its status label or its 
 Three editable fields, one call, and a refusal for anything outside the project's closed vocabulary.
 
 **Prerequisites.** `gh` authenticated as an allowlisted author, `jq`, a JDK ≥ 17 on `PATH`
-(`tools/issue-tooling-selftest.sh` runs the same surface offline).
+(`tools/issues/tests/issue-tooling-selftest.sh` runs the same surface offline).
 
 ## When to use it, and when not to
 

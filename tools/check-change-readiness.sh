@@ -128,7 +128,7 @@ check_change() { # <change dir> <prefix for the detail paths>
   fi
 
   # Each refusal is decided by its own flag and emitted by its own one-line call, so a mutation record can name
-  # the single line that stops it firing (`tools/check-change-readiness-mutations.json`).
+  # the single line that stops it firing (`tools/tests/check-change-readiness-mutations.json`).
   local decl_missing=0 decl_decision=0 decl_norm=""
   if [ -z "$decl_heading" ] || [ "${decl_line:-0}" = "0" ]; then decl_missing=1; fi
   if [ "$decl_missing" = 0 ]; then

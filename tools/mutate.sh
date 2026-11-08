@@ -26,7 +26,7 @@
 #
 #   {
 #     "comment": "what this set proves",
-#     "case-cmd": "bash tools/check-portability-selftest.sh --case {case}",
+#     "case-cmd": "bash tools/tests/check-portability-selftest.sh --case {case}",
 #     "mutations": [
 #       { "label": "5.1", "case": "portability#valueSetIsReadNotHardCoded",
 #         "file": "tools/check-portability.sh",

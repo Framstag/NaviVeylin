@@ -53,7 +53,7 @@ ALLOWLIST=(
   'openspec/specs/route-analysis/spec.md|provenance: names where an item came from'
   'openspec/specs/route-planning-session/spec.md|provenance: names where an item came from'
   'tools/check-todo-references.sh|the check itself: it names the file in order to look for it'
-  'tools/check-todo-references-selftest.sh|the fixtures of that check: the citations it must resolve and refuse live in it'
+  'tools/tests/check-todo-references-selftest.sh|the fixtures of that check: the citations it must resolve and refuse live in it'
   'tools/issues/import/todo-md.sh|the source adapter: the old record is its subject, not an instruction'
   'tools/issues/core/TodoAdapter.java|the adapter half of that grammar'
   'tools/issues/core/TodoSections.java|that grammar'

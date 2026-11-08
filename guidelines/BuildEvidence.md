@@ -94,7 +94,7 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   configurations are pruned"): `bash tools/prune-native-configs.sh --dry-run --skip tools app/.cxx`, then the
   same command without `--dry-run`. It keeps the newest N (default 2) configuration trees per build type; it
   refuses while a Gradle build is active and refuses a mis-scoped root; `--skip tools` leaves the host-tool
-  configurations alone. Device-free self-test: `bash tools/prune-native-configs-selftest.sh`.
+  configurations alone. Device-free self-test: `bash tools/tests/prune-native-configs-selftest.sh`.
 - **Rule: restoring a mutation re-creates a cached tree** — after a revert-check the source hash equals the
   state whose successful result is already cached, so the restored run answers `UP-TO-DATE` in seconds and the
   XML keeps the **previous** run's `timestamp`. Force it and check the `timestamp` against the wall clock (the

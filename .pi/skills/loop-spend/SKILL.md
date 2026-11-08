@@ -12,8 +12,8 @@ python3 tools/loop-spend.py                  # the tables (about 5 s on the 1.8 
 python3 tools/loop-spend.py --quiet          # only the LOOP-SPEND-* lines, for a prompt or a script
 python3 tools/loop-spend.py --since 2026-10-24 --top 0
 python3 tools/loop-spend.py --json           # one object, for a caller that does not parse tables
-bash tools/loop-spend-selftest.sh            # 27 cases on fixtures the test writes itself
-bash tools/loop-spend-selftest.sh --case spend#eachRoleTheEngineStartsIsChargedToItsOwnName
+bash tools/loop/tests/loop-spend-selftest.sh            # 27 cases on fixtures the test writes itself
+bash tools/loop/tests/loop-spend-selftest.sh --case spend#eachRoleTheEngineStartsIsChargedToItsOwnName
 ```
 
 A registry row watches the same number without being asked: `loop-spend` in `tools/sensors/sensors.json`
@@ -86,7 +86,7 @@ cost doubled). The per-day table and the per-item table are the two that hold th
 | split the worker session at its first gate | the 79%-after-gate tail restarts at 17 k instead of 100 k+ | the loop's phase structure, not a prompt |
 
 Order by effort: capping results and trimming the baseline are prompt/pipeline changes; the session split
-changes the loop's contract and owes a case in `tools/loop-selftest.sh` plus the falsification that
+changes the loop's contract and owes a case in `tools/loop/tests/loop-selftest.sh` plus the falsification that
 `revert-check` demands. A finding that survives here is filed as an item (`create-issue`), with the
 `LOOP-SPEND-*` lines as its evidence — the numbers are what make it actionable.
 
@@ -108,7 +108,7 @@ changes the loop's contract and owes a case in `tools/loop-selftest.sh` plus the
 ## Extending it
 
 Keep the shape: a section added to the report is a section whose number a reader will act on, so add the
-matching case to `tools/loop-spend-selftest.sh` first (the fixtures are three item directories — a worker session
+matching case to `tools/loop/tests/loop-spend-selftest.sh` first (the fixtures are three item directories — a worker session
 with a repeated read and a gate call, a reviewer session, and one session per role across the six `child_role`
 names, plus the prompt forms that name no role path — and every expected value there is arithmetic). A new
 `LOOP-SPEND-<NAME>` line is the contract for anything quoting the tool; a table is for a person.

@@ -44,8 +44,8 @@ handed its own inputs in stayed green while the production call site passed the 
 ## When the gate is a shell self-test, not Gradle
 
 Some invariants live in shell — the issue tooling (`tools/issues/**`), the agent loop (`tools/loop/**`) —
-and their gate is a self-test script rather than a suite (`tools/issue-tooling-selftest.sh`,
-`tools/loop-selftest.sh`). The rule is unchanged (**one mutation per invariant, the named case must fail for
+and their gate is a self-test script rather than a suite (`tools/issues/tests/issue-tooling-selftest.sh`,
+`tools/loop/tests/loop-selftest.sh`). The rule is unchanged (**one mutation per invariant, the named case must fail for
 the right reason, restore, it must pass again**); three mechanics differ:
 
 * there is no build cache to defeat — a shell case always executes, so the "forced re-run" step is the same
@@ -57,24 +57,24 @@ the right reason, restore, it must pass again**); three mechanics differ:
 * the case names are the self-test's case ids (`state#secondRunRefusesWithExit5`), so the task item quotes
   one id rather than an `--tests` filter.
 
-The mechanical form for the loop is **`tools/loop-mutations.sh`**: one command per mutation, red asserted,
+The mechanical form for the loop is **`tools/loop/tests/loop-mutations.sh`**: one command per mutation, red asserted,
 restore asserted, a `MUTATION-DID-NOT-APPLY` guard, and an EXIT trap that restores what it touched if the run
 is killed. `--list` prints the set; `--only <labels>` runs one; `--engine <copy>` runs against a copy (which
-is what its own self-test, `tools/loop-mutations-selftest.sh`, does to prove both guards and the restore);
+is what its own self-test, `tools/loop/tests/loop-mutations-selftest.sh`, does to prove both guards and the restore);
 `--files <path> ...` and `--from-git <base>` bound the pass to the records whose file the change touched, and
 the count line (`selected 7 of 81 records`) says so.
 Quote its transcript in the task item, exactly as the Gradle form quotes a tally.
 
 **The generic form for any shell gate is `tools/mutate.sh`** (`.pi/skills/mutation-runner`): the mutations
-live in a versioned JSON set (`tools/portability-mutations.json` is a worked one), so the pass is
+live in a versioned JSON set (`tools/tests/portability-mutations.json` is a worked one), so the pass is
 reproducible years later instead of living in a session's scratch directory, and the restore is verified
 byte-for-byte *and* by permission bit:
 
 ```bash
-tools/mutate.sh --mutations tools/portability-mutations.json --list              # labels, cases, reasons
-tools/mutate.sh --mutations tools/portability-mutations.json --only 5.1          # one, while iterating
-tools/mutate.sh --mutations tools/portability-mutations.json --out evidence/revert-checks.log
-tools/mutate-selftest.sh                                                          # the runner's own guards
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --list              # labels, cases, reasons
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --only 5.1          # one, while iterating
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --out evidence/revert-checks.log
+tools/tests/mutate-selftest.sh                                                          # the runner's own guards
 ```
 
 It reports the two silent lies as failures — `MUTATION-DID-NOT-APPLY` (the search no longer matches the line
@@ -83,12 +83,12 @@ not notice) — alongside `RESTORE-FAILED` and `RESTORE-STAYS-RED`. A set's `--l
 that owns the engine, so a set that no longer parses fails the pipeline instead of rotting.
 
 ```bash
-tools/loop-mutations.sh --list            # what the invariants are, and which case owns each
-tools/loop-mutations.sh --only 9.1        # one mutation, while iterating
-tools/loop-mutations.sh --files tools/loop/worktree.sh   # the records whose file this change touched
-tools/loop-mutations.sh --from-git <base> # the same set, derived from `git diff --name-only <base>`
-tools/loop-mutations.sh --out <file>      # the whole set, with the transcript recorded
-tools/loop-mutations.sh --check           # every record still applies to the file it names; no case runs
+tools/loop/tests/loop-mutations.sh --list            # what the invariants are, and which case owns each
+tools/loop/tests/loop-mutations.sh --only 9.1        # one mutation, while iterating
+tools/loop/tests/loop-mutations.sh --files tools/loop/worktree.sh   # the records whose file this change touched
+tools/loop/tests/loop-mutations.sh --from-git <base> # the same set, derived from `git diff --name-only <base>`
+tools/loop/tests/loop-mutations.sh --out <file>      # the whole set, with the transcript recorded
+tools/loop/tests/loop-mutations.sh --check           # every record still applies to the file it names; no case runs
 ```
 
 A filtered run prints its selection against the declared set (`selected 7 of 81 records`) — the line that says
@@ -178,10 +178,10 @@ on the first expression that changes nothing, without running a case, so the loo
 - `guidelines/Build.md` §4 — result evaluation: tallies from the XML, "a cached run is not a run",
   attribution ritual
 - `.pi/skills/run-tests/SKILL.md` — how to run the cases (and how to force a real execution)
-- `tools/loop-mutations.sh`, `tools/loop-mutations-selftest.sh` — the mechanical form when the gate is a
-  shell self-test (`tools/loop-selftest.sh`); `openspec/changes/agent-issue-loop/evidence/revert-checks.md`
+- `tools/loop/tests/loop-mutations.sh`, `tools/loop/tests/loop-mutations-selftest.sh` — the mechanical form when the gate is a
+  shell self-test (`tools/loop/tests/loop-selftest.sh`); `openspec/changes/agent-issue-loop/evidence/revert-checks.md`
   is a worked example (11 mutations, 11 red, 11 restores green)
-- `tools/mutate.sh`, `tools/mutate-selftest.sh`, `tools/portability-mutations.json` and
+- `tools/mutate.sh`, `tools/tests/mutate-selftest.sh`, `tools/tests/portability-mutations.json` and
   `.pi/skills/mutation-runner/SKILL.md` — the generic form for any shell gate, with the mutations versioned
   in a JSON set; `openspec/changes/archive/2026-10-18-tooling-portability/evidence/revert-checks.md` is the
   worked example

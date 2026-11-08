@@ -20,8 +20,8 @@ the recipe for keeping it true when an engine or a config changes.
 |---|---|
 | `bash tools/check-portability.sh` | does any engine name a project value? Prints the engine set, the excluded set and the value set it read |
 | `bash tools/check-portability.sh --values` | …and prints every forbidden value with the file it was read from (for debugging a verdict) |
-| `bash tools/check-portability-selftest.sh` | 29 cases: the suite's three preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
-| `bash tools/mutate.sh --mutations tools/portability-mutations.json` | the portability revert-checks as a versioned set (17 records: 5.1–5.7, 5.3 naming two cases, 6.1–6.7 for the value set, the exception and the suite's preconditions, 7.1 for the fixture's missing budget default and 7.2 for its own base branch); the recipe is `.pi/skills/mutation-runner` |
+| `bash tools/tests/check-portability-selftest.sh` | 29 cases: the suite's three preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
+| `bash tools/mutate.sh --mutations tools/tests/portability-mutations.json` | the portability revert-checks as a versioned set (17 records: 5.1–5.7, 5.3 naming two cases, 6.1–6.7 for the value set, the exception and the suite's preconditions, 7.1 for the fixture's missing budget default and 7.2 for its own base branch); the recipe is `.pi/skills/mutation-runner` |
 
 `--quiet` gives the verdict without the sets; `--root <dir>` checks another tree (the self-test's
 mechanism); `--case <group#name>` runs one case; `--list` lists the cases (the mutation runner has a `--list`
@@ -58,8 +58,8 @@ and it refuses with a named reason and exit 2 instead of reporting a case red. T
 regression of the code under test twice (issue #172); the check itself (`tools/check-portability.sh --root
 <dir>`) runs anywhere. A linked working tree under `.pi/` **is** a checkout and runs the suite — the loop's
 gate runs in one, so the suite it owes for a reader path may not refuse the change root (issue #289); the
-fixture (`tools/fixtures/foreign-project`) is what tells this project's checkout from the top of another
-repository under `.pi/`. The header of `tools/check-portability-selftest.sh` states both, and
+fixture (`tools/tests/fixtures/foreign-project`) is what tells this project's checkout from the top of another
+repository under `.pi/`. The header of `tools/tests/check-portability-selftest.sh` states both, and
 `preconditions#refusesOutsideAGitTree` / `preconditions#refusesUnderMachineLocalState` /
 `preconditions#runsInALinkedWorkingTree` hold it to them.
 
@@ -82,11 +82,11 @@ Rules that keep the check honest:
 3. **Pick the mode by the kind of value**, not by convenience. A short word that the engine can legitimately
    contain must be `word`; a repository name must be `token`; a path or a command must be `literal`.
 4. **Add the case, not just the value.** Either extend an existing case or add one to
-   `tools/portability-cases.sh` (see below) — a value with no case is a value nobody has seen fail.
+   `tools/tests/portability-cases.sh` (see below) — a value with no case is a value nobody has seen fail.
 
 ## Adding a case
 
-Three edits, all in the shell half (`tools/portability-cases.sh`):
+Three edits, all in the shell half (`tools/tests/portability-cases.sh`):
 
 1. the case id in `PORTABILITY_CASES` (`group#name`, e.g. `discovery#fromAWorktree`);
 2. the dispatch line in `portability_run_case` → `case_<group>_<name>`;
@@ -94,12 +94,12 @@ Three edits, all in the shell half (`tools/portability-cases.sh`):
    `assert_contains`, `assert_not_contains`, `assert_empty` are already there, and a throwaway tree comes
    from `local_tree` (this project's configs) or `foreign_tree` (the fixture overlaid).
 
-Then prove it can fail: extend `tools/portability-mutations.json` with a record (`label`, `case`, `file`,
-`search`, `replace`, `why`) and run `bash tools/mutate.sh --mutations tools/portability-mutations.json
+Then prove it can fail: extend `tools/tests/portability-mutations.json` with a record (`label`, `case`, `file`,
+`search`, `replace`, `why`) and run `bash tools/mutate.sh --mutations tools/tests/portability-mutations.json
 --only <label>`. A case with no mutation is a case nobody has seen red.
 ## Adding a fixture file to the foreign project
 
-`tools/fixtures/foreign-project/` is overlaid onto a throwaway tree whose engines are copied from this
+`tools/tests/fixtures/foreign-project/` is overlaid onto a throwaway tree whose engines are copied from this
 repository at test time — **the fixture never carries an engine**, so it cannot drift. Add config, findings
 and `gh` answers (`gh/repo.txt`, `gh/login.txt`, `gh/labels.json`, `gh/issues.json`, `gh/prs.json`).
 

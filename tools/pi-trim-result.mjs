@@ -34,7 +34,7 @@
 //     as the tool returned it, because a rule that could fail a tool mid-item would be worse than the spend it saves.
 //   * as a CLI (`node tools/pi-trim-result.mjs --bound <n> [--tool <name>] [--record <file>] [--path <file>]
 //     [--turn <n>] [--ledger <file>]`), it applies the same rules to stdin, which is what the cases in
-//     `tools/loop-cases.sh` drive — so the rules they prove are the rules the hook applies, and there is no second
+//     `tools/loop/tests/loop-cases.sh` drive — so the rules they prove are the rules the hook applies, and there is no second
 //     implementation of them.
 //
 // Where the values come from: the bound is `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`, a recorded value;

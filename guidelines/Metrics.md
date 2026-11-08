@@ -7,7 +7,7 @@ and a figure can be attributed to the tree it describes.
 This document owns those definitions and the tool's invocation. The facts — where the tool lives, how to run it
 — are `AGENTS.md` "Documentation Map"; the behaviour contract is the capability spec
 `openspec/specs/project-metrics-report`. The tool's counting rules are covered without a device by
-`tools/project-metrics-report-selftest.sh`.
+`tools/tests/project-metrics-report-selftest.sh`.
 
 **Maintenance rule** — when a change supersedes a definition here, update this document in the same change. A
 definition that the tool and this document disagree about is a defect in one of them: the self-test is the case

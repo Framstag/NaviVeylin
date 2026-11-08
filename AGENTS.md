@@ -173,7 +173,7 @@ whose single visual symptom needed many review rounds, rule 4 from the shared-wo
   reviewer before archive — that includes a defect-shaped improvement, whose red case asserts the bound it is
   missing; the loop's contract is the spec `agent-issue-loop`, the eligibility gate the worker applies is
   `tools/loop/prompts/worker.md`, and the entry is `tools/loop/run.sh` (the gate for `tools/loop/**` is
-  `tools/loop-selftest.sh`, offline).
+  `tools/loop/tests/loop-selftest.sh`, offline).
 
 - three skills are the loop's ends, and they are named here by their paths: `.pi/skills/create-issue` files one
   finding as one tracker item, `.pi/skills/device-check` turns one on-device verification into evidence, and

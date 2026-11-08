@@ -131,7 +131,7 @@ the bridge's two sides, the two database-open entries and the submodule discipli
   `*.java` file under either source root. A referenced type is not a defined one: the gate reads `class_defs`, not
   the bytes. Because a minified variant's only dex is R8's output (`minify<Variant>WithR8`, not the dex builder and
   the merge steps a debug variant runs), the gate depends on that task for the `release` variants;
-  `tools/check-dex-gate-graph-selftest.sh` asserts the producer per variant, which is what caught the merge-only
+  `tools/tests/check-dex-gate-graph-selftest.sh` asserts the producer per variant, which is what caught the merge-only
   wiring that made `./gradlew release` fail on an empty dex tree (2026-10-28).
 - **The two sides are compared, and their difference is recorded.** For those five files the override is the
   only Java copy the APK sees, so a native declared on one side only reaches the other as a `NoSuchMethodError`

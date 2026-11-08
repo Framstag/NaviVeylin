@@ -33,7 +33,7 @@ tools/loop/                 → the wrapper, the worktree, the state, the labels
                               prompt skeletons and the stub `pi` (drop `fixtures/` in your own repo
                               if you do not want the offline harness)
 tools/check-portability.sh  → the leak check, and the proof that your copy is still an engine
-tools/fixtures/foreign-project/   → the synthetic project the check's self-test runs (optional; it is
+tools/tests/fixtures/foreign-project/   → the synthetic project the check's self-test runs (optional; it is
                               test data, and it is useful as a worked example of a different profile)
 ```
 
@@ -100,8 +100,8 @@ for any producer that emits the neutral findings JSON.
 
 ## Run it
 
-Every command below is executed by `tools/check-portability-selftest.sh` against the synthetic project
-in `tools/fixtures/foreign-project/`, so this recipe cannot drift away from the tooling. That is the
+Every command below is executed by `tools/tests/check-portability-selftest.sh` against the synthetic project
+in `tools/tests/fixtures/foreign-project/`, so this recipe cannot drift away from the tooling. That is the
 reason the copy itself is described in prose: it runs in the *source* project and has no meaning in a
 tree that is already a copy.
 

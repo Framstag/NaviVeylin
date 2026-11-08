@@ -130,7 +130,7 @@ say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
 # A step's output is followed in its file, not carried on a pipe (issue #315). `$cmd 2>&1 | tee "$stream"` reads to EOF,
 # and EOF arrives only when *every* writer that inherited the write end has let go of it — so a suite that leaves a
-# watcher behind (the per-case bound at `tools/loop-selftest.sh` did) spent the step's wall clock on that watcher's
+# watcher behind (the per-case bound at `tools/loop/tests/loop-selftest.sh` did) spent the step's wall clock on that watcher's
 # life: measured 2026-10-26, a `loop-selftest.sh` step printed its verdict 565 s in and its own line read `— 1237s`,
 # ~670 s of gate after the verdict, ending a supervised gate that had capped the call at 900 s. The follower below
 # reads what the file has gained since its last pass — byte for byte, `tail -c +N` — so a partially written line is

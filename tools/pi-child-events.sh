@@ -65,7 +65,7 @@ extension=(-e "$here/pi-trim-result.mjs")
 # ~1 700 shell `grep`s), so the policy sits here, where every child is started, and not in a prompt: the second
 # extension refuses the call and names `tools/look.sh`, `ctx_grep` or `ctx_read` instead, leaving `sed -n 'N,Mp'`,
 # `tail -n` and a filter of another command's output alone. Its own rule is `tools/pi-shell-refusal.mjs`, and its
-# cases are `tools/loop-cases.sh`'s `policy#*` (the rule) and `adapter#theChildIsStartedWithTheShellPolicy` (this line).
+# cases are `tools/loop/tests/loop-cases.sh`'s `policy#*` (the rule) and `adapter#theChildIsStartedWithTheShellPolicy` (this line).
 policy=(-e "$here/pi-shell-refusal.mjs")
 # …and the directory this project's agent keeps its own tools in is on the child's `PATH` (issue #796). The child
 # inherits the run's environment and nothing between the two guarantees it carries that directory: `rg` lives there,

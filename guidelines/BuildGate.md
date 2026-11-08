@@ -69,7 +69,7 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
 - **Rule: iterate with focused suites, gate once.** Run the change's own declared cases first
   (`tools/declared-cases.sh`, §4b), then the module suite of the flavor the change can affect, and the full
   both-flavor gate once before the commit. A declared-cases pass is never gate evidence. **The filter is the
-  inner loop; a selection naming the case file is the gate.** `tools/loop-selftest.sh --case <name>` (or a
+  inner loop; a selection naming the case file is the gate.** `tools/loop/tests/loop-selftest.sh --case <name>` (or a
   small `--group`) is what an edit is checked with between rounds; a `--files` selection that names
   `tools/*-cases.sh` selects nearly the whole suite and is run **once**, as the gate, never per edit — a
   caller's per-call ceiling can sit below this project's own case and child bounds (§6c,
@@ -165,7 +165,7 @@ bash tools/gate-timing-report.sh                           # defaults: build/gat
 task's action class and with it the build-cache key, so every instrumented run would miss the cache and
 re-execute everything the record exists to measure. It reports per task (path, outcome, duration) and per
 suite (wall time from the first and last result-XML `timestamp`, class count, test count, failures). Its own
-behaviour is covered without a device: `bash tools/gate-timings-selftest.sh`.
+behaviour is covered without a device: `bash tools/tests/gate-timings-selftest.sh`.
 
 **Rule: to force execution of the tests, use `-PforceTests --no-build-cache`, not `--rerun-tasks`.** It
 re-executes the test tasks and leaves the rest of the graph up to date (§4b).
@@ -228,7 +228,7 @@ a warning, so nothing failed and no test could see it. Two rules follow.
   `docker://` one.
 
 CI enforces both in the step `Check action runtimes` (`.github/workflows/build.yml`, text only: no build, no
-device, no network; its cases are `tools/check-action-runtimes-selftest.sh`). The recorded floor is a memory,
+device, no network; its cases are `tools/tests/check-action-runtimes-selftest.sh`). The recorded floor is a memory,
 not a fact: when an action publishes a major or the runner retires Node 24, the table and the URLs beside it
 are what a reader re-reads. The check fetches nothing on purpose — a gate that needs egress fails on a runner
 without it and passes on a workstation with it.

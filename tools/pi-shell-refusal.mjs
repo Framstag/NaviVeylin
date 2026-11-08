@@ -42,7 +42,7 @@
 //     the call with a reason naming the tool to use instead. The hook never throws: a policy that could fail a tool
 //     mid-item would cost more than the spend it saves.
 //   * as a CLI (`node tools/pi-shell-refusal.mjs --command '<shell command>'`), it applies the same rule and prints
-//     `REFUSED <reason>` or `ALLOWED` — which is what the cases in `tools/loop-cases.sh` drive, so there is no second
+//     `REFUSED <reason>` or `ALLOWED` — which is what the cases in `tools/loop/tests/loop-cases.sh` drive, so there is no second
 //     implementation of the rule for them to drift from.
 import { pathToFileURL } from "node:url";
 

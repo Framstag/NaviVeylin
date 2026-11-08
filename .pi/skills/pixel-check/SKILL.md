@@ -122,7 +122,7 @@ verdict: REFUSED (no-focus-line)   # instead: exit 2, no box — the frame's sta
   script reported `verdict: inside` (`TODO.md` §147) — which is why a verdict now also
   needs the same-moment `--state` line. Check the `px`/stroke sanity before quoting a
   positive verdict as a finding.
-- `bash tools/measure-highlight-selftest.sh` verifies the detector against synthetic
+- `bash tools/tests/measure-highlight-selftest.sh` verifies the detector against synthetic
   images it builds itself (python3 stdlib, no ImageMagick, no device) — the row rule,
   the bbox extent, the floor, the band verdict and the five refusals. `bash
   .pi/skills/pixel-check/selftest.sh` covers inside / behind the card / no highlight with

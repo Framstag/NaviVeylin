@@ -318,7 +318,7 @@ so an item that overshoots the pacing line lengthens the next wait instead of le
 The wait is not work in the report either: `report.sh` subtracts the recorded waits from its `spent` figure and names
 them (`· paused 60 min in 1 wait(s)`), so a paused run reports the work it did and a budget left that is not
 negative. The change that added it is `loop-pauses-on-a-spent-quota`, and its records are `quota-hold.1`–`.8` in
-`tools/loop-mutations.sh`.
+`tools/loop/tests/loop-mutations.sh`.
 
 What the gate and the pre-screen are worth, measured on the first run (2026-10-09): 12 candidates, 3 archived, 9
 gated out; a second pass over all 31 `class: bug` entries → `eligible: none`; a later run 0 closed, 32 skipped. All
@@ -559,7 +559,7 @@ Inside that bound the project's gate is what fills the log, and it streams: each
 file the suite writes as the suite writes it, and the summary, the tally and the failure text are read from that
 same file, so a suite that runs for a quarter of an hour shows its own lines instead of a two-line log. Measured
 2026-10-23: a gate run held
-its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and an earlier red — a build that
+its log at two lines while `tools/loop/tests/loop-selftest.sh` ran past eleven minutes, and an earlier red — a build that
 died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
 a variable (#269).
 
@@ -581,7 +581,7 @@ of several prints each step whole under its own `gate: <command>` … `— <n>s`
 numbers.
 
 **A gate step is held to a bound of its own.** The run bounds the child and the self-test bounds a case, and a
-*step* of the gate had no clock at all: measured 2026-10-25 (issue #311), one `tools/loop-selftest.sh` step held a
+*step* of the gate had no clock at all: measured 2026-10-25 (issue #311), one `tools/loop/tests/loop-selftest.sh` step held a
 worker for its whole `LOOP_CHILD_MAX_SECONDS` — the item's gate log already read `LOOP-GATE: tests=558 failures=0
 errors=0` and its evidence check already read `PASS` — the run ended that child, and the item was recorded `blocked`
 with its work uncommitted. `gate.sh` now bounds every step with `LOOP_GATE_STEP_MAX_SECONDS` (default 1 800 s), read
@@ -661,7 +661,7 @@ XML in that archive's `evidence/gate/` is stamped `12:23:41.923Z`–`12:26:30.82
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
-directory), `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
+directory), `tools/loop/tests/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
 set that names no case is refused with exit 2 rather than read as an empty suite — the rule the mutation harness
 has applied to its own records since #235. A caller handed a real delta asks a different question — does this delta
 owe any case? — and its ordinary answer is no: most paths in this repository, application code and capability specs
@@ -681,13 +681,13 @@ the declaration was generated once from the case bodies and is kept honest by
 case it describes.
 
 That case is the suite's cheapest and was, until 2026-11-06, reachable only through the suite's most expensive command
-(issue #792): a delta that wrote a declaration owed `tools/loop-selftest.sh --from-git <base>` and nothing cheaper, so
+(issue #792): a delta that wrote a declaration owed `tools/loop/tests/loop-selftest.sh --from-git <base>` and nothing cheaper, so
 #790's attempt passed the 11 cases its own `--case` selection owed and was refused by the one case that reads a
-declaration twelve minutes into its gate — `1 of 320 cases failed`, reported by `tools/loop-selftest.sh --from-git
+declaration twelve minutes into its gate — `1 of 320 cases failed`, reported by `tools/loop/tests/loop-selftest.sh --from-git
 528d8e2a` (435 s) after `./gradlew test` (285 s) — over one path token missing from a comment, and the attempt was
 recorded `blocked` with nothing archived. The profile's `LOOP_GATE_FIRST_STEPS` has the suite map's `<glob>|<command>`
-shape and the gate reads it before the build and before every suite, so `tools/loop-cases.sh` owes
-`tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first. The child's own step is written the other
+shape and the gate reads it before the build and before every suite, so `tools/loop/tests/loop-cases.sh` owes
+`tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first. The child's own step is written the other
 way round: `tools/loop/prompts/worker.md` is an engine template, so it sends the child to the plan's first line and
 names neither this case nor this command — a project value in the template would arrive in another project's child
 and order it to run a case that project does not have — because the order saves the gate's tail and only the child's
@@ -703,16 +703,16 @@ block and does not run — the check that stands in for a delta compiling nothin
 asks the record to carry, stay the child's own. `tools/loop/prompts/worker.md` states that beside the sentence that the block runs no check,
 and `tools/loop/prompts/pre-gate-review.md` tells the round before the gate that a check the gate will run is graded
 on the block's check line and never `UNPROVEN` for want of a log the change child did not produce — the refusal that
-sent item #798's child to run `tools/loop-selftest.sh --case run#*` (129 cases, 219.93 s) and `--from-git fca2c857`
+sent item #798's child to run `tools/loop/tests/loop-selftest.sh --case run#*` (129 cases, 219.93 s) and `--from-git fca2c857`
 (349 cases, 446.01 s) inside its own session, after which its gate child ran both again (`items/798/scoped-run-group.log:394-395`,
 `items/798/scoped-from-git.log`; the refusal is `items/798/pre-gate-review.md:83`). Two cases hold the
-rule: `prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite` in `tools/loop-cases.sh` and its sibling
+rule: `prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite` in `tools/loop/tests/loop-cases.sh` and its sibling
 `prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle`.
 
 The suite runs its cases in a bounded pool rather than one after another (issue #260). A case owns a throwaway
 repository, a scratch tree under the suite's root and a process group of its own, and shares nothing but the
 read-only engine, so the serialization bought nothing and cost the sum of every case. Measured 2026-10-25 with
-`time bash tools/loop-selftest.sh` (the groups with `--group <name> --jobs 1` against `--group <name>`; the wrapper's
+`time bash tools/loop/tests/loop-selftest.sh` (the groups with `--group <name> --jobs 1` against `--group <name>`; the wrapper's
 output is transcribed in `openspec/changes/archive/2026-10-25-fix-loop-selftest-case-pool/proposal.md`, and no log
 holds it) on 221 cases: 4 min 24 s at 439 % CPU for the whole suite, against 1 min 0 s for `state`'s 18 cases run
 one at a time and 21 s for the same 18 pooled, and 1 min 8 s against 20 s for `worktree`'s 18. A case is handed a
@@ -735,7 +735,7 @@ owns `tools/loop/**` is archived: a leg bounds what a push that owes the suite p
 archive owes. A leg needs no pair of its own in the profile's suite map: it runs the driver the map already carries,
 narrowed by a selection that runs fewer of that entry's cases, and `gate#theMapCoversEveryPipelineStep` strips the
 `--group <selection>` from both sides before it compares (`guidelines/Build.md` §3). Measured 2026-11-05 (issue
-#781): `bash tools/loop-selftest.sh --list | cut -d'#' -f1 | sort | uniq -c` counts the three selections above, and
+#781): `bash tools/loop/tests/loop-selftest.sh --list | cut -d'#' -f1 | sort | uniq -c` counts the three selections above, and
 on 2026-11-04 the whole set at `--jobs 4` took 469 s on a 16-core host with `--group run` 261 s of them (56 %),
 against the 17 min 15 s the same set spends as one step on a four-core runner (run 41810844107); the three legs
 of the first green dispatch (2026-11-05, run 42094414229) took 361 s, 416 s and 107 s, so the suite's wall clock in
@@ -828,7 +828,7 @@ refusal streak `next` reads — the count the engine is given (`LOOP_REFUSAL_STR
 naming the outage, instead of ending it on the first item's socket: that is what cost the 480-minute run of
 2026-11-06 the 108 minutes and 69 item slots it had left (`.pi/issue-loop/runs/2026-11-06T21:19:06Z.json`: 480 min
 budget − 372 min elapsed, 21:19:06Z → 03:31:27Z, = 108 min; 80 item slots − 11 recorded = 69) (#808). The case is
-`run#anUnreadableItemIsNotTheEndOfTheRun`, and `tools/loop-mutations.sh` 100.1 the record that keeps it.
+`run#anUnreadableItemIsNotTheEndOfTheRun`, and `tools/loop/tests/loop-mutations.sh` 100.1 the record that keeps it.
 
 A run one of the traps it installs ended records that signal as its own stop: `HUP` is trapped beside `INT` and
 `TERM` — a terminal or a harness that goes away sends it — and the trap writes `interrupted by SIG<NAME>` into the
@@ -849,7 +849,7 @@ diff marker did read the item, and its own claim is what says so. Measured 2026-
 the archive carried that reason, each read after every child of its item had been paid for (1 915 s for #260, 1 422 s
 for #319, 916 s for #721), and with the gate deferred the same tree beside an answer that claims a diff left no item
 record at all — the tail's empty answer was read as "the child could not start".
-`run#anEmptyTreeIsRefusedBeforeTheGateChild` is the case, and `tools/loop-mutations.sh` 91.1 the record that keeps it.
+`run#anEmptyTreeIsRefusedBeforeTheGateChild` is the case, and `tools/loop/tests/loop-mutations.sh` 91.1 the record that keeps it.
 
 What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
 — `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run
@@ -897,7 +897,7 @@ because the same flake waived twice in one run and counted zero times is evidenc
 in the prose of its closing child's transcript — "file untouched by this diff", "green in the automotive run" —
 and the report counted all seven alike (#811). The cases are
 `state#aCloseOverARedGateWithoutAWaiverIsRefused`, `state#aCloseOverARedGateRecordsWhyItWasWaived` and
-`run#aCloseOverARedGateIsWaivedOrBlocked`; the mutations are `tools/loop-mutations.sh` 98.1–98.3.
+`run#aCloseOverARedGateIsWaivedOrBlocked`; the mutations are `tools/loop/tests/loop-mutations.sh` 98.1–98.3.
 
 The branch is the whole of an item's fix until the base has it, so the run merges the branch it committed
 before it closes the item: the branch's commits are fast-forwarded onto the base the run recorded, the base

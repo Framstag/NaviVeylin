@@ -111,5 +111,5 @@ only ever set Kotlin's `jvmTarget`.
 
 GitHub's deprecation changelog, 2025-09-19: a major that predates Node 24 makes the runner print `Node.js 20
 is deprecated` on every step and force the action onto Node 24 anyway. The six pins that did (issue #240); the
-case that failed for it is the one in `tools/check-action-runtimes-selftest.sh` that checks this repository's
+case that failed for it is the one in `tools/tests/check-action-runtimes-selftest.sh` that checks this repository's
 own pins.

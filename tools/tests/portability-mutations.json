@@ -1,0 +1,142 @@
+{
+  "comment": "The revert-checks of `tooling-portability` (labels 5.1–5.7) and of `fix-portability-value-set-and-preconditions` (labels 6.1–6.7), plus the fixture's missing budget default (7.1) and its own base branch (7.2), as a runnable set: one mutation each, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/tests/portability-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. The evidence recorded in the changes' `evidence/` came from exactly these mutations.",
+  "case-cmd": "bash tools/tests/check-portability-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "5.1",
+      "case": "portability#valueSetIsReadNotHardCoded",
+      "file": "tools/check-portability.sh",
+      "search": "  done < <(jq -r --arg ns \"$namespace\" '.namespaces[$ns][]?' \"$profile\")",
+      "replace": "  done < <(printf '%s\\n' build-and-harness ui verification)",
+      "why": "the value set is read from the profile, not hard-coded"
+    },
+    {
+      "label": "5.2",
+      "case": "portability#excludesTheAdapterAndFixtures",
+      "file": "tools/check-portability.sh",
+      "search": "ls tools/issues/*.sh tools/issues/*.awk tools/issues/core/*.java",
+      "replace": "ls tools/issues/*.sh tools/issues/*.awk tools/issues/core/*.java tools/issues/import/*.sh",
+      "why": "the source adapter is excluded from the engine set"
+    },
+    {
+      "label": "5.3",
+      "case": "discovery#fromASubdirectory",
+      "file": "tools/issues/lib.sh",
+      "search": "root=$(git rev-parse --show-toplevel 2>/dev/null) || {",
+      "replace": "root=\"${HOME:-/nonexistent}\"; true || {",
+      "why": "the profile is resolved from the working tree, not from $HOME"
+    },
+    {
+      "label": "5.3b",
+      "case": "discovery#fromAWorktree",
+      "file": "tools/issues/lib.sh",
+      "search": "root=$(git rev-parse --show-toplevel 2>/dev/null) || {",
+      "replace": "root=\"${HOME:-/nonexistent}\"; true || {",
+      "why": "…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)"
+    },
+    {
+      "label": "5.4",
+      "case": "discovery#ignoresGithubRepositoryEnv",
+      "file": "tools/issues/lib.sh",
+      "search": "  ISSUES_REPO=$(issues_repo_of)",
+      "replace": "  ISSUES_REPO=\"${GITHUB_REPOSITORY:-$(issues_repo_of)}\"",
+      "why": "GITHUB_REPOSITORY does not override the working tree"
+    },
+    {
+      "label": "5.5",
+      "case": "foreign#profileDiffersFromOurs",
+      "file": "tools/tests/fixtures/foreign-project/tools/tooling.json",
+      "search": "\"repo\": \"acme/widget\"",
+      "replace": "\"repo\": \"Framstag/NaviVeylin\"",
+      "why": "the synthetic project's repository differs from this one"
+    },
+    {
+      "label": "5.6",
+      "case": "foreign#emptyGateCommandStillRunsThePhases",
+      "file": "tools/loop/prompts/worker.md",
+      "search": "{{GATE_CMD}}",
+      "replace": "./gradlew test",
+      "why": "the prompt substitutes the project's gate command instead of owning one"
+    },
+    {
+      "label": "5.7",
+      "case": "porting#everyCommandInTheRecipeRuns",
+      "file": "PORTING.md",
+      "search": "bash tools/check-portability.sh --quiet",
+      "replace": "bash tools/check-portability.sh --nope",
+      "why": "every command in the porting recipe runs"
+    },
+    {
+      "label": "6.1",
+      "case": "portability#plantedValueInEveryNamespaceFails",
+      "file": "tools/check-portability.sh",
+      "search": "done < <(printf '%s\\n' \"$namespace_names\")",
+      "replace": "done < <(printf '%s\\n' \"$namespace_names\" | grep -x category)",
+      "why": "every namespace's value set is read and forbidden, not the category's alone"
+    },
+    {
+      "label": "6.2",
+      "case": "portability#plantedSubmodulePathFails",
+      "file": "tools/check-portability.sh",
+      "search": "add \"$(conf_value LOOP_SUBMODULE_PATH)\" \"tools/loop/loop.conf LOOP_SUBMODULE_PATH\"",
+      "replace": ": # the submodule path is not read from the loop's configuration",
+      "why": "the submodule path is read from loop.conf, not named in the engine"
+    },
+    {
+      "label": "6.3",
+      "case": "portability#authorisationLabelIsTheOneException",
+      "file": "tools/check-portability.sh",
+      "search": "    if [ \"$count\" -eq 1 ]; then",
+      "replace": "    if false; then",
+      "why": "the reserved label is asserted as the one read-only exception, not tolerated"
+    },
+    {
+      "label": "6.4",
+      "case": "preconditions#refusesOutsideAGitTree",
+      "file": "tools/tests/check-portability-selftest.sh",
+      "search": "if ! git -C \"$root\" rev-parse --is-inside-work-tree >/dev/null 2>&1; then",
+      "replace": "if false; then",
+      "why": "the suite refuses when its root is not a git working tree"
+    },
+    {
+      "label": "6.5",
+      "case": "preconditions#refusesUnderMachineLocalState",
+      "file": "tools/tests/check-portability-selftest.sh",
+      "search": "  *\"/.pi/\"*)",
+      "replace": "  *\"/.pi-x/\"*)",
+      "why": "the suite refuses when its root is machine-local state"
+    },
+    {
+      "label": "6.6",
+      "case": "preconditions#runsInALinkedWorkingTree",
+      "file": "tools/tests/check-portability-selftest.sh",
+      "search": "if [ -n \"$(git -C \"$root\" rev-parse --show-prefix 2>/dev/null)\" ] || [ ! -d \"$root/tools/tests/fixtures/foreign-project\" ]; then",
+      "replace": "if true; then",
+      "why": "a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)"
+    },
+    {
+      "label": "6.7",
+      "case": "preconditions#refusesUnderMachineLocalState",
+      "file": "tools/tests/check-portability-selftest.sh",
+      "search": "|| [ ! -d \"$root/tools/tests/fixtures/foreign-project\" ]; then",
+      "replace": "; then",
+      "why": "a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)"
+    },
+    {
+      "label": "7.1",
+      "case": "foreign#fixtureDeclaresEveryBudgetDefault",
+      "file": "tools/tests/fixtures/foreign-project/tools/loop/loop.conf",
+      "search": "LOOP_STRICT_OUTSIDE_WRITE_DEFAULT=off",
+      "replace": "",
+      "why": "a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)"
+    },
+    {
+      "label": "7.2",
+      "case": "foreign#baseBranchIsTheFixturesConfiguration",
+      "file": "tools/tests/fixtures/foreign-project/tools/loop/loop.conf",
+      "search": "LOOP_BASE_REF=\"${LOOP_BASE_REF:-trunk}\"",
+      "replace": "LOOP_BASE_REF=\"${LOOP_BASE_REF:-main}\"",
+      "why": "the foreign project's base branch is its own configuration value, not the engine's default (issue #303)"
+    }
+  ]
+}

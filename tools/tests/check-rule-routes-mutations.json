@@ -1,0 +1,54 @@
+{
+  "comment": "The revert-check of `documentation-ownership`'s derived-reading-set requirements: one mutation per refusal — a glob that matches no tracked path, a named rule no glob reaches, a normative document no glob names, and a route under `guidelines/` carrying a document its glob does not match, plus the `--diff` check that a change names every section the map derives for its paths — and one of the map's own data, the glob a guideline document is reached by reverted to the corpus-wide `guidelines/**`, so the granularity the map states is checked rather than assumed. Run it with `bash tools/mutate.sh --mutations tools/tests/check-rule-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the rule routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite. The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
+  "case-cmd": "bash tools/tests/check-rule-routes-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "glob-matches-the-tree",
+      "case": "routes#aGlobMatchingNoTrackedPathIsReported",
+      "file": "tools/check-rule-routes.sh",
+      "search": "  if [ \"$matched\" -eq 0 ]; then",
+      "replace": "  if false; then",
+      "why": "every glob is matched against the tree's tracked paths, so a glob that matches nothing is reported instead of silently orphaning the rules a reader is told to read"
+    },
+    {
+      "label": "rule-is-reached",
+      "case": "routes#aRuleNoGlobReachesIsReported",
+      "file": "tools/check-rule-routes.sh",
+      "search": "  grep -qxF \"$doc\t$name\" \"$tmp/reached\" && continue",
+      "replace": "  continue",
+      "why": "every named rule under guidelines/ is compared with the rules the map reaches, so a rule no glob reaches is reported before it has a violation"
+    },
+    {
+      "label": "change-names-the-derived-set",
+      "case": "routes#theReadingSetFollowsTheDiff",
+      "file": "tools/check-rule-routes.sh",
+      "search": "      if ! grep -qxF \"$id\" \"$tmp/named\"; then",
+      "replace": "      if false; then",
+      "why": "a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported"
+    },
+    {
+      "label": "document-is-named",
+      "case": "routes#aDocumentNoGlobNamesIsReported",
+      "file": "tools/check-rule-routes.sh",
+      "search": "  if [ \"$named_glob\" -eq 0 ]; then",
+      "replace": "  if false; then",
+      "why": "every normative document under guidelines/ is matched against the map's globs, so a document no glob names is reported instead of deriving nothing for its own edits while its rules stay reached through another path's route"
+    },
+    {
+      "label": "guideline-route-names-its-document",
+      "case": "routes#aGuidelineRouteCarryingAnotherDocumentIsReported",
+      "file": "tools/check-rule-routes.sh",
+      "search": "    glob_match \"guidelines/$doc.md\" \"$glob\" && continue",
+      "replace": "    continue",
+      "why": "a route whose glob sits under guidelines/ is compared with the documents its own entries name, so a route carrying a document its glob never reaches is reported rather than silently orphaning that document's reading set"
+    },
+    {
+      "label": "route-names-its-document",
+      "case": "routes#aGuidelineEditDerivesItsOwnDocument",
+      "file": "tools/doc-routes.json",
+      "search": "      \"glob\": \"guidelines/UI*.md\",",
+      "replace": "      \"glob\": \"guidelines/**\",",
+      "why": "a guideline glob names the document and its companion layers it owns, so one edit to one document derives that document's entries and not the corpus — with the UI family's glob reverted to the corpus-wide pattern, a Logging.md edit derives the UI, Design and Build families too, and a DesignStack.md edit derives the UI route"
+    }
+  ]
+}

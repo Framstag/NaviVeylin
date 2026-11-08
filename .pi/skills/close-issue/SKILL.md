@@ -9,7 +9,7 @@ One terminal state, reached in three steps: the reason is posted as a comment, t
 then the issue is closed with a `state_reason`. Nothing here deletes anything.
 
 **Prerequisites.** `gh` authenticated as an allowlisted author, `jq`, a JDK ≥ 17 on `PATH`
-(`tools/issue-tooling-selftest.sh` runs the same surface offline).
+(`tools/issues/tests/issue-tooling-selftest.sh` runs the same surface offline).
 
 ## When to use it, and when not to
 

@@ -171,7 +171,7 @@ A tracker pass edits no compiled file, so its gate is this self-check, not a bui
 (`guidelines/Build.md` §2, the scope block).
 
 ```bash
-bash tools/issue-tooling-selftest.sh                 # the tooling's own surface, offline
+bash tools/issues/tests/issue-tooling-selftest.sh                 # the tooling's own surface, offline
 bash tools/check-todo-references.sh                  # every §N citation still resolves
 
 gh issue list --state all --limit 400 --json number,title,labels,body,state > /tmp/tracker.json

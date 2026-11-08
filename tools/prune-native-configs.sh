@@ -17,7 +17,7 @@
 # considers current must not disappear under a running build; `--force` skips that check (only for a
 # tree that is not AGP state — a fixture in the self-test, or an operator who is certain). Self-test
 # (device-free, fixture tree):
-#   bash tools/prune-native-configs-selftest.sh
+#   bash tools/tests/prune-native-configs-selftest.sh
 #
 # `NAVIVEYLIN_PRUNE_ASSUME_BUSY=1` forces the busy branch — it exists so the refusal path can be
 # tested without a running build, and is honoured only for that.

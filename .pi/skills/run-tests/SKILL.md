@@ -106,7 +106,7 @@ apk-for-local-test.ap_`), not the merged-assets tree on disk. It follows the ass
   merged assets never change, and the APK — with it the test's world — is untouched (issue #45, 2026-09-29);
 - **probe the packaged file itself** when the assertion and the disk disagree: `unzip -l <the .ap_> | grep
   <the asset path>`. The two cases that pin this behaviour, one per direction, are
-  `bash tools/check-gate-artifacts-selftest.sh` (`gateArtifacts#…`); the rule and the measurement are
+  `bash tools/tests/check-gate-artifacts-selftest.sh` (`gateArtifacts#…`); the rule and the measurement are
   `guidelines/Build.md` §4f.
 
 ## Reports

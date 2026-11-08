@@ -24,4 +24,4 @@ Output is a complete text report on stdout. `--help` is the only option beside s
 
 - Each figure column carries a header; documents and OpenSpec store files are aggregated with their own file
   and line counts printed in place of the rows that were left out.
-- The tool's counting rules are covered without a device by `tools/project-metrics-report-selftest.sh`.
+- The tool's counting rules are covered without a device by `tools/tests/project-metrics-report-selftest.sh`.

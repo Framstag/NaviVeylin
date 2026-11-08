@@ -184,7 +184,7 @@ loop_tmp_resolve() {
 }
 
 # The scratch root *another tree* resolves, which is not the one this process resolved. A suite creates its trees
-# under the root of the tree it runs in, so a gate that runs `tools/loop-selftest.sh` inside the kept worktree makes
+# under the root of the tree it runs in, so a gate that runs `tools/loop/tests/loop-selftest.sh` inside the kept worktree makes
 # them under the worktree's own `.pi/tmp` — the root a report run from the project never looked in while 305 MB of
 # trees and four poll loops accumulated there (measured 2026-10-23, issue #274). The key is read from that tree's
 # configuration, the same file `loop_resolve` sources when it runs there, and it is **read, never sourced**: a

@@ -291,8 +291,8 @@ The run's script, the child's prompt and the result bound are `guidelines/Backlo
 
 ## 7b. What an item costs, and the bounds on it
 
-The item's cost, the clock, the memory floor, the turn bound, the context bound and the gate-step bound are
-`guidelines/Backlog.recipes.md` §7b.
+The item's cost, the clock, the memory floor, the provider's quota wait, the turn bound, the context bound and the
+gate-step bound are `guidelines/Backlog.recipes.md` §7b.
 
 ## 7c. The gate and its suite
 

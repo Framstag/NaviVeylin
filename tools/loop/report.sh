@@ -131,21 +131,38 @@ run_epoch=$(jq -r '.run.startedEpoch // ""' "$state_file")
 deadline_epoch=$(jq -r '.run.deadlineEpoch // ""' "$state_file")
 deadline_at=$(jq -r '.run.deadlineAt // "an unrecorded time"' "$state_file")
 stop_at=$(jq -r '.run.stop.at // ""' "$state_file")
+# What the run spent is what it **worked**, and since the quota hold those are two different numbers: a wait for
+# a condition outside the run moves the deadline with it (`state.sh hold`), so the pause is neither in the budget
+# nor in the spend. Read as the clock alone, a run of three items that waited six hours reported 540 minutes
+# against a 480-minute budget — a negative number nobody could act on. So the clock is read minus every recorded
+# hold, and the waits are named beside it: the summary then says how long the run waited, which the items' own wall
+# times cannot (they start and end inside a child and never span a hold).
+paused_secs=$(jq -r '[(.run.holds // [])[].seconds] | add // 0' "$state_file" 2>/dev/null)
+is_num "$paused_secs" || paused_secs=0
+paused_min=$(( paused_secs / 60 ))
+paused_note=""
+if [ "$paused_min" -gt 0 ]; then
+  paused_note=" · paused ${paused_min} min in $(jq -r '(.run.holds // []) | length' "$state_file") wait(s)"
+fi
 spent_min=""
 if is_num "$run_epoch" && is_num "$deadline_epoch"; then
   if [ -n "$stop_at" ] && stop_epoch=$(date -u -d "$stop_at" +%s 2>/dev/null); then
-    spent_min=$(( (stop_epoch - run_epoch) / 60 ))
+    spent_min=$(( (stop_epoch - run_epoch) / 60 - paused_min ))
   elif [ "$(date +%s)" -le "$deadline_epoch" ]; then
-    spent_min=$(( ( $(date +%s) - run_epoch ) / 60 ))
+    spent_min=$(( ( $(date +%s) - run_epoch ) / 60 - paused_min ))
   fi
+  # A wait is recorded when it is **taken** — before the run sleeps in it — so a report read while the run is
+  # still asleep can see more waiting than elapsed clock. Work spent is not a negative number, and the budget the
+  # summary derives stays the budget: the figure floors at zero, with the wait named beside it either way.
+  [ -z "$spent_min" ] || [ "$spent_min" -ge 0 ] || spent_min=0
 fi
 if [ "$owner_gone" -eq 1 ]; then
   printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$owner_pid"
 elif [ -n "$spent_min" ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left %s items / %s min · spent %s min\n\n' \
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left %s items / %s min · spent %s min%s\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" \
-    "$((items - closed - misdiagnosed - skipped - blocked - cut))" "$((minutes - spent_min))" "$spent_min"
+    "$((items - closed - misdiagnosed - skipped - blocked - cut))" "$((minutes - spent_min))" "$spent_min" "$paused_note"
 else
   printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$deadline_at"

@@ -291,6 +291,35 @@ measurement and the run stops, because a shorter `wallSeconds` on a starved host
 `MemAvailable`, not `MemFree`, is the number: on the host this was measured, `free` read 8 383 MiB free against
 11 505 MiB available at the same moment, so `MemFree` would refuse a host that can pay.
 
+The third budget an item is charged against is neither the host's nor the run's: the **provider's quota**, which
+the run cannot see in its own state and which used to reach it only as refused children — refusals the streak then
+read as a prediction about the next item (measured 2026-11-05/06: eight of twelve runs stopped on the pair with
+55–90 % of their budget unused). Measured 2026-11-08T16:50Z, the balance endpoint answered the owner's short window
+at 100 % remaining (resetting 20:00Z) against the weekly window at **0 %** (resetting the next midnight): a run
+started in that state can work nothing, and it cannot tell that from a tracker or a gate that refuses. So
+`state.sh next` asks the project's recorded command (`LOOP_QUOTA_CMD`, empty for a project with no such reading)
+between two items, and when it holds, the run **pauses**: exit 6, the reader's own reason and the instant the wait
+clears, a sleep, and the same question again. **The reader belongs to one provider**, so the check is switchable for
+one run — `./tools/loop/run.sh --no-quota`, or `LOOP_QUOTA_CMD= …` in the environment, which the key's fill-if-unset
+expansion lets win over the file — and the run's header records what it armed: `quota=loop-quota.sh`, or `quota=off`
+for a run that must not be held by another provider's window. The engine cannot make that pairing for you: which
+provider a project's agents use is a project value, and no script under `tools/loop/` may name one (D1). A pause is
+not work, so `state.sh hold` moves the run's deadline with
+it — without that a window returning in six hours would be waited for past the deadline, and the run would wake,
+read `deadline passed` and end — and the wait is kept in `run.holds[]`, so a run that took nine hours over three
+items can say how much of that was waiting. The reader is the project's (`tools/loop-quota.sh`, outside the engine
+because a URL, a provider and a percentage are project values): it compares the balance against a floor per window
+(15 % of the short one, 5 % of the weekly one) and against a pacing line drawn from the fraction of the week
+elapsed less a 10 % reserve. A window is a rate over its period, not a pot — a run that spends the week flat out
+on day one buys nothing for the six days after it — and the reserve is every *other* consumer's share of the same
+quota. Two answers are not a hold: a command that fails is a check that cannot be made, which is not a refusal, and
+a project that records no command asks nothing at all. What an item costs *in percent* is not known when it starts,
+so an item that overshoots the pacing line lengthens the next wait instead of leaving a window exhausted mid-item.
+The wait is not work in the report either: `report.sh` subtracts the recorded waits from its `spent` figure and names
+them (`· paused 60 min in 1 wait(s)`), so a paused run reports the work it did and a budget left that is not
+negative. The change that added it is `loop-pauses-on-a-spent-quota`, and its records are `quota-hold.1`–`.8` in
+`tools/loop-mutations.sh`.
+
 What the gate and the pre-screen are worth, measured on the first run (2026-10-09): 12 candidates, 3 archived, 9
 gated out; a second pass over all 31 `class: bug` entries → `eligible: none`; a later run 0 closed, 32 skipped. All
 3 archived changes had a red-on-HEAD case (e.g. `42.67 dp < 48 dp`); review took 4 rounds and both FAILs were

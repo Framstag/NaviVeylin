@@ -71,7 +71,12 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    report's trend names an item below (`LOOP_ITEM_CALLS_PER_TURN_MIN` — the project's own p25 of `tool_execution_end`
    per `turn_end`, again `0` or no key for no floor and read by nothing in the run). The gate
    command is the project's: leave it empty for a project with no build, and the phases still run while
-   the report says the gate was skipped. The base branch is the project's too — a project on `trunk` or
+   the report says the gate was skipped. So is **whether the run may start another item at all**
+    (`LOOP_QUOTA_CMD`, empty for a project whose provider has no such reading; the reader is the project's —
+    `tools/loop-quota.sh` here — and its protocol and thresholds are `guidelines/Backlog.md` §7b). A ported project
+    pairs it with the provider its agent commands use, and switches it per run (`run.sh --no-quota`, or a
+    set-but-empty `LOOP_QUOTA_CMD` in the environment). The base
+    branch is the project's too — a project on `trunk` or
    `develop` records it here, so nothing about the branch lives in the engine.
 
 ## What to delete

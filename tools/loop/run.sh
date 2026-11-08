@@ -12,6 +12,13 @@
 # conditions are `state.sh next`'s, so the run never does its own budget arithmetic (invariant 3). A block the
 # run's own bound caused is not a refusal and holds no pair (issue #786).
 #
+# One condition is neither a stop nor a refusal: the provider's quota, read by the project's own reader
+# (`LOOP_QUOTA_CMD`, `tools/loop-quota.sh` here). A reader that holds makes `state.sh next` exit 6, and this run
+# **pauses** — prints the reader's reason, records the wait, moves its deadline with it (a pause is not work) and
+# asks again. `--no-quota` turns that reader off for this run, because the reader belongs to one provider and which
+# provider a run spends is a value only the operator has (invariant: the engine names no provider, D1); the header
+# names the reader it armed, or `quota=off`.
+#
 # Exit: 0 the run ended (including "nothing eligible"), 2 usage/malformed input, 3 stop (unauthorised
 #       identity, or nothing eligible), 5 refuse (another run holds the lock, the decision cap is
 #       reached, the base has moved, the kept worktree carries a previous run's work).
@@ -21,7 +28,7 @@
 #
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
 #               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off]
-#               [--pre-gate-review on|off] [--strict-outside-write yes|no] [--dry-run]
+#               [--pre-gate-review on|off] [--strict-outside-write yes|no] [--dry-run] [--no-quota]
 #               [--clean-worktree] [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
@@ -43,6 +50,7 @@ dry_run=0
 clean_worktree=0
 reset_worktree=0
 base=""
+no_quota=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --items) need_value "$@"; items="${2:-}"; shift 2 ;;
@@ -57,6 +65,7 @@ while [ $# -gt 0 ]; do
     --strict-outside-write) need_value "$@"; strict_outside_write="${2:-}"; shift 2 ;;
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
+    --no-quota) no_quota=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;
     -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
@@ -75,6 +84,15 @@ export LOOP_STATE_FILE="$LOOP_STATE_FILE" LOOP_WORKTREE="$LOOP_WORKTREE"
 # `LOOP_CONF` is the self-test's seam and is read here (`loop_resolve` records it as `LOOP_CONF_PATH`); `export -n`
 # keeps the value this shell already read and takes it out of every child's environment.
 export -n LOOP_CONF
+
+# The quota check is the one condition a run may be told to skip without editing the configuration: `--no-quota`
+# empties the key **in this process**, and every child that reads the profile reads it as set-but-empty — the key is
+# written as a fill-if-unset expansion, so a set-but-empty value is the switch — which means `state.sh next` asks
+# nobody. The reader belongs to one provider and this engine cannot tell which provider a given run spends: that is
+# a project value (D1), and the operator is the one who holds it.
+if [ "$no_quota" -eq 1 ]; then
+  export LOOP_QUOTA_CMD=""
+fi
 
 # The measuring command the worker is handed (issue #246). A project that configures none still renders a task,
 # so the placeholder carries a sentence instead of an empty span, and no render site reads the key directly.
@@ -224,6 +242,15 @@ min_free_mib="${LOOP_MIN_FREE_MIB:-1024}"
 case "$min_free_mib" in ''|*[!0-9]*) min_free_mib=1024 ;; esac
 free_mib=$(host_free_mib)
 
+# The two numbers of a quota wait: how long the run sleeps when the reader names no reset instant, and the longest
+# wait it will take before it ends the run instead (`0` = no cap). Read here beside the host floor, because both
+# are the run's own numbers about a condition outside it — how long a pause may be is not something the reader of
+# a balance knows, and how long to poll is not something the provider's answer carries.
+quota_poll="${LOOP_QUOTA_POLL_SECONDS:-900}"
+case "$quota_poll" in ''|*[!0-9]*|0) quota_poll=900 ;; esac
+quota_hold_max="${LOOP_QUOTA_HOLD_MAX_SECONDS:-0}"
+case "$quota_hold_max" in ''|*[!0-9]*) quota_hold_max=0 ;; esac
+
 # A repository whose `core.bare` is true is not a work tree: `git status` still answers, so a run looks healthy,
 # but every merge, fast-forward and commit in it is refused with "this operation must be run in a work tree".
 # The run merges the branch it closes (#229) and so does the caller's publish, and both then read as "the branch
@@ -270,9 +297,18 @@ for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-g
   if [ "$agent_roles" = "-" ]; then agent_roles="$role";
   else agent_roles="$agent_roles,$role"; fi
 done
-printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
+# …and which reader answers the quota question, as one token: the pair is the run's own record of a condition it
+# waited on, and `off` is a fact a reader must be able to see (a run that paused nothing because nobody asked looks
+# exactly like a run with quota to spare). The command string carries spaces, so the token is its file name — the
+# header is a line of `key=value` tokens a reader greps, and every value already there is one word.
+quota_reader=off
+if [ -n "${LOOP_QUOTA_CMD:-}" ]; then
+  quota_reader="${LOOP_QUOTA_CMD##* }"
+  quota_reader="${quota_reader##*/}"
+fi
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s\n' \
   "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
+  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles" "$quota_reader"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -1870,7 +1906,37 @@ while true; do
     bash "$LOOP_DIR/prescreen.sh" >&2 || true
     escalate_prescreen_decisions
   fi
-  if ! next_out=$(loop_state next); then
+  next_status=0
+  next_out=$(loop_state next) || next_status=$?
+  if [ "$next_status" -eq "$LOOP_HOLD" ]; then
+    # `next` exits 6 when the reason is outside the run and a **wait** clears it — the provider's own quota, read
+    # through `LOOP_QUOTA_CMD`. The run pauses rather than ends, because ending would spend the budget the run
+    # still holds on a decision that says nothing about the next item — the shape of loss the refusal-streak
+    # measurement already named (eight of twelve runs stopped on the pair, 55–90 % of their budget unused, measured
+    # 2026-11-05/06; `state.sh`'s `LOOP_REFUSAL_STREAK_STOP`). The reader's own lines are kept verbatim: the reason is every line but the last, and the last names the
+    # instant the wait clears (`resume-at <epoch>`, `0` when the reader knows no instant and the run polls).
+    hold_reason=$(printf '%s\n' "$next_out" | grep -v '^resume-at ' | head -1)
+    hold_at=$(printf '%s\n' "$next_out" | sed -n 's/^resume-at \([0-9][0-9]*\)$/\1/p' | tail -1)
+    case "$hold_at" in
+      ''|0) hold_seconds="$quota_poll" ;;
+      *) hold_seconds=$(( hold_at - $(date +%s) ))
+         [ "$hold_seconds" -gt 0 ] || hold_seconds=1 ;;
+    esac
+    if [ "$quota_hold_max" -gt 0 ] && [ "$hold_seconds" -gt "$quota_hold_max" ]; then
+      stop_run "$hold_reason — the wait of ${hold_seconds}s is longer than the ${quota_hold_max}s a run takes (LOOP_QUOTA_HOLD_MAX_SECONDS), so the run ends instead of waiting for it"
+      break
+    fi
+    # The pause is written **before** the sleep and it moves the deadline with it (`state.sh hold`): the budget is
+    # what the run may spend on work, and sleeping is not work — without that a provider resetting in six hours
+    # would be waited for past the run's own deadline and never resumed. Written first, so `state.sh show` reads
+    # the truth for the whole wait instead of counting the pause as spent budget for its length.
+    loop_state hold --seconds "$hold_seconds" --reason "$hold_reason" >/dev/null 2>&1 ||
+      loop_note "run: the pause could not be recorded in the state — the deadline is not extended by it"
+    printf 'pause: %s — waiting %ss, then asking again\n' "$hold_reason" "$hold_seconds"
+    sleep "$hold_seconds"
+    continue
+  fi
+  if [ "$next_status" -ne 0 ]; then
     # `next` names the stop condition on stdout and exits 3: it is the run's own verdict on why it may not
     # start another item, and the only account of the end besides the counters. Captured and dropped, the
     # printed report could not say why a run stopped (#184).

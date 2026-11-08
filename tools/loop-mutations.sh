@@ -993,6 +993,19 @@ MUTATIONS=(
   # from the branch's own 95.x when this landed: the tree had already spent 95.1 on the bounds issue #815 records.
   '263.1@-@tools/loop/prompts/worker.md@prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite@the gate named as the owner of the full selection, so the change child runs that check itself (issue #816)@s|gate owns the full selection|the gate is run by the child that runs it|'
   '263.2@-@tools/loop/prompts/pre-gate-review.md@prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle@the claim the round before the gate may refuse, so a check the gate will run is refused for want of a log the change child never produced (issue #816)@s|a claim the gate cannot settle|a claim nobody has logged|'
+
+  # quota-hold.x — the quota a run waits on instead of ending on. The records for the change that added the hold
+  # (2026-11-08), labelled by the change rather than by a tracker item: the wait is turned into a status of the
+  # run (6), the check that could not be made stays no refusal, an empty key stays no question, the wait moves the
+  # deadline with it, and the run pauses on the status instead of reading it as a stop.
+  'quota-hold.1@-@tools/loop/state.sh@state#aQuotaWindowIsAHoldNotAStop@the hold a reader returns becoming the run paused status, not one of its stops@s|^          exit "\$LOOP_HOLD"$|          exit "$LOOP_STOP"|'
+  'quota-hold.2@-@tools/loop/state.sh@state#aQuotaCheckThatCannotBeMadeIsNotARefusal@the reading that could not be made staying no refusal@s|^          loop_note "state: the quota check|          exit "$LOOP_HOLD" # the mutation holds on a reader that failed|'
+  'quota-hold.3@-@tools/loop/state.sh@state#noQuotaCommandAsksNothing@an empty key meaning no question at all@s|^    quota_cmd=\$(loop_conf_value LOOP_QUOTA_CMD)$|    quota_cmd="\${quota_cmd:-bash .pi/quota-stub.sh}"|'
+  'quota-hold.4@-@tools/loop/state.sh@state#aHoldMovesTheDeadlineWithIt@the wait moving the deadline with it, so a pause is not spent budget@s|.run.deadlineEpoch += \$seconds|.run.deadlineEpoch += 0|'
+  'quota-hold.5@-@tools/loop/run.sh@run#aQuotaHoldPausesTheRunAndResumesIt@the run pausing on a hold instead of ending on it@s|^  if \[ "\$next_status" -eq "\$LOOP_HOLD" \]; then$|  if false; then|'
+  'quota-hold.6@-@tools/loop/report.sh@report#theSpendIsWorkNotWaiting@the spend figure excluding the wait, so a paused run reports work rather than clock@s|\$(date +%s) - run_epoch ) / 60 - paused_min|$(date +%s) - run_epoch ) / 60|'
+  'quota-hold.7@-@tools/loop/run.sh@run#theQuotaSwitchIsExplicit@the flag emptying the reader key for one run, so a person can start a run whose provider the reader does not answer for@s|^  export LOOP_QUOTA_CMD=""$|  : # the mutation keeps the reader armed|'
+  'quota-hold.8@-@tools/loop/loop.conf@run#theQuotaSwitchIsExplicit@a set-but-empty environment value winning over the file, so the key can be switched without editing it@s|{LOOP_QUOTA_CMD-bash|{LOOP_QUOTA_CMD:-bash|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

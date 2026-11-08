@@ -21,6 +21,17 @@ LOOP_OK=0
 LOOP_USAGE=2
 LOOP_STOP=3
 LOOP_REFUSE=5
+# The status `state.sh next` returns when the run may not start another item **yet**: a condition outside the run
+# — the provider's own quota, read through the project's `LOOP_QUOTA_CMD` — that a wait clears. Distinct from
+# `LOOP_STOP` because the run pauses rather than ends: `run.sh` sleeps until the instant the hold names, moves its
+# deadline with the wait (a pause is not work, `state.sh hold`), and asks `next` again.
+LOOP_HOLD=6
+# The other half of that: the status a **reader** returns when the run may not start another item yet. The reader
+# is the project's (`LOOP_QUOTA_CMD`, `tools/loop-quota.sh`) and cannot know the engine's own codes, so its protocol
+# is its own — 0 the run may go on, this value the run must wait, anything else "the reading could not be made",
+# which is not a refusal — and `state.sh next` turns this value into `LOOP_HOLD` for `run.sh`. The engine compares
+# against this constant and never against the literal.
+LOOP_HOLD_READ=3
 # The status `run.sh`'s `run_child` returns when it ended a child at the configured wall-clock
 # (`LOOP_CHILD_MAX_SECONDS`). It is a child's status, never the run's, and it is distinct so the run's own
 # "the worker process exited N" path and a reader can tell a timeout from a child that failed by itself.

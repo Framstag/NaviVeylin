@@ -149,6 +149,22 @@ LOOP_ITEM_CONTEXT_MAX    the context that ends a child    200000; the largest `i
                                                        read while the child runs, `0` = none (issue #760)
 LOOP_ITEM_GATE_SECONDS   what one item's gate owes    3900 s (65 min): two gate rounds and the phases beside them
                                                        (issue #663); a child is given the larger of the two
+LOOP_QUOTA_CMD   the command that answers whether another item may start    empty = no such check, and the run's
+                                                       own conditions are its whole authority (`tools/loop-quota.sh`
+                                                       here). It answers for **one provider's** quota, so it is
+                                                       switched per run: `run.sh --no-quota` or a set-but-empty
+                                                       `LOOP_QUOTA_CMD` in the environment wins over the file (the
+                                                       key is a fill-if-unset expansion), and the header names what
+                                                       was armed — `quota=off` when nothing was. The reader answers with its exit status — `0` go,
+                                                       `3` hold with its reason and `resume-at <epoch>` on stdout,
+                                                       anything else "the reading could not be made", which is not a
+                                                       refusal. A hold pauses the run and moves its deadline with the
+                                                       wait (`state.sh hold`); `LOOP_QUOTA_SESSION_MIN_PERCENT`,
+                                                       `LOOP_QUOTA_WEEKLY_MIN_PERCENT` and
+                                                       `LOOP_QUOTA_PACING_RESERVE_PERCENT` are the reader's
+                                                       thresholds, and `LOOP_QUOTA_POLL_SECONDS` and
+                                                       `LOOP_QUOTA_HOLD_MAX_SECONDS` the wait's poll interval and its
+                                                       cap (`0` = no cap; guidelines/Backlog.md §7b)
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use
 ```
 

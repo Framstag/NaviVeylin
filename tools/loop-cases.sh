@@ -405,6 +405,13 @@ LOOP_SHELL_CASES=(
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
   'run#childPastItsContextBoundIsCut'
   'run#theRecordedZeroKeepsTheContextBoundOff'
+  'state#aQuotaWindowIsAHoldNotAStop'
+  'state#aQuotaCheckThatCannotBeMadeIsNotARefusal'
+  'state#noQuotaCommandAsksNothing'
+  'state#aHoldMovesTheDeadlineWithIt'
+  'run#aQuotaHoldPausesTheRunAndResumesIt'
+  'run#theQuotaSwitchIsExplicit'
+  'report#theSpendIsWorkNotWaiting'
 )
 
 loop_shell_cases() {
@@ -447,6 +454,242 @@ loop_case_body_paths() { # stdin: a case body → the paths it names, one per li
       -e 's#\${LOOP_PROJECT_ROOT}##g' -e 's#\$LOOP_PROJECT_ROOT##g' \
       -e 's#\${root}##g' -e 's#\$root##g' |
     grep -o 'tools/[A-Za-z0-9_./-]*[A-Za-z0-9_-]' | sort -u
+}
+
+# ── the quota: the one condition outside the run that a wait clears ─────────────────────────────
+
+# The reader is the project's and the engine knows only its **exit status**, so a case needs no provider and no
+# network: a stub written into the throwaway project answers with the status and the lines a real reader would. It
+# is written under the project's `.pi/` because that directory is gitignored — a plain file beside the tree would
+# make the project dirty, which the run refuses before its pre-screen (issue #284).
+# The switch has to be **explicit**, because the reader belongs to one provider: a run whose children are configured
+# for another provider spends that provider's quota and nothing of the reader's, so a reader left armed would hold the
+# run for a window it is not spending (measured on this reader: six hours of "the weekly quota has 0 % left"). Which
+# provider a run spends is a project value the engine may not name (D1), so the operator says it — and the header is
+# where the run records which of the three ways it took: the configuration, `--no-quota`, or the environment.
+case_run_theQuotaSwitchIsExplicit() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/ tools/loop-quota.sh tools/pi-child-events.sh tools/tooling.json
+  local d p1 p2 p3 out
+  d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # A reader that records that it was asked and then lets the run go, committed into the project: the reader's path
+  # is the one the configuration names, so this is the project the engine would ask. Committed, because an untracked
+  # file makes the project dirty and the run refuses that before its pre-screen (issue #284).
+  reader_stub() { # reader_stub <project>
+    local q="$1"
+    cat > "$q/tools/loop-quota.sh" <<EOF
+#!/usr/bin/env bash
+: > "$q/.pi/quota-was-asked"
+printf 'quota: go\n'
+exit 0
+EOF
+    git -C "$q" add -A >/dev/null 2>&1
+    git -C "$q" commit -qm "the project's own quota reader" >/dev/null 2>&1 ||
+      fail "could not commit the project's quota reader"
+  }
+  # 1. the configuration: armed by default, and the header says so.
+  p1=$(new_project); reader_stub "$p1"
+  out=$( run_loop "$p1" --items 1 --minutes 90 --review off 2>&1 ) || fail "the run failed"
+  assert_contains "$out" "quota=loop-quota.sh" "the header names the reader the configuration armed"
+  [ -e "$p1/.pi/quota-was-asked" ] ||
+    fail "the configured reader was never asked, so this case would pass on a run that ignores the key"
+  # 2. the flag a person holds: `--no-quota`, and nothing is asked at all.
+  p2=$(new_project); reader_stub "$p2"
+  out=$( run_loop "$p2" --items 1 --minutes 90 --review off --no-quota 2>&1 ) || fail "the run failed"
+  assert_contains "$out" "quota=off" "--no-quota turns the reader off for this run"
+  [ ! -e "$p2/.pi/quota-was-asked" ] || fail "a reader this run was told to skip was still asked"
+  # 3. the environment, for a caller that cannot pass a flag (a scheduler, another script): a **set** value wins over
+  #    the file, and set-but-empty is the switch — the reason the key is a fill-if-unset expansion rather than a plain
+  #    assignment, which would silently ignore an empty one.
+  p3=$(new_project); reader_stub "$p3"
+  out=$( ( export LOOP_QUOTA_CMD=""; run_loop "$p3" --items 1 --minutes 90 --review off ) 2>&1 ) || fail "the run failed"
+  assert_contains "$out" "quota=off" "a set-but-empty environment value turns the reader off too"
+  [ ! -e "$p3/.pi/quota-was-asked" ] || fail "a set-but-empty LOOP_QUOTA_CMD did not turn the reader off"
+}
+
+# The report's `spent` figure is the run's **work**, and a wait is not work: it moves the deadline with it, so
+# counting it would print `budget left 3 items / -30 min` for a run that waited an hour of its two and worked
+# nothing — a number nobody can act on. The wait is named beside the figure, because the items' own wall times
+# cannot span a hold (they start and end inside a child). The state's window is rewound by hand, because a case
+# may not spend two hours waiting to read a number (`BuildTests.md` §6e).
+case_report_theSpendIsWorkNotWaiting() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p sf started deadline out summary
+  p=$(new_project); sf=$(state_file "$p")
+  init_state "$p" 3 90
+  run_state "$p" hold --seconds 3600 --reason "a window outside the run clears in an hour" >/dev/null ||
+    fail "the hold was refused"
+  started=$(( $(date +%s) - 7200 ))
+  deadline=$(( $(date +%s) + 1800 ))
+  jq --argjson started "$started" --argjson deadline "$deadline" \
+     --arg startedAt "$(date -u -d "@$started" +%Y-%m-%dT%H:%M:%SZ)" \
+     --arg deadlineAt "$(date -u -d "@$deadline" +%Y-%m-%dT%H:%M:%SZ)" \
+     '.run.startedEpoch = $started | .run.deadlineEpoch = $deadline
+      | .run.startedAt = $startedAt | .run.deadlineAt = $deadlineAt' "$sf" > "$sf.tmp" &&
+    mv "$sf.tmp" "$sf" || fail "could not rewind the run's window"
+  out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
+  summary=$(printf '%s\n' "$out" | grep 'min · spent ' || true)
+  [ -n "$summary" ] || fail "the summary carries no spend figure: $out"
+  assert_contains "$summary" "spent 60 min" "two hours of clock with one waited is an hour of work"
+  assert_contains "$summary" "paused 60 min in 1 wait(s)" "and the wait is named beside the figure"
+  assert_contains "$summary" "budget left 3 items / 30 min" \
+    "so the budget the summary derives is the work left and never a negative"
+}
+
+quota_stub() { # quota_stub <project> <status> [reason] [resume-at] → the LOOP_QUOTA_CMD value
+  local p="$1" status="$2" reason="${3:-quota: the window is short}" resume="${4:-}"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'printf "%%s\\n" '
+    printf "'%s'\n" "$reason"
+    [ -z "$resume" ] || { printf 'printf "resume-at %%s\\n" '; printf "'%s'\n" "$resume"; }
+    printf 'exit %s\n' "$status"
+  } > "$p/.pi/quota-stub.sh"
+  printf 'bash .pi/quota-stub.sh'
+}
+
+# A window the reader holds on is not a stop: the run pauses, which is why the status is its own (6) and the reason
+# and the instant travel on stdout. An engine that read a hold as a refusal would count it towards the streak a run
+# stops on — and two holds in a row would end a run that has budget and a queue.
+case_state_aQuotaWindowIsAHoldNotAStop() {
+  # files: tools/loop/ tools/loop-quota.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf cmd out status
+  d=$(scratch); p=$(new_project); conf="$d/loop.conf"
+  cmd=$(quota_stub "$p" 3 "quota: the weekly window has 0% left" 4102444800)
+  { cat "$LOOP_CONF"; printf 'LOOP_QUOTA_CMD="%s"\n' "$cmd"; } > "$conf"
+  export LOOP_CONF="$conf"
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>/dev/null); status=$?
+  assert_eq "6" "$status" "a window the reader holds on is a wait, not a stop"
+  assert_contains "$out" "quota: the weekly window has 0% left" "the reader's reason travels verbatim"
+  assert_contains "$out" "resume-at 4102444800" "and so does the instant the wait clears"
+  assert_eq "" "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "a hold records no stop"
+}
+
+# The rule the run's memory reading and its floor already follow: a check that cannot be made is not a refusal. A
+# hold is a decision about the provider's answer, and an answer nobody received is not one — refusing on it would
+# end a run because a socket was slow, which is the failure mode the rule exists to prevent.
+case_state_aQuotaCheckThatCannotBeMadeIsNotARefusal() {
+  # files: tools/loop/ tools/loop-quota.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf cmd out status
+  d=$(scratch); p=$(new_project); conf="$d/loop.conf"
+  cmd=$(quota_stub "$p" 4 "quota: the balance could not be fetched")
+  { cat "$LOOP_CONF"; printf 'LOOP_QUOTA_CMD="%s"\n' "$cmd"; } > "$conf"
+  export LOOP_CONF="$conf"
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>/dev/null); status=$?
+  assert_eq "0" "$status" "a reader that failed for its own reasons does not hold the run"
+  assert_eq "21" "$out" "so the candidate is handed out as usual"
+  # and a command that does not exist at all is the same fact
+  { cat "$LOOP_CONF"; printf 'LOOP_QUOTA_CMD="bash .pi/no-such-reader.sh"\n'; } > "$conf"
+  out=$(run_state "$p" next 2>/dev/null); status=$?
+  assert_eq "0" "$status" "a reader that is not there is not a refusal either"
+  assert_eq "21" "$out" "the candidate still stands"
+}
+
+# An empty key is the state the engine was in before the check existed: no command, no question, and the run's own
+# bounds are the whole authority. The stub would touch a file if it were started, so the case asserts the absence of
+# the call rather than the absence of an effect.
+case_state_noQuotaCommandAsksNothing() {
+  # files: tools/loop/ tools/loop-quota.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out status
+  d=$(scratch); p=$(new_project); conf="$d/loop.conf"
+  printf '#!/usr/bin/env bash\n: > "%s/.pi/quota-was-asked"\nexit 3\n' "$p" > "$p/.pi/quota-stub.sh"
+  { cat "$LOOP_CONF"; printf 'LOOP_QUOTA_CMD=""\n'; } > "$conf"
+  export LOOP_CONF="$conf"
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>/dev/null); status=$?
+  assert_eq "0" "$status" "an empty key asks nothing"
+  assert_eq "21" "$out" "and the queue decides alone"
+  [ ! -e "$p/.pi/quota-was-asked" ] || fail "an empty LOOP_QUOTA_CMD still started a command"
+}
+
+# A pause is not spent budget. Without this the whole hold would be a decoration: a window that returns in six hours
+# would be waited for past the run's own deadline, the run would wake, read "deadline passed" and end — the very
+# thing the hold was taken to avoid. The case spends the budget first, so the deadline is the only condition that
+# could stop it, and reads the state after the hold.
+case_state_aHoldMovesTheDeadlineWithIt() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
+  local d p conf out status before after
+  d=$(scratch); p=$(new_project); conf="$d/loop.conf"
+  # A floor of zero, so the *deadline* is the condition under test and not the floor beneath it: with a floor of
+  # minutes a hold of ten would still be too short for an item, and the case would prove the floor instead.
+  { cat "$LOOP_CONF"; printf 'LOOP_ITEM_FLOOR_MINUTES=0\n'; } > "$conf"
+  export LOOP_CONF="$conf"
+  init_state "$p" 3 0
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "a spent budget stops the run"
+  assert_contains "$out" "deadline passed" "and names the condition that spent it"
+  before=$(jq -r '.run.deadlineEpoch' "$(state_file "$p")")
+  run_state "$p" hold --seconds 600 --reason "a window outside the run clears in ten minutes" >/dev/null ||
+    fail "the hold was refused"
+  after=$(jq -r '.run.deadlineEpoch' "$(state_file "$p")")
+  assert_eq "$((before + 600))" "$after" "the deadline moves by exactly the seconds the wait takes"
+  assert_eq "1" "$(jq -r '.run.holds | length' "$(state_file "$p")")" "the wait is kept in the run's record"
+  assert_eq "600" "$(jq -r '.run.holds[0].seconds' "$(state_file "$p")")" "with the seconds it took"
+  assert_contains "$(jq -r '.run.holds[0].reason' "$(state_file "$p")")" "a window outside the run" \
+    "and the reason it was taken for"
+  out=$(run_state "$p" next 2>/dev/null); status=$?
+  assert_eq "0" "$status" "which is what lets the run go on after the wait"
+  assert_eq "21" "$out" "on the candidate it held before"
+}
+
+# The pause and the resume, end to end: the reader holds once, naming an instant one second away, and goes the
+# second time. The run prints the pause, records it, and works the item — and the state it leaves says the end was
+# the item cap, never a quota.
+case_run_aQuotaHoldPausesTheRunAndResumesIt() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/ tools/loop-quota.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out reader
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # `state.sh` is a **child** of the run, and `run.sh` takes `LOOP_CONF` out of every child's environment so a child
+  # reads the profile beside its own engine (issue #277) — so what this case hands the engine is not a scratch
+  # profile but a project whose own reader holds once. The command comes from the project's configuration rather than
+  # from this case: a conf whose reader key names something else is a case that has stopped testing anything, and it
+  # fails here instead of passing by never asking. Both shapes the key may have are read — the plain command, and the
+  # fill-if-unset expansion that makes the key switchable per run — because the case is about the *command*, not about
+  # how the file spells it.
+  reader=$(sed -n 's/^LOOP_QUOTA_CMD="\(.*\)"$/\1/p' "$LOOP_CONF" | tail -1)
+  case "$reader" in
+    *'${'*)
+      # ${LOOP_QUOTA_CMD-<command>}: drop the closing brace, then everything up to the operator. The *first* `-` is
+      # the operator — the key's own name carries none — so a `:-` is read the same way.
+      reader="${reader%\}}"
+      reader="${reader#*-}"
+      ;;
+  esac
+  [ "$reader" = "bash tools/loop-quota.sh" ] ||
+    fail "this case reads the project's quota reader out of loop.conf, and the key now names '$reader'"
+  # The reader is committed rather than left beside the tree: an untracked file makes the project dirty, which the
+  # run refuses before its pre-screen (issue #284). The counter it keeps is under the gitignored `.pi/`.
+  cat > "$p/tools/loop-quota.sh" <<EOF
+#!/usr/bin/env bash
+calls=\$(cat "$p/.pi/quota-calls" 2>/dev/null || printf 0)
+printf '1\\n' >> "$p/.pi/quota-calls"
+if [ "\${calls:-0}" = "0" ]; then
+  printf 'quota: the weekly window has 0%% left\\n'
+  printf 'resume-at %s\\n' "\$(( \$(date +%s) + 1 ))"
+  exit 3
+fi
+printf 'quota: go\\n'
+exit 0
+EOF
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "the project's own quota reader" >/dev/null 2>&1 ||
+    fail "could not commit the project's quota reader"
+  stub_success "$d"
+  out=$( run_loop "$p" --items 1 --minutes 90 --review off 2>&1 ) ||
+    fail "a paused run is not a failed run"
+  assert_contains "$out" "pause: quota: the weekly window has 0% left" "the run pauses with the reader's own reason"
+  assert_eq "1" "$(jq -r '.run.holds | length' "$(state_file "$p")")" "the wait is kept in the run's record"
+  assert_eq "1" "$(jq -r '.run.holds[0].seconds' "$(state_file "$p")")" "for the second the reader named"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item runs once the window returns"
+  assert_contains "$(jq -r '.run.stop.reason' "$(state_file "$p")")" "item cap" "and the run ends on its own cap"
 }
 
 # The dispatcher resolves a name to a function and then returns 0 unconditionally: a case signals failure
@@ -829,6 +1072,13 @@ loop_run_shell_case() {
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
     'run#childPastItsContextBoundIsCut') fn=case_run_childPastItsContextBoundIsCut ;;
     'run#theRecordedZeroKeepsTheContextBoundOff') fn=case_run_theRecordedZeroKeepsTheContextBoundOff ;;
+    'state#aQuotaWindowIsAHoldNotAStop') fn=case_state_aQuotaWindowIsAHoldNotAStop ;;
+    'run#theQuotaSwitchIsExplicit') fn=case_run_theQuotaSwitchIsExplicit ;;
+    'report#theSpendIsWorkNotWaiting') fn=case_report_theSpendIsWorkNotWaiting ;;
+    'state#aQuotaCheckThatCannotBeMadeIsNotARefusal') fn=case_state_aQuotaCheckThatCannotBeMadeIsNotARefusal ;;
+    'state#noQuotaCommandAsksNothing') fn=case_state_noQuotaCommandAsksNothing ;;
+    'state#aHoldMovesTheDeadlineWithIt') fn=case_state_aHoldMovesTheDeadlineWithIt ;;
+    'run#aQuotaHoldPausesTheRunAndResumesIt') fn=case_run_aQuotaHoldPausesTheRunAndResumesIt ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -1286,15 +1536,17 @@ case_state_theStreakIsTheRecordedCount() {
     run_state "$p" queue >/dev/null
   run_state "$p" done 21 --result blocked --verdict blocked >/dev/null || fail "done #21 failed"
   run_state "$p" done 22 --result blocked --verdict blocked >/dev/null || fail "done #22 failed"
-  out=$(run_state "$p" next 2>&1); status=$?
+  # stdout only: the payload is the candidate, and the engine's own notes go to stderr — a merged capture would
+  # read a note about the project's quota reader (this throwaway project carries none) as part of the answer.
+  out=$(run_state "$p" next 2>/dev/null); status=$?
   assert_eq "0" "$status" "the pair the engine shipped with does not stop a run on four"
   assert_eq "23" "$out" "the queue hands out the next candidate"
   run_state "$p" done 23 --result blocked --verdict blocked >/dev/null || fail "done #23 failed"
-  out=$(run_state "$p" next 2>&1); status=$?
+  out=$(run_state "$p" next 2>/dev/null); status=$?
   assert_eq "0" "$status" "and three refusals are still short of four"
   assert_eq "24" "$out" "with the fourth candidate handed out"
   run_state "$p" done 24 --result blocked --verdict blocked >/dev/null || fail "done #24 failed"
-  out=$(run_state "$p" next 2>&1); status=$?
+  out=$(run_state "$p" next 2>/dev/null); status=$?
   assert_eq "3" "$status" "four refusals in a row stop the run"
   assert_contains "$out" "4 consecutive refusals ended blocked" "and the reason names the count the configuration records"
 }

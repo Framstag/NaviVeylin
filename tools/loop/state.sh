@@ -23,7 +23,12 @@
 # fresh tree. Exit 5 is a refusal that
 # must not be retried inside the same reasoning: the lock is held, or the base has moved (design D12, D4).
 #
-# Exit: 0 ok, 2 usage, 3 stop, 5 refuse.
+# One condition is neither a stop nor a refusal: a hold (exit 6). The run may not start an item *yet* because
+# something outside it — the provider's own quota, read through the project's `LOOP_QUOTA_CMD` — says so, and a
+# wait clears it; `next` names the instant on its last line and `run.sh` pauses until then and asks again. A pause
+# is not work, so it is **not** spent budget: `hold` moves the deadline with it.
+#
+# Exit: 0 ok, 2 usage, 3 stop, 5 refuse, 6 hold.
 #
 # Usage:
 #   state.sh init --items N --minutes M [--review on|off] [--may-close yes|no]
@@ -33,7 +38,11 @@
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
-#   state.sh stop <reason>              # the condition that ended the run, as `next` names it#   state.sh next                       # the next candidate; exit 3 when the run may not continue
+#   state.sh stop <reason>              # the condition that ended the run, as `next` names it
+#   state.sh hold --seconds N [--reason TEXT]
+#                         # a wait a condition outside the run imposed: the deadline moves with it, so the pause
+#                         # is not spent budget, and the wait is kept in the run's record beside its stop
+#   state.sh next                       # the next candidate; exit 3 when the run may not continue, 6 to wait
 #   state.sh queue                      # read the queue as JSON on stdin (prescreen writes it)
 #   state.sh start <issue> --change <name>
 #   state.sh record-change-copy <issue> --change <name> --source <path> --files N --bytes N
@@ -269,7 +278,7 @@ cmd_init() {
            itemContextMax:$itemContextMax,
            ownerPid:$ownerPid,
            startedAt:$startedAt, startedEpoch:$started,
-           deadlineAt:$deadlineAt, deadlineEpoch:$deadline},
+           deadlineAt:$deadlineAt, deadlineEpoch:$deadline, holds:[]},
       queue:[], excluded:[], current:null, items:[], steps:[]}')"
   printf 'state: budget %s items / %s min · review %s · may-close %s · max-decisions %s · max-review-rounds %s · base %s\n' \
     "$items" "$minutes" "$review" "$may_close" "$max_decisions" "$max_review_rounds" "${base:0:12}"
@@ -309,6 +318,7 @@ cmd_show() {
       "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
       "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
+      (if (($r.holds // []) | length) > 0 then "paused   \(((($r.holds | map(.seconds) | add) / 60) | floor)) min in \(($r.holds | length)) wait(s) — a pause moves the deadline, so it is not spent budget" else empty end),
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
       "",
       "items",
@@ -367,6 +377,40 @@ cmd_next() {
       else
         reason="only ${minutes_left} min left, below the ${floor} min floor for the next item (cheapest ${cheapest} min over ${n} ${items_word}, configured minimum ${FLOOR_MINUTES})"
       fi
+    fi
+  fi
+  if [ -z "$reason" ]; then
+    # The last condition is outside the run: the provider's own balance, read through the project's
+    # `LOOP_QUOTA_CMD` (empty for a project with no such reading — the check does not exist and nothing changes).
+    # The command is this project's, the question is the engine's: the run owns *when* it is asked (a boundary
+    # between two items) and the reader owns how it is answered (`tools/loop-quota.sh`). Exit 3 from the reader is
+    # the hold this function passes on as its own exit 6, with the reader's lines — the reason and the instant it
+    # names — kept verbatim; any other non-zero status is a check that could not be made and is **not** a refusal
+    # (the rule the floor above and the run's host reading already follow), so the run proceeds and the failure is
+    # named on stderr rather than ending a budget.
+    local quota_cmd quota_out quota_status
+    quota_cmd=$(loop_conf_value LOOP_QUOTA_CMD)
+    if [ -n "$quota_cmd" ]; then
+      quota_status=0
+      quota_out=$( cd "$LOOP_ROOT" &&
+        LOOP_QUOTA_SESSION_MIN_PERCENT="$(loop_conf_value LOOP_QUOTA_SESSION_MIN_PERCENT)" \
+        LOOP_QUOTA_WEEKLY_MIN_PERCENT="$(loop_conf_value LOOP_QUOTA_WEEKLY_MIN_PERCENT)" \
+        LOOP_QUOTA_PACING_RESERVE_PERCENT="$(loop_conf_value LOOP_QUOTA_PACING_RESERVE_PERCENT)" \
+        $quota_cmd < /dev/null 2>/dev/null ) || quota_status=$?
+      case "$quota_status" in
+        0)
+          # A reader that exits 0 may still have something to say: it does exactly when the balance could not be
+          # read, which is the one case in which the run should know it is burning quota blind.
+          [ -z "$quota_out" ] || loop_note "state: $quota_out"
+          ;;
+        "$LOOP_HOLD_READ")
+          printf '%s\n' "$quota_out"
+          exit "$LOOP_HOLD"
+          ;;
+        *)
+          loop_note "state: the quota check '$quota_cmd' exited $quota_status — a check that cannot be made is not a refusal"
+          ;;
+      esac
     fi
   fi
   if [ -n "$reason" ]; then
@@ -483,6 +527,29 @@ cmd_stop() { # the condition that ended the run, as `next` names it
   [ -n "$reason" ] || loop_die "stop: a stop names the condition that ended the run"
   patch_state '.run.stop = {reason: $reason, at: (now | todate)}' --arg reason "$reason"
   printf 'state: stop recorded — %s\n' "$reason"
+}
+
+# The wait a condition outside the run imposed, which `run.sh` sleeps through before it asks `next` again. The
+# deadline moves with it, because the budget is what the run may *spend* and a pause spends nothing: without this
+# a run whose provider resets in six hours would end at its own deadline while asleep and never resume. The wait is
+# recorded as well, so a run that took nine hours to work three items can say how much of that was a pause — which
+# is the reading the item's own wall times cannot give (they start and end inside a child, never over a hold).
+cmd_hold() { # <seconds> [--reason TEXT]
+  require_state
+  local seconds="" reason="a condition outside the run"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --seconds) need_value "$@"; seconds="${2:-}"; shift 2 ;;
+      --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
+      *) loop_die "hold: unknown argument $1" ;;
+    esac
+  done
+  case "$seconds" in ''|*[!0-9]*|0) loop_die "hold: --seconds must be a positive integer" ;; esac
+  patch_state '.run.deadlineEpoch += $seconds
+               | .run.deadlineAt = (.run.deadlineEpoch | todate)
+               | .run.holds = ((.run.holds // []) + [{at: (now | todate), seconds: $seconds, reason: $reason}])' \
+    --argjson seconds "$seconds" --arg reason "$reason"
+  printf 'state: paused %ss — the deadline is now %s\n' "$seconds" "$(jq -r '.run.deadlineAt' "$STATE_FILE")"
 }
 
 cmd_step() {
@@ -1117,6 +1184,7 @@ case "$cmd" in
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
   stop) cmd_stop "$@" ;;
+  hold) cmd_hold "$@" ;;
   report) cmd_report "$@" ;;
   lock) cmd_lock "$@" ;;
   unlock) cmd_unlock "$@" ;;

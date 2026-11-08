@@ -1,0 +1,34 @@
+case longest-run-not-last: {"image": "/tmp/tmp.gvvWpc2MOy/longest-run-not-last.png", "presentation": "dark", "bbox": [10, 50, 5, 5], "highlight_px": 41, "image_size": [200, 20], "band": [0, 15], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+PASS longest-run-not-last
+case longest-run-is-last: {"image": "/tmp/tmp.gvvWpc2MOy/longest-run-is-last.png", "presentation": "dark", "bbox": [100, 140, 5, 5], "highlight_px": 41, "image_size": [200, 20], "band": [0, 15], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+PASS longest-run-is-last
+case longest-run-per-row: {"image": "/tmp/tmp.gvvWpc2MOy/longest-run-per-row.png", "presentation": "dark", "bbox": [10, 100, 5, 6], "highlight_px": 82, "image_size": [200, 20], "band": [0, 15], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+PASS longest-run-per-row
+case single-run: {"image": "/tmp/tmp.gvvWpc2MOy/single-run.png", "presentation": "dark", "bbox": [10, 50, 5, 5], "highlight_px": 41, "image_size": [200, 20], "band": [0, 15], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+PASS single-run
+case short-only: {"image": "/tmp/tmp.gvvWpc2MOy/short-only.png", "highlight": null, "image_size": [200, 20], "band_bottom": 15}
+     exit=2
+PASS short-only
+case two-short-runs: {"image": "/tmp/tmp.gvvWpc2MOy/two-short-runs.png", "highlight": null, "image_size": [200, 20], "band_bottom": 15}
+     exit=2
+PASS two-short-runs
+case behind-card: {"image": "/tmp/tmp.gvvWpc2MOy/behind-card.png", "presentation": "dark", "bbox": [10, 50, 18, 18], "highlight_px": 41, "image_size": [200, 20], "band": [0, 15], "margin_px": 2, "clipped": ["bottom"], "inside": false}
+     exit=1
+PASS behind-card
+case no-state: {"image": "/tmp/tmp.gvvWpc2MOy/glyph-pair.png", "highlight": null, "refused": "no-state", "image_size": [200, 20], "band": [0, 20], "margin_px": 0}
+     exit=2
+PASS no-state
+case no-focus-line: {"image": "/tmp/tmp.gvvWpc2MOy/glyph-pair.png", "highlight": null, "refused": "no-focus-line", "image_size": [200, 20], "band": [0, 20], "margin_px": 0}
+     exit=2
+PASS no-focus-line
+case no-card: {"image": "/tmp/tmp.gvvWpc2MOy/glyph-pair.png", "highlight": null, "refused": "no-card", "image_size": [200, 20], "band": [0, 20], "margin_px": 0}
+     exit=2
+PASS no-card
+case band-disagrees: {"image": "/tmp/tmp.gvvWpc2MOy/glyph-pair.png", "highlight": null, "refused": "band-disagrees", "image_size": [200, 20], "band": [0, 15], "margin_px": 0}
+     exit=2
+PASS band-disagrees
+measure-highlight selftest: 11 passed, 0 failed

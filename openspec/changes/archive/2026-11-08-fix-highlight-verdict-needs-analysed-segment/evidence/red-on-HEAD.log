@@ -1,0 +1,94 @@
+case longest-run-not-last: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL longest-run-not-last — measured output does not carry "bbox": [10, 50, 5, 5]: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case longest-run-is-last: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL longest-run-is-last — measured output does not carry "bbox": [100, 140, 5, 5]: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case longest-run-per-row: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL longest-run-per-row — measured output does not carry "bbox": [10, 100, 5, 6]: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case single-run: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL single-run — measured output does not carry "bbox": [10, 50, 5, 5]: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case short-only: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL short-only — measured output does not carry "highlight": null: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case two-short-runs: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL two-short-runs — measured output does not carry "highlight": null: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case behind-card: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+     exit=2
+FAIL behind-card — measured output does not carry "clipped": ["bottom"]: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state.log
+case no-state: {"image": "/tmp/tmp.jBMON6AEfH/glyph-pair.png", "presentation": "dark", "bbox": [10, 18, 5, 15], "highlight_px": 18, "image_size": [200, 20], "band": [0, 20], "margin_px": 0, "clipped": [], "inside": true}
+     exit=0
+FAIL no-state — measured output does not carry "highlight": null: {"image": "/tmp/tmp.jBMON6AEfH/glyph-pair.png", "presentation": "dark", "bbox": [10, 18, 5, 15], "highlight_px": 18, "image_size": [200, 20], "band": [0, 20], "margin_px": 0, "clipped": [], "inside": true}
+case no-focus-line: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state-no-focus.log
+     exit=2
+FAIL no-focus-line — measured output does not carry "highlight": null: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state-no-focus.log
+case no-card: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state-no-card.log
+     exit=2
+FAIL no-card — measured output does not carry "highlight": null: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state-no-card.log
+case band-disagrees: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state-other-band.log
+     exit=2
+FAIL band-disagrees — measured output does not carry "highlight": null: usage: measure-highlight.py [-h] [--dump DUMP] [--band-bottom BAND_BOTTOM]
+                            [--margin MARGIN] [--json]
+                            image
+measure-highlight.py: error: unrecognized arguments: --state /tmp/tmp.jBMON6AEfH/state-other-band.log
+measure-highlight selftest: 0 passed, 11 failed

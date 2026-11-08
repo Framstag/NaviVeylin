@@ -1,0 +1,10 @@
+gate run (phase E, once) — ./tools/loop/gate.sh in /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list — 0s
+LOOP-GATE: tests=54 failures=0 errors=0 (bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-rule-routes.sh 2s, tools/check-rule-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list 0s)
+
+Per-suite tallies copied to gate-tallies/ (source: change root app/build/test-results/loop-gate/*.xml).
+Note: full stdout was tool-result-trimmed; per-step XML tallies are the complete result set.

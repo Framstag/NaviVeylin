@@ -55,6 +55,12 @@ A car list screen SHALL present at most as many rows as the connected host displ
 - **AND** it SHALL be a car list rather than a pane, because a pane's rows are not actionable and cannot offer the rest of the window
 - **Case**: `auto: DiagnosticsScreenTest.theDiagnosticsListFitsTheHostsCapacity`
 
+#### Scenario: The POI results list fits the host's capacity
+
+- **WHEN** a car POI search returns more rows than the host's reported capacity
+- **THEN** the POI results list SHALL carry at most that many result rows, and both the row slice and the count in its page row SHALL follow the capacity the host reports rather than the Car App Library's default
+- **Case**: `auto: PoiResultsScreenTest.thePoiResultsListFitsTheHostsCapacity`
+
 ### Requirement: Items beyond the capacity stay reachable
 
 A car list whose items exceed the host's capacity SHALL offer the remaining items through a clickable final row that opens the next page in the same order, so every item can be reached while driving, and the way back to the previous page SHALL exist.
@@ -100,3 +106,10 @@ A car list whose items exceed the host's capacity SHALL offer the remaining item
 - **WHEN** the driver taps the car diagnostics screen's page row
 - **THEN** the page it opens SHALL present the next capacity-many entries of the same newest-first window, and its own page row SHALL count what remains after them rather than dropping it
 - **Case**: `auto: DiagnosticsScreenTest.thePageRowOpensTheNextSliceOfTheWindow`
+
+#### Scenario: The POI results page continues the searched rows
+
+- **WHEN** the driver taps the car POI results list's page row
+- **THEN** the page it opens SHALL carry the next fetched result rows in the same order, beginning with the first row the previous page did not show
+- **AND** it SHALL present rows the search already fetched, without a second native walk
+- **Case**: `auto: PoiResultsScreenTest.thePageRowCarriesTheAlreadyFetchedRows`

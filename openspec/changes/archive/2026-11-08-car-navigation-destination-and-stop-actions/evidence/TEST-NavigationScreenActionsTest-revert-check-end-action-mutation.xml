@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationScreenActionsTest" tests="13" skipped="0" failures="1" errors="0" timestamp="2026-11-08T14:32:57.029Z" hostname="dingens" time="3.25">
+  <properties/>
+  <testcase name="routeListCarriesIconAndNoTitle" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="2.944"/>
+  <testcase name="navigationMapActionStripRouteListInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.03"/>
+  <testcase name="freeDrivingMapActionStripHasPanAndExit" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.029"/>
+  <testcase name="navigationActionStripCarriesTheFourActionsAndTheirTapsReachTheirCallbacks" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.031">
+    <failure message="java.lang.AssertionError: expected:&lt;4&gt; but was:&lt;3&gt;" type="java.lang.AssertionError">java.lang.AssertionError: expected:&lt;4&gt; but was:&lt;3&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.naviveylin.auto.NavigationScreenActionsTest.navigationActionStripCarriesTheFourActionsAndTheirTapsReachTheirCallbacks(NavigationScreenActionsTest.kt:139)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="freeDrivingMapActionStripExitInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.034"/>
+  <testcase name="navigationMapActionStripHasPanAndRouteList" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.027"/>
+  <testcase name="routeListInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.028"/>
+  <testcase name="routeListIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.02"/>
+  <testcase name="stopInvokesCallback" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.019"/>
+  <testcase name="stopIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.022"/>
+  <testcase name="stopCarriesIconAndNoTitle" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.02"/>
+  <testcase name="zoomInIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.022"/>
+  <testcase name="zoomOutIsNotParkedOnly" classname="com.naviveylin.auto.NavigationScreenActionsTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

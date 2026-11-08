@@ -45,6 +45,12 @@ of reporting a verdict it cannot establish" (issue #90, 2026-11-08T08:41:03Z). T
 same-moment diagnostics as an input, and refuses — it does not print a verdict — when they do not establish an
 analysed segment on screen.
 
+**Round-2 review correction:** the first implementation matched any diagnostics line containing
+`segment focus:`, so a line under another tag could establish the state. The wrong-tag red case reports
+`"inside": true`, exit 0 before the correction (`evidence/red-on-round2.log`,
+`evidence/red-on-round2.xml`: tests=12, failures=1, 2026-11-08T12:02:36Z). The detector now requires the literal
+`MapCanvasVM: segment focus:` line and refuses that input as `no-focus-line`.
+
 **Owning requirement:** `openspec/specs/highlight-measurement/spec.md` — one requirement added ("A verdict
 requires the same-moment frame state"); the six scenarios that state the row rule are unchanged.
 
@@ -52,13 +58,9 @@ requires the same-moment frame state"); the six scenarios that state the row rul
 (`:292-300`) — the paragraph that puts the precondition on the caller; it now states that the detector refuses
 instead, and the recipe in `guidelines/Build.md` §1 (`:55`) and the `pixel-check` skill carry the input.
 
-surface: 7 harness cases gain the state input, 4 cases added, 3 skill-harness checks gain it, 1 requirement
-added with 4 scenarios, 1 detector, 2 guideline sections and 1 skill section realigned — counted with
-`tools/look.sh 'measure-highlight'` (139 matches in 46 files, 6 of them live: `tools/measure-highlight.py`,
-`tools/measure-highlight-selftest.sh`, `guidelines/Build.md`, `guidelines/BuildEvidence.md`,
-`guidelines/BuildEvidence.why.md`, `openspec/specs/highlight-measurement/spec.md`), `grep -c '^check '
-tools/measure-highlight-selftest.sh` (7) and `grep -c '^#### Scenario' openspec/specs/highlight-measurement/spec.md`
-(6).
+surface: 12 harness cases in total, 5 refusal cases added, 3 skill-harness checks gain the state input,
+1 requirement added with 5 scenarios, 1 detector, 2 guideline sections and 1 skill section realigned — counted
+with `bash tools/measure-highlight-selftest.sh` and `tools/look.sh 'measure-highlight'`.
 
 ## What Changes
 
@@ -70,8 +72,9 @@ tools/measure-highlight-selftest.sh` (7) and `grep -c '^#### Scenario' openspec/
    three values: a refusal is the tool's existing "no highlight was found" answer, and now also its answer when
    the frame's state is not established.
 2. **The two device-free harnesses state the input instead of describing it.** `tools/measure-highlight-selftest.sh`
-   writes a `segment focus:` fixture per case and adds four refusal cases — `no-state`, `no-focus-line`,
-   `no-card`, `band-disagrees`; `.pi/skills/pixel-check/selftest.sh` gains the same fixture for its three checks.
+   writes a `MapCanvasVM: segment focus:` fixture per case and adds five refusal cases — `no-state`,
+   `no-focus-line`, `wrong-tag`, `no-card`, `band-disagrees`; `.pi/skills/pixel-check/selftest.sh` gains the same
+   fixture for its three checks.
 3. **The recipes that call the tool pass the state**, so a documented command cannot come back refused:
    `.pi/skills/pixel-check/SKILL.md` (`:80`), `guidelines/Build.md` §1 (`:55`) and
    `guidelines/BuildEvidence.md` section 11 rule 2.

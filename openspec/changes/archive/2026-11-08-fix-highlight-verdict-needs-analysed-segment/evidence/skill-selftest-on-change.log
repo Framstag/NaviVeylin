@@ -1,4 +1,3 @@
-2026-11-08T11:35:50Z
 ok   inside -> inside=true
 ok   behind-card -> inside=false
 ok   dot -> no highlight

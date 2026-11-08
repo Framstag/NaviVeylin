@@ -62,6 +62,10 @@
     <string name="route_calculation_strip_percent">Calculating route… %1$d%%</string>
     <string name="route_calculation_strip_failed">Recalculation failed</string>
     <string name="off_route_panel_cue">Off the planned route</string>
+    <!-- The navigation view's action strip: re-plan the live session and end it
+         (spec: auto/navigation-view — A live session can be re-planned and ended from the car). -->
+    <string name="navigation_change_destination">Change destination</string>
+    <string name="navigation_end">End navigation</string>
     <string name="cancel">Cancel</string>
     <string name="retry">Retry</string>
     <string name="back">Back</string>

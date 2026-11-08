@@ -5,7 +5,6 @@ import android.util.Log
 import android.view.Surface
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
-import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.CarText
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.NavigationTemplate
@@ -38,19 +37,20 @@ import kotlinx.coroutines.withContext
  * Android Auto screen that displays turn-by-turn navigation via [NavigationTemplate].
  * Observes [NavigationViewModel.state] and invalidates the template on changes.
  *
- * Layout (spec: auto-map-layout): the left-edge map action strip holds the
- * stop action (X — stops navigation) and the route-description action; the
- * right-edge action strip holds the visualisation buttons (zoom). The host
+ * Layout (spec: auto-map-layout): the map action strip holds the route-description action; the
+ * action strip holds the visualisation buttons (zoom), *change destination* and *end navigation*
+ * (spec: auto/navigation-view — A live session can be re-planned and ended from the car). The host
  * instruction panel renders the current-step maneuver + distance, the next
  * step and lane guidance (spec: auto/navigation-view); the map surface
  * carries only the compass rose and the speed badge ([SurfaceIndicators]).
  * The current street name is rendered in the host ETA card via
  * `TravelEstimate.setTripText` (design D1, street-name-host-views), never
  * on the map surface. The host ETA card stop button
- * (via [NavigationManagerController]) and system back are the leave
- * affordances during navigation (spec: auto/navigation-view —
- * "Leave navigation at any time"); the map action strip carries the
- * route-description action only, no stop or back button (see init).
+ * (via [NavigationManagerController]), the strip's *end navigation* action
+ * and system back are the leave affordances during navigation (spec:
+ * auto/navigation-view — "Leave navigation at any time"); the map action
+ * strip carries the route-description action only, no stop or back button
+ * (see init).
  */
 class NavigationScreen(
     carContext: CarContext,
@@ -572,10 +572,14 @@ class NavigationScreen(
             isNavigating = true,
             travelEstimate = buildTravelEstimate(state),
             mapActionStrip = NavigationScreenActions.navigationMapActionStrip { onShowRouteDescription() },
-            actionStrip = ActionStrip.Builder()
-                .addAction(NavigationScreenActions.zoomInAction { onZoomIn() })
-                .addAction(NavigationScreenActions.zoomOutAction { onZoomOut() })
-                .build(),
+            actionStrip = NavigationScreenActions.navigationActionStrip(
+                onZoomIn = { onZoomIn() },
+                onZoomOut = { onZoomOut() },
+                onChangeDestination = { onChangeDestination() },
+                onEndNavigation = { onEndNavigation() },
+                changeDestinationTitle = carContext.getString(R.string.navigation_change_destination),
+                endNavigationTitle = carContext.getString(R.string.navigation_end)
+            ),
             routingInfo = routingInfo,
             panModeListener = panHandler
         )
@@ -587,6 +591,24 @@ class NavigationScreen(
         armScreenPush(carContext, scope, "RouteDescriptionScreen") {
             RouteDescriptionScreen(carContext, navigationViewModel)
         }
+    }
+
+    /** Push the car's search for a new destination; navigation keeps running underneath. */
+    private fun onChangeDestination() {
+        Log.d(TAG, "Show destination search")
+        armScreenPush(carContext, scope, "SearchScreen") {
+            SearchScreen(carContext, navigationViewModel)
+        }
+    }
+
+    /**
+     * End the session from the strip: the same call the phone's stop action makes, so the session's
+     * state collector emits `onNavigationEnded` and the host is popped to the root screen (spec:
+     * auto/navigation-view — A live session can be re-planned and ended from the car).
+     */
+    private fun onEndNavigation() {
+        Log.d(TAG, "End navigation")
+        navigationViewModel.stopNavigation()
     }
 
     /**

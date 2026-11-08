@@ -59,6 +59,10 @@
     <string name="route_calculation_strip_percent">Route wird berechnet … %1$d %%</string>
     <string name="route_calculation_strip_failed">Neuberechnung fehlgeschlagen</string>
     <string name="off_route_panel_cue">Nicht auf der geplanten Route</string>
+    <!-- Der Aktionsstreifen der Navigationsansicht: laufende Sitzung neu planen und beenden
+         (spec: auto/navigation-view — A live session can be re-planned and ended from the car). -->
+    <string name="navigation_change_destination">Ziel ändern</string>
+    <string name="navigation_end">Navigation beenden</string>
     <string name="cancel">Abbrechen</string>
     <string name="retry">Erneut versuchen</string>
     <string name="back">Zurück</string>

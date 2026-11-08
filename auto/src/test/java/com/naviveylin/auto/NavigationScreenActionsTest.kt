@@ -119,4 +119,34 @@ class NavigationScreenActionsTest {
         strip.actions[1].onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
         assertTrue(clicked)
     }
+
+    @Test
+    fun navigationActionStripCarriesTheFourActionsAndTheirTapsReachTheirCallbacks() {
+        // The navigation view offers a way to change the destination and to end the session
+        // (spec: auto/navigation-view — A live session can be re-planned and ended from the car):
+        // zoom first (the frequent action while driving), then change destination, end navigation
+        // last (the destructive one, where the host's overflow keeps it away from a stray tap).
+        var destination = false
+        var ended = false
+        val strip = NavigationScreenActions.navigationActionStrip(
+            onZoomIn = {},
+            onZoomOut = {},
+            onChangeDestination = { destination = true },
+            onEndNavigation = { ended = true },
+            changeDestinationTitle = "Change destination",
+            endNavigationTitle = "End navigation"
+        )
+        assertEquals(4, strip.actions.size)
+        assertEquals(
+            listOf("+", "-", "Change destination", "End navigation"),
+            strip.actions.map { it.title.toString() }
+        )
+        // A tap on change destination opens the car's search (the callback the screen binds to the
+        // SearchScreen push), and a tap on end navigation asks the session to end (the callback the
+        // screen binds to the controller path the phone's stop action uses).
+        strip.actions[2].onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
+        strip.actions[3].onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
+        assertTrue(destination)
+        assertTrue(ended)
+    }
 }

@@ -65,6 +65,46 @@ object NavigationScreenActions {
         .build()
 
     /**
+     * Change destination — opens the car's own search so a live session can be re-planned
+     * (spec: auto/navigation-view — A live session can be re-planned and ended from the car).
+     * Driving-safe: the label is a resource the calling screen resolves.
+     */
+    fun changeDestinationAction(title: String, onClick: () -> Unit): Action = Action.Builder()
+        .setTitle(title)
+        .setOnClickListener(onClick)
+        .build()
+
+    /**
+     * End navigation — asks the session to end. Destructive, so it sorts last in the strip, where
+     * the host's overflow keeps it away from a stray tap (spec: auto/navigation-view — A live
+     * session can be re-planned and ended from the car). Driving-safe.
+     */
+    fun endNavigationAction(title: String, onClick: () -> Unit): Action = Action.Builder()
+        .setTitle(title)
+        .setOnClickListener(onClick)
+        .build()
+
+    /**
+     * The navigation view's action strip: zoom first (the frequent action while driving), then
+     * *change destination*, and *end navigation* last (the destructive one). The titles are the
+     * calling screen's resources, so this stays a pure factory (spec: auto/navigation-view — A live
+     * session can be re-planned and ended from the car).
+     */
+    fun navigationActionStrip(
+        onZoomIn: () -> Unit,
+        onZoomOut: () -> Unit,
+        onChangeDestination: () -> Unit,
+        onEndNavigation: () -> Unit,
+        changeDestinationTitle: String,
+        endNavigationTitle: String
+    ): ActionStrip = ActionStrip.Builder()
+        .addAction(zoomInAction(onZoomIn))
+        .addAction(zoomOutAction(onZoomOut))
+        .addAction(changeDestinationAction(changeDestinationTitle, onChangeDestination))
+        .addAction(endNavigationAction(endNavigationTitle, onEndNavigation))
+        .build()
+
+    /**
      * Open the route description list — icon-only (map action strip
      * constraint), driving-safe.
      */

@@ -1,0 +1,108 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:pluginDescriptors
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:compileKotlin
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+
+> Task :buildSrc:jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :auto:checkHardcodedStrings
+> Task :core:checkHardcodedStrings
+> Task :osmscout-client-java:compileVendoredJava
+> Task :osmscout-client-java:processVendoredResources NO-SOURCE
+> Task :osmscout-client-java:vendoredClasses
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:generateDebugResources
+> Task :core:packageDebugResources
+> Task :core:processDebugNavigationResources
+> Task :auto:checkNoWallClockWaits
+> Task :core:parseDebugLocalResources
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:generateDebugResources
+> Task :core:writeDebugAarMetadata
+> Task :core:extractDeepLinksDebug
+> Task :auto:packageDebugResources
+> Task :core:generateDebugRFile
+> Task :auto:processDebugNavigationResources
+> Task :core:javaPreCompileDebug
+> Task :core:mapDebugSourceSetPaths
+> Task :core:processDebugManifest
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:javaPreCompileDebug
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:compileDebugLibraryResources
+> Task :auto:writeDebugAarMetadata
+> Task :core:mergeDebugAssets
+> Task :auto:parseDebugLocalResources
+> Task :auto:mapDebugSourceSetPaths
+> Task :auto:generateDebugRFile
+> Task :auto:checkDebugUnitTestAarMetadata
+> Task :auto:compileDebugLibraryResources
+> Task :auto:mapDebugUnitTestSourceSetPaths
+> Task :auto:generateDebugUnitTestResources
+> Task :osmscout-client-java:compileJava
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes
+> Task :osmscout-client-java:jar
+> Task :auto:extractDeepLinksDebug
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest
+> Task :auto:processDebugManifest
+> Task :auto:mergeDebugAssets
+> Task :auto:mergeDebugUnitTestResources
+> Task :auto:mergeDebugUnitTestManifest
+> Task :auto:processDebugUnitTestManifest
+> Task :auto:mergeDebugUnitTestAssets
+> Task :auto:koverFindJar
+> Task :auto:processDebugUnitTestResources
+> Task :auto:packageDebugUnitTestForUnitTest
+> Task :auto:generateDebugUnitTestConfig
+> Task :core:kspDebugKotlin
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac
+> Task :core:processDebugJavaRes
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:processDebugJavaRes
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:bundleLibRuntimeToJarDebug
+
+> Task :auto:compileDebugUnitTestKotlin FAILED
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:131:45 Unresolved reference 'navigationActionStrip'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:142:33 Unresolved reference 'it'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:147:9 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:147:26 Unresolved reference 'onClickDelegate'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:147:44 Unresolved reference 'sendClick'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:148:9 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:148:26 Unresolved reference 'onClickDelegate'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:148:44 Unresolved reference 'sendClick'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':auto:compileDebugUnitTestKotlin' (registered by plugin 'com.android.internal.library').
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 10s
+59 actionable tasks: 59 executed

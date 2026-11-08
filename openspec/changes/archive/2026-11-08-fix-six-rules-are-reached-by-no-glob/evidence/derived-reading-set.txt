@@ -1,0 +1,5 @@
+# the reading set the map derives for this change paths, 2026-11-08T11:11:43Z
+$ bash tools/check-rule-routes.sh --diff 51d7b695 --change openspec/changes/fix-six-rules-are-reached-by-no-glob
+check-rule-routes: the reading set for 51d7b695
+  BacklogTooling.md §9
+exit=0

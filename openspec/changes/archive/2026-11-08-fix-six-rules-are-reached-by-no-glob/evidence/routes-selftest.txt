@@ -1,0 +1,17 @@
+# tools/check-rule-routes-selftest.sh with the fix, 2026-11-08T11:11:43Z
+$ bash tools/check-rule-routes-selftest.sh
+PASS  routes#theMapResolvesAndEveryRuleIsReached — a map whose glob matches the tree and whose rule is reached passes (exit 0)
+PASS  routes#aDocumentNoGlobNamesIsReported — a normative document no glob matches is reported, even though its rule is reached by another path's route (exit 1)
+PASS  routes#aGuidelineRouteCarryingAnotherDocumentIsReported — a route whose glob sits under `guidelines/` and names a document it never reaches is reported (exit 1)
+PASS  routes#aGlobMatchingNoTrackedPathIsReported — a glob under which the tree holds no file is reported (exit 1)
+PASS  routes#aRuleNoGlobReachesIsReported — a named rule no glob reaches is reported with its name and document (exit 1)
+PASS  routes#theReadingSetFollowsTheDiff — a change naming fewer sections than the map derives for its paths is reported (exit 1)
+PASS  routes#aChangeNamingItsDerivedSectionsPasses — a change that names every derived section passes (exit 0)
+PASS  routes#aChangeMayAddASection — a change may add a section it names beyond the derived set (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — one edit to one guideline document derives that document's entries alone (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …for a companion layer too — a procedure edit derives its document (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family derives its four siblings, not the corpus (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a document a route split had left with no glob derives its own entries, not nothing (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and so does the document that shares the backlog concern with a sibling of its own (exit 0)
+check-rule-routes-selftest: all 13 cases passed (throwaway fixtures, no Gradle, no device, no network)
+exit=0

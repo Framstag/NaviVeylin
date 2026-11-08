@@ -13,6 +13,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.car.app.navigation.model.Trip
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.CarSessionPresence
 import com.naviveylin.core.DeepLinkParser
 import com.naviveylin.core.DeepLinkResult
 import com.naviveylin.core.DiagnosticsLog
@@ -262,11 +263,10 @@ class NavigationSession : Session() {
                     surfaceHost().startSession(carContext)
                 }
                 // The phone surface is told that a car session is live (spec:
-                // `car-session-presence`) — informational only, confined like every
-                // other lifecycle step (the library rethrows on the main thread).
-                guardedHostCall("publish car session presence", tag = SESSION_DIAG_TAG) {
-                    carSessionPresence().setActive(true)
-                }
+                // `car-session-presence`) — informational only, confined like every other
+                // lifecycle step (the library rethrows on the main thread), and routed
+                // through the seam a host-free case drives.
+                publishCarSessionPresenceOnStart(presence = ::carSessionPresence)
                 SessionLog.push("car session presence: live")
                 SessionLog.push("surface callback registered")
                 // A transition that happened while the session was stopped is applied
@@ -305,10 +305,9 @@ class NavigationSession : Session() {
                     }
                 }
                 // Clear the presence signal: the session is gone, and a stale "live"
-                // value must not outlive it (spec: `car-session-presence`).
-                guardedHostCall("clear car session presence", tag = SESSION_DIAG_TAG) {
-                    carSessionPresence().setActive(false)
-                }
+                // value must not outlive it (spec: `car-session-presence`). Same seam as
+                // the start publish, in the clearing direction.
+                publishCarSessionPresenceOnDestroy(presence = ::carSessionPresence)
                 SessionLog.push("car session presence: ended")
                 // NavigationManager cleanup (may be mid-navigation; the
                 // controller never throws). Only if it was ever created.
@@ -1510,6 +1509,50 @@ internal fun endNavigationAfterArrival(state: NavigationState, stop: () -> Unit)
     if (!shouldEndNavigationOnSessionEnd(state)) return false
     stop()
     return true
+}
+
+/**
+ * Publish that the car session has started, through the phone-facing seam.
+ *
+ * This is the start-specific half of the lifecycle wiring: a [NavigationSession] needs a
+ * host-provided [androidx.car.app.CarContext] and cannot be constructed in Robolectric, so
+ * `onStart` and `onDestroy` cannot be reached by a unit case. Their directions live in named
+ * lifecycle seams instead of a boolean at each call site, and a source-level case binds those
+ * seams to the production callbacks.
+ */
+internal fun publishCarSessionPresenceOnStart(
+    presence: () -> CarSessionPresence
+): Boolean = publishCarSessionPresence(presence = presence, live = true)
+
+/**
+ * Publish that the car session has ended, through the phone-facing seam.
+ *
+ * This is the destroy-specific half of the lifecycle wiring described by
+ * [publishCarSessionPresenceOnStart].
+ */
+internal fun publishCarSessionPresenceOnDestroy(
+    presence: () -> CarSessionPresence
+): Boolean = publishCarSessionPresence(presence = presence, live = false)
+
+/**
+ * Perform one presence publish, confined like every other session lifecycle step (spec:
+ * `car-session-presence` — Session start is published / Session end is published;
+ * `car-host-fault-isolation` — No fault escapes into the host path).
+ *
+ * [presence] is a provider so the lazy resolution (`entryPoint.carSessionPresence()`) stays
+ * inside the confined block, exactly as the inline step had it: a fault while resolving the seam
+ * must not escape into the library's dispatch either.
+ *
+ * @return true when the publish landed, false when it threw (never rethrows)
+ */
+private fun publishCarSessionPresence(
+    presence: () -> CarSessionPresence,
+    live: Boolean
+): Boolean = guardedHostCall(
+    what = if (live) "publish car session presence" else "clear car session presence",
+    tag = SESSION_DIAG_TAG
+) {
+    presence().setActive(live)
 }
 
 /**

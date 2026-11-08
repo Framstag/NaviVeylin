@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionPresencePublishTest" tests="5" skipped="0" failures="1" errors="0" timestamp="2026-11-08T15:38:45.353Z" hostname="dingens" time="2.868">
+  <properties/>
+  <testcase name="aFaultingPublishIsConfinedAndNamed" classname="com.naviveylin.auto.SessionPresencePublishTest" time="2.754"/>
+  <testcase name="sessionCallbacksSelectMatchingPublishDirection" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.034">
+    <failure message="java.lang.AssertionError: the onStart callback selects the live publish" type="java.lang.AssertionError">java.lang.AssertionError: the onStart callback selects the live publish
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.naviveylin.auto.SessionPresencePublishTest.sessionCallbacksSelectMatchingPublishDirection(SessionPresencePublishTest.kt:62)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="clearingAFaultingPublishIsNamedForTheClear" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.028"/>
+  <testcase name="sessionStartPublishesLive" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.026"/>
+  <testcase name="sessionEndClearsTheSignal" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

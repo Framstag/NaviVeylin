@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionPresencePublishTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-08T15:40:27.155Z" hostname="dingens" time="2.644">
+  <properties/>
+  <testcase name="aFaultingPublishIsConfinedAndNamed" classname="com.naviveylin.auto.SessionPresencePublishTest" time="2.495"/>
+  <testcase name="sessionCallbacksSelectMatchingPublishDirection" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.03"/>
+  <testcase name="clearingAFaultingPublishIsNamedForTheClear" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.04"/>
+  <testcase name="sessionStartPublishesLive" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.038"/>
+  <testcase name="sessionEndClearsTheSignal" classname="com.naviveylin.auto.SessionPresencePublishTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

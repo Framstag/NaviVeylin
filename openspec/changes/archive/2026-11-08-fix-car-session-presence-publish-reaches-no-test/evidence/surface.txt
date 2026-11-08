@@ -1,0 +1,25 @@
+=== publishCarSessionPresenceOnStart in production ===
+LOOK: 3 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/main/java/com/naviveylin/auto/NavigationSession.kt for 'publishCarSessionPresenceOnStart'
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSession.kt 3
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:269:                publishCarSessionPresenceOnStart(presence = ::carSessionPresence)
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1523:internal fun publishCarSessionPresenceOnStart(
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1531: * [publishCarSessionPresenceOnStart].
+=== publishCarSessionPresenceOnDestroy in production ===
+LOOK: 2 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/main/java/com/naviveylin/auto/NavigationSession.kt for 'publishCarSessionPresenceOnDestroy'
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSession.kt 2
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:310:                publishCarSessionPresenceOnDestroy(presence = ::carSessionPresence)
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1533:internal fun publishCarSessionPresenceOnDestroy(
+=== test methods ===
+LOOK: 5 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt for '@Test'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt 5
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:56:    @Test
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:80:    @Test
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:90:    @Test
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:101:    @Test
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:116:    @Test
+=== setActive in production ===
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/main/java/com/naviveylin/auto/NavigationSession.kt for 'setActive'
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSession.kt 1
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1555:    presence().setActive(live)
+=== mutation marker ===
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/main/java/com/naviveylin/auto/NavigationSession.kt for 'REVERT-CHECK MUTATION'

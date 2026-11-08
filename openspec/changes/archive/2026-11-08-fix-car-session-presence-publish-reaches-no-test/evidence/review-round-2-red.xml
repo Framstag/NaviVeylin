@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionPresencePublishTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-11-08T15:37:28.251Z" hostname="dingens" time="2.742">
+  <properties/>
+  <testcase name="sessionCallbacksSelectMatchingPublishDirection" classname="com.naviveylin.auto.SessionPresencePublishTest" time="2.739">
+    <failure message="java.lang.AssertionError: the onStart callback selects the live publish" type="java.lang.AssertionError">java.lang.AssertionError: the onStart callback selects the live publish
+	at com.naviveylin.auto.SessionPresencePublishTest.sessionCallbacksSelectMatchingPublishDirection(SessionPresencePublishTest.kt:62)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

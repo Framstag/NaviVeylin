@@ -176,7 +176,14 @@ class FakeMapScreenClient(
     /** Generations passed to [searchPOIsByTypes] in call order. */
     val poiSearchGenerations = mutableListOf<Long>()
 
-    /** Rows [searchPOIsByTypes] returns (default: empty). */
+    /** Candidate counts [searchPOIsByTypes] was asked for, in call order. */
+    val poiSearchCandidateCounts = mutableListOf<Int>()
+
+    /**
+     * Rows [searchPOIsByTypes] returns (default: empty), capped at the candidate count the caller asked
+     * for — a real walk cannot return more candidates than it was asked for, so a double that ignored the
+     * count would make a screen's fetch budget untestable.
+     */
     var nextPoiResults: Array<PoiEntry>? = emptyArray()
 
     private var nextSearchGeneration = 0L
@@ -207,6 +214,7 @@ class FakeMapScreenClient(
         generation: Long
     ): Array<PoiEntry>? {
         poiSearchGenerations.add(generation)
-        return nextPoiResults
+        poiSearchCandidateCounts.add(limit)
+        return nextPoiResults?.take(limit)?.toTypedArray()
     }
 }

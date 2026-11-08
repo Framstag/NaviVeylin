@@ -37,12 +37,25 @@ import kotlinx.coroutines.withContext
  * Each result row offers a "Navigate to" action (route + turn-by-turn via
  * the shared navigation controller). Requires a GPS fix; without one an
  * explanatory row is shown instead.
+ *
+ * The list presents at most the row capacity the connected host displays and keeps the rows past it
+ * reachable through its final page row (spec: `car-list-row-limit`; design D1/D3) — the host silently
+ * ignores the rows over that capacity — and the walk is asked for twice as many candidates as the page
+ * shows (spec: `auto-search` — Search result limit), so the page row continues a list the walk already
+ * fetched instead of buying a second one.
  */
 class PoiResultsScreen(
     carContext: CarContext,
     private val navigationViewModel: NavigationViewModel,
     private val category: String,
     private val categoryLabel: String,
+    /**
+     * The rows a page opened by this screen's page row carries: the search already fetched them, so the
+     * page slices them instead of running the walk again. Null on the first page, which searches.
+     */
+    private val prefetched: List<PoiEntry>? = null,
+    /** The page of the fetched rows to show; 0 is their first page (spec: `car-list-row-limit`). */
+    private val page: Int = 0,
     /** Production uses the main dispatcher; the tests inject their own, as the other car screens do. */
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -92,8 +105,27 @@ class PoiResultsScreen(
     private var error: String? = null
     private var loading = true
 
+    /**
+     * The row capacity this screen presents (spec: `car-list-row-limit` — A car list never presents more
+     * rows than the host displays; `guidelines/UICar.md` §3). Starts at the library default so the first
+     * template — which the host may ask for before the capacity query returns — is already bounded, and is
+     * replaced by the host's answer on the screen's own scope, off the host thread.
+     */
+    private var rowCapacity: Int = CarListCapacityReader.LIBRARY_DEFAULT
+
+    /**
+     * The candidates the walk is asked for: twice the rows this screen shows, the floor `auto-search`'s
+     * "Search result limit" states ("at least twice the displayed maximum"), so the fetched rows always
+     * cover the page and the one its page row opens.
+     */
+    private val fetchBudget: Int get() = 2 * rowCapacity
+
     init {
         enableBackNavigation()
+        prefetched?.let { carried ->
+            loading = false
+            results = carried
+        }
         // Leaving the screen abandons its search and ends the screen's own work (spec: `poi-search`;
         // spec: `auto/screen-observation` — a stopped screen performs no renderer or host work).
         lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -105,8 +137,16 @@ class PoiResultsScreen(
         scope.launch {
             searchGate.state.collect { state -> onSearchStateChanged(state) }
         }
-        // The category is the whole request here: the gate searches it once, immediately.
-        searchGate.request(category)
+        scope.launch {
+            rowCapacity = withContext(ioDispatcher) { CarListCapacityReader.read(carContext) }
+            if (prefetched == null) {
+                // The category is the whole request here: the gate searches it once, immediately, with a
+                // budget twice the capacity the host just reported.
+                searchGate.request(category)
+            } else {
+                invalidate()
+            }
+        }
     }
 
     /** Maps the gate's state onto what this screen shows, and refreshes the host once per change. */
@@ -156,7 +196,7 @@ class PoiResultsScreen(
                 emptyList()
             } else {
                 client.searchPOIsByTypes(
-                    typeNames, pos.lat, pos.lon, SEARCH_RADIUS_M, MAX_RESULTS, generation
+                    typeNames, pos.lat, pos.lon, SEARCH_RADIUS_M, fetchBudget, generation
                 )?.toList() ?: emptyList()
             }
 
@@ -195,7 +235,8 @@ class PoiResultsScreen(
                 )
             }
             else -> {
-                for (poi in results!!) {
+                val shown = FavoritesScreenMapper.page(results!!, capacity = rowCapacity, page = page)
+                for (poi in shown.rows) {
                     // Row tap selects the POI (rows with a click listener must
                     // not also carry row actions — ROW_CONSTRAINTS_SIMPLE).
                     val title = (poi.label ?: "").ifBlank { poi.objectType ?: "POI" }
@@ -224,6 +265,9 @@ class PoiResultsScreen(
                             .build()
                     )
                 }
+                if (shown.hasFurtherPage) {
+                    listBuilder.addItem(pageRow(shown.remaining))
+                }
             }
         }
 
@@ -233,9 +277,29 @@ class PoiResultsScreen(
             .build()
     }
 
+    /**
+     * The final row of a page holding more fetched rows than it shows: it names how many are left and
+     * opens the next page of the same already-fetched rows (spec: `car-list-row-limit` — The final row
+     * opens the next page; Items beyond the capacity stay reachable; design D3).
+     *
+     * The next page is a pushed screen of the same class carrying the rows this screen holds, so the host's
+     * back navigation returns to the page that opened it and no second native walk is paid for.
+     */
+    private fun pageRow(remaining: Int): Row = Row.Builder()
+        .setTitle(carContext.getString(R.string.more_items, remaining))
+        .setOnClickListener {
+            armScreenPush(carContext, scope, "PoiResultsScreen (page)") {
+                PoiResultsScreen(
+                    carContext, navigationViewModel, category, categoryLabel,
+                    prefetched = results, page = page + 1,
+                    mainDispatcher = mainDispatcher, ioDispatcher = ioDispatcher
+                )
+            }
+        }
+        .build()
+
     companion object {
         private const val TAG = "PoiResultsScreen"
         private const val SEARCH_RADIUS_M = 5000.0
-        private const val MAX_RESULTS = 20
     }
 }

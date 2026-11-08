@@ -5723,7 +5723,12 @@ case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite() {
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
   prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
   [ -f "$prompt" ] || fail "the worker prompt was not rendered"
-  text=$(cat "$prompt")
+  # The section is wrapped prose, so the text is flattened before it is asserted: the sentence that carries the rule
+  # straddles a line break (`… the cases your` / `delta reaches: …`), and a literal substring over the wrapped text
+  # fails on the paragraph's line breaks rather than on the rule. Item #816's own gate was red on exactly that: its
+  # case was written while `worker.md` held the sentence on one line, a later commit rewrapped the paragraph, and the
+  # red case was landed unread (`items/816/gate.log:1201` — `loop-selftest: 1 of 357 cases failed`).
+  text=$(tr '\n' ' ' < "$prompt")
   assert_contains "$text" 'gate owns the full selection' \
     "the change child is told the block's check lines belong to the gate (issue #816)"
   assert_contains "$text" 'the named red case and the cases your delta reaches' \
@@ -5754,7 +5759,8 @@ case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null || fail "the run failed"
   prompt="$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt.md"
   [ -f "$prompt" ] || fail "the round before the gate was not rendered: no prompt at $prompt"
-  text=$(cat "$prompt")
+  # Flattened for the same reason as its sibling: the asserted sentences are wrapped prose.
+  text=$(tr '\n' ' ' < "$prompt")
   assert_contains "$text" 'check the gate will run' \
     "the round is told a check the gate owns is not its to refuse (issue #816)"
   assert_contains "$text" 'for want of a log' \

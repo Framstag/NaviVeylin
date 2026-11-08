@@ -1,0 +1,39 @@
+# `bash tools/loop/measure.sh --change fix-the-stop-reason-names-the-refusal` (2026-11-08T17:24Z), quoted verbatim.
+# The base it printed is the parent of HEAD (`HEAD~1`): this worktree has no resolvable `origin/main`, so
+# measure.sh's `git merge-base HEAD origin/main` fell through to its `HEAD~1` fallback and the delta it counted
+# includes commit b114dc61's own doc change. The run's base for this item is b114dc61 (the worker prompt's line),
+# and the gate child is handed `--base b114dc61`, which is the delta this change actually owes.
+
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=b9ff01719f2d2390179de2fa26afd4d1b113fdda paths=8 insertions=1251 deletions=8
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH docs/2026-11-08-jev-decision-model-analysis.md
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH tools/bench/jev_probe.py
+LOOP-MEASURE-PATH tools/bench/jev_probe_scenarios.py
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git b9ff01719f2d2390179de2fa26afd4d1b113fdda
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=375 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-the-stop-reason-names-the-refusal scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 cases extended (no case added), 1 mutation record added (`102.1`), 1 engine reader and its one call site
+LOOP-MEASURE-END

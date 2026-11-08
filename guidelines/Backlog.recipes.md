@@ -789,7 +789,11 @@ two items left a 0-byte `worker-report.md` with every `turn_end` event on `stopR
 `blocked` on "reported success but the tree is still at the base commit" and escalated, and the run stopped on two
 consecutive blocked items 121 s into a 360-minute budget). That is the run's fault, recorded once as its own stop
 reason and naming the status, the size of the answer and the child's own last line: no item record is written,
-nothing is escalated, the in-progress mark comes off and the item stays exactly as its owner set it.
+nothing is escalated, the in-progress mark comes off and the item stays exactly as its owner set it. The shape is
+also read for what it can say about *why* the answer was empty: a provider that refuses every call leaves its
+refusal in the child's own event stream and nowhere else, and the stop names the provider, the model and the
+refusal it returned (issue #828), so a person reading the record tells a refused provider from a child that broke
+without `jq` over a machine-local stream — the reading that had #85's own refusal taken for the item's failure.
 Measured 2026-10-20: both children of that run died in under 4 s with the same 35-byte complaint, the run
 recorded two items `blocked`, escalated both, and stopped on "two consecutive items ended blocked" 3 minutes
 into an 8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended

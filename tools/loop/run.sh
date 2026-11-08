@@ -1413,6 +1413,34 @@ child_context() { # child_context <events file> <lines already read> → "<large
   printf '%s %s\n' "$max" "$total"
 }
 
+# Why a child that answered nothing may have answered nothing (issue #828): a provider that refuses every request
+# leaves the proof inside the child's own event stream — a `turn_end` on `stopReason: error` carrying the provider
+# and the model, and an `auto_retry_end` carrying the `finalError` — and the arm that records the run's "could not
+# start" stop read none of it, so a reader of the stop reason could not tell a refused provider from a broken child
+# (measured 2026-11-01: `.pi/issue-loop/items/85/events.jsonl` ends on a 429 weekly-limit refusal beside a 0-byte
+# `worker-report.md`, and the run's stop named no part of it). Read from the tail of the stream, because the
+# refusal is the newest thing in it and the file runs to megabytes; a stream that is absent, unreadable or carries
+# no refusal is no reading rather than an error, exactly as `child_turns` treats one. The refusal's own text is
+# squeezed to one line so the reason stays one line.
+child_refusal() { # child_refusal <events file> → "<provider>/<model>: <refusal>" for the last refused request, or empty
+  local f="${1:-}" out
+  [ -n "$f" ] && [ -f "$f" ] || return 0
+  out=$(tail -n 200 "$f" 2>/dev/null | jq -rs '
+    [ .[] ] as $e
+    | ($e | map(select((.finalError? // "") != ""
+                        or (.message?.errorMessage? // "") != ""
+                        or (.message?.stopReason? // "") == "error")) | last) as $refused
+    | select($refused != null)
+    | ($e | map(select((.message?.provider? // "") != "")) | last) as $named
+    | (($named.message.provider // "")
+       + (if ($named.message.model // "") != "" then "/" + $named.message.model else "" end)) as $who
+    | (($refused.finalError // $refused.message.errorMessage // "")
+       | gsub("[\\r\\n\\t]+"; " ")) as $why
+    | select($why != "")
+    | (if $who == "" then "" else $who + ": " end) + $why' 2>/dev/null) || out=""
+  printf '%s' "$out"
+}
+
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
 # child's event stream for the report (`LOOP_CHILD_EVENTS`) and prints its answer once it has exited (measured
 # 2026-10-19: on a pipe nothing appears until then), so a run used to print `pick #N` and then nothing for the
@@ -2518,11 +2546,14 @@ while true; do
     # How much answer there was, in the transcript the stop is recorded from: 0 B is the shape a refused provider
     # leaves, and it is what tells a reader of the stop reason why the run did not ask the item's owner anything.
     answer_bytes=$(wc -c < "$final_report" 2>/dev/null || printf 0)
+    # …and the shape itself, where it is kept (issue #828): a provider that refused every call left its own refusal
+    # in the child's event stream, and the stop names it so a reader tells a refused provider from a broken child.
+    refused_by=$(child_refusal "${events_file:-}")
     # The in-progress mark comes off before the run stops: an item nothing was done to must be as eligible
     # afterwards as it was before the run picked it.
     loop_labels unpick "$issue" >&2 || true
     in_progress=""
-    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}"
+    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}"
     break
   fi
   archives=$(git -C "$worktree" diff --name-only "$base"..HEAD -- openspec/changes/archive 2>/dev/null |

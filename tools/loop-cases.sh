@@ -7307,6 +7307,10 @@ case_run_childThatNeverStartedIsTheRunsFault() {
   assert_contains "$out" "Error: Unknown option: --mode json" "and carries the child's own message"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "could not start" \
     "the stop is recorded, not only printed"
+  # …and no refusal is invented for a child whose stream carries none (issue #828): the adapter refused this child's
+  # argv, so the stream holds no `auto_retry_end` and the reason keeps the shape the base wrote.
+  assert_not_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "refused by" \
+    "and a stream with no refusal adds no refusal clause"
   # The item stays the owner's: no escalation, no hold, no comment about a question nobody asked.
   log=$(cat "$GH_STUB_RECORD")
   assert_not_contains "$log" "agent/needs-decision" "an item nobody read is not escalated"
@@ -7327,7 +7331,7 @@ case_run_childThatNeverStartedIsTheRunsFault() {
 # part of it was read" whatever status the child ended with.
 case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out status log sf report
+  local d p out status log sf report reason
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The child's status is the stub's own default 0 and its answer is empty: no report block, no words of its own and
@@ -7335,11 +7339,21 @@ case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
   # installed, so nothing of the item is touched.
   unset PI_STUB_SAY PI_STUB_REPORT PI_STUB_REPORT_WORKER PI_STUB_REPORT_REVIEWER PI_STUB_EVENTS PI_STUB_ACTION
   export PI_STUB_EXIT=0
+  # …and the refusal that produced the empty answer lives in the child's own event stream and nowhere else (issue
+  # #828): the last request the provider would not answer — the provider and model it named, and the refusal it
+  # returned. It is the shape `.pi/issue-loop/items/85/events.jsonl` ends on, and the run has to read it back out of
+  # the stream, because the reason a person reads is where a refused provider must be told from a broken child.
+  cat > "$d/refusal-events.jsonl" <<'JSONL'
+{"type":"turn_end","message":{"role":"assistant","content":[],"provider":"ollama-cloud","model":"deepseek-v4.1-flash","stopReason":"error","errorMessage":"429: {\"message\":\"you (framstag) have reached your weekly usage limit\"}"},"toolResults":[]}
+{"type":"auto_retry_end","success":false,"attempt":3,"finalError":"429: {\"message\":\"you (framstag) have reached your weekly usage limit\"}"}
+JSONL
+  export PI_STUB_EVENTS="$d/refusal-events.jsonl"
   export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
   export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
   out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
   sf=$(state_file "$p")
   report="$p/.pi/issue-loop/items/21/worker-report.md"
+  reason=$(jq -r '.run.stop.reason // ""' "$sf")
   # The shape this case is about is both halves at once: a child that ran and answered nothing. A run that started no
   # child at all is a different case (the host floor's), and this one must not pass by being that.
   assert_eq "1" "$(grep -c '^invocation' "$PI_STUB_LOG" || true)" "one child was started and it answered"
@@ -7351,10 +7365,14 @@ case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
   # What happened is named as the run's own stop, and the stop carries the measurement that decided it — the empty
   # answer — instead of a status that says the child succeeded.
   assert_contains "$out" "could not start" "the stop says what did not happen"
-  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "could not start" \
-    "the stop is recorded, not only printed"
-  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "0 B" \
-    "and names the empty answer, not the status alone"
+  assert_contains "$reason" "could not start" "the stop is recorded, not only printed"
+  assert_contains "$reason" "0 B" "and names the empty answer, not the status alone"
+  # …and, because the empty answer was a refusal, the stop names the refusal too (issue #828). Without this a person
+  # reading the record cannot tell a provider that refused every call from a child that broke — the reading that had
+  # #85's own refusal taken for the item's failure, and that stops a run at its first refused child.
+  assert_contains "$reason" "ollama-cloud/deepseek-v4.1-flash" \
+    "the stop names the provider and model the answer was refused by"
+  assert_contains "$reason" "weekly usage limit" "and quotes the refusal itself, so a refused provider reads as one"
   # The item stays the owner's: no escalation, no hold, no comment about a question nobody asked.
   log=$(cat "$GH_STUB_RECORD")
   assert_not_contains "$log" "agent/needs-decision" "an item nobody read is not escalated"

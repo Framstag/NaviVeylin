@@ -1,0 +1,15 @@
+# structural checks of the delta's own paths, 2026-11-08T17:24Z, base b114dc61
+
+$ openspec validate fix-the-stop-reason-names-the-refusal --strict
+Change 'fix-the-stop-reason-names-the-refusal' is valid
+
+$ bash tools/loop-mutations.sh --check
+loop-mutations: all 294 cases passed — every selected record applies to the file it names
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+
+$ bash tools/check-portability.sh
+check-portability: OK — 56 engines and 7 templates name no project value (118 value(s) read from the project)
+
+$ bash tools/loop-mutations-selftest.sh

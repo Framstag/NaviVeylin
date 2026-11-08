@@ -1,0 +1,2 @@
+# `bash tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'` on the finalize tree (main + this change), 2026-11-08T19:29:35Z.
+PASS driver#everyCaseDeclaresTheFilesItCanReach

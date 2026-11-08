@@ -1,0 +1,2 @@
+# `bash tools/loop-selftest.sh --case 'run#childThatNeverStartedIsTheRunsFault'` on the finalize tree, 2026-11-08T19:29:54Z.
+PASS run#childThatNeverStartedIsTheRunsFault

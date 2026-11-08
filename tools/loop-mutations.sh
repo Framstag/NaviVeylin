@@ -986,6 +986,11 @@ MUTATIONS=(
   # names the item's own tree: "reported success but no archived change appears in the run's diff" over a branch that
   # carries a commit, which is the note item #755 was recorded with after 11 m 49 s.
   '101.1@-@tools/loop/run.sh@run#aPhaseThatAnswersNothingIsThatPhasesFailure@the reading that asks a phase whose report carries no closing line once more, so a child that exits 0 and answers nothing is read as the item'"'"'s own tree (issue #810)@s|^        if \[ "\$gate_exit" -eq 0 \] && ! gate_answered "\$gate_report"; then$|        if false; then|'
+  # 102.1 — the refusal read out of the child's own stream and named in the stop (issue #828). Without it the stop is
+  # the shape the run always wrote — the status and the answer's size — which could not tell a provider that refused
+  # every call from a child that broke, so a run ended on the first refused child and its record named neither the
+  # provider nor the refusal. The engine is otherwise unchanged: only the value named in the reason is emptied.
+  '102.1@-@tools/loop/run.sh@run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault@the refusal read from the child'"'"'s own event stream and named in the stop reason, so the empty answer a refused provider leaves reads once more as a broken child (issue #828)@s|^    refused_by=\$(child_refusal "\${events_file:-}")$|    refused_by=""|'
   # 263.x — which child owns a selection (issue #816). The change child was told "It runs none of them" and the round
   # before the gate refused the checks it had not run for want of a log, so item #798's child ran the gate's own
   # selection inside its own session — 129 cases in 219.93 s and 349 cases in 446.01 s — and the gate child then ran

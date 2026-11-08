@@ -1,0 +1,2 @@
+# `bash tools/loop-selftest.sh --case 'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'` on the finalize tree, 2026-11-08T19:29:48Z.
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault

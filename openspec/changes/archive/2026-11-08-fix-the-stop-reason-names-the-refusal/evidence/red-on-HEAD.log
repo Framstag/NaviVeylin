@@ -1,0 +1,5 @@
+run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault|   the stop names the provider and model the answer was refused by: 'ollama-cloud/deepseek-v4.1-flash' not found in: the child could not start — the worker exited 0 with an answer of 0 B and no verdict line, leaving the tree at the base
+--- run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault[0] (exit 1)
+  the stop names the provider and model the answer was refused by: 'ollama-cloud/deepseek-v4.1-flash' not found in: the child could not start — the worker exited 0 with an answer of 0 B and no verdict line, leaving the tree at the base
+FAIL run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+loop-selftest: 1 of 1 cases failed

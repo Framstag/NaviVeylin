@@ -5,14 +5,14 @@
 The navigation template has two action surfaces: `actionStrip` (built at the base in `NavigationScreen.kt:575-577`
 as two zoom actions) and `mapActionStrip` (`:574` at the base, the route description). The four actions are
 composed by the pure factory `NavigationScreenActions.navigationActionStrip`, so the strip's shape is host-testable;
-`NavigationScreen.buildTemplate` passes the two resolved titles and the four callbacks. The phone's equivalent actions sit on the
-navigation screen itself, so the car's place for them is the action strip: `mapActionStrip` is already spoken for,
-and the header carries the trip text.
+`NavigationScreen.buildTemplate` passes the two resolved titles and the four callbacks. The car's place for the
+two actions is the action strip — the owner decision put them there: `mapActionStrip` is already spoken for (the
+route description), and the header carries the trip text, so the strip is the only surface with room.
 
-## Order, and what the host allows
+## Order
 
-The host may collapse a strip's actions into an overflow; the strip therefore keeps zoom first (the most frequent
-action while driving) and appends *change destination* before *end navigation*, so the destructive one is last. The
+The order is the owner decision's — zoom first (the most frequent action while driving), then *change
+destination*, and the destructive *end navigation* last. The
 two new actions are `Action.Builder().setTitle(String)` + `setOnClickListener` — the shape
 `NavigationScreenActions.zoomInAction` already uses, no new API — and each title is a resource (spec: i18n-l10n;
 the i18n build gate refuses a literal at `.setTitle(`), resolved by the screen.

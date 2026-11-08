@@ -8,7 +8,9 @@ possible. At the base commit `b114dc61` the navigation template's action strip i
 `auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt:575–577` (base) —
 `.addAction(NavigationScreenActions.zoomInAction …)` and `.addAction(NavigationScreenActions.zoomOutAction …)`,
 with the *map* action strip holding the route description. So a driver whose route is wrong has to stop the car,
-reach the phone, and change the destination there — and the phone's navigation screen offers both actions.
+reach the phone and change the destination there — the phone's navigation overlay carries a stop control
+(`app/src/main/java/com/naviveylin/ui/navigation/NavigationStateOverlay.kt:267`) and the map screen reaches route
+planning through its panel (`app/src/main/java/com/naviveylin/ui/route/RoutePanel.kt:152`).
 
 The pass that found it could not reproduce a failing calculation while navigating for exactly this reason
 (#739, task 7.3): there is no host UI that reaches a new destination from the navigation view.
@@ -39,7 +41,7 @@ change the destination and to end the session". Guideline: `guidelines/UICar.md`
 
 ## What this does not change
 
-The phone UI (it has both actions), the search surface, the routing engine, the notification, and the template
+The phone UI, the search surface, the routing engine, the notification, and the template
 rebuild rate: the strip carries actions, not new templates.
 
 ## Blast radius
@@ -49,4 +51,5 @@ rebuild rate: the strip carries actions, not new templates.
 `auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt` (the case), and the two string tables
 (`values`, `values-de`).
 
-surface: 1 action file + 1 screen file + 2 string tables + 1 case file — `tools/look.sh 'addAction' --path auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt`
+surface: the strip factory's four `addAction` call sites, the two new string resources in each string table
+(`values`, `values-de`), and the named case — the deriving commands and their output are in `evidence/surface.txt`.

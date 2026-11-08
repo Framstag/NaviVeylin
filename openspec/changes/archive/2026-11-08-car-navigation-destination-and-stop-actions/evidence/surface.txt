@@ -1,0 +1,27 @@
+# The delta's surface, derived by the commands below (tools/look.sh, this tree).
+
+$ tools/look.sh 'addAction' --path auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt
+LOOK: 8 matches in 1 files of /home/tim/projects/NaviVeylin/auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt for 'addAction'
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt 8
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:42:            .addAction(Action.PAN)
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:43:            .addAction(routeListAction(onShowRouteDescription))
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:53:            .addAction(Action.PAN)
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:54:            .addAction(stopAction(onExit))
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:103:        .addAction(zoomInAction(onZoomIn))
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:104:        .addAction(zoomOutAction(onZoomOut))
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:105:        .addAction(changeDestinationAction(changeDestinationTitle, onChangeDestination))
+auto/src/main/java/com/naviveylin/auto/NavigationScreenActions.kt:106:        .addAction(endNavigationAction(endNavigationTitle, onEndNavigation))
+
+$ tools/look.sh 'navigation_change_destination|navigation_end' --path auto/src/main/res
+LOOK: 4 matches in 2 files of /home/tim/projects/NaviVeylin/auto/src/main/res for 'navigation_change_destination|navigation_end'
+LOOK-FILE: auto/src/main/res/values/strings.xml 2
+LOOK-FILE: auto/src/main/res/values-de/strings.xml 2
+auto/src/main/res/values/strings.xml:67:    <string name="navigation_change_destination">Change destination</string>
+auto/src/main/res/values/strings.xml:68:    <string name="navigation_end">End navigation</string>
+auto/src/main/res/values-de/strings.xml:64:    <string name="navigation_change_destination">Ziel ändern</string>
+auto/src/main/res/values-de/strings.xml:65:    <string name="navigation_end">Navigation beenden</string>
+
+$ tools/look.sh 'navigationActionStripCarriesTheFourActions' --path auto/src/test
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/auto/src/test for 'navigationActionStripCarriesTheFourActions'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt 1
+auto/src/test/java/com/naviveylin/auto/NavigationScreenActionsTest.kt:124:    fun navigationActionStripCarriesTheFourActionsAndTheirTapsReachTheirCallbacks() {

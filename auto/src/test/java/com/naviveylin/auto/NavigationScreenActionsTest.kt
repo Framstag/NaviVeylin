@@ -125,7 +125,7 @@ class NavigationScreenActionsTest {
         // The navigation view offers a way to change the destination and to end the session
         // (spec: auto/navigation-view — A live session can be re-planned and ended from the car):
         // zoom first (the frequent action while driving), then change destination, end navigation
-        // last (the destructive one, where the host's overflow keeps it away from a stray tap).
+        // last (the destructive one).
         var destination = false
         var ended = false
         val strip = NavigationScreenActions.navigationActionStrip(

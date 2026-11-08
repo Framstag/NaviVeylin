@@ -5,10 +5,12 @@ import androidx.car.app.model.ActionStrip
 
 /**
  * Pure factories for the navigation screen strip actions (extracted for
- * testability). The left map action strip holds the route-description
- * action only (no BACK — system back is the sole leave affordance, see
- * NavigationScreen); the right action strip holds the visualisation
- * buttons (zoom).
+ * testability). The map action strip holds the route-description action
+ * only (no BACK — system back is the sole leave affordance, see
+ * NavigationScreen); the action strip holds the visualisation buttons
+ * (zoom), *change destination* and *end navigation* (spec:
+ * auto/navigation-view — A live session can be re-planned and ended from
+ * the car).
  *
  * Constraint note (car-app 1.7.0): the `NavigationTemplate` map action strip
  * allows zero actions with custom titles — all map-strip actions must be

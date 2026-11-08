@@ -18,11 +18,11 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :osmscout-client-java:classes UP-TO-DATE
 > Task :osmscout-client-java:jar UP-TO-DATE
 > Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
 > Task :core:checkNoWallClockWaits
 > Task :core:preBuild
 > Task :core:preDebugBuild
 > Task :core:generateDebugResources UP-TO-DATE
-> Task :auto:checkHardcodedStrings
 > Task :core:packageDebugResources UP-TO-DATE
 > Task :core:processDebugNavigationResources UP-TO-DATE
 > Task :core:parseDebugLocalResources UP-TO-DATE
@@ -32,23 +32,23 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :core:javaPreCompileDebug UP-TO-DATE
 > Task :core:compileDebugJavaWithJavac UP-TO-DATE
 > Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
 > Task :core:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :core:writeDebugAarMetadata UP-TO-DATE
 > Task :core:extractDeepLinksDebug UP-TO-DATE
 > Task :core:processDebugManifest UP-TO-DATE
-> Task :core:mapDebugSourceSetPaths UP-TO-DATE
-> Task :core:compileDebugLibraryResources UP-TO-DATE
-> Task :core:generateDebugAssets UP-TO-DATE
-> Task :core:mergeDebugAssets UP-TO-DATE
-> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
-> Task :core:processDebugJavaRes UP-TO-DATE
-> Task :auto:checkNoWallClockWaits
 > Task :auto:checkTripSendGate
 > Task :auto:preBuild
 > Task :auto:preDebugBuild
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
 > Task :auto:generateDebugResources UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
 > Task :auto:packageDebugResources UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
 > Task :auto:parseDebugLocalResources UP-TO-DATE
 > Task :auto:generateDebugRFile UP-TO-DATE
 > Task :auto:javaPreCompileDebug UP-TO-DATE
@@ -78,41 +78,19 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :auto:processDebugJavaRes UP-TO-DATE
 > Task :auto:bundleLibRuntimeToJarDebug
 > Task :auto:bundleLibCompileToJarDebug
-> Task :auto:compileDebugUnitTestKotlin
+> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
 > Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
 
 > Task :auto:testDebugUnitTest
 
-SessionPresencePublishTest > aFaultingPublishIsConfinedAndNamed FAILED
-    java.lang.AssertionError: a rejected publish must not report success
+SessionPresencePublishTest > sessionCallbacksSelectMatchingPublishDirection FAILED
+    java.lang.AssertionError: the onStart callback selects the live publish
         at org.junit.Assert.fail(Assert.java:89)
         at org.junit.Assert.assertTrue(Assert.java:42)
-        at org.junit.Assert.assertFalse(Assert.java:65)
-        at com.naviveylin.auto.SessionPresencePublishTest.aFaultingPublishIsConfinedAndNamed(SessionPresencePublishTest.kt:83)
+        at com.naviveylin.auto.SessionPresencePublishTest.sessionCallbacksSelectMatchingPublishDirection(SessionPresencePublishTest.kt:62)
 
-SessionPresencePublishTest > clearingAFaultingPublishIsNamedForTheClear FAILED
-    java.lang.AssertionError
-        at org.junit.Assert.fail(Assert.java:87)
-        at org.junit.Assert.assertTrue(Assert.java:42)
-        at org.junit.Assert.assertFalse(Assert.java:65)
-        at org.junit.Assert.assertFalse(Assert.java:75)
-        at com.naviveylin.auto.SessionPresencePublishTest.clearingAFaultingPublishIsNamedForTheClear(SessionPresencePublishTest.kt:98)
-
-SessionPresencePublishTest > sessionStartPublishesLive FAILED
-    java.lang.AssertionError: a started session is published live
-        at org.junit.Assert.fail(Assert.java:89)
-        at org.junit.Assert.assertTrue(Assert.java:42)
-        at com.naviveylin.auto.SessionPresencePublishTest.sessionStartPublishesLive(SessionPresencePublishTest.kt:63)
-
-SessionPresencePublishTest > sessionEndClearsTheSignal FAILED
-    java.lang.AssertionError: an ended session leaves no stale signal
-        at org.junit.Assert.fail(Assert.java:89)
-        at org.junit.Assert.assertTrue(Assert.java:42)
-        at org.junit.Assert.assertFalse(Assert.java:65)
-        at com.naviveylin.auto.SessionPresencePublishTest.sessionEndClearsTheSignal(SessionPresencePublishTest.kt:74)
-
-4 tests completed, 4 failed
+5 tests completed, 1 failed
 
 > Task :auto:testDebugUnitTest FAILED
 
@@ -125,5 +103,5 @@ Execution failed for task ':auto:testDebugUnitTest'.
 * Try:
 > Run with --scan to get full insights from a Build Scan (powered by Develocity).
 
-BUILD FAILED in 6s
-61 actionable tasks: 10 executed, 51 up-to-date
+BUILD FAILED in 5s
+61 actionable tasks: 9 executed, 52 up-to-date

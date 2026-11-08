@@ -18,7 +18,6 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :osmscout-client-java:classes UP-TO-DATE
 > Task :osmscout-client-java:jar UP-TO-DATE
 > Task :core:checkHardcodedStrings
-> Task :auto:checkHardcodedStrings
 > Task :core:checkNoWallClockWaits
 > Task :core:preBuild
 > Task :core:preDebugBuild
@@ -27,6 +26,7 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :core:processDebugNavigationResources UP-TO-DATE
 > Task :core:parseDebugLocalResources UP-TO-DATE
 > Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkHardcodedStrings
 > Task :core:kspDebugKotlin UP-TO-DATE
 > Task :core:compileDebugKotlin UP-TO-DATE
 > Task :core:javaPreCompileDebug UP-TO-DATE
@@ -51,7 +51,11 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :auto:processDebugNavigationResources UP-TO-DATE
 > Task :auto:parseDebugLocalResources UP-TO-DATE
 > Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:compileDebugKotlin UP-TO-DATE
 > Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :auto:preDebugUnitTestBuild
 > Task :auto:writeDebugAarMetadata UP-TO-DATE
 > Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
@@ -73,16 +77,12 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
 > Task :auto:generateDebugUnitTestConfig UP-TO-DATE
 > Task :auto:koverFindJar UP-TO-DATE
-> Task :auto:compileDebugKotlin
-> Task :auto:compileDebugJavaWithJavac NO-SOURCE
 > Task :auto:processDebugJavaRes UP-TO-DATE
-> Task :auto:bundleLibRuntimeToJarDebug
-> Task :auto:bundleLibCompileToJarDebug
-> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:compileDebugUnitTestKotlin
 > Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
 > Task :auto:testDebugUnitTest
 
-BUILD SUCCESSFUL in 6s
-61 actionable tasks: 9 executed, 52 up-to-date
+BUILD SUCCESSFUL in 5s
+61 actionable tasks: 7 executed, 54 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

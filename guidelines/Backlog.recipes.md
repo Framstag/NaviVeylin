@@ -612,6 +612,23 @@ wall clock — 245 sessions ran it at all, and **117 of those (48 %) ran it thre
 174 turns, #116 39 times in 152). A full round is 600–1 100 s, so a 480-minute run could spend its budget on gate
 rounds and never reach the review (issue #756).
 
+The record names the tree the run measured, not only the child that paid for it: the gate prints
+`LOOP-GATE-TREE: head=<commit> diff=<digest>` before its first step and writes the same identity into the record line
+the count is read from, and the run writes it beside the diff a round is handed (`<diff>.identity`), so the reviewer's
+third item compares two recorded values instead of reading timestamps. Both moments take one derivation,
+`loop_change_identity`, over the paths the round's diff carries — the paths the run's base names plus every path git
+does not track, less the generated trees `LOOP_REVIEW_EXCLUDE_PATHSPEC` leaves out, each with the hash of its
+worktree content — never over `HEAD` or `git status`: the change child measures an uncommitted tree and the run
+commits it before the diff is written, so a commit-shaped digest would make the ordinary flow read as a corrected
+one, and a digest that took the change's own evidence would make the gate's own output read as the correction. What
+falsifies the rule is one digest at the two moments: the gate's `diff=` and the `.identity`'s must be equal on a tree
+nobody corrected (`gate#theGateAndTheRoundNameOneTree`), and a path outside the generated trees corrected after the
+gate must move it (the same case, and `gate#aThirdFullRunInOneSessionIsRefused` for a correction made between two full
+runs). Measured 2026-10-22 (issue #819): a change was archived with a gate its own round-2 corrections never ran —
+§5.6 of `openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` claims a re-run, every
+XML in that archive's `evidence/gate/` is stamped `12:23:41.923Z`–`12:26:30.823Z`, and the round-2 runs are stamped
+`12:42:56.420Z` and `12:43:06.048Z`, so the corrected tree was never gated and no record in the tree could say so.
+
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a

@@ -1,0 +1,4 @@
+PASS mutation#aStaleRecordIsNamed
+PASS mutation#everyDeclaredRecordApplies
+loop-selftest: mutation 2 cases 2.27 s
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — 2.83 s, selection: --group mutation

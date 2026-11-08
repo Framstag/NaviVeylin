@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 291 records (labels: 262.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.2bFTVu
+RED    262.3  gate#aThirdFullRunInOneSessionIsRefused   (the digest of the change itself, so a tree corrected after the gate reads as the tree the gate measured (issue #819))
+       2026-11-08T00:22:53Z — a tree corrected after the gate is a tree the gate never saw: head=e2e1fdb4875618e3a1f9f3959e2b37d9944d020f diff=0000000000000000
+restore 262.3 gate#aThirdFullRunInOneSessionIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

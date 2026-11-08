@@ -1,0 +1,25 @@
+LOOK: 20 matches in 10 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'gate-runs'
+LOOK-FILE: tools/loop/loop.conf 1
+LOOK-FILE: tools/loop/gate.sh 1
+LOOK-FILE: tools/loop-cases.sh 7
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-a-child-refuses-a-third-full-gate/proposal.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-a-child-refuses-a-third-full-gate/design.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-a-child-refuses-a-third-full-gate/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-a-repeat-read-is-a-counted-number/evidence/gate.txt 1
+LOOK-FILE: openspec/changes/archive/2026-10-27-fix-the-run-end-sweeps-the-branches-it-made/evidence/leftover-before-fix.log 1
+LOOK-FILE: openspec/changes/fix-a-gate-record-names-the-tree-it-measured/proposal.md 5
+tools/loop/loop.conf:495:# run it starts, beside the stream the child's adapter keeps (`<events>.gate-runs` under
+
+LOOK: 20 matches in 9 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'LOOP-GATE-TREE'
+LOOK-FILE: tools/loop/prompts/reviewer.md 1
+LOOK-FILE: tools/loop/gate.sh 1
+LOOK-FILE: tools/loop-cases.sh 4
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+LOOK-FILE: openspec/changes/fix-a-gate-record-names-the-tree-it-measured/proposal.md 3
+LOOK-FILE: openspec/changes/fix-a-gate-record-names-the-tree-it-measured/specs/agent-issue-loop/spec.md 1
+LOOK-FILE: openspec/changes/fix-a-gate-record-names-the-tree-it-measured/evidence/red-on-HEAD-aThirdFullRunInOneSessionIsRefused.log 2
+LOOK-FILE: openspec/changes/fix-a-gate-record-names-the-tree-it-measured/evidence/review-round-1-requested.md 4
+LOOK-FILE: openspec/changes/fix-a-gate-record-names-the-tree-it-measured/tasks.md 3
+tools/loop/prompts/reviewer.md:71:   console as `LOOP-GATE-TREE: head=… diff=…` and as the record line's third field. Quote both. A gate whose
+tools/loop/gate.sh:211:  say "LOOP-GATE-TREE: $tree_identity"

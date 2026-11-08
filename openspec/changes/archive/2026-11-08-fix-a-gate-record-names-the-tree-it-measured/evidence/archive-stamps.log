@@ -1,0 +1,27 @@
+== §5.6 line
+59:      `:app` (576 suites / 4210 tests, both flavours), `:auto` (87 / 880), `:core` (61 / 646),
+92:- [x] 5.6 The run's gate re-run once over the corrected tree → `GATE-RC=0`, `LOOP-GATE: tests=481 failures=0`
+== gate XML stamps
+app_testAutomotiveDebugUnitTest_TEST-com.naviveylin.data.StartMapResolverTest.xml
+app_testAutomotiveDebugUnitTest_TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+app_testMobileDebugUnitTest_TEST-com.naviveylin.data.StartMapResolverTest.xml
+app_testMobileDebugUnitTest_TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+bash_tools_gen-feature-list.sh_--check-classification.xml
+core_testDebugUnitTest_TEST-com.naviveylin.core.mapsource.MapTreeDiscoveryTest.xml
+gate-log-tail.txt
+tools_check-action-runtimes-selftest.sh.xml
+tools_check-doc-routes.sh.xml
+tools_gen-feature-list-selftest.sh.xml
+timestamp="2026-10-22T12:23:41.923Z"
+timestamp="2026-10-22T12:26:30.823Z"
+== round2 stamps
+openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/green-round2
+openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/revert-check-round2
+timestamp="2026-10-22T12:42:56.420Z"
+timestamp="2026-10-22T12:43:06.048Z"
+== totals
+fix-staging-leftover-discovered-as-map — the run's gate, taken once with `./tools/loop/gate.sh` (no arguments;
+its base is `git merge-base HEAD origin/main`).
+
+gate command (from the project's profile, `tools/loop/loop.conf`):
+

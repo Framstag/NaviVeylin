@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 291 records (labels: 262.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.Yf3E2M
+RED    262.1  gate#aThirdFullRunInOneSessionIsRefused   (the tree a full run records, so its record cannot be attributed to the content it measured (issue #819))
+       2026-11-08T00:22:34Z — each record names the commit the run measured: : expected '92fd0ce38f7363c02594081266b9f1c7164d16ba', got ''
+restore 262.1 gate#aThirdFullRunInOneSessionIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

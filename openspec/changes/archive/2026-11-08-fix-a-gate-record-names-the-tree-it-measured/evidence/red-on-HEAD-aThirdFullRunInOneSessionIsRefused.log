@@ -1,0 +1,27 @@
+# red-on-HEAD, base ba96953f, 2026-11-08T07:19:09Z — the case added by this change, production at base
+gate#aThirdFullRunInOneSessionIsRefused|   and names the tree it measured (issue #819): LOOP-GATE-PROFILE: /tmp/nv819-head-proof/.pi/tmp/loop-selftest.ZKaGQb/cases/0/tree/case.Lh2Ux6/gate.conf — pinned; not the profile beside this engine (/tmp/nv819-head-proof/tools/loop/loop.conf)
+gate#aThirdFullRunInOneSessionIsRefused| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aThirdFullRunInOneSessionIsRefused| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aThirdFullRunInOneSessionIsRefused| gate: true
+gate#aThirdFullRunInOneSessionIsRefused| gate: true — 0s
+gate#aThirdFullRunInOneSessionIsRefused| LOOP-GATE: tests=0 failures=0 errors=0 (true 0s): 'LOOP-GATE-TREE: head=' not found in: LOOP-GATE-PROFILE: /tmp/nv819-head-proof/.pi/tmp/loop-selftest.ZKaGQb/cases/0/tree/case.Lh2Ux6/gate.conf — pinned; not the profile beside this engine (/tmp/nv819-head-proof/tools/loop/loop.conf)
+gate#aThirdFullRunInOneSessionIsRefused| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aThirdFullRunInOneSessionIsRefused| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aThirdFullRunInOneSessionIsRefused| gate: true
+gate#aThirdFullRunInOneSessionIsRefused| gate: true — 0s
+gate#aThirdFullRunInOneSessionIsRefused| LOOP-GATE: tests=0 failures=0 errors=0 (true 0s)
+--- gate#aThirdFullRunInOneSessionIsRefused[0] (exit 1)
+  and names the tree it measured (issue #819): LOOP-GATE-PROFILE: /tmp/nv819-head-proof/.pi/tmp/loop-selftest.ZKaGQb/cases/0/tree/case.Lh2Ux6/gate.conf — pinned; not the profile beside this engine (/tmp/nv819-head-proof/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate: true
+gate: true — 0s
+LOOP-GATE: tests=0 failures=0 errors=0 (true 0s): 'LOOP-GATE-TREE: head=' not found in: LOOP-GATE-PROFILE: /tmp/nv819-head-proof/.pi/tmp/loop-selftest.ZKaGQb/cases/0/tree/case.Lh2Ux6/gate.conf — pinned; not the profile beside this engine (/tmp/nv819-head-proof/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate: true
+gate: true — 0s
+LOOP-GATE: tests=0 failures=0 errors=0 (true 0s)
+FAIL gate#aThirdFullRunInOneSessionIsRefused
+loop-selftest: 1 of 1 cases failed
+# exit=1

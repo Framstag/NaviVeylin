@@ -963,6 +963,17 @@ MUTATIONS=(
   # `labels.sh` directly, which is not a path a run takes. Putting the verdict back in the list is what the new case
   # reads.
   '261.1@-@../tooling.json@run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames@the verdict the profile declares a shaping verdict while the run escalates it, so the list and the labels a skip leaves disagree (issue #738)@s%^    "shapingVerdicts": \["unspecifiable", "too-wide", "not-spec-shaped"\],$%    "shapingVerdicts": ["needs-diagnosis", "unspecifiable", "too-wide", "not-spec-shaped"],%'
+
+  # 262.x — a gate record names the tree it measured (issue #819). Measured 2026-10-22: a change was archived with a
+  # gate its own round-2 corrections never ran — every XML in that archive's `evidence/gate/` is stamped 12:23–12:26
+  # against the round-2 runs at 12:42–12:43 — and nothing in the tree could say so. The record loses the identity
+  # (262.1), the run stops writing the same identity beside the diff a round is handed (262.2), the digest stops
+  # depending on the change at all (262.3), and the one derivation stops leaving out the generated trees the round's
+  # diff leaves out (262.4), which is the state where the gate and the round name two trees on a tree nobody corrected.
+  '262.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the tree a full run records, so its record cannot be attributed to the content it measured (issue #819)@s|^    printf '\''%s\\t%s\\t%s\\n'\'' "\$session_key" "\$gate_argv" "\${tree_identity:-head=unknown diff=unknown}" >> "\$runs_record" 2>/dev/null \|\| true$|    printf '\''%s\\t%s\\n'\'' "$session_key" "$gate_argv" >> "$runs_record" 2>/dev/null \|\| true|'
+  '262.2@-@tools/loop/run.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_change_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
+  '262.3@-@tools/loop/lib.sh@gate#aThirdFullRunInOneSessionIsRefused@the digest of the change itself, so a tree corrected after the gate reads as the tree the gate measured (issue #819)@s|^  printf '\''head=%s diff=%s'\'' "\$head" "\$digest"$|  printf '\''head=%s diff=%s'\'' "$head" "0000000000000000"|'
+  '262.4@-@tools/loop/lib.sh@gate#theGateAndTheRoundNameOneTree@the path set the one derivation leaves the generated trees out of, so a gate reads its own evidence as a correction of the tree it measured (issue #819)@s|^  loop_tree_identity "\${1:-}" "\${2:-}" "\$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"$|  loop_tree_identity "${1:-}" "${2:-}"|'
   # 100.1 — the record an unreadable item gets instead of the stop, and the `break` that follows it (issue #808).
   # Restoring the stop is what the base did: the item is left unrecorded and the run ends on one item's socket. The
   # `--note` line that followed the record is left as a second command and fails harmlessly (`|| true`), so the

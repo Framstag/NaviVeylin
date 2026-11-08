@@ -65,7 +65,12 @@ first in practice.
    the named missing capability, and nothing else? Quote the hunk.
 3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*
    (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right
-   requirement? Read the tally it carries; never reproduce it by running the gate.
+   requirement? Read the tally it carries; never reproduce it by running the gate. **Is it an execution for
+   *this tree*?** The diff under review was written from one tree and carries its identity beside it
+   (`{{DIFF_PATH}}.identity`: `head=` and `diff=`), and the gate's own record names the tree it measured — on its
+   console as `LOOP-GATE-TREE: head=… diff=…` and as the record line's third field. Quote both. A gate whose
+   `diff=` is not this diff's gated a tree this round is not reading — a change corrected after its gate is exactly
+   that state — and is a `BLOCKING:` finding.
 4. **Tasks claiming done** — any `[x]` whose scenario or evidence is not satisfied?
 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason
    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the

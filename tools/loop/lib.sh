@@ -265,6 +265,55 @@ loop_bound_under_ceiling() { # <bound> → that bound, or the ceiling when the c
   fi
 }
 
+# ── the tree a measurement was taken on ────────────────────────────────────────────────────────────────────────
+# A record that names no tree cannot be attributed to one (issue #819): the gate wrote the child's session and the
+# arguments it ran with and nothing else, so a run over a tree and a run over that tree corrected afterwards read
+# alike, and a change could be archived with a gate taken before its own corrections
+# (`openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` §5.6 claims a round-2 gate
+# re-run, and every XML in its `evidence/gate/` is stamped 12:23–12:26 against round-2's own 12:42–12:43).
+#
+# The digest is **commit-invariant**: the paths the base names, plus every path git does not track, each with the hash
+# of its worktree content, less what the profile's `LOOP_REVIEW_EXCLUDE_PATHSPEC` leaves out. A digest of `HEAD` or of
+# `git status` would make the ordinary flow read as a corrected one, because the change child measures an uncommitted
+# tree and the run commits it before the diff a reviewer reads is written.
+#
+# Usage: loop_tree_identity <tree> <base> [<pathspec to leave out>] → `head=<sha> diff=<digest>`, or nothing when git
+# cannot answer.
+loop_tree_identity() {
+  local tree=${1:-} base=${2:-} exclude=${3:-} head listing digest p h
+  local -a scope=()
+  [ -n "$tree" ] && [ -n "$base" ] || return 0
+  head=$(git -C "$tree" rev-parse HEAD 2>/dev/null) || return 0
+  [ -n "$head" ] || return 0
+  # `.` anchors the pathspec to the tree's root, which is the scope `git diff … -- .` has in `run.sh`, and the pathspec
+  # is the one the round's diff is built with: a path that diff does not carry is not the change this digest names.
+  if [ -n "$exclude" ]; then scope=(. "$exclude"); fi
+  listing=$( { git -C "$tree" diff --name-only "$base" ${scope[@]+"${scope[@]}"} 2>/dev/null
+    git -C "$tree" ls-files --others --exclude-standard ${scope[@]+"${scope[@]}"} 2>/dev/null; } | sort -u |
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      if [ -e "$tree/$p" ]; then
+        h=$(git -C "$tree" hash-object -- "$p" 2>/dev/null) || h="unreadable"
+      else
+        h="deleted"
+      fi
+      printf '%s\t%s\n' "$p" "$h"
+    done )
+  digest=$(printf '%s' "$listing" |
+    { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+  printf 'head=%s diff=%s' "$head" "$digest"
+}
+
+# The identity of the change a round is reading: one path set, and the one every caller takes (issue #819). `gate.sh`
+# names it before its first step and `run.sh` writes it beside the diff it hands a round, and the reviewer's item 3
+# compares the two — so both call this, and neither can hold a path set of its own. A gate's own evidence is written
+# into the change directory *after* the gate names its tree and before the run writes the diff, which is why the
+# generated trees the round's diff leaves out have to leave this derivation out too: otherwise the ordinary flow reads
+# as a corrected one and item 3 refuses every change (found in this change's round-1 review).
+loop_change_identity() { # <tree> <base> → `head=<sha> diff=<digest>` over what the round's diff carries
+  loop_tree_identity "${1:-}" "${2:-}" "$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"
+}
+
 # ── the build output a kept worktree does not need ────────────────────────────────────────────────
 # A worktree that has been built carries a full module build tree, which the next run's build regenerates
 # and no item ever reads: measured 2026-10-20 (issue #210), the kept worktree was 3.2 GB, of which one

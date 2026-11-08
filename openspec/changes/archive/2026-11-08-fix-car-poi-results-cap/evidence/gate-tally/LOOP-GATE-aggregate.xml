@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LOOP-GATE aggregate — sum of the gate step tallies in app/build/test-results/loop-gate/" tests="953" skipped="0" failures="0" errors="1" time="0">
+  <system-out>Derived by awk summing the tests= failures= errors= attributes of the gate own step tally XMLs under app/build/test-results/loop-gate (gate.sh writes no aggregate XML); the sum equals the gate printed line LOOP-GATE tests=953 failures=0 errors=1 failing tools/check-rule-routes.sh</system-out>
+</testsuite>

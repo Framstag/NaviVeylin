@@ -1,8 +1,9 @@
-LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
-LOOP-GATE-TREE: head=706cc2d28aae1d91fae2be1f964ff2bae37b51f9 diff=9553991d9dc2b555
+LOOP-GATE-TREE: head=9701eedfecca76ab77abd6e53134f2dc34a5a100 diff=f84957f15356ca4a
 gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :buildSrc:compileKotlin UP-TO-DATE
 > Task :buildSrc:compileJava NO-SOURCE
@@ -11,10 +12,6 @@ gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
 > Task :buildSrc:processResources NO-SOURCE
 > Task :buildSrc:classes UP-TO-DATE
 > Task :buildSrc:jar UP-TO-DATE
-
-> Configure project :app
-app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
-
 > Task :app:checkCleartextTransportPolicy
 > Task :osmscout-client-java:compileVendoredJava UP-TO-DATE
 > Task :osmscout-client-java:processVendoredResources NO-SOURCE
@@ -29,20 +26,46 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :core:checkHardcodedStrings
 > Task :core:checkNoWallClockWaits
 > Task :core:preBuild
-> Task :auto:checkHardcodedStrings
 > Task :core:preDebugBuild
 > Task :core:processDebugNavigationResources UP-TO-DATE
 > Task :core:generateDebugResources UP-TO-DATE
+> Task :auto:checkHardcodedStrings
 > Task :core:packageDebugResources UP-TO-DATE
 > Task :core:parseDebugLocalResources UP-TO-DATE
 > Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
 > Task :core:kspDebugKotlin UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :app:checkHardcodedStrings
 > Task :core:compileDebugKotlin UP-TO-DATE
 > Task :core:javaPreCompileDebug UP-TO-DATE
 > Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkNativeParity
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
 > Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
 > Task :core:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:koverFindJar UP-TO-DATE
 > Task :core:processDebugJavaRes UP-TO-DATE
 > Task :core:createFullJarDebug UP-TO-DATE
 > Task :core:writeDebugAarMetadata UP-TO-DATE
@@ -53,71 +76,36 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :core:generateDebugAssets UP-TO-DATE
 > Task :core:mergeDebugAssets UP-TO-DATE
 > Task :core:preDebugUnitTestBuild
-> Task :auto:checkNoWallClockWaits
 > Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
-> Task :auto:checkTripSendGate
-> Task :auto:preBuild
-> Task :auto:preDebugBuild
 > Task :core:koverFindJar UP-TO-DATE
-> Task :auto:processDebugNavigationResources UP-TO-DATE
-> Task :auto:generateDebugResources UP-TO-DATE
-> Task :auto:packageDebugResources UP-TO-DATE
-> Task :auto:parseDebugLocalResources UP-TO-DATE
-> Task :auto:generateDebugRFile UP-TO-DATE
 > Task :core:kspDebugUnitTestKotlin UP-TO-DATE
-> Task :auto:compileDebugKotlin UP-TO-DATE
-> Task :auto:javaPreCompileDebug UP-TO-DATE
 > Task :core:compileDebugUnitTestKotlin UP-TO-DATE
-> Task :auto:compileDebugJavaWithJavac NO-SOURCE
-> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :core:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :core:javaPreCompileDebugUnitTest UP-TO-DATE
-> Task :auto:processDebugJavaRes UP-TO-DATE
 > Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:checkNoCoordinatesInLogs
 > Task :core:hiltSyncDebugUnitTest UP-TO-DATE
-> Task :auto:createFullJarDebug
-> Task :auto:writeDebugAarMetadata UP-TO-DATE
-> Task :auto:extractDeepLinksDebug UP-TO-DATE
-> Task :auto:processDebugManifest UP-TO-DATE
-> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
-> Task :auto:compileDebugLibraryResources UP-TO-DATE
-> Task :auto:generateDebugAssets UP-TO-DATE
-> Task :auto:mergeDebugAssets UP-TO-DATE
-> Task :auto:preDebugUnitTestBuild
-> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
-> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
-> Task :auto:generateDebugUnitTestResources UP-TO-DATE
 > Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
 > Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
 > Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
-> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
-> Task :auto:processDebugUnitTestManifest UP-TO-DATE
-> Task :auto:processDebugUnitTestResources UP-TO-DATE
-> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
-> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
-> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
-> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
-> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
-> Task :auto:koverFindJar UP-TO-DATE
-> Task :auto:compileDebugUnitTestKotlin
-> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :app:checkHardcodedStrings
-> Task :app:checkNativeParity
-> Task :app:checkNoCoordinatesInLogs
 > Task :app:checkNoWallClockWaits
 > Task :app:checkSubmoduleFeatureHeaders
 > Task :app:checkSubmoduleIcons
 > Task :app:checkSubmoduleStylesheets
 > Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
 > Task :app:syncSubmoduleStylesheets UP-TO-DATE
 > Task :app:preBuild
 > Task :app:preAutomotiveDebugBuild
 > Task :app:generateAutomotiveDebugBuildConfig UP-TO-DATE
 > Task :app:generateAutomotiveDebugResources UP-TO-DATE
 > Task :app:packageAutomotiveDebugResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
+> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
 > Task :app:processAutomotiveDebugNavigationResources UP-TO-DATE
 > Task :app:parseAutomotiveDebugLocalResources UP-TO-DATE
 > Task :app:generateAutomotiveDebugRFile UP-TO-DATE
@@ -158,6 +146,7 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :app:processMobileDebugMainManifest UP-TO-DATE
 > Task :app:processMobileDebugManifest UP-TO-DATE
 > Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :osmscout-client-java:test
 > Task :app:processMobileDebugResources UP-TO-DATE
 > Task :app:generateMobileDebugAssets UP-TO-DATE
 > Task :app:mergeMobileDebugAssets UP-TO-DATE
@@ -167,9 +156,19 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
 > Task :app:generateMobileDebugUnitTestConfig UP-TO-DATE
 > Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
-> Task :osmscout-client-java:test
-> Task :app:kspMobileDebugKotlin
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:createFullJarDebug
+> Task :auto:compileDebugUnitTestKotlin
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :core:testDebugUnitTest
+> Task :core:test
 > Task :app:kspAutomotiveDebugKotlin
+> Task :app:kspMobileDebugKotlin
 > Task :app:compileAutomotiveDebugKotlin
 > Task :app:compileMobileDebugKotlin
 > Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
@@ -179,12 +178,13 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :app:processAutomotiveDebugJavaRes UP-TO-DATE
 > Task :app:bundleAutomotiveDebugClassesToCompileJar UP-TO-DATE
 > Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:transformAutomotiveDebugClassesWithAsm
 > Task :app:hiltSyncMobileDebug UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar UP-TO-DATE
 > Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
 > Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
-> Task :app:transformAutomotiveDebugClassesWithAsm
 > Task :app:processMobileDebugJavaRes UP-TO-DATE
-> Task :app:bundleAutomotiveDebugClassesToRuntimeJar UP-TO-DATE
 > Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
 > Task :app:transformMobileDebugClassesWithAsm
 > Task :app:bundleMobileDebugClassesToRuntimeJar UP-TO-DATE
@@ -192,24 +192,23 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :app:compileAutomotiveDebugUnitTestKotlin
 > Task :app:processAutomotiveDebugUnitTestJavaRes UP-TO-DATE
 > Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:kspMobileDebugUnitTestKotlin
 > Task :app:hiltSyncAutomotiveDebugUnitTest UP-TO-DATE
 > Task :app:hiltAggregateDepsAutomotiveDebugUnitTest UP-TO-DATE
 > Task :app:hiltJavaCompileAutomotiveDebugUnitTest NO-SOURCE
-> Task :app:kspMobileDebugUnitTestKotlin
-> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm
 > Task :app:compileMobileDebugUnitTestKotlin
-OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-> Task :core:testDebugUnitTest
-> Task :core:test
-OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
 > Task :auto:testDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
 > Task :app:testAutomotiveDebugUnitTest
 > Task :auto:test
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
-> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
 > Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
 > Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
 > Task :app:transformMobileDebugUnitTestClassesWithAsm
@@ -220,10 +219,10 @@ OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader clas
 
 > Task :app:test
 
-BUILD SUCCESSFUL in 4m 14s
-167 actionable tasks: 32 executed, 135 up-to-date
+BUILD SUCCESSFUL in 5m 24s
+167 actionable tasks: 35 executed, 132 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
-gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 255s
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 326s
 gate-pool: 4 steps start together — at most 4 in flight
 gate: bash tools/gen-feature-list.sh --check-classification
 gen-feature-list: stale classification entry for a spec that no longer exists:
@@ -234,7 +233,7 @@ gen-feature-list: stale classification entry for a spec that no longer exists:
 specs read: 185
 classified: 189
 unclassified: 0
-delta spec ids: 8
+delta spec ids: 43
 stale: 4
 car-only areas: 1
 highlights: 19
@@ -313,13 +312,13 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
-check-todo-references: 67 citation(s) resolve through the recorded table; 10293 file(s) excluded by the allowlist above
-gate: tools/check-todo-references.sh — 1s
+check-todo-references: 67 citation(s) resolve through the recorded table; 10331 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 2s
 gate: tools/check-openspec-hygiene.sh
 Every capability spec states its Purpose.
-OpenSpec artifacts are consistent: 10 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
-gate: tools/check-openspec-hygiene.sh — 0s
+OpenSpec artifacts are consistent: 26 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+gate: tools/check-openspec-hygiene.sh — 1s
 gate: tools/check-openspec-hygiene-selftest.sh
 check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
-gate: tools/check-openspec-hygiene-selftest.sh — 0s
-LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 255s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
+gate: tools/check-openspec-hygiene-selftest.sh — 1s
+LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 326s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/check-openspec-hygiene-selftest.sh 1s)

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineStepIndexTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-08T01:54:30.884Z" hostname="dingens" time="5.232">
+  <properties/>
+  <testcase name="onNextRouteStep_advancesIndexMonotonicallyThroughRepeatedManoeuvres" classname="com.naviveylin.navigation.NavigationEngineStepIndexTest" time="4.765"/>
+  <testcase name="startNavigation_publishesTheRoutesStepsBeforeAnyPositionUpdate" classname="com.naviveylin.navigation.NavigationEngineStepIndexTest" time="0.049"/>
+  <testcase name="startNavigation_clearsStaleStepsFromPreviousRoute" classname="com.naviveylin.navigation.NavigationEngineStepIndexTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

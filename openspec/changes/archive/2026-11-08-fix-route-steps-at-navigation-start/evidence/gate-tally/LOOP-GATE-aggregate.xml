@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="LOOP-GATE aggregate (awk-summed tests= failures= errors= of gate-tally/*.xml)" tests="953" failures="0" errors="1" time="0">
+  <system-out>28 step tallies of ./tools/loop/gate.sh, run once by the gate child on 2026-11-08; sum over gate-tally/*.xml: tests=953 failures=0 errors=1 — the failing suite is tools/check-rule-routes.sh</system-out>
+</testsuite>

@@ -1,0 +1,7 @@
+# red-on-HEAD, base ba96953f, 2026-11-08T07:19:09Z — the case added by this change, production at base
+run#aReviewDiffNamesTheTreeItWasWrittenFrom|   the diff under review was handed no tree identity
+--- run#aReviewDiffNamesTheTreeItWasWrittenFrom[0] (exit 1)
+  the diff under review was handed no tree identity
+FAIL run#aReviewDiffNamesTheTreeItWasWrittenFrom
+loop-selftest: 1 of 1 cases failed
+# exit=1

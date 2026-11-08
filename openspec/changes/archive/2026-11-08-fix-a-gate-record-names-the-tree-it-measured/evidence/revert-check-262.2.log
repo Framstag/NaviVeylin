@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 291 records (labels: 262.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.SGNiXL
+RED    262.2  run#aReviewDiffNamesTheTreeItWasWrittenFrom   (the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819))
+       2026-11-08T00:22:43Z — the diff under review was handed no tree identity
+restore 262.2 run#aReviewDiffNamesTheTreeItWasWrittenFrom green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

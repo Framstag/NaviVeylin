@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 291 records (labels: 262.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.7W7pC3
+RED    262.4  gate#theGateAndTheRoundNameOneTree   (the path set the one derivation leaves the generated trees out of, so a gate reads its own evidence as a correction of the tree it measured (issue #819))
+       2026-11-08T00:22:56Z — the gate's tree and the tree the round is handed are one digest, so the evidence a gate writes cannot read as a correction: expected '3d96e1b9a404715b', got '2b0fc8428692d795'
+restore 262.4 gate#theGateAndTheRoundNameOneTree green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

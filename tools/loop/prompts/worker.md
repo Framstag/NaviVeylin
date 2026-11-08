@@ -84,6 +84,14 @@ measured timing, and the change's spec scenarios counted against the cases that 
 them**: the gate is run once, by `{{GATE_CMD}}`, and a number the block lacks is a defect in the block rather
 than a reason to walk the tree by hand.
 
+**Which selection is whose.** The `LOOP-MEASURE-CHECK` lines are the gate's: the gate owns the full selection
+its own step names — the child that runs it once, or your own last phase when the run makes the gate yours — and a
+check you run to prove one of them is that selection paid twice. Yours is the named red case and the cases your
+delta reaches: run those while you iterate, and cite the block for every other check instead of running it. Two
+things stay yours beside that split: the check that stands in for a delta which compiles nothing — a docs, spec,
+skill or backlog delta runs the structural check of the files it edits and names it in the task — and the number
+the round after you asks the record to carry, which is the block's line quoted, not a check run again.
+
 **A number the change quotes is the output of a command in its record.** The block's lines are that command's
 output for the facts it carries, so quote them. A number the block does not carry is one you took yourself, and
 then the command that took it belongs in the change's evidence beside the number.

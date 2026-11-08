@@ -100,6 +100,8 @@
         "UICar.md §3c \"a notice offers a way out only when leaving is safe.\"",
         "UICar.md §3c \"the wait notice bounds its host traffic.\"",
         "UICar.md §3c \"a wait notice is guarded like every other host path.\"",
+        "UICar.md §3c \"while navigation is active the wait is drawn, never pushed.\"",
+        "UICar.md §3c \"a failed reroute is reported on the map surface.\"",
         "UICar.md §4 \"the details attribute list order is fixed.\"",
         "UICar.md §4 \"every Description attribute is reachable.\"",
         "UICar.md §4 \"the street/address row is deduplicated.\"",
@@ -130,6 +132,7 @@
         "UI.md §8d \"the Android Auto surface indicators keep their fixed palettes.\"",
         "UI.md §8d \"the spoken-announcement switches are per surface, and the GPS switch is shared.\"",
         "UI.md §8d \"the location-options-only settings are phone-only.\"",
+        "UI.md §8d \"the car's reroute wait is a surface strip, the phone's is a card tint.\"",
         "UI.md §9 \"the phone dark-mode preference is three-state with an ambient option.\"",
         "UI.md §9 \"the Android Auto dark mode has two layers, owned differently.\"",
         "UI.md §9 \"the template chrome is host-themed, never app-themed.\"",
@@ -163,6 +166,7 @@
         "UIPhone.md §5 \"the details title precedence is name → address → label → generic.\"",
         "UIPhone.md §5 \"the details dialog has exactly one primary action.\"",
         "UIPhone.md §5 \"the two `Contact` values are links on the phone.\"",
+        "UIPhone.md §5 \"the rows' words come from the surface's resources.\"",
         "UIPhone.md §6a \"the phone has one search dialog.\"",
         "UIPhone.md §6a \"the search dialog has a three-mode switch.\"",
         "UIPhone.md §6a \"an empty Places query shows suggestions.\"",
@@ -340,6 +344,7 @@
         "MapCar.md §14 \"Loop liveness — a fault costs one frame, never the pipeline\"",
         "MapCar.md §14 \"A requested frame that never lands is re-requested\"",
         "MapCar.md §14 \"Diagnosing a frozen or degraded car map\"",
+        "MapCar.md §14 \"the navigation surface's app-drawn elements are the compass rose, the speed badge and speed-limit sign, the attribution, the map-unavailable notice and the calculation strip.\"",
         "MapStyling.md §15 \"Phone\"",
         "MapStyling.md §15 \"Android Auto\"",
         "MapStyling.md §15 \"Startup race (both variants)\"",
@@ -484,7 +489,8 @@
         "MapCar.md §14 \"The projection DPI travels with the render request\"",
         "MapCar.md §14 \"Loop liveness — a fault costs one frame, never the pipeline\"",
         "MapCar.md §14 \"A requested frame that never lands is re-requested\"",
-        "MapCar.md §14 \"Diagnosing a frozen or degraded car map\""
+        "MapCar.md §14 \"Diagnosing a frozen or degraded car map\"",
+        "MapCar.md §14 \"the navigation surface's app-drawn elements are the compass rose, the speed badge and speed-limit sign, the attribution, the map-unavailable notice and the calculation strip.\""
       ]
     },
     {
@@ -656,7 +662,8 @@
         "Backlog.md §5 \"a closure leaves no decision label behind.\"",
         "Backlog.md §5 \"a block asks its own question.\"",
         "Backlog.md §5 \"a stale skip asks its own question, and is never parked on a bare hold.\"",
-        "Backlog.md §5 \"a reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.\""
+        "Backlog.md §5 \"a reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.\"",
+        "Backlog.md §5 \"the queue reads the whole labelled set, and refuses one it could not cover.\""
       ]
     },
     {
@@ -862,6 +869,8 @@
         "UICar.md §3c \"a notice offers a way out only when leaving is safe.\"",
         "UICar.md §3c \"the wait notice bounds its host traffic.\"",
         "UICar.md §3c \"a wait notice is guarded like every other host path.\"",
+        "UICar.md §3c \"while navigation is active the wait is drawn, never pushed.\"",
+        "UICar.md §3c \"a failed reroute is reported on the map surface.\"",
         "UICar.md §4 \"the details attribute list order is fixed.\"",
         "UICar.md §4 \"every Description attribute is reachable.\"",
         "UICar.md §4 \"the street/address row is deduplicated.\"",
@@ -892,6 +901,7 @@
         "UI.md §8d \"the Android Auto surface indicators keep their fixed palettes.\"",
         "UI.md §8d \"the spoken-announcement switches are per surface, and the GPS switch is shared.\"",
         "UI.md §8d \"the location-options-only settings are phone-only.\"",
+        "UI.md §8d \"the car's reroute wait is a surface strip, the phone's is a card tint.\"",
         "UI.md §9 \"the phone dark-mode preference is three-state with an ambient option.\"",
         "UI.md §9 \"the Android Auto dark mode has two layers, owned differently.\"",
         "UI.md §9 \"the template chrome is host-themed, never app-themed.\"",
@@ -925,6 +935,7 @@
         "UIPhone.md §5 \"the details title precedence is name → address → label → generic.\"",
         "UIPhone.md §5 \"the details dialog has exactly one primary action.\"",
         "UIPhone.md §5 \"the two `Contact` values are links on the phone.\"",
+        "UIPhone.md §5 \"the rows' words come from the surface's resources.\"",
         "UIPhone.md §6a \"the phone has one search dialog.\"",
         "UIPhone.md §6a \"the search dialog has a three-mode switch.\"",
         "UIPhone.md §6a \"an empty Places query shows suggestions.\"",

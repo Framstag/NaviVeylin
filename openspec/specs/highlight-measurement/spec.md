@@ -73,6 +73,12 @@ exit-code contract SHALL stay at three values, and a refusal SHALL never be prin
 - **THEN** the tool SHALL report no highlight, name the refusal, and exit 2
 - **Case**: `bash tools/measure-highlight-selftest.sh` case `no-focus-line` — a capture of unrelated app lines beside the same glyph pair; expects `"highlight": null`, `"refused": "no-focus-line"`, exit 2
 
+#### Scenario: A lookalike diagnostics line under another tag is refused
+
+- **WHEN** the supplied diagnostics carry a `segment focus:` line with a `band=[0,N]` but not the literal `MapCanvasVM: segment focus:` tag
+- **THEN** the tool SHALL report no highlight, name `no-focus-line` as the refusal reason, and exit 2
+- **Case**: `bash tools/measure-highlight-selftest.sh` case `wrong-tag` — an `Other: segment focus:` line beside the same glyph pair; expects `"highlight": null`, `"refused": "no-focus-line"`, exit 2
+
 #### Scenario: A band that ends at the canvas bottom is no card measured
 
 - **WHEN** the analysed-segment line reports a band ending at the canvas bottom

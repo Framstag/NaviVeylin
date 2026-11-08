@@ -295,9 +295,10 @@ tests you write from it are self-consistent by construction.
    analysed-segment highlight by its casing colour, derives the card top from a `uiautomator dump` and prints
    the highlight's bounding box against the free band (exit 0 inside / 1 clipped / 2 no highlight). Only the
    script's numbers and exit code are evidence — a vision description never replaces them. Screenshot, dump and
-   the app's own `segment focus:` line must come from the same moment, and the script takes that line as a
-   required input (`--state`) — the line is printed only for an analysed step, so a verdict is answered only for
-   a frame that carries one, and a band that ends at the canvas bottom or disagrees with the shot's is refused.
+   the app's own `MapCanvasVM: segment focus:` line must come from the same moment, and the script takes that
+   literal line as a required input (`--state`) — the line is printed only for an analysed step, so a verdict is
+   answered only for a frame that carries one, and a band that ends at the canvas bottom or disagrees with the
+   shot's is refused.
    A refusal is `verdict: REFUSED (<reason>)` with the no-highlight exit 2, never `inside`; a positive verdict
    still needs the match to be a stroke — hundreds or thousands of `px` over many rows, not tens of pixels
    spread wide.

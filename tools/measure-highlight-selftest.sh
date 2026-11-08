@@ -9,7 +9,7 @@
 #   bash tools/measure-highlight-selftest.sh
 #
 # Every case also states the same-moment diagnostics the detector requires (`--state`): one
-# `MapCanvasVM: segment focus:` line per case, and the four refusal cases that break that
+# `MapCanvasVM: segment focus:` line per case, and the five refusal cases that break that
 # requirement in one way each.
 #
 # Exit code 0 = every case passed; 1 = at least one case failed (each failure prints what the
@@ -82,6 +82,8 @@ focus_line 20 > "$WORK/state-no-card.log"
 printf '%s\n' \
   "11-08 11:34:11.100  1999  1999 D MapCanvasVM: route published" \
   "11-08 11:34:11.200  1999  1999 D MapCanvasVM: render frame 41" > "$WORK/state-no-focus.log"
+printf '%s\n' \
+  "11-08 11:34:11.300  1999  1999 D Other: segment focus: range=0..2 mag=15.0 covered=5 band=[0,15] margin=2 bboxPx=[10,18,5,15] inside=true" > "$WORK/state-wrong-tag.log"
 
 PASS=0
 FAIL=0
@@ -136,6 +138,8 @@ check behind-card behind-card.png 1 '"clipped": ["bottom"]' '"inside": false' --
 # refusal, never a verdict (issue #90 — 18 px of parking-glyph colour reported `inside`).
 check no-state glyph-pair.png 2 '"highlight": null' '"refused": "no-state"'
 check no-focus-line glyph-pair.png 2 '"highlight": null' '"refused": "no-focus-line"' -- --state "$WORK/state-no-focus.log"
+# A lookalike line under another tag is not the app's analysed-segment line.
+check wrong-tag glyph-pair.png 2 '"highlight": null' '"refused": "no-focus-line"' -- --state "$WORK/state-wrong-tag.log" --band-bottom 15
 # A band that ends at the canvas bottom measured no card, so the frame is not the assumed state.
 check no-card glyph-pair.png 2 '"highlight": null' '"refused": "no-card"' -- --state "$WORK/state-no-card.log"
 # The shot and the diagnostics are not one moment: their bands disagree.

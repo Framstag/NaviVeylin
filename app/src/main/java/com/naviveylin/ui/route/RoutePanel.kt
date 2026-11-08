@@ -260,31 +260,39 @@ fun RoutePanel(
                         )
                     }
                 }
-                if (compact) {
-                    IconButton(
-                        onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED) },
-                        modifier = Modifier.testTag("routeOverlayExpand")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = stringResource(R.string.route_overlay_expand)
-                        )
-                    }
-                } else {
-                    IconButton(
-                        onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.COMPACT) },
-                        modifier = Modifier.testTag("routeOverlayCollapse")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = stringResource(R.string.route_overlay_collapse)
-                        )
+                // The `^`/`v` toggle is the phone card's control: it sets the anchor, and the
+                // anchor only decides the card's height share (`phoneCardHeightDp`), which the
+                // docked frame never reads — its surface is a fixed width and the full screen
+                // height. Offered there it looked live and changed nothing (spec:
+                // `route-planning-session` — Overlay docks when width allows; TODO.md §136).
+                if (!docked) {
+                    if (compact) {
+                        IconButton(
+                            onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED) },
+                            modifier = Modifier.testTag("routeOverlayExpand")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowUp,
+                                contentDescription = stringResource(R.string.route_overlay_expand)
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { viewModel.setOverlayAnchor(RouteOverlayAnchor.COMPACT) },
+                            modifier = Modifier.testTag("routeOverlayCollapse")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = stringResource(R.string.route_overlay_collapse)
+                            )
+                        }
                     }
                 }
-                // The close control ends the session: same meaning in both anchors, with its
-                // own content description (owner finding, 2026-10-05 — the glyph was read as
-                // the exit while it minimised, and the minimised state then had no exit).
-                // Collapsing is the toggle above; the two affordances are distinct.
+                // The close control ends the session in both frames — phone card and docked
+                // panel — with its own content description (owner finding, 2026-10-05 — the glyph
+                // was read as the exit while it minimised, and the minimised state then had no
+                // exit). Collapsing is the phone card's toggle above; the two affordances are
+                // distinct, and ending the session is the one control the wide layout shares.
                 IconButton(
                     onClick = onEndSession,
                     modifier = Modifier.testTag("routeEndSessionHeader")

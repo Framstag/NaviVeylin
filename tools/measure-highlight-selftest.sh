@@ -8,6 +8,10 @@
 #
 #   bash tools/measure-highlight-selftest.sh
 #
+# Every case also states the same-moment diagnostics the detector requires (`--state`): one
+# `MapCanvasVM: segment focus:` line per case, and the four refusal cases that break that
+# requirement in one way each.
+#
 # Exit code 0 = every case passed; 1 = at least one case failed (each failure prints what the
 # tool measured instead).
 set -uo pipefail
@@ -62,7 +66,22 @@ write_png(out / "short-only.png", 200, 20, {5: [(10, 14)]})
 write_png(out / "two-short-runs.png", 200, 20, {5: [(10, 14), (100, 104)]})
 # A long run near the bottom, behind a card whose top is y=15.
 write_png(out / "behind-card.png", 200, 20, {18: [(10, 50)]})
+# Issue #90's frame: two casing-coloured glyph rows 10 rows apart, 9 px each — 18 px in total,
+# which is the false positive the same-moment state now refuses.
+write_png(out / "glyph-pair.png", 200, 20, {5: [(10, 18)], 15: [(10, 18)]})
 PY
+
+# The same-moment diagnostics: one `segment focus:` line as the app logs it
+# (`MapCanvasViewModelRoute.kt:463-468`), coordinate-free, for a card top of $1 px.
+focus_line() {
+  printf '%s\n' "11-08 11:34:11.402  1999  1999 D MapCanvasVM: segment focus: range=0..2 mag=15.0 covered=$((20 - $1)) band=[0,$1] margin=2 bboxPx=[10,50,5,5] inside=true"
+}
+focus_line 15 > "$WORK/state.log"
+focus_line 16 > "$WORK/state-other-band.log"
+focus_line 20 > "$WORK/state-no-card.log"
+printf '%s\n' \
+  "11-08 11:34:11.100  1999  1999 D MapCanvasVM: route published" \
+  "11-08 11:34:11.200  1999  1999 D MapCanvasVM: render frame 41" > "$WORK/state-no-focus.log"
 
 PASS=0
 FAIL=0
@@ -95,21 +114,32 @@ check() {
   printf 'PASS %s\n' "$case"
 }
 
+# Every case below states the same moment it measures: the diagnostics carry an analysed-segment
+# line whose band is the band the shot is measured against (`--state`, band top 15).
 # A row whose longest run is not its rightmost one is still a highlight row, and the bbox is
 # the longest run's extent.
-check longest-run-not-last longest-run-not-last.png 0 '"bbox": [10, 50, 5, 5]' '"highlight_px": 41' '"inside": true'
+check longest-run-not-last longest-run-not-last.png 0 '"bbox": [10, 50, 5, 5]' '"highlight_px": 41' '"inside": true' -- --state "$WORK/state.log" --band-bottom 15
 # The mirror order keeps working (green on HEAD too — the fix must not trade one order for the other).
-check longest-run-is-last longest-run-is-last.png 0 '"bbox": [100, 140, 5, 5]' '"highlight_px": 41' '"inside": true'
+check longest-run-is-last longest-run-is-last.png 0 '"bbox": [100, 140, 5, 5]' '"highlight_px": 41' '"inside": true' -- --state "$WORK/state.log" --band-bottom 15
 # Each qualifying row contributes its own longest run to the bbox: 41 + 41 px over y 5..6.
-check longest-run-per-row longest-run-per-row.png 0 '"bbox": [10, 100, 5, 6]' '"highlight_px": 82' '"inside": true'
+check longest-run-per-row longest-run-per-row.png 0 '"bbox": [10, 100, 5, 6]' '"highlight_px": 82' '"inside": true' -- --state "$WORK/state.log" --band-bottom 15
 # Unchanged behaviour: one run per row.
-check single-run single-run.png 0 '"bbox": [10, 50, 5, 5]' '"highlight_px": 41' '"inside": true'
+check single-run single-run.png 0 '"bbox": [10, 50, 5, 5]' '"highlight_px": 41' '"inside": true' -- --state "$WORK/state.log" --band-bottom 15
 # A run below MIN_RUN_PX never qualifies a row, whichever position it holds.
-check short-only short-only.png 2 '"highlight": null'
+check short-only short-only.png 2 '"highlight": null' -- --state "$WORK/state.log" --band-bottom 15
 # …and separate short runs neither sum to the floor nor widen the row's span.
-check two-short-runs two-short-runs.png 2 '"highlight": null'
+check two-short-runs two-short-runs.png 2 '"highlight": null' -- --state "$WORK/state.log" --band-bottom 15
 # The band verdict is unchanged: a long run behind the card is clipped.
-check behind-card behind-card.png 1 '"clipped": ["bottom"]' '"inside": false' -- --band-bottom 15 --margin 2
+check behind-card behind-card.png 1 '"clipped": ["bottom"]' '"inside": false' -- --state "$WORK/state.log" --band-bottom 15 --margin 2
+
+# The same-moment state: a frame whose diagnostics do not establish an analysed segment gets a
+# refusal, never a verdict (issue #90 — 18 px of parking-glyph colour reported `inside`).
+check no-state glyph-pair.png 2 '"highlight": null' '"refused": "no-state"'
+check no-focus-line glyph-pair.png 2 '"highlight": null' '"refused": "no-focus-line"' -- --state "$WORK/state-no-focus.log"
+# A band that ends at the canvas bottom measured no card, so the frame is not the assumed state.
+check no-card glyph-pair.png 2 '"highlight": null' '"refused": "no-card"' -- --state "$WORK/state-no-card.log"
+# The shot and the diagnostics are not one moment: their bands disagree.
+check band-disagrees glyph-pair.png 2 '"highlight": null' '"refused": "band-disagrees"' -- --state "$WORK/state-other-band.log" --band-bottom 15
 
 printf 'measure-highlight selftest: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1

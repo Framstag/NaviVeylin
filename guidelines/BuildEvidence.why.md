@@ -159,4 +159,6 @@ Change `route-planning-session` spent nine review rounds on a pixel finding (`ki
 found both real causes only after measuring. The detector is covered device-free by
 `bash tools/measure-highlight-selftest.sh` and by the older `.pi/skills/pixel-check/selftest.sh`
 (ImageMagick). Measured 2026-10-06 on a frame with no route: `px=18`, `band=[0,2400]`, `verdict: inside` —
-the look caught the colour coincidence (`TODO.md` §147).
+the look caught the colour coincidence (`TODO.md` §147). Since issue #90 that frame is refused instead: a
+verdict requires the app's same-moment `segment focus:` line, and a capture without one prints `verdict: REFUSED
+(no-focus-line)`, exit 2 (harness case `no-focus-line`, `tools/measure-highlight-selftest.sh`).

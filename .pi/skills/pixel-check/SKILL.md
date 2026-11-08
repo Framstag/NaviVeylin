@@ -44,10 +44,11 @@ analysed segment on screen and a card top inside the canvas. Two tells, both pri
 
 Recorded example of the failure (2026-10-06, a phone frame with no route, `.pi/logs/pixel-check/`):
 `highlight (dark): bbox=[619, 641, 413, 734] px=18` / `canvas=1080x2400 band=[0,2400]` / `verdict:
-inside`, exit 0. A crop of that box is ordinary base map; the look caught it. The script's own gap —
-refusing instead of reporting `inside` when no plausible highlight exists — is `TODO.md` §147.
-**The look establishes the precondition; the script measures given it.** A verdict that fails these
-checks is a false positive, never a finding.
+inside`, exit 0. A crop of that box is ordinary base map; the look caught it. That frame is what the
+detector now refuses: handed the same-moment diagnostics (`--state`, below) it prints `verdict: REFUSED
+(<reason>)` and exit 2 instead of `inside` (issue #90, `TODO.md` §147).
+**The look says what is on screen; the script measures the numbers — and refuses the frame whose state
+nobody stated.** A verdict that fails the stroke check is a false positive, never a finding.
 
 **The look happens outside this session's transcript, and that is a rule, not a preference.** A tool
 result must never carry an image block into the session holding the work: measured 2026-10-16, two
@@ -72,12 +73,13 @@ against the free map band:
 ```bash
 D=.pi/logs/pixel-check              # dedicated dir inside the repo — never a shared scratch path
 mkdir -p "$D"
-# dump first, then the screenshot: the two must come from the same moment
+# dump first, then the frame, then the app's own diagnostics: all three are one moment
 adb shell 'uiautomator dump $EXTERNAL_STORAGE/ui.xml; cat $EXTERNAL_STORAGE/ui.xml' 2>&1 \
   | sed -n '/<?xml/,$p' > "$D/ui.xml"
 adb exec-out screencap -p > "$D/shot.png"
+adb logcat -d > "$D/state.log"      # carries `MapCanvasVM: segment focus: …` for this moment
 # look first (a throwaway child session reads "$D/shot.png"), then measure
-python3 tools/measure-highlight.py "$D/shot.png" --dump "$D/ui.xml" --margin 126
+python3 tools/measure-highlight.py "$D/shot.png" --dump "$D/ui.xml" --state "$D/state.log" --margin 126
 ```
 
 Why the recipe is shaped like that (each line cost a round, 2026-10-06):
@@ -100,29 +102,37 @@ Output (`--json` for one machine-readable line):
 highlight (day): bbox=[300, 360, 900, 1100] px=…
 canvas=1080x2400 band=[0,2164] margin=126
 verdict: inside            # exit 0; 1 = clipped (names the edges); 2 = no highlight
+verdict: REFUSED (no-focus-line)   # instead: exit 2, no box — the frame's state was not established
 ```
 
+- `--state` is **required**: the logcat capture of the same moment, which must carry the app's
+  `MapCanvasVM: segment focus: …` line (`MapCanvasViewModelRoute.logSegmentFit`). That line is
+  printed only when a step was analysed and it names the band the app measured, so it is the
+  detector's evidence that the frame is one it can answer for. `--json` names the reason as
+  `"refused": "no-state" | "no-focus-line" | "no-card" | "band-disagrees"`.
 - `--dump` derives the card top from the bottom-most full-width view with real
-  height, so the band is the *measured* card edge, not an assumption.
+  height, so the band is the *measured* card edge, not an assumption — and it has to be the band
+  the same-moment line reports, or the two artifacts are not one moment.
 - The detector requires a **dense run** of matching pixels per row
   (`MIN_RUN_PX`) — the row's *longest* run, wherever it sits in the row, so a
   casing-coloured glyph or label run right of the highlight cannot drop the row
   (`TODO.md` §169) — because in dark mode the light casing colour also appears on map
   labels — a colour match alone is not evidence. It is not sufficient either: on a
   frame with no route, 18 pixels of light-blue `P` parking glyph passed it and the
-  script reported `verdict: inside` (`TODO.md` §147). Check the precondition and the
-  `px`/`band` sanity before trusting a positive verdict.
+  script reported `verdict: inside` (`TODO.md` §147) — which is why a verdict now also
+  needs the same-moment `--state` line. Check the `px`/stroke sanity before quoting a
+  positive verdict as a finding.
 - `bash tools/measure-highlight-selftest.sh` verifies the detector against synthetic
   images it builds itself (python3 stdlib, no ImageMagick, no device) — the row rule,
-  the bbox extent, the floor and the band verdict. `bash .pi/skills/pixel-check/selftest.sh`
-  covers inside / behind the card / no highlight with ImageMagick. Run one after touching
-  the script.
+  the bbox extent, the floor, the band verdict and the four refusals. `bash
+  .pi/skills/pixel-check/selftest.sh` covers inside / behind the card / no highlight with
+  ImageMagick. Run one after touching the script.
 
 ## Rules
 
-1. **Screenshot and dump must be the same moment** — take the dump, then the
-   screenshot (or vice versa) within a second, otherwise the band and the pixels
-   disagree and the verdict is noise.
+1. **Screenshot, dump and diagnostics must be one moment** — take them within a second
+   of each other, otherwise the band and the pixels disagree and the detector refuses
+   with `band-disagrees`.
 2. **Report the numbers, not an impression**: bbox, band, margin, verdict. That is
    what goes into `tasks.md` as evidence.
 3. **Compare with the model's own diagnostics.** The map logs what the fit
@@ -145,7 +155,7 @@ The strongest evidence is a three-way agreement on the *same* leg/label:
 |---|---|
 | the fit's own numbers | `adb logcat -d -s MapCanvasVM` → `segment focus: range=… bboxPx=… inside=…` |
 | what the overlay actually draws | `adb logcat -d -s RouteHighlight` → `range=… canvas=… bboxPx=…` |
-| the pixels on screen | `tools/measure-highlight.py SHOT.png --dump XML` → `bbox=…`, `verdict` |
+| the pixels on screen | `tools/measure-highlight.py SHOT.png --dump XML --state LOG` → `bbox=…`, `verdict` |
 
 Two of them agreeing while the third differs locates the bug immediately: fit ≠
 overlay means two consumers read different state (that is how the published-range

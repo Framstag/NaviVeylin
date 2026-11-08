@@ -294,10 +294,13 @@ tests you write from it are self-consistent by construction.
    text enters this session. The verdict comes from `tools/measure-highlight.py`, which finds the
    analysed-segment highlight by its casing colour, derives the card top from a `uiautomator dump` and prints
    the highlight's bounding box against the free band (exit 0 inside / 1 clipped / 2 no highlight). Only the
-   script's numbers and exit code are evidence — a vision description never replaces them. Screenshot and dump
-   must come from the same moment. A positive verdict also needs its precondition: `band` must end above the
-   canvas bottom and the match must be a stroke — hundreds or thousands of `px` over many rows, not tens of
-   pixels spread wide.
+   script's numbers and exit code are evidence — a vision description never replaces them. Screenshot, dump and
+   the app's own `segment focus:` line must come from the same moment, and the script takes that line as a
+   required input (`--state`) — the line is printed only for an analysed step, so a verdict is answered only for
+   a frame that carries one, and a band that ends at the canvas bottom or disagrees with the shot's is refused.
+   A refusal is `verdict: REFUSED (<reason>)` with the no-highlight exit 2, never `inside`; a positive verdict
+   still needs the match to be a stroke — hundreds or thousands of `px` over many rows, not tens of pixels
+   spread wide.
 3. **Rule: compare the two verdicts.** Model `inside=true` + measured `CLIPPED` is the bug. Model `inside=true`
    + measured `inside=true` means the symptom is somewhere else — ask the owner *where* and *when* before
    changing anything.

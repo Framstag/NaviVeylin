@@ -17,10 +17,13 @@ magick -size 1080x2400 xc:white \
 # A dense run must be required: a single label-sized dot is not a highlight.
 magick -size 1080x2400 xc:white \
   -fill '#00454F' -draw 'rectangle 300,900 304,904' "$WORK/dot.png"
+# The same-moment diagnostics the detector requires: the app's analysed-segment line, whose
+# band is the band these shots are measured against (card top 2164).
+printf '%s\n' "11-08 11:34:11.402  1999  1999 D MapCanvasVM: segment focus: range=0..2 mag=15.0 covered=236 band=[0,2164] margin=126 bboxPx=[300,360,900,1100] inside=true" > "$WORK/state.log"
 
 check() {
   local name="$1" expect="$2" expected_code="$3" out code
-  out=$(python3 tools/measure-highlight.py "$WORK/$name.png" --band-bottom 2164 --json)
+  out=$(python3 tools/measure-highlight.py "$WORK/$name.png" --state "$WORK/state.log" --band-bottom 2164 --json)
   code=$?
   case "$out" in *"\"inside\": $expect"*) echo "ok   $name -> inside=$expect";;
     *) echo "FAIL $name -> expected inside=$expect, got: $out"; FAIL=1;; esac
@@ -30,7 +33,7 @@ check() {
 check inside true 0
 check behind-card false 1
 # No dense run anywhere: no highlight found, exit 2.
-out=$(python3 tools/measure-highlight.py "$WORK/dot.png" --band-bottom 2164 --json); code=$?
+out=$(python3 tools/measure-highlight.py "$WORK/dot.png" --state "$WORK/state.log" --band-bottom 2164 --json); code=$?
 case "$out" in *'"highlight": null'*) echo "ok   dot -> no highlight";;
   *) echo "FAIL dot -> expected no highlight, got: $out"; FAIL=1;; esac
 [ "$code" = 2 ] || { echo "FAIL dot -> exit $code, expected 2"; FAIL=1; }

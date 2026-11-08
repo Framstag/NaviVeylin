@@ -5,7 +5,7 @@ metadata:
   submodule: app/src/main/cpp/libosmscout
   branch: naviveylin-local
   upstream: https://github.com/Framstag/libosmscout
-  pull-request: "https://github.com/Framstag/libosmscout/pull/1773 (naviveylin-local → master)"
+  pull-request: "https://github.com/Framstag/libosmscout/pull/1854 (naviveylin-local → master)"
   parent-commit-style: "Update libosmscout submodule to master (merge into naviveylin-local)"
 ---
 
@@ -17,7 +17,7 @@ metadata:
 - `naviveylin-local` is the NaviVeylin working branch **inside the submodule**. It carries NaviVeylin-specific commits (JNI layer, Android build fixes) on top of upstream master, folded in via merge commits.
 - The branch is pushed to origin (`Framstag/libosmscout`) so the new pinned SHA stays fetchable by anyone running `git submodule update`.
 - Workflow: fetch upstream master → merge into `naviveylin-local` → push branch → bump parent pointer → commit.
-- **PR #1773 is the branch's PR into `master`, and its CI is the authoritative build check** — it runs configurations this repo never builds locally (see *Configuration parity*). A green local Android build is not evidence that the branch is healthy.
+- **PR #1854 is the branch's PR into `master`, and its CI is the authoritative build check** — it runs configurations this repo never builds locally (see *Configuration parity*). A green local Android build is not evidence that the branch is healthy.
 
 ## Usage
 
@@ -91,7 +91,7 @@ Conflicts are the normal case, not the exception: upstream and NaviVeylin both e
    - `git diff origin/master -- <file>` → should show ONLY the NaviVeylin-local intent (e.g. just the `wayType` addition).
    - `git diff HEAD -- <file>` → should show ONLY upstream's additions (or nothing).
    - No markers left: `grep -c '^<<<<<<<\|^>>>>>>>\|^=======$' <file>` → 0.
-5. `git add` the resolved files, then commit the merge (`git commit -F -` with a message listing each resolution — that message is the review artifact on PR #1773).
+5. `git add` the resolved files, then commit the merge (`git commit -F -` with a message listing each resolution — that message is the review artifact on PR #1854).
 6. Re-run the *Configuration parity* check: a hunk kept from our side can sit inside `#ifdef OSMSCOUT_HAVE_LIB_MARISA` and break the non-marisa CI build.
 
 ## Burn-down: measuring what the branch still costs
@@ -119,6 +119,7 @@ bare number:
 | 2026-10-16 | `d09e50e22` | `b8926ae0a` | 22 files, +1728/-189 — the merge carried 16 upstream commits and one conflict (17 hunks, all in `OSMScoutClient.cpp`, all resolved to upstream). Upstream had landed the same work as a refactor (PRs #1888 routing-profile max speed, #1890 type-icon entry point), so the *local* side of those two features is gone: `NAVIVEYLIN_TYPE_ICON_FIT`, both inline fit scales, the byte-vector pixel packing and the file-local `ResolveMaxSpeedKmh()` (deleted in the merge commit) are replaced by `naviveylin::TypeIconFitScale`/`TypeIconArgbWord` (`type_icon_pixels.h`) and `naviveylin::ResolveProfileMaxSpeedKmh` (`routing_profile_speed.h`). Measured against the 2026-10-10 row the residual is smaller, but the row above it (0 files) was already stale when this run started: 21 local commits landed after `b37a54f73`, led by the search-request lifecycle (`search_breaker.h`), the label-wrapping bounds and the route-failure kinds. The push then exposed the lifecycle's own unfinished edge: three *upstream* JavaScout callers still used the pre-lifecycle search shapes, so the merge's `cmake + maven` and `meson + maven` jobs failed on `FavLocationDialog.java:668` (`long` cannot be converted to `String`) — a break that predates the merge (pre-merge tip `dff960e34` lacks the 3-arg native too) and cannot be checked locally, because the maven job compiles JavaScout against a client jar built from the submodule. Follow-up commit `d09e50e22` moves the three callers to `beginSearch`/`cancelSearch` and the generation-carrying overloads (+12/-6, the 3 extra files above), verified with the job's own `mvnw package -DskipTests` (red on HEAD, green after) and `mvnw test-compile` |
 | 2026-10-27 | `df16752f5` | `2ed39d803` | **3 files, +7/-3** (from 22 files/+1728/-189) — the merge carried 56 upstream commits and seven conflicts, and upstream had absorbed *every* piece of the branch's residual: `search_breaker.h` and `route_failure_kind.h` arrive as upstream files (add/add, identical but for the doc header, resolved "theirs"), the JNI client's search lifecycle and `ResolveTypeDescription` are upstream's, the label-wrapping block became `naviveylin::LabelLineBoundsForBuffer` (`render_label_bounds.h`), and 11 of the 12 `OSMScoutClient.cpp` hunks differed only in a spec name in a comment. What remains is two parent-repo CMake fixes and nothing else: `cmake/ProjectConfig.cmake` (`cmake_path(GET … PARENT_PATH)` is a no-op on the CMake 3.22 the AGP ships → `get_filename_component(… DIRECTORY)`) and `libosmscout/CMakeLists.txt` (the generated `CoreFeatures.h` addressed in the build dir) — both are the next upstream candidates. The third file is a *single blank line* in `SimpleRoutingService.cpp` (upstream has two before the attachability comment, the merge kept one): pure artifact, left in place only because dropping it pushes a new tip and re-runs the whole PR for whitespace. Two traps this run: the merge produced the same attachability block *twice* in `SimpleRoutingService.cpp` without a conflict (a redeclaration error, invisible until compiled), and `:app:checkNativeParity` stopped on upstream's new `setDescriptionLanguage(String)`, whose builder field `OSMScoutClient.cpp` reads by name — a missing field hands a null `jfieldID` to `GetObjectField` at `build()`, so the override mirrors both (parent commit `64ecd62a`). Verified: parity gate, marisa and forced non-marisa single-ABI builds, the maven recipe (`package`/`test-compile` green), and PR #1773's `cmake`, `cmake + maven`, `meson`, `meson + maven` jobs — the four that failed in the 2026-10-16 row now pass |
 | 2026-10-27 (run 2) | `67aa2c69f` | `af6798d0e` | **3 files, +7/-3 — unchanged**: `df16752f5` carried upstream's `af6798d0e` (4 commits, PR #1910 `client-route-step-model`) as a clean merge with no conflict, because the branch's residual holds no route-step code to defend — upstream's landing shrank the *future* conflict surface, not the present one. The two parent CMake fixes and the one `SimpleRoutingService.cpp` blank line remain the whole cost, neither of them touched. Verified: pointer equals `origin/naviveylin-local`, `:app:checkNativeParity` green, `--check-non-marisa` PASS, then `:app:assembleMobileDebug` (arm64-v8a) recompiled the merged JNI TU in the *marisa* configuration (`libosmscout_client_javad.so` newer than the restored `.cpp`), and the route/navigation/service unit suites green. Free of charge from the merge: `RouteInstruction` gained `junctionRef`, `junctionName`, `destinations`, `wayType` and `maxSpeed` as nullable manoeuvre facts and `libosmscout-client-java` now publishes `RouteStep` as a structured step model — both additive; the parent's `:osmscout-client-java` overrides needed no change |
+| 2026-11-08 | `e0b011d5a` | `9fd3a1e62` | **47 files, +2806/-35** — the merge carried 40 upstream commits (PRs #1911–#1919) and three conflicts, all comment-level except two hunks: 10 of the 12 `OSMScoutClient.cpp` hunks differ only in the spec name quoted (`osmscout-jni` → `route-description`) or a design reference, and the two code hunks are the `avoidUnpaved` table, which upstream moved into `naviveylin::` (`routing_profile_speed.h`: `kAvoidUnpavedGradeFactor`, `kAvoidUnpavedMinSpeedKmh`, `AvoidUnpavedGradeSpeedsKmh` — identical semantics to ours) → resolved "theirs", dropping our file-local duplicates. `Tests/src/RouteStartTest.cpp` and `libosmscout-client-java/src/route_start.h` are add/add whose sides differ only in the spec name and the provenance header → "theirs". The residual is *larger* than the 3-file row above because the branch itself grew after that row was measured, not because this merge kept more: the local commits after `67aa2c69f` added the toll feature (`TollFeature.{h,cpp}`, `TypeConfig.{h,cpp}`, `RouteNode.h`'s `ObjectVariantData::TollBit`/`IsToll`/`GetGrade`, `RoutingProfile.{h,cpp}`, `GenRouteDat.{h,cpp}`, `stylesheets/{map,motorways}.ost`, `guidelines/FileFormatVersion.md`, the `SetAvoidTolls` pricing in the JNI client — 353 lines, kept but not enabled), the live-guidance look-ahead in `RouteStepBuilder.{h,cpp}` plus its 200 test lines (297; ours is newer than upstream's fixed window) and three openspec change archives with their evidence (2176). Only two local artifacts remain outside those features: `libosmscout/CMakeLists.txt`'s two `TollFeature` registrations and the known single blank line in `SimpleRoutingService.cpp`. Retired upstream in this merge: the parent-repo `cmake/ProjectConfig.cmake` fix (`cmake_path(GET … PARENT_PATH)`), one of the two upstream candidates the 2026-10-27 row recorded. `FILE_FORMAT_VERSION` is 27 on both sides, so no installed database is invalidated. Trap this run (pitfall 10): the merge kept *both* declarations of the `RouteStartTest` meson target, which no C++-side review shows as a conflict. Verified: `meson setup --reconfigure hostbuild` exits 0 with the target declared once, the four merged suites build and pass under gcc, `:app:assembleMobileDebug` (arm64-v8a) recompiled the merged JNI TU in the marisa configuration, `:app:checkNativeParity` green, `--check-non-marisa` PASS, and `cmake + maven`, `meson + maven`, `cmake` and the sanitizer jobs green on the pushed tip. Re-running the failed jobs turned the piper jobs green, which confirms they were the CDN's, not the branch's (pitfall 11): what stays red is `Compose smoke` (supercronic `curl … 504`), the Visual Studio `cmake` job (vcpkg `Cache service responded with 400`) and the piped onnxruntime download in the two Qt6 jobs. `SonarCloud Code Analysis` is a real verdict on the branch's own new code though — its annotations name the residual toll work (`RouteNode.h`'s `TollBit`/`GetGrade` byte handling and `0x7F`, `RoutingProfile.h`'s redundant type and missing `tollPenaltyFactor` overload) — so that one is a debt in the local feature, to settle there and not here |
 
 How to retire residual, cheapest first:
 
@@ -142,7 +143,7 @@ How to retire residual, cheapest first:
   per-source search candidate budgets all live upstream now.
 
 Do **not** rewrite or force-push `naviveylin-local` to "clean up": parallel sessions rewrite this
-branch, PR #1773 is the review artifact, and old commits left in history cost nothing — only the
+branch, PR #1854 is the review artifact, and old commits left in history cost nothing — only the
 diff matters.
 
 ## Configuration parity: marisa vs non-marisa (the silent CI break)
@@ -186,13 +187,22 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
    **Overload gotcha:** an overloaded method is name-mangled (`Java_..._searchLocations__Ljava_lang_String_2IJ(`), so a `MISSING` line may be a false positive — confirm with `grep -n "<name>"` in the `.cpp` before acting.
 4. Configuration parity: `--check-non-marisa` (or the manual recipe above).
 5. Smoke build, single ABI to stay fast: `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a`. Verify it *really* compiled the merged C++: `:app:buildCMakeDebug[arm64-v8a]` executed (not UP-TO-DATE) and a fresh `libosmscout_client_javad.so` under `app/build/intermediates/cxx/Debug/*/obj/arm64-v8a/` — note the debug suffix: the unsuffixed `libosmscout_client_java.so` exists only in the release variants (`stripped_native_libs/<variant>Release/…`), so a check for that name finds nothing on a debug build and reads as "not fresh" on a perfectly good build.
-6. **PR checks** (authoritative):
+6. **PR checks** (authoritative) — resolve the branch's PR number first rather than trusting the one
+   written here: the branch has carried at least two (1773, closed 2026-09-26; 1854, the live one), and a
+   number baked into this document goes stale silently.
    ```bash
-   gh pr checks 1773 -R Framstag/libosmscout
+   gh pr list -R Framstag/libosmscout --head naviveylin-local --json number,state,url
+   gh pr checks <number> -R Framstag/libosmscout
    gh api "repos/Framstag/libosmscout/commits/<new-sha>/check-runs?per_page=100" \
      --jq '[.check_runs[] | .conclusion // .status] | group_by(.) | map("\(.[0])=\(length)") | join("  ")'
    ```
-   Compare against the jobs that failed *before* the push; report the delta, not just "green".
+   Compare against the jobs that failed *before* the push; report the delta, not just "green". Before
+   blaming the diff, read the failed job's own line — `gh api
+   repos/Framstag/libosmscout/check-runs/<id>/annotations` names the step, and
+   `repos/Framstag/libosmscout/actions/jobs/<id>` names it as `steps[].conclusion`. A red
+   `SonarCloud Code Analysis` is a quality-gate verdict on *new* code: its annotations point at the line
+   (`path:line` plus the rule), so an issue it finds in the residual — e.g. the toll work's
+   `RouteNode.h` byte handling — is the branch's, not the merge's.
 7. Pushing the **parent** commit is a separate decision — the script leaves it unpushed. Ask the user or follow repo convention.
 8. Residual burn-down: `git -C app/src/main/cpp/libosmscout diff --shortstat origin/master HEAD` —
    compare with the previous update and note what shrank (see *Burn-down*).
@@ -229,7 +239,7 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
    old line's superseded seed (`setMapDpi` → `withPhysicalDpi` plus the per-render `dpi`), so nothing was
    lost.
 2. **`git checkout --ours <file>` during a merge discards upstream's non-conflicting changes** in that file. Only safe when the file's diff vs `origin/master` is exactly the local intent — verify with `git diff origin/master`.
-3. **A green local Android build says nothing about the marisa-less configuration** (see above). This is the most common way this branch turns PR #1773 red.
+3. **A green local Android build says nothing about the marisa-less configuration** (see above). This is the most common way this branch turns PR #1854 red.
 4. **JNI overloads are name-mangled** — symbol greps produce false "MISSING" hits; confirm before "fixing" anything.
 5. **Submodule edits are not built by CI or fresh clones until pushed**; keep the submodule tree clean and push the branch *before* the parent bump (the parent's pinned SHA must exist on origin).
 6. **The non-marisa check temporarily edits a tracked file.** On a normal or failing exit the script restores it via `trap` and then asserts a clean `git status`; only a hard kill (or a full disk) can leave the `#undef` behind — `git -C app/src/main/cpp/libosmscout checkout -- libosmscout-client-java/src/OSMScoutClient.cpp` puts it back, and `git status` must be empty before you continue.
@@ -272,6 +282,37 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
    `package -DskipTests` compiles main sources only, so a stale *test* caller (here two test files using
    the old shapes) also needs `test-compile`. Both jarring and the install are required — compiling
    JavaScout against a stale installed jar hides the break entirely.
+
+10. **A clean merge can keep a duplicate build declaration, and the conflict list shows nothing.**
+   2026-11-08: `Tests/meson.build` ended up with *two* identical `RouteStartTest = executable(…)` blocks —
+   ours (added with the route-start helper) and upstream's (added when the same helper landed there) —
+   syntactically identical and far apart in the file, so the merge resolved them as two additions and
+   reported no conflict. Meson aborts the whole configure with
+   `Tests/meson.build:995:17: ERROR: Tried to create target "RouteStartTest", but a target of that name already exists.`,
+   which turned `meson`, `gcc and meson`, `gcc and meson with Qt6` and `sonar, gcc and meson` red in one
+   push while every C++-side check was green; `Tests/CMakeLists.txt` declares the same target once, so
+   only meson broke. Catch it before the push — `meson setup --reconfigure hostbuild` (exit 0 proves the
+   graph) — and after a merge that could double a declaration, ask directly:
+
+   ```bash
+   sed -n 's/^\([A-Za-z0-9_]*\) = executable(.*/\1/p' Tests/meson.build | sort | uniq -d
+   ```
+
+   An empty result is the pass; a duplicate is also a duplicate `install: true` rule, so remove the local
+   block rather than reordering.
+
+11. **A CI job that dies in a minute is infrastructure, not the branch.** 2026-11-08, one push produced
+   seven red jobs whose steps never reached a compiler: `Install libpiper` failed with
+   `CMake Error at CMakeLists.txt:212 (find_library): Could not find ONNXRUNTIME_LIB using the following
+   names: onnxruntime` (the workflow clones `OHF-Voice/piper1-gpl` unpinned, and that project downloads
+   onnxruntime with a `file(DOWNLOAD)` that checks no status, so a failed download surfaces as a missing
+   library), the mapgen image build died on `curl: (22) The requested URL returned error: 504` fetching
+   supercronic, and the Visual Studio job's `Restore from cache and install vcpkg` failed with
+   `Cache service responded with 400`. All three are release-download/CDN or cache-service errors inside
+   the same fifteen minutes, and upstream's own tip had last run green six days earlier. Name the failed
+   *step* before attributing anything to the merge —
+   `gh api repos/Framstag/libosmscout/check-runs/<id>/annotations` does it in one line — then re-run the
+   failed jobs (`gh run rerun <run-id> --failed`) and look at the diff only if the same step fails again.
 
 ## Notes
 

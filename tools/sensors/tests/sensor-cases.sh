@@ -849,7 +849,9 @@ case_run_noBaselineFileWritten() {
   assert_not_contains "$dirty" "baseline" "no baseline file is written"
   assert_not_contains "$dirty" "metrics" "no metrics file is written"
 
-  hits=$(grep -rn 'git commit\|git add' "$SENSORS_ENGINE" 2>/dev/null || true)
+  # The engine's scripts, not this suite's own test code: the suite lives under `tools/sensors/tests/` and
+  # names the rejected commands in its own checks, so a scan without the exclusion reads itself.
+  hits=$(grep -rn 'git commit\|git add' "$SENSORS_ENGINE" --exclude-dir=tests 2>/dev/null || true)
   assert_empty "$hits" "the engine never records a change of its own"
   # The engine proper owns no side file: the measurement history is the tracker (design D8), and machine-local
   # state is nothing it may reach for. A row's *command* is the project's side of that seam and may read a path
@@ -858,7 +860,7 @@ case_run_noBaselineFileWritten() {
   hits=$(grep -ln 'baseline\.json\|baseline\.tsv\|\.pi/' "$SENSORS_ENGINE/run.sh" "$SENSORS_ENGINE/lib.sh" \
     "$SENSORS_ENGINE/guard.sh" "$SENSORS_ENGINE/report.sh" 2>/dev/null || true)
   assert_empty "$hits" "the engine never names a side file"
-  hits=$(grep -rln 'baseline\.json\|baseline\.tsv' "$SENSORS_ENGINE" 2>/dev/null || true)
+  hits=$(grep -rln 'baseline\.json\|baseline\.tsv' "$SENSORS_ENGINE" --exclude-dir=tests 2>/dev/null || true)
   assert_empty "$hits" "no row's command keeps a baseline side file either"
 }
 
@@ -3077,7 +3079,8 @@ case_sensors_engineNamesNoProjectValue() {
   [ "$rows" -ge 6 ] || fail "the registry declares fewer rows than the change's four metrics and two conditions"
 
   # No deletion anywhere: a mistaken or subverted check can close, and cannot destroy.
-  hits=$(grep -rn 'issue delete\|graphql' "$SENSORS_ENGINE" "$SENSORS_ISSUES_ENGINE/reopen.sh" 2>/dev/null || true)
+  hits=$(grep -rn 'issue delete\|graphql' "$SENSORS_ENGINE" "$SENSORS_ISSUES_ENGINE/reopen.sh" \
+    --exclude-dir=tests 2>/dev/null || true)
   assert_empty "$hits" "no check can delete an issue"
 }
 

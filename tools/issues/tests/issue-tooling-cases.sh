@@ -1513,7 +1513,9 @@ case_list_filtersByEachCriterion() {
 
 case_surface_noDeletePath() {
   local out
-  out=$(grep -rn 'issue delete\|eval' "$ISSUES_ENGINE" 2>/dev/null || true)
+  # The engine's scripts, not this suite's own test code: the suite lives under `tools/issues/tests/` and names
+  # the rejected verbs in its own checks, so a scan without the exclusion reads itself.
+  out=$(grep -rn 'issue delete\|eval' "$ISSUES_ENGINE" --exclude-dir=tests 2>/dev/null || true)
   [ -z "$out" ] || fail "the surface must offer no deletion and no eval: $out"
 }
 
@@ -2920,7 +2922,7 @@ case_list_unrankedSelector() {
 # stays the single entry point a case name resolves through (`issue-metadata-loop`, task 1.4).
 case_check_delegated() {
   local name="$1" out status
-  out=$(bash "$ISSUES_ENGINE/check-metadata-selftest.sh" --case "$name" 2>&1)
+  out=$(bash "$ISSUES_ENGINE/tests/check-metadata-selftest.sh" --case "$name" 2>&1)
   status=$?
   [ "$status" -eq 0 ] || fail "$name failed in the check's own self-test (exit $status): $out"
   assert_contains "$out" "PASS $name" "the delegated case reported a pass"

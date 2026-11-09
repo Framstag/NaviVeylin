@@ -1,0 +1,62 @@
+# Revert-check — one mutation, the two cases the clause protects
+
+## The triple, named before the mutation
+
+- **Invariant:** the composed sentence carries the signposted destination when the announced step's gate holds.
+- **Mutation:** the appended clause removed from `VoiceGuidance.sentenceFor` — the production file, one line range,
+  nothing else in the tree touched.
+- **Cases that must fail:** `VoiceGuidanceTest#aDestinationClauseNeedsAnInstruction` and
+  `NavigationEngineVoiceGuidanceTest#motorwayInstructionNamesTheSignpostedDestination`.
+
+## Baseline (green, before the mutation)
+
+`./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.navigation.VoiceGuidanceTest" --tests
+"com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" -PforceTests --no-build-cache`,
+2026-11-09T22:49:24Z (`green-focused.log`):
+
+```
+BUILD SUCCESSFUL
+VoiceGuidanceTest:                                    tests="1"  failures="0" errors="0"
+NavigationEngineVoiceGuidanceTest:                    tests="12" failures="0" errors="0"
+```
+
+## The mutation
+
+```kotlin
+// before
+        if (destination != null) {
+            parts += context.getString(R.string.voice_destination, destination)
+        }
+// after
+        // REVERT-CHECK MUTATION: the destination clause is not composed.
+```
+
+## The red run (same command, forced)
+
+2026-11-09T22:49:55Z (`revert-check-red.log`):
+
+```
+VoiceGuidanceTest > aDestinationClauseNeedsAnInstruction FAILED
+    org.junit.ComparisonFailure: a recognised sequence gains exactly one destination clause
+        expected:<...00 meters turn right[ towards München]> but was:<...00 meters turn right[]>
+NavigationEngineVoiceGuidanceTest > motorwayInstructionNamesTheSignpostedDestination FAILED
+    java.lang.AssertionError: both branches of a motorway fork must not sound the same
+        expected:<[After 300 meters turn right towards München]> but was:<[After 300 meters turn right]>
+13 tests completed, 2 failed
+BUILD FAILED
+VoiceGuidanceTest:                                    tests="1"  failures="1" errors="0"
+NavigationEngineVoiceGuidanceTest:                    tests="12" failures="1" errors="0"
+```
+
+Both failed for the expected assertion, not for a compile error or an unrelated premise.
+
+## Restore, and the forced green re-run after it
+
+`grep -c 'REVERT-CHECK MUTATION' app/src/main/java/com/naviveylin/navigation/VoiceGuidance.kt` → `0`, with the exact
+two-line block put back. The same forced command, 2026-11-09T22:50:22Z (`revert-check-green.log`):
+
+```
+BUILD SUCCESSFUL
+VoiceGuidanceTest:                                    tests="1"  failures="0" errors="0"
+NavigationEngineVoiceGuidanceTest:                    tests="12" failures="0" errors="0"
+```

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.VoiceGuidanceTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-09T22:50:22.905Z" hostname="dingens" time="8.747">
+  <properties/>
+  <testcase name="aDestinationClauseNeedsAnInstruction" classname="com.naviveylin.navigation.VoiceGuidanceTest" time="8.186"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

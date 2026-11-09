@@ -1,0 +1,32 @@
+# Surface, counted before this change's delta
+
+Run at the run's base `c0ddb97c`, 2026-11-09T22:45Z, before `VoiceGuidanceTest.kt` and the two `voice_destination`
+keys existed.
+
+```
+$ tools/look.sh 'voice_destination' --files
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'voice_destination'
+
+$ tools/look.sh 'sentenceFor' --files
+LOOK: 3 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'sentenceFor'
+LOOK-FILE: openspec/changes/archive/2026-10-27-add-voice-guidance/evidence/corrections-round-2.md 1
+LOOK-FILE: app/src/main/java/com/naviveylin/navigation/VoiceGuidance.kt 2
+
+$ tools/look.sh 'voiceGuidance\.announce' --files
+LOOK: 4 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'voiceGuidance\.announce'
+LOOK-FILE: openspec/changes/archive/2026-10-27-add-voice-guidance/evidence/revert-check.txt 1
+LOOK-FILE: app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt 3
+
+$ tools/look.sh 'spoken' --path guidelines/UI.md --files
+LOOK: 2 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines/UI.md for 'spoken'
+LOOK-FILE: guidelines/UI.md 2
+```
+
+The `spoken` matches are the one rule at `guidelines/UI.md:133`–`:136` (the announcement switches); no guideline
+sentence states what a spoken sentence contains, so `UI.md` §10 owns the form a new clause takes and no guideline text
+changes.
+
+# The same commands after the delta
+
+They now read this change's own files, which is why the counts moved; the pre-delta figures above are the estimate's
+basis.

@@ -465,11 +465,13 @@ and *splitting* the session at the checkpoint — a fresh child handed the chang
 
 **The lever above that stop is refused, and the measurement is recorded here so a reader meets it before
 re-proposing it** (issue #833). The run of 2026-11-07T19:53Z recorded three of its items past the bound — 200 427,
-200 733 and 201 981 tokens against the recorded 200 000 — and each of the three had already written its red-on-HEAD
-case and its change before the run ended it (`.pi/issue-loop/items/753`, `819`, `719`, whose kept patches carry
-553 973, 509 913 and 512 102 bytes), so a wider bound buys more of the tail the cuts are made of rather than the item
-a cut interrupted. The value therefore stays 200 000. What the bound owed is the reading of a kept patch and the rate
-beside it (#754, #809), and both have landed: neither moves the number.
+200 733 and 201 981 tokens against the recorded 200 000 — of which only 719's own record names `bound` as its stop
+reason; 753 and 819 carry the reading and the kept patch and no stop reason, which is what their records were written
+with. Each of the three had already written its red-on-HEAD case and its change before the run ended it
+(`.pi/issue-loop/items/753`, `819`, `719`, whose kept patches carry 553 973, 509 913 and 512 102 bytes), so a wider bound
+buys more of the tail the cuts are made of rather than the item a cut interrupted. The value therefore stays
+200 000. What the bound owed is the reading of a kept patch and the rate beside it (#754, #809), and both have
+landed: neither moves the number.
 
 That rate is a figure of the **run** and not of one item, so the report prints it (issue #809): the run of
 2026-11-06 21:19Z ended 2 of its 11 items at the stop — 18 % of what it attempted, 36 Mtok spent with nothing

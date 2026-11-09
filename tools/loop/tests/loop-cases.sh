@@ -13538,7 +13538,7 @@ case_gate_theDeclarationCaseIsOwedFirst() {
 
   # One delta that writes a case and touches a compiled file: the reach case is owed by the first path and the build
   # and the suites by the others, which is the only shape in which "first" can be read as an order.
-  mkdir -p "$p/tools" "$p/app/src/main"
+  mkdir -p "$p/tools/loop/tests" "$p/app/src/main"
   printf '# a case\n' > "$p/tools/loop/tests/loop-cases.sh"
   printf 'class App\n' > "$p/app/src/main/App.kt"
   git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a case and a compiled file' >/dev/null 2>&1 \

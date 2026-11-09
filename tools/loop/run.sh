@@ -589,7 +589,7 @@ keep_leftovers() { # keep_leftovers <item> → sets $leftover_patch (+ the file 
   leftover_patch=""
   case "$item" in ''|*[!0-9]*) return 0 ;; esac
   [ -d "$LOOP_WORKTREE" ] || return 0
-  patch=$(leftover_patch_of "$item")
+  patch=$(loop_leftover_patch_of "$item")
   dir=$(dirname "$patch")
   mkdir -p "$dir" 2>/dev/null || return 0
   {
@@ -735,17 +735,13 @@ owner_of_marker() { # owner_of_marker <branch> → the item that branch names, o
 # The items this run ended *itself*, whose work `keep_leftovers` wrote to the item's own patch (issue #308). It is
 # the one distinction the mid-run start refusal cannot read from the tree: dirt this run ended and recorded may be
 # discarded to start the next item, because what the refusal protects — a record beside the tree — already exists
-# there (issue #664). The patch's path is derived, never stored: the item and the stage directory are what name it —
-# one derivation, because the writer, the reader and the line that names the record in the transcript must agree
-# about the file or one of them lies (issue #664, round 2).
-leftover_patch_of() { # leftover_patch_of <item> → the patch this run keeps that item's ended work in
-  printf '%s/items/%s/leftover-from-killed-run.patch' "$stage_dir" "$1"
-}
+# there (issue #664). The patch's path is derived, never stored: `lib.sh` owns that one derivation, because the
+# writer, the reader and the start that applies it must agree about the file or one of them lies (issues #664, #754).
 own_leftovers=" "
 own_leftovers_of() { # own_leftovers_of <item> → 0 when this run ended that item and kept its work as a patch
   case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
   case "$own_leftovers" in *" $1 "*) ;; *) return 1 ;; esac
-  [ -s "$(leftover_patch_of "$1")" ]
+  [ -s "$(loop_leftover_patch_of "$1")" ]
 }
 # A tree whose only leftovers are the module's gitlink — the module sits on another pin and its own tree is clean —
 # is not work: nothing inside the module was written, and placing the pin the base records loses nothing. The run
@@ -2113,7 +2109,7 @@ while true; do
         retry_refusal=""
         if own_leftovers_of "$owner_item" && discard_kept_worktree discard "$leftovers"; then
           printf 'discarding the work #%s left: this run ended that child and wrote it to %s, so #%s starts on a clean tree\n' \
-            "$owner_item" "$(leftover_patch_of "$owner_item")" "$issue"
+            "$owner_item" "$(loop_leftover_patch_of "$owner_item")" "$issue"
           retry_start_item
         elif submodule_only_dirt "$leftovers" && place_submodule_pin; then
           # The module on another pin is not work: nothing inside it was written, so the pin the base records is placed

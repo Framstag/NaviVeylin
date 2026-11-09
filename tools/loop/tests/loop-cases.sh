@@ -227,6 +227,8 @@ LOOP_SHELL_CASES=(
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
+  'run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart'
+  'run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase'
   'run#noProcessOfASignalledRunOutlivesIt'
   'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
@@ -905,6 +907,8 @@ loop_run_shell_case() {
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
+    'run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart') fn=case_run_aBoundEndedItemsKeptWorkIsResumedByTheNextStart ;;
+    'run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase') fn=case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase ;;
     'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
     'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem') fn=case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
@@ -7233,6 +7237,184 @@ case_run_treeOfACapEndedChildIsKeptAsAPatch() {
   assert_contains "$out" "leftover-from-killed-run.patch" "with the path it is kept at"
   assert_eq "$(git -C "$tree" status --porcelain | grep -c 'half-applied.txt' || true)" "1" \
     "and the tree still carries what the child left, so the patch is a record beside it and not a replacement"
+  return 0
+}
+
+# The patch a cap-ended child left was a record nobody read (issue #754). The run commits nothing the child did not
+# claim, so the item's branch stood at the base and the next run started the item from zero — 44 kept patches the
+# archive never looked at again, #791's 7728 lines among them. The resume input is the patch itself, applied on the
+# branch `start-item` cuts from the base and before a worker exists: the item is worked on what it had already done,
+# and still nothing the child did not claim is committed.
+case_run_aBoundEndedItemsKeptWorkIsResumedByTheNextStart() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out tree base patch started
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  conf_with_child_cap 2 "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The first child's work, half applied: an untracked file it never finished and an edit to a tracked one, written
+  # before it blocks on the fifo — the shape `run#treeOfACapEndedChildIsKeptAsAPatch` measures as the patch.
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    printf "half-applied\\n" > half-applied.txt\n'
+    printf '    printf "unfinished edit\\n" >> tools/tooling.json\n'
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$d/worker-action.sh"
+  export PI_STUB_ACTION="$d/worker-action.sh"
+  tree="$p/.pi/worktrees/loop"
+  base=$(git -C "$p" rev-parse HEAD)
+  patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out1" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the first run never reached its child: $(cat "$d/out1")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the first run was still waiting after 20 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run: $(cat "$d/out1")"
+  [ -s "$patch" ] || fail "the first run kept no patch for the next attempt to resume from"
+  # The second run. The tree the cap ended is discarded by the repair that names it (`--reset-worktree`), and the item is
+  # started on a branch cut from the base — where the kept patch is applied, before a worker exists. The child writes
+  # what it was handed before it blocks, which is the assertion: the tree, and the branch it is on.
+  started="$d/started.txt"
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    { git rev-parse HEAD; git rev-parse --abbrev-ref HEAD; git status --porcelain; } > "%s"\n' "$started"
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$d/worker-action-2.sh"
+  export PI_STUB_ACTION="$d/worker-action-2.sh"
+  rm -f "$fifo.ready"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off --reset-worktree > "$d/out2" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the second run never reached its child: $(cat "$d/out2")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the second run was still waiting after 20 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  assert_eq "0" "$status" "the run that resumed the item is not a failed run: $(cat "$d/out2")"
+  [ -f "$started" ] || fail "the worker of the resumed item never started"
+  assert_contains "$(cat "$started")" "half-applied.txt" \
+    "the worker starts on the tree the kept patch was applied to — the untracked half of the earlier work is there"
+  assert_contains "$(cat "$started")" "tools/tooling.json" "and so is the tracked half"
+  assert_contains "$(cat "$started")" "fix/issue-21-" "on the item's branch, which is not the base"
+  assert_eq "$base" "$(head -1 "$started")" \
+    "and the branch still points at the base: the resumed work is applied, never committed"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" \
+    "starts on the work a child an earlier run ended at a bound left" \
+    "and the item's record carries the resume, so a reader of the attempt knows it began on earlier work"
+  return 0
+}
+
+# The other half of the same step, and the case the owner's decision settled (issue #754): what a patch that does not
+# apply does. Measured read-only on 2026-11-08: `git apply --check` on items/791 exits 1, on items/729 exits 1, and on
+# items/16 exits 128 (`no valid patches in input`), so a resume path with no answer for those three is a path that
+# strands the item. `--3way` is tried for a base that moved under the diff; when that also fails the tree is put back
+# on the base — including the part `--3way` may already have staged — the item is worked from the base, and the
+# non-apply is recorded in the item's note rather than discarded unrecorded.
+case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out tree base patch started
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  conf_with_child_cap 2 "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  tree="$p/.pi/worktrees/loop"
+  base=$(git -C "$p" rev-parse HEAD)
+  # A kept patch of the shape `keep_leftovers` writes, whose second half cannot apply: the file it creates is a patch
+  # `git apply` takes, the hunk that follows is one no tree this base could be holds. The first half is what proves the
+  # undo — a step that only reported the failure would leave the created file for the worker to build on.
+  patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
+  mkdir -p "$(dirname "$patch")" || fail "could not create the item's directory"
+  {
+    printf '# the work #21 left in %s\n' "$tree"
+    printf '# tracked changes (staged and unstaged, against HEAD):\n'
+    printf 'diff --git a/half-applied.txt b/half-applied.txt\n'
+    printf -- '--- /dev/null\n'
+    printf -- '+++ b/half-applied.txt\n'
+    printf '@@ -0,0 +1 @@\n'
+    printf '+half-applied\n'
+    printf 'diff --git a/tools/tooling.json b/tools/tooling.json\n'
+    printf -- '--- a/tools/tooling.json\n'
+    printf -- '+++ b/tools/tooling.json\n'
+    printf '@@ -1,2 +1,3 @@\n'
+    printf ' a line this base does not have\n'
+    printf '+unfinished edit\n'
+    printf ' and neither does this one\n'
+  } > "$patch"
+  git -C "$tree" apply --check "$patch" >/dev/null 2>&1 &&
+    fail "the patch this case calls non-applying would have applied"
+  # The child writes what it was handed before it blocks, so the assertion is the tree the worker started on.
+  started="$d/started.txt"
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    { git rev-parse HEAD; git status --porcelain; } > "%s"\n' "$started"
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$d/worker-action.sh"
+  export PI_STUB_ACTION="$d/worker-action.sh"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the run never reached its child: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 20 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a patch that does not apply does not refuse the item: $out"
+  [ -f "$started" ] || fail "no worker started, so the item was not workable from the base"
+  # The tree the worker was handed is the base: nothing of the patch's first half was left behind, and nothing was
+  # committed — the item started from where the run left the base, which is what the sentence in its note says.
+  assert_eq "$base" "$(head -1 "$started")" "the worker starts on the base commit"
+  assert_not_contains "$(cat "$started")" "half-applied.txt" \
+    "and on the base tree — the half of the patch `--3way` had taken is undone, not left for the worker"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "does not apply to this base" \
+    "the item's note records the non-apply instead of discarding it unrecorded"
+  assert_contains "$out" "does not apply to this base" \
+    "and the report a caller reads names it beside the item, so the base is named as the one it started from"
   return 0
 }
 

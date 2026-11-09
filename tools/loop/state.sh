@@ -47,6 +47,9 @@
 #   state.sh start <issue> --change <name>
 #   state.sh record-change-copy <issue> --change <name> --source <path> --files N --bytes N
 #                         # the change the item names, copied into its worktree at its start (`worktree.sh`)
+#   state.sh record-resume <issue> --patch <path> --outcome applied|no-apply
+#                         # what the start found when it applied the patch a bound-ended child left (issue #754);
+#                         # `done` folds the `no-apply` outcome into the item's note
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
 #   state.sh done <issue> --result done|skipped|blocked|falsified|cut [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
@@ -498,6 +501,43 @@ cmd_record_change_copy() {
     "$change" "$issue" "$files" "$bytes" "$source"
 }
 
+# What the start found when it applied the patch a child an earlier run ended at a bound left (issue #754). The loop
+# commits nothing such a child did not claim, so the patch is the next attempt's input; this records the half the item
+# would otherwise never say — that it began on that work, or that the patch no longer applies to the base and the item is
+# therefore worked from the base. Measured 2026-11-08 on three kept patches that neither `git apply` nor `--3way` takes
+# (items/791 exit 1, items/729 exit 1, items/16 exit 128): a non-apply that leaves no sentence is a resume a reader
+# cannot tell from a run that never looked, and the work it could not use is the 7728 lines of #791's patch.
+#
+# It is keyed by the item and not hung on `.current`, because it is written before the run's `start` names the item — the
+# same reason `changeCopies` is. The note is `done`'s to write: it reads this outcome there, so every arm that records an
+# item — closed, blocked, cut — carries the sentence without repeating it.
+cmd_record_resume() {
+  require_state
+  local issue="" patch="" outcome="" detail=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --patch) need_value "$@"; patch="${2:-}"; shift 2 ;;
+      --outcome) need_value "$@"; outcome="${2:-}"; shift 2 ;;
+      --detail) need_value "$@"; detail="${2:-}"; shift 2 ;;
+      --*) loop_die "record-resume: unknown argument $1" ;;
+      *) [ -z "$issue" ] || loop_die "record-resume: issue given twice"; issue="$1"; shift ;;
+    esac
+  done
+  case "$issue" in ''|*[!0-9]*) loop_die "record-resume: usage: state.sh record-resume <issue> --patch <path> --outcome applied|no-apply" ;; esac
+  [ -n "$patch" ] || loop_die "record-resume: --patch is required"
+  case "$outcome" in
+    applied)
+      detail="${detail:-the item starts on the work a child an earlier run ended at a bound left, applied from $patch}" ;;
+    no-apply)
+      detail="${detail:-the work a child an earlier run ended at a bound left in $patch does not apply to this base, so the item was worked from the base}" ;;
+    *) loop_die "record-resume: --outcome must be applied or no-apply" ;;
+  esac
+  patch_state '.resumes = ((.resumes // {}) | .[($i|tostring)] = {patch:$p, outcome:$o, detail:$d, at:$at})' \
+    --argjson i "$issue" --arg p "$patch" --arg o "$outcome" --arg d "$detail" \
+    --arg at "$(iso_utc "$(now_epoch)")"
+  printf 'resume: #%s — the kept patch %s %s\n' "$issue" "$patch" "$outcome"
+}
+
 # The base the run recorded is the commit every item descends from. A finished attempt merged onto it (issue
 # #176) advances it by that merge's own commits, so the run records the new commit rather than refusing its
 # own action as a stale base the next `start-item` would see. What the commit has to be is a commit the base
@@ -692,6 +732,16 @@ cmd_done() {
     case "$leftover_files" in ''|*[!0-9]*) leftover_files="" ;; esac
   fi
   local class usage
+  # The resume the start found (issue #754): the patch a bound-ended child left, and whether it applied. `done` is where
+  # it joins the item's note, because the start runs before the run knows which arm will record the item and every one of
+  # those arms writes its own prose. The sentence is prepended, so a note that already names the arm keeps its own words
+  # after it.
+  local resume_note
+  resume_note=$(jq -r --argjson i "$issue" '
+    ([(.items[] | select(.issue == $i))] | length) as $n
+    | (.resumes[($i|tostring)] // {})
+    | if $n == 0 then (.detail // "") else "" end' "$STATE_FILE" 2>/dev/null || true)
+  [ -z "${resume_note:-}" ] || note="${resume_note}${note:+ · $note}"
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
   # the report has one source. The sums are the item's — every child of it appended to the same file — and a
@@ -1216,6 +1266,7 @@ case "$cmd" in
   queue) cmd_queue "$@" ;;
   start) cmd_start "$@" ;;
   record-change-copy) cmd_record_change_copy "$@" ;;
+  record-resume) cmd_record_resume "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
   adoption-refused) cmd_adoption_refused "$@" ;;

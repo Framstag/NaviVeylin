@@ -254,6 +254,44 @@ copy_named_change() { # <issue> <change> — refuses when the tree holds no such
   printf 'change: %s copied into the worktree for #%s (%s file(s), %s B)\n' "$rel" "$issue" "$files" "$bytes"
 }
 
+# The work a child the run ended at a bound left is the next attempt's input, not a record nobody reads (issue #754).
+# The run commits nothing the child did not claim — `keep_leftovers` writes the tree to the item's patch and the branch
+# stands at the base (`spec.md`, "A child the run ended itself leaves no commit") — so the next attempt had exactly one
+# account of that work to start from: the patch. It is applied **here**, on the branch just cut from the base and before
+# a worker exists, so the item is worked on what it had done instead of paying for the same reading from zero. Nothing
+# is committed: what the tree holds is the child's unclaimed work, and what the next child makes of it is its claim.
+#
+# A patch that does not apply is not a discarded record either (measured 2026-11-08 on three kept patches: items/791 and
+# items/729 exit 1, items/16 exit 128) — `--3way` absorbs a base that moved under the diff, and when that also fails the
+# tree is put back on the base and the non-apply is recorded with the item, so the item is workable from the base and the
+# report's reader learns why it started there.
+resume_from_leftover() { # <item> → 0 the kept patch is applied, 1 there is none, 2 nothing applied
+  local item="$1" patch
+  patch=$(loop_leftover_patch_of "$item")
+  [ -s "$patch" ] || return 1
+  if gitw apply --whitespace=nowarn "$patch" >/dev/null 2>&1 ||
+     gitw apply --3way --whitespace=nowarn "$patch" >/dev/null 2>&1; then
+    record_resume "$item" "$patch" applied
+    printf 'resume: #%s starts on the work a bound-ended child left, applied from %s\n' "$item" "$patch"
+    return 0
+  fi
+  # `--3way` stops in the middle of a patch it cannot finish, and a half-applied tree is the one thing this step may not
+  # hand a worker: the branch was cut from the base two lines up, so what the attempt leaves behind is that base.
+  gitw reset -q --hard >&2 && gitw clean -qfd >&2 ||
+    loop_die "start-item: could not undo the kept patch that does not apply"
+  record_resume "$item" "$patch" no-apply
+  printf 'resume: the work a bound-ended child left in %s does not apply — #%s starts from the base, and the item records it\n' \
+    "$patch" "$item"
+  return 2
+}
+# What the resume step found, in the item's own record (`state.sh record-resume`). A start runs before the run knows what
+# the item will become, so the outcome is written beside the run state and `done` folds it into the note: one place, because
+# every arm that records an item writes its own prose. A run with no state file — a bare `start-item` — records nothing.
+record_resume() { # <item> <patch> <applied|no-apply>
+  [ -f "$LOOP_STATE_FILE" ] || return 0
+  bash "$LOOP_DIR/state.sh" record-resume "$1" --patch "$2" --outcome "$3" >&2 || true
+}
+
 cmd_start_item() {
   local issue="" slug="" change=""
   while [ $# -gt 0 ]; do
@@ -318,6 +356,10 @@ $(printf '%s\n' "$carried" | head -5)"
     gitw switch -c "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
     printf 'item #%s on branch %s\n' "$issue" "$branch"
   fi
+  # The work a bound-ended child left is applied before the worker exists (issue #754). The branch is at the base now —
+  # just cut, or reused because it carries no commit of its own — so the patch lands on the base exactly as the tree it was
+  # taken from once stood on it.
+  resume_from_leftover "$issue" || true
   # The worktree's branch marker names the branch the tree is on, so a tree a killed run left behind still
   # says which item's work it carries — that is what the run's start-time pre-flight reads to attribute a
   # refusal (D7, issue #173).

@@ -494,6 +494,14 @@ loop_unlanded_commits() { # <repo> <base> <branch>
   return 0
 }
 
+# The patch a child the run ended at a bound leaves its work in (issues #308, #674, #754). One derivation, because
+# three readers name that file — the writer `keep_leftovers`, its reader `own_leftovers_of`, and the start that
+# applies it — and a second copy of the path is a second path. The item directory sits beside the run state, which
+# is the run's own record: `run.sh` derives its stage directory the same way and no path is stored anywhere.
+loop_leftover_patch_of() { # <item> → the patch that item's ended work is kept in
+  printf '%s/items/%s/leftover-from-killed-run.patch' "$(dirname "$LOOP_STATE_FILE")" "$1"
+}
+
 # The branches the loop names: one per item it worked, one per run for its worktree, and one per blocked attempt it
 # set aside. The same set the report lists, so a reader and the sweep ask about the same branches. The third
 # namespace is not work in progress — it is a previous attempt's only copy — and what protects it is the reading

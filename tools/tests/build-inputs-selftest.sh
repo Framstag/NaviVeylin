@@ -9,7 +9,7 @@
 # Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 
 case "${1:-}" in
   --list) list_only=1; only_case="" ;;

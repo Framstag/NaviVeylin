@@ -13,7 +13,7 @@
 # Exit:  0 every mutation behaved, 1 one did not, 2 usage/environment.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root" || exit 2
 
 only=""

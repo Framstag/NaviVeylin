@@ -13,7 +13,7 @@
 # Usage: check-todo-references-selftest.sh
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 check="$root/tools/check-todo-references.sh"
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/todo-refs-selftest.XXXXXX") || exit 2
 trap 'rm -rf "$tmp"' EXIT

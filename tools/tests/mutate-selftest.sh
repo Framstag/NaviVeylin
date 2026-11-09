@@ -15,7 +15,7 @@
 # Exit:  0 every guard behaved, 1 one did not, 2 the environment is unusable.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ] && { sed -n '2,16p' "$0"; exit 0; }
 
 for tool in bash git jq awk cmp; do

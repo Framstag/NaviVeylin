@@ -37,7 +37,7 @@ while [ $# -gt 0 ]; do
     *) echo "check-jvm-test-graph-selftest: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
-[ -n "$root" ] || root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+[ -n "$root" ] || root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 [ -x "$root/gradlew" ] || { echo "check-jvm-test-graph-selftest: no $root/gradlew" >&2; exit 2; }
 
 # selected <case id> — the case runs, either because nothing was selected or because it was.

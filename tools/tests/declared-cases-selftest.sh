@@ -8,7 +8,7 @@
 # Exit codes: 0 = every case passed; 1 = at least one case failed.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "$0")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "$0")/../.." && pwd)
 HERE="$root/tools"
 TOOL="$HERE/declared-cases.sh"
 [ -f "$TOOL" ] || { echo "selftest: no tools/declared-cases.sh next to $0" >&2; exit 1; }

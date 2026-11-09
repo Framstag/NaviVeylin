@@ -16,7 +16,7 @@
 # tool measured instead).
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 HERE="$root/tools"
 TOOL="$HERE/measure-highlight.py"
 [ -f "$TOOL" ] || { echo "selftest: no tools/measure-highlight.py next to $0" >&2; exit 1; }

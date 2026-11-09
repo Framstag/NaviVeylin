@@ -16,7 +16,7 @@
 # Usage: check-rule-routes-selftest.sh [--case <id>]
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 check="$root/tools/check-rule-routes.sh"
 case_filter=""
 while [ $# -gt 0 ]; do

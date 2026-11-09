@@ -36,7 +36,7 @@ while [ $# -gt 0 ]; do
     *) echo "check-sonar-workflow-selftest: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
-[ -n "$repo" ] || repo=$(git rev-parse --show-toplevel 2>/dev/null) || repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+[ -n "$repo" ] || repo=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 checker="$repo/tools/check-sonar-workflow.sh"
 [ -f "$checker" ] || { echo "check-sonar-workflow-selftest: no $checker" >&2; exit 2; }
 

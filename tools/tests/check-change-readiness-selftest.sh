@@ -33,7 +33,7 @@
 # Exit:  0 every case passed, 1 a case failed, 2 a usage error or an unknown case id.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 check="$root/tools/check-change-readiness.sh"
 list_only=0
 case_filter=""

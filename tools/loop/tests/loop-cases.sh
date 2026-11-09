@@ -1176,6 +1176,25 @@ new_project() {
 
 state_file() { printf '%s\n' "$1/.pi/issue-loop/run.json"; }
 
+# A nested tree that drives a copy of this driver: a git repository of its own, because the driver resolves the tree
+# it sits in with `git rev-parse --show-toplevel` and must find the nested tree, not the one it was copied from; a
+# `tools/loop/` of links to this project's engine with a `tests/` of its own beside them, because the driver copy and
+# the case's stub cases file land beside the engine and never through a link into this suite's own test directory;
+# and the issue tooling linked in. Prints the tree's root.
+nested_tree() { # <dir> → "<dir>/nested"
+  local d="$1/nested" f
+  mkdir -p "$d/tools/loop/tests" || fail "could not create the nested tree"
+  for f in "$LOOP_ENGINE"/*; do
+    [ "${f##*/}" = tests ] && continue
+    ln -s "$f" "$d/tools/loop/${f##*/}" || fail "could not link ${f##*/} into the nested tree"
+  done
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$d/tools/issues" || fail "could not link the issue tooling into the nested tree"
+  git -C "$d" init -q >/dev/null 2>&1 || fail "could not make the nested tree a repository"
+  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$d/tools/loop/tests/loop-selftest.sh" \
+    || fail "could not copy the driver"
+  printf '%s\n' "$d"
+}
+
 run_state() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/state.sh" "$@" ); }
 run_prescreen() {
   local p="$1"; shift
@@ -3746,7 +3765,9 @@ ACTION
 case_worktree_noPushWithoutTheFlag() {
   # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p trace hits
-  hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" || true)
+  # The engine's scripts, not this suite's own test code: the suite lives under `tools/loop/tests/` and names
+  # every word it looks for here, so the directory is excluded rather than the word.
+  hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" --exclude-dir=tests || true)
   [ -z "$hits" ] || fail "the loop opens a change request: $hits"
   assert_eq "1" "$(grep -c 'push_branch()' "$LOOP_ENGINE/run.sh")" "the push is one named call"
   assert_eq "1" "$(grep -c 'push_branch "' "$LOOP_ENGINE/run.sh")" "and it has exactly one call site"
@@ -3982,9 +4003,9 @@ case_labels_trapRemovesInProgressOnSignal() {
 case_labels_neverWritesReservedLabel() {
   # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local hits count p out status
-  # The engine's scripts, not the fixtures: a fixture issue carries the label because that is what a
-  # fixture *is* (an expectation). No code path of the loop can write it.
-  hits=$(grep -rn 'agent/eligible' "$LOOP_PROJECT_ROOT/tools/loop/" --exclude-dir=fixtures --exclude='*.md' || true)
+  # The engine's scripts, not this suite's test code: a fixture issue carries the label because that is what a
+  # fixture *is* (an expectation), and the suite itself names the label. No code path of the loop can write it.
+  hits=$(grep -rn 'agent/eligible' "$LOOP_PROJECT_ROOT/tools/loop/" --exclude-dir=tests --exclude='*.md' || true)
   count=$(printf '%s\n' "$hits" | grep -c . || true)
   assert_eq "1" "$count" "the authorisation label appears exactly once in the loop's scripts"
   assert_contains "$hits" 'LOOP_AUTHORISATION_LABEL' "and it is the read-side constant, not a write"
@@ -11689,12 +11710,10 @@ case_clean_interruptedSuiteRemovesItsScratchTree() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested suite pid status tree i tmp conf
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
-  mkdir -p "$nested/tools" "$tmp"
+  mkdir -p "$tmp"
   # the driver is this project's; the engine and the issue tooling are the ones under test, so the nested
   # suite reads the same `lib.sh` (`LOOP_TMP_DIR`, `LOOP_SELFTEST_PREFIX`) the real one does
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  nested=$(nested_tree "$d")
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<'CASES'
 LOOP_SHELL_CASES=('stub#sleeps')
 loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
@@ -12109,10 +12128,8 @@ case_clean_interruptedSuiteEndsItsProcessGroup() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp conf pid status i p survivors driver_alive
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
-  mkdir -p "$nested/tools" "$tmp"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  mkdir -p "$tmp"
+  nested=$(nested_tree "$d")
   # The case writes down the two pids it must not leave behind — its own process and the child it started — and
   # then waits: a suite in the middle of a case is exactly that.
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<'PROBE'
@@ -12428,10 +12445,8 @@ case_clean_suiteThatEndsNormallyEndsTheProcessItsCaseLeft() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp conf pid status out alive i
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
-  mkdir -p "$nested/tools" "$tmp"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  mkdir -p "$tmp"
+  nested=$(nested_tree "$d")
   # The probe case leaves the process behind on purpose: `set -m` gives it a process group of its own — the shape
   # `run_child` uses, which the group signal `on_exit` sends for the case cannot reach once the case is gone — and
   # its working directory is the suite's own scratch tree (`LOOP_TMP`), which is what the sweep reads.
@@ -12471,9 +12486,9 @@ PROBE
 case_mutation_everyDeclaredRecordApplies() {
   # files: tools/loop/tests/loop-mutations.sh
   local declared out status
-  declared=$(sed -n '/^MUTATIONS=(/,/^)/p' "$LOOP_ENGINE/../loop-mutations.sh" | grep -c "^  '")
-  [ "$declared" -gt 0 ] || fail "could not read the declared set out of $LOOP_ENGINE/../loop-mutations.sh"
-  out=$(bash "$LOOP_ENGINE/../loop-mutations.sh" --check --engine "$LOOP_ENGINE" 2>&1)
+  declared=$(sed -n '/^MUTATIONS=(/,/^)/p' "$LOOP_ENGINE/tests/loop-mutations.sh" | grep -c "^  '")
+  [ "$declared" -gt 0 ] || fail "could not read the declared set out of $LOOP_ENGINE/tests/loop-mutations.sh"
+  out=$(bash "$LOOP_ENGINE/tests/loop-mutations.sh" --check --engine "$LOOP_ENGINE" 2>&1)
   status=$?
   assert_eq "0" "$status" "every declared record applies to the file it names — the check printed: $out"
   assert_not_contains "$out" "MUTATION-PATTERN-STALE" "no record of the set is stale: $out"
@@ -12490,7 +12505,7 @@ case_mutation_aStaleRecordIsNamed() {
   local d harness at label file out status
   d=$(scratch)
   harness="$d/loop-mutations.sh"
-  cp "$LOOP_ENGINE/../loop-mutations.sh" "$harness" || fail "could not copy the mutation set"
+  cp "$LOOP_ENGINE/tests/loop-mutations.sh" "$harness" || fail "could not copy the mutation set"
   # The first record of the declared set, read from the set rather than spelled here: a record that is renumbered
   # moves this case with it instead of turning it red for a reason nobody is looking for.
   at=$(grep -n '^MUTATIONS=(' "$harness" | cut -d: -f1)
@@ -12563,10 +12578,8 @@ case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp conf bin out status
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
-  mkdir -p "$nested/tools" "$tmp"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  mkdir -p "$tmp"
+  nested=$(nested_tree "$d")
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<'CASES'
 LOOP_SHELL_CASES=('stub#asksForTheCore')
 loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
@@ -12619,10 +12632,8 @@ case_driver_theCoreIsCompiledOncePerSuite() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp bin log out status conf invocations
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"; bin="$d/bin"; log="$d/javac.log"
-  mkdir -p "$nested/tools" "$tmp" "$bin"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  mkdir -p "$tmp" "$bin"
+  nested=$(nested_tree "$d")
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<'CASES'
 LOOP_SHELL_CASES=('stub#asksFirst' 'stub#asksSecond')
 loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
@@ -12674,12 +12685,8 @@ SHIM
 # declared set of three cases in two groups, one of which fails if it is ever executed — so a selection that
 # leaks is a red case, never a claim about one.
 driver_selection_probe() { # <dir> → a nested suite whose cases record themselves and whose beta case fails
-  local d="$1" nested="$1/nested"
-  mkdir -p "$nested/tools"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" \
-    || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  local d="$1" nested
+  nested=$(nested_tree "$d")
   # The cases file is the driver's only input about the set: every case records that it ran, and the two the
   # group filter must never reach fail loudly.
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<CASES
@@ -12761,12 +12768,8 @@ case_driver_theListIsFilteredTheSameWayASuiteRunIs() {
 # case in each group paying a second of sleep, so a group's figure is a number a claim can be made about rather than
 # a zero every shape satisfies.
 driver_cost_probe() { # <dir> → a nested suite of two groups whose cases record themselves
-  local d="$1" nested="$1/nested"
-  mkdir -p "$nested/tools"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" \
-    || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  local d="$1" nested
+  nested=$(nested_tree "$d")
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<CASES
 LOOP_SHELL_CASES=('alpha#one' 'alpha#two' 'beta#three')
 loop_shell_cases() { printf '%s\n' "\${LOOP_SHELL_CASES[@]}"; }
@@ -13142,15 +13145,13 @@ case_gate_theChildReadsTheProfileOfTheTreeItWorksIn() {
 # into this tree, and the configuration is this suite's with a scratch root inside `<dir>`. Prints the driver and the
 # configuration it must be run with; the cases file is read from stdin.
 nested_suite() { # nested_suite <dir> → "<driver>\n<conf>"
-  local d="$1"
-  mkdir -p "$d/nested/tools" "$d/tmp" || fail "could not create the nested suite's directory"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$d/nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$d/nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$d/nested/tools/issues"
-  cat > "$d/nested/tools/loop/tests/loop-cases.sh"
+  local d="$1" nested
+  mkdir -p "$d/tmp" || fail "could not create the nested suite's directory"
+  nested=$(nested_tree "$d")
+  cat > "$nested/tools/loop/tests/loop-cases.sh"
   sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$d/tmp\"|" "$LOOP_CONF" > "$d/loop.conf" \
     || fail "could not write the loop configuration"
-  printf '%s\n%s\n' "$d/nested/tools/loop/tests/loop-selftest.sh" "$d/loop.conf"
+  printf '%s\n%s\n' "$nested/tools/loop/tests/loop-selftest.sh" "$d/loop.conf"
 }
 
 # Four stub cases, one declaration each: a script, a second script, a directory and a path no case owns. `*` is not
@@ -13372,10 +13373,8 @@ case_driver_aSecondSuiteInOneRepositoryIsRefused() {
   d=$(scratch)
   # A nested suite over stub cases, run with this repository's *own* scratch root: that root, and the lock beside
   # it, is what two suites of one repository share and what the second one is refused by.
-  mkdir -p "$d/nested/tools" "$d/tmp"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$d/nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$d/nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$d/nested/tools/issues"
+  mkdir -p "$d/tmp"
+  nested_tree "$d" >/dev/null
   hold_log="$d/hold.log"; quick_log="$d/quick.log"
   cat > "$d/nested/tools/loop/tests/loop-cases.sh" <<CASES
 LOOP_SHELL_CASES=('hold#sleeps' 'quick#a' 'quick#b')
@@ -13584,10 +13583,8 @@ case_driver_theSuiteRunsItsCasesInAPool() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp conf out status overlap_width
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
-  mkdir -p "$nested/tools" "$tmp"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  mkdir -p "$tmp"
+  nested=$(nested_tree "$d")
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<'CASES'
 LOOP_SHELL_CASES=('stub#one' 'stub#two' 'stub#three' 'stub#four')
 loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
@@ -13843,10 +13840,8 @@ case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp conf out status pid alive i
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
-  mkdir -p "$nested/tools" "$tmp"
-  cp "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" "$nested/tools/loop/tests/loop-selftest.sh" || fail "could not copy the driver"
-  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
-  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  mkdir -p "$tmp"
+  nested=$(nested_tree "$d")
   cat > "$nested/tools/loop/tests/loop-cases.sh" <<'CASES'
 LOOP_SHELL_CASES=('stub#leavesOne' 'stub#watchesForIt')
 loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }

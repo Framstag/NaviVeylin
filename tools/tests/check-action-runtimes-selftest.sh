@@ -18,7 +18,7 @@ while [ $# -gt 0 ]; do
     *) echo "check-action-runtimes-selftest: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
-[ -n "$root" ] || root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+[ -n "$root" ] || root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 checker="$root/tools/check-action-runtimes.sh"
 [ -f "$checker" ] || { echo "check-action-runtimes-selftest: no $checker" >&2; exit 2; }
 

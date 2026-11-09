@@ -17,7 +17,7 @@
 #        second suite in this tree (issue #295) and a bash without `wait -n`, which is the pool's reaper.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 
 # Milliseconds since the epoch, for the report this run makes of its own cost (issue #782). `date`'s sub-second field
 # is a GNU extension, so a host whose `date` prints something else answers in whole seconds — a coarse figure rather

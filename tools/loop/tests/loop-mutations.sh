@@ -40,7 +40,7 @@
 #                                [--probe no-apply|stays-green|empty-backup]
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 
 list_only=0
 check=0
@@ -358,7 +358,7 @@ MUTATIONS=(
   # 54.11 — a leg's group selection is the map's own driver entry with a narrowing appended (issue #781): without
   # the strip, the suite the pipeline runs as three legs names the driver as a command the map does not carry, so
   # the loop's suite is red for a landing the pipeline would accept.
-  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip() .*$|  strip() { sed -e '"'"'s/ --from-git [^ ]*$//'"'"'; }|'
+  '54.11@-@tools/loop/tests/loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip() .*$|  strip() { sed -e '"'"'s/ --from-git [^ ]*$//'"'"'; }|'
   # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
   # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
   # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
@@ -379,12 +379,12 @@ MUTATIONS=(
   # own were falsified by nothing. 43.1 is the check's own refusal — without it a stale record is printed and the
   # check exits 0; 43.2 is the profile pair that makes the gate owe it; 43.3 is the shape of the defect: an edit
   # to the engine line the records quote, leaving them pointed at a line that is no longer there.
-  # The record names a file *beside* the engine (`../loop-mutations.sh`), the shape records 26.1 and 29.2 already
+  # The record names a file *beside* the engine (`tools/loop/tests/loop-mutations.sh`), the shape records 26.1 and 29.2 already
   # use for a file the engine's own directory does not hold: `tools/loop/tests/loop-mutations.sh` under the `tools/loop/`
   # prefix it is not a member of resolves to `$engine/-mutations.sh`. The labels are 43.x and not 41.x because the
   # lock change took 41.x first (`#265`), and a label names one invariant for good.
-  '43.1@-@../loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
-  '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop-mutations\.sh --check;##'
+  '43.1@-@tools/loop/tests/loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
+  '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop/tests/loop-mutations\.sh --check;##'
   '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1" \&\& printf|'
   # 44.1 is the cap reaching further than the child's process group. The group is what `set -m` gives the child,
   # and a descendant that called `setsid` is in no group the two signals name: measured 2026-10-22 (issue #272),
@@ -423,21 +423,21 @@ MUTATIONS=(
   # 48.1 puts the compile back above the case list, which is where it was before a `--case` run of a shell-only case
   # paid for it (issue #261). It is the one call site a selection cannot skip: the driver reaches it before it knows
   # which cases it runs, so the poisoned `javac` the case installs is invoked whatever the selection is.
-  '48.1@-@../loop-selftest.sh@driver#aCaseThatAsksForNoCoreCompilesNothing@the compile at the first case that asks for it, not above the case list (issue #261)@s|^source "$root/tools/loop/tests/loop-cases.sh"$|core_ensure\nsource "$root/tools/loop/tests/loop-cases.sh"|'
+  '48.1@-@tools/loop/tests/loop-selftest.sh@driver#aCaseThatAsksForNoCoreCompilesNothing@the compile at the first case that asks for it, not above the case list (issue #261)@s|^source "$root/tools/loop/tests/loop-cases.sh"$|core_ensure\nsource "$root/tools/loop/tests/loop-cases.sh"|'
   # 48.2 is the other half of 48.1: the marker is what makes the compile *once per suite* rather than once per
   # asking case. Without it a suite of two asking cases is still green — each case compiles again and is handed a
   # class path — so the invariant is invisible to an assertion and only a count catches it: the case installs a
   # `javac` that records every invocation, and the mutation makes it record two.
-  '48.2@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^    if \[ ! -f "$selftest_core_marker" \]; then$|    if true; then|'
+  '48.2@-@tools/loop/tests/loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^    if \[ ! -f "$selftest_core_marker" \]; then$|    if true; then|'
   # 49.x — the suite's own selection and its record of what it cost. Measured 2026-10-23: one case under
   # `tools/loop/**` owes the whole self-test (723 s for 163 cases, serial) and the gate said nothing about it, so an
   # item that touched two files paid 723 s on every iteration (#261 paid eight) and the twelve minutes could only
   # be established with a stopwatch and a `ps`. One mutation per invariant: the group filter, the refusal of a
   # filter that names nothing, the duration in the gate's record.
-  '49.1@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
-  '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23; anchored 2026-11-05, issue #781: an unanchored expression took the nproc fallback instead of the counter)@/^count_matching() {/,/^}/s|^  printf .%s. "\$n"$|  printf .%s. 1|'
+  '49.1@-@tools/loop/tests/loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
+  '49.2@-@tools/loop/tests/loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23; anchored 2026-11-05, issue #781: an unanchored expression took the nproc fallback instead of the counter)@/^count_matching() {/,/^}/s|^  printf .%s. "\$n"$|  printf .%s. 1|'
   '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((st_ended\[slot\] - t0))$|  took=0|'
-  '49.4@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
+  '49.4@-@tools/loop/tests/loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
   # 50.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule
   # has two halves and either alone leaves the case it names green: 50.1 puts the basename pattern back, which makes
   # an archived evidence tally a compiled file again, and 50.2 removes the matcher's `set -f`, so the pattern
@@ -487,28 +487,28 @@ MUTATIONS=(
   # names nothing gets, 53.9 drops the rule that a core file owes the whole set, and 53.10 removes one token from a
   # case's declaration so the declaration is narrower than the case that carries it.
   '53.6@-@tools/loop/gate.sh@gate#theDeltaHandsASuiteTheBaseItMeasured@the base substituted into the suite the delta owes (issue #276)@s|^    cmd=\${cmd//\\{base\\}/\$base}$|    : # the mutation substitutes no base|'
-  '53.7@-@../loop-selftest.sh@driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns@the file set narrowing the selection instead of selecting everything (issue #276)@s|^  if ! files_select "\$case_name"; then continue; fi$|  : # the mutation selects every case|'
-  '53.8@-@../loop-selftest.sh@driver#aFileSetThatNamesNoCaseIsRefused@a file set that names no case refused rather than read as an empty suite (issue #276)@s|^if \[ "\$only_files" != " " \] && \[ "\$(count_files_matching)" -eq 0 \]; then$|if false; then|'
-  '53.9@-@../loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
-  '53.10@-@../loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
-  '53.11@-@../loop-selftest.sh@clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft@the sweep of the suite own scratch root on the way out, so a process a case left behind does not outlive it (issue #233)@s|^  loop_end_pids_under "\$tmp"$|  : # the mutation leaves the process behind|'
+  '53.7@-@tools/loop/tests/loop-selftest.sh@driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns@the file set narrowing the selection instead of selecting everything (issue #276)@s|^  if ! files_select "\$case_name"; then continue; fi$|  : # the mutation selects every case|'
+  '53.8@-@tools/loop/tests/loop-selftest.sh@driver#aFileSetThatNamesNoCaseIsRefused@a file set that names no case refused rather than read as an empty suite (issue #276)@s|^if \[ "\$only_files" != " " \] && \[ "\$(count_files_matching)" -eq 0 \]; then$|if false; then|'
+  '53.9@-@tools/loop/tests/loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
+  '53.10@-@tools/loop/tests/loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
+  '53.11@-@tools/loop/tests/loop-selftest.sh@clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft@the sweep of the suite own scratch root on the way out, so a process a case left behind does not outlive it (issue #233)@s|^  loop_end_pids_under "\$tmp"$|  : # the mutation leaves the process behind|'
   # A delta no case declares (issue #779). The driver answered that file set with one outcome only — the refusal — and a
   # CI step handed a real delta needs the second: with `--allow-empty` the empty intersection is a statement naming the
   # delta, and without the flag the refusal stands byte for byte. One mutation, the flag's branch removed, so the
   # statement goes back to being a refusal; the case that reads the pair is the one named here.
-  '80.1@-@../loop-selftest.sh@driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt@the empty intersection stated rather than refused when the caller has declared it expects one (issue #779)@s|^  if \[ "\$allow_empty" -eq 1 \]; then$|  if false; then|'
+  '80.1@-@tools/loop/tests/loop-selftest.sh@driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt@the empty intersection stated rather than refused when the caller has declared it expects one (issue #779)@s|^  if \[ "\$allow_empty" -eq 1 \]; then$|  if false; then|'
   # The pin compares the pipeline's command against the map's, and the delta the step is now handed is written as a
   # run-time substitution (`${{ steps.delta.outputs.args }}`). Removing that half of the strip line puts the
   # expression back into the comparison, so the pin reports the step as missing from the map — which is the state
   # this tree was in from the leg split, before the normalisation existed.
-  '80.2@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the run-time substitution the pipeline makes stripped before the map is compared (issue #779)@s|^  strip() { sed -e .*--from-git \[\^ \]\*\$//.; }$|  strip() { sed -e '\''s/ --group [^ ]*$//'\'' -e '\''s/ --from-git [^ ]*$//'\''; }|'
+  '80.2@-@tools/loop/tests/loop-cases.sh@gate#theMapCoversEveryPipelineStep@the run-time substitution the pipeline makes stripped before the map is compared (issue #779)@s|^  strip() { sed -e .*--from-git \[\^ \]\*\$//.; }$|  strip() { sed -e '\''s/ --group [^ ]*$//'\'' -e '\''s/ --from-git [^ ]*$//'\''; }|'
   # One suite per repository (issue #295): the lock is taken at all, the pattern that is a suite is told from the one
   # named case that is not, the lease lets a suite whose owner is gone take it over, and the release leaves the
   # repository free for the suite after it.
-  '55.1@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lock that refuses a second suite in one repository (issue #295)@s|^  if ! mkdir "\$lock" 2>/dev/null; then$|  if false; then|'
-  '55.2@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the pattern a suite is, told from the one named case that is not (issue #295)@s|^  \[ -n "\$only_case" \] && ! is_glob "\$only_case" \|\| return 1$|  [ -n "$only_case" ] \|\| return 1|'
-  '55.3@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the release that leaves the repository free for the suite after it (issue #295)@s|^  \[ -z "\$selftest_lock" \] \|\| rm -rf "\$selftest_lock"$|  : # the mutation never releases the lock|'
-  '55.4@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lease that lets a suite whose owner is gone take the lock over (issue #295)@s|^    if \[ "\$holder_pid" -gt 0 \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if true; then|'
+  '55.1@-@tools/loop/tests/loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lock that refuses a second suite in one repository (issue #295)@s|^  if ! mkdir "\$lock" 2>/dev/null; then$|  if false; then|'
+  '55.2@-@tools/loop/tests/loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the pattern a suite is, told from the one named case that is not (issue #295)@s|^  \[ -n "\$only_case" \] && ! is_glob "\$only_case" \|\| return 1$|  [ -n "$only_case" ] \|\| return 1|'
+  '55.3@-@tools/loop/tests/loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the release that leaves the repository free for the suite after it (issue #295)@s|^  \[ -z "\$selftest_lock" \] \|\| rm -rf "\$selftest_lock"$|  : # the mutation never releases the lock|'
+  '55.4@-@tools/loop/tests/loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lease that lets a suite whose owner is gone take the lock over (issue #295)@s|^    if \[ "\$holder_pid" -gt 0 \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if true; then|'
   # 56.1 — the base a run records is the base *branch*'s commit, never the commit the project tree happens to have
   # checked out (issue #301). Measured 2026-10-24: the run was opened on `fix/issue-44-phone-diagnostic-locale`, so
   # `init` recorded that branch's `a0ca0f35` while `main` was `a0a15fe0`, 12 commits ahead since before the run
@@ -553,8 +553,8 @@ MUTATIONS=(
   # repository, a scratch tree and a process group of its own. One record per invariant: 59.1 bounds the pool to one
   # case at a time — the shape the suite had before the pool, with every case still green — and 59.2 leaves the sweep
   # over a case's own scratch root out, so what the case left behind is still standing when its slot is handed on.
-  '59.1@-@../loop-selftest.sh@driver#theSuiteRunsItsCasesInAPool@the pool that starts the next case as one finishes, rather than one case at a time (issue #260)@s|^  while \[ "$running" -lt "$workers" \] && \[ "$started" -lt "$queued" \]; do$|  while [ "$running" -lt 1 ] \&\& [ "$started" -lt "$queued" ]; do|'
-  '59.2@-@../loop-selftest.sh@driver#aCaseThatLeavesAProcessBehindIsSweptWithIt@the sweep of a case own scratch root before its slot is handed on (issue #260)@s|^  loop_end_pids_under "$dir/tree" --quiet$|  : # the mutation leaves the process behind|'
+  '59.1@-@tools/loop/tests/loop-selftest.sh@driver#theSuiteRunsItsCasesInAPool@the pool that starts the next case as one finishes, rather than one case at a time (issue #260)@s|^  while \[ "$running" -lt "$workers" \] && \[ "$started" -lt "$queued" \]; do$|  while [ "$running" -lt 1 ] \&\& [ "$started" -lt "$queued" ]; do|'
+  '59.2@-@tools/loop/tests/loop-selftest.sh@driver#aCaseThatLeavesAProcessBehindIsSweptWithIt@the sweep of a case own scratch root before its slot is handed on (issue #260)@s|^  loop_end_pids_under "$dir/tree" --quiet$|  : # the mutation leaves the process behind|'
   # 60.x — the wait for a child looks at a fraction of a second, and the heartbeat reports elapsed seconds (issue
   # #259). Measured 2026-10-22: the poll and the join of the heartbeat beside it charged a child that answered at
   # once 1–2 s of pure sleep, and 40 % of `run#recordsAFailedReviewOnTheBranch` was sleep. One record per invariant:
@@ -581,9 +581,9 @@ MUTATIONS=(
   # one case that nothing could end, and a killed worker's work reconstructed by hand. The ids were `61.1`–`61.6`
   # until this change met the branch where 61.x already belonged to another change (#244): a record's id is not
   # owned, so the second one to land takes the next free block.
-  '62.1@-@../loop-selftest.sh@driver#aCaseThatBlocksIsEndedByItsOwnBound@the case bound the suite ends a case with (issue #308)@s|^  ( sleep "\$case_max"$|  ( sleep 99999|'
-  '62.2@-@../loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
-  '62.3@-@../loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
+  '62.1@-@tools/loop/tests/loop-selftest.sh@driver#aCaseThatBlocksIsEndedByItsOwnBound@the case bound the suite ends a case with (issue #308)@s|^  ( sleep "\$case_max"$|  ( sleep 99999|'
+  '62.2@-@tools/loop/tests/loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
+  '62.3@-@tools/loop/tests/loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
   '62.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
   '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue"$|    : # the mutation keeps no patch|'
   '62.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^          own_leftovers_of "\$owner_item" \|\| keep_leftovers "\$owner_item"$|          : # the mutation keeps no patch|'
@@ -705,12 +705,12 @@ MUTATIONS=(
   # The last three are the review's own correction (round 1): ending a watcher's *subshell* left the `sleep` it forked
   # standing — one per case and one for the ceiling — so each line that now ends a whole group has a mutation putting it
   # back to the single pid, and the two `driver#` cases count what is left behind (2026-10-29: 1 and 2 processes).
-  '71.1@-@../loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the watcher that ends the suite at the ceiling its caller named (issue #692)@s#^if \[ -n "\$ceiling" \]; then$#if false; then#'
-  '71.2@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the ceiling being a clock rather than an end for every suite that names one (issue #692)@s#^  ( sleep "\$ceiling";#  ( sleep 0;#'
+  '71.1@-@tools/loop/tests/loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the watcher that ends the suite at the ceiling its caller named (issue #692)@s#^if \[ -n "\$ceiling" \]; then$#if false; then#'
+  '71.2@-@tools/loop/tests/loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the ceiling being a clock rather than an end for every suite that names one (issue #692)@s#^  ( sleep "\$ceiling";#  ( sleep 0;#'
   '71.3@-@gate.sh@gate#theStepBoundIsClampedByTheCeilingTheCallerNamed@the clamp that holds a gate step to the ceiling the caller named (issue #692)@s#^step_max=\$(loop_bound_under_ceiling "\$step_max")$#step_max=$step_max#'
-  '71.4@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the exit trap ending the ceiling watcher by its group, so a suite that ends inside its ceiling leaves that watcher sleep standing (issue #692)@s#^  loop_end_group "\${ceiling_watch:-}"$#  :#'
-  '71.5@-@../loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the exit trap ending a still-running case bound watcher by its group, so a suite the ceiling cut leaves that watcher sleep standing (issue #692)@s#^      loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#      loop_end_pid "${case_slot_watch[$slot]:-}"#'
-  '71.6@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the case that ended normally swept with the watcher group, so every case of a green suite leaves one sleep standing (issue #692)@s#^  loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#  loop_end_pid "${case_slot_watch[$slot]:-}"#'
+  '71.4@-@tools/loop/tests/loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the exit trap ending the ceiling watcher by its group, so a suite that ends inside its ceiling leaves that watcher sleep standing (issue #692)@s#^  loop_end_group "\${ceiling_watch:-}"$#  :#'
+  '71.5@-@tools/loop/tests/loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the exit trap ending a still-running case bound watcher by its group, so a suite the ceiling cut leaves that watcher sleep standing (issue #692)@s#^      loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#      loop_end_pid "${case_slot_watch[$slot]:-}"#'
+  '71.6@-@tools/loop/tests/loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the case that ended normally swept with the watcher group, so every case of a green suite leaves one sleep standing (issue #692)@s#^  loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#  loop_end_pid "${case_slot_watch[$slot]:-}"#'
 
   # 72.x — a run's report also says whether the loop is getting better (issue #247): the review round-1 pass rate
   # and the item wall median, minimum and maximum, totalled from the state the report already reads, with the third
@@ -835,8 +835,8 @@ MUTATIONS=(
   # it costs, because the summary named the count, the JDK and the selection and nothing about time. Two sites: the
   # per-group time a case's end is charged to, and the `--times` gate that keeps the figure off a `PASS` line two
   # callers parse.
-  '85.1@-@../loop-selftest.sh@driver#theSummaryNamesWhatEachGroupCost@the group figure a finished case is charged to, so the summary states a measured time and not a constant (issue #782)@s|^  group_ms\[\$case_group\]=\$(( \${group_ms\[\$case_group\]:-0} + elapsed ))$|  group_ms[$case_group]=0|'
-  '85.2@-@../loop-selftest.sh@driver#theTimesFigureIsAskedForNotAssumed@the gate that keeps the per-case figure off a `PASS` line nobody asked for it on (issue #782)@s|^      if \[ "\$times" -eq 1 \]; then$|      if [ 1 -eq 1 ]; then|'
+  '85.1@-@tools/loop/tests/loop-selftest.sh@driver#theSummaryNamesWhatEachGroupCost@the group figure a finished case is charged to, so the summary states a measured time and not a constant (issue #782)@s|^  group_ms\[\$case_group\]=\$(( \${group_ms\[\$case_group\]:-0} + elapsed ))$|  group_ms[$case_group]=0|'
+  '85.2@-@tools/loop/tests/loop-selftest.sh@driver#theTimesFigureIsAskedForNotAssumed@the gate that keeps the per-case figure off a `PASS` line nobody asked for it on (issue #782)@s|^      if \[ "\$times" -eq 1 \]; then$|      if [ 1 -eq 1 ]; then|'
 
   # 86.x — an adoption the tree refuses is work, not the owner's decision (issue #794). Measured 2026-11-06 on #760:
   # the pre-screen excluded an item whose branch `branch-state` read `adoptable` the whole time, the adoption had

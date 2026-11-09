@@ -19,7 +19,7 @@
 # Exit:  0 every mutation was noticed and every probe went quiet again, 1 otherwise, 2 unusable environment.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 engine="$root/tools/issues"
 
 only=""

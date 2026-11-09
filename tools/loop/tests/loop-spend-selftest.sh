@@ -24,7 +24,7 @@
 # what it expected and what the tool reported), 2 = usage, or a case id no case carries.
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 HERE="$root/tools"
 TOOL="$HERE/loop-spend.py"
 [ -f "$TOOL" ] || { echo "selftest: no tools/loop-spend.py next to $0" >&2; exit 1; }

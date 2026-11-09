@@ -9,7 +9,7 @@
 # the report output they saw).
 set -uo pipefail
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 HERE="$root/tools"
 FIX="$root/tools/tests/fixtures/gate-timings"
 REPORT="$HERE/gate-timing-report.sh"

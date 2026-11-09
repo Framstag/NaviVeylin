@@ -20,7 +20,7 @@ set -uo pipefail
 usage() { sed -n '3,18p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'; }
 case "${1:-}" in -h|--help) usage; exit 0 ;; -*) echo "selftest: unknown option $1" >&2; exit 2 ;; esac
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 tool="$root/tools/project-metrics-report.sh"
 [ -f "$tool" ] || { echo "selftest: $tool not found" >&2; exit 2; }
 for t in find awk sed sort grep date mktemp diff ln; do

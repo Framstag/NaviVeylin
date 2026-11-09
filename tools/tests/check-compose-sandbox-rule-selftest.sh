@@ -6,7 +6,7 @@
 # Usage: check-compose-sandbox-rule-selftest.sh
 set -uo pipefail
 
-repo=$(git rev-parse --show-toplevel 2>/dev/null) || repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+repo=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 checker="$repo/tools/check-compose-sandbox-rule.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

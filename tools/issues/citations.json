@@ -36,6 +36,7 @@
   ],
   "generated": [
     "RELEASE-NOTES.md",
+    "STORE-LISTING.md",
     "dependencies.json",
     "local.properties",
     "gate-timings.json",

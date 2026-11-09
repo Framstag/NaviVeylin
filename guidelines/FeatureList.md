@@ -10,9 +10,10 @@ it — are `AGENTS.md` "Documentation Map"; the behaviour contract is the capabi
 **Maintenance rule** — when a change supersedes a convention here, update this document in the same change. A
 rule in this document names the case that enforces it; a rule with no such case does not belong here.
 
-## 1. What the two documents are
+## 1. What the three documents are
 
-`FEATURES.md` and `RELEASE-NOTES.md` live at the repository root and are generated, never written.
+`FEATURES.md`, `RELEASE-NOTES.md` and `STORE-LISTING.md` live at the repository root and are generated, never
+written.
 
 - **Rule: an entry is a keyword and a short paragraph, one per selling point.** The catalogue leads with a
 short bold keyword a reader scans for (*Works without a connection*, *Know which lane to be in*) followed by one or
@@ -55,7 +56,7 @@ Cases: `length: an over-long paragraph fails the run`, `length: a short paragrap
 `gates: a keyword word the cited specs lack fails the run`, `density: one entry per capability fails the run`,
 `density: a merged area passes`, `catalogue: the report states the density it achieved`.
 
-**The two documents themselves:**
+**The three documents themselves:**
 
 - `FEATURES.md` is a **living document**: every run rewrites it whole, its areas are ordered by the area
   catalogue, and with identical inputs two runs produce byte-identical bytes. It must never be edited by hand —
@@ -63,7 +64,39 @@ Cases: `length: an over-long paragraph fails the run`, `length: a short paragrap
 - `RELEASE-NOTES.md` is **derived, not accumulated**: one entry per release version, replaced in place when the
   same version is generated again, entries ordered newest first. A version whose changes are all internal gets
   no entry and a verdict saying so.
-- Neither document carries a date or time. A "generated on" line would make the byte-identity rule unsatisfiable
+- `STORE-LISTING.md` is **the same entry inside one store field**: one block per release version, replaced in
+  place, holding that version's note bullets rendered into the field's character budget — the store's "What's
+  new" text, 500 characters per language, which the tool declares once as `store_budget` with the figure's source
+  beside it. A capability the shortlist names as a selling point is published first, because a selling point is
+  the shortlist's own claim that a user can see or feel the capability; the changes the budget cannot hold are
+  named by one general bullet instead of being dropped.
+- **Rule: the store listing is the entry inside one field.** A block is rendered from that version's entry and
+  nothing else — no second selection, no model call, no sentence the note does not carry — and it is trimmed by
+  whole bullets only: never inside a paragraph and never inside a capability comment. When the entry does not
+  fit, the block ends with one general line naming the changes it could not publish. The budget is the store
+  field's character count, declared in one place, and it is the entry's: a per-area share declared in the area
+  catalogue must sum to it, because one field is one block and twelve 500-character shares are not a store
+  listing.
+
+```
+- Download and extract basemap archive — Download and extract basemap archive.
+- General improvements and optimisations.
+```
+
+The shape above is a real block's first and last line after 228 changes were compressed into one field: one line
+per published bullet, the capability comments gone (a store field renders no markdown and a comment is not text a
+user reads), and the withheld changes counted nowhere in the document but named by the last line.
+
+Cases: `listing: a run writes the listing for the version`,
+`listing: re-running a version replaces its block byte for byte`, `listing: the block fits the declared budget`,
+`listing: the run reports the budget it enforced`,
+`listing: an over-budget entry is trimmed, never truncated mid-sentence`,
+`listing: the overflow is summarised in one general bullet`, `listing: no block carries a capability comment`,
+`listing: a shortlisted capability ranks above an unlisted one`,
+`listing: a per-area share that does not compose fails the run`,
+`listing: nothing user-visible writes no block`, `listing: the empty version is reported, not written`.
+
+- No document carries a date or time. A "generated on" line would make the byte-identity rule unsatisfiable
   and would turn every run into a diff; where a document must be anchored in time, the release **version** is
   the anchor, and it is an input.
 
@@ -247,4 +280,4 @@ read`, `snapshot: versions order as the release format orders them (-1 < -10 < -
   about.
 - A spec leaving the shipped set: nothing. Its highlight is reported as stale and no longer required, and its
   capabilities are not published as changes.
-- Never edit `FEATURES.md` or `RELEASE-NOTES.md` by hand.
+- Never edit `FEATURES.md`, `RELEASE-NOTES.md` or `STORE-LISTING.md` by hand.

@@ -82,6 +82,15 @@ maxpara=320   # the paragraph length bound, spec `feature-list-generation` "A pa
 # review": the rarest words of an area, shown, plus the count of the ones the gate left out. Ten keeps the report
 # readable (the first real generation produced 352 lines over 12 areas) without burying a vocabulary mismatch.
 max_words=10
+# The store listing is pasted into one store field, so it is bounded by that field's character limit: Google
+# Play's "What's new" text, 500 characters per language. The figure is reported by the Play Console's own field
+# and by every guide to it, and it is not documented in this tree — the recorded decision on issue #100 states
+# that, and this comment is where a later reader finds out what the number stands for. It is declared here once:
+# a second literal anywhere else is how a budget drifts from the field it is meant to fit.
+store_budget=500
+# The one line a listing ends with when the entry does not fit: the changes it could not publish are named in
+# general rather than dropped silently, and the field is reserved for that line before any bullet is placed.
+store_summary='- General improvements and optimisations.'
 prompts_dir="$data_dir/prompts"
 snapshots_dir="$data_dir/snapshots"
 cache_dir="$data_dir/cache"
@@ -92,6 +101,18 @@ cache_dir="$data_dir/cache"
 jq -e . "$areas_file" >/dev/null 2>&1 || { echo "gen-feature-list: $areas_file is not valid JSON" >&2; exit 2; }
 jq -e . "$specs_file" >/dev/null 2>&1 || { echo "gen-feature-list: $specs_file is not valid JSON" >&2; exit 2; }
 jq -e . "$highlights_file" >/dev/null 2>&1 || { echo "gen-feature-list: $highlights_file is not valid JSON — the shortlist decides what the catalogue publishes" >&2; exit 2; }
+
+# A per-area share of the store field, when the area catalogue declares one, has to sum to the field: one store
+# field is one block, and twelve area shares cannot each be a 500-character field (the recorded decision on issue
+# #100). Checked before anything is written, the same way an unclassified spec id is.
+store_shares=$(jq -r '[.areas[] | .storeShare // 0] | add // 0' "$areas_file" 2>/dev/null)
+case "$store_shares" in
+  ''|*[!0-9]*) echo "gen-feature-list: $areas_file declares a storeShare that is not a whole number" >&2; exit 2 ;;
+esac
+if [ "$store_shares" -gt "$store_budget" ]; then
+  echo "gen-feature-list: the area catalogue's store shares sum to $store_shares characters, above the $store_budget-character store field; one field is one block, so the shares must compose to it" >&2
+  exit 1
+fi
 
 if [ "$mode" = "run" ] && [ "$listing" -eq 1 ] && [ -z "$release" ]; then
   # --list reports the index and needs no version; it is a reading of the classification, not a release run.
@@ -801,6 +822,35 @@ avg=$(awk -v n="$entry_n" '/^- / { k = index($0, "**"); rest = substr($0, k + 2)
 printf 'catalogue: %s (%s entries for %s selling points, %s areas, about %s chars per entry)\n' \
   "$out_dir/FEATURES.md" "$entry_n" "$hl_n" "$(grep -c '^## ' "$catalogue")" "$avg"
 
+# write_versioned_doc <path> <header> <entry-file> — one block per version, replaced in place, entries newest
+# first. The release note and the store listing are the same entry rendered twice, so they carry the same
+# splitting and ordering rule; a second copy of it is how the two documents' orders drift apart.
+write_versioned_doc() {
+  doc="$1"; header="$2"; new_entry="$3"
+  doc_dir="$work/$(basename -- "$doc" .md).rel"
+  mkdir -p "$doc_dir" || fail "cannot create $doc_dir"
+  if [ -f "$doc" ]; then
+    awk -v dir="$doc_dir" '
+      /^## / {
+        if (f != "") close(f)
+        v = substr($0, 4); gsub(/[^A-Za-z0-9.-]/, "", v)
+        f = dir "/" v ".md"
+      }
+      f != "" { print >> f }
+    ' "$doc"
+  fi
+  cp "$new_entry" "$doc_dir/$release.md"
+  {
+    printf '%s\n\n' "$header"
+    for v in $(find "$doc_dir" -name '*.md' -printf '%f\n' | sed 's/\.md$//' \
+               | sort -t- -k1,1nr -k2,2nr -k3,3nr -k4,4nr); do
+      cat "$doc_dir/$v.md"
+      printf '\n'
+    done
+  } > "$doc.tmp"
+  mv "$doc.tmp" "$doc" || fail "cannot write $doc"
+}
+
 # ---------------------------------------------------------------------------
 # 7. The release note for this version: the capabilities that moved, grouped by area, replaced in place
 # ---------------------------------------------------------------------------
@@ -872,31 +922,32 @@ else
 
   # Derived, not accumulated: this version's entry is replaced, every other entry is untouched, and the
   # entries stay ordered by version, newest first.
-  mkdir -p "$work/rel"
-  if [ -f "$out_dir/RELEASE-NOTES.md" ]; then
-    awk -v dir="$work/rel" '
-      /^## / {
-        if (f != "") close(f)
-        v = substr($0, 4); gsub(/[^A-Za-z0-9.-]/, "", v)
-        f = dir "/" v ".md"
-      }
-      f != "" { print >> f }
-    ' "$out_dir/RELEASE-NOTES.md"
-  fi
-  cp "$entry" "$work/rel/$release.md"
-  {
-    printf '# NaviVeylin — Release Notes\n\n'
-    for v in $(find "$work/rel" -name '*.md' -printf '%f\n' | sed 's/\.md$//' \
-               | sort -t- -k1,1nr -k2,2nr -k3,3nr -k4,4nr); do
-      cat "$work/rel/$v.md"
-      printf '\n'
-    done
-  } > "$work/RELEASE-NOTES.md"
-  cp "$work/RELEASE-NOTES.md" "$out_dir/RELEASE-NOTES.md.tmp" \
-    && mv "$out_dir/RELEASE-NOTES.md.tmp" "$out_dir/RELEASE-NOTES.md" \
-    || fail "cannot write $out_dir/RELEASE-NOTES.md"
+  write_versioned_doc "$out_dir/RELEASE-NOTES.md" '# NaviVeylin — Release Notes' "$entry"
   entries=$(grep -c '^## ' "$out_dir/RELEASE-NOTES.md" || true)
   echo "release notes: $out_dir/RELEASE-NOTES.md ($entries entries, newest $release)"
+
+  # The store listing: the same entry, rendered into one store field. It is a renderer, not a second selection —
+  # the bullets are the note's, so nothing reaches a store that the note does not carry.
+  jq -r '.highlights | to_entries[] | (.key | tostring) as $i | .value.specs[] | "\($i)\t\(.)"' \
+    "$highlights_file" > "$work/shortlist-rank.tsv"
+  awk -v rankfile="$work/shortlist-rank.tsv" -v budget="$store_budget" -v summary="$store_summary" \
+      -v counts="$work/listing.counts" -f "$script_dir/feature-list/listing.awk" "$entry" > "$work/listing.md" \
+    || fail "rendering the store listing failed"
+  listing_shown=$(sed -n 's/^shown=//p' "$work/listing.counts")
+  listing_bullets=$(sed -n 's/^bullets=//p' "$work/listing.counts")
+  listing_chars=$(sed -n 's/^chars=//p' "$work/listing.counts")
+  if [ "${listing_bullets:-0}" -eq 0 ]; then
+    echo "store listing: none for $release; the entry carries no bullet to render"
+  else
+    [ "$listing_chars" -le "$store_budget" ] \
+      || fail "the store listing block is $listing_chars characters, above the $store_budget-character field, and the reserved summary line does not fit"
+    {
+      printf '## %s\n\n' "$release"
+      cat "$work/listing.md"
+    } > "$work/store-listing-entry.md"
+    write_versioned_doc "$out_dir/STORE-LISTING.md" '# NaviVeylin — Store Listing' "$work/store-listing-entry.md"
+    echo "store listing: $out_dir/STORE-LISTING.md ($listing_chars chars, budget $store_budget, $listing_shown of $listing_bullets changes shown)"
+  fi
 fi
 
 # ---------------------------------------------------------------------------

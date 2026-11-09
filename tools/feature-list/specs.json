@@ -142,6 +142,7 @@
     "precise-location-results": { "area": "search", "userVisible": true, "surfaces": ["phone"] },
     "project-metrics-report": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "release-notes-generation": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
+    "store-listing-rendering": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "release-target": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "render-mode-switch": { "area": "map-appearance", "userVisible": true, "surfaces": ["phone", "car"] },
     "render-performance": { "area": "map-appearance", "userVisible": false, "surfaces": ["phone", "car"] },

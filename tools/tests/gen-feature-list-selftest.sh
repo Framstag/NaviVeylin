@@ -753,6 +753,144 @@ grep -q 'release-version' "$tool" && bad "version: the version-state file is nev
 rc "version: the run works where the version-state file is absent" 0 run --release 9-1-1-1 --report-only
 
 # ---------------------------------------------------------------------------
+# 10. The store listing: the same entry, inside one store field
+# ---------------------------------------------------------------------------
+
+# The budget is read from the tool's own constant, so the assertion below cannot drift from the number the
+# renderer enforces (the same way `maxpara` is read above). A tree that has not declared it yet reads as 0, which
+# is what makes this section red on HEAD rather than a missing case.
+store_budget=$(sed -n 's/^store_budget=\([0-9][0-9]*\).*/\1/p' "$tool")
+[ -n "$store_budget" ] || store_budget=0
+
+# A fixture of its own, because a block that overflows 500 characters needs bullets with long names: the mechanical
+# note repeats the capability's own name, so the name's length is the bullet's. `delta` is user-visible and absent
+# from the shortlist, so it is the change the budget is allowed to withhold.
+listing_fixture() {
+  repo="$work/lrepo"; data="$work/ldata"; out="$work/lout"
+  rm -rf "$work/lrepo" "$work/ldata" "$work/lout"
+  mkdir -p "$repo/openspec/specs" "$data/prompts" "$out"
+  spec alpha \
+    "Alpha first capability that a user sees in the panel" \
+    "Alpha second capability that a user sees in the card" \
+    "Alpha third capability that a user sees in the sheet"
+  spec beta \
+    "Beta sole capability that a user feels in the search" \
+    "Beta paired capability that a user feels in the route"
+  spec delta "Delta car capability that a user sees in the car map"
+  spec epsilon "Epsilon car platform capability"
+  spec gamma "Gamma internal capability"
+  spec probe/nested "Nested internal capability"
+  areas_; specs_; highlights_
+  printf 'Compose a section. One key per marker line.\n' > "$data/prompts/area-section.md"
+  printf 'Compose a release note.\n' > "$data/prompts/notes-section.md"
+}
+
+# block_chars <file> <version> — the characters a person pastes: the block's non-empty lines, joined by newlines,
+# without the version heading and without the blank lines the document puts around a block.
+block_chars() {
+  awk -v want="## $2" '$0 == want { inside = 1; next } /^## / { inside = 0 }
+    inside && length($0) > 0 { n += (n > 0 ? 1 : 0) + length($0) } END { printf "%d", n }' "$1"
+}
+
+listing_fixture
+rm -rf "$data/snapshots" "$data/cache"
+run --release 10-1-1-1 > /dev/null 2>&1   # the baseline: a version with no earlier snapshot writes no block
+
+# six capabilities move: three shortlisted in area one, two shortlisted in area two, one unlisted in area one
+sed -i 's/ SHALL do the thing its name says\./ SHALL do the visible thing its name says./' \
+  "$repo/openspec/specs/alpha/spec.md" "$repo/openspec/specs/beta/spec.md" "$repo/openspec/specs/delta/spec.md"
+rm -rf "$data/cache"
+run --release 10-1-1-2 > "$work/r.out" 2>&1
+
+grep -q '^## 10-1-1-2$' "$out/STORE-LISTING.md" \
+  && grep -q 'Alpha first capability that a user sees in the panel' "$out/STORE-LISTING.md" \
+  && ok "listing: a run writes the listing for the version" \
+  || bad "listing: a run writes the listing for the version" \
+    "$(grep 'store listing:' "$work/r.out" || echo 'no store listing line in the report')"
+
+cp "$out/STORE-LISTING.md" "$work/listing-before.md" 2>/dev/null
+run --release 10-1-1-2 > "$work/r.out" 2>&1
+[ -f "$work/listing-before.md" ] \
+  && [ "$(sha256sum < "$work/listing-before.md")" = "$(sha256sum < "$out/STORE-LISTING.md")" ] \
+  && is "listing: re-running a version replaces its block byte for byte" "1" "$(grep -c '^## ' "$out/STORE-LISTING.md" || true)" \
+  || bad "listing: re-running a version replaces its block byte for byte" "the block is not identical after a second run"
+
+chars=$(block_chars "$out/STORE-LISTING.md" 10-1-1-2)
+if [ "$store_budget" -gt 0 ] && [ "$chars" -gt 0 ] && [ "$chars" -le "$store_budget" ]; then
+  ok "listing: the block fits the declared budget"
+else
+  bad "listing: the block fits the declared budget" "block is $chars characters against a budget of $store_budget"
+fi
+
+grep -q "budget $store_budget" "$work/r.out" \
+  && ok "listing: the run reports the budget it enforced" \
+  || bad "listing: the run reports the budget it enforced" "$(grep 'store listing:' "$work/r.out" || echo 'no store listing line in the report')"
+
+# Every published line is one of the entry's own bullets, whole: a paragraph that arrived cut, or a comment that
+# arrived half-written, is the defect this case exists for. The summary line is the one line that is not a bullet.
+cut_line=$(awk -v note="$out/RELEASE-NOTES.md" -v want="## 10-1-1-2" \
+               -v summary='- General improvements and optimisations.' '
+  FNR == NR {
+    if ($0 ~ /^- /) {
+      t = substr($0, 3); k = index(t, "**"); rest = substr(t, k + 2); q = index(rest, "**")
+      if (q > 0) { kw = substr(rest, 1, q - 1); para = substr(rest, q + 2)
+                  sub(/^[[:space:]]*—[[:space:]]*/, "", para); whole["- " kw " — " para] = 1 }
+    }
+    next
+  }
+  $0 == want { inside = 1; next }
+  /^## / { inside = 0 }
+  inside && $0 == summary { next }
+  inside && length($0) > 0 { if (!($0 in whole) || $0 !~ /\.$/) { print $0; exit } }
+' "$out/RELEASE-NOTES.md" "$out/STORE-LISTING.md")
+[ -z "$cut_line" ] && [ "${chars:-0}" -gt 0 ] \
+  && ok "listing: an over-budget entry is trimmed, never truncated mid-sentence" \
+  || bad "listing: an over-budget entry is trimmed, never truncated mid-sentence" \
+    "the block is ${chars:-0} characters and the first line that is not a whole bullet is [$cut_line]"
+
+last_line=$(section "$out/STORE-LISTING.md" 10-1-1-2 | awk '/./ { l = $0 } END { print l }')
+[ "$last_line" = "- General improvements and optimisations." ] \
+  && grep -qE '[1-5] of 6 changes shown' "$work/r.out" \
+  && ok "listing: the overflow is summarised in one general bullet" \
+  || bad "listing: the overflow is summarised in one general bullet" \
+    "last line [$last_line], report [$(grep 'store listing:' "$work/r.out" | head -1)]"
+
+if section "$out/STORE-LISTING.md" 10-1-1-2 | grep -qF '<!--'; then
+  bad "listing: no block carries a capability comment" "$(section "$out/STORE-LISTING.md" 10-1-1-2 | grep -F '<!--' | head -1)"
+else
+  ok "listing: no block carries a capability comment"
+fi
+
+if grep -q 'Beta paired capability that a user feels in the route' "$out/STORE-LISTING.md" \
+   && ! grep -q 'Delta car capability that a user sees in the car map' "$out/STORE-LISTING.md"; then
+  ok "listing: a shortlisted capability ranks above an unlisted one"
+else
+  bad "listing: a shortlisted capability ranks above an unlisted one" \
+    "$(grep -c '^- ' "$out/STORE-LISTING.md" || true) bullets published; $(grep 'store listing:' "$work/r.out" | head -1)"
+fi
+
+sed -i 's/Gamma internal capability SHALL do the thing its name says\./Gamma internal capability SHALL do the internal thing./' \
+  "$repo/openspec/specs/gamma/spec.md"
+run --release 10-1-1-3 > "$work/r.out" 2>&1
+is "listing: nothing user-visible writes no block" "1" "$(grep -c '^## ' "$out/STORE-LISTING.md" || true)"
+grep -q 'nothing user-visible changed in 10-1-1-3' "$work/r.out" \
+  && ok "listing: the empty version is reported, not written" \
+  || bad "listing: the empty version is reported, not written"
+
+# a per-area share has to compose to the one field: two 300-character shares cannot both be the 500-character field
+jq '.areas |= map(if .id == "one" or .id == "two" then . + {"storeShare": 300} else . end)' \
+  "$data/areas.json" > "$data/areas.json.tmp" && mv "$data/areas.json.tmp" "$data/areas.json"
+before_shares=$(sha256sum < "$out/STORE-LISTING.md")
+run_split --release 10-1-1-4
+if [ "$last_rc" -eq 1 ] && grep -q '600' "$work/g.err" && grep -q "$store_budget-character" "$work/g.err" \
+   && [ "$before_shares" = "$(sha256sum < "$out/STORE-LISTING.md")" ]; then
+  ok "listing: a per-area share that does not compose fails the run"
+else
+  bad "listing: a per-area share that does not compose fails the run" \
+    "exit $last_rc: $(head -2 "$work/g.err" | tr '\n' ' ')"
+fi
+
+# ---------------------------------------------------------------------------
 echo
 if [ "${GITHUB_STEP_SUMMARY:-}" != "" ]; then
   printf 'gen-feature-list-selftest: %d passed, %d failed\n' "$pass" "$fail" >> "$GITHUB_STEP_SUMMARY"

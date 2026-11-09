@@ -1181,6 +1181,7 @@
         "FeatureList.md §1 \"an entry is a keyword and a short paragraph, one per selling point.\"",
         "FeatureList.md §1 \"the catalogue is a pitch, not an inventory.\"",
         "FeatureList.md §1 \"one entry is one selling point, and it is short.\"",
+        "FeatureList.md §1 \"the store listing is the entry inside one field.\"",
         "FeatureList.md §3 \"one capability key identifies one requirement.\"",
         "FeatureList.md §4 \"a spec id that neither file names fails the whole run and writes nothing.\"",
         "FeatureList.md §4 \"a capability is classified in the change that writes its delta.\"",

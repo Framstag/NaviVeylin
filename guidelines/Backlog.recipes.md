@@ -536,7 +536,11 @@ read from the stream `state.sh done` already opens: `metrics.phases` (the turns'
 `tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) as the
 gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
 and a tool's the execution after it), `metrics.roles` (each session's tokens keyed by the role its prompt **path**
-names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), and
+names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), with
+`metrics.roleModels` beside it (those turns' tokens keyed by the model each `turn_end` message named — `responseModel`
+when the provider reported one, else `model` — so a role that answered on two models is two tallies rather than one row
+priced at whichever came first, and the report reads `role (model) tokens` while a role no model explained keeps a row
+of the role alone, and a state that records no model keeps the role totals and names none), and
 `metrics.afterGate` (the tokens from a session's first gate turn on, and that session's own tokens). The report's
 trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured. It is a
 figure, never a stop: nothing in the run reads it, and the keys it would bound do not exist yet.

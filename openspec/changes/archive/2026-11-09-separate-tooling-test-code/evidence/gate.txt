@@ -1,0 +1,57 @@
+# Gate — tools/loop/gate.sh --base main, run on `finalize/issue-740`
+
+```
+LOOP-GATE-TREE: head=03c6c5db39f0ffb3e87309c07205233ee7f0d8bd diff=55243c186b018404
+LOOP-GATE: tests=1085 failures=1 errors=0 (<the 34 per-step costs elided here>) — failing: tools/sensors/tests/sensor-selftest.sh
+```
+
+The failing step and case, from `tools/gate-attribute.sh`:
+
+```
+step: tools/sensors/tests/sensor-selftest.sh
+case: hotspot#theBoundIsAboveOneChangedFile
+rerun: tools/sensors/tests/sensor-selftest.sh --case hotspot#theBoundIsAboveOneChangedFile
+```
+
+The case's own message:
+
+```
+the row's bound (1000000) is not above the largest file it watches (4349247 bytes), so one change of that file is a hotspot
+```
+
+## Attributed to the base, not to this change
+
+The case asserts `threshold > the largest tracked file`, reading the bound from the hotspot row of
+`tools/sensors/sensors.json` and the size from `git ls-files` over the tree. Both inputs are the same at `main`
+and at this change's head, so the assertion is false at the base too:
+
+| input | at `main` | at `03c6c5db` |
+|---|---|---|
+| the hotspot row's `threshold` | 1000000 | 1000000 |
+| largest tracked file | 4349247 | 4349247 |
+
+The 4 349 247-byte file is
+`openspec/changes/archive/2026-11-07-car-reroute-without-losing-the-map/evidence/device-logcat-full.log`,
+which landed with `4dc08a9a` (`#739` — "archive with its evidence") and is byte-identical here (task 6.3).
+This change touches neither the row nor the archive, so the red predates it and is `#739`'s.
+
+Repairing it means either raising the churn row's bound or excluding archived evidence from what the row
+measures — a project value and a row behaviour, which is not what this change is. It is left red and reported.
+
+## The waiver
+
+**Waived:** the one red gate step, `tools/sensors/tests/sensor-selftest.sh` /
+`hotspot#theBoundIsAboveOneChangedFile`, is pre-existing on `main` and is not this change's. The run that proves
+it, taken by the run's supervisor in a throwaway worktree of `main` at **`f11595fa`** — the base, *without* this
+change's move, where the suite still lives at `tools/sensor-selftest.sh`:
+
+```
+bash tools/sensor-selftest.sh --case 'hotspot#theBoundIsAboveOneChangedFile'
+  the row's bound (1000000) is not above the largest file it watches (4349247 bytes), so one change of that file is a hotspot
+FAIL hotspot#theBoundIsAboveOneChangedFile   (exit 1)
+```
+
+So the case fails on the base with the same two numbers, before anything moved, and the file it measures is
+`f11595fa`'s archive evidence and not this change's. The gate this change is archived on is
+`LOOP-GATE-TREE: head=03c6c5db39f0ffb3e87309c07205233ee7f0d8bd diff=55243c186b018404` /
+`tests=1085 failures=1 errors=0`, the `1` being this case.

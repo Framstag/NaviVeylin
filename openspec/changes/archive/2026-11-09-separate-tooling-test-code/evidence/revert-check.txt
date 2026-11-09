@@ -1,0 +1,14 @@
+# Revert-check — task 4.2, the portability check excludes tests by location
+
+Run 2026-11-09T05:18:52Z on `finalize/issue-740`.
+
+Command: `bash tools/mutate.sh --mutations tools/tests/portability-mutations.json --only 4.1`
+
+```
+4.1	portability#testsDirectoryIsNotScanned	the engine set skips the tooling's test code by directory, not by a file-name suffix, so a test file with no suffix is never scanned (#740)
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-portability.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+```

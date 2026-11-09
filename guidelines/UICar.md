@@ -228,6 +228,21 @@ describes (spec: `route-calculation-feedback`). The route-calculation wait notic
 - **Rule: a wait notice is guarded like every other host path.** The template build goes through `carPaneTemplate`,
   the push/removal through `guardedHostCall`, and the sync is deferred (and re-applied once)
   while the session is not started — see the car-host rules in AGENTS.md.
+- **Rule: a car map that has never drawn a frame states the failure in the host content slot.**
+  The map-unavailable notice is drawn *inside* a frame (the screen's overlay drawer runs in
+  `drawToSurface`), so a screen whose renderer spent its frame-wait bound without landing one has
+  nothing to paint it on — and a screen that never drew keeps nothing. The two full-screen map
+  screens (`FreeDrivingScreen`, `NavigationScreen`) therefore answer
+  `MapTemplateFactory.buildMapUnavailableTemplate` for exactly as long as the renderer's budget is
+  spent: `MapWithContentTemplate` carrying one disabled `map_unavailable` row (the shape
+  `buildMenuContent(mapUnavailable = true)` already uses) plus the strips the screen already had, so
+  the fallback loses no affordance. The first frame that lands returns the content-slotless
+  `NavigationTemplate` (spec: `auto/free-driving` — A full-screen car map with no frame states that
+  the map is unavailable; change `fix-a-frameless-car-map-shows-the-notice`). The trigger is the
+  frame-wait exhaustion state (`AutoMapRenderer.frameWaitExhausted`, bound
+  `FRAME_WAIT_BOUND_MS` = 4 000 ms, reported through `onFrameWaitStateChanged` and applied on the
+  main thread), never `RendererState.DEGRADED`: a repeatedly faulting renderer is a different event,
+  and its notice is drawn on a surface that has frames.
 
 ## 4. Details attribute list (Android Auto)
 

@@ -5,6 +5,8 @@ import android.util.Log
 import android.view.Surface
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
+import androidx.car.app.model.Action
+import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.CarText
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.NavigationTemplate
@@ -141,6 +143,18 @@ class NavigationScreen(
      * drawn on the map surface in the overlay below — the host chrome cannot state it.
      */
     private var mapDegraded = false
+
+    /**
+     * True while the renderer's frame-wait budget is spent and no frame has landed (spec:
+     * auto/free-driving — A full-screen car map with no frame states that the map is unavailable;
+     * design D2).
+     *
+     * The degraded notice above is drawn *inside* a frame, so a surface that never drew one cannot
+     * carry it. While this is true, [buildTemplate] answers a template whose host content slot holds
+     * the notice instead; the first frame that lands clears it and the navigation template returns.
+     * Main thread only.
+     */
+    private var mapFrameless = false
 
     /**
      * The route-calculation strip's published state: written by the state collector (main thread),
@@ -383,6 +397,13 @@ class NavigationScreen(
                 renderer.onRendererDegraded = {
                     postTemplateRefresh { rendererGate.markDegraded() }
                 }
+                // No frame inside the wait's bound (spec: auto/free-driving — A full-screen car map
+                // with no frame states that the map is unavailable; design D2/D3): there is no frame
+                // to draw the notice on, so the template carries it. Reported from the render thread,
+                // applied on the main thread like the two reports above.
+                renderer.onFrameWaitStateChanged = { exhausted ->
+                    postTemplateRefresh { onFrameWaitState(exhausted) }
+                }
                 // The startup push was skipped while the client was still
                 // building — apply the resolved presentation now.
                 pushDark()
@@ -554,9 +575,42 @@ class NavigationScreen(
         }
     }
 
-    private fun buildTemplate(): NavigationTemplate {
+    /**
+     * Apply the renderer's spent frame-wait budget to this screen's template (main thread only).
+     *
+     * The notice moves from the surface to the host content slot the moment the budget is spent — the
+     * surface has no frame to keep it on — and moves back off it on the first frame that lands. The
+     * template is invalidated on the change only, so a healthy screen pays no host call (spec:
+     * auto/free-driving — A full-screen car map with no frame states that the map is unavailable;
+     * design D2/D3).
+     */
+    internal fun onFrameWaitState(exhausted: Boolean) {
+        if (exhausted == mapFrameless) return
+        mapFrameless = exhausted
+        if (exhausted) {
+            Log.w(
+                TAG,
+                "no frame in ${AutoMapRenderer.FRAME_WAIT_BOUND_MS} ms — the host content slot carries the notice"
+            )
+        } else {
+            Log.d(TAG, "frame landed — the navigation template is back")
+        }
+        invalidate()
+    }
+
+    private fun buildTemplate(): Template {
         val state = navigationViewModel.state.value
         if (!state.isNavigating) {
+            if (mapFrameless) {
+                // The not-navigating view is the bare map plus BACK; with no frame it states the
+                // failure in the host content slot and keeps that one way out (design D2).
+                return MapTemplateFactory.buildMapUnavailableTemplate(
+                    carContext = carContext,
+                    mapActionStrip = null,
+                    actionStrip = ActionStrip.Builder().addAction(Action.BACK).build(),
+                    panModeListener = panHandler
+                )
+            }
             return NavigationTemplateFactory.buildNavigationTemplate(false, null, null, null)
         }
         // Host instruction panel (spec: auto/navigation-view): current-step
@@ -568,18 +622,34 @@ class NavigationScreen(
             laneImageFor = ManeuverGlyphs::lanesImage,
             resolver = carContext.stringResolver()
         )
+        val navigationMapActionStrip =
+            NavigationScreenActions.navigationMapActionStrip { onShowRouteDescription() }
+        val navigationActionStrip = NavigationScreenActions.navigationActionStrip(
+            onZoomIn = { onZoomIn() },
+            onZoomOut = { onZoomOut() },
+            onChangeDestination = { onChangeDestination() },
+            onEndNavigation = { onEndNavigation() },
+            changeDestinationTitle = carContext.getString(R.string.navigation_change_destination),
+            endNavigationTitle = carContext.getString(R.string.navigation_end)
+        )
+        if (mapFrameless) {
+            // No frame landed inside the frame-wait bound: the surface cannot carry the notice, so
+            // the host content slot does (spec: auto/free-driving — A full-screen car map with no
+            // frame states that the map is unavailable; design D2). The strip split is the navigating
+            // one, so every affordance the driver had stays reachable; the host panel is the failure
+            // path only, and the first landed frame returns the template below.
+            return MapTemplateFactory.buildMapUnavailableTemplate(
+                carContext = carContext,
+                mapActionStrip = navigationMapActionStrip,
+                actionStrip = navigationActionStrip,
+                panModeListener = panHandler
+            )
+        }
         return NavigationTemplateFactory.buildNavigationTemplate(
             isNavigating = true,
             travelEstimate = buildTravelEstimate(state),
-            mapActionStrip = NavigationScreenActions.navigationMapActionStrip { onShowRouteDescription() },
-            actionStrip = NavigationScreenActions.navigationActionStrip(
-                onZoomIn = { onZoomIn() },
-                onZoomOut = { onZoomOut() },
-                onChangeDestination = { onChangeDestination() },
-                onEndNavigation = { onEndNavigation() },
-                changeDestinationTitle = carContext.getString(R.string.navigation_change_destination),
-                endNavigationTitle = carContext.getString(R.string.navigation_end)
-            ),
+            mapActionStrip = navigationMapActionStrip,
+            actionStrip = navigationActionStrip,
             routingInfo = routingInfo,
             panModeListener = panHandler
         )

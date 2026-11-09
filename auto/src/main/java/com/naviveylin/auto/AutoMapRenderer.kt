@@ -351,6 +351,29 @@ class AutoMapRenderer internal constructor(
     @Volatile
     internal var frameWaitExhausted = false
 
+    /**
+     * The owner's view of [frameWaitExhausted]: invoked on the render thread, on the change only.
+     *
+     * A screen that has no frame has no surface to paint a notice on, so the screen needs the moment
+     * the budget is spent and the moment a frame lands — not a poll of the flag (spec:
+     * auto/free-driving — A full-screen car map with no frame states that the map is unavailable;
+     * design D2). The screen posts the value to the main thread, the shape
+     * [onRendererDegraded] uses.
+     */
+    internal var onFrameWaitStateChanged: ((exhausted: Boolean) -> Unit)? = null
+
+    /**
+     * Turn the spent-budget state on or off, telling the owner when it changed.
+     *
+     * The change-only edge is what keeps a healthy renderer silent: a frame landing while no budget
+     * was ever spent publishes nothing, and no host call follows it.
+     */
+    internal fun publishFrameWaitExhausted(exhausted: Boolean) {
+        if (frameWaitExhausted == exhausted) return
+        frameWaitExhausted = exhausted
+        onFrameWaitStateChanged?.invoke(exhausted)
+    }
+
     /** The one-shot watchdog of the current frame wait; cancelled by pause, detach and shutdown. */
     @Volatile
     internal var frameWaitJob: Job? = null

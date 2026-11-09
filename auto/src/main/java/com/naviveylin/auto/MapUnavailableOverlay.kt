@@ -17,7 +17,10 @@ import android.graphics.Typeface
  *
  * Known limitation, recorded in the change's tasks: if a screen's frame draw faults so badly that no
  * frame lands at all, the notice cannot be painted either — the surface then keeps its last frame.
- * The host templates offer no text slot to fall back to on those two screens.
+ * A screen that has never drawn one keeps nothing, so the two full-screen map screens state the
+ * failure in the host content slot instead for as long as the renderer's frame-wait budget is spent
+ * (`MapTemplateFactory.buildMapUnavailableTemplate`; spec `auto/free-driving` — A full-screen car map
+ * with no frame states that the map is unavailable).
  *
  * The paints are cached per surface density: the draw runs once per frame while the state holds, and
  * the frame path must not allocate per frame (spec `auto-map-renderer` — Marker drawing allocates no

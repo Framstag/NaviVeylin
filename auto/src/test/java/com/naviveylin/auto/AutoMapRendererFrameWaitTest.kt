@@ -250,4 +250,34 @@ class AutoMapRendererFrameWaitTest {
             renderer.renderRequestCount >= requestsBefore + 2
         )
     }
+
+    @Test
+    fun theSpentBudgetIsToldToTheOwnerAndClearedByALandedFrame() {
+        // Spec: auto/free-driving — A full-screen car map with no frame states that the map is
+        // unavailable (design D2). The screen can only move the notice off the surface it cannot
+        // draw on if the renderer says when the budget is spent and when a frame lands, so this is
+        // the seam's contract: one report per change, none while nothing changed.
+        rendererWithSurface()
+        renderer.frameWaitReport = { }
+        val told = mutableListOf<Boolean>()
+        renderer.onFrameWaitStateChanged = { told += it }
+
+        renderer.requestRender()
+        repeat(3) {
+            renderer.frameWaitIteration(renderer.frameWaitArmedAtMs + AutoMapRenderer.FRAME_WAIT_BOUND_MS + 1)
+        }
+        assertEquals("the owner is told once, when the budget is spent", listOf(true), told)
+        assertTrue("and the spent state is readable on the renderer", renderer.frameWaitExhausted)
+
+        // The retried request is still outstanding, so this iteration draws it.
+        renderer.frameIteration()
+        assertEquals("a landed frame clears the state the same way", listOf(true, false), told)
+
+        renderer.frameIteration()
+        assertEquals(
+            "a healthy frame reports nothing further",
+            listOf(true, false),
+            told
+        )
+    }
 }

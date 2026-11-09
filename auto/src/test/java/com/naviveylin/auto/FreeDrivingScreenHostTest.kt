@@ -1,7 +1,11 @@
 package com.naviveylin.auto
 
 import android.content.Context
+import androidx.car.app.AppManager
 import androidx.car.app.ScreenManager
+import androidx.car.app.model.ListTemplate
+import androidx.car.app.model.Row
+import androidx.car.app.navigation.model.MapWithContentTemplate
 import androidx.car.app.navigation.model.NavigationTemplate
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
@@ -134,6 +138,53 @@ class FreeDrivingScreenHostTest {
                 "the right strip carries zoom in and zoom out, in order",
                 listOf("+", "-"),
                 template.actionStrip!!.actions.map { it.title.toString() }
+            )
+        } finally {
+            dispose(screen)
+        }
+    }
+
+    @Test
+    fun aScreenWhoseFrameWaitBudgetIsSpentCarriesTheNoticeInTheHostSlot() {
+        // Spec: auto/free-driving — A full-screen car map with no frame states that the map is
+        // unavailable (design D2/D3): the notice's only other channel is the surface's overlay
+        // drawer, which runs inside a frame — so a screen that has never drawn one moves the notice
+        // into the host content slot, and the first frame that lands moves it back out.
+        every { carContext.getCarService(AppManager::class.java) } returns mockk(relaxed = true)
+        val screen = newScreen()
+        try {
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            assertTrue(
+                "with no spent budget the screen answers the content-slotless template",
+                screen.onGetTemplate() is NavigationTemplate
+            )
+
+            screen.onFrameWaitState(exhausted = true)
+
+            val frameless = screen.onGetTemplate()
+            assertTrue(
+                "a screen with no frame must answer a template that has a host content slot, " +
+                    "got ${frameless::class.java.simpleName}",
+                frameless is MapWithContentTemplate
+            )
+            frameless as MapWithContentTemplate
+            val rows = (frameless.contentTemplate as ListTemplate).singleList!!.items
+            assertEquals("the slot carries the notice and nothing else", 1, rows.size)
+            assertEquals(
+                "and it says the map is unavailable, so the driver reads the failure off the host",
+                carContext.getString(R.string.map_unavailable),
+                (rows.single() as Row).title.toString()
+            )
+            assertEquals(
+                "the map strip keeps the pan/exit pair, so the fallback loses no affordance",
+                2,
+                frameless.mapController!!.mapActionStrip!!.actions.size
+            )
+
+            screen.onFrameWaitState(exhausted = false)
+            assertTrue(
+                "the first frame that lands returns the bare map template",
+                screen.onGetTemplate() is NavigationTemplate
             )
         } finally {
             dispose(screen)

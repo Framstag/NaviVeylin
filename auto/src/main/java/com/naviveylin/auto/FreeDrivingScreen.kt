@@ -261,6 +261,18 @@ class FreeDrivingScreen(
      */
     private var mapDegraded = false
 
+    /**
+     * True while the renderer's frame-wait budget is spent and no frame has landed (spec:
+     * auto/free-driving — A full-screen car map with no frame states that the map is unavailable;
+     * design D2).
+     *
+     * The degraded notice above is drawn *inside* a frame, so a surface that never drew one cannot
+     * carry it. While this is true, [buildTemplate] answers a template whose host content slot holds
+     * the notice instead; the first frame that lands clears it and the bare map template returns.
+     * Main thread only.
+     */
+    private var mapFrameless = false
+
     init {
         // BACK and the system back action both leave free driving (spec:
         // "Exit free driving" — back returns to the map view).
@@ -366,6 +378,13 @@ class FreeDrivingScreen(
                 }
                 renderer.onRendererDegraded = {
                     postTemplateRefresh { rendererGate.markDegraded() }
+                }
+                // No frame inside the wait's bound (spec: auto/free-driving — A full-screen car map
+                // with no frame states that the map is unavailable; design D2/D3): there is no frame
+                // to draw the notice on, so the template carries it. Reported from the render thread,
+                // applied on the main thread like the two reports above.
+                renderer.onFrameWaitStateChanged = { exhausted ->
+                    postTemplateRefresh { onFrameWaitState(exhausted) }
                 }
             }
         }
@@ -537,7 +556,30 @@ class FreeDrivingScreen(
         }
     }
 
-    private fun buildTemplate(): NavigationTemplate {
+    /**
+     * Apply the renderer's spent frame-wait budget to this screen's template (main thread only).
+     *
+     * The notice moves from the surface to the host content slot the moment the budget is spent — the
+     * surface has no frame to keep it on — and moves back off it on the first frame that lands. The
+     * template is invalidated on the change only, so a healthy screen pays no host call (spec:
+     * auto/free-driving — A full-screen car map with no frame states that the map is unavailable;
+     * design D2/D3).
+     */
+    internal fun onFrameWaitState(exhausted: Boolean) {
+        if (exhausted == mapFrameless) return
+        mapFrameless = exhausted
+        if (exhausted) {
+            Log.w(
+                TAG,
+                "no frame in ${AutoMapRenderer.FRAME_WAIT_BOUND_MS} ms — the host content slot carries the notice"
+            )
+        } else {
+            Log.d(TAG, "frame landed — the bare map template is back")
+        }
+        invalidate()
+    }
+
+    private fun buildTemplate(): Template {
         // NavigationTemplate: the ONLY template with no content slot — the map
         // fills the surface, no host-rendered panel/box (MapWithContentTemplate
         // showed a "Free driving" box, MapTemplate a "No items" placeholder).
@@ -549,12 +591,26 @@ class FreeDrivingScreen(
         // so the host renders the bare map; free driving never touches the
         // session's isNavigating state machine (design D1). The host draws its
         // own compass — cosmetic overlap with the app's rose, accepted.
+        val mapActionStrip = NavigationScreenActions.freeDrivingMapActionStrip { exitFreeDriving() }
+        val actionStrip = ActionStrip.Builder()
+            .addAction(NavigationScreenActions.zoomInAction { onZoomIn() })
+            .addAction(NavigationScreenActions.zoomOutAction { onZoomOut() })
+            .build()
+        if (mapFrameless) {
+            // No frame landed inside the frame-wait bound: the surface cannot carry the notice, so
+            // the host content slot does (spec: auto/free-driving — A full-screen car map with no
+            // frame states that the map is unavailable; design D2). The host panel is the failure
+            // path only; the first landed frame returns the bare map template above.
+            return MapTemplateFactory.buildMapUnavailableTemplate(
+                carContext = carContext,
+                mapActionStrip = mapActionStrip,
+                actionStrip = actionStrip,
+                panModeListener = panHandler
+            )
+        }
         return MapTemplateFactory.buildFullScreenTemplate(
-            mapActionStrip = NavigationScreenActions.freeDrivingMapActionStrip { exitFreeDriving() },
-            actionStrip = ActionStrip.Builder()
-                .addAction(NavigationScreenActions.zoomInAction { onZoomIn() })
-                .addAction(NavigationScreenActions.zoomOutAction { onZoomOut() })
-                .build(),
+            mapActionStrip = mapActionStrip,
+            actionStrip = actionStrip,
             panModeListener = panHandler
         )
     }

@@ -97,7 +97,7 @@ internal fun AutoMapRenderer.frameIteration() {
         armFrameWaitWatchdog()
     } else {
         frameWaitRetries = 0
-        frameWaitExhausted = false
+        publishFrameWaitExhausted(false)
     }
 }
 
@@ -139,14 +139,14 @@ internal fun AutoMapRenderer.frameWaitIteration(nowMs: Long) {
         // A frame landed since the wait was armed. The budget re-arms with it, so one stall does not
         // disarm every later wait of this renderer (design D3).
         frameWaitRetries = 0
-        frameWaitExhausted = false
+        publishFrameWaitExhausted(false)
         return
     }
     if (surface == null) return
     if (nowMs - frameWaitArmedAtMs < frameWaitBoundMs) return
     if (frameWaitExhausted) return
     if (frameWaitRetries >= FRAME_WAIT_MAX_RETRIES) {
-        frameWaitExhausted = true
+        publishFrameWaitExhausted(true)
         frameWaitReport(
             "frame wait expired: no frame in $frameWaitBoundMs ms after " +
                 "$frameWaitRetries retries"

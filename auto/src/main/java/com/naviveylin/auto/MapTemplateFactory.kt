@@ -152,4 +152,48 @@ object MapTemplateFactory {
         panModeListener?.let { builder.setPanModeListener(it) }
         return builder.build()
     }
+
+    /**
+     * Assemble a full-screen map template whose only host-drawn row states that the map is
+     * unavailable — the template a started screen answers while no frame has landed.
+     *
+     * [buildFullScreenTemplate]'s `NavigationTemplate` has no content slot, so its notice can only be
+     * painted on the surface — and a surface with no frame has nothing to keep it on
+     * ([MapUnavailableOverlay]'s own KDoc). The failure path therefore takes the template that has a
+     * slot and spends it on that single disabled row, the shape [buildMenuContent]'s `mapUnavailable`
+     * row already uses; the healthy path keeps the content-slotless template. A [MapController] is
+     * still set, strip or no strip, so the host keeps delivering the surface the screen draws on once
+     * a frame lands and the screen can go back to [buildFullScreenTemplate] (spec: auto/free-driving —
+     * A full-screen car map with no frame states that the map is unavailable).
+     */
+    fun buildMapUnavailableTemplate(
+        carContext: CarContext,
+        mapActionStrip: ActionStrip?,
+        actionStrip: ActionStrip?,
+        panModeListener: PanModeListener? = null
+    ): MapWithContentTemplate {
+        val content = ListTemplate.Builder()
+            .setSingleList(
+                ItemList.Builder()
+                    .addItem(
+                        Row.Builder()
+                            .setTitle(carContext.getString(R.string.map_unavailable))
+                            .setEnabled(false)
+                            .build()
+                    )
+                    .build()
+            )
+            .build()
+        val mapController = MapController.Builder()
+            .apply {
+                mapActionStrip?.let { setMapActionStrip(it) }
+                panModeListener?.let { setPanModeListener(it) }
+            }
+            .build()
+        val builder = MapWithContentTemplate.Builder()
+            .setMapController(mapController)
+            .setContentTemplate(content)
+        actionStrip?.let { builder.setActionStrip(it) }
+        return builder.build()
+    }
 }

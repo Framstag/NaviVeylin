@@ -147,7 +147,9 @@ car Surface:
     budget for this started screen period is spent; the screens log `map state -> DEGRADED`
     (`MapScreen`/`NavigationScreen`/`FreeDrivingScreen`/`DetailsScreen`) and show `map_unavailable`
     (a disabled content row on the map/details screens, a surface-drawn notice on the two
-    `NavigationTemplate` screens, which have no content slot). `onStart` re-arms the budget.
+    `NavigationTemplate` screens, which have no content slot — and, when no frame has landed at all,
+    the `map_unavailable` row in the host content slot those screens switch to until one does; see
+    `UICar.md` §3c). `onStart` re-arms the budget.
   A fault here is **not** the dead-surface path: `surfaceFailed` (a surface that cannot be locked)
   still stops the loop deliberately and asks the host for a fresh surface (`MAX_SURFACE_REFRESH_ATTEMPTS`).
 

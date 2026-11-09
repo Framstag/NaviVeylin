@@ -150,4 +150,39 @@ class MapTemplateFactoryTest {
         freeDrivingRow.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
         assertTrue("Free driving row must invoke its callback", clicked)
     }
+
+    @Test
+    fun theNoFrameTemplateSpendsItsContentSlotOnTheNoticeAlone() {
+        // Spec: auto/free-driving — A full-screen car map with no frame states that the map is
+        // unavailable (design D2). The template that has a content slot spends it on the one
+        // disabled notice row and keeps the strips the screen already had, so a map that never drew
+        // a frame loses no affordance.
+        val mapStrip = ActionStrip.Builder()
+            .addAction(Action.Builder().setIcon(CarGlyphs.exit).build())
+            .build()
+        val strip = ActionStrip.Builder()
+            .addAction(Action.Builder().setTitle("+").build())
+            .addAction(Action.Builder().setTitle("-").build())
+            .build()
+
+        val template = MapTemplateFactory.buildMapUnavailableTemplate(
+            testCarContext(),
+            mapActionStrip = mapStrip,
+            actionStrip = strip
+        )
+
+        val rows = (template.contentTemplate as ListTemplate).singleList!!.items
+        assertEquals("the host slot carries the notice and nothing else", 1, rows.size)
+        assertEquals(
+            "and it says the map is unavailable",
+            testCarContext().getString(R.string.map_unavailable),
+            (rows.single() as androidx.car.app.model.Row).title.toString()
+        )
+        assertEquals("the map strip is the screen's own", 1, template.mapController!!.mapActionStrip!!.actions.size)
+        assertEquals("and so is the right strip", 2, template.actionStrip!!.actions.size)
+        org.junit.Assert.assertFalse(
+            "the notice is a state statement, not an action",
+            (rows.single() as androidx.car.app.model.Row).isEnabled
+        )
+    }
 }

@@ -1,0 +1,12 @@
+base: 2efea9480257d034515c3a14d8af2b3bf5d8cc59  (2026-11-09T16:40:44Z)
+
+$ bash tools/loop/tests/loop-selftest.sh --case report#theBoundRateIsNamed
+report#theBoundRateIsNamed|   the run's rate, over the items it attempted: 'bound: 2 of 11 items (18.2 %)' not found in: **agent-issue-loop — 2026-11-09T16:40:45Z** (budget 11 items / 90 min · review 
+FAIL report#theBoundRateIsNamed
+loop-selftest: 1 of 1 cases failed
+
+$ bash tools/loop/tests/loop-selftest.sh --case state#aCutRecordsTheFilesItsPatchCarries
+state#aCutRecordsTheFilesItsPatchCarries|   and the number of files that patch carries: expected '3', got 'null'
+FAIL state#aCutRecordsTheFilesItsPatchCarries
+loop-selftest: 1 of 1 cases failed
+

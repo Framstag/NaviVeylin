@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 306 records (labels: 265.1 265.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.Fip71j
+RED    265.1  report#theBoundRateIsNamed   (the share the rate line prints, so the run's own bound reads as the zero it did not measure (issue #809))
+       2026-11-09T16:42:28Z — the run's rate, over the items it attempted: 'bound: 2 of 11 items (18.2 %)' not found in: **agent-issue-loop — 2026-11-09T16:42:26Z** (budget 11 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base d22a4e9
+restore 265.1 report#theBoundRateIsNamed green again
+RED    265.2  state#aCutRecordsTheFilesItsPatchCarries   (the count of files the kept patch carries, so what a bound ended is named and never priced (issue #809))
+       2026-11-09T16:42:34Z — and the number of files that patch carries: expected '3', got 'null'
+restore 265.2 state#aCutRecordsTheFilesItsPatchCarries green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

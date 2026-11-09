@@ -1,0 +1,10 @@
+# the gate step that overran: tools/loop/tests/loop-selftest.sh --from-git main, ended at its 1800 s bound.
+# 385 of the 386 cases the selection names reported PASS; this is the one that never returned.
+
+$ cd .pi/tmp/waiver-main-809   (a detached worktree at main: 2efea9480257d034515c3a14d8af2b3bf5d8cc59)
+$ timeout 300 bash tools/loop/tests/loop-selftest.sh --case run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+exit=124
+
+$ cd /home/tim/projects/NaviVeylin   (this change: 8640686da72ea67529dff7720b4b28f3e5311317)
+$ timeout 300 bash tools/loop/tests/loop-selftest.sh --case run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+exit=124

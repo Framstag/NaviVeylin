@@ -1,0 +1,2 @@
+$ bash tools/check-change-readiness.sh openspec/changes/fix-a-bound-hit-rate-is-named
+LOOP-CHANGE-READY: ok

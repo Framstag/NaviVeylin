@@ -1,0 +1,7 @@
+$ bash tools/loop/tests/loop-selftest.sh --case <each> on afea0cdb (2026-11-09T16:43:42Z)
+
+$ bash tools/loop/tests/loop-selftest.sh --case report#theBoundRateIsNamed
+PASS report#theBoundRateIsNamed
+
+$ bash tools/loop/tests/loop-selftest.sh --case state#aCutRecordsTheFilesItsPatchCarries
+PASS state#aCutRecordsTheFilesItsPatchCarries

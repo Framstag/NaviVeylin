@@ -1,0 +1,14 @@
+$ bash tools/loop/tests/loop-selftest.sh --group report on afea0cdb (2026-11-09T16:45:29Z)
+PASS report#theSpendIsWorkNotWaiting
+PASS report#anItemRecordsItsRepeatReads
+loop-selftest: report 25 cases 181.73 s
+loop-selftest: all 25 cases passed (JDK 27, offline, no token, no sandbox) — 22.06 s, selection: --group report
+
+$ bash tools/loop/tests/loop-selftest.sh --group state
+PASS state#aCloseOverARedGateWithoutAWaiverIsRefused
+PASS state#anItemsClassSelectsTheWorkerCommand
+loop-selftest: state 37 cases 338.22 s
+loop-selftest: all 37 cases passed (JDK 27, offline, no token, no sandbox) — 38.30 s, selection: --group state
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#childPastItsContextBoundIsCut
+PASS run#childPastItsContextBoundIsCut

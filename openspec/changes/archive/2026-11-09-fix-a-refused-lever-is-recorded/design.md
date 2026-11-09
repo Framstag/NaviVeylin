@@ -22,13 +22,13 @@ meets.
 The other two places that assert the value stay as they are: `tools/loop/loop.conf`'s comment states the key's
 mechanics for every project that copies the profile, and `guidelines/BacklogTooling.md`'s table is a key inventory
 with a column per key. A second statement of the measurement in either would be the rule stated twice —
-`openspec/specs/documentation-ownership/spec.md:417` (`a rule SHALL be stated once and referenced elsewhere, as it is
-across guidelines/`) and `:259`, "A rule that spans documents names one home".
+`openspec/specs/documentation-ownership/spec.md:259` ("A rule that spans documents names one home": exactly one of
+them states the rule normatively and the others reference it).
 
 ## Alternatives the evidence eliminated
 
 - **Raise the bound** (the lever the item names). Eliminated by the item's measurement and by this change's own
-  probe of the records: all three items the run of 2026-11-07T19:53Z recorded past the bound sat within a thousand
+  probe of the records: all three items the run of 2026-11-07T19:53Z recorded past the bound sat within two thousand
   tokens of it and each had already written its red-on-HEAD case and its change, so the bound is not ending an item
   before its work exists — a wider one buys more of the tail the cuts are made of. Not this change's decision to take
   either: `tools/loop/loop.conf:212` records the value, and an unattended worker may not move a value a person's
@@ -44,16 +44,23 @@ across guidelines/`) and `:259`, "A rule that spans documents names one home".
 - **A row in `guidelines/Backlog.why.md` §13 "Deferred, and why".** Eliminated: §13 is a table of deferrals and
   their reasons. A refused lever is neither deferred nor an adoption decision, and the bound's measurement, keys and
   derivation all live in section 7b, so a rationale-layer row would split one subject across two layers.
+- **A row in `guidelines/Backlog.why.md` §12 "The decisions, and why".** Eliminated: §12 is the map of the
+  backlog's own decisions, each row naming the change that made it, and this change decides nothing about the
+  backlog — it records a refusal and leaves the bound at 200 000, so a row there would claim a decision this change
+  did not take. The reasoning that answers the lever is this design's "Alternatives the evidence eliminated", which a
+  reader reaches through the section that owns the bound.
 - **A sentence in `tools/loop/loop.conf`'s comment instead.** Eliminated: it is the profile, copied into other
   projects (`PORTING.md`), and its comment already carries this project's measurement for a reader of the key. The
   refusal is about this project's bound and belongs in the section that routes the bound's derivation.
 
 ## Blast radius
 
-One paragraph in one guideline section. Section 7b grows by 761 B in 8 lines; the routed figure in `AGENTS.md` prices
+One paragraph in one guideline section: `git diff --numstat 8a2f1adb -- guidelines/Backlog.recipes.md` → `10 0`, so
+section 7b grows by 10 lines. The routed figure in `AGENTS.md` prices
 `Backlog.md`'s section 7b stub at 0.2 kB, which does not change, and `tools/check-doc-routes.sh` reads references, not
-sizes. No requirement, case, fixture, profile key or shell file changes, so no behaviour and no gate selection moves;
-the change carries no `specs/` delta.
+sizes. No requirement, case, fixture or profile key changes, so no behaviour moves; the gate's own selection grows
+only because this change's artifacts are in the tree — `LOOP-MEASURE-CHECK` names seven commands against the base's
+four, and each of them is a document check the tree already runs. The change carries no `specs/` delta.
 
 ## Rollback
 

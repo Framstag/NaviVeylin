@@ -27,10 +27,11 @@ $ ls -l .pi/issue-loop/items/{719,753,819}/leftover-from-killed-run.patch
 -rw-r--r-- 1 tim tim 509913  8. Nov 02:07 …/items/819/leftover-from-killed-run.patch
 ```
 
-All three tokens sit within a thousand of the recorded 200 000, and
+All three tokens sit within two thousand of the recorded 200 000, and
 `.pi/issue-loop/items/{719,753,819}/` each carries the red-on-HEAD XML and the change diff its worker had written
 before the run ended it (`719`: `TEST-NavigationEngineStepIndexTest-red-on-HEAD.xml`; `753`: `red-on-HEAD.xml`;
-`819`: four `red-on-HEAD-*.log`), so a wider bound buys more of the tail a cut is made of rather than the item the
+`819`: three `red-on-HEAD-*.log` — `red-on-HEAD-aReviewDiffNamesTheTreeItWasWrittenFrom.log`,
+`red-on-HEAD-aThirdFullRunInOneSessionIsRefused.log` and `red-on-HEAD-theGateAndTheRoundNameOneTree.log`), so a wider bound buys more of the tail a cut is made of rather than the item the
 cut interrupted. `719`'s record names `bound` as its mechanism; `753` and `819` carry the context reading and the
 kept patch and no stop reason, which is what their records were written with. What the bound owed instead is #754's
 reading of a kept patch and #809's rate line, and both have landed
@@ -42,7 +43,8 @@ reading of a kept patch and #809's rate line, and both have landed
 the next `## ` heading — and requires the refusal, its issue and the three recorded contexts in it. Run against the
 section as the base commit carries it (`git show 8a2f1adb:guidelines/Backlog.recipes.md` into a scratch root, which
 is how a red read is taken without reverting the tree) it reports `tests=1 failures=1` — `missing '#833' '200 427'
-'200 733' '201 981'` (`evidence/red-on-HEAD.xml`, `evidence/red-on-HEAD.log`, 2026-11-09T21:46:54Z). It is
+'200 733' '201 981'` (`evidence/red-on-HEAD.xml`, `evidence/red-on-HEAD.log`, 2026-11-09T22:01:23Z; the tally
+carries that run's clock in its `run` property). It is
 text evidence, not a declared case — the section it reads is the one this change writes, so a permanent case over it
 would be the refusal wearing a case's name, the reading `fix-reversal-rules-name-their-record` recorded for its own
 probe.
@@ -62,11 +64,11 @@ statement of the measurement there would be the rule stated twice.
 - `guidelines/Backlog.recipes.md:254` (section 7b) — one paragraph, after the paragraph that measures the bound and before the
   paragraph that prints its hit rate: raising the stop above 200 000 is refused, with the three items the run of
   2026-11-07T19:53Z ended at it, the work each already carried, the size each kept, and the value unchanged.
-- `openspec/changes/fix-a-refused-lever-is-recorded/` — the probe, its red and green tallies, and the structural
+- `openspec/changes/archive/2026-11-09-fix-a-refused-lever-is-recorded/` — the probe, its red and green tallies, and the structural
   checks.
 
-Nothing else: no case, no fixture, no profile key and no existing shell file changes. Additive prose; the only
-rollback is reverting the paragraph, and the probe then reports `tests=1 failures=1` again.
+Nothing else: no case, no fixture, no profile key and no shell file outside this change's own `evidence/` changes.
+Additive prose; the only rollback is reverting the paragraph, and the probe then reports `tests=1 failures=1` again.
 
 surface: 0 cases added, 0 rewritten, 0 requirements added, 1 paragraph in 1 guideline section —
 `tools/look.sh 'refused lever|raise the stop|a wider bound|raising the bound' --path guidelines` → 0 matches before
@@ -78,7 +80,7 @@ text.
 Additive, prose only: no compiled file, no shell file the gate runs, so no build and no Gradle task is owed.
 
 - `guidelines/Backlog.recipes.md:254` — one paragraph in section 7b.
-- `openspec/changes/fix-a-refused-lever-is-recorded/evidence/` — the probe and its tallies.
+- `openspec/changes/archive/2026-11-09-fix-a-refused-lever-is-recorded/evidence/` — the probe and its tallies.
 
 **Rollback.** Reverting the paragraph restores the section byte for byte; `evidence/refusal-record-probe.sh` then
 reports `tests=1 failures=1`, which is the signal the record is gone.

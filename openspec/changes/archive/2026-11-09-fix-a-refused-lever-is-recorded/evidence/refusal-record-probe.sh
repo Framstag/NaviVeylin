@@ -71,10 +71,15 @@ else
   cases="<testcase classname=\"refusal-record\" name=\"$case_name\"><failure message=\"$(printf '%s' "$detail" | sed 's/[&<>\"]/./g')\"/></testcase>"
 fi
 
-xml=$(printf '<testsuite name="refusal-record" tests="%s" failures="%s" errors="0"><properties><property name="root" value="%s"/></properties>%s</testsuite>' \
-  "$tests" "$failures" "$root" "$cases")
+# The clock the tally carries: a tally with no time on it cannot be set apart from a later run of the same
+# probe (the round-1 review read the red log and the green log side by side and neither said when it ran).
+run=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+xml=$(printf '<testsuite name="refusal-record" tests="%s" failures="%s" errors="0"><properties><property name="root" value="%s"/><property name="run" value="%s"/></properties>%s</testsuite>' \
+  "$tests" "$failures" "$root" "$run" "$cases")
 
 if [ -n "$out" ]; then printf '%s\n' "$xml" > "$out"; else printf '%s\n' "$xml"; fi
+printf 'refusal-record-probe: run %s\n' "$run"
 printf 'refusal-record-probe: tests=%s failures=%s%s\n' "$tests" "$failures" \
   "$( [ "$failures" -eq 0 ] || printf ' — %s' "$detail")"
 [ "$failures" -eq 0 ]

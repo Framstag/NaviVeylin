@@ -1023,6 +1023,13 @@ MUTATIONS=(
   'quota-hold.6@-@tools/loop/report.sh@report#theSpendIsWorkNotWaiting@the spend figure excluding the wait, so a paused run reports work rather than clock@s|\$(date +%s) - run_epoch ) / 60 - paused_min|$(date +%s) - run_epoch ) / 60|'
   'quota-hold.7@-@tools/loop/run.sh@run#theQuotaSwitchIsExplicit@the flag emptying the reader key for one run, so a person can start a run whose provider the reader does not answer for@s|^  export LOOP_QUOTA_CMD=""$|  : # the mutation keeps the reader armed|'
   'quota-hold.8@-@tools/loop/loop.conf@run#theQuotaSwitchIsExplicit@a set-but-empty environment value winning over the file, so the key can be switched without editing it@s|{LOOP_QUOTA_CMD-bash|{LOOP_QUOTA_CMD:-bash|'
+  # role-model.x — the model a role's tokens were charged to (issue #823). The model is read off the same `turn_end`
+  # message the usage is, so a reader that drops it records the price of a decision and no subject; the row the
+  # trend prints names it, so a row that omits it prints a model the report never checked; and a role no model
+  # explained keeps a row of its own, so dropping that row loses tokens the line still counts.
+  'role-model.1@-@tools/loop/state.sh@report#aRolesTokensRecordTheModelThatAnswered@the model a turn answered with, so a role total names no model and every archived item is a price without its subject (issue #823)@s#^ *model: (($m.responseModel? // $m.model? // null)$#model: (null)#'
+  'role-model.2@-@tools/loop/report.sh@report#aRolesTokensRecordTheModelThatAnswered@the model the trend names in a role row, so the line prints a row a reader cannot tell apart from the bare role total (issue #823)@s#if .model == null then#if true then#'
+  'role-model.3@-@tools/loop/report.sh@report#aRoleWhoseTurnNamedNoModelKeepsItsRow@the row of a role no model explained, so the rows the line prints no longer add up to the total it is over (issue #823)@s#map(select(.tok > 0))#map(select(.tok > 0 and .model != null))#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

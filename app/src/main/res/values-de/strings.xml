@@ -157,6 +157,7 @@
     <string name="voice_after_distance_meters">nach %1$d Metern</string>
     <string name="voice_after_distance_yards">nach %1$d Yards</string>
     <string name="voice_then">dann</string>
+    <string name="voice_destination">Richtung %1$s</string>
     <string name="voice_turn_left">links abbiegen</string>
     <string name="voice_turn_right">rechts abbiegen</string>
     <string name="voice_sharp_left">scharf links abbiegen</string>

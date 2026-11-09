@@ -4,6 +4,8 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.RouteStep
+import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.SurfaceOrigin
@@ -477,6 +479,51 @@ class NavigationEngineVoiceGuidanceTest {
         assertEquals(
             "the shared GPS switch decides, not the surface's voice switch",
             listOf("GPS signal lost"),
+            output.spoken
+        )
+    }
+
+    // --- The signposted destination (spec: voice-guidance — The motorway manoeuvre names its
+    // signposted destination) ---
+
+    /**
+     * Spec scenario: A motorway instruction names the signposted destination.
+     */
+    @Test
+    fun motorwayInstructionNamesTheSignpostedDestination() {
+        val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val output = RecordingVoiceOutput()
+        val engine = voiceEngine(client, output, context)
+
+        engine.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
+        await { engine.state.value.isNavigating }
+
+        // The fork the screens word as "A8 towards München" is the same manoeuvre the agent
+        // announces: the destination is the step's own record, not a second reading of the route.
+        client.navigationListener!!.onNextRouteStep(
+            RouteStep().apply {
+                kind = RouteStep.Kind.MOTORWAY_CHANGE
+                distanceFromStart = 500.0
+                remainingDistance = 300.0
+                motorwayChange = RouteStep.MotorwayChange().apply {
+                    from = RouteStep.Name("", "A3")
+                    to = RouteStep.Name("", "A8")
+                    move = TurnType.RIGHT
+                }
+                destination = "München"
+            }
+        )
+        drain()
+
+        client.navigationListener!!.onVoiceInstruction(
+            intArrayOf(VoiceGuidance.AFTER, 58, VoiceGuidance.METERS, VoiceGuidance.TURN_RIGHT)
+        )
+        await { output.spoken.isNotEmpty() }
+
+        assertEquals(
+            "both branches of a motorway fork must not sound the same",
+            listOf("After 300 meters turn right towards München"),
             output.spoken
         )
     }

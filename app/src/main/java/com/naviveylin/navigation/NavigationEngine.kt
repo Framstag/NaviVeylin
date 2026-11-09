@@ -17,6 +17,8 @@ import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.guidanceStep
 import com.naviveylin.core.LocationGrant
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.manoeuvreFromStep
 import com.naviveylin.core.FailureReason
 import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
@@ -949,7 +951,8 @@ class NavigationEngine @Inject constructor(
             // guard keeps a sample that raced it silent (spec: `voice-guidance` — Stopping
             // navigation cancels a pending announcement).
             if (!_state.value.isNavigating) return@launch
-            voiceGuidance.announce(samples)
+            // A GPS state names no manoeuvre, so its sentence carries no destination clause.
+            voiceGuidance.announce(samples, null)
             DiagnosticsLog.log(
                 VOICE_TAG,
                 voiceAnnouncementLine(
@@ -1197,7 +1200,14 @@ class NavigationEngine @Inject constructor(
                             )
                             return@launch
                         }
-                        voiceGuidance.announce(samples)
+                        // The spoken manoeuvre names the destination its step carries, on the same
+                        // gate the screens word it with (spec: `voice-guidance` — The motorway
+                        // manoeuvre names its signposted destination).
+                        val manoeuvre = _state.value.nextStep?.let { manoeuvreFromStep(it) }
+                        val destination = manoeuvre
+                            ?.takeIf { ManoeuvreLabels.carriesDestination(it) }
+                            ?.destination
+                        voiceGuidance.announce(samples, destination)
                         DiagnosticsLog.log(
                             VOICE_TAG,
                             voiceAnnouncementLine(

@@ -20,9 +20,16 @@ class VoiceGuidance @Inject constructor(
     private val output: VoiceOutput
 ) {
 
-    /** Announce [samples], or stay silent when the sequence carries no recognised instruction. */
-    fun announce(samples: IntArray) {
-        val sentence = sentenceFor(samples)
+    /**
+     * Announce [samples], or stay silent when the sequence carries no recognised instruction.
+     *
+     * [destination] is the signposted destination of the manoeuvre the sequence announces: the
+     * engine passes it only where the step's own gate holds, and the sentence carries it as one
+     * localized clause (spec: `voice-guidance` — The motorway manoeuvre names its signposted
+     * destination). A `null` destination leaves the sentence as it was before the clause existed.
+     */
+    fun announce(samples: IntArray, destination: String?) {
+        val sentence = sentenceFor(samples, destination)
         if (sentence.isNotEmpty()) {
             output.speak(sentence)
         }
@@ -52,7 +59,7 @@ class VoiceGuidance @Inject constructor(
     internal fun gpsStateOf(samples: IntArray): Int? =
         samples.firstOrNull { it == GPS_FOUND || it == GPS_LOST }
 
-    internal fun sentenceFor(samples: IntArray): String {
+    internal fun sentenceFor(samples: IntArray, destination: String?): String {
         val parts = mutableListOf<String>()
         var index = 0
         while (index < samples.size) {
@@ -158,6 +165,11 @@ class VoiceGuidance @Inject constructor(
             }
         }
         if (parts.isEmpty()) return ""
+        // The destination is a wording input of the manoeuvre, never a sentence of its own: a
+        // sequence that composed nothing stays silent even when a step carried the record.
+        if (destination != null) {
+            parts += context.getString(R.string.voice_destination, destination)
+        }
         return parts.joinToString(" ").replaceFirstChar { it.titlecase() }
     }
 

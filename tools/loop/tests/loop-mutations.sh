@@ -1005,6 +1005,12 @@ MUTATIONS=(
   '264.1@-@tools/loop/run.sh@run#aChildThatNeverStartedIsRetriedBeforeTheRunStops@the budgeted retry the never-started stop spends before it ends the run, so one refused provider costs the item its retry and not the window (issue #752)@s|^    if \[ "\$retry_spent_child_start" -lt "\$retry_max" \]; then$|    if false; then|'
   '264.2@-@tools/loop/run.sh@run#theRetryCapIsSpentAndTheRunStops@the cap that makes a class which keeps failing an answer about the run, so the retries stop instead of looping (issue #752)@s|\[ "\$retry_spent_child_start" -lt "\$retry_max" \]|[ "\$retry_spent_child_start" -le "\$retry_max" ]|'
 
+  # 265.1 and 265.2 are issue #809's two invariants: the run's rate of items its own bound ended, and the files the
+  # patch such an item kept carries. Each removes one half of the line and nothing else, so the case that fails is the
+  # one that half belongs to — the count is still read and the item still named, and only the figure read out of it is
+  # gone.
+  '265.1@-@tools/loop/report.sh@report#theBoundRateIsNamed@the share the rate line prints, so the run'"'"'s own bound reads as the zero it did not measure (issue #809)@s|^  tenths=\$(( (hits \* 1000 + all / 2) / all ))$|  tenths=0|'
+  '265.2@-@tools/loop/state.sh@state#aCutRecordsTheFilesItsPatchCarries@the count of files the kept patch carries, so what a bound ended is named and never priced (issue #809)@s%^                  leftoverFiles:.*tonumber.*$%                  leftoverFiles:null,%'
   # quota-hold.x — the quota a run waits on instead of ending on. The records for the change that added the hold
   # (2026-11-08), labelled by the change rather than by a tracker item: the wait is turned into a status of the
   # run (6), the check that could not be made stays no refusal, an empty key stays no question, the wait moves the

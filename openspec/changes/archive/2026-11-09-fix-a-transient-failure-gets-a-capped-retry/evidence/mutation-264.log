@@ -1,0 +1,12 @@
+2026-11-08T21:37:46Z
+loop-mutations: selected 2 of 304 records (labels: 264.1 264.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.6CtEaM
+RED    264.1  run#aChildThatNeverStartedIsRetriedBeforeTheRunStops   (the budgeted retry the never-started stop spends before it ends the run, so one refused provider costs the item its retry and not the window (issue #752))
+       2026-11-08T21:37:52Z — the retry names the delay it waited: 'waiting 0 s' not found in: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no chil
+restore 264.1 run#aChildThatNeverStartedIsRetriedBeforeTheRunStops green again
+RED    264.2  run#theRetryCapIsSpentAndTheRunStops   (the cap that makes a class which keeps failing an answer about the run, so the retries stop instead of looping (issue #752))
+       2026-11-08T21:38:11Z — the run spent the two retries and started no fourth child: expected '3', got '4'
+restore 264.2 run#theRetryCapIsSpentAndTheRunStops green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+2026-11-08T21:38:20Z

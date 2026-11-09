@@ -1,0 +1,12 @@
+The gate step `tools/loop/tests/loop-selftest.sh --from-git main` overran its 1800 s bound (see `gate.txt`,
+`LOOP-GATE-STEP`). Its last case, `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem`, hangs — and it hangs on `main`
+too, in a throwaway worktree at 839ffc71 with nothing else running, so the bound is not this change's:
+
+  bash tools/loop/tests/loop-selftest.sh --case run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+  change tree 92e526da  rc=124 (timeout 240 s)  seconds=242
+  main  839ffc71         rc=124 (timeout 240 s)  seconds=241
+  main  839ffc71         rc=124 (timeout 150 s)  seconds=151   (repeat, after every leftover child was killed)
+
+The suite stops at that case in this tree's own `run` group as well: 139 of the 140 cases PASS, the 140th is the HUP
+case, and its slot sits there until the run is ended (`grouprun.log`). The gate's own record before the bound was
+`tests=567 failures=0` and the one error is this ended step.

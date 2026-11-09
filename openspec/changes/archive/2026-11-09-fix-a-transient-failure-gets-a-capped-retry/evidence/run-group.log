@@ -1,0 +1,5 @@
+2026-11-08T20:13:05Z
+PASS run#reviewDiffExcludesTheEvidenceArchive
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS run#theQuotaSwitchIsExplicit

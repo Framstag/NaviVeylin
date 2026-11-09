@@ -1,0 +1,8 @@
+2026-11-08T20:11:45Z
+run#aChildThatNeverStartedIsRetriedBeforeTheRunStops|   the retry names the delay it waited: 'waiting 0 s' not found in: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 min-free-mib=1024 free-mib=3203 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+FAIL run#aChildThatNeverStartedIsRetriedBeforeTheRunStops
+loop-selftest: 1 of 1 cases failed
+run#theRetryCapIsSpentAndTheRunStops|   the run spent the two retries and started no fourth child: expected '3', got '1'
+FAIL run#theRetryCapIsSpentAndTheRunStops
+loop-selftest: 1 of 1 cases failed
+2026-11-08T20:11:57Z

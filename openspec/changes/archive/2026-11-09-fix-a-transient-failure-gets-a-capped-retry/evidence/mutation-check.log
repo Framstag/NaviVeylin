@@ -1,0 +1,5 @@
+2026-11-08T20:13:01Z
+loop-mutations: selected 129 of 304 records (files: guidelines/Backlog.recipes.md tools/loop-cases.sh tools/loop-mutations.sh tools/loop/loop.conf tools/loop/run.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.uUSSsD
+loop-mutations: all 129 cases passed — every selected record applies to the file it names
+2026-11-08T20:13:02Z

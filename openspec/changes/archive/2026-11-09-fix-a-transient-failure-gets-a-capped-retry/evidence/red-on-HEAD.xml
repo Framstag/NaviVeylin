@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#aChildThatNeverStartedIsRetriedBeforeTheRunStops; --case run#theRetryCapIsSpentAndTheRunStops (HEAD f11595fa; transcribed from the runner's own summary, which writes no JUnit XML)" tests="2" failures="2" errors="0" time="12">
+  <failure message="run#aChildThatNeverStartedIsRetriedBeforeTheRunStops: the retry names the delay it waited: 'waiting 0 s' not found in the run's output">the run stops on the refused child instead of spending the recorded retry</failure>
+  <failure message="run#theRetryCapIsSpentAndTheRunStops: the run spent the two retries and started no fourth child: expected '3', got '1'">the run starts the worker once and stops, so no cap is spent</failure>
+  <system-out>2026-11-08T20:11:45Z FAIL run#aChildThatNeverStartedIsRetriedBeforeTheRunStops loop-selftest: 1 of 1 cases failed 2026-11-08T20:11:57Z FAIL run#theRetryCapIsSpentAndTheRunStops loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

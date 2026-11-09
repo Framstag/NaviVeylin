@@ -1,0 +1,17 @@
+gate: ./tools/loop/gate.sh (run once, base c0ddb97cadaefe10cbf126ba7d19cfb41fb02b97)
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 326s
+gate: bash tools/gen-feature-list.sh --check-classification — 3s
+gate: tools/check-doc-routes.sh — 0s
+gate: tools/tests/check-doc-routes-selftest.sh — 8s
+gate: tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list — 0s
+gate: tools/check-todo-references.sh — 1s
+  check-todo-references: 67 citation(s) resolve through the recorded table; 10448 file(s) excluded by the allowlist above
+gate: tools/check-openspec-hygiene.sh — 0s
+  OpenSpec artifacts are consistent: 15 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+gate: tools/tests/check-openspec-hygiene-selftest.sh — 0s
+  check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
+LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 326s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 0s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s)
+Per-suite tallies: gate-tally/ (copied from app/build/test-results/loop-gate)

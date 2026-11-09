@@ -1,0 +1,6 @@
+LOOP-CHANGE-READY: ok
+--- doc routes
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+--- openspec hygiene
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 15 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.

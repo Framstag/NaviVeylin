@@ -723,7 +723,8 @@ cmd_done() {
                            reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
-                           phases:$usage.phases, roles:$usage.roles, afterGate:$usage.afterGate}}]
+                           phases:$usage.phases, roles:$usage.roles, roleModels:$usage.roleModels,
+                           afterGate:$usage.afterGate}}]
       else
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
@@ -859,7 +860,7 @@ num_or_null() {
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,afterGate,reads,dupReads,dupChars}
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars}
   local events="${1:-}" blob="" gate_cmd gate_prog="" word
   # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
   # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
@@ -903,6 +904,12 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
             (($e.message // {}) as $m
              | .cur.turns = (.cur.turns + [{usage: (.cur.usage // ($m.usage? // null)),
                                             ms: ($m.durationMs? // 0),
+                                            # The model the turn answered with (issue #823): the same message that
+                                            # carries the usage carries `model`, and `responseModel` when the
+                                            # provider reported a concrete one, so the reader takes the concrete one
+                                            # and falls back to the requested one rather than choosing between them.
+                                            model: (($m.responseModel? // $m.model? // null)
+                                                    | if type == "string" and length > 0 then . else null end),
                                             calls: ($m.content | calls_of)}])
              | .cur.usage = null)
           else . end)
@@ -924,6 +931,24 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
                            tok: ([.turns[] | .usage | tok] | add // 0)}) as $s
            ({worker:null, reviewer:null, tail:null};
             .[$s.role] = (if $s.tok > 0 then (((.[$s.role]) // 0) + $s.tok) else .[$s.role] end))) as $roles
+      # …and the model each of those turns named, beside the role total (issue #823). The model is read off the same
+      # `turn_end` message the tokens are, so a role that answered on two models is two tallies rather than one row
+      # priced at whichever model came first, and two sessions of one role sum their models instead of overwriting. A
+      # role whose turns named no model stays null, never an empty object — the rule every figure of this function
+      # keeps.
+      | (reduce ($ses[] | {role: ((.prompt // "") | ascii_downcase
+                                  | if test("worker-tail") then "tail"
+                                    elif test("reviewer") then "reviewer"
+                                    else "worker" end),
+                           models: ([.turns[]
+                                     | select((.model // null) != null)
+                                     | {m: .model, t: (.usage | tok)}]
+                                    | group_by(.m) | map({key: .[0].m, value: ([.[].t] | add)}) | from_entries)}) as $s
+           ({worker:null, reviewer:null, tail:null};
+            .[$s.role] = (if ($s.models | length) > 0
+                          then (reduce ($s.models | to_entries[]) as $e (.[$s.role] // {};
+                                  .[$e.key] = ((.[$e.key] // 0) + $e.value)))
+                          else .[$s.role] end))) as $roleModels
       | ([$ses[] | ([.turns[] | any(.calls[]?; .gate)] | index(true)) as $g
            | select($g != null)
            | {after: ([.turns[$g:][] | .usage | tok] | add // 0),
@@ -999,6 +1024,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
                   else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
          roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
+         roleModels: (if ([$roleModels[] | select(. != null)] | length) == 0 then null else $roleModels end),
          afterGate: (if ($gated | length) == 0 then null
                      else {tokens: ([$gated[].after] | add // 0),
                            total: ([$gated[].total] | add // 0),
@@ -1006,7 +1032,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null}' ;;
   esac
 }
 

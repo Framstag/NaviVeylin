@@ -1,0 +1,34 @@
+== refusal-record-probe (change tree)
+refusal-record-probe: tests=1 failures=0
+exit=0
+== refusal-record-probe (base section, git show <base> into the scratch root)
+refusal-record-probe: tests=1 failures=1 — the section that owns the bound records no refused lever: missing '#833' '200 427' '200 733' '201 981'
+exit=1
+== bash -n
+exit=0
+== tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+exit=0
+== tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 15 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+== tools/check-change-readiness.sh openspec/changes/fix-a-refused-lever-is-recorded
+LOOP-CHANGE-READY: ok
+exit=0
+== tools/loop/measure.sh --change fix-a-refused-lever-is-recorded
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=8a2f1adbdaced0f79c4c2fccf5dfeab321d07a47 paths=1 insertions=8 deletions=0
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-SUITE cases=392 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-refused-lever-is-recorded scenarios=0 cases=0 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-a-refused-lever-is-recorded/evidence/after-change.xml tests=1 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-a-refused-lever-is-recorded/evidence/red-on-HEAD.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 0 cases added, 0 rewritten, 0 requirements added, 1 paragraph in 1 guideline section —
+LOOP-MEASURE-END
+exit=0

@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 309 records (labels: role-model.1 role-model.2 role-model.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.nibwrB
+RED    role-model.1  report#aRolesTokensRecordTheModelThatAnswered   (the model a turn answered with, so a role total names no model and every archived item is a price without its subject (issue #823))
+       2026-11-09T17:56:46Z — the reviewer's tokens are recorded under the model that answered them: expected '1000000', got 'null'
+restore role-model.1 report#aRolesTokensRecordTheModelThatAnswered green again
+RED    role-model.2  report#aRolesTokensRecordTheModelThatAnswered   (the model the trend names in a role row, so the line prints a row a reader cannot tell apart from the bare role total (issue #823))
+       2026-11-09T17:56:50Z — and the trend reads role (model) tokens, with the totals it is over: 'worker (mimo-v2.6-flash) 1 Mtok · reviewer (minimax-m3.1-flash) 1 Mtok · 2 Mtok over 1 item' not found in:   roles:  worker 1 Mtok · reviewer 1 Mtok · 2 Mtok over 1 item
+restore role-model.2 report#aRolesTokensRecordTheModelThatAnswered green again
+RED    role-model.3  report#aRoleWhoseTurnNamedNoModelKeepsItsRow   (the row of a role no model explained, so the rows the line prints no longer add up to the total it is over (issue #823))
+       2026-11-09T17:56:55Z — the modelled tally names its model, the unmodelled one keeps the role's row, and the rows are the total: 'worker (mimo-v2.6-flash) 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item' not found in:   roles:  worker (mimo-v2.6-flash) 1 Mtok · 1 Mt
+restore role-model.3 report#aRoleWhoseTurnNamedNoModelKeepsItsRow green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

@@ -1,0 +1,12 @@
+=== report#aRolesTokensRecordTheModelThatAnswered @ 2026-11-09T17:58:30Z ===
+PASS report#aRolesTokensRecordTheModelThatAnswered
+=== report#aSessionThatSwitchedModelRecordsBothTallies @ 2026-11-09T17:58:32Z ===
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+=== report#aStateWithoutAModelKeepsItsRoleTotals @ 2026-11-09T17:58:34Z ===
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+=== report#aRoleWhoseTurnNamedNoModelKeepsItsRow @ 2026-11-09T17:58:36Z ===
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+=== report#theSpendIsSplitByPhaseRoleAndGate @ 2026-11-09T17:58:39Z ===
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+=== report#aStreamWithoutDurationsPrintsDash @ 2026-11-09T17:58:41Z ===
+PASS report#aStreamWithoutDurationsPrintsDash

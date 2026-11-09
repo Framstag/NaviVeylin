@@ -1,0 +1,22 @@
+=== driver#everyCaseDeclaresTheFilesItCanReach ===
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+=== report#aRolesTokensRecordTheModelThatAnswered ===
+report#aRolesTokensRecordTheModelThatAnswered|   the reviewer's tokens are recorded under the model that answered them: expected '1000000', got 'null'
+--- report#aRolesTokensRecordTheModelThatAnswered[0] (exit 1)
+  the reviewer's tokens are recorded under the model that answered them: expected '1000000', got 'null'
+FAIL report#aRolesTokensRecordTheModelThatAnswered
+loop-selftest: 1 of 1 cases failed
+=== report#aSessionThatSwitchedModelRecordsBothTallies ===
+report#aSessionThatSwitchedModelRecordsBothTallies|   the first model keeps the tokens of the turns it answered: expected '1000000', got 'null'
+--- report#aSessionThatSwitchedModelRecordsBothTallies[0] (exit 1)
+  the first model keeps the tokens of the turns it answered: expected '1000000', got 'null'
+FAIL report#aSessionThatSwitchedModelRecordsBothTallies
+loop-selftest: 1 of 1 cases failed
+=== report#aStateWithoutAModelKeepsItsRoleTotals ===
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+=== report#aRoleWhoseTurnNamedNoModelKeepsItsRow ===
+report#aRoleWhoseTurnNamedNoModelKeepsItsRow|   the modelled tally names its model, the unmodelled one keeps the role's row, and the rows are the total: 'worker (mimo-v2.6-flash) 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item' not found in:   roles:  worker 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item
+--- report#aRoleWhoseTurnNamedNoModelKeepsItsRow[0] (exit 1)
+  the modelled tally names its model, the unmodelled one keeps the role's row, and the rows are the total: 'worker (mimo-v2.6-flash) 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item' not found in:   roles:  worker 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item
+FAIL report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+loop-selftest: 1 of 1 cases failed

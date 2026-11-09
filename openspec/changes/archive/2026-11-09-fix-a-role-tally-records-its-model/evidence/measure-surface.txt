@@ -1,0 +1,27 @@
+$ bash tools/loop/tests/loop-selftest.sh --list | wc -l
+390
+$ tools/look.sh 'roleModels' --files
+LOOK: 26 matches in 8 files of /home/tim/projects/NaviVeylin for 'roleModels'
+LOOK-FILE: tools/loop/report.sh 2
+LOOK-FILE: tools/loop/state.sh 5
+LOOK-FILE: tools/loop/tests/loop-cases.sh 7
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/proposal.md 3
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/evidence/measure-surface.txt 1
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/design.md 3
+$ tools/look.sh 'metrics\.roles' --files
+LOOK: 30 matches in 12 files of /home/tim/projects/NaviVeylin for 'metrics\.roles'
+LOOK-FILE: tools/loop/report.sh 3
+LOOK-FILE: tools/loop/tests/loop-cases.sh 11
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/proposal.md 3
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/design.md 4
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/tasks.md 2
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/proposal.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-07-fix-a-blocked-item-records-the-gate-it-ran/proposal.md 1
+$ tools/look.sh 'roles' --path tools/loop/state.sh --files
+LOOK: 7 matches in 1 files of /home/tim/projects/NaviVeylin/tools/loop/state.sh for 'roles'
+LOOK-FILE: tools/loop/state.sh 7
+$ openspec validate fix-a-role-tally-records-its-model --strict
+Change 'fix-a-role-tally-records-its-model' is valid

@@ -1,0 +1,18 @@
+=== --case run#treeOfA*
+PASS run#treeOfACapEndedChildIsKeptAsAPatch (7.58 s)
+PASS run#treeOfAChildTheCapEndedIsNotCommitted (8.29 s)
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted (9.01 s)
+loop-selftest: run 3 cases 24.89 s
+loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox) — 9.83 s, selection: --case run#treeOfA*
+=== --case run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart
+PASS run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart (15.00 s)
+=== --case run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase
+PASS run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase (8.19 s)
+=== --case run#aRefusedStartKeepsTheLeftoversItFound
+PASS run#aRefusedStartKeepsTheLeftoversItFound (6.23 s)
+=== --case run#theStartAfterTheRunsOwnEndedChildIsNotRefused
+PASS run#theStartAfterTheRunsOwnEndedChildIsNotRefused (9.91 s)
+=== --case run#aRetriedStartStopsWithItsOwnReason
+PASS run#aRetriedStartStopsWithItsOwnReason (8.48 s)
+=== --case run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin
+PASS run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin (8.97 s)

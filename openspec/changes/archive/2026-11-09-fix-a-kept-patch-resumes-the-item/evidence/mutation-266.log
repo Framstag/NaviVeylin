@@ -1,0 +1,15 @@
+RED    266.1  run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart   (the start reading the patch a bound-ended child left, so the item is worked from zero and the kept work is read by nobody (issue #754))
+       2026-11-09T20:50:46Z — the worker starts on the tree the kept patch was applied to — the untracked half of the earlier work is there: 'half-applied.txt' not found in: e3bee27198ba5d08112eff2941a6fe0fa8bac320
+restore 266.1 run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+RED    266.2  run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase   (the record of a patch that does not apply, so the item starts from the base and nothing says why it did (issue #754))
+       2026-11-09T20:52:54Z — the item's note records the non-apply instead of discarding it unrecorded: 'does not apply to this base' not found in: the worker process exited 124 — the child exceeded 2 s — the run ended it and everything it started · the run ended this 
+restore 266.2 run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+RED    266.3  run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase   (the reading that puts the resume the start found into the item note, so the record is written and no reader of the item finds it (issue #754))
+       2026-11-09T20:53:13Z — the item's note records the non-apply instead of discarding it unrecorded: 'does not apply to this base' not found in: the worker process exited 124 — the child exceeded 2 s — the run ended it and everything it started · the run ended this 
+restore 266.3 run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

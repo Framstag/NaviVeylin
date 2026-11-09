@@ -1,0 +1,12 @@
+run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart|   the worker starts on the tree the kept patch was applied to — the untracked half of the earlier work is there: 'half-applied.txt' not found in: 20fc626c22ea78f27e15724081b5a5c7018cfa48
+run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart| fix/issue-21-an-eligible-bug-whose-cited-path-still-e
+--- run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart[0] (exit 1)
+  the worker starts on the tree the kept patch was applied to — the untracked half of the earlier work is there: 'half-applied.txt' not found in: 20fc626c22ea78f27e15724081b5a5c7018cfa48
+fix/issue-21-an-eligible-bug-whose-cited-path-still-e
+FAIL run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart
+loop-selftest: 1 of 1 cases failed
+run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase|   the item's note records the non-apply instead of discarding it unrecorded: 'does not apply to this base' not found in: the worker process exited 124 — the child exceeded 2 s — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/tmp/754/head/.pi/tmp/loop-selftest.VY0dGx/cases/0/tree/case.chQfMt/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch
+--- run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase[0] (exit 1)
+  the item's note records the non-apply instead of discarding it unrecorded: 'does not apply to this base' not found in: the worker process exited 124 — the child exceeded 2 s — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/tmp/754/head/.pi/tmp/loop-selftest.VY0dGx/cases/0/tree/case.chQfMt/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch
+FAIL run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase
+loop-selftest: 1 of 1 cases failed

@@ -182,10 +182,20 @@ background work SHALL release it before it returns.
 
 #### Scenario: The free-driving screen's template is the map-only template
 
+- **GIVEN** a started free-driving screen whose frame-wait budget is not spent
 - **WHEN** the free-driving screen is asked for its template
 - **THEN** the template SHALL be a `NavigationTemplate`, the one template with no content slot; its map
   action strip SHALL carry two actions, and its action strip the zoom-in and zoom-out actions in that order
 - **Case**: `FreeDrivingScreenHostTest#theTemplateIsTheBareNavigationTemplateCarryingItsActions`
+
+#### Scenario: A free-driving screen with no frame states the failure in the host slot
+
+- **GIVEN** a free-driving screen whose renderer spent its frame-wait budget without landing a frame
+- **WHEN** the screen is asked for its template
+- **THEN** the template SHALL be a `MapWithContentTemplate` whose content slot carries exactly one row, the
+  `map_unavailable` statement, and whose map action strip SHALL still carry the pan/exit pair; the first
+  landed frame SHALL return it to the `NavigationTemplate`
+- **Case**: `FreeDrivingScreenHostTest#aScreenWhoseFrameWaitBudgetIsSpentCarriesTheNoticeInTheHostSlot`
 
 #### Scenario: A started screen takes the session surface and a stopped one releases it
 

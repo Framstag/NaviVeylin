@@ -458,6 +458,27 @@ trend=$(jq -r --argjson floor "$calls_floor" '
         (if $hasSpend > 0
           then "- · this state records no role split — it was written before the report read one"
           else "- · no item recorded a session role" end)
+      # An item that recorded the model a role answered with prints one row per (role, model) tally (issue #823). The
+      # tokens of a role no model explained — the default command, an older harness — keep a row of the role alone,
+      # because the proposal of the item says such a role needs no label and the rows the line prints must still add
+      # up to the total it is over. A tally of zero is no row: a turn that named a model and spent nothing is not a
+      # measurement.
+      elif ([.items[] | .metrics.roleModels | select(. != null)] | length) > 0 then
+        ([.items[] | .metrics.roleModels | select(. != null)]) as $rm
+        | (["worker", "reviewer", "tail"]
+           | map(. as $r
+                 | ([$rm[] | .[$r] // {}]
+                    | reduce .[] as $o ({}; reduce ($o | to_entries[]) as $e (.;
+                        .[$e.key] = ((.[$e.key] // 0) + $e.value)))) as $sum
+                 | ($sum | to_entries | map({role: $r, model: .key, tok: .value}))
+                   + [{role: $r, model: null,
+                       tok: (([$rol[] | (.[$r] // 0)] | add // 0) - ([$sum[]] | add // 0))}]
+                 | .[])
+           | map(select(.tok > 0))) as $rows
+        | if ($rows | length) == 0 then "- · no item recorded a session that reported tokens"
+          else "\($rows | map(if .model == null then "\(.role) \(.tok | mtok)"
+                              else "\(.role) (\(.model)) \(.tok | mtok)" end) | join(" · ")) · \(([$rows[].tok] | add) | mtok) over \($rol | length | items_n)"
+          end
       else (["worker", "reviewer", "tail"]
             | map(. as $r | {role: $r, tok: ([$rol[] | .[$r] | select(. != null)] | add)})
             | map(select(.tok != null))) as $by

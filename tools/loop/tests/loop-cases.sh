@@ -349,6 +349,10 @@ LOOP_SHELL_CASES=(
   'report#anItemRecordsItsRepeatReads'
   'report#theSpendIsSplitByPhaseRoleAndGate'
   'report#aStreamWithoutDurationsPrintsDash'
+  'report#aRolesTokensRecordTheModelThatAnswered'
+  'report#aSessionThatSwitchedModelRecordsBothTallies'
+  'report#aStateWithoutAModelKeepsItsRoleTotals'
+  'report#aRoleWhoseTurnNamedNoModelKeepsItsRow'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
@@ -1024,6 +1028,10 @@ loop_run_shell_case() {
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
+    'report#aRolesTokensRecordTheModelThatAnswered') fn=case_report_aRolesTokensRecordTheModelThatAnswered ;;
+    'report#aSessionThatSwitchedModelRecordsBothTallies') fn=case_report_aSessionThatSwitchedModelRecordsBothTallies ;;
+    'report#aStateWithoutAModelKeepsItsRoleTotals') fn=case_report_aStateWithoutAModelKeepsItsRoleTotals ;;
+    'report#aRoleWhoseTurnNamedNoModelKeepsItsRow') fn=case_report_aRoleWhoseTurnNamedNoModelKeepsItsRow ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
@@ -11749,6 +11757,134 @@ JSONL
     "a state that predates the split says so, instead of naming a run whose phases cost nothing"
   assert_contains "$trend" "after the first gate: - · this state records no gate share — it was written before the report read one" \
     "and the same for the share after the gate"
+}
+
+# A role's tally said how many tokens it spent and never which model answered (issue #823). The answering model is
+# already on the wire — every assistant message in the stream carries `model`, and `responseModel` when the provider
+# reports a concrete one — so the `turn_end` that carries the usage carries the model too, and the state's per-role
+# tally names it beside the role's total. The reviewer's configured model is the case the item names: a run that
+# prices a role apart can only be read back from the item's own record, and `metrics.roles.reviewer` still holds the
+# reviewer's total unchanged.
+case_report_aRolesTokensRecordTheModelThatAnswered() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/models.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/61/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"mimo-v2.6-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/61/reviewer-prompt-1.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"minimax-m3.1-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":500,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":61,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 61 --result done --verdict closed --wall 42 --events "$d/models.jsonl" >/dev/null
+  f=$(state_file "$p")
+  # The model lives beside the role's own total, in the state: which model a role's tokens were charged to is a fact
+  # of the item's own record, never of the configuration a reader opens afterwards.
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roleModels.reviewer["minimax-m3.1-flash"]' "$f")" \
+    "the reviewer's tokens are recorded under the model that answered them"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roleModels.worker["mimo-v2.6-flash"]' "$f")" \
+    "and the worker's under its own"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.reviewer' "$f")" \
+    "the role's own total is unchanged beside the model it was split by"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  [ -n "$roles_line" ] || fail "the trend printed no roles line"
+  assert_contains "$roles_line" "worker (mimo-v2.6-flash) 1 Mtok · reviewer (minimax-m3.1-flash) 1 Mtok · 2 Mtok over 1 item" \
+    "and the trend reads role (model) tokens, with the totals it is over"
+}
+
+# A model switch mid-session is a fact and not a rounding error (issue #823): a role that answered on two models is
+# two tallies, each charged the tokens it produced, rather than one row priced at whichever model came first.
+case_report_aSessionThatSwitchedModelRecordsBothTallies() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/switch.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/71/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"mimo-v2.6-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"turn_end","message":{"role":"assistant","model":"minimax-m3.1-flash","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":71,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 71 --result done --verdict closed --wall 42 --events "$d/switch.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roleModels.worker["mimo-v2.6-flash"]' "$f")" \
+    "the first model keeps the tokens of the turns it answered"
+  assert_eq "2000000" "$(jq -r '.items[0].metrics.roleModels.worker["minimax-m3.1-flash"]' "$f")" \
+    "and the second its own, rather than one row merging the switch away"
+  assert_eq "3000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "and the role's total is the sum of both"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  assert_contains "$roles_line" "worker (mimo-v2.6-flash) 1 Mtok · worker (minimax-m3.1-flash) 2 Mtok" \
+    "the trend prints two rows for the one role, because the switch is a fact"
+}
+
+# A state that records no model is not a state that recorded one and lost it (issue #823): a stream whose turns name
+# none — an older harness, a fixture — and a state written before the field existed both keep the role totals and name
+# no model, rather than printing a row with an empty parenthetical or a zero nobody measured.
+case_report_aStateWithoutAModelKeepsItsRoleTotals() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/nomodel.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/81/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":81,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 81 --result done --verdict closed --wall 42 --events "$d/nomodel.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "null" "$(jq -r '.items[0].metrics.roleModels' "$f")" \
+    "a stream that names no model records none, never an empty tally"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "and the role's own total is untouched"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  assert_contains "$roles_line" "worker 1 Mtok over 1 item" "the trend keeps the role total it always printed"
+  assert_not_contains "$roles_line" "(" "and invents no model to name"
+  # …and a state written before the field existed — the shape `del` gives a state of this era — reads the same way, so
+  # an archived run reported after the change still prints its role totals and names no model.
+  jq 'del(.stateDigest) | del(.items[].metrics.roleModels)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the model was recorded"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$(printf '%s\n' "$trend" | grep '^  roles:' || true)" "worker 1 Mtok over 1 item" \
+    "a state that predates the field keeps its role totals"
+}
+
+# A role left on a model the stream did not name — the default command, an older harness — needs no label, but its
+# tokens are still its tokens (issue #823): the rows the line prints add up to the total it is over, so the part of a
+# role's spend no model explained prints as the role alone rather than vanishing from a line that still counts it.
+case_report_aRoleWhoseTurnNamedNoModelKeepsItsRow() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/mixed.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/91/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"mimo-v2.6-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/91/reviewer-prompt-1.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":3000000,"cacheWrite":0},"durationMs":500,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":91,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 91 --result done --verdict closed --wall 42 --events "$d/mixed.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "null" "$(jq -r '.items[0].metrics.roleModels.reviewer' "$f")" \
+    "the reviewer's turns named no model, so the role records none"
+  assert_eq "3000000" "$(jq -r '.items[0].metrics.roles.reviewer' "$f")" "and its tokens are still its tokens"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  assert_contains "$roles_line" "worker (mimo-v2.6-flash) 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item" \
+    "the modelled tally names its model, the unmodelled one keeps the role's row, and the rows are the total"
 }
 
 # Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the

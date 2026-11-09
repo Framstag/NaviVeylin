@@ -681,6 +681,16 @@ cmd_done() {
   # item joins only its note and never rewrites it. `--leftover` is the patch a child the run ended left its work
   # in: the transcript names it, and the state keeps it too, so the report can point a caller at the work without
   # a reader having to find the item's transcript first (issue #674).
+  # The files the patch a run ended its child in carries (issue #809): the path said where the work is and not how
+  # much of it, so a cap-ended item's kept work sat in its directory and in no figure the report could print. The
+  # count is read from the file the caller names rather than passed in beside it, because the patch itself is the only
+  # account of what it holds; a path that does not resolve records nothing, since `0 files` would read as a patch that
+  # was measured and was empty.
+  local leftover_files=""
+  if [ -n "$leftover" ] && [ -r "$leftover" ]; then
+    leftover_files=$(grep -c '^+++ ' "$leftover" 2>/dev/null)
+    case "$leftover_files" in ''|*[!0-9]*) leftover_files="" ;; esac
+  fi
   local class usage
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
@@ -698,6 +708,7 @@ cmd_done() {
       if ([.items[] | select(.issue == $i)] | length) == 0 then
         .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change,
                   note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
+                  leftoverFiles:(if $lof == "" then null else ($lof | tonumber) end),
                   stopReason:(if $sr == "" then null else $sr end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me,
@@ -717,6 +728,7 @@ cmd_done() {
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
           | .leftover = (if $lo == "" then .leftover else $lo end)
+          | .leftoverFiles = (if $lof == "" then .leftoverFiles else ($lof | tonumber) end)
           | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
           | .labelFailures = (((.labelFailures // []) + ($lf | split(" ") | map(select(length > 0)))) | unique)
         else . end)
@@ -726,7 +738,7 @@ cmd_done() {
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
-    --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" \
+    --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" --arg lof "$leftover_files" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg rv "$review_verdict" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \

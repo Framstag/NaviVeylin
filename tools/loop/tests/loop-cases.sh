@@ -343,6 +343,8 @@ LOOP_SHELL_CASES=(
   'report#landedBranchesAreNamedAsRemovable'
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
+  'report#theBoundRateIsNamed'
+  'state#aCutRecordsTheFilesItsPatchCarries'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
   'report#theSpendIsSplitByPhaseRoleAndGate'
@@ -1083,6 +1085,8 @@ loop_run_shell_case() {
     'state#noQuotaCommandAsksNothing') fn=case_state_noQuotaCommandAsksNothing ;;
     'state#aHoldMovesTheDeadlineWithIt') fn=case_state_aHoldMovesTheDeadlineWithIt ;;
     'run#aQuotaHoldPausesTheRunAndResumesIt') fn=case_run_aQuotaHoldPausesTheRunAndResumesIt ;;
+    'report#theBoundRateIsNamed') fn=case_report_theBoundRateIsNamed ;;
+    'state#aCutRecordsTheFilesItsPatchCarries') fn=case_state_aCutRecordsTheFilesItsPatchCarries ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -11331,6 +11335,90 @@ JSONL
   assert_contains "$out" "over the item token bound: off" "a bound of 0 is off, and the report says so"
   row_over=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
   assert_eq "-" "$(table_cell "$row_over" 16)" "and no row is flagged by a bound that is off"
+}
+
+# The bound's rate is a figure the report names (issue #809): the run of 2026-11-06 21:19Z ended 2 of its 11 items at
+# `LOOP_ITEM_CONTEXT_MAX` — 18 % of what it attempted, 36 Mtok spent with nothing landed — and every report printed
+# those two items as one more `cut` and the rate on no line, so a run that hits the bound five times as often as the
+# archive read exactly like a healthy one. The line is the run's rate beside the archive's, the items the bound ended
+# named with what each kept, and the archive counted over the records that can name a mechanism: an item recorded
+# before `stopReason` existed can never be counted a hit, so counting it in the denominator reports the bound rarer
+# than it is — which is the direction the item was written about.
+case_report_theBoundRateIsNamed() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p q out line
+  d=$(scratch); p=$(new_project)
+  init_state "$p" 11 90
+  printf '[{"issue":21,"class":"improvement","verdict":"eligible","rank":1},{"issue":22,"class":"improvement","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  # Two items the bound ended: #21 kept a patch carrying three files, #22 kept none. The turns are the stream's.
+  for i in 1 2 3 4 5 6 7; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$d/seven.jsonl"
+  for i in 1 2 3 4 5; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$d/five.jsonl"
+  printf -- '--- /dev/null\n+++ b/a.txt\n@@ -0,0 +1 @@\n+x\n--- /dev/null\n+++ b/b.txt\n@@ -0,0 +1 @@\n+y\n--- /dev/null\n+++ b/c.txt\n@@ -0,0 +1 @@\n+z\n' > "$d/three.patch"
+  run_state "$p" done 21 --result cut --stop-reason bound --wall 42 --events "$d/seven.jsonl" \
+    --leftover "$d/three.patch" >/dev/null
+  run_state "$p" done 22 --result cut --stop-reason bound --wall 42 --events "$d/five.jsonl" >/dev/null
+  for i in 31 32 33 34 35 36 37 38 39; do
+    run_state "$p" done "$i" --result done --verdict closed --wall 10 >/dev/null
+  done
+  # The archive: one finished run of 20 items — 3 ended at the bound, 14 recorded a mechanism and none, 3 written
+  # before the field existed — and one older run of 5 items that carries no mechanism at all.
+  mkdir -p "$p/.pi/issue-loop/runs" || fail "could not create the runs directory"
+  jq -nc '{run:{items:20}, items: ([range(1;4) | {issue:(100 + .), stopReason:"bound"}]
+                                 + [range(4;18) | {issue:(100 + .), stopReason:null}]
+                                 + [range(18;21) | {issue:(100 + .)}])}' \
+    > "$p/.pi/issue-loop/runs/2026-11-01T00:00:00Z.json" || fail "could not write the archive's first run"
+  jq -nc '{run:{items:5}, items: [range(1;6) | {issue:(200 + .)}]}' \
+    > "$p/.pi/issue-loop/runs/2026-11-02T00:00:00Z.json" || fail "could not write the archive's second run"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "bound: 2 of 11 items (18.2 %)" \
+    "the run's rate, over the items it attempted"
+  assert_contains "$out" "archive: 3 of 17 items whose record names a mechanism (17.6 %)" \
+    "beside the archive's, over the records that can name one"
+  line=$(printf '%s\n' "$out" | grep '^bound: [0-9]' || true)
+  assert_contains "$line" "#21 7 turns, 3 files" "the item the bound ended is named with what it kept"
+  assert_contains "$line" "#22 5 turns" "and one that kept no patch is named with its turns alone"
+  assert_not_contains "$line" "#31" "an item that closed is not named"
+  # A run that hit the bound on nothing prints the zero it measured, and an archive with no finished run prints `-`:
+  # a rate over nothing is not a measurement, and `0 %` would read as one.
+  q=$(new_project); init_state "$q" 3 90
+  for i in 41 42 43; do run_state "$q" done "$i" --result done --verdict closed >/dev/null; done
+  out=$(run_report "$q") || fail "the report failed for a run with no bound hit"
+  line=$(printf '%s\n' "$out" | grep '^bound: [0-9]' || true)
+  assert_contains "$line" "bound: 0 of 3 items (0.0 %)" "a run the bound ended nothing in prints the rate it measured"
+  assert_contains "$line" "archive: -" "and an archive with no finished run prints -, not a rate over nothing"
+}
+
+# What a bound ended is priced, not only named (issue #809): the record kept the path of the patch a cap-ended
+# child's work was written to and not how much of it the patch carries, so an item's kept work sat in its directory
+# and in no figure the report could print. The count is read from the file the caller names — the patch states how
+# many files it carries and a number passed in beside it is a second account that can disagree — and a path that does
+# not resolve records nothing, because `0 files` would read as a patch that was measured and was empty.
+case_state_aCutRecordsTheFilesItsPatchCarries() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p patch gone
+  d=$(scratch); p=$(new_project)
+  patch="$d/kept.patch"
+  printf -- '# the work #21 left in the tree\n--- /dev/null\n+++ b/a.txt\n@@ -0,0 +1 @@\n+x\n--- /dev/null\n+++ b/b.txt\n@@ -0,0 +1 @@\n+y\n--- /dev/null\n+++ b/gone.txt\n@@ -1 +0,0 @@\n-z\n' > "$patch"
+  gone="$d/no-such.patch"
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"improvement","verdict":"eligible","rank":1},{"issue":22,"class":"improvement","verdict":"eligible","rank":2},{"issue":23,"class":"improvement","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result cut --stop-reason bound --leftover "$patch" >/dev/null ||
+    fail "a cut carrying the patch it kept was refused"
+  run_state "$p" done 22 --result cut --stop-reason bound >/dev/null || fail "a cut carrying no patch was refused"
+  run_state "$p" done 23 --result cut --stop-reason bound --leftover "$gone" >/dev/null ||
+    fail "a cut naming a path that does not resolve was refused"
+  assert_eq "$patch" "$(jq -r '.items[] | select(.issue == 21) | .leftover' "$(state_file "$p")")" \
+    "the record keeps the path the caller named"
+  assert_eq "3" "$(jq -r '.items[] | select(.issue == 21) | .leftoverFiles' "$(state_file "$p")")" \
+    "and the number of files that patch carries"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 22) | .leftoverFiles' "$(state_file "$p")")" \
+    "an item that kept no patch records no count, never a zero"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 23) | .leftoverFiles' "$(state_file "$p")")" \
+    "and a path that does not resolve records no count either"
+  assert_eq "bound" "$(jq -r '.items[] | select(.issue == 21) | .stopReason' "$(state_file "$p")")" \
+    "the count is added to the mechanism the cut already carried, not in its place"
 }
 
 # Every cost in this loop is turns times context, so the shape a session spent its budget in is a number of its own

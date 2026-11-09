@@ -195,6 +195,70 @@ else
   printf 'over the item token bound: off — LOOP_ITEM_TOKENS_WARN records %s, so no item is flagged\n' "$item_tokens_warn"
 fi
 
+# The bound's rate is a figure of the run, not a property of one item (issue #809): the run of 2026-11-06 21:19Z
+# ended 2 of its 11 items at `LOOP_ITEM_CONTEXT_MAX` — 18 % of what it attempted, 36 Mtok spent with nothing landed —
+# and every line that described them read `cut`, while no line said how often it happens. A run that hits the bound
+# five times as often as the archive therefore printed the same shapes as a healthy one. So the rate is printed
+# beside the token band, the archive's beside it, and the items the bound ended are named with what each kept — the
+# turns it spent and the files its leftover patch carries, which is the price of the phase the next run resumes
+# (`state.sh done --leftover`).
+#
+# The class is the record's own mechanism (`stopReason: bound`), the word every arm that ends a child at a bound the
+# run enforces already writes, so the line asks for no new vocabulary and a state written before it existed answers.
+# Each side is counted over the records that *can* name a mechanism: on 2026-11-09, 160 of the archive's 407 item
+# records predate the field (`state#aBlockAtTheRunsBoundIsNoRefusal`), and an item that could never be counted a hit
+# inflates the denominator, so the rate reads lower than it is — the one direction this line exists to stop.
+bound_share() { # bound_share <hits> <items> → "18.2 %", or "-" when there is nothing to divide by
+  local hits="$1" all="$2" tenths
+  case "$hits" in ''|*[!0-9]*) printf '-'; return 0 ;; esac
+  case "$all" in ''|*[!0-9]*|0) printf '-'; return 0 ;; esac
+  tenths=$(( (hits * 1000 + all / 2) / all ))
+  printf '%s.%s %%' $(( tenths / 10 )) $(( tenths % 10 ))
+}
+
+cap_items=$(jq -r '.items | length' "$state_file")
+cap_hits=$(jq -r '[.items[] | select((.stopReason // "") == "bound")] | length' "$state_file")
+cap_named=$(jq -r '[ .items[]
+                     | select((.stopReason // "") == "bound")
+                     | "#\(.issue)"
+                       + (if (.metrics.turns // null) == null then "" else " \(.metrics.turns) turns" end)
+                       + (if (.leftoverFiles // null) == null then "" else ", \(.leftoverFiles) files" end) ]
+                   | join(" · ")' "$state_file")
+
+# The archive is the finished runs `state.sh init` kept beside this one — the directory it derives, a project's
+# `LOOP_RUNS_DIR` when it records one — read in one pass over every file it holds, with the run being reported left
+# out so the line does not count it twice.
+archive_runs=$(loop_conf_value LOOP_RUNS_DIR)
+case "$archive_runs" in
+  "") archive_runs="$(dirname "$state_file")/runs" ;;
+  /*) ;;
+  *) archive_runs="$LOOP_ROOT/$archive_runs" ;;
+esac
+archive_hits="" archive_items=""
+if [ -d "$archive_runs" ]; then
+  archived=()
+  for f in "$archive_runs"/*.json; do
+    [ -f "$f" ] || continue
+    [ "$f" = "$state_file" ] && continue
+    archived[${#archived[@]}]="$f"
+  done
+  if [ ${#archived[@]} -gt 0 ]; then
+    archive_hits=$(jq -rs '[ .[] | .items[]? | select(has("stopReason")) ]
+                          | map(select((.stopReason // "") == "bound")) | length' "${archived[@]}" 2>/dev/null)
+    archive_items=$(jq -rs '[ .[] | .items[]? | select(has("stopReason")) ] | length' "${archived[@]}" 2>/dev/null)
+  fi
+fi
+case "$archive_hits" in ''|*[!0-9]*) archive_hits="" ;; esac
+case "$archive_items" in ''|*[!0-9]*) archive_hits="" ;; esac
+archive_clause="-"
+if [ -n "$archive_hits" ]; then
+  archive_clause="$archive_hits of $archive_items items whose record names a mechanism ($(bound_share "$archive_hits" "$archive_items"))"
+fi
+printf 'bound: %s of %s items (%s) · archive: %s' \
+  "$cap_hits" "$cap_items" "$(bound_share "$cap_hits" "$cap_items")" "$archive_clause"
+[ -z "$cap_named" ] || printf ' · %s' "$cap_named"
+printf '\n'
+
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.
 LOOP_STATE_FILE="$state_file" bash "$LOOP_DIR/state.sh" report
 

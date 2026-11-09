@@ -463,6 +463,22 @@ no bound, and neither replaces another: the turn bound still ends a session that
 and *splitting* the session at the checkpoint — a fresh child handed the change and the evidence, the shape
 `tools/loop/prompts/worker-tail.md` already has — is the cheaper half of the same idea and a change of its own.
 
+That rate is a figure of the **run** and not of one item, so the report prints it (issue #809): the run of
+2026-11-06 21:19Z ended 2 of its 11 items at the stop — 18 % of what it attempted, 36 Mtok spent with nothing
+landed — and every line describing them read `cut`, while no line said how often it happens, so a run at five times
+the archive's rate printed the same shapes as a healthy one. The line is `bound:` beside the token band:
+`bound: 2 of 11 items (18.2 %) · archive: 11 of 247 items whose record names a mechanism (4.5 %) · #791 190 turns,
+16 files · #798 111 turns`. The class it counts is the record's own mechanism (`stopReason: bound`, the word every
+arm that ends a child at a bound the run enforces writes), so no vocabulary is added for it, and each side is
+counted over the records that *can* name a mechanism: on 2026-11-09, 160 of the archive's 407 item records predate
+the field, and an item that could never be counted a hit inflates the denominator — the rate reads lower than it is,
+the one direction this figure exists to stop. The items are named with what each kept, which is why
+`state.sh done --leftover` records `leftoverFiles` beside the path: the patch states how many files it carries and a
+count passed in beside it is a second account that can disagree, so the count is read from the file, and a path that
+does not resolve records nothing rather than `0 files`. It is a **measurement, never a stop** — no key bounds a rate
+and no item's outcome reads it — and what a rate over the bound should then change is the item's question, not this
+line's (`run#childPastItsContextBoundIsCut` pins the stop, `report#theBoundRateIsNamed` the line).
+
 The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
 second — the deadline is a whole-second clock, and reading it on every look would spend the finer granularity's
 saving on two forks — and a child still running when the deadline passes is ended exactly as the cap ends one — its

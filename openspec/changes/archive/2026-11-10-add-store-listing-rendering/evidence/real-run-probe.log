@@ -1,0 +1,40 @@
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+  store-listing-rendering
+version: 2026-10-08-9
+specs read: 186
+capability keys: 1441
+added: 516
+changed: 124
+removed: 4
+unchanged: 801
+dirty areas: 13
+areas: 13
+unclassified spec ids: 0
+stale classification entries: 4
+prompt files: 3
+baseline: /tmp/fl-probe/data/snapshots/2026-10-08-4.json
+catalogue: /tmp/fl-probe/out/FEATURES.md (19 entries for 19 selling points, 12 areas, about 302 chars per entry)
+gen-feature-list: renamed, reported as a change: auto-favorites#PlaceListTemplate displays favorites -> auto-favorites#ListTemplate displays favorites
+gen-feature-list: renamed, reported as a change: fav-starred-chip-bar#Chip order follows the stored favorite order -> fav-starred-chip-bar#Chip bar follows the stored starred order
+gen-feature-list: renamed, reported as a change: navigation-status-details#Route progress lines in routing status card -> navigation-status-details#Route progress rings on the routing status row
+note: 2026-10-08-9 carries 228 changed and 1 removed user-visible capabilities (3 renames)
+release notes: /tmp/fl-probe/out/RELEASE-NOTES.md (1 entries, newest 2026-10-08-9)
+store listing: /tmp/fl-probe/out/STORE-LISTING.md (443 chars, budget 500, 5 of 229 changes shown)
+snapshot: /tmp/fl-probe/data/snapshots/2026-10-08-9.json
+--- STORE-LISTING.md ---
+# NaviVeylin — Store Listing
+
+## 2026-10-08-9
+
+- Download and extract basemap archive — Download and extract basemap archive.
+- Indicate basemap status in map view — Indicate basemap status in map view.
+- Provide basemap download update control — Provide basemap download/update control.
+- Report a basemap this build cannot — Report a basemap this build cannot read.
+- Basemap section in map manager screen — Basemap section in map manager screen.
+- General improvements and optimisations.
+
+--- sizes ---
+2026-10-08-9 443

@@ -1,0 +1,55 @@
+== structural checks, 2026-11-09T23:22:58Z, the tree as it stands ==
+
+== tools/check-change-readiness.sh openspec/changes/add-store-listing-rendering
+LOOP-CHANGE-READY: ok
+exit=0
+
+== tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+exit=0
+
+== tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 586 named rule(s) are reached
+exit=0
+
+== bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+  store-listing-rendering
+specs read: 186
+classified: 190
+unclassified: 0
+delta spec ids: 14
+stale: 4
+car-only areas: 1
+highlights: 19
+exit=0
+
+== tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 15 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+== tools/check-todo-references.sh
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/tests/check-todo-references-selftest.sh            the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 10448 file(s) excluded by the allowlist above
+exit=0
+
+== jq -e . over the three JSON files this change edits
+all three parse
+exit=0

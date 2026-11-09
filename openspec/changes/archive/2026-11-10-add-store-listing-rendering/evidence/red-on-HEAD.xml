@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools_tests_gen-feature-list-selftest.sh" tests="130" failures="9" errors="0" timestamp="2026-11-09T23:22:06Z">
+  <system-out>red on HEAD: no run writes STORE-LISTING.md, so all nine listing cases fail</system-out>
+</testsuite>

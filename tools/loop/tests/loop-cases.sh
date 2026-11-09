@@ -7352,7 +7352,7 @@ case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase() {
   tree="$p/.pi/worktrees/loop"
   base=$(git -C "$p" rev-parse HEAD)
   # A kept patch of the shape `keep_leftovers` writes, whose second half cannot apply: the file it creates is a patch
-  # `git apply` takes, the hunk that follows is one no tree this base could be holds. The first half is what proves the
+  # `git apply` takes, the hunk that follows matches no tree this base can produce. The first half is what proves the
   # undo — a step that only reported the failure would leave the created file for the worker to build on.
   patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
   mkdir -p "$(dirname "$patch")" || fail "could not create the item's directory"
@@ -7410,7 +7410,7 @@ case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase() {
   # committed — the item started from where the run left the base, which is what the sentence in its note says.
   assert_eq "$base" "$(head -1 "$started")" "the worker starts on the base commit"
   assert_not_contains "$(cat "$started")" "half-applied.txt" \
-    "and on the base tree — the half of the patch `--3way` had taken is undone, not left for the worker"
+    "and on the base tree — the half of the patch the 3-way apply had taken is undone, not left for the worker"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "does not apply to this base" \
     "the item's note records the non-apply instead of discarding it unrecorded"
   assert_contains "$out" "does not apply to this base" \

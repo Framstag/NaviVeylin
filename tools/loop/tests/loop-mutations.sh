@@ -1030,6 +1030,16 @@ MUTATIONS=(
   'role-model.1@-@tools/loop/state.sh@report#aRolesTokensRecordTheModelThatAnswered@the model a turn answered with, so a role total names no model and every archived item is a price without its subject (issue #823)@s#^ *model: (($m.responseModel? // $m.model? // null)$#model: (null)#'
   'role-model.2@-@tools/loop/report.sh@report#aRolesTokensRecordTheModelThatAnswered@the model the trend names in a role row, so the line prints a row a reader cannot tell apart from the bare role total (issue #823)@s#if .model == null then#if true then#'
   'role-model.3@-@tools/loop/report.sh@report#aRoleWhoseTurnNamedNoModelKeepsItsRow@the row of a role no model explained, so the rows the line prints no longer add up to the total it is over (issue #823)@s#map(select(.tok > 0))#map(select(.tok > 0 and .model != null))#'
+  # 266.x — the patch a bound-ended child left is the next attempt's input (issue #754). The run commits nothing that
+  # child did not claim, so the item's branch stood at the base and every later run paid for the same reading from zero:
+  # 44 kept patches were never read, #791's 7728 lines among them. Three rules, one case each: the start finds the
+  # patch and applies it before a worker exists (`266.1`), a patch that does not apply is recorded with the item
+  # (`266.2`), and that record reaches the item's note through the one arm that writes it (`266.3`). The three patches
+  # the owner measured — items/791 exit 1, items/729 exit 1, items/16 exit 128 — are what makes the second rule the
+  # item rather than a footnote.
+  '266.1@-@tools/loop/worktree.sh@run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart@the start reading the patch a bound-ended child left, so the item is worked from zero and the kept work is read by nobody (issue #754)@s#^  \[ -s "\$patch" \] [|][|] return 1$#  return 1#'
+  '266.2@-@tools/loop/worktree.sh@run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase@the record of a patch that does not apply, so the item starts from the base and nothing says why it did (issue #754)@s#^  record_resume "\$item" "\$patch" no-apply$#  : #'
+  '266.3@-@tools/loop/state.sh@run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase@the reading that puts the resume the start found into the item note, so the record is written and no reader of the item finds it (issue #754)@s#^  \[ -z "\${resume_note:-}" \] [|][|] note=.*$#  :#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

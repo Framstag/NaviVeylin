@@ -29,12 +29,16 @@ tools/tooling.json          → the profile you will edit
 tools/issues/               → the verbs and the Java core (keep `import/todo-md.sh` only if you have
                               a prose backlog in that exact format; otherwise delete it)
 tools/sensors/              → the registry, the runner, the guards, the report, the measurements
-tools/loop/                 → the wrapper, the worktree, the state, the labels, the report, the
-                              prompt skeletons and the stub `pi` (drop `fixtures/` in your own repo
-                              if you do not want the offline harness)
+tools/loop/                 → the wrapper, the worktree, the state, the labels, the report and the
+                              prompt skeletons
 tools/check-portability.sh  → the leak check, and the proof that your copy is still an engine
-tools/tests/fixtures/foreign-project/   → the synthetic project the check's self-test runs (optional; it is
-                              test data, and it is useful as a worked example of a different profile)
+tools/tests/                → the self-tests of the tools at the `tools/` root, the mutation corpus they
+                              read and the synthetic foreign project the check's self-test runs (test
+                              data: drop it, and each group's `tests/`, in your own repo if you do not
+                              want the offline harness — the foreign project is worth keeping as a
+                              worked example of a different profile)
+tools/<group>/tests/        → each group's own self-tests, mutation sets and fixtures: `issues/tests/`,
+                              `sensors/tests/`, `loop/tests/` (the loop's stub `pi` lives in the last)
 ```
 
 The **copy** is the distribution model: one copy per project, kept in that project's own history. It is

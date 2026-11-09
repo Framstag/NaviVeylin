@@ -998,6 +998,12 @@ MUTATIONS=(
   # from the branch's own 95.x when this landed: the tree had already spent 95.1 on the bounds issue #815 records.
   '263.1@-@tools/loop/prompts/worker.md@prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite@the gate named as the owner of the full selection, so the change child runs that check itself (issue #816)@s|gate owns the full selection|the gate is run by the child that runs it|'
   '263.2@-@tools/loop/prompts/pre-gate-review.md@prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle@the claim the round before the gate may refuse, so a check the gate will run is refused for want of a log the change child never produced (issue #816)@s|a claim the gate cannot settle|a claim nobody has logged|'
+  # 264.x — the retry a transient failure earns (issue #752). A child that never started is not a verdict about the
+  # item, and the run used to read it as one about the window: the pair of them ended a 360-minute run 125 s in. One
+  # record for the retry itself, so the case fails without it; one for the cap, so a class that keeps failing is an
+  # answer about the run and not a loop. The second mutates only the comparison, leaving the retry in place.
+  '264.1@-@tools/loop/run.sh@run#aChildThatNeverStartedIsRetriedBeforeTheRunStops@the budgeted retry the never-started stop spends before it ends the run, so one refused provider costs the item its retry and not the window (issue #752)@s|^    if \[ "\$retry_spent_child_start" -lt "\$retry_max" \]; then$|    if false; then|'
+  '264.2@-@tools/loop/run.sh@run#theRetryCapIsSpentAndTheRunStops@the cap that makes a class which keeps failing an answer about the run, so the retries stop instead of looping (issue #752)@s|\[ "\$retry_spent_child_start" -lt "\$retry_max" \]|[ "\$retry_spent_child_start" -le "\$retry_max" ]|'
 
   # quota-hold.x — the quota a run waits on instead of ending on. The records for the change that added the hold
   # (2026-11-08), labelled by the change rather than by a tracker item: the wait is turned into a status of the

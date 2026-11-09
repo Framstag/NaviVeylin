@@ -1920,6 +1920,36 @@ record_rework_cut() { # <round>
       "$1" "$change" >&2
 }
 
+# ── the retry budget (issue #752) ───────────────────────────────────────────────────────────────
+#
+# A failure whose cause lies outside the item — an adapter that refuses the child's argv, a provider that refuses
+# every request, a lock, a transient refusal — is not a verdict about the item, and the run used to read it as one
+# about the window: it ended where it stood. The budget is a recorded value beside the clocks (`LOOP_RETRY_MAX`,
+# `LOOP_RETRY_DELAYS`), one per transient **class** per run, and it is spent only by a class the run recognises in
+# the item's own evidence. The cap is the point and not a concession: a deterministic refusal must not be re-asked
+# forever, so a class that fails the cap is an answer about the run. `state.sh`'s own stops stay final — they are
+# verdicts about the run's budget and not failures — and this budget never spends itself on them.
+#
+# The class this tree spends the budget on is the child that never started — a child that wrote no verdict line and
+# left the item's tree at the run's base commit, whether its status was 1 (a refused argv) or 0 (a refused provider).
+# A retry re-runs the item from the queue, because what failed is the item's whole phase pipeline: the prompt is
+# rendered again and the branch is reused, and the item's record is untouched by the failed attempt (nothing was
+# read), so the retry has the same work package the first attempt had. The delay before each retry is read from
+# `LOOP_RETRY_DELAYS` by position, and the run names each attempt and the keys it read in the line it prints and in
+# the stop reason it leaves behind.
+retry_max=$(loop_conf_value LOOP_RETRY_MAX)
+case "$retry_max" in ''|*[!0-9]*) retry_max=3 ;; esac
+retry_delays=$(loop_conf_value LOOP_RETRY_DELAYS)
+[ -n "$(printf '%s' "$retry_delays" | tr -d '[:space:]')" ] || retry_delays="30 120 300"
+# One budget per class, this run's. The class `child-start` is the only transient class the run spends today; a
+# second class adds a counter beside this one and reads it in its own stop arm, never a shared count that would let
+# one class spend another's budget.
+retry_spent_child_start=0
+retry_log_child_start=""
+retry_delay_at() { # retry_delay_at <n> <delays> → the n-th delay, or the last one when there are fewer
+  printf '%s\n' "$2" | awk -v n="$1" '{ v=$NF; for (i=1; i<=NF; i++) if (i==n) { v=$i; break } print v }'
+}
+
 # ── the item loop ───────────────────────────────────────────────────────────────────────────────
 
 queue_passes=1
@@ -2549,11 +2579,23 @@ while true; do
     # …and the shape itself, where it is kept (issue #828): a provider that refused every call left its own refusal
     # in the child's event stream, and the stop names it so a reader tells a refused provider from a broken child.
     refused_by=$(child_refusal "${events_file:-}")
-    # The in-progress mark comes off before the run stops: an item nothing was done to must be as eligible
-    # afterwards as it was before the run picked it.
+    # The in-progress mark comes off before the run retries or stops: an item nothing was done to must be as
+    # eligible afterwards as it was before the run picked it.
     loop_labels unpick "$issue" >&2 || true
     in_progress=""
-    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}"
+    # The transient class this arm recognises (issue #752): the child never read the item. Spend the recorded
+    # retry budget on it before the stop — once per class per run, with the delay the configuration records by
+    # position — so one refused provider costs the item's retry and not the window.
+    if [ "$retry_spent_child_start" -lt "$retry_max" ]; then
+      retry_spent_child_start=$((retry_spent_child_start + 1))
+      retry_delay=$(retry_delay_at "$retry_spent_child_start" "$retry_delays")
+      retry_log_child_start="${retry_log_child_start}${retry_log_child_start:+; }attempt $retry_spent_child_start after ${retry_delay} s: ${child_words:-no words} (${answer_bytes} B)"
+      printf 'run: the %s could not start (retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before retrying #%s\n' \
+        "$last_child" "$retry_spent_child_start" "$retry_max" "$retry_delay" "$retry_max" "$retry_delays" "$issue" >&2
+      [ "$retry_delay" -eq 0 ] 2>/dev/null || sleep "$retry_delay"
+      continue
+    fi
+    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}${retry_log_child_start:+; retried $retry_spent_child_start of $retry_max (LOOP_RETRY_MAX=$retry_max, LOOP_RETRY_DELAYS=$retry_delays) — $retry_log_child_start}"
     break
   fi
   archives=$(git -C "$worktree" diff --name-only "$base"..HEAD -- openspec/changes/archive 2>/dev/null |

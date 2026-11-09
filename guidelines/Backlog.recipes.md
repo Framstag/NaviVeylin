@@ -800,6 +800,23 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
 
+A transient failure is retried before it is a stop (issue #752). The stop above is the run's own, but the run used to
+read it as a statement about the window and end there, and a refusal whose cause is outside the item — a provider that
+refuses every request, an adapter that refuses the child's argv, a lock, a transient refusal — is not a verdict about
+the item. The engine now spends a recorded, capped retry on the class before it stops: `LOOP_RETRY_MAX` is the cap and
+`LOOP_RETRY_DELAYS` is one delay per retry (`30 120 300` here), read once per run, and the retry re-runs the item from
+the queue — the prompt is rendered again and the branch is reused, and the failed attempt recorded nothing, so the
+retry has the same work package the first attempt had. The run names each attempt, the delay it waited and the keys it
+read in the line it prints and in the stop reason it leaves behind, and `report.sh` prints that reason as it prints
+every stop. The cap is the point: `LOOP_RETRY_MAX=0` is a project that records no retry, the run's `state.sh` stops
+(item cap, deadline, empty queue, the floor) stay final because they are verdicts about the run's budget, and a class
+that fails the cap is an answer about the run. Measured over the archived runs in `.pi/issue-loop/` (issue #752): 9
+ended on two consecutive blocked items, 3 of them on items that failed in 3–19 s, 9 on `worktree is not clean`, 4
+within 4 minutes of starting, and 3 on `gh could not read #N`; the first attempt of the night of 2026-11-01→02 stopped
+125 s into a 360-minute budget (`.pi/issue-loop/runs/2026-11-01T23:30:01Z.json`: 360 min, stop "two consecutive items
+ended blocked", #740 and #739 both blocked). The cases are `run#aChildThatNeverStartedIsRetriedBeforeTheRunStops` and
+`run#theRetryCapIsSpentAndTheRunStops`, and `tools/loop/tests/loop-mutations.sh` 264.1 and 264.2 the records that keep them.
+
 What it does with a phase that answers nothing: a phase's report is that phase's **answer**, not optional text
 beside it, and the reading is taken where the phase ends. The gate child is a phase of its own (#758), and a child
 that exits 0 and leaves a report with no closing line (`LOOP-GATE`, or the `LOOP-VERDICT` an older-shaped report

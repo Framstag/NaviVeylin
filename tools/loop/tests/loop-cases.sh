@@ -232,6 +232,8 @@ LOOP_SHELL_CASES=(
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
+  'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops'
+  'run#theRetryCapIsSpentAndTheRunStops'
   'run#aPhaseThatAnswersNothingIsThatPhasesFailure'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
@@ -902,6 +904,8 @@ loop_run_shell_case() {
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
+    'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops') fn=case_run_aChildThatNeverStartedIsRetriedBeforeTheRunStops ;;
+    'run#theRetryCapIsSpentAndTheRunStops') fn=case_run_theRetryCapIsSpentAndTheRunStops ;;
     'run#aPhaseThatAnswersNothingIsThatPhasesFailure') fn=case_run_aPhaseThatAnswersNothingIsThatPhasesFailure ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
@@ -7306,9 +7310,14 @@ esac"
 # the tree at the base never read the item: that is the run's own fault, recorded once as its stop, and the
 # item stays exactly as its owner set it.
 case_run_childThatNeverStartedIsTheRunsFault() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out status log sf
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status log sf conf
   d=$(scratch); p=$(new_project)
+  # The retry budget is turned off here (issue #752): this case is about the stop the shape earns, and the
+  # budgeted retry that now precedes it is the sibling cases' work. Zero is a project that records no retry.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=0/' "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The child's own words and a non-zero status, with no report block and no change in the tree behind it —
   # which is the whole of what an adapter that refused its argv leaves. No action is installed, so nothing of
@@ -7341,6 +7350,91 @@ case_run_childThatNeverStartedIsTheRunsFault() {
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 
+# The retry the never-started stop owes (issue #752). A refusal whose cause is outside the item — an adapter
+# that refuses the child's argv, a provider that refuses every request — is not a verdict about the item, and
+# the run used to read it as one about the whole window: the pair of them ended a 360-minute run 125 s in. The
+# run now spends a recorded, capped retry on the class before it stops. This case stages the refusal-then-work
+# shape: the first worker child leaves an empty answer and the tree at the base, the second does the item's work.
+case_run_aChildThatNeverStartedIsRetriedBeforeTheRunStops() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status log sf conf
+  d=$(scratch); p=$(new_project)
+  # The recorded delays are named in the retry line the run prints, so the case reads them back from there.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=3/' -e 's/^LOOP_RETRY_DELAYS=.*/LOOP_RETRY_DELAYS="0 0 0"/' \
+    "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  export RETRY_DIR="$d"
+  # The worker's answer is a file the stub prints after its action runs, so the action can leave the first
+  # child with an empty answer and the second with the real one — the tree untouched, then the item's work.
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/worker-real-report.txt"
+  export PI_STUB_REPORT_WORKER="$d/worker-report.txt"
+  cat > "$d/worker-action.sh" <<'ACT'
+case "$1" in
+  worker-tail*|worker-gate*) ;;
+  worker*)
+    n=$(cat "$RETRY_DIR/count" 2>/dev/null || printf 0)
+    n=$((n + 1)); printf '%s\n' "$n" > "$RETRY_DIR/count"
+    if [ "$n" -eq 1 ]; then
+      : > "$PI_STUB_REPORT_WORKER"
+    else
+      cp "$RETRY_DIR/worker-real-report.txt" "$PI_STUB_REPORT_WORKER"
+      mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+      printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+      mkdir -p app/build/test-results/test
+      printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/test/TEST-demo.xml
+      cp app/build/test-results/test/TEST-demo.xml openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+      printf 'the fix\n' > demo-fix.txt
+    fi ;;
+esac
+ACT
+  export PI_STUB_ACTION="$d/worker-action.sh"
+  export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  sf=$(state_file "$p")
+  # The run retries instead of stopping, and names the delay it waited and the key it read it from.
+  assert_eq "0" "$status" "the run does not end on the refused child"
+  assert_contains "$out" "waiting 0 s" "the retry names the delay it waited"
+  assert_contains "$out" "LOOP_RETRY_MAX=3" "and the cap it read from loop.conf"
+  assert_eq "2" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the worker child was started a second time"
+  assert_eq "1" "$(jq -r '[.items[] | select(.issue == 21 and .result == "done")] | length' "$sf")" \
+    "and the retried child worked the item"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "no question about a transient refusal reaches the item"
+}
+
+# The other half (issue #752): the cap is a cap. A class that fails `LOOP_RETRY_MAX` times is an answer about the
+# run, so the retries stop rather than loop, and the stop reason names the retries it spent and the keys it read.
+case_run_theRetryCapIsSpentAndTheRunStops() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status log sf conf
+  d=$(scratch); p=$(new_project)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=2/' -e 's/^LOOP_RETRY_DELAYS=.*/LOOP_RETRY_DELAYS="0 0"/' \
+    "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child always refuses: the cap is what ends it, not a working child after it.
+  printf 'Error: Unknown option: --mode json\n' > "$d/child-says.txt"
+  export PI_STUB_SAY="$d/child-says.txt" PI_STUB_EXIT=1
+  export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  sf=$(state_file "$p")
+  assert_eq "0" "$status" "the run ends on its own stop, not with a child's failure"
+  assert_eq "3" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the run spent the two retries and started no fourth child"
+  assert_contains "$out" "could not start" "the stop says what did not happen"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "LOOP_RETRY_MAX=2" "the stop names the cap it read"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "LOOP_RETRY_DELAYS=0 0" "and the delays"
+  assert_eq "0" "$(jq -r '.items | length' "$sf")" "the item is not recorded as a blocked one"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "an item nobody read is not escalated"
+}
+
 # The same fault with the status a provider leaves behind (issue #742). A child that exits 0 while every request it
 # made was refused writes an answer of nothing: measured 2026-11-01T23:30:01Z, #739 and #740 each left a 0-byte
 # `worker-report.md`, each had all four of its `turn_end` events on `stopReason: error`, and every request had been
@@ -7351,9 +7445,13 @@ case_run_childThatNeverStartedIsTheRunsFault() {
 # kinds of child; the answer is: a tree at the base beside an answer that carries no closing verdict line is "no
 # part of it was read" whatever status the child ended with.
 case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out status log sf report reason
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status log sf report reason conf
   d=$(scratch); p=$(new_project)
+  # The retry budget is off here, like its sibling: this case is about the stop the shape earns (issue #752).
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=0/' "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The child's status is the stub's own default 0 and its answer is empty: no report block, no words of its own and
   # no action in the tree behind it, which is the whole of what a provider that refuses every call leaves. Nothing is

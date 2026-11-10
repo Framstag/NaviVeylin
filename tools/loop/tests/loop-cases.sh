@@ -350,6 +350,7 @@ LOOP_SHELL_CASES=(
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
   'report#theSpendIsSplitByPhaseRoleAndGate'
+  'report#theSpendTotalsNameWhatTheyAreAShareOf'
   'report#aStreamWithoutDurationsPrintsDash'
   'report#aRolesTokensRecordTheModelThatAnswered'
   'report#aSessionThatSwitchedModelRecordsBothTallies'
@@ -1031,6 +1032,7 @@ loop_run_shell_case() {
     'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
+    'report#theSpendTotalsNameWhatTheyAreAShareOf') fn=case_report_theSpendTotalsNameWhatTheyAreAShareOf ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
     'report#aRolesTokensRecordTheModelThatAnswered') fn=case_report_aRolesTokensRecordTheModelThatAnswered ;;
     'report#aSessionThatSwitchedModelRecordsBothTallies') fn=case_report_aSessionThatSwitchedModelRecordsBothTallies ;;
@@ -11882,6 +11884,90 @@ JSONL
   [ -n "$gate_line" ] || fail "the trend printed no after-the-gate line"
   assert_contains "$gate_line" "83 % — 5 of 6 Mtok, from the first gate of 1 session" \
     "and the share of the item's tokens spent after its first gate, with the two numbers it is a share of"
+}
+
+# The two spend lines above each printed a total that is a share of more than it accounts for (issue #832), so
+# a reader holding them beside the item's own figures could reconcile neither. The phases are the durations of
+# the children's turns and tool calls, and an item's wall also holds the loop's own work between children: over
+# one archived run, 7 586 s of phases against a 24 104 s window. The roles are the tokens of the sessions the
+# stream opens, and a child whose stream carries no `session` record has its turns counted in `metrics.tokens`
+# and in no role: over the same run, 55.68 Mtok by role against 73.22 Mtok the items' turns recorded. Each line
+# therefore prints the figure it is a share of, and the tokens' line names the turns no session covers.
+case_report_theSpendTotalsNameWhatTheyAreAShareOf() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend phases_line roles_line
+  d=$(scratch); p=$(new_project)
+  # One item whose first child opened no session record — two turns of 1 Mtok each that the role split never
+  # sees — then the split case's three sessions: a worker that reads, runs the gate and answers (6 Mtok), a
+  # reviewer (1 Mtok) and a tail (1 Mtok). 14.8 s of turn and tool durations against a 42 s wall.
+  cat > "$d/reconcile.jsonl" <<'JSONL'
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_read","durationMs":300,"isError":false}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":3000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":3000000,"cacheWrite":0},"durationMs":2000,"content":[{"type":"toolCall","id":"c2","name":"ctx_shell","arguments":{"command":"./tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"ctx_shell","durationMs":5000,"isError":false}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":3000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-prompt-1.md"}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":500,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s3"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-tail-prompt.md"}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/reconcile.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "10000000" "$(jq -r '.items[0].metrics.tokens.cacheRead' "$f")" \
+    "the item's tokens count every turn of the stream, the unnamed child's among them"
+  assert_eq "8000000" "$(jq -r '[.items[0].metrics.roles[]] | add' "$f")" \
+    "while the role split counts only the turns of the sessions the stream opens"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  phases_line=$(printf '%s\n' "$trend" | grep '^  phases:' || true)
+  [ -n "$phases_line" ] || fail "the trend printed no phases line"
+  assert_contains "$phases_line" "model 9.5 s · gate 5 s · other 0.3 s · 14.8 s over 1 item · 35 % of the 42 s the same items recorded" \
+    "the phases' total is printed beside the wall the same items recorded, so the two reconcile"
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  [ -n "$roles_line" ] || fail "the trend printed no roles line"
+  assert_contains "$roles_line" "worker 6 Mtok · reviewer 1 Mtok · tail 1 Mtok · 8 Mtok over 1 item · of the 10 Mtok the same items recorded — 2 Mtok (20 %) in turns no session record covers" \
+    "and the role total is printed beside the tokens the same items recorded, the difference named"
+  # A state whose two figures agree prints the line it always printed: every turn of this item is inside one of its
+  # sessions, so its role total is the whole of its tokens, and it recorded no wall for the phases to be a share of.
+  cat > "$d/whole.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":6000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":6000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/reviewer-prompt-1.md"}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":22,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --events "$d/whole.jsonl" >/dev/null
+  out=$(run_report "$p") || fail "the report failed for a state whose two figures agree"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  phases_line=$(printf '%s\n' "$trend" | grep '^  phases:' || true)
+  assert_contains "$phases_line" "over 1 item" "the phases line still prints its total"
+  assert_not_contains "$phases_line" "% of the" \
+    "and no share, an item that recorded no wall having none to be a share of"
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  assert_contains "$roles_line" "8 Mtok over 1 item" "the role line still prints its total"
+  assert_not_contains "$roles_line" "in turns no session record covers" \
+    "and no difference, the role split being the whole of the tokens the item recorded"
 }
 
 # A figure nobody measured prints `-` with its reason, never a zero that reads as a measurement — the rule the

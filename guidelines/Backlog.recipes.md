@@ -552,8 +552,18 @@ when the provider reported one, else `model` — so a role that answered on two 
 priced at whichever came first, and the report reads `role (model) tokens` while a role no model explained keeps a row
 of the role alone, and a state that records no model keeps the role totals and names none), and
 `metrics.afterGate` (the tokens from a session's first gate turn on, and that session's own tokens). The report's
-trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured. It is a
-figure, never a stop: nothing in the run reads it, and the keys it would bound do not exist yet.
+trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured — and each
+total beside the figure of the same items it is a share of, because neither split covers the spend it sits in (issue
+#832). The phases are the durations of the children's turns and of the tools those turns called, while an item's wall
+also holds the work the loop does between children; the role split is the tokens of the sessions a stream opens, while
+`metrics.tokens` sums every turn, so a child whose stream carries no `session` record spends tokens in no role.
+Measured 2026-11-10 on `.pi/issue-loop/run.json`: the 10 items that recorded phases summed to 8 187 572 ms against the
+16 253 s of wall they recorded, and item #833 carried 5 440 384 tokens against 3 535 653 by role — the 1 904 731 of
+the difference being the 19 turns its stream records before its first `session`. So the `phases:` line prints the wall
+the same items recorded and the `roles:` line the tokens they recorded, with the difference the sessionless turns make
+up named; both denominators are read over the same items as their total, and a state whose two figures agree prints
+the line it always printed. It is a figure, never a stop: nothing in the run reads it, and the keys it would bound do
+not exist yet.
 
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it

@@ -24,6 +24,12 @@
 # when the item's stream is read — a run that paid two thirds of its clock inside the gate and one that paid it
 # reading printed the same shapes before these lines existed.
 #
+# Since issue #832 each of the two totals names the figure of the same items it is a share of: the phases print the
+# wall those items recorded (an item's wall also holds the work the loop does between children), and the role total
+# prints the tokens those items recorded, with the difference named — a child whose stream carries no `session`
+# record spends tokens in no role. Both denominators are fields the item already records, so an archived state is
+# reconciled too.
+#
 # Since issue #811 it counts the closes that were waived: an item may close over a gate that did not pass, and the
 # state records the clause and the suite beside the tally (`state.sh done --gate-waived`). The `waived:` line prints
 # how many of the run's closed items that was and which suite each waiver named — the number that decides whether a
@@ -434,8 +440,17 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # the line names how many items it is over — a rate over 3 items and one over 227 are not the same claim. A bucket
   # nobody spent time in is left out of the phase line rather than printed as `0 s`, because a zero there reads as a
   # measurement that was made; the line below says when no gate ran at all.
-  | ([.items[] | .metrics.phases | select(. != null)]) as $phs
-  | ([.items[] | .metrics.roles | select(. != null)]) as $rol
+  | ([.items[] | select(.metrics.phases != null)]) as $phaseItems
+  | ([$phaseItems[].metrics.phases]) as $phs
+  | ([.items[] | select(.metrics.roles != null)]) as $roleItems
+  | ([$roleItems[].metrics.roles]) as $rol
+  # Each total below is a share of a figure the same items already record — the wall an item was worked for, and
+  # the tokens its turns spent — and a share printed alone reads as the whole (issue #832). The denominators are
+  # read here, over the same items, so both lines can print what their total is a share of.
+  | ([$phaseItems[].metrics.wallSeconds | select(. != null)] | add // 0) as $phaseWallS
+  | ([$rol[] | (.worker // 0), (.reviewer // 0), (.tail // 0)] | add // 0) as $roleTotal
+  | ([$roleItems[] | .metrics.tokens | select(. != null)
+      | ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0))] | add // 0) as $tokensTotal
   | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
   # What a state written before this figure existed holds instead: some spend and no split at all. That is a
   # different answer from a run whose items measured nothing, the distinction the calls line already makes.
@@ -450,9 +465,17 @@ trend=$(jq -r --argjson floor "$calls_floor" '
              {n: "other", ms: ([$phs[].otherMs] | add)}]
             | map(select(.ms > 0))) as $b
         | ([$b[].ms] | add) as $total
-        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)"
-          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)"
-          end
+        | (if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)"
+           else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)"
+           end)
+        # The phases are the durations of the turns of the children and of the tools those turns called. The wall
+        # of an item is longer, because it also holds the work the loop does between children — so the total above
+        # is a share of the clock the same items recorded, and printing it alone left a reader holding 2.1 h of
+        # phases with no word about the 6.7 h they sat in (issue #832). An item that recorded no wall prints the
+        # line it always printed.
+        + (if $phaseWallS > 0
+             then " · \(((($total / 1000) / $phaseWallS) * 100) | round) % of the \(($phaseWallS * 1000) | dur) the same items recorded"
+             else "" end)
       end ) as $phaseline
   | ( if ($rol | length) == 0 then
         (if $hasSpend > 0
@@ -486,7 +509,19 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           elif ($by | length) == 1 then "\($by[0].role) \($by[0].tok | mtok) over \($rol | length | items_n)"
           else "\($by | map("\(.role) \(.tok | mtok)") | join(" · ")) · \(([$by[].tok] | add) | mtok) over \($rol | length | items_n)"
           end
-      end ) as $roleline
+      end ) as $roleRows
+  # The tokens of a role are the turns of the sessions a stream opens. A child whose stream carries no `session`
+  # record — a harness that opens none — still spends tokens its `turn_end`s record, so `metrics.tokens` is
+  # larger than the role split and the block printed the smaller figure with nothing saying where the rest went
+  # (issue #832): measured 2026-11-10, the 5 440 384 tokens of item #833 against 3 535 653 by role, the
+  # difference being the 1 904 731 tokens of the 19 turns its stream records before its first `session`. The two
+  # totals are printed together and the difference is named; a state whose two agree prints the line it always
+  # printed.
+  | ($tokensTotal - $roleTotal) as $unattributed
+  | (if $tokensTotal > 0 then (($unattributed * 100) / $tokensTotal | round) else 0 end) as $unattributedPct
+  | ( if $unattributed > 0
+        then "\($roleRows) · of the \($tokensTotal | mtok) the same items recorded — \($unattributed | mtok) (\($unattributedPct) %) in turns no session record covers"
+      else $roleRows end ) as $roleline
   # The share after the first gate has both halves in the state (`tokens` and `total`, over the sessions that ran a
   # gate), so the line prints the percentage with the two numbers it is a percentage of — the rule the review rate
   # keeps for its own figures.

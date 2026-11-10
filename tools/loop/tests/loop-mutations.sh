@@ -1030,6 +1030,12 @@ MUTATIONS=(
   'role-model.1@-@tools/loop/state.sh@report#aRolesTokensRecordTheModelThatAnswered@the model a turn answered with, so a role total names no model and every archived item is a price without its subject (issue #823)@s#^ *model: (($m.responseModel? // $m.model? // null)$#model: (null)#'
   'role-model.2@-@tools/loop/report.sh@report#aRolesTokensRecordTheModelThatAnswered@the model the trend names in a role row, so the line prints a row a reader cannot tell apart from the bare role total (issue #823)@s#if .model == null then#if true then#'
   'role-model.3@-@tools/loop/report.sh@report#aRoleWhoseTurnNamedNoModelKeepsItsRow@the row of a role no model explained, so the rows the line prints no longer add up to the total it is over (issue #823)@s#map(select(.tok > 0))#map(select(.tok > 0 and .model != null))#'
+  # 832.x — a spend total is printed beside the figure it is a share of (issue #832). Two sites, one per line: the
+  # phases' share of the wall the same items recorded, and the role total's difference from the tokens those items
+  # recorded in turns no session record covers. The case that names both is
+  # `report#theSpendTotalsNameWhatTheyAreAShareOf`.
+  '832.1@-@tools/loop/report.sh@report#theSpendTotalsNameWhatTheyAreAShareOf@the phases printed as a share of the wall the same items recorded, so the total reads as the whole clock of the run (issue #832)@s#if \$phaseWallS > 0#if false#'
+  '832.2@-@tools/loop/report.sh@report#theSpendTotalsNameWhatTheyAreAShareOf@the tokens of the turns no session record covers, so the role total prints beside nothing it can be reconciled with (issue #832)@s#if \$unattributed > 0#if false#'
   # 266.x — the patch a bound-ended child left is the next attempt's input (issue #754). The run commits nothing that
   # child did not claim, so the item's branch stood at the base and every later run paid for the same reading from zero:
   # 44 kept patches were never read, #791's 7728 lines among them. Three rules, one case each: the start finds the

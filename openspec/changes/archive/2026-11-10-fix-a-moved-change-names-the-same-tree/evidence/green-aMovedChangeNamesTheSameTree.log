@@ -1,0 +1,6 @@
+# gate#aMovedChangeNamesTheSameTree — 2026-11-10T08:25:11Z
+# tools/loop/tests/loop-selftest.sh --case gate#aMovedChangeNamesTheSameTree
+
+PASS gate#aMovedChangeNamesTheSameTree
+
+exit=0

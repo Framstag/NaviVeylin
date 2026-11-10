@@ -1,0 +1,6 @@
+# run#aReviewDiffNamesTheTreeItWasWrittenFrom — 2026-11-10T08:29:05Z
+# tools/loop/tests/loop-selftest.sh --case run#aReviewDiffNamesTheTreeItWasWrittenFrom
+
+PASS run#aReviewDiffNamesTheTreeItWasWrittenFrom
+
+exit=0

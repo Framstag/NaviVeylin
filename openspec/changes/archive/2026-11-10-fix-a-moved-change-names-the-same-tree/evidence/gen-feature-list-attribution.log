@@ -1,0 +1,67 @@
+# gen-feature-list --check-classification — attribution of the gate's one failing step, read from the tree, no gate re-run
+# item #837, change fix-a-moved-change-names-the-same-tree; gate line: errors=1, failing: bash tools/gen-feature-list.sh --check-classification
+
+## 1. command: git diff --name-only 4c400715860c22ae927284a7649acc4b19ba9a87
+guidelines/Backlog.recipes.md
+tools/loop/lib.sh
+tools/loop/loop.conf
+tools/loop/tests/loop-cases.sh
+tools/loop/tests/loop-mutations.sh
+
+## 2. command: tools/look.sh '^#' --path openspec/changes --files | grep /specs/ | grep -v /archive/
+LOOK-FILE: openspec/changes/fix-remote-heads-are-swept/specs/agent-issue-loop/spec.md 5
+LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/specs/agent-issue-loop/spec.md 9
+LOOK-FILE: openspec/changes/ci-offline-gates-beside-the-build/specs/ci-gate-layout/spec.md 7
+LOOK-FILE: openspec/changes/fix-a-cut-round-names-its-bound/specs/agent-issue-loop/spec.md 6
+LOOK-FILE: openspec/changes/fix-a-moved-change-names-the-same-tree/specs/agent-issue-loop/spec.md 7
+LOOK-FILE: openspec/changes/package-structure-as-five-kinds/specs/package-structure/spec.md 29
+LOOK-FILE: openspec/changes/package-structure-as-five-kinds/specs/architecture-test-suite/spec.md 29
+LOOK-FILE: openspec/changes/fix-a-transient-failure-gets-a-capped-retry/specs/agent-issue-loop/spec.md 5
+LOOK-FILE: openspec/changes/fix-a-cut-child-asks-no-question/specs/agent-issue-loop/spec.md 8
+LOOK-FILE: openspec/changes/motorway-destination-hint/specs/auto/navigation-view/spec.md 6
+LOOK-FILE: openspec/changes/motorway-destination-hint/specs/next-turn-overlay/spec.md 6
+LOOK-FILE: openspec/changes/motorway-destination-hint/specs/turn-instruction-localization/spec.md 8
+LOOK-FILE: openspec/changes/fix-the-stop-reason-names-the-refusal/specs/agent-issue-loop/spec.md 4
+LOOK-FILE: openspec/changes/fix-docked-panel-anchor-toggle/specs/route-planning-session/spec.md 5
+LOOK-FILE: openspec/changes/separate-tooling-test-code/specs/build-test-gate/spec.md 5
+LOOK-FILE: openspec/changes/separate-tooling-test-code/specs/tooling-test-layout/spec.md 18
+LOOK-FILE: openspec/changes/separate-tooling-test-code/specs/agent-issue-loop/spec.md 10
+LOOK-FILE: openspec/changes/separate-tooling-test-code/specs/test-coverage/spec.md 6
+LOOK-FILE: openspec/changes/separate-tooling-test-code/specs/build-sbom/spec.md 7
+LOOK-FILE: openspec/changes/separate-tooling-test-code/specs/highlight-measurement/spec.md 9
+LOOK-FILE: openspec/changes/sonar-findings-as-sensor-signals/specs/backlog-sensors/spec.md 13
+LOOK-FILE: openspec/changes/sonar-findings-as-sensor-signals/specs/sonar-analysis/spec.md 10
+LOOK-FILE: openspec/changes/domain-vocabulary-is-declared/specs/domain-vocabulary/spec.md 35
+LOOK-FILE: openspec/changes/domain-vocabulary-is-declared/specs/vocabulary-projection/spec.md 16
+LOOK-FILE: openspec/changes/loop-suite-legs-across-runners/specs/agent-issue-loop/spec.md 6
+LOOK-FILE: openspec/changes/fix-a-project-tree-is-refused-before-the-item/specs/agent-issue-loop/spec.md 9
+LOOK-FILE: openspec/changes/fix-a-change-child-cites-the-gates-selection/specs/agent-issue-loop/spec.md 5
+LOOK-FILE: openspec/changes/fix-a-worker-that-answers-nothing/specs/agent-issue-loop/spec.md 9
+
+## 3. command: jq -r '[.specs|has(...)]' tools/feature-list/specs.json
+false	false	false	false	true
+order: package-structure architecture-test-suite domain-vocabulary vocabulary-projection agent-issue-loop
+
+## 4. shipped or not (required = shipped U open delta, tools/gen-feature-list.sh:189)
+not shipped: package-structure
+not shipped: architecture-test-suite
+not shipped: domain-vocabulary
+not shipped: vocabulary-projection
+shipped: agent-issue-loop
+
+## 5. command: git show -s --format base-date 4c400715860c22ae927284a7649acc4b19ba9a87, then stat of the offenders
+base 4c400715860c22ae927284a7649acc4b19ba9a87 2026-11-10T09:20:09+01:00
+2026-11-09 18:44:11.427833482 +0100 openspec/changes/package-structure-as-five-kinds/specs/package-structure/spec.md
+2026-11-09 18:44:22.787948131 +0100 openspec/changes/package-structure-as-five-kinds/specs/architecture-test-suite/spec.md
+2026-11-09 19:09:12.462974506 +0100 openspec/changes/domain-vocabulary-is-declared/specs/domain-vocabulary/spec.md
+2026-11-09 19:09:16.734028871 +0100 openspec/changes/domain-vocabulary-is-declared/specs/vocabulary-projection/spec.md
+2026-11-10 09:27:57.804739981 +0100 openspec/changes/fix-a-moved-change-names-the-same-tree/specs/agent-issue-loop/spec.md
+
+## conclusion
+# unclassified = (shipped U open delta ids) minus classified (tools/gen-feature-list.sh:191); unclassified > 0 sets gate_errors=1 (tools/gen-feature-list.sh:214).
+# Four delta ids are unclassified: package-structure, architecture-test-suite (open change package-structure-as-five-kinds)
+# and domain-vocabulary, vocabulary-projection (open change domain-vocabulary-is-declared). None ships, so the gate prints
+# '(introduced by the open change ...)' for each. The four files date 2026-11-09, before base 4c400715 (2026-11-10T09:20:09+01:00): red before this work.
+# This change's only delta id is agent-issue-loop, already classified and shipped, so it moves unclassified by nothing:
+# the same set before this work, after it, and after this change archives.
+# Every other gate_errors input (tools/feature-list/*.json, openspec/specs/**) is outside the diff in section 1.

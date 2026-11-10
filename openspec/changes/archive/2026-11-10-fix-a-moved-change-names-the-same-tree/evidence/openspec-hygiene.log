@@ -1,0 +1,7 @@
+# openspec-hygiene — 2026-11-10T08:29:46Z
+# tools/check-openspec-hygiene.sh
+
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 18 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+
+exit=0

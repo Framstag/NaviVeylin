@@ -1,0 +1,6 @@
+# openspec-validate — 2026-11-10T08:30:38Z
+# openspec validate fix-a-moved-change-names-the-same-tree --strict
+
+Change 'fix-a-moved-change-names-the-same-tree' is valid
+
+exit=0

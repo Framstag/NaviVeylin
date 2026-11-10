@@ -1,0 +1,10 @@
+# probe-cost — 2026-11-10T08:28:07Z
+# bash /home/tim/projects/NaviVeylin/.pi/issue-loop/items/837/scratch/probe-cost.sh
+
+head=4c400715860c22ae927284a7649acc4b19ba9a87 diff=493dbdfa4cb2c94a ms=330
+-- files the enumeration adds, under the family and outside archive/ and evidence/
+86
+-- open changes in this tree
+19
+
+exit=0

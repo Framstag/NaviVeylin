@@ -1,0 +1,7 @@
+# mutation-check — 2026-11-10T08:29:00Z
+# bash tools/loop/tests/loop-mutations.sh --check
+
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.caHK63
+loop-mutations: all 319 cases passed — every selected record applies to the file it names
+
+exit=0

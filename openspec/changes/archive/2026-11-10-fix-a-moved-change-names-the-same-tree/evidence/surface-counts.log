@@ -1,0 +1,32 @@
+# surface-counts — 2026-11-10T08:30:28Z
+# tools/look.sh <pattern> --path tools | --path guidelines
+
+LOOK: 11 matches in 5 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'loop_change_identity'
+LOOK-FILE: tools/loop/lib.sh 1
+LOOK-FILE: tools/loop/run.sh 2
+LOOK-FILE: tools/loop/gate.sh 2
+LOOK-FILE: tools/loop/tests/loop-cases.sh 5
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 1
+tools/loop/lib.sh:356:loop_change_identity() { # <tree> <base> → `head=<sha> diff=<digest>` over what the round's diff carries
+tools/loop/run.sh:1304:  # `loop_change_identity`, derived from the run's own base whatever range this diff is taken over, so a correction
+tools/loop/run.sh:1307:  loop_change_identity "$worktree" "${base:-$1}" > "$2.identity"
+tools/loop/gate.sh:205:# the same `loop_change_identity`, so the reviewer compares two recorded values instead of inferring one — and a
+tools/loop/gate.sh:209:  tree_identity=$(loop_change_identity "$LOOP_ROOT" "$base")
+tools/loop/tests/loop-cases.sh:13916:# One derivation, `loop_change_identity`, both callers, over the paths the round's diff carries.
+tools/loop/tests/loop-cases.sh:13945:    ( cd "$p" && LOOP_CONF="$conf" bash -c '. "$1/lib.sh"; loop_resolve; loop_change_identity "$2" "$3"' _ "$LOOP_ENGINE" "$p" "$1" |
+tools/loop/tests/loop-cases.sh:13960:  assert_contains "$(cat "$LOOP_ENGINE/gate.sh")" 'loop_change_identity "$LOOP_ROOT" "$base"' \
+tools/loop/tests/loop-cases.sh:13962:  assert_contains "$(cat "$LOOP_ENGINE/run.sh")" 'loop_change_identity "$worktree"' \
+tools/loop/tests/loop-cases.sh:13996:    ( cd "$p" && LOOP_CONF="$conf" bash -c '. "$1/lib.sh"; loop_resolve; loop_change_identity "$2" "$3"' \
+tools/loop/tests/loop-mutations.sh:978:  '262.2@-@tools/loop/run.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_change_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines for 'loop_change_identity'
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+guidelines/Backlog.recipes.md:726:`loop_change_identity`, over the paths the round's diff carries — the paths the run's base names plus every path git
+
+LOOK: 4 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'loop_tree_identity'
+LOOK-FILE: tools/loop/lib.sh 3
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 1
+tools/loop/lib.sh:311:# Usage: loop_tree_identity <tree> <base> [<pathspec to leave out>] → `head=<sha> diff=<digest>`, or nothing when git
+tools/loop/lib.sh:313:loop_tree_identity() {
+tools/loop/lib.sh:357:  loop_tree_identity "${1:-}" "${2:-}" "$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"
+tools/loop/tests/loop-mutations.sh:980:  '262.4@-@tools/loop/lib.sh@gate#theGateAndTheRoundNameOneTree@the path set the one derivation leaves the generated trees out of, so a gate reads its own evidence as a correction of the tree it measured (issue #819)@s|^  loop_tree_identity "\${1:-}" "\${2:-}" "\$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"$|  loop_tree_identity "${1:-}" "${2:-}"|'
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines for 'loop_tree_identity'

@@ -1,59 +1,21 @@
-# the tree's own surface count for the rule this change touches
-# command: bash tools/look.sh 'afterGate|gateMs'
-# run: 2026-11-10T00:39:30Z
-LOOK: 47 matches in 13 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'afterGate|gateMs'
-LOOK-FILE: tools/loop/report.sh 2
-LOOK-FILE: tools/loop/state.sh 8
-LOOK-FILE: tools/loop/tests/loop-cases.sh 8
-LOOK-FILE: tools/loop/tests/loop-mutations.sh 2
-LOOK-FILE: guidelines/Backlog.recipes.md 1
-LOOK-FILE: openspec/changes/fix-a-role-tally-records-its-model/design.md 2
-LOOK-FILE: openspec/changes/archive/2026-11-09-fix-a-role-tally-records-its-model/design.md 2
-LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md 9
-LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md 5
-LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/tasks.md 1
-LOOK-FILE: openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/proposal.md 3
-LOOK-FILE: openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/design.md 2
-LOOK-FILE: openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/tasks.md 2
-tools/loop/report.sh:439:  | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
-tools/loop/report.sh:449:             {n: "gate", ms: ([$phs[].gateMs] | add)},
-tools/loop/state.sh:777:                           afterGate:$usage.afterGate}}]
-tools/loop/state.sh:906:#   * **`afterGate`** — over the sessions that ran a gate, the tokens of the turns from the first gate turn on and
-tools/loop/state.sh:913:child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars}
-tools/loop/state.sh:996:      | ([$ends[] | select($gateIds[(.toolCallId // "")] // false) | (.durationMs? // 0)] | add // 0) as $gateMs
-tools/loop/state.sh:1095:         phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
-tools/loop/state.sh:1096:                  else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
-tools/loop/state.sh:1099:         afterGate: (if ($gated | length) == 0 then null
-tools/loop/state.sh:1106:    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null}' ;;
-tools/loop/tests/loop-cases.sh:11861:  assert_eq "5000" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
-tools/loop/tests/loop-cases.sh:11869:  assert_eq "5000000" "$(jq -r '.items[0].metrics.afterGate.tokens' "$f")" \
-tools/loop/tests/loop-cases.sh:11871:  assert_eq "6000000" "$(jq -r '.items[0].metrics.afterGate.total' "$f")" \
-tools/loop/tests/loop-cases.sh:11922:  assert_eq "null" "$(jq -r '.items[0].metrics.afterGate' "$f")" \
-tools/loop/tests/loop-cases.sh:11925:  assert_eq "0" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
-tools/loop/tests/loop-cases.sh:11939:  assert_eq "5000" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
-tools/loop/tests/loop-cases.sh:11941:  assert_eq "3000000" "$(jq -r '.items[0].metrics.afterGate.tokens' "$f")" \
-tools/loop/tests/loop-cases.sh:11997:      | (.items[] | .metrics.afterGate) = null' "$f" > "$f.old" && mv "$f.old" "$f"
-tools/loop/tests/loop-mutations.sh:867:  '256.1@-@tools/loop/state.sh@report#theSpendIsSplitByPhaseRoleAndGate@the phase split the stream records, so no phase the trend totals has a duration (issue #759)@s|else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end)|else {modelMs: 0, gateMs: 0, otherMs: 0} end)|'
-tools/loop/tests/loop-mutations.sh:868:  '256.2@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the gate bucket the trend totals, so the phase that costs the most is printed as one that cost nothing (issue #759)@s#{n: "gate", ms: (\[$phs\[\].gateMs\] | add)}#{n: "gate", ms: 0}#'
-guidelines/Backlog.recipes.md:554:`metrics.afterGate` (the tokens from a session's first gate turn on, and that session's own tokens). The report's
-openspec/changes/fix-a-role-tally-records-its-model/design.md:32:later is a field that is absent where it predates the change — the shape `afterGate`, `phases` and `dupReads` took.
-openspec/changes/fix-a-role-tally-records-its-model/design.md:39:  `afterGate`, `reads` and `dupReads` are computed by the passes they were computed by before, and the new pass reads
-openspec/changes/archive/2026-11-09-fix-a-role-tally-records-its-model/design.md:35:later is a field that is absent where it predates the change — the shape `afterGate`, `phases` and `dupReads` took.
-openspec/changes/archive/2026-11-09-fix-a-role-tally-records-its-model/design.md:46:  `afterGate`, `reads` and `dupReads` are computed by the passes they were computed by before, and the new pass reads
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:8:*mentioned* `gate.sh` anywhere. Both figures taken from it inherit the error: `phases.gateMs` (the sum of the
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:9:durations of the calls `gateIds` collects) and `metrics.afterGate` (the tokens of the turns from that turn on).
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:13:run.json` of the run it was filed from carries `metrics.afterGate.tokens` 15 822 480 of `total` 23 570 758 over five
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:38:answers `afterGate = {sessions: 1, tokens: 6 000 000, total: 6 000 000}` — the whole item as "after the gate". The
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:51:`metrics.phases`, `metrics.roles`, `metrics.roleModels` and `metrics.afterGate`). It gains one clause naming what
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:58:  program, and a command carrying `--plan` runs nothing. One predicate, so `phases.gateMs` and `metrics.afterGate`
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:68:3 mutations added, 1 guideline clause — `tools/look.sh 'afterGate|gateMs'` → 28 matches in 10 files before this
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:76:stop"), so no gate, budget, bound or outcome changes. A state written by this engine records smaller `gateMs` and a
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:77:`null` `afterGate` where the split was taken at a mention. Rollback: revert the `is_gate` block to the one-line
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md:7:path counted as a gate run. Two figures are read off the first matching turn — `phases.gateMs` (the durations of the
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md:8:calls collected as gate calls) and `metrics.afterGate` (the tokens of the turns from that turn on) — and both were
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md:34:- `tools/loop/state.sh` — the predicate only. `metrics.gateMs` and `metrics.afterGate` change value; nothing else
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md:41:A state written by the fixed engine records a smaller `gateMs` and, on an item whose only gate words were a read or
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md:42:a plan, `afterGate: null`. An item that ran its gate records the same split as before. No run decision, budget,
-openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/tasks.md:13:      `afterGate = {sessions: 1, tokens: 6 000 000, total: 6 000 000}` where the case requires `null`.
-openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/proposal.md:96:  (`modelMs`, `gateMs`, `otherMs`), `metrics.roles` (`worker`, `reviewer`, `tail`, each null where no session 
-[LOOK-BOUND: cut at 8000 characters — narrow the pattern, or ask for --files]
+run: 2026-11-10T20:41:55Z on the tree this change lands on (merge of fix/issue-830-… onto main, bf350dd0)
+command: git grep -c -E 'afterGate|gateMs' (tracked files only; this log excluded)
+.pi/skills/analyse-loop-run/SKILL.md:1
+guidelines/Backlog.recipes.md:2
+openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/design.md:2
+openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/proposal.md:3
+openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/tasks.md:2
+openspec/changes/archive/2026-11-09-fix-a-role-tally-records-its-model/design.md:2
+openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/design.md:5
+openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/proposal.md:9
+openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/tasks.md:1
+openspec/changes/archive/2026-11-10-fix-a-rotation-keeps-the-record-lines/proposal.md:1
+openspec/changes/archive/2026-11-10-fix-a-truncated-spend-says-so/design.md:1
+openspec/changes/archive/2026-11-10-fix-a-truncated-spend-says-so/proposal.md:1
+tools/loop/loop.conf:1
+tools/loop/report.sh:2
+tools/loop/state.sh:8
+tools/loop/tests/loop-cases.sh:10
+tools/loop/tests/loop-mutations.sh:2
+tools/pi-child-events.sh:1
+total: 54 matched lines in 18 files

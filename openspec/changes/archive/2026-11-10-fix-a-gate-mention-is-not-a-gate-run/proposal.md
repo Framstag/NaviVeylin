@@ -27,7 +27,7 @@ items the item was filed from, the session each record split at contains one of 
   3 677 074) and `items/819/events.jsonl` (turn 44 of 62, 2 499 645 of 4 531 083).
 
 The item's *mechanism* does not hold and this change withdraws it: the tail is not the gate's session. Since #744 a
-gate ends the child that ran it and `tail_after_gate` (`tools/loop/run.sh:1801`) starts a fresh child, and since #758
+gate ends the child that ran it and `tail_after_gate` (`tools/loop/run.sh:1865`) starts a fresh child, and since #758
 the gate is a child of its own (`tools/loop/prompts/gate-deferred.md`); the same streams show the tail as a session
 of its own — `items/808/events.jsonl`'s three sessions are `worker-prompt-round2`, `worker-tail-round2-prompt` and
 `reviewer-prompt-2`, and the tail's 361 279 tokens are not in any gated session (the probe's output,
@@ -65,18 +65,19 @@ counts as the gate, because the figure it describes was read the wrong way.
   are corrected together.
 - `tools/loop/tests/loop-cases.sh` — the case `report#aCallThatNamesTheGateIsNotAGateRun`, registered in the case
   list and the dispatcher, with both arms: a mention and a plan are no gate; an invocation behind `cd`, `timeout` and `bash` is.
-- `tools/loop/tests/loop-mutations.sh` — three records, `267.1`–`267.3`, one per rule the case pins.
+- `tools/loop/tests/loop-mutations.sh` — three records, `272.1`–`272.3`, one per rule the case pins. Renumbered
+  from the branch's own `267.1`–`267.3`: the tree had spent `267.1` and `267.2` on the stream rotation by the time this
+  landed (`fix-rotation-keeps-the-records`), and the merged tree's records carry the new numbers everywhere.
 - `openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/specs/agent-issue-loop/spec.md` — the
   requirement's clause and the new scenario (archived with the change).
 - `guidelines/Backlog.recipes.md:558` — one clause in the paragraph that follows the one that owns the figure.
 
 surface: 1 case added, 0 cases rewritten, 0 fixtures realigned, 1 requirement modified, 1 scenario added,
-3 mutations added, 1 guideline clause — `tools/look.sh 'afterGate|gateMs'` → `LOOK: 47 matches in 13 files` on this
-tree (`evidence/look-surface.log`, run 2026-11-10), of which the tree's live assertions are
-the one case above, its three mutation records and the one guideline paragraph. The delta's own size is
-`git diff --numstat c0ddb97c..HEAD -- guidelines/Backlog.recipes.md tools/loop/state.sh
-tools/loop/tests/loop-cases.sh tools/loop/tests/loop-mutations.sh` → `11 0` (the guideline clause), `23 2` (the
-predicate), `62 0` (the case) and `11 0` (the three mutations); the suite's declared case count is
+3 mutations added, 1 guideline clause — the figure under it, re-taken on the tree that lands
+(`git grep -c -E 'afterGate|gateMs'`, tracked files only, this change's own log excluded) is 54 matched lines in 18
+files (`evidence/look-surface.log`, run 2026-11-10T20:41:49Z at `bf350dd0`), of which the tree's live assertions are
+the one case above, its three mutation records and the one guideline paragraph; the rest are the archived changes
+that wrote the figure, the engine files it lives in, and the skill that reads it. The suite's declared case count is
 `LOOP-MEASURE-SUITE cases=393`.
 
 ## Impact

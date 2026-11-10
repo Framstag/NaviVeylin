@@ -19,8 +19,7 @@ to understand its plan writes `sed -n 1,60p tools/loop/gate.sh`.
 2. a leading `cd <dir>` is dropped (its `&&` was already a cut);
 3. leading `VAR=value` assignments are dropped;
 4. `bash`, `sh`, `exec`, `command`, `timeout <n>`, `env` and `nohup` are dropped, with `timeout`'s numeric argument,
-   and steps 3–4 repeat — the shipped clause names the four a case pins (`bash`, `sh`, `exec`, `timeout <n>`), and the
-   other three are the same branch, so the clause states less than the code does;
+   and steps 3–4 repeat — the shipped clause names the same seven, so the contract and the code state one set;
 5. the remaining first word must be the gate's program (`gate.sh`, or any path ending in `/gate.sh`);
 6. no word of the command may be `--plan`.
 
@@ -46,7 +45,7 @@ bound or verdict reads either figure, so no item outcome moves.
 ## Rollback
 
 Revert the `is_gate` block to the two-line predicate it replaced. `report#aCallThatNamesTheGateIsNotAGateRun` then
-reports `tests=1 failures=1` (its first assertion) and the 267.x mutations report `MUTATION-DID-NOT-APPLY`; nothing
+reports `tests=1 failures=1` (its first assertion) and the `272.x` mutations report `MUTATION-DID-NOT-APPLY`; nothing
 else in the tree changes, because nothing else was edited for the fix but the case, the mutations and the two prose
 sites that state the rule.
 
@@ -56,7 +55,7 @@ The measurements below are read with the probe this change versions (`evidence/s
 `evidence/split-point.log`) over each item's own `events.jsonl`.
 
 1. **The item's own proposal — the tail must not run in the gate's session.** Eliminated: it already does not.
-   Since #744 a gate ends the child that ran it and `tail_after_gate` (`tools/loop/run.sh:1801`) renders a prompt and
+   Since #744 a gate ends the child that ran it and `tail_after_gate` (`tools/loop/run.sh:1865`) renders a prompt and
    calls `run_child`; since #758 the gate is a child of its own. The five items' streams show it: three sessions in
    `items/808/events.jsonl` — `worker-prompt-round2`, `worker-tail-round2-prompt`, `reviewer-prompt-2` — and the
    tail's 361 279 tokens are outside every gated session (the probe names that session and its tokens). A change that

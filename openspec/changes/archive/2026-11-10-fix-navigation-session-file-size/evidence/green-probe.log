@@ -1,0 +1,10 @@
+# item #835 — the same probe after the split, on the changed tree
+changed paths (git status --porcelain):  M auto/src/main/java/com/naviveylin/auto/NavigationSession.kt  M auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt ?? auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt 
+taken: 2026-11-10T03:19:02Z
+
+source-size: lines=1498 path=app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt
+source-size: lines=1367 path=app/src/main/java/com/naviveylin/ui/favorites/FavoritesSheet.kt
+source-size: lines=1324 path=auto/src/main/java/com/naviveylin/auto/NavigationSession.kt
+source-size: lines=1312 path=app/src/main/java/com/naviveylin/ui/route/RoutePanel.kt
+source-size: lines=1251 path=app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelFollow.kt
+{"path":"auto/src/main/java/com/naviveylin/auto/NavigationSession.kt","fingerprint":"f0611efc58bd51efa80f8d38c7d98075378a4ca45792b996344e8f3257fa92c2","measurement":"1324","verdict":"clear","baseline":"","title":"the source file is inside the size bound","claim":"auto/src/main/java/com/naviveylin/auto/NavigationSession.kt is 1324 lines, inside the row's bound of 1500"}

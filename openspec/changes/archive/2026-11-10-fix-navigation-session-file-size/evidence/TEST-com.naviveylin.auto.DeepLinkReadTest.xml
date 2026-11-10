@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DeepLinkReadTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:18:25.022Z" hostname="dingens" time="0.135">
+  <properties/>
+  <testcase name="resolvedShortLinkTargetIsParsed" classname="com.naviveylin.auto.DeepLinkReadTest" time="0.048"/>
+  <testcase name="resolverIsConsultedOnlyForAShortLink" classname="com.naviveylin.auto.DeepLinkReadTest" time="0.034"/>
+  <testcase name="shortLinkResolvingToANonMapTargetIsUnusable" classname="com.naviveylin.auto.DeepLinkReadTest" time="0.028"/>
+  <testcase name="unresolvableShortLinkIsUnusable" classname="com.naviveylin.auto.DeepLinkReadTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererFrameWaitTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:18:18.542Z" hostname="dingens" time="0.144">
+  <properties/>
+  <testcase name="aFrameThatNeverLandsIsRequestedAgain" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.023"/>
+  <testcase name="landedFramesAreNotDuplicated" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.019"/>
+  <testcase name="aRequestArmsTheWaitAndAStopDisarmsIt" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.019"/>
+  <testcase name="aRequestTheFramePathCannotServeStaysOutstanding" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.017"/>
+  <testcase name="theExhaustedBudgetIsReportedOnce" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.025"/>
+  <testcase name="aStoppedRendererIssuesNoRetry" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.021"/>
+  <testcase name="theArmedWaitFiresAndRetriesTheFrame" classname="com.naviveylin.auto.AutoMapRendererFrameWaitTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

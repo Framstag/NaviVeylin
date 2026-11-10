@@ -1,0 +1,261 @@
+/**
+ * Identity-only message for a parsed car deep link (spec: auto-diagnostics —
+ * Diagnostics carry no coordinates): the outcome's shape, never the payload —
+ * `DeepLinkDestination`'s `toString()` prints the coordinates, and an unreadable link's text is
+ * exactly what the session refuses to search for. Pure seam for unit testing
+ * ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun deepLinkLogMessage(result: DeepLinkResult): String = when (result) {
+    is DeepLinkResult.Destination ->
+        "Deep link parsed: shape=" + (if (result.destination.hasCoordinates) "coordinates" else "query")
+    DeepLinkResult.UnusableLink -> "Deep link parsed: shape=unusable"
+    DeepLinkResult.None -> "Deep link parsed: shape=none"
+}
+
+/**
+ * Whether the notice that currently shows [showingBucket] has to be refreshed for a
+ * [reportedPercent]: only a changed *display* step is worth a host push — the same rule the
+ * distance bucket applies to the navigation template (spec: `car-host-fault-isolation` —
+ * Bounded host-facing traffic; design D5). Pure seam for unit testing
+ * ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun noticeNeedsUpdate(showingBucket: Int?, reportedPercent: Int?): Boolean =
+    showingBucket != displayedCalculationPercent(reportedPercent)
+
+/**
+ * Whether the car wait notice has to be armed for [live]: a calculation is in flight, no notice
+ * is up, and no delay for exactly this calculation is already running — a second percentage
+ * update must not restart the delay (spec: `route-calculation-feedback` — Car wait notice while
+ * a route is being calculated). Pure seam for unit testing ([NavigationSession] cannot be
+ * constructed in Robolectric).
+ */
+internal fun needsNoticeArm(
+    live: RouteCalculation?,
+    navigating: Boolean = false,
+    noticeShown: Boolean,
+    armedToken: Long?,
+    arming: Boolean
+): Boolean =
+    live != null && !navigating && !noticeShown && !(arming && armedToken == live.token)
+
+/**
+ * Whether a route calculation's wait belongs on the map surface instead of a pushed screen. A
+ * reroute runs with the navigation view on screen, and the Car App Library has no overlay layer: a
+ * pushed screen IS the displayed template (spec: `auto/navigation-view` — Reroute keeps the
+ * navigation view on screen). Pure seam for unit testing ([NavigationSession] cannot be constructed
+ * in Robolectric).
+ */
+internal fun calculationWaitOnSurface(isNavigating: Boolean): Boolean = isNavigating
+
+/**
+ * Whether [reason] is a route-calculation failure: the reasons the router itself reports. A
+ * navigation-start failure (no GPS fix, no location grant) is not one of them and keeps its pane.
+ */
+internal fun FailureReason.isCalculationFailure(): Boolean = when (this) {
+    FailureReason.ROUTING_DATA_UNAVAILABLE,
+    FailureReason.DATABASE_NOT_LOADED,
+    FailureReason.START_UNROUTABLE,
+    FailureReason.TARGET_UNROUTABLE,
+    FailureReason.NO_ROUTE_FOUND,
+    FailureReason.ROUTING_DATA_FAILURE,
+    FailureReason.ENGINE_FAILURE -> true
+    FailureReason.UNKNOWN,
+    FailureReason.GPS_SIGNAL_MISSING,
+    FailureReason.PRECISE_LOCATION_REQUIRED -> false
+}
+
+/**
+ * Whether a calculation failure is reported on the map surface rather than in a pane: only while
+ * navigation is active, because the map is what a pane would take away (spec:
+ * `route-calculation-feedback` — A failed route calculation during navigation is reported on the map
+ * surface). Pure seam for unit testing.
+ */
+internal fun calculationFailureShownOnSurface(isNavigating: Boolean, reason: FailureReason?): Boolean =
+    isNavigating && reason != null && reason.isCalculationFailure()
+
+/**
+ * Whether a surface failure report has served its bounded time (spec: `route-calculation-feedback` —
+ * The failure notice ends by itself). Pure seam for unit testing.
+ */
+internal fun surfaceFailureReportElapsed(elapsedMs: Long): Boolean =
+    elapsedMs >= NavigationSession.ERROR_DISPLAY_MS
+
+/**
+ * Whether the notice on the stack belongs to a calculation that is no longer in flight: it has
+ * to leave — the notice never outlives what it describes, and a calculation that ended while the
+ * session was stopped must not leave one behind (spec: `route-calculation-feedback` — The car
+ * notice never outlives its calculation). Pure seam for unit testing.
+ */
+internal fun noticeIsStale(live: RouteCalculation?, noticeShown: Boolean): Boolean =
+    live == null && noticeShown
+
+/**
+ * The minimum time the calculation notice stays visible once it has been pushed: a route that
+ * arrives just after [NavigationSession]'s `CALCULATION_NOTICE_DELAY_MS` must not replace a screen
+ * the driver has only glanced at. Measured 2026-10-05 (§133, issue #84): an 847 ms route showed the
+ * notice for 443 ms — the only flash the change's evidence carries — so 700 ms leaves ~250 ms of
+ * margin over it and puts the navigation view on screen at the latest 700 ms after the notice
+ * appeared.
+ */
+internal const val CALCULATION_NOTICE_MIN_DWELL_MS = 700L
+
+/**
+ * How long the calculation notice that has been visible for [shownForMs] still has to stay up
+ * before it may be removed: the rest of [CALCULATION_NOTICE_MIN_DWELL_MS], and nothing once the
+ * dwell has run out. [replacedByNavigation] false is a removal no navigation view stands behind — the
+ * driver's own cancellation, or a failure whose error notice is shown over no navigation view: those
+ * are answered at once, and the dwell must not delay them (spec: `route-calculation-feedback` — A
+ * notice the navigation view replaces stays visible for a minimum dwell). Pure seam for unit testing
+ * ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun calculationNoticeDwellRemainingMs(
+    shownForMs: Long,
+    replacedByNavigation: Boolean
+): Long =
+    if (!replacedByNavigation) 0L
+    else (CALCULATION_NOTICE_MIN_DWELL_MS - shownForMs).coerceAtLeast(0L)
+
+/**
+ * Whether the delay armed for [armedToken] may still raise its notice: the engine must still
+ * report exactly that calculation in flight. Pure seam for unit testing.
+ */
+internal fun noticeIsStillArmedFor(armedToken: Long?, live: RouteCalculation?): Boolean =
+    live != null && live.token == armedToken
+
+/**
+ * Pure mapping from a host [Configuration] to the night-mode flag. Extracted
+ * for unit testing — [NavigationSession] itself needs a host-provided
+ * [androidx.car.app.CarContext] and cannot be constructed in Robolectric.
+ */
+internal fun isNightUiMode(configuration: Configuration): Boolean =
+    configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+        Configuration.UI_MODE_NIGHT_YES
+
+/**
+ * Whether a restored session should push the free-driving view (design D1,
+ * spec: auto/free-driving — session restore). The free-driving and navigation
+ * modes are mutually exclusive: navigation is restored by the observer's state
+ * emission, free driving by an explicit push — never both, and never as the
+ * session root. Pure seam for unit testing ([NavigationSession] cannot be
+ * constructed in Robolectric).
+ */
+internal fun shouldRestoreFreeDriving(isNavigating: Boolean, freeDrivingActive: Boolean): Boolean =
+    freeDrivingActive && !isNavigating
+
+/**
+ * Whether the trip collector may send a host trip update now (spec: `car-host-fault-isolation` —
+ * Trip metadata publishing is bounded by the navigation period).
+ *
+ * The send is bounded by the navigation period alone: `sessionStarted` is deliberately **not**
+ * consulted. A backgrounded car app still drives the vehicle cluster and the heads-up display, so
+ * a stopped session neither defers nor withdraws a trip update — the started/ended pair and the
+ * screen and template mutations are what the session-start bound covers. Do not add the
+ * [SessionHostGate] question the sibling navigation-state observer asks (`allowHostMutation()`):
+ * [NavigationManagerController] already stops publishing at the first host rejection, and gating
+ * here instead would freeze the cluster whenever another car app is in front. Pure seam for unit
+ * testing ([NavigationSession] cannot be constructed in Robolectric).
+ */
+@Suppress("UNUSED_PARAMETER") // `sessionStarted` is not consulted on purpose — see the KDoc above.
+internal fun tripSendAllowed(navigating: Boolean, sessionStarted: Boolean): Boolean = navigating
+
+/**
+ * Whether the end of the car session ends the navigation it presented (spec:
+ * `auto/navigation-view` — Navigation ends when the car session ends after arrival): the session
+ * was driving and had reached its destination. The arrival fact lives in the shared navigation
+ * state, so it is read *after* the fact, at the moment the session is gone — no surface state and
+ * no host callback participates. Arriving while the session is live is not a stop: the driver may
+ * still be looking for a parking spot. Pure seam for unit testing ([NavigationSession] cannot be
+ * constructed in Robolectric).
+ */
+internal fun shouldEndNavigationOnSessionEnd(state: NavigationState): Boolean =
+    state.isNavigating && state.hasReachedDestination
+
+/**
+ * Perform that decision: stop the navigation the ended session was driving, and report whether it
+ * was ended. The call is the half with a consequence, so it has its own seam — a unit test drives
+ * it with a fake [stop] instead of leaving it reachable only on a device. Confinement is the
+ * caller's job ([guardedHostCall]): an already-gone host must not let a fault escape the lifecycle
+ * callback.
+ */
+internal fun endNavigationAfterArrival(state: NavigationState, stop: () -> Unit): Boolean {
+    if (!shouldEndNavigationOnSessionEnd(state)) return false
+    stop()
+    return true
+}
+
+/**
+ * Publish that the car session has started, through the phone-facing seam.
+ *
+ * This is the start-specific half of the lifecycle wiring: a [NavigationSession] needs a
+ * host-provided [androidx.car.app.CarContext] and cannot be constructed in Robolectric, so
+ * `onStart` and `onDestroy` cannot be reached by a unit case. Their directions live in named
+ * lifecycle seams instead of a boolean at each call site, and a source-level case binds those
+ * seams to the production callbacks.
+ */
+internal fun publishCarSessionPresenceOnStart(
+    presence: () -> CarSessionPresence
+): Boolean = publishCarSessionPresence(presence = presence, live = true)
+
+/**
+ * Publish that the car session has ended, through the phone-facing seam.
+ *
+ * This is the destroy-specific half of the lifecycle wiring described by
+ * [publishCarSessionPresenceOnStart].
+ */
+internal fun publishCarSessionPresenceOnDestroy(
+    presence: () -> CarSessionPresence
+): Boolean = publishCarSessionPresence(presence = presence, live = false)
+
+/**
+ * Perform one presence publish, confined like every other session lifecycle step (spec:
+ * `car-session-presence` — Session start is published / Session end is published;
+ * `car-host-fault-isolation` — No fault escapes into the host path).
+ *
+ * [presence] is a provider so the lazy resolution (`entryPoint.carSessionPresence()`) stays
+ * inside the confined block, exactly as the inline step had it: a fault while resolving the seam
+ * must not escape into the library's dispatch either.
+ *
+ * @return true when the publish landed, false when it threw (never rethrows)
+ */
+private fun publishCarSessionPresence(
+    presence: () -> CarSessionPresence,
+    live: Boolean
+): Boolean = guardedHostCall(
+    what = if (live) "publish car session presence" else "clear car session presence",
+    tag = SESSION_DIAG_TAG
+) {
+    presence().setActive(live)
+}
+
+/**
+ * The end decision as one diagnostics line (spec: `auto/navigation-view` — End decision is
+ * diagnosable without coordinates): identity and numbers only — was the session driving, was the
+destination reached, the remaining distance in whole metres, and what the session did about it.
+ * Pure seam for unit testing.
+ */
+internal fun sessionEndNavigationDecisionMessage(state: NavigationState, ended: Boolean): String =
+    "Session end: navigating=${state.isNavigating} reached=${state.hasReachedDestination}" +
+        " remaining=${state.remainingDistance.toInt()}m -> navigation " +
+        (if (ended) "ended" else "kept")
+
+/**
+ * Trip factory used by the car session's trip publisher (spec:
+ * auto-navigation-hints — "Trip metadata for cluster and heads-up display"):
+ * the template's maneuver artwork and the car string resolver, so the rail
+ * card, the cluster step and the notification hint cannot disagree. Pure seam
+ * for unit testing ([NavigationSession] cannot be constructed in Robolectric).
+ */
+internal fun carTripFor(state: NavigationState, resolver: StringResolver): Trip? =
+    NavigationTemplateMapper.tripFromState(state, ManeuverGlyphs::forStep, resolver)
+
+/**
+ * Resolve the car dark presentation from the shared dark mode preference
+ * ("ON"/"OFF"/"AUTOMATIC") and the host day/night signal: ON always dark,
+ * OFF always light, AUTOMATIC (and any unknown value) follows the host.
+ * Extracted from [NavigationSession.resolvedDark] for unit testing.
+ */
+internal fun resolveCarDark(pref: String, hostDark: Boolean): Boolean = when (pref) {
+    "ON" -> true
+    "OFF" -> false
+    else -> hostDark
+}

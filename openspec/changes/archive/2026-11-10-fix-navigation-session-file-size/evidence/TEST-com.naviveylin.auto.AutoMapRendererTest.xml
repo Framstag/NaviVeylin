@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:18:19.957Z" hostname="dingens" time="0.331">
+  <properties/>
+  <testcase name="markerRidesPredictedPositionBetweenFixes" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.021"/>
+  <testcase name="sharedCorrectionBoundAppliesToCar" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.054"/>
+  <testcase name="curveSequenceStaysInBand" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.045"/>
+  <testcase name="stationaryJitterFixesDoNotReAnchorViewport" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.016"/>
+  <testcase name="gateFreezeKeepsDisplayAndMarkerAtStop" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="cornerOvershootStaysInBand" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.035"/>
+  <testcase name="extrapolationGateStopsWhenStationaryPausedOrDisengaged" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.016"/>
+  <testcase name="subPixelCorrectionIsImperceptible" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.028"/>
+  <testcase name="marginRenderRequestHonoursThrottleParity" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.019"/>
+  <testcase name="staleFixHoldsDisplayInsteadOfEasingBack" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.02"/>
+  <testcase name="backwardFixDoesNotHaltCarDisplay" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.023"/>
+  <testcase name="staleFixHoldsPositionInsteadOfExtrapolating" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.016"/>
+  <testcase name="staleBaseDoesNotStopCarDisplay" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

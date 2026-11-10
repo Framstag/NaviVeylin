@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sum of the 98 TEST-*.xml beside this file, taken with the tree's own tally command
+     (bash evidence/tally.sh <dir>): Gradle writes one XML per class and no total, so this file is that
+     arithmetic. The per-class lines are evidence/focused-tally.log beside it. -->
+<testsuite name=":auto:testDebugUnitTest --tests com.naviveylin.auto.* (sum of the 98 TEST-*.xml here)" tests="958" skipped="0" failures="0" errors="0" time="0" timestamp="2026-11-10T04:18:00Z">
+  <system-out>TOTAL classes=98 tests=958 skipped=0 failures=0 errors=0 — awk over auto/build/test-results/testDebugUnitTest/*.xml by evidence/tally.sh, one line per class in evidence/focused-tally.log
+</system-out>
+</testsuite>

@@ -1,0 +1,63 @@
+=== files in auto/src that name NavigationSession (look.sh) ===
+LOOK: 53 matches in 20 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src for 'NavigationSession'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt 3
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/DeepLinkLogMessageTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt 6
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionRestoreTest.kt 2
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt 2
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt 3
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt 2
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionDarkModeTest.kt 3
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionEndArrivalDecisionTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/CalculationNoticeDecisionTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt 2
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/MapScreen.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/CarHostGuards.kt 2
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/DeepLinkAction.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/ErrorOverlayScreen.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/SessionLog.kt 3
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/SessionScreenStack.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSession.kt 16
+auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:17: * lifecycle events (task 1.5) — the logging the [NavigationSession] emits
+auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:95:     * map DBs). The full [NavigationSession] warmup cannot be executed without
+auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:102:        // Canonical order emitted by NavigationSession.startWarmup.
+auto/src/test/java/com/naviveylin/auto/DeepLinkLogMessageTest.kt:13: * text is exactly what the session refuses to search for. Pure-seam test — the [NavigationSession]
+auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt:26: * pattern as [NavigationSessionDarkModeTest]).
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:40:                    "NavigationSession keeps no calculationNoticeDwellRemainingMs(shownForMs, " +
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:51:        throw AssertionError("com.naviveylin.auto.NavigationSessionKt is not on the classpath: $it")
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:73:            surfaceFailureReportElapsed(NavigationSession.ERROR_DISPLAY_MS - 1)
+
+=== files that name the file's JVM facade class NavigationSessionKt ===
+LOOK: 7 matches in 4 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'NavigationSessionKt'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt 2
+LOOK-FILE: openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/base-auto-kover-report.xml 1
+LOOK-FILE: openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/change-auto-kover-report.xml 1
+LOOK-FILE: openspec/changes/fix-navigation-session-file-size/evidence/surface.log 3
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:51:        throw AssertionError("com.naviveylin.auto.NavigationSessionKt is not on the classpath: $it")
+openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/base-auto-kover-report.xml:4965:<class name="com/naviveylin/auto/NavigationSessionKt" sourcefilename="NavigationSession.kt">
+openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/change-auto-kover-report.xml:4965:<class name="com/naviveylin/auto/NavigationSessionKt" sourcefilename="NavigationSession.kt">
+openspec/changes/fix-navigation-session-file-size/evidence/surface.log:29:auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+
+=== specs, guidelines and tools that name the path NavigationSession.kt ===
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/specs for 'NavigationSession\.kt'
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines for 'NavigationSession\.kt'
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'NavigationSession\.kt'
+
+=== comment citations of a line in the file ===
+LOOK: 2 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src for 'NavigationSession\.kt:[0-9]'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt 1
+auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt:29: * do **not** pin: the collector's own line at `NavigationSession.kt:732`, which no unit test can
+auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt:280:        // opened the databases (`NavigationSession.kt:373-379`, `RootScreen.kt:127`), and the flag is not
+
+=== top-level declarations the file's foot holds ===
+LOOK: 22 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/main/java/com/naviveylin/auto/NavigationSession.kt for '^(internal|private) (fun|const val)'
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSession.kt 22
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1336:internal fun deepLinkLogMessage(result: DeepLinkResult): String = when (result) {
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1350:internal fun noticeNeedsUpdate(showingBucket: Int?, reportedPercent: Int?): Boolean =
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1360:internal fun needsNoticeArm(
+auto/src/main/java/com/naviveylin/auto/NavigationSession.kt:1376:internal fun calculationWaitOnSurface(isNavigating: Boolean): Boolean = isNavigating

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FavoritesScreenObservationsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:18:27.268Z" hostname="dingens" time="0.158">
+  <properties/>
+  <testcase name="everyObservedSourceReachesTheEffect" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.033"/>
+  <testcase name="aResolvedStoresStateReachesTheScreenBeforeTheBackgroundHop" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.018"/>
+  <testcase name="tenStartStopCyclesLeaveOneInstance" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.033"/>
+  <testcase name="favoriteSourcesResolveOffTheHostThread" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.02"/>
+  <testcase name="anUnresolvedProviderPublishesNothingBeforeTheHop" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.017"/>
+  <testcase name="aGroupReorderWhileStoppedIsAppliedOnceOnTheNextStart" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.018"/>
+  <testcase name="aStoppedScreenObservesNothing" classname="com.naviveylin.auto.FavoritesScreenObservationsTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

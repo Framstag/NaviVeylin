@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CalculationNoticeDwellTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:18:21.560Z" hostname="dingens" time="0.005">
+  <properties/>
+  <testcase name="theSurfaceReportEndsAfterItsDwell" classname="com.naviveylin.auto.CalculationNoticeDwellTest" time="0.0"/>
+  <testcase name="aRouteArrivingInsideTheDwellKeepsTheNoticeUp" classname="com.naviveylin.auto.CalculationNoticeDwellTest" time="0.005"/>
+  <testcase name="aNoticeThatOutlastedItsDwellIsReplacedAtOnce" classname="com.naviveylin.auto.CalculationNoticeDwellTest" time="0.0"/>
+  <testcase name="theDriversOwnAnswerIsNeverDelayedByTheDwell" classname="com.naviveylin.auto.CalculationNoticeDwellTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

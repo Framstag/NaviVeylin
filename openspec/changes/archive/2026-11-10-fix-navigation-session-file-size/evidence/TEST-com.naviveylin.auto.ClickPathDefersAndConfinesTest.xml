@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.ClickPathDefersAndConfinesTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:18:23.216Z" hostname="dingens" time="1.794">
+  <properties/>
+  <testcase name="favoritesGroupRowsNeverPushOnTheCallbackPath" classname="com.naviveylin.auto.ClickPathDefersAndConfinesTest" time="0.87"/>
+  <testcase name="rootScreenRowSurvivesARejectedPush" classname="com.naviveylin.auto.ClickPathDefersAndConfinesTest" time="0.31"/>
+  <testcase name="rootScreenRowsNeverPushOnTheCallbackPath" classname="com.naviveylin.auto.ClickPathDefersAndConfinesTest" time="0.553"/>
+  <testcase name="preferencesRowsNeverPushOnTheCallbackPath" classname="com.naviveylin.auto.ClickPathDefersAndConfinesTest" time="0.061"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

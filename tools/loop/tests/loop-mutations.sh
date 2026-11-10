@@ -743,7 +743,14 @@ MUTATIONS=(
   # run read that silence as a refusal, so the record was `blocked` with `reviewRounds 1` and a rate counted it as
   # a refused round. The branch below records the cut instead, and the case that notices its absence asks what the
   # run own rate says about the item it just cut.
-  '73.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the branch recording a round the item turn bound ended as cut, so the silence of a reviewer that never answered is read as a refusal and buys a rework worker (issue #247)@s#^      if \[ -n "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \]; then$#      if false; then#'
+  '73.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the branch recording a round the item turn bound ended as cut, so the silence of a reviewer that never answered is read as a refusal and buys a rework worker (issue #247)@s#^      if \[ -n "\$reviewer_timeout_line" \]; then$#      if false; then#'
+  # 73.2 — the reason a bound-ended round leaves names the bound that ended it and the figure it reached, quoted
+  # from the child's own `LOOP-TIMEOUT` line (issue #829). The two arms read that line into a variable and quote it;
+  # with that reading replaced by the ambiguous phrase the reason offers both bounds in place of the one that
+  # fired — the sentence #753 and #819 carried, whose 200 427 and 200 733 tokens sat above the 200 000 context stop
+  # and were named nowhere on the item. The case asks the item's note for the bound, its figure and the key it is
+  # recorded in.
+  '73.2@-@tools/loop/run.sh@run#aPreGateReviewEndedAtItsBoundNamesIt@the reason a bound-ended round leaves on the item naming the bound it hit and the figure it reached, quoted from the transcript line the child wrote (issue #829)@s#^          pre_gate_timeout_line=\$(report_field "\$pre_gate_report" LOOP-TIMEOUT)$#          pre_gate_timeout_line="one of its spend bounds"#'
   # 74.1/74.2 — the change an item names (`agent-issue-loop`, "A change the item names is handed to its worktree" and
   # "A tier-B item is verified, never planned again"): the copy refuses what the tree does not hold, and the pre-screen
   # refuses a change the readiness checker no longer passes. Each is the one line that decides its refusal.

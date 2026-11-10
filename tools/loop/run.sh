@@ -2386,15 +2386,19 @@ while true; do
             loop_state step A --name outside-write-pre-gate --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
             progress note "$outside_write_note"
           fi
+          pre_gate_timeout_line=$(report_field "$pre_gate_report" LOOP-TIMEOUT)
           if [ -n "$pre_gate_deadline" ]; then
             deadline_claim="$pre_gate_deadline"
             pre_gate_cut=1
             pre_gate_refusal_verdict="deadline"
             pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
-          elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
+          elif [ -n "$pre_gate_timeout_line" ]; then
             pre_gate_cut=1
             pre_gate_refusal_verdict="cut-short"
-            pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"
+            # The ended child's own transcript names the bound and the figure it reached, and the reason on the item
+            # quotes that line: a reader of the blocked item must not have to choose between the two bounds, or
+            # re-derive from a transcript nobody handed them which number ended the round (issue #829).
+            pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds — $pre_gate_timeout_line — the round was cut, not refused, so the change is left for the next run"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
@@ -2831,12 +2835,15 @@ while true; do
       # a refusal named a reviewer that refused nothing and bought a rework worker for it — measured on item #51,
       # whose round 1 ended at the turn bound (250 turns then) and whose record the report would otherwise count as a refusal
       # (issue #247, review round 2). The round is cut, as the twice-cut path below records it, so the item waits
-      # for the next run and a rate counts it as undecided.
-      if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
+      # for the next run and a rate counts it as undecided. The reason it leaves names the bound and the figure it
+      # reached, quoted from that same transcript line, so the two bounds are not offered in place of the one that
+      # fired (issue #829).
+      reviewer_timeout_line=$(report_field "$reviewer_report" LOOP-TIMEOUT)
+      if [ -n "$reviewer_timeout_line" ]; then
         review_verdict="cut-short"
         outcome="cut"
         record_cut_round "$round"
-        blocked_reason="the run ended the reviewer of round $round at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"
+        blocked_reason="the run ended the reviewer of round $round at one of its spend bounds — $reviewer_timeout_line — the round was cut, not refused, so the change is left for the next run"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`

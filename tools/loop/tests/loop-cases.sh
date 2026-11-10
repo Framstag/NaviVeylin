@@ -266,6 +266,7 @@ LOOP_SHELL_CASES=(
   'run#announcesAndRecordsTheReviewRound'
   'run#thePreGateReviewRunsBeforeTheGate'
   'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun'
+  'run#aPreGateReviewEndedAtItsBoundNamesIt'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard'
@@ -951,6 +952,7 @@ loop_run_shell_case() {
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#thePreGateReviewRunsBeforeTheGate') fn=case_run_thePreGateReviewRunsBeforeTheGate ;;
     'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun') fn=case_run_aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun ;;
+    'run#aPreGateReviewEndedAtItsBoundNamesIt') fn=case_run_aPreGateReviewEndedAtItsBoundNamesIt ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard') fn=case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard ;;
@@ -6965,7 +6967,14 @@ EOF
     "the item is recorded cut, not blocked: its work finished and the round the run ended is nobody's question"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
     "and its record carries the cut, not a refusal no reviewer made"
-  assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound" "the reason on the item names the bound"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound of 3 turns" \
+    "the reason on the item names the bound that ended the round and the figure it reached"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "LOOP_CHILD_TURNS_MAX_REVIEWER" \
+    "and the key that bound is recorded in, so the two bounds are not offered in place of the one that fired (issue #829)"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "the run ended the reviewer of round 1" \
+    "and the round the run ended is still named beside the bound it reached"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "the round was cut, not refused, so the change is left for the next run" \
+    "with the cut and the sentence that leaves the change for the next run"
   assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
     "a cut round writes no decision label on the item"
   assert_contains "$out" "decisions the owner owes: none" "and the report asks the owner no question about it"
@@ -8386,6 +8395,46 @@ case_run_aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun() {
   # The change the change child left is committed before the round reads it, which is what a later run adopts.
   assert_contains "$(git -C "$p" ls-tree -r --name-only "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)")" \
     "demo-fix.txt" "the change is on the branch for the next run"
+}
+
+case_run_aPreGateReviewEndedAtItsBoundNamesIt() {
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state bound_line extra
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The round before the gate ended at the reviewer's turn bound: its transcript carries the bound, the key it is
+  # recorded in and the count that reached it, and the reason the item carries quotes that line. `one of its spend
+  # bounds` named neither, so a person reading the item could not tell the turn bound from the context bound even
+  # though the transcript beside them said which one fired (issue #829).
+  bound_line='LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role) after 3 turn(s) — the run ended it and everything it started'
+  extra=$(cat <<EOF
+case "\$1" in
+  reviewer-pre-gate-prompt*) printf '%s\\n' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
+    "a round the run's own bound ended is cut, not blocked"
+  assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
+    "and its record carries the cut, not a refusal no reviewer made"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound of 3 turns" \
+    "the reason on the item names the bound that ended the round and the figure it reached"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "LOOP_CHILD_TURNS_MAX_REVIEWER" \
+    "and the key that bound is recorded in, so the two bounds are not offered in place of the one that fired"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "the pre-gate reviewer" \
+    "and the round it names is the one before the gate"
+  [ ! -f "$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt-retry.md" ] ||
+    fail "a round a bound ended was retried as if the transport had cut it"
+  assert_eq "0" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "no gate child is started on a diff nobody read"
+  assert_eq "0" "$(grep -c '^prompt: reviewer-prompt-1' "$PI_STUB_LOG" || true)" \
+    "and the round after the gate is not asked either"
 }
 
 case_run_mergesAFinishedAttemptAndClosesTheItem() {

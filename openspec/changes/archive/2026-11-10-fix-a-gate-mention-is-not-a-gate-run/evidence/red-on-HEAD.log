@@ -1,0 +1,13 @@
+report#aCallThatNamesTheGateIsNotAGateRun|   a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at: expected 'null', got '{
+report#aCallThatNamesTheGateIsNotAGateRun|   "sessions": 1,
+report#aCallThatNamesTheGateIsNotAGateRun|   "tokens": 6000000,
+report#aCallThatNamesTheGateIsNotAGateRun|   "total": 6000000
+report#aCallThatNamesTheGateIsNotAGateRun| }'
+--- report#aCallThatNamesTheGateIsNotAGateRun[0] (exit 1)
+  a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at: expected 'null', got '{
+  "sessions": 1,
+  "tokens": 6000000,
+  "total": 6000000
+}'
+FAIL report#aCallThatNamesTheGateIsNotAGateRun
+loop-selftest: 1 of 1 cases failed

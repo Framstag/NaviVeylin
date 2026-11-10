@@ -985,9 +985,30 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       # by, because `tool_execution_end` names its call and carries no command of its own.
       def tok: if . == null then 0
                else ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0)) end;
+      # …and the gate is the call that **runs** it, not every call that names it (issue #830). The words before the
+      # program may be a `cd …` prefix, leading `VAR=value` assignments and a `bash`/`sh`/`exec`/`timeout <n>`
+      # wrapper, so `cd /w && timeout 300 ./tools/loop/gate.sh` runs the gate while a command whose argument is the
+      # path of the gate — a `sed -n 1,60p tools/loop/gate.sh`, a `git show HEAD:tools/loop/gate.sh`, a `grep` over
+      # it — reads that file and runs nothing. A `--plan` call runs no step either: it is the list of commands a
+      # delta owes, which `measure.sh` reads, and the rule the gate already applies to its own runs. Measured
+      # 2026-11-10 over the five items the item was filed from (`.pi/issue-loop/items/{719,738,808,810,819}/
+      # events.jsonl`): every session the split was taken at had been split at one of those three shapes, so the
+      # share the trend printed as "after the first gate" was the own derivation of the item.
+      def words: [((. // "") | tostring) | splits("[ \\t;|&]+")] | map(select(length > 0));
+      def assignment: test("^[A-Za-z_][A-Za-z0-9_]*=");
+      def wrapper: . as $w | (["bash", "sh", "exec", "command", "timeout", "env", "nohup"] | index($w)) != null;
+      def run_word:
+        (if .[0] == "cd" then .[2:] else . end)
+        | until((length == 0) or (((.[0] | assignment) or (.[0] | wrapper)) | not);
+            (if (.[0] | assignment) then .[1:]
+             elif (.[0] == "timeout" and ((.[1] // "") | test("^[0-9]"))) then .[2:]
+             else .[1:] end))
+        | .[0] // "";
       def is_gate: (($gate | length) > 0)
-                   and ([((. // "") | tostring) | splits("[ \\t]+")]
-                        | any(.[]; . == $gate or endswith("/" + $gate)));
+                   and ((words) as $w
+                        | (($w | run_word) as $prog
+                           | (($prog == $gate) or ($prog | endswith("/" + $gate))))
+                          and ([$w[] | select(. == "--plan")] | length == 0));
       def calls_of: [((. // [])[] | select(.type == "toolCall")
                       | {id: (.id // ""), gate: (((.arguments?.command? // "") | tostring) | is_gate)})];
       def sessions:

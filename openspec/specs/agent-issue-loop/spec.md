@@ -3261,7 +3261,10 @@ and the other tools the children ran — and the tokens by the role that spent t
 model that answered them, both read from what an item's own event stream records when its record is written, never
 from a stream the report would have to find again. It SHALL also state the share of the tokens the run spent after an
 item's first gate. Each figure SHALL print `-` with its reason where nothing was measured, never a zero that reads as
-a measurement, and a role whose turns named no model SHALL keep its totals and name no model.
+a measurement, and a role whose turns named no model SHALL keep its totals and name no model. A call SHALL count as
+the gate only where its command **starts** the gate's program — behind the `VAR=value` assignments, the `cd …` prefix
+and the `bash`/`sh`/`exec`/`timeout <n>` words a child writes — so a command whose argument is the gate's own path,
+and a `--plan` call, SHALL be neither gate time nor a turn to split the item at.
 
 #### Scenario: The clock and the tokens are split where they were spent
 
@@ -3280,6 +3283,16 @@ a measurement, and a role whose turns named no model SHALL keep its totals and n
   the gate and the session total it is a share of, counted over the sessions that ran a gate rather than over every
   session of the item
 - **Case**: `report#theSpendIsSplitByPhaseRoleAndGate`
+
+#### Scenario: A call that names the gate is not a call that ran it
+
+- **WHEN** a session of an item reads the gate's own file (`sed -n 1,60p tools/loop/gate.sh`, `git show
+  HEAD:tools/loop/gate.sh`, a `grep` over it) and asks the gate for a plan (`gate.sh --plan --base <sha>`), and
+  another session runs the gate behind a `cd … &&` prefix, a `timeout <n>` word and `bash`
+- **THEN** the reading session records no gate time and no turn to split at — its two commands are the other tools
+  they are and the trend prints `-` with its reason for the run that ran no gate — and the session that started the
+  gate behind those words records the call's duration as the gate time and the item is split at that turn
+- **Case**: `report#aCallThatNamesTheGateIsNotAGateRun`
 
 #### Scenario: A role's tokens name the model that answered them
 

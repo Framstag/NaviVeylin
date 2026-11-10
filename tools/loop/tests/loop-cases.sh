@@ -354,6 +354,7 @@ LOOP_SHELL_CASES=(
   'report#anItemRecordsItsRepeatReads'
   'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
+  'report#aCallThatNamesTheGateIsNotAGateRun'
   'report#aStreamWithoutDurationsPrintsDash'
   'report#aRolesTokensRecordTheModelThatAnswered'
   'report#aSessionThatSwitchedModelRecordsBothTallies'
@@ -1041,6 +1042,7 @@ loop_run_shell_case() {
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
     'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
+    'report#aCallThatNamesTheGateIsNotAGateRun') fn=case_report_aCallThatNamesTheGateIsNotAGateRun ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
     'report#aRolesTokensRecordTheModelThatAnswered') fn=case_report_aRolesTokensRecordTheModelThatAnswered ;;
     'report#aSessionThatSwitchedModelRecordsBothTallies') fn=case_report_aSessionThatSwitchedModelRecordsBothTallies ;;
@@ -12268,6 +12270,66 @@ JSONL
   [ -n "$gate_line" ] || fail "the trend printed no after-the-gate line"
   assert_contains "$gate_line" "83 % — 5 of 6 Mtok, from the first gate of 1 session" \
     "and the share of the item's tokens spent after its first gate, with the two numbers it is a share of"
+}
+
+# A command that names the gate's path is not a call that runs it (issue #830). The split above is taken at the first
+# turn whose call runs the gate, and the engine read every word of a command as a possible program: `sed -n '1,60p'
+# tools/loop/gate.sh` and `git show HEAD:tools/loop/gate.sh` run `sed` and `git` and only read the gate, and
+# `gate.sh --plan` — the call the worker's own Phase D asks for first, before it runs anything — runs no step at all.
+# Measured over the five items the item was filed from (`.pi/issue-loop/items/{719,738,808,810,819}/events.jsonl`,
+# 2026-11-10): every session the record splits at was split at one of those three shapes, so the 67 % the report
+# printed was the item's own derivation read as its tail. This case pins both arms: a mention and a plan are no
+# gate, and an invocation behind the `cd … &&` and `timeout <n>` prefixes a child writes is still one.
+case_report_aCallThatNamesTheGateIsNotAGateRun() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend gate_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/mention.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"ctx_shell","arguments":{"command":"sed -n '1,60p' tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_shell","durationMs":400,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c2","name":"ctx_shell","arguments":{"command":"./tools/loop/gate.sh --plan --base abc1234"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"ctx_shell","durationMs":600,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":3000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  cat > "$d/invoked.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"g1","name":"ctx_shell","arguments":{"command":"cd /w && timeout 300 bash ./tools/loop/gate.sh --base abc1234"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"g1","toolName":"ctx_shell","durationMs":5000,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/mention.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "null" "$(jq -r '.items[0].metrics.afterGate' "$f")" \
+    "a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at"
+  assert_eq "3000" "$(jq -r '.items[0].metrics.phases.modelMs' "$f")" "the turns' own durations are still the model time"
+  assert_eq "0" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
+    "a read of the gate and a plan are no gate time, though both are the path the engine matches"
+  assert_eq "1000" "$(jq -r '.items[0].metrics.phases.otherMs' "$f")" "and they are the other tools they are"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  gate_line=$(printf '%s\n' "$trend" | grep '^  after the first gate:' || true)
+  [ -n "$gate_line" ] || fail "the trend printed no after-the-gate line"
+  assert_contains "$gate_line" "- · no item of this run ran a gate in its stream" \
+    "the run whose only gate.sh words were a read and a plan prints the dash, not a share over the whole item"
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":22,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/invoked.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "5000" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
+    "the call that starts the gate behind a cd and a timeout is the gate, so its duration is the gate time"
+  assert_eq "3000000" "$(jq -r '.items[0].metrics.afterGate.tokens' "$f")" \
+    "and the split is still taken at the turn that ran it, from that turn on"
+  out=$(run_report "$p") || fail "the report failed for the state that ran a gate"
+  gate_line=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p" | grep '^  after the first gate:' || true)
+  assert_contains "$gate_line" "75 % — 3 of 4 Mtok, from the first gate of 1 session" \
+    "the share is over the session that ran the gate, with both numbers it is a share of"
 }
 
 # A figure nobody measured prints `-` with its reason, never a zero that reads as a measurement — the rule the

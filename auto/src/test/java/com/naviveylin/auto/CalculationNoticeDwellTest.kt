@@ -37,7 +37,7 @@ class CalculationNoticeDwellTest {
             .singleOrNull { it.name.dwellName() && it.parameterCount == 2 }
             ?: throw AssertionError(
                 "the calculation notice's removal consults no minimum visible dwell: " +
-                    "NavigationSession keeps no calculationNoticeDwellRemainingMs(shownForMs, " +
+                    "NavigationSession's seams keep no calculationNoticeDwellRemainingMs(shownForMs, " +
                     "replacedByNavigation), so a route that arrives just after " +
                     "CALCULATION_NOTICE_DELAY_MS replaces a notice the driver saw for a few " +
                     "hundred milliseconds (measured: 443 ms)"
@@ -46,9 +46,9 @@ class CalculationNoticeDwellTest {
     }
 
     private fun facade(): Class<*> = runCatching {
-        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+        Class.forName("com.naviveylin.auto.NavigationSessionSeamsKt")
     }.getOrElse {
-        throw AssertionError("com.naviveylin.auto.NavigationSessionKt is not on the classpath: $it")
+        throw AssertionError("com.naviveylin.auto.NavigationSessionSeamsKt is not on the classpath: $it")
     }
 
     /**

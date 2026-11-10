@@ -933,7 +933,11 @@ MUTATIONS=(
   # state records the count, the characters and the base it is a share of; the report prints them and names the worst
   # item. Both halves carry the case `report#anItemRecordsItsRepeatReads`.
   '96.1@-@tools/loop/state.sh@report#anItemRecordsItsRepeatReads@the count of reads a session repeated, so an item that reopens a path it already read is a record a report can show (issue #814)@s|^         dupReads: (if \$reads > 0 then \$dup.dup else null end),$|         dupReads: null,|'
-  '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the worst item the repeat-reads line names, so the rate is printed beside nothing it can be acted on (issue #814)@s| chars re-injected| characters re-injected|'
+  # …and since #831 the line says which of those characters the child ever saw: the rule writes what it withheld
+  # (`state.sh` reads it, `96.2` mutates the report half) and `96.3` mutates the record the rule writes, which is the
+  # only place the volume is known at all.
+  '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the characters the repeat rule withheld of the run repeats, so the trend calls the raw repeat volume re-injected again and a figure the child never saw reads as one it did (issue #831)@s| withheld by the repeat rule| re-injected|'
+  '96.3@-@../pi-trim-result.mjs@repeat#aRepeatIsRecordedAsWhatItWithheld@the line that records what the repeat rule withheld, so an item that repeats a path leaves no record of the volume the child was not handed and the report calls the raw result re-injected (issue #831)@s|appendFileSync(record, repeatRecordLine(tool, text.length, notice.length));|void 0;|'
 
   # 97.x — the gate an item ran and the round that read its diff reach the item's record whichever arm it ended on
   # (issue #813). `gate_field` was computed 448 lines before the `falsified` arm and passed by the `closed` arm alone, so

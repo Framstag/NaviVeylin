@@ -416,14 +416,18 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # #814): a path a child has already read is cited rather than opened again. `tools/loop-spend.py` measures it
   # offline (`LOOP-SPEND-READS calls= duplicate=`), and until the state recorded it the report could not say whether
   # an item followed the rule or ignored it. The line prints the run repeats with the file reads they are a share
-  # of, the characters those repeats re-injected once and re-read for every turn after them, and the item that
-  # repeated most — the same three-part shape the calls line prints. A **warning, never a stop**: no key gates it, no
-  # item outcome reads it. The field absence is told apart from its null: a record written before the figure
-  # existed has no `dupReads` key at all, while one of this era that met an item which opened no file has it as
-  # `null` — and the two dashes say which of the two it is.
+  # of, the characters the repeats hold in their own results, how many of those the repeat rule withheld from the
+  # the child (issue #831), and the item that repeated most — the same three-part shape the calls line prints. The two
+  # halves are kept apart because since #685 they are different numbers: the rule replaces a repeat with one line, so the
+  # characters a repeat result holds are either material the child never saw or material it did, and the single figure
+  # called `re-injected` said the second about both. A **warning, never a stop**: no key gates it, no item outcome reads
+  # it. The field absence is told apart from its null: a record written before the figure existed has no `dupReads` key
+  # at all, while one of this era that met an item which opened no file has it as `null` — and the two dashes say which
+  # of the two it is.
   | ([.items[]
       | select((.metrics.dupReads // null) != null and (.metrics.reads // 0) > 0)
-      | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0)}]) as $dups
+      | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0),
+         w: (.metrics.withheld.chars // null)}]) as $dups
   | ( if ($dups | length) == 0 then
         if ([.items[] | select((.metrics | has("dupReads")) | not)] | length) > 0
            and ([.items[] | select(.metrics.tokens != null or (.metrics.calls // null) != null)] | length) > 0
@@ -434,7 +438,11 @@ trend=$(jq -r --argjson floor "$calls_floor" '
         | ([$dups[].c] | add) as $tc
         | if $tr == 0 then "- · no item recorded a file read"
           elif $td == 0 then "\($td) of \($tr) file reads were a second read of a path the session already had · no item repeated a path"
-          else "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars re-injected · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
+          else ([$dups[] | select(.w != null) | .w]) as $w
+            | ( if ($w | length) == 0
+                  then "the withheld share of the repeat rule is unrecorded — this state predates the figure"
+                  else "\($w | add) chars of them withheld by the repeat rule" end ) as $wline
+            | "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars in the repeat results · \($wline) · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
           end
       end ) as $readsline
   # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so

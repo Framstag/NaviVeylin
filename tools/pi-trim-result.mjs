@@ -24,7 +24,10 @@
 // the session's own edit coming back — 728 of the archive's 2 042 per-session repeats follow an edit of that path —
 // and that read is a verification, so it is handed over whole and becomes what the next repeat is measured against.
 // What a repeat must never do is withhold what the child asked for silently: the line names the path, the size, the
-// turn and the tool call that takes a range, and `LOOP_TOOL_RESULT_MAX_CHARS` recording `0` keeps both rules off.
+// turn and the tool call that takes a range, and `LOOP_TOOL_RESULT_MAX_CHARS` recording `0` keeps both rules off. What
+// it withheld is written down too (issue #831): the rule appends `LOOP-TOOL-RESULT-REPEAT: <tool> chars=<n> kept=<k>` to
+// the record the bound already writes, so an item's evidence says how much of a repeat's own result the child was not
+// handed, instead of leaving the report to call the raw volume re-injected.
 //
 // Two entry points, one pair of rules:
 //
@@ -60,6 +63,15 @@ export function trimNotice(tool, total, bound) {
 /** One line of the record, appended where the item's own evidence stands. */
 export function trimRecordLine(tool, total, bound) {
   return `LOOP-TOOL-RESULT-TRIM: ${tool} chars=${total} kept=${bound}\n`;
+}
+
+/**
+ * One line of the same record for a repeat the rule replaced (issue #831): the size the result had and the size of the
+ * one line the child was handed, so `chars - kept` is the volume the rule withheld. It names no path — the path is in
+ * the notice the child reads, and a record line that carried one would be a coordinate in a log.
+ */
+export function repeatRecordLine(tool, total, kept) {
+  return `LOOP-TOOL-RESULT-REPEAT: ${tool} chars=${total} kept=${kept}\n`;
 }
 
 /**
@@ -107,17 +119,26 @@ export function alreadyReadNotice(path, size, turn) {
 /**
  * The repeat rule: the text of a read, or the one line naming the earlier read when this session already holds the
  * same content at the same path. A read whose sha differs from the ledger's is the session's own edit coming back, so
- * it is handed over whole — that read is a verification — and becomes what the next repeat is measured against. The
- * rule never throws: an error hands the text over exactly as the tool returned it.
+ * it is handed over whole — that read is a verification — and becomes what the next repeat is measured against. A
+ * replacement is recorded beside the trims (`repeatRecordLine`), because what the child was not handed is a fact only
+ * this rule knows (issue #831). The rule never throws: an error hands the text over as the tool returned it.
  */
-export function repeatResult(text, read, bound) {
+export function repeatResult(text, read, bound, tool = "?", record = "") {
   try {
     if (!(bound > 0) || !read || !read.path || !read.ledger) return text;
     const sha = contentSha(text);
     const earlier = read.ledger.get(read.path);
     read.ledger.set(read.path, { sha, turn: read.turn, size: text.length });
     if (!earlier || earlier.sha !== sha) return text;
-    return alreadyReadNotice(read.path, earlier.size, earlier.turn);
+    const notice = alreadyReadNotice(read.path, earlier.size, earlier.turn);
+    if (record) {
+      try {
+        appendFileSync(record, repeatRecordLine(tool, text.length, notice.length));
+      } catch {
+        // A record that cannot be written costs the figure, never the read the child asked for.
+      }
+    }
+    return notice;
   } catch {
     return text; // a rule that could not be applied is not a reason to fail the read it was asked about
   }
@@ -167,7 +188,7 @@ export function trimContent(content, bound, tool, record, read) {
   let changed = false;
   const out = (content || []).map((block) => {
     if (!block || block.type !== "text" || typeof block.text !== "string") return block;
-    const text = trimResult(repeatResult(block.text, read, bound), bound, tool, record);
+    const text = trimResult(repeatResult(block.text, read, bound, tool, record), bound, tool, record);
     if (text !== block.text) changed = true;
     return text === block.text ? block : { ...block, text };
   });
@@ -247,7 +268,7 @@ function cli(argv) {
   const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();
   const text = readFileSync(0, "utf8");
   const read = { path: readPath(tool, { path }), ledger, turn };
-  process.stdout.write(trimResult(repeatResult(text, read, bound), bound, tool, record));
+  process.stdout.write(trimResult(repeatResult(text, read, bound, tool, record), bound, tool, record));
   if (ledgerFile) writeLedger(ledgerFile, ledger);
   return 0;
 }

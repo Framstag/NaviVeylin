@@ -411,6 +411,7 @@ LOOP_SHELL_CASES=(
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
+  'repeat#aRepeatIsRecordedAsWhatItWithheld'
   'run#childPastItsTurnBoundIsCut'
   'prescreen#aReworkCutBranchIsWork'
   'worktree#setsAsideAReworkCutBranchAndStartsFresh'
@@ -1093,6 +1094,7 @@ loop_run_shell_case() {
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
+    'repeat#aRepeatIsRecordedAsWhatItWithheld') fn=case_repeat_aRepeatIsRecordedAsWhatItWithheld ;;
     'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
     'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
@@ -11968,25 +11970,35 @@ JSONL
 
 # The prompt has told a child since #246 that a path it already read is cited rather than opened again, and #685 capped
 # what a repeat is handed over — but no figure counted the repeats, so a child that follows the rule and one that
-# ignores it read the same in every report (issue #814). The state now records the count and the characters the repeats
-# re-injected (`metrics.dupReads`, `metrics.dupChars`) beside the file reads they are a share of (`metrics.reads`),
-# read from the same stream `done` already opens: a read is a call of `ctx_read`/`read` (the pair the offline
-# `tools/loop-spend.py` counts), its path the `arguments` of the `toolCall` block, its size the characters of the
-# matching `tool_execution_end` result — and a repeat is a path the **session** had already read, because a reviewer
-# reading what the worker read is a new conversation and not a second read of a fact the item holds. The row carries
-# `repeat/total` in a column appended after the calls-per-turn one, and the trend names the worst item, the characters
-# re-injected and the rate. A **warning, never a stop**: nothing in the run reads the figure.
+# ignores it read the same in every report (issue #814). The state now records the count and the characters of the
+# repeats' own results (`metrics.dupReads`, `metrics.dupChars`) beside the file reads they are a share of
+# (`metrics.reads`), read from the same stream `done` already opens: a read is a call of `ctx_read`/`read` (the pair
+# the offline `tools/loop-spend.py` counts), its path the `arguments` of the `toolCall` block, its size the characters
+# of the matching `tool_execution_end` result — and a repeat is a path the **session** had already read, because a
+# reviewer reading what the worker read is a new conversation and not a second read of a fact the item holds. The row
+# carries `repeat/total` in a column appended after the calls-per-turn one, and the trend names the worst item, the
+# characters in the repeat results and the rate. A **warning, never a stop**: nothing in the run reads the figure.
+#
+# What those characters are is the question #831 asks: since #685 the rule replaces a repeat with one line, so the
+# stream's figure is either material the child never saw or material it did, and one number cannot say which. So the
+# rule writes what it withheld beside the stream (issue #831), the state reads that record into `metrics.withheld`
+# (`{reads, chars}`), and the trend prints both halves — the characters in the repeat results and how many of those the
+# rule withheld. The record is the sibling of the stream, where `tools/pi-child-events.sh` names it, so the two are the
+# same item's by construction.
 case_report_anItemRecordsItsRepeatReads() {
   # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p f out trend reads_line row_repeats row_twice row_none
   d=$(scratch); p=$(new_project)
+  # One directory per item, because the rule's record is read from beside the item's own stream: two items in one
+  # directory would share one record, and each would be read as having withheld the other's characters.
+  mkdir -p "$d/i21" "$d/i22" "$d/i23"
   # #21 reads `a` three times and `b` once in one session, and `a` once more in a second session; #22 reads `a` twice
   # in one session; #23 opens no file at all. The result texts are the sizes the case asserts: 10, 5, 20, 30, 40 and
-  # 10, 40 — so #21's repeats re-injected 50 characters and #22's 40. The records are in the order a real child writes
+  # 10, 40 — so #21's repeats hold 50 characters and #22's 40. The records are in the order a real child writes
   # them — `tool_execution_start`, then the `tool_execution_end` that carries the result, then the `turn_end` that names
   # the call — and `c4`'s path is left out of its `start` and named only in its `turn_end`, which is the shape a harness
   # that reports the call only with the turn leaves (the fallback the state reads beside `args`).
-  cat > "$d/repeats.jsonl" <<'JSONL'
+  cat > "$d/i21/events.jsonl" <<'JSONL'
 {"type":"session","version":3,"id":"s1"}
 {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
 {"type":"tool_execution_start","toolCallId":"c1","toolName":"ctx_read","args":{"path":"a"}}
@@ -12007,7 +12019,7 @@ case_report_anItemRecordsItsRepeatReads() {
 {"type":"tool_execution_end","toolCallId":"c5","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"0123456789012345678901234567890123456789"}]}}
 {"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c5","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
 JSONL
-  cat > "$d/twice.jsonl" <<'JSONL'
+  cat > "$d/i22/events.jsonl" <<'JSONL'
 {"type":"session","version":3,"id":"s1"}
 {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
 {"type":"tool_execution_start","toolCallId":"d1","toolName":"ctx_read","args":{"path":"a"}}
@@ -12017,18 +12029,24 @@ JSONL
 {"type":"tool_execution_end","toolCallId":"d2","toolName":"ctx_read","isError":false,"result":{"content":[{"type":"text","text":"0123456789012345678901234567890123456789"}]}}
 {"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"d2","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
 JSONL
-  cat > "$d/noread.jsonl" <<'JSONL'
+  cat > "$d/i23/events.jsonl" <<'JSONL'
 {"type":"session","version":3,"id":"s1"}
 {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/23/worker-prompt.md"}]}}
 {"type":"turn_end","message":{"role":"assistant","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0},"content":[{"type":"toolCall","id":"e1","name":"bash","arguments":{"command":"true"}}]},"toolResults":[]}
 {"type":"tool_execution_end","toolCallId":"e1","toolName":"bash","isError":false}
 JSONL
+  # What the rule wrote beside each stream (issue #831): #21 replaced two repeats of 20 and 30 characters with a
+  # 10-character line each and #22 one of 40, so each withheld 30 — 60 of the 90 characters the three repeat results
+  # hold. #23's directory holds no record at all, which is the `null` the state keeps apart from a zero.
+  printf 'LOOP-TOOL-RESULT-REPEAT: ctx_read chars=20 kept=10\nLOOP-TOOL-RESULT-REPEAT: ctx_read chars=30 kept=10\n' \
+    > "$d/i21/tool-result-trims.log"
+  printf 'LOOP-TOOL-RESULT-REPEAT: ctx_read chars=40 kept=10\n' > "$d/i22/tool-result-trims.log"
   init_state "$p" 3 90
   printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
     run_state "$p" queue >/dev/null
-  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/repeats.jsonl" >/dev/null
-  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/twice.jsonl" >/dev/null
-  run_state "$p" done 23 --result done --verdict closed --wall 42 --events "$d/noread.jsonl" >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/i21/events.jsonl" >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/i22/events.jsonl" >/dev/null
+  run_state "$p" done 23 --result done --verdict closed --wall 42 --events "$d/i23/events.jsonl" >/dev/null
   f=$(state_file "$p")
   # The count and its two companions are recorded, not derived at print time: a report that summed the stream itself
   # would have to find it again, and the state is the file every reader already opens.
@@ -12037,7 +12055,17 @@ JSONL
   assert_eq "2" "$(jq -r '.items[] | select(.issue == 21) | .metrics.dupReads' "$f")" \
     "and a path the session already read is counted as a repeat — the third read of a and the fourth, not the first"
   assert_eq "50" "$(jq -r '.items[] | select(.issue == 21) | .metrics.dupChars' "$f")" \
-    "the characters the repeats re-injected: their own results, not the first read's"
+    "the characters in the repeat results: their own results, not the first read's"
+  # The withheld half (issue #831): what the rule's own record says it did not hand the child, read from the file the
+  # adapter names beside the stream. Without it the raw volume above is a claim about a context nobody measured.
+  assert_eq "2" "$(jq -r '.items[] | select(.issue == 21) | .metrics.withheld.reads' "$f")" \
+    "the record beside the stream is read, and its two repeat lines are counted"
+  assert_eq "30" "$(jq -r '.items[] | select(.issue == 21) | .metrics.withheld.chars' "$f")" \
+    "with the characters withheld: each repeat's own size less the one line that replaced it"
+  assert_eq "30" "$(jq -r '.items[] | select(.issue == 22) | .metrics.withheld.chars' "$f")" \
+    "and the same for the item that repeated a path once"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 23) | .metrics.withheld' "$f")" \
+    "an item whose directory holds no record of a repeat records nothing, never a zero"
   # The reviewer's read of `a` is a new conversation, so it is a read and not a repeat: an item total would have
   # counted it, and told the trend the worker's rule had been broken a third time.
   assert_eq "5" "$(jq -r '.items[] | select(.issue == 21) | .metrics.reads' "$f")" \
@@ -12056,8 +12084,18 @@ JSONL
   reads_line=$(printf '%s\n' "$trend" | grep '^  reads:' || true)
   [ -n "$reads_line" ] || fail "the trend printed no repeat-reads line"
   assert_contains "$reads_line" \
-    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars re-injected · worst #21 2 of 5" \
-    "the trend prints the run's repeats with the two counts they came from, the characters re-injected and the worst item"
+    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars of them withheld by the repeat rule · worst #21 2 of 5" \
+    "the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the ones the rule withheld of them and the worst item"
+  # …and the raw volume is never called re-injected again: it is either withheld or handed over, and the line says which.
+  assert_not_contains "$reads_line" "re-injected" \
+    "the trend does not label the repeat results' characters as re-injected, which the rule may have replaced"
+  # A state written by the run that counted the repeats and before this one holds the count and not the withheld
+  # volume: the dash and its reason, never a zero the run did not measure.
+  jq 'del(.items[].metrics.withheld)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the withheld figure existed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "90 chars in the repeat results · the withheld share of the repeat rule is unrecorded — this state predates the figure · worst #21 2 of 5" \
+    "a state that predates the withheld figure prints the dash and its reason rather than a zero"
   # Two states that print a dash and its reason instead of a zero — the rule every spend figure keeps. `del` removes
   # the three keys, which is the shape a state written before this figure has; the second state is of this era and
   # simply met a run whose items opened no file.
@@ -15418,6 +15456,53 @@ case_repeat_aRepeatReadIsNamedNotHandedOverAgain() {
   assert_contains "$(cat "$out")" "$size characters" "and the size the earlier read had"
   assert_contains "$(cat "$out")" 'turn 3' "and the turn the text came in at, not the turn the repeat came in on"
   assert_contains "$(cat "$out")" 'ctx_read mode="lines:N-M"' "and the call that reads a range of it instead"
+  return 0
+}
+
+# What the rule withheld was written nowhere (issue #831): `repeatResult` replaced a repeat with its one line and
+# appended no record, so an item's evidence held the trims and not the repeats — and the one reader that could relate
+# them, the report, read the repeat's *own result* out of the event stream and called characters the child was never
+# handed `re-injected` (an archived run: `172 of 449 file reads were a second read of a path the session already had
+# (38 %) · 939378 chars re-injected`). The line is the one the bound already writes, one shape further: the size the
+# result had and the size the child was handed, so the difference is the volume withheld. It names no path — the notice
+# the child reads carries the path, and a record line that carried one would be a coordinate in a log.
+case_repeat_aRepeatIsRecordedAsWhatItWithheld() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d file out size kept lines
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #685)"
+  d=$(scratch)
+  file="$d/section.md"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'w'; printf '\nLAST-LINE\n'; } > "$file"
+  size=$(wc -c < "$file" | tr -d ' ')
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/ledger.txt" --record "$d/trims.log" < "$file" > "$d/first.txt" \
+    || fail "the result rule exited non-zero on a first read: $(head -3 "$d/first.txt")"
+  [ ! -s "$d/trims.log" ] || fail "a first read is recorded as a repeat: $(cat "$d/trims.log")"
+  out="$d/second.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 5 --ledger "$d/ledger.txt" --record "$d/trims.log" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on a repeat read: $(head -3 "$out")"
+  [ -f "$d/trims.log" ] \
+    || fail "the repeat rule records nothing of the repeat it replaced: no record at $d/trims.log"
+  lines=$(grep -c '^LOOP-TOOL-RESULT-REPEAT: ' "$d/trims.log" || true)
+  [ "$lines" -eq 1 ] || fail "the record holds $lines repeat lines for one repeat: $(cat "$d/trims.log")"
+  assert_contains "$(cat "$d/trims.log")" "LOOP-TOOL-RESULT-REPEAT: ctx_read chars=$size kept=" \
+    "the repeat is recorded with the size the result had, beside the size the child was handed"
+  kept=$(sed -n 's/^LOOP-TOOL-RESULT-REPEAT: ctx_read chars=[0-9][0-9]* kept=\([0-9][0-9]*\)$/\1/p' "$d/trims.log")
+  [ -n "$kept" ] || fail "the record's repeat line carries no size for what the child was handed: $(cat "$d/trims.log")"
+  [ "$kept" -gt 0 ] && [ "$kept" -lt "$size" ] \
+    || fail "the size the child was handed ($kept) is no part of the result ($size), so no volume was withheld"
+  assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "the text replaced is the one line the child is handed"
+  assert_not_contains "$(cat "$d/trims.log")" "$file" \
+    "and the record names no path — the notice the child reads is where the path is kept"
+  # A read whose content changed is a verification and not a repeat (issue #685), so it records nothing: the record
+  # counts what the rule replaced, not what a session happened to read twice.
+  printf 'EDITED-LINE\n' >> "$file"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 6 --ledger "$d/ledger.txt" --record "$d/edits.log" < "$file" > "$d/edited.txt" \
+    || fail "the result rule exited non-zero on the read after an edit: $(head -3 "$d/edited.txt")"
+  [ ! -s "$d/edits.log" ] || fail "a read after the session edited the path is recorded as withheld: $(cat "$d/edits.log")"
   return 0
 }
 

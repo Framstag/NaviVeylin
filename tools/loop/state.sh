@@ -771,6 +771,7 @@ cmd_done() {
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
                            reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
+                           withheld:$usage.withheld,
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
                            phases:$usage.phases, roles:$usage.roles, roleModels:$usage.roleModels,
@@ -913,14 +914,43 @@ num_or_null() {
 #     the tail, `reviewer` the reviewer, everything else a worker. Read from the prompt's *words* (the rule
 #     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`;
 #   * **`afterGate`** — over the sessions that ran a gate, the tokens of the turns from the first gate turn on and
-#     those sessions' own tokens, so a share has both halves in the record.
+#     those sessions' own tokens, so a share has both halves in the record;
+#   * **`withheld`** — the repeats the rule replaced, read from the record the rule writes beside this stream
+#     (`<its dirname>/tool-result-trims.log`, the path the adapter names): its `LOOP-TOOL-RESULT-REPEAT` lines counted,
+#     and the characters they withhold summed as each repeat's own size less the one line that replaced it (issue
+#     #831). The stream cannot say it — it holds the tool's answer, not the text the context was handed — so the figure
+#     is the rule's own record and nothing else; a file that does not exist yields null — never the zero a record that
+#     was read would give — and a state written before the field yields null too, which the report prints as the dash
+#     with its reason.
 #
 # Each is null where nothing was measured, never zero: a stream with no `session` record has no role split, one with
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars,streamRotation}
-  local events="${1:-}" blob="" gate_cmd gate_prog="" word
+
+# The repeat rule's own record, summed (issue #831): one `<tool> chars=<n> kept=<k>` line per repeat it replaced, so a
+# line states the volume the child was not handed — `n - k`, floored at zero, because the notice can outgrow a result
+# too small to be worth replacing and the rule then withholds nothing. A file that cannot be read prints nothing, which
+# the caller records as null.
+repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
+  local file="${1:-}"
+  [ -n "$file" ] && [ -r "$file" ] || return 0
+  awk '
+    /^LOOP-TOOL-RESULT-REPEAT: / {
+      chars = 0; kept = 0
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^chars=[0-9]+$/) { split($i, a, "="); chars = a[2] + 0 }
+        else if ($i ~ /^kept=[0-9]+$/) { split($i, b, "="); kept = b[2] + 0 }
+      }
+      n += 1
+      if (chars > kept) withheld += chars - kept
+    }
+    END { printf "{\"reads\":%d,\"chars\":%d}\n", n, withheld }
+  ' "$file"
+}
+
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars,withheld,streamRotation}
+  local events="${1:-}" blob="" gate_cmd gate_prog="" word withheld_json
   # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
   # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
   # `bash tools/loop/gate.sh` and a bare command all reduce to the program a child's tool call names.
@@ -931,7 +961,13 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
     [ -n "$gate_prog" ] || gate_prog="$word"
   done
   if [ -n "$events" ] && [ -f "$events" ]; then
-    blob=$(jq -s -c --arg gate "$gate_prog" '
+    # What the repeat rule withheld, from its own record beside the stream (issue #831). The stream records the tool's
+    # answer; only the rule knows the size of the one line it handed over instead, so this is the one figure here that
+    # is not summed from the stream. A record that does not exist leaves it null: a record that was read and holds no
+    # repeat line says `0`, which is a measurement, and the two must not print the same.
+    withheld_json=$(repeat_withheld "$(dirname "$events")/tool-result-trims.log")
+    case "$withheld_json" in '{'*) ;; *) withheld_json=null ;; esac
+    blob=$(jq -s -c --arg gate "$gate_prog" --argjson withheld "$withheld_json" '
       # A turn is read from the usage its last `message_update` carried, or from the one its own `turn_end` record
       # carries when no update survives — the same rule `sessions` keeps per turn below (one place per fact), so a
       # rotation that took the updates changes no figure this function prints (issue #840).
@@ -1094,6 +1130,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          reads: (if $reads > 0 then $reads else null end),
          dupReads: (if $reads > 0 then $dup.dup else null end),
          dupChars: (if $reads > 0 then $dup.chars else null end),
+         withheld: $withheld,
          phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
                   else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
          roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
@@ -1108,7 +1145,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null,"streamRotation":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"streamRotation":null}' ;;
   esac
 }
 

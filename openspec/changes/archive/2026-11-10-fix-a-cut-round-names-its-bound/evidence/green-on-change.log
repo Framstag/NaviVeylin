@@ -1,0 +1,18 @@
+# green on the change, 2026-11-10T15:32:27Z
+$ bash -n tools/loop/run.sh
+syntax ok
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#aPreGateReviewEndedAtItsBoundNamesIt'
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+exit=0
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+exit=0
+# 2026-11-10T15:32:41Z
+# the cases the two arms reach, 2026-11-10T15:41:54Z
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#thePreGateReviewRunsBeforeTheGate'
+PASS run#thePreGateReviewRunsBeforeTheGate
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun'
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
+PASS run#reviewerEndedAtTheRunsDeadlineIsNotADecision
+# 2026-11-10T15:42:20Z

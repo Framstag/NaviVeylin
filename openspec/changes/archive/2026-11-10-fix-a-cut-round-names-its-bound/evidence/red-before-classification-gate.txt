@@ -1,0 +1,47 @@
+# Red before this item's work — the same gate step, `bash tools/gen-feature-list.sh
+# --check-classification`, already failed in earlier items' gates over the same change
+# root. Copies taken by this item's tail child from the run's issue-loop evidence
+# directory (`.pi/issue-loop/items/…`), which sits outside the tree.
+
+## item 741 — gate run 2026-11-02 (`.pi/issue-loop/items/741/gate.txt`)
+
+Verbatim, the file's own verdict line:
+
+LOOP-GATE: tests=932 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 317s, tools/loop-selftest.sh --from-git 741603aaab8efc1382ea5859cfec38a548459272 411s, bash tools/loop-mutations.sh --check 2s, loop-mutations-selftest.sh 221s, tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, tools/gen-feature-list-selftest.sh 15s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 23s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 94s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, tools/check-rule-routes.sh 1s, tools/tests/check-rule-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/rule-routes-mutations.json --list 0s, tools/check-sonar-workflow.sh 1s, tools/tests/check-sonar-workflow-selftest.sh 0s) — failing: bash tools/gen-feature-list.sh --check-classification
+
+And the note that file carries, verbatim: "Every case that ran passed (`failures=0`);
+the single `error` is the classification step, which is another open change's debt".
+
+## item 721 — the same step's own output (`.pi/issue-loop/items/721/check-classification.log`)
+
+== gen-feature-list
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 183
+classified: 186
+unclassified: 2
+delta spec ids: 15
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1
+
+The three stale ids are the same three this item's gate reports, recorded in an
+item long before #807 existed; the unclassified ids of every run are whichever other
+open change owes its rows.
+
+## item 837 — same change root, earlier on 2026-11-10
+
+A tree copy of that evidence stands in the change root at
+`openspec/changes/archive/2026-11-10-fix-the-turn-bounds-state-the-value-the-profile-records/evidence/red-before-item-837-gate.txt`.
+Its header records the clocks: item 837's red test was taken at 2026-11-10T08:24:52Z,
+this item's red test at 2026-11-10T11:30:00.572Z — 837's gate ran before any of #807's
+work existed. Its verdict line, verbatim:
+
+LOOP-GATE: tests=987 failures=0 errors=1 (not retained as a JUnit XML — the gate runner's own tally) (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 12s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 347s, tools/loop/tests/loop-selftest.sh --from-git 8a2f1adbdaced0f79c4c2fccf5dfeab321d07a47 650s, bash tools/loop/tests/loop-mutations.sh --check 4s, tools/loop/tests/loop-mutations-selftest.sh 707s, bash tools/gen-feature-list.sh --check-classification 5s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 27s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 97s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 1s) — failing: bash tools/gen-feature-list.sh --check-classification

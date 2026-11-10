@@ -1,0 +1,30 @@
+# structural checks, 2026-11-10T15:34:23Z
+$ tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0
+$ tools/check-doc-routes.sh
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+exit=0
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+$ command -v openspec
+/home/tim/.local/share/mise/installs/npm-fission-ai-openspec/latest/bin/openspec
+# 2026-11-10T15:34:36Z
+# 2026-11-10T15:34:37Z
+$ openspec validate --strict fix-a-cut-round-names-its-bound
+Change 'fix-a-cut-round-names-its-bound' is valid
+exit=0
+# 2026-11-10T15:35:19Z — after the guideline paragraph was reflowed
+$ tools/check-doc-routes.sh
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+exit=0
+# 2026-11-10T15:42:30Z — after the change artifacts were repaired
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+$ openspec validate --strict fix-a-cut-round-names-its-bound
+Change 'fix-a-cut-round-names-its-bound' is valid
+exit=0

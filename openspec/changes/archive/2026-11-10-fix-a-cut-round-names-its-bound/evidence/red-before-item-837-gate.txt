@@ -1,0 +1,14 @@
+# Red before this item's work: the same gate step failed in an earlier item's
+# gate run over the same change root — issue-loop item 837, whose red test was
+# recorded at 2026-11-10T08:24:52Z, while this item's red test is from
+# 2026-11-10T09:22:48Z. Copied verbatim from item 837's gate log, line 7
+# (the log lives in the run's issue-loop evidence directory, outside this tree):
+
+LOOP-GATE: tests=987 failures=0 errors=1 (not retained as a JUnit XML — the gate runner's own tally) (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 12s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 347s, tools/loop/tests/loop-selftest.sh --from-git 8a2f1adbdaced0f79c4c2fccf5dfeab321d07a47 650s, bash tools/loop/tests/loop-mutations.sh --check 4s, tools/loop/tests/loop-mutations-selftest.sh 707s, bash tools/gen-feature-list.sh --check-classification 5s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 27s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 97s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: bash tools/gen-feature-list.sh --check-classification
+
+# The two open changes the gate names as the origin of the four unclassified
+# ids predate this item too: the vocabulary change records `created: 2026-11-09`
+# in its own .openspec.yaml. This item's diff roster is the three guideline and
+# tool files plus its selftest and the profile — none of them is read by the
+# classification gate, which reads openspec/specs, the open changes' delta specs
+# and tools/feature-list data.

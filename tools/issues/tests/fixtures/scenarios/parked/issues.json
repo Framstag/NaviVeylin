@@ -1,0 +1,42 @@
+[
+  {
+    "number": 75,
+    "state": "OPEN",
+    "title": "§75 An item parked behind a filed prerequisite",
+    "updatedAt": "2026-11-10T09:00:00Z",
+    "body": "<!-- nvid: 75 -->\n\n- **Observed** ✗: two rows disagree.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/on-hold"
+      },
+      {
+        "name": "source/todo-import"
+      },
+      {
+        "name": "agent/eligible"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ],
+    "comments": [
+      {
+        "body": "**The decision:** merge the two rows into one, or keep both and mark the newer authoritative?",
+        "createdAt": "2026-11-09T17:24:25Z"
+      },
+      {
+        "body": "Decision: wait for #844, the prerequisite, before either row moves\n<!-- answers: **The decision:** merge the two rows into one, or keep both and mark the newer authoritative? -->",
+        "createdAt": "2026-11-10T09:00:00Z"
+      }
+    ]
+  }
+]

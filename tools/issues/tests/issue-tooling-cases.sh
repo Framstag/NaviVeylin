@@ -87,6 +87,7 @@ ISSUES_SHELL_CASES=(
   'close#refusesAClosureTheBaseDoesNotCarry'
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#theQuestionIsNotTheVerdictWord'
+  'decisions#aParkedItemIsListedAsParked'
   'decisions#emptyQueueIsNotAnError'
   'decisions#theOldestQueuedItemIsListed'
   'decisions#aReadThatCannotCoverTheSetIsRefused'
@@ -117,6 +118,7 @@ ISSUES_SHELL_CASES=(
   'answer#requiresTheDecisionText'
   'answer#refusesWhatIsNotADecision'
   'answer#continueReturnsTheItemToTheQueue'
+  'answer#parkWritesTheAnswerAndKeepsTheMode'
   'answer#theAnswerNamesTheQuestion'
   'answer#theAnswerQuotesTheQuestionNotTheVerdictWord'
   'answer#deviceMovesToTheDeviceLane'
@@ -241,6 +243,7 @@ issues_run_shell_case() {
     'close#refusesAClosureTheBaseDoesNotCarry') case_close_refusesAClosureTheBaseDoesNotCarry ;;
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
+    'decisions#aParkedItemIsListedAsParked') case_decisions_aParkedItemIsListedAsParked ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
     'decisions#theOldestQueuedItemIsListed') case_decisions_theOldestQueuedItemIsListed ;;
     'decisions#aReadThatCannotCoverTheSetIsRefused') case_decisions_aReadThatCannotCoverTheSetIsRefused ;;
@@ -271,6 +274,7 @@ issues_run_shell_case() {
     'answer#requiresTheDecisionText') case_answer_requiresTheDecisionText ;;
     'answer#refusesWhatIsNotADecision') case_answer_refusesWhatIsNotADecision ;;
     'answer#continueReturnsTheItemToTheQueue') case_answer_continueReturnsTheItemToTheQueue ;;
+    'answer#parkWritesTheAnswerAndKeepsTheMode') case_answer_parkWritesTheAnswerAndKeepsTheMode ;;
     'answer#theAnswerNamesTheQuestion') case_answer_theAnswerNamesTheQuestion ;;
     'answer#theAnswerQuotesTheQuestionNotTheVerdictWord') case_answer_theAnswerQuotesTheQuestionNotTheVerdictWord ;;
     'answer#deviceMovesToTheDeviceLane') case_answer_deviceMovesToTheDeviceLane ;;
@@ -960,6 +964,26 @@ case_decisions_theQuestionIsNotTheVerdictWord() {
     "the run's verdict word is not the question"
 }
 
+# A park is an answer that keeps the queue entry (#845): the item keeps the decision label — so it is still in the
+# queue and still answerable — and the choice to wait is written on it. The queue therefore prints the condition
+# the park waits for, not the answer's own first line, which read back as a question would say the fork is open.
+case_decisions_aParkedItemIsListedAsParked() {
+  export GH_STUB_DIR="$(scenario parked)"
+  local out status question
+  out=$(run_tool decisions.sh --json 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_eq "1" "$(printf '%s' "$out" | jq 'length')" \
+    "the parked item is still listed, because it still carries the label"
+  question=$(printf '%s' "$out" | jq -r '.[0].question')
+  assert_eq "parked: wait for #844" "$question" \
+    "the entry is the condition the park waits for, not the answer's own first line"
+
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the human form exits 0 as well: $out"
+  assert_contains "$out" "#75  parked: wait for #844" "and prints it where the question stands"
+  assert_contains "$out" "1 item(s) await a decision" "the item is still counted, because it still awaits an answer"
+}
+
 # ----------------------------------------------------------------------------- cases: duplicates
 
 # The sweep's own tracker: `tools/issues/tests/fixtures/scenarios/duplicates` holds one fingerprint shared by three
@@ -1430,6 +1454,25 @@ case_answer_continueReturnsTheItemToTheQueue() {
   assert_contains "$(sed -n "${edit}p" "$log")" '--remove-label agent/needs-decision' "the decision label is cleared"
   assert_contains "$(sed -n "${edit}p" "$log")" '--add-label status/open' "and the item returns to the queue"
   assert_contains "$(sed -n "${edit}p" "$log")" '--remove-label status/on-hold' "with the hold replaced, not added to"
+}
+
+# A park is the fourth outcome (#845): the answer is written, and nothing else happens — so the item keeps the
+# label that makes it answerable and the hold it waits behind, and a reader of the queue sees a condition rather
+# than the run's boilerplate question. The three transitions are asserted elsewhere; what this case holds is that
+# a park is not one of them.
+case_answer_parkWritesTheAnswerAndKeepsTheMode() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log out status comment transitions
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  out=$(run_tool answer.sh 71 --park --decision "wait for #844, the prerequisite, before the rows are merged" 2>&1); status=$?
+  assert_eq "0" "$status" "a park is an answer: $out"
+  comment=$(grep -n 'issue comment' "$log" | cut -d: -f1)
+  [ -n "$comment" ] || fail "the park was not recorded on the item"
+  assert_contains "$(sed -n "${comment}p" "$log")" 'wait for #844' "the comment carries the decision"
+  assert_contains "$(sed -n "${comment}p" "$log")" 'answers:' "and names the question it answers"
+  transitions=$(grep -c 'issue \(edit\|close\)' "$log" || true)
+  assert_eq "0" "$transitions" "a park performs no transition: $(cat "$log")"
 }
 
 case_answer_theAnswerNamesTheQuestion() {

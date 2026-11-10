@@ -82,7 +82,14 @@ read_count=$(printf '%s' "$issues" | jq 'length')
 # The question is the last comment's first non-empty line: the escalation writes its question there and the
 # options below it, and a later comment (a person's own note) is the more recent statement, so "last" is
 # deliberate — first line, because that is the sentence, not the option list under it.
-selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" '
+#
+# One last statement is not a question, and it is the park (issue #845): an answer moves no label, so the item stays
+# in this queue with its decision recorded as the last comment, and printing that comment's first line would put
+# `Decision: …` where a question stands — the shape #196 and #243 removed. The entry is what the park waits for
+# instead, `parked: <the decision's first clause>`, and the item is still counted because it still awaits an answer.
+selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" \
+                                 --arg answerPrefix "$ISSUES_ANSWER_PREFIX" \
+                                 --arg answerMarker "$ISSUES_ANSWER_MARKER" '
   [ .[]
     | select((.state // "OPEN") != "CLOSED")
     | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
@@ -93,7 +100,9 @@ selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" '
         question: (
           ((.comments // []) | last // {})
           | (.body // "")
-          | '"$ISSUES_QUESTION_JQ"'
+          | . as $statement
+          | ($statement | '"$ISSUES_PARKED_JQ"') as $parked
+          | if $parked == "" then ($statement | '"$ISSUES_QUESTION_JQ"') else $parked end
         )
       }
   ]

@@ -143,7 +143,7 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
-Six rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
+Seven rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
 the *candidates* in it — the items that carry both the decision label and the loop's opt-in, so a decision parked
 by removing `agent/eligible` (the owner's "not yet") never spends a slot that stops work on the ones they can
 answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
@@ -160,6 +160,15 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 - **Rule: a closure leaves no decision label behind.** An item that carries the label and is closed would stay in
   the queue for ever and keep spending a decision slot; `tools/issues/close.sh` takes the label off in the same
   write that records the settled state, for every path that closes — the run, a person, a declared check.
+- **Rule: a park writes its answer and moves no label.** A person who decides that the item must wait has made a
+  decision, not left one open, so `tools/issues/answer.sh --park` writes the answer the other outcomes write — with
+  the `<!-- answers: … -->` marker binding it to the question — and performs no transition: the item keeps the
+  decision label, stays answerable and stays in the queue, which prints `parked: <the decision's first clause>` where
+  the question stood (`tools/issues/decisions.sh`). A park that moved a label would spoil the queue either way: the
+  item would leave it carrying an unanswered question, or it would stay and print `Decision: …` where a reader looks
+  for a fork, which is the shape #196 and #243 removed (issue #845). It spends a decision slot exactly as it did
+  before the answer: the ceiling counts the items that carry the label *and* the loop's opt-in, and a park removes
+  neither — `agent/eligible` is the owner's label, not the answer verb's.
 - **Rule: a block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
   choice a block leaves — retry the item, or abandon it — because a reason is not something a person can answer.
 - **Rule: a stale skip asks its own question, and is never parked on a bare hold.** The verdict says the item's
@@ -189,7 +198,8 @@ views kept apart, the short-term one priced in this tree's own numbers (files to
 parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items hitting the same
 mechanism would do to it). The recommendation then states which view decided, because an average of the two is exactly
 the judgement this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through
-`answer.sh` — the same transition every other answer takes, so a skill that skipped it would be a second writer.
+`answer.sh` — the same writer every other answer leaves through, so a skill that wrote its own comment would be a
+second writer.
 
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Three of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `unspecifiable`, `too-wide` and

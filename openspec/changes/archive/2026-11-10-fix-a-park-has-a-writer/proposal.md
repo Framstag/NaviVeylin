@@ -8,7 +8,7 @@ question it settles — a person who decides "wait for #844" had no way to recor
 showing the fork as if it were still open.
 
 Evidence, red on the base `95efb9036e86b0eb72930085d00027e9949a3273`
-(`.pi/issue-loop/items/845/red-on-HEAD.xml`, `.pi/issue-loop/items/845/red-on-HEAD.log`,
+(`evidence/red-on-HEAD.xml`, `evidence/red-on-HEAD.log`,
 2026-11-10T10:28:12Z): `tests="2" failures="2"` —
 `answer#parkWritesTheAnswerAndKeepsTheMode` fails with `answer: unknown argument --park: expected '0', got '2'`,
 and `decisions#aParkedItemIsListedAsParked` prints the answer's own first line
@@ -48,8 +48,8 @@ the settled question). This delta adds one requirement carrying both, bound to t
   (the item's own *Not in scope*).
 - It does not change how many decision slots a park spends: the ceiling counts the label *and* the loop's opt-in,
   and a park removes neither (`agent/eligible` is the owner's label), so the cap behaves exactly as before.
-- `guidelines/Backlog.md:36` (change ledger row 7) still names the verb's three outcomes; it is dated history and
-  the rule in §5 names the fourth.
+- `guidelines/Backlog.md` §1's ledger row (row 7) names the verb's three outcomes and now names the fourth
+  (`--park`, applied 2026-11-10) beside them; the rule itself lives in §5's list.
 - No compiled file changes: shell, docs, skill and tests only.
 
 ## Capabilities

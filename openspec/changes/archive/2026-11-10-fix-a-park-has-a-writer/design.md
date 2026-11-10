@@ -17,8 +17,8 @@ A fourth outcome that writes and moves nothing.
   `agent/needs-decision` (it still awaits an answer, and a later answer may still continue or retire it) and keeps
   whatever status it carries.
 - The two strings an answer is made of move into `tools/issues/lib.sh`, beside `ISSUES_QUESTION_JQ`:
-  `ISSUES_ANSWER_PREFIX` (`Decision: `) and `ISSUES_ANSWER_MARKER` (`<!-- answers: `). `answer.sh` writes them and
-  `decisions.sh` reads them, so the shape of an answer has one home.
+  `ISSUES_ANSWER_PREFIX` (`Decision: `) and `ISSUES_ANSWER_MARKER` (`<!-- answers: `). `answer.sh` writes the answer
+  from those two constants and `decisions.sh` reads the same two, so the shape of an answer has one home.
 - `decisions.sh` learns one predicate: when the last statement's first line starts with the answer prefix **and** the
   comment carries the marker, the item has been answered and still carries the label — a park — so the entry is
   `parked: <the decision's first clause>` in the place the question stands. The first clause is the decision up to its
@@ -40,8 +40,8 @@ recorded decision without a second change.
 - 2 cases added, 0 rewritten: `answer#parkWritesTheAnswerAndKeepsTheMode` is a sibling of
   `answer#continueReturnsTheItemToTheQueue` (same fixture, same stub, same shape), and
   `decisions#aParkedItemIsListedAsParked` is a sibling of `decisions#theQuestionIsNotTheVerdictWord`.
-- 1 guideline passage (`guidelines/Backlog.md` section 5), 1 skill's two sections, 1 capability's two added
-  requirements.
+- 1 guideline passage (`guidelines/Backlog.md` section 5), 1 skill's two sections, 1 capability's one added
+  requirement (two scenarios).
 - Not touched, and named because a reader will ask: `tools/loop/run.sh`'s decision cap (it counts the label, and a
   park does not change the label), `tools/issues/update.sh`'s label vocabulary, and `tools/issues/close.sh`.
 

@@ -192,9 +192,10 @@ child_turn_bound() { # child_turn_bound <role> → the turns that role may spend
   printf '%s\n' "$value"
 }
 # What the header names, so a run can be repeated and audited (D2) and the header and the `LOOP-TIMEOUT` line that
-# ends a child cannot disagree about the bound they apply.
+# ends a child cannot disagree about the bound they apply: every role `agent_roles` above can name, in that order,
+# the rework round included — a bound the header does not print is one a run cannot be audited for (issue #842).
 child_turn_bounds=""
-for role in worker worker-gate worker-tail reviewer reviewer-pre-gate; do
+for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-gate; do
   child_turn_bounds="${child_turn_bounds:+$child_turn_bounds,}$role:$(child_turn_bound "$role")"
 done
 

@@ -1053,6 +1053,11 @@ MUTATIONS=(
   # dropped: a line that counts them and names none tells a reader a figure is short and not which, which is the
   # defect one line further out.
   '268.1@-@tools/loop/report.sh@report#aTruncatedStreamSaysSo@the items the truncated line names, so a reader is told a figure is a lower bound and not which item it is short for (issue #841)@s%^           + ".*join(.*))"$%           + ""%'
+  # 269.1 — the rework round's turn bound is a measured 150, and the run's header prints it (issue #842). The role is the
+  # sixth turn-bound key and the header listed five, so a run could be ended at a bound its own header never named. The
+  # mutation restores the p95 the value was measured away from; dropping `worker-rework` from `run.sh`'s header loop
+  # reddens the same case through the same string, since the assertion quotes all six roles of the line.
+  '269.1@-@tools/loop/loop.conf@run#eachChildIsBoundedByItsOwnRolesTurns@the turn bound of the rework round recorded at the figure the run header prints, so the role keeps the p95 100 the measured experiment replaced and the header names a bound the run does not enforce (issue #842)@s|^LOOP_CHILD_TURNS_MAX_WORKER_REWORK=150$|LOOP_CHILD_TURNS_MAX_WORKER_REWORK=100|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

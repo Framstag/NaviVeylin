@@ -2198,6 +2198,11 @@ VERDICT: FAIL' "$action"
     "the rework round was started on its own role's command"
   assert_eq "0" "$(grep -c '^worker-prompt-round2.md PROJECT-CMD$' "$d/agent.log" || true)" \
     "and not on the command the project starts its worker on"
+  # The bound the transcript names is the figure this case recorded, and the header carries the same figure for the
+  # same role: the two cannot disagree about the bound they apply (issue #842, `run#eachChildIsBoundedByItsOwnRolesTurns`
+  # asserts the other five).
+  assert_contains "$out" ",worker-rework:3," \
+    "and the header names the figure this case recorded for the rework round, not the project's"
   rework="$p/.pi/issue-loop/items/21/worker-report-round2.md"
   [ -f "$rework" ] || fail "the rework round left no transcript"
   assert_contains "$(cat "$rework")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_WORKER_REWORK for the worker-rework role)" \
@@ -15608,6 +15613,11 @@ EOF
 # old pot is not read at all — this case records one small enough to end the reviewer before its first turn and
 # asserts the reviewer instead reaches its own bound of eight turns while the worker keeps the twenty its role
 # records. A tree that still reads the item's pot ends the reviewer at the item's bound and says so.
+#
+# It is also where the header is read against the keys, all six of them (issue #842): the rework round has a key of its
+# own and the header listed five roles, so a run could be ended at a bound its own header never printed. The whole
+# `child-turns-max=` string is asserted, which is why this case fails when a role is dropped from that loop as well as
+# when a figure moves.
 case_run_eachChildIsBoundedByItsOwnRolesTurns() {
   # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo worker_fixture reviewer_fixture extra action pid i status out state reviewer_report worker_report
@@ -15672,6 +15682,12 @@ EOF
   assert_eq "0" "$status" "a run whose reviewer the role's turn bound ended is not a failed run"
   assert_contains "$out" "child-turns-max=worker:20" "the header names the worker's own bound"
   assert_contains "$out" ",reviewer:8," "and the reviewer's beside it"
+  # Every role the header can name, in the order `agent-roles=` uses, as one string: the rework round's own key is the
+  # sixth role and its 150 is the only one of the six that is an experiment rather than a p95 (issue #842), so a key
+  # recorded there and a header printing five roles is the disagreement this assertion exists to catch.
+  assert_contains "$out" \
+    'child-turns-max=worker:20,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:8,reviewer-pre-gate:110' \
+    "and every role's figure in that order, the rework round's 150 among the five the project records (issue #842)"
   worker_report="$p/.pi/issue-loop/items/21/worker-report.md"
   reviewer_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
   [ -f "$worker_report" ] || fail "the worker kept no transcript"

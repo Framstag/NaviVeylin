@@ -3801,11 +3801,16 @@ running them, and leave no record of its own, so the child is handed the scoped 
 
 That record SHALL name the tree the run measured: the commit it was taken on and a digest of the change itself. The
 digest SHALL be taken over the paths the round's diff carries — the paths the run's base names and every path git does
-not track, less the generated trees the review's diff leaves out (the profile's `LOOP_REVIEW_EXCLUDE_PATHSPEC`) — with
-the hash of each path's working-tree content, so the same content reads as the same tree whether the change is
-committed or not, and so the evidence a gate writes *after* naming its tree cannot read as a correction of it. The gate
-SHALL name the same identity on its own output before its first step, and a refusal SHALL name the tree each earlier
-run measured beside the command it ran. A `--plan` call measures nothing and SHALL name no tree.
+not track, less the generated trees the review's diff leaves out (the profile's `LOOP_REVIEW_EXCLUDE_PATHSPEC`) — and
+over the change's own files as the working tree holds them, tracked or not, under the one name the change has before
+it is archived: a path under the profile's `LOOP_CHANGE_SOURCE_DIR` and its `archive/` SHALL read as
+`<LOOP_CHANGE_SOURCE_DIR>/<name>/…` with the date prefix the profile records as `LOOP_CHANGE_ARCHIVE_PREFIX` removed,
+and the same exclude SHALL leave the change's generated trees out of both halves. Each path SHALL be hashed by its
+working-tree content, so the same content reads as the same tree whether the change is committed or not, so a tree
+written into a change directory after the gate is not the tree the gate measured, and so the evidence a gate writes
+after naming its tree cannot read as a correction of it. The gate SHALL name the same identity on its own output before
+its first step, and a refusal SHALL name the tree each earlier run measured beside the command it ran. A `--plan` call
+measures nothing and SHALL name no tree.
 
 #### Scenario: The third full run in one child is refused with the scoped command
 
@@ -3836,6 +3841,18 @@ run measured beside the command it ran. A `--plan` call measures nothing and SHA
 - **AND** a path outside the generated trees corrected after the gate gives a different digest
 - **AND** both moments take one derivation, so neither can hold a path set of its own
 - **Case**: `gate#theGateAndTheRoundNameOneTree`
+
+#### Scenario: A change's own files name one tree, archived or not
+
+- **WHEN** a change's own files are in the tree under the unarchived name when a gate names the tree it measured, and
+  that change is moved under the archive's date-prefixed directory name before the identity beside a round's diff is
+  derived
+- **THEN** the two digests are equal, so the archive's move of a change nobody corrected is not a tree the gate never
+  saw, whether the move is committed or still uncommitted
+- **AND** a non-evidence file of that change rewritten after the gate gives a different digest, so a change directory
+  repaired after the gate is still a tree the reviewer's third item can see
+- **AND** a file written into the change's `evidence/` after the gate gives the same digest
+- **Case**: `gate#aMovedChangeNamesTheSameTree`
 
 ### Requirement: The change child grades its own diff before it reports
 

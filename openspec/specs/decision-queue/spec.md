@@ -173,6 +173,12 @@ other answer and performs no transition: no label, no status, no close. The item
 decision label, stay answerable and stay in the queue, and the queue SHALL print `parked: <the decision's first
 clause>` where the question stood, because the fork is settled and the condition is what a reader needs now.
 
+It is the fourth outcome, the one the requirement 'An answer performs the transition it implies' does not name —
+that requirement's three outcomes (returning the item to the queue, moving it to the device lane, closing it as a
+decision not to act) are the ones that move — and the one case the requirement 'The queue names what awaits a
+decision and what each item asks' does not print as a question: a parked item's entry is the condition it waits
+for.
+
 #### Scenario: A park writes its answer and moves no label
 
 - **WHEN** the answer verb is called with the park outcome and a decision

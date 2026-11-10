@@ -98,8 +98,10 @@ question_limit=2000
 if [ "${#question}" -gt "$question_limit" ]; then
   question="${question:0:$question_limit} … (clipped at $question_limit characters)"
 fi
-answer_comment="Decision: $decision"
-[ -n "$question" ] && answer_comment="$answer_comment"$'\n'"<!-- answers: $question -->"
+# The two halves an answer is made of live in `tools/issues/lib.sh` (issue #845): the writer below reads them and
+# `decisions.sh` reads the same two, so the shape of an answer has one home rather than two copies to keep in step.
+answer_comment="${ISSUES_ANSWER_PREFIX}${decision}"
+[ -n "$question" ] && answer_comment="$answer_comment"$'\n'"${ISSUES_ANSWER_MARKER}${question} -->"
 
 bash "$here/update.sh" "$issue" --comment "$answer_comment" >/dev/null || exit $?
 

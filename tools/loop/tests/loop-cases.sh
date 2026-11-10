@@ -12107,7 +12107,7 @@ JSONL
   run_state "$p" stop "the case ended the run between its states" >/dev/null
   init_state "$p" 1 90
   printf '[{"issue":51,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
-  run_state "$p" done 51 --result done --verdict closed --events "$d/noread.jsonl" >/dev/null
+  run_state "$p" done 51 --result done --verdict closed --events "$d/i23/events.jsonl" >/dev/null
   out=$(run_report "$p") || fail "the report failed for a run that opened no file"
   assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" "- · no item recorded a file read" \
     "and a run of items that answered without opening a file prints the other dash"
@@ -15461,9 +15461,8 @@ case_repeat_aRepeatReadIsNamedNotHandedOverAgain() {
 
 # What the rule withheld was written nowhere (issue #831): `repeatResult` replaced a repeat with its one line and
 # appended no record, so an item's evidence held the trims and not the repeats — and the one reader that could relate
-# them, the report, read the repeat's *own result* out of the event stream and called characters the child was never
-# handed `re-injected` (an archived run: `172 of 449 file reads were a second read of a path the session already had
-# (38 %) · 939378 chars re-injected`). The line is the one the bound already writes, one shape further: the size the
+# them, the report, read the repeat's *own result* out of the event stream and called that raw volume `re-injected` — a
+# volume the child may never have seen. The line is the one the bound already writes, one shape further: the size the
 # result had and the size the child was handed, so the difference is the volume withheld. It names no path — the notice
 # the child reads carries the path, and a record line that carried one would be a coordinate in a log.
 case_repeat_aRepeatIsRecordedAsWhatItWithheld() {

@@ -1,0 +1,7 @@
+report#theRepeatRuleNamesWhatItWithheld| cat: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/831/scratch/base-tree/.pi/tmp/loop-selftest.d9OMI8/cases/0/tree/case.9duwdw/trims.log: Datei oder Verzeichnis nicht gefunden
+report#theRepeatRuleNamesWhatItWithheld|   and the record names the tool, the path, the characters the rule withheld and the line that entered instead: 'LOOP-TOOL-RESULT-REPEAT: ctx_read path=/home/tim/projects/NaviVeylin/.pi/issue-loop/items/831/scratch/base-tree/.pi/tmp/loop-selftest.d9OMI8/cases/0/tree/case.9duwdw/whole.txt chars=40 kept=' not found in: 
+--- report#theRepeatRuleNamesWhatItWithheld[0] (exit 1)
+cat: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/831/scratch/base-tree/.pi/tmp/loop-selftest.d9OMI8/cases/0/tree/case.9duwdw/trims.log: Datei oder Verzeichnis nicht gefunden
+  and the record names the tool, the path, the characters the rule withheld and the line that entered instead: 'LOOP-TOOL-RESULT-REPEAT: ctx_read path=/home/tim/projects/NaviVeylin/.pi/issue-loop/items/831/scratch/base-tree/.pi/tmp/loop-selftest.d9OMI8/cases/0/tree/case.9duwdw/whole.txt chars=40 kept=' not found in: 
+FAIL report#theRepeatRuleNamesWhatItWithheld
+loop-selftest: 1 of 1 cases failed

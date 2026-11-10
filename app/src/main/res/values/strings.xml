@@ -182,6 +182,9 @@
     <string name="voice_motorway_exit">leave the motorway</string>
     <string name="voice_motorway_exit_left">leave the motorway to the left</string>
     <string name="voice_motorway_exit_right">leave the motorway to the right</string>
+    <!-- The signposted destination of the motorway enter/change ahead (spec: voice-guidance — The
+         motorway manoeuvre names its signposted destination). -->
+    <string name="voice_destination">towards %1$s</string>
     <string name="voice_arrive">you have arrived</string>
     <string name="voice_gps_found">GPS signal restored</string>
     <string name="voice_gps_lost">GPS signal lost</string>

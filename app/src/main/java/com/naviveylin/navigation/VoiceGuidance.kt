@@ -20,9 +20,14 @@ class VoiceGuidance @Inject constructor(
     private val output: VoiceOutput
 ) {
 
-    /** Announce [samples], or stay silent when the sequence carries no recognised instruction. */
-    fun announce(samples: IntArray) {
-        val sentence = sentenceFor(samples)
+    /**
+     * Announce [samples], or stay silent when the sequence carries no recognised instruction.
+     * [destination] is the signposted destination of the manoeuvre ahead, or `null` when the step
+     * ahead carries none or is not a motorway enter or change (spec: `voice-guidance` — The motorway
+     * manoeuvre names its signposted destination).
+     */
+    fun announce(samples: IntArray, destination: String? = null) {
+        val sentence = sentenceFor(samples, destination)
         if (sentence.isNotEmpty()) {
             output.speak(sentence)
         }
@@ -52,7 +57,7 @@ class VoiceGuidance @Inject constructor(
     internal fun gpsStateOf(samples: IntArray): Int? =
         samples.firstOrNull { it == GPS_FOUND || it == GPS_LOST }
 
-    internal fun sentenceFor(samples: IntArray): String {
+    internal fun sentenceFor(samples: IntArray, destination: String? = null): String {
         val parts = mutableListOf<String>()
         var index = 0
         while (index < samples.size) {
@@ -156,6 +161,11 @@ class VoiceGuidance @Inject constructor(
 
                 else -> index += 1
             }
+        }
+        // The sign a driver reads names the manoeuvre's destination, so its clause closes the
+        // sentence (spec: `voice-guidance` — The motorway manoeuvre names its signposted destination).
+        destination?.takeIf { it.isNotBlank() }?.let {
+            parts += context.getString(R.string.voice_destination, it)
         }
         if (parts.isEmpty()) return ""
         return parts.joinToString(" ").replaceFirstChar { it.titlecase() }

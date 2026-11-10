@@ -4,6 +4,7 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.SurfaceOrigin
@@ -148,6 +149,26 @@ class NavigationEngineVoiceGuidanceTest {
     )
 
     /**
+     * The samples `osmscout::VoiceInstructionAgent` emits for a motorway change: the distance block and
+     * the keep-left/right move, which the agent words as leaving the motorway to that side
+     * (`VoiceInstructionAgent.cpp`, `OnMotorwayChange` → `OnMotorwayLeave`).
+     */
+    private val motorwaySequence = intArrayOf(
+        VoiceGuidance.AFTER,
+        58,
+        VoiceGuidance.METERS,
+        VoiceGuidance.MOTORWAY_EXIT_RIGHT
+    )
+
+    /** A manoeuvre of [kind] whose step carries [destination] as its signposted record. */
+    private fun motorwayStep(kind: RouteStep.Kind, destination: String?): RouteStep =
+        RouteStep().apply {
+            this.kind = kind
+            this.destination = destination
+            legDistance = 100.0
+        }
+
+    /**
      * Spec scenario: A native voice sequence is spoken while navigating.
      */
     @Test
@@ -178,6 +199,60 @@ class NavigationEngineVoiceGuidanceTest {
         await { output.spoken.isNotEmpty() }
 
         assertEquals(listOf("After 300 meters turn left"), output.spoken)
+    }
+
+    /**
+     * Spec scenario: A motorway change's spoken instruction names its signposted destination.
+     */
+    @Test
+    fun aMotorwayChangeNamesItsDestination() {
+        val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val output = RecordingVoiceOutput()
+        val engine = voiceEngine(client, output, context)
+
+        engine.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
+        await { engine.state.value.isNavigating }
+
+        client.navigationListener!!.onNextRouteStep(
+            motorwayStep(RouteStep.Kind.MOTORWAY_CHANGE, "München")
+        )
+        drain()
+        client.navigationListener!!.onVoiceInstruction(motorwaySequence)
+        await { output.spoken.isNotEmpty() }
+
+        assertEquals(
+            "a motorway change names the destination both branches of the fork share no other way",
+            listOf("After 300 meters leave the motorway to the right towards München"),
+            output.spoken
+        )
+    }
+
+    /**
+     * Spec scenario: A destination record on a manoeuvre that is not a motorway enter or change stays
+     * unspoken. The same native samples word a motorway leave, which carries no destination clause.
+     */
+    @Test
+    fun aMotorwayLeaveKeepsItsDestinationUnspoken() {
+        val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val output = RecordingVoiceOutput()
+        val engine = voiceEngine(client, output, context)
+
+        engine.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
+        await { engine.state.value.isNavigating }
+
+        client.navigationListener!!.onNextRouteStep(
+            motorwayStep(RouteStep.Kind.MOTORWAY_LEAVE, "München")
+        )
+        drain()
+        client.navigationListener!!.onVoiceInstruction(motorwaySequence)
+        await { output.spoken.isNotEmpty() }
+
+        assertEquals(
+            listOf("After 300 meters leave the motorway to the right"),
+            output.spoken
+        )
     }
 
     /**

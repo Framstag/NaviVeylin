@@ -167,6 +167,7 @@
     <string name="voice_motorway_exit">die Autobahn verlassen</string>
     <string name="voice_motorway_exit_left">die Autobahn links verlassen</string>
     <string name="voice_motorway_exit_right">die Autobahn rechts verlassen</string>
+    <string name="voice_destination">Richtung %1$s</string>
     <string name="voice_arrive">Sie haben Ihr Ziel erreicht</string>
     <string name="voice_gps_found">GPS-Signal wiederhergestellt</string>
     <string name="voice_gps_lost">GPS-Signal verloren</string>

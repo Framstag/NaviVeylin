@@ -16,7 +16,9 @@ import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.guidanceStep
+import com.naviveylin.core.manoeuvreFromStep
 import com.naviveylin.core.LocationGrant
+import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.FailureReason
 import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
@@ -980,6 +982,18 @@ class NavigationEngine @Inject constructor(
         gpsStateInFlight = null
     }
 
+    /**
+     * The signposted destination the manoeuvre ahead names, or `null` when it names none: only a
+     * motorway enter or change that carries a record is worded with it (spec: `voice-guidance` —
+     * The motorway manoeuvre names its signposted destination). The gate is `:core`'s, so `:app`
+     * asks the same predicate the screens ask instead of deriving a second copy.
+     */
+    private fun spokenDestination(): String? {
+        val step = _state.value.nextStep ?: return null
+        val manoeuvre = manoeuvreFromStep(step)
+        return manoeuvre.destination.takeIf { ManoeuvreLabels.carriesDestination(manoeuvre) }
+    }
+
     private fun acquireNavLease() {
         if (navLease == null) {
             navLease = locationService.acquire(LocationConsumers.NAV_ENGINE)
@@ -1197,7 +1211,7 @@ class NavigationEngine @Inject constructor(
                             )
                             return@launch
                         }
-                        voiceGuidance.announce(samples)
+                        voiceGuidance.announce(samples, spokenDestination())
                         DiagnosticsLog.log(
                             VOICE_TAG,
                             voiceAnnouncementLine(

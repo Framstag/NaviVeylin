@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 315 records (labels: 267.1 267.2 267.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.PKMM9R
+RED    267.1  report#aCallThatNamesTheGateIsNotAGateRun   (the exclusion of a plan call, so the call that asks what a delta owes reads as the gate that decided the item and everything after it is spent after the gate (issue #830))
+       2026-11-10T00:08:51Z — a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at: expected 'null', got '{
+restore 267.1 report#aCallThatNamesTheGateIsNotAGateRun green again
+RED    267.2  report#aCallThatNamesTheGateIsNotAGateRun   (the cd prefix the program sits behind, so the gate a child runs from another directory reads as no gate at all and the item has no split (issue #830))
+       2026-11-10T00:08:56Z — the call that starts the gate behind a cd and a timeout is the gate, so its duration is the gate time: expected '5000', got '0'
+restore 267.2 report#aCallThatNamesTheGateIsNotAGateRun green again
+RED    267.3  report#aCallThatNamesTheGateIsNotAGateRun   (the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830))
+       2026-11-10T00:09:01Z — a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at: expected 'null', got '{
+restore 267.3 report#aCallThatNamesTheGateIsNotAGateRun green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

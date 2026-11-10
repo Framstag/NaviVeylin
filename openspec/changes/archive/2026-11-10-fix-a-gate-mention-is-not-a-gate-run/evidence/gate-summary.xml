@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcription of the one gate run's own aggregate line (evidence/gate-run-line.md:8). `gate.sh` sums the
+     per-suite summary lines and writes no aggregate tally of its own, so this file carries the sum beside the
+     per-suite XMLs under gate-tally/, where it is checkable: loop-selftest.sh --from-git 8a2f1adbd… 393 +
+     bash loop-mutations.sh --check 315 + tools/issues/tests/issue-tooling-selftest.sh 164 +
+     tools/loop/tests/loop-mutations-selftest.sh 34 + tools/tests/check-doc-routes-selftest.sh 34 +
+     tools/tests/check-portability-selftest.sh 31 + tools/tests/check-openspec-hygiene-selftest.sh 7 = 978;
+     the other 14 suites contribute 0 cases and every suite is failures=0 errors=0. No wall clock is claimed here:
+     the gate line's per-suite seconds are the run's, not this transcription's. -->
+<testsuite name="tools/loop/gate.sh — the run's aggregate LOOP-GATE line" tests="978" failures="0" errors="0">
+  <system-out>LOOP-GATE: tests=978 failures=0 errors=0 (21 suite steps, per-suite tallies under gate-tally/)</system-out>
+</testsuite>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcription of this change's red run, kept as JUnit so the tally has a carrier: the base commit
+     c0ddb97cadaefe10cbf126ba7d19cfb41fb02b97 with tools/loop/state.sh restored from it ran one case and failed it
+     (tests=1 failures=1), 2026-11-10T00:08:46Z (the run's own `date -u` in the item's record, events.jsonl:6431 —
+     the log itself does not carry a timestamp). The console output of that run is evidence/red-on-HEAD.log beside
+     this file: it ends `loop-selftest: 1 of 1 cases failed`, and no suite runner wrote XML for it, so this file
+     transcribes the log's own assertion and nothing else. -->
+<testsuite name="bash tools/loop/tests/loop-selftest.sh --case report#aCallThatNamesTheGateIsNotAGateRun (HEAD c0ddb97c)" tests="1" failures="1" errors="0" time="10">
+  <testcase name="report#aCallThatNamesTheGateIsNotAGateRun" classname="loop-selftest">
+    <failure message="a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at">expected 'null', got '{ &quot;sessions&quot;: 1, &quot;tokens&quot;: 6000000, &quot;total&quot;: 6000000 }'</failure>
+  </testcase>
+  <system-out>FAIL report#aCallThatNamesTheGateIsNotAGateRun
+loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

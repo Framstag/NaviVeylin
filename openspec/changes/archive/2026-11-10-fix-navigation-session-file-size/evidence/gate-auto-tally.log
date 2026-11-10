@@ -1,0 +1,7 @@
+== the gate's own :auto results (copied to evidence/gate-auto/)
+taken: 2026-11-10T03:52:05Z
+command: bash evidence/tally.sh over auto/build/test-results/testDebugUnitTest
+com.naviveylin.auto.TemplateFaultIsolationTest tests=21 failures=0 errors=0
+com.naviveylin.auto.TemplateRefreshTest tests=2 failures=0 errors=0
+com.naviveylin.auto.VehicleAnchorPickerScreenTest tests=10 failures=0 errors=0
+TOTAL classes=98 tests=958 skipped=0 failures=0 errors=0

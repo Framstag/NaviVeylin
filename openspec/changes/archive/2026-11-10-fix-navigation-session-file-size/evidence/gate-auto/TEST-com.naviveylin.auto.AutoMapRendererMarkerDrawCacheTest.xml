@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:34.478Z" hostname="dingens" time="0.521">
+  <properties/>
+  <testcase name="aDarkPresentationChangeRebuildsThePalette" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.175"/>
+  <testcase name="theRingPaintsTakeTheSharedPaletteValues" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.065"/>
+  <testcase name="aSurfaceBoundsChangeRebuildsTheDrawObjects" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.076"/>
+  <testcase name="aDensityChangeRebuildsTheGeometryAtTheNewDensity" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.082"/>
+  <testcase name="consecutiveFramesReuseTheSameDrawObjects" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.063"/>
+  <testcase name="theAccuracyRingBranchesOnTheDarkPresentation" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.057"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

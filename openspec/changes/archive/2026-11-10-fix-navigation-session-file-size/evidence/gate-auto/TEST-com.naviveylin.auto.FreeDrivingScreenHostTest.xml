@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FreeDrivingScreenHostTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:53.472Z" hostname="dingens" time="0.791">
+  <properties/>
+  <testcase name="aStartedScreenTakesTheSessionSurfaceAndStopsReleasing" classname="com.naviveylin.auto.FreeDrivingScreenHostTest" time="0.394"/>
+  <testcase name="theTemplateIsTheBareNavigationTemplateCarryingItsActions" classname="com.naviveylin.auto.FreeDrivingScreenHostTest" time="0.151"/>
+  <testcase name="anEnteredScreenVotesTheFreeDrivingFlagOn" classname="com.naviveylin.auto.FreeDrivingScreenHostTest" time="0.094"/>
+  <testcase name="aStartedScreenObservesFixesAndBasemapRevisions" classname="com.naviveylin.auto.FreeDrivingScreenHostTest" time="0.106"/>
+  <testcase name="aDestroyedScreenDropsTheRoadStatusItPublishedAndItsSurface" classname="com.naviveylin.auto.FreeDrivingScreenHostTest" time="0.045"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

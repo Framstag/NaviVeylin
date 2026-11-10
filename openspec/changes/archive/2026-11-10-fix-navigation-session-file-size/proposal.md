@@ -15,9 +15,10 @@ tracked `.kt` file over 1 500 lines — and no part of it moved.
 
 **Root cause (one).** One file carries two things: the session class and the twenty-two pure decision seams
 its cases reach. A seam was always typed in where the rule was read, so the file's length is the sum of every
-rule the session applies *plus* the session itself, and each rule that lands there grows that sum. On HEAD the
-class closes at line 1327 of `NavigationSession.kt` (the file since shortened, so the line is HEAD's — the
-moved block is kept as `evidence/seams-head.txt`), and every declaration from `:1329` to `:1589` is top-level: no
+rule the session applies *plus* the session itself, and each rule that lands there grows that sum. On base
+`c0ddb97c` the class closes at line 1327 of `NavigationSession.kt` (the file since shortened, so the line is
+the base's — the moved block is kept as `evidence/seams-head.txt`), and every declaration from `:1329` to
+`:1589` is top-level: no
 member, no field, no session state — which is why a class-level cut and a file-level cut are the same number
 here.
 
@@ -49,17 +50,23 @@ measures lines per tracked file; the number, the unit and the scope are the owne
 does not add one: it makes an existing rule hold, which is why the diff carries no guideline edit (`design.md`,
 "The guideline this change owes, and why it is none").
 
-**Surface before the plan was fixed** (`evidence/surface.log`). `tools/look.sh 'NavigationSession' --path
-auto/src` → 20 files (8 production, 12 test); `tools/look.sh 'NavigationSessionKt'` → 1 file,
-`CalculationNoticeDwellTest.kt`, which names the file's JVM facade class to reach one seam by reflection;
-`tools/look.sh 'NavigationSession\.kt' --path openspec/specs` → 0, `--path guidelines` → 0, `--path tools` → 0;
-two test comments cite a line of the file — `NavigationSessionTripSendTest.kt:29` names `:732` and
-`MapScreenTest.kt:280` names `:373-379` — both below the cut, so both stay true as they stand.
+**Surface before the plan was fixed** (`evidence/surface.log`, recounted on the cut tree in
+`evidence/surface-round2.log`). `tools/look.sh 'NavigationSession' --path auto/src` → 20 files (8 production,
+12 test) before the cut, 21 after it (the new seams file joins them); `tools/look.sh 'NavigationSessionKt'
+--path auto/src` → 1 file before the cut — `CalculationNoticeDwellTest.kt`, which names the file's JVM facade
+class to reach one seam by reflection — and 0 after it, because the realignment renames that class to
+`NavigationSessionSeamsKt`; unscoped, the same pattern matches this change's own record and two archived Kover
+reports as well, which is why the quote carries its scope; `tools/look.sh 'NavigationSession\.kt' --path
+openspec/specs` → 0, `--path guidelines` → 0, `--path tools` → 0; two test comments cite a line of the file —
+`NavigationSessionTripSendTest.kt:29` and `MapScreenTest.kt:280`. Both citations were stale before the cut
+(the class file had grown under them) and the cut moved every class line up by three; this round realigns them
+to `NavigationSession.kt:740` and `NavigationSession.kt:504` (`evidence/surface-round2.log`).
 
-surface: 0 cases added, 1 case realigned (its facade-class name), 2 line citations that stay true, 0 spec
-texts, 0 guidelines — `tools/look.sh 'NavigationSession' --path auto/src` (20 files),
-`tools/look.sh 'NavigationSessionKt'` (1), `tools/look.sh 'NavigationSession\.kt' --path
-openspec/specs|guidelines|tools` (0/0/0), `tools/look.sh 'NavigationSession\.kt:[0-9]' --path auto/src` (2).
+surface: 0 cases added, 1 case realigned (its facade-class name), 2 line citations realigned, 0 spec
+texts, 0 guidelines — `tools/look.sh 'NavigationSession' --path auto/src` (20 files before the cut, 21 after
+it), `tools/look.sh 'NavigationSessionKt' --path auto/src` (1 before the cut, 0 after it — the facade class
+was renamed), `tools/look.sh 'NavigationSession\.kt' --path openspec/specs|guidelines|tools` (0/0/0),
+`tools/look.sh 'NavigationSession\.kt:[0-9]' --path auto/src` (2) — `evidence/surface-round2.log`.
 
 ## What changes
 
@@ -84,6 +91,7 @@ and every assertion it makes is unchanged. The seams that the same test calls di
 (`surfaceFailureReportElapsed`) need no edit: they are top-level `internal` declarations of the same package.
 
 **Additive, no breaking change.** No behaviour changes, no new case, no spec text, no guideline, no build
-logic, no manifest, no resource, no native source. Rollback: revert this change's commit — the new file
+logic, no manifest, no resource, no native source. Rollback: revert this change's commits — the new file
 disappears, `NavigationSession.kt` returns to 1 589 lines, the test's two strings return to
-`NavigationSessionKt`, and the row's probe prints `measurement=1589 verdict=violation` again.
+`NavigationSessionKt`, the two test comments return to their old citations, and the row's probe prints
+`measurement=1589 verdict=violation` again.

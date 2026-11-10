@@ -1,0 +1,24 @@
+== openspec validate (round 2)
+taken: 2026-11-10T03:44:54Z
+-- command: openspec validate fix-navigation-session-file-size --strict
+Unknown item 'fix-navigation-session-file-size'. Did you mean: navigation-engine, navigation-status-details, navigation-symbols, auto-navigation-hints, navigation-controller?
+exit=1
+
+-- command: openspec list --changes
+Changes:
+  fix-a-cut-round-names-its-bound                   ✓ Complete    3h ago
+  fix-the-stop-reason-names-the-refusal             ✓ Complete    1d ago
+  fix-a-role-tally-records-its-model                ✓ Complete    1d ago
+  fix-a-transient-failure-gets-a-capped-retry       ✓ Complete    1d ago
+  fix-a-worker-that-answers-nothing                 ✓ Complete    1d ago
+  fix-docked-panel-anchor-toggle                    1/6 tasks     2d ago
+  fix-a-change-child-cites-the-gates-selection      ✓ Complete    2d ago
+  fix-a-project-tree-is-refused-before-the-item     ✓ Complete    2d ago
+  motorway-destination-hint                         0/16 tasks    3d ago
+  sonar-findings-as-sensor-signals                  0/24 tasks    3d ago
+  fix-a-cut-child-asks-no-question                  ✓ Complete    4d ago
+  fix-remote-heads-are-swept                        ✓ Complete    4d ago
+  loop-suite-legs-across-runners                    8/9 tasks     4d ago
+  ci-offline-gates-beside-the-build                 5/8 tasks     5d ago
+  separate-tooling-test-code                        0/23 tasks    8d ago
+exit=0

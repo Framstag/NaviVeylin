@@ -3,8 +3,9 @@
 ## Root cause (one)
 
 `NavigationSession.kt` holds the session class *and* every pure decision seam its cases reach, because a seam
-was typed in where the rule was read. The class ends at line 1327 of `NavigationSession.kt` on HEAD (that
-line no longer exists in the shortened file; HEAD's block is kept as `evidence/seams-head.txt`); `:1329`–`:1589`
+was typed in where the rule was read. The class ends at line 1327 of `NavigationSession.kt` on base `c0ddb97c`
+(that line no longer exists in the shortened file; the base's block is kept as `evidence/seams-head.txt`);
+`:1329`–`:1589`
 is twenty-two top-level declarations (`grep '^(internal|private) (fun|const val)'` → 22, `evidence/surface.log`)
 that read no session state. So the file's length is the session plus the sum of the rules, and any rule that
 lands there is one more line of the same number. The measurement is per file
@@ -24,18 +25,19 @@ they are top-level. Nothing else moves.
 | `NavigationSessionSeams.kt` (new) | `deepLinkLogMessage`, `noticeNeedsUpdate`, `needsNoticeArm`, `calculationWaitOnSurface`, `FailureReason.isCalculationFailure`, `calculationFailureShownOnSurface`, `surfaceFailureReportElapsed`, `noticeIsStale`, `CALCULATION_NOTICE_MIN_DWELL_MS`, `calculationNoticeDwellRemainingMs`, `noticeIsStillArmedFor`, `isNightUiMode`, `shouldRestoreFreeDriving`, `tripSendAllowed`, `shouldEndNavigationOnSessionEnd`, `endNavigationAfterArrival`, `publishCarSessionPresenceOnStart`, `publishCarSessionPresenceOnDestroy`, `publishCarSessionPresence` (private), `sessionEndNavigationDecisionMessage`, `carTripFor`, `resolveCarDark` | **284** |
 
 **The identity the move keeps.** `evidence/seams-head.txt` is HEAD's `:1329`–`:1589`; `evidence/line-accounting.log`
-is `diff -u` of that file against the new file's body — empty. 261 lines moved, one header added. The three
+is `diff -u` of that file against the new file's body — empty. 261 lines moved, one 23-line header added, 284
+lines in all. The three
 imports the class no longer uses (`androidx.car.app.navigation.model.Trip`,
 `com.naviveylin.core.CarSessionPresence`, `com.naviveylin.core.StringResolver`) are dropped from
 `NavigationSession.kt` and the same three are the imports the new file needs; `Configuration`,
 `stringResolver`, `DeepLinkResult`, `FailureReason`, `RouteCalculation` and `NavigationState` are still used by
-the class body (the configuration callback at `:227`, the trip publisher's `carContext.stringResolver()` at
-`:744`, and the class's own signatures), so they stay in both.
+the class body (the configuration callback at `:224`, the trip publisher's `carContext.stringResolver()` at
+`:741`, and the class's own signatures), so they stay in both.
 
 **Why the seams need no visibility change.** Every declaration that moved is `internal` (or `private` inside
 the moved block) and top-level, so an extension-free call resolves across files of the same package with no
-edit at the call sites: `carTripFor` at `NavigationSession.kt:744`, the two presence publishes at `:269` and
-`:310`, `isNightUiMode` and `resolveCarDark` in the configuration path, `calculationNoticeDwellRemainingMs` in
+edit at the call sites: `carTripFor` at `NavigationSession.kt:741`, the two presence publishes at `:266` and
+`:307`, `isNightUiMode` and `resolveCarDark` in the configuration path, `calculationNoticeDwellRemainingMs` in
 `scheduleCalculationNoticeRemoval`. The one `private` function that moved, `publishCarSessionPresence`, is
 called only by the two publishes that move with it, so it stays private in its new file.
 
@@ -84,27 +86,32 @@ the claim that was checked, not a promise.
 
 ## Blast radius
 
-- 1 file created, 1 file shortened by 265 lines (262 moved out, 3 imports dropped), 1 test file's two
-  strings and one message realigned.
+- 1 file created, 1 file shortened by 265 lines (261 moved out, one blank line, 3 imports dropped), 1 test
+  file's two strings and one message realigned.
 - 0 spec texts, 0 guidelines, 0 tools, 0 Gradle logic, 0 resources, 0 native sources, 0 new cases.
 - The `:auto` suite is unchanged in kind and in count: 98 classes, 958 cases, one result XML per class.
-- Two comments that cite a line of the class file (`NavigationSessionTripSendTest.kt:29` → `:732`,
-  `MapScreenTest.kt:280` → `:373-379`) sit below the cut, so they stay true and are not touched
-  (`evidence/surface.log`).
+- Two comments cite a line of the class file, and both citations were stale before the cut — the class file
+  had grown under them — while the cut dropped three imports, so every class line moved up by three. Both are
+  realigned in this round: `NavigationSessionTripSendTest.kt:29` now names `NavigationSession.kt:740` (the
+  collector's `publishTrip` call, the call its next sentence replaces) and `MapScreenTest.kt:280` now names
+  `NavigationSession.kt:504` (the warmup's `openMapDatabases` call) (`evidence/surface-round2.log`).
 
 ## Verification
 
 - The row's own probe before (`1 589`, `violation`, `evidence/red-probe-head.log`) and after (`1 324`,
   `clear`, `evidence/green-probe.log`) under the item's fingerprint `f0611efc…`.
-- `./gradlew :auto:compileDebugUnitTestKotlin -PjvmTestsOnly --offline` → no output and no `e:` line, so the
-  moved declarations resolve across the package boundary.
+- The moved declarations resolve across the package boundary: the focused run of task 3.1 and the gate's gradle
+  step (`evidence/loop-gate/`) both compiled these sources clean, and the step's own `system-out` carries
+  `BUILD SUCCESSFUL` with no `e:` line.
 - `./gradlew :auto:testDebugUnitTest -PjvmTestsOnly -PforceTests --offline --tests 'com.naviveylin.auto.*'` →
   `evidence/focused-tally.log`: 98 classes, 958 tests, `failures=0 errors=0`, each XML copied to the run's
   evidence directory as it was produced.
-- The project's gate is **not** this child's: the run deferred it to a fresh child that reads this diff first,
-  and a gate run here would be a second one spent on a change nobody has read yet. That child ran it once and
-  it passed: `tests=41 failures=0 errors=0`, the eight step tallies and their sum quoted beside their XMLs in
-  `evidence/evidence.md`.
+- The project's gate is **this** child's. The gate of round 1 measured a tree that was still open and that was
+  archived and re-worded afterwards, so it did not measure the tree a round reads (the round-1 review's
+  blocking finding). This round's gate ran once, on the archived tree with the prose here final: its line and
+  its eight step tallies are in `evidence/evidence.md` and `evidence/loop-gate/`, copied as they were produced,
+  and in the run's evidence directory. The gate's own tally directory is the one `tools/loop/loop.conf` names
+  (`app/build/test-results/loop-gate/`).
 - `.openspec.yaml` sets `skip_specs: true`: the split moves text between two files of one package, changes no
   behaviour, no bound, no condition and no requirement, so there is no delta to write against a capability spec
   (which is why this change carries no `specs/` directory and archiving merges nothing into one). The owning
@@ -118,7 +125,26 @@ the claim that was checked, not a promise.
 
 ## Rollback
 
-Revert the change's commit: `NavigationSessionSeams.kt` disappears, `NavigationSession.kt` returns to 1 589
-lines, `CalculationNoticeDwellTest`'s two strings return to `com.naviveylin.auto.NavigationSessionKt`, and the
-row's probe prints `measurement=1589 verdict=violation` again. Nothing outside `auto/src` moves, so no other
-rollback step exists.
+Revert the change's commits: `NavigationSessionSeams.kt` disappears, `NavigationSession.kt` returns to 1 589
+lines, `CalculationNoticeDwellTest`'s two strings return to `com.naviveylin.auto.NavigationSessionKt`, the two
+test comments return to their old citations, and the row's probe prints `measurement=1589 verdict=violation`
+again. Nothing outside `auto/src` moves, so no other rollback step exists.
+
+## Corrections in round 2 (the round-1 review)
+
+The round-1 review's blocking finding was that the gate had run before this change was archived and its prose
+re-worded, so the gate did not measure the tree the round read. This round therefore: archived nothing (the
+change was already archived), made the prose below final before the gate, and ran the gate once on that tree.
+
+The findings applied, all of them in the record and none of them in the production code's behaviour:
+
+- The two test comments that cite a line of the class file are realigned (`NavigationSession.kt:740` and
+  `NavigationSession.kt:504`), and the design's own call-site citations are corrected to the shortened file
+  (`:224`, `:266`, `:307`, `:741`).
+- The move's arithmetic is quoted one way: 261 lines moved, one blank line and three imports dropped, 265
+  lines shorter, 284 lines in the new file (23 of them the header).
+- The `tools/look.sh` quotes carry their scope and the tree they were taken on.
+- The claims that were stated without a log carry one now: `evidence/surface-round2.log` (the recounted
+  surface), `evidence/line-accounting.log` (the byte check, now timestamped), `evidence/green-probe-round2.log`
+  (the row's probe on this tree), `evidence/openspec-validate-round2.log` (what the validation says on the
+  archived tree) and `evidence/evidence-check-round2.log` (the evidence check over this directory).

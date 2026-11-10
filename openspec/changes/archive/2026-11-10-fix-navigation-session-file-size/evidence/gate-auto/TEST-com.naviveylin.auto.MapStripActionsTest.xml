@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapStripActionsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:58.334Z" hostname="dingens" time="0.137">
+  <properties/>
+  <testcase name="settingsIsDrivingSafeAndIconOnly" classname="com.naviveylin.auto.MapStripActionsTest" time="0.061"/>
+  <testcase name="zoomIsParkedOnlyAndTitled" classname="com.naviveylin.auto.MapStripActionsTest" time="0.031"/>
+  <testcase name="searchIsParkedOnlyAndIconOnly" classname="com.naviveylin.auto.MapStripActionsTest" time="0.045"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

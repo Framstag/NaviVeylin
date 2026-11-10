@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.ManeuverGlyphsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:56.295Z" hostname="dingens" time="0.443">
+  <properties/>
+  <testcase name="laneImageChangesWithTheSuggestedLanes" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.079"/>
+  <testcase name="providesIconForEveryTurnType" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.12"/>
+  <testcase name="a numbered exit gets the numbered icon, not nothing" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.072"/>
+  <testcase name="laneImageChangesWithTheLaneList" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.034"/>
+  <testcase name="laneImageIsReusedAcrossUnchangedRebuildsEvenAfterAnotherState" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.05"/>
+  <testcase name="laneImageIsReusedWhileTheLaneStateIsUnchanged" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.028"/>
+  <testcase name="the car hint icon uses the shared exit symbol" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.029"/>
+  <testcase name="iconsAreCachedPerTurnType" classname="com.naviveylin.auto.ManeuverGlyphsTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

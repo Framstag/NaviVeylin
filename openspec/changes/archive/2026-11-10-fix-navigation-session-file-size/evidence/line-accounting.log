@@ -1,1 +1,6 @@
-diff: empty — the moved text is byte-identical to HEAD's lines 1329-1589
+== line accounting (round 2) — HEAD's :1329-:1589 against the new file's body
+taken: 2026-11-10T03:43:34Z
+left:  openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/seams-head.txt (HEAD's :1329-:1589, 261 lines)
+right: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/835/scratch/seams-body-round2.txt (NavigationSessionSeams.kt :24-:284, 261 lines)
+diff -u left right:
+diff exit=0 (0 = identical, empty output above = the move is a move)

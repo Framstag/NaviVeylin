@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererZoomWalkTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:36.649Z" hostname="dingens" time="1.486">
+  <properties/>
+  <testcase name="noRenderRequestAfterSurfaceLoss" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.099"/>
+  <testcase name="walkIsRenderSynchronous" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.048"/>
+  <testcase name="followLoopKeepsTickingWhileTheWalkPlays" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.045"/>
+  <testcase name="speedUnknownTargetWalksFromTheDisplayedMagnification" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.21"/>
+  <testcase name="walkEndsOnAnExactTargetRender" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.181"/>
+  <testcase name="shutdownClearsTheWalk" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.033"/>
+  <testcase name="nearZoomRequestSupersedesTheWalk" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.04"/>
+  <testcase name="walkStepsStayInsideTheBlitWindow" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.14"/>
+  <testcase name="walkWithNoDisplayedFrameLandsDirectlyInsteadOfStepping" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.023"/>
+  <testcase name="smallZoomDeltaNeedsNoExtraRender" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.032"/>
+  <testcase name="farZoomCommitStartsAWalk" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.031"/>
+  <testcase name="identicalRecommitKeepsTheWalk" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.038"/>
+  <testcase name="walkKeepsTheVehicleOnTheAnchor" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.049"/>
+  <testcase name="walkRetargetsWithoutPassingTheRequestedMagnification" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.227"/>
+  <testcase name="walkCompletesWhileParked" classname="com.naviveylin.auto.AutoMapRendererZoomWalkTest" time="0.287"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

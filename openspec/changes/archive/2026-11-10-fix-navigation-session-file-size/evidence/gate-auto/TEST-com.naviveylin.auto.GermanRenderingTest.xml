@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.GermanRenderingTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:55.548Z" hostname="dingens" time="0.292">
+  <properties/>
+  <testcase name="aboutScreenRendersGerman" classname="com.naviveylin.auto.GermanRenderingTest" time="0.052"/>
+  <testcase name="theRouteCalculationNoticeRendersGerman" classname="com.naviveylin.auto.GermanRenderingTest" time="0.054"/>
+  <testcase name="aboutScreenShowsThePrivacyStatementInGerman" classname="com.naviveylin.auto.GermanRenderingTest" time="0.047"/>
+  <testcase name="searchSuggestionsRenderGerman" classname="com.naviveylin.auto.GermanRenderingTest" time="0.071"/>
+  <testcase name="diagnosticsScreenRendersTheGermanDisclosure" classname="com.naviveylin.auto.GermanRenderingTest" time="0.067"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

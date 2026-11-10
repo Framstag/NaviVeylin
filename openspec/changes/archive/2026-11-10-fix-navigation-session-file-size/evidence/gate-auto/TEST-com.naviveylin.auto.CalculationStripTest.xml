@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CalculationStripTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:38.647Z" hostname="dingens" time="0.393">
+  <properties/>
+  <testcase name="theStripAppearsWithTheCalculation" classname="com.naviveylin.auto.CalculationStripTest" time="0.142"/>
+  <testcase name="theStripShowsTheReportedPercent" classname="com.naviveylin.auto.CalculationStripTest" time="0.032"/>
+  <testcase name="aNewCalculationReplacesTheFailureReport" classname="com.naviveylin.auto.CalculationStripTest" time="0.021"/>
+  <testcase name="theStripPaletteFollowsTheAppliedPresentation" classname="com.naviveylin.auto.CalculationStripTest" time="0.033"/>
+  <testcase name="theStripStatesTheWaitWithoutAPercent" classname="com.naviveylin.auto.CalculationStripTest" time="0.022"/>
+  <testcase name="theStripIsTheSurfaceTextAndCarriesNoStreetName" classname="com.naviveylin.auto.CalculationStripTest" time="0.027"/>
+  <testcase name="theStripClearsTheIndicatorColumnAndTheAttribution" classname="com.naviveylin.auto.CalculationStripTest" time="0.022"/>
+  <testcase name="theWaitEndsWithTheCalculation" classname="com.naviveylin.auto.CalculationStripTest" time="0.027"/>
+  <testcase name="theStripInstallsNoGestureHandling" classname="com.naviveylin.auto.CalculationStripTest" time="0.021"/>
+  <testcase name="theStripSitsInsideTheStableArea" classname="com.naviveylin.auto.CalculationStripTest" time="0.024"/>
+  <testcase name="aPercentChangeBelowTheStepKeepsTheStripUnchanged" classname="com.naviveylin.auto.CalculationStripTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

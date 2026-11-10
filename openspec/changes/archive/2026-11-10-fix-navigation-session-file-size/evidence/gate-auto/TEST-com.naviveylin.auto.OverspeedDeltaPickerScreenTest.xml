@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:47:06.691Z" hostname="dingens" time="0.691">
+  <properties/>
+  <testcase name="failedPersistKeepsPickerOpenWithErrorRow" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.275"/>
+  <testcase name="selectionPersistsToSharedSettings" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.046"/>
+  <testcase name="placeholderUntilLoadCompletes" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.046"/>
+  <testcase name="currentDeltaIsMarked" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.058"/>
+  <testcase name="loadFailureShowsErrorRowThenRetryLoadsContent" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.069"/>
+  <testcase name="doubleTapIgnoresSecondSelectionWhilePersisting" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.084"/>
+  <testcase name="selectionPopsOnlyAfterPersistSucceeds" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.07"/>
+  <testcase name="listOffersEveryWholeKmhFrom0To30" classname="com.naviveylin.auto.OverspeedDeltaPickerScreenTest" time="0.042"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapTemplateFactoryTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:58.487Z" hostname="dingens" time="0.351">
+  <properties/>
+  <testcase name="templateCarriesSearchSettingsZoom" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.055"/>
+  <testcase name="menuHasHeaderWithAppIconAndTitle" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.034"/>
+  <testcase name="theDegradedNoticeIsADisabledFirstRow" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.04"/>
+  <testcase name="freeDrivingRowInvokesCallback" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.048"/>
+  <testcase name="fullScreenTemplateHasNoContentSlot" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.03"/>
+  <testcase name="noMapActionStrip" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.029"/>
+  <testcase name="menuHasSevenClickableRowsInOrder" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.032"/>
+  <testcase name="aHealthyMapCarriesNoNotice" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.047"/>
+  <testcase name="templateHasController" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

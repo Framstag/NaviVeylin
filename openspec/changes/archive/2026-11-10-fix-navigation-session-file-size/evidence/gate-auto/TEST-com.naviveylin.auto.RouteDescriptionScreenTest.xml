@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.RouteDescriptionScreenTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:47:09.989Z" hostname="dingens" time="0.324">
+  <properties/>
+  <testcase name="a roundabout exit row without an ordinal keeps the plain image" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.035"/>
+  <testcase name="a roundabout exit row shows its exit number" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.025"/>
+  <testcase name="an informational step earns no car row" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.031"/>
+  <testcase name="a row's distance is its own leg" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.069"/>
+  <testcase name="the marked row is the next decision" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.031"/>
+  <testcase name="the car list has one row per derived decision" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.068"/>
+  <testcase name="the car list is the same row set as the phone's" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.042"/>
+  <testcase name="route description diagnostic carries counts only" classname="com.naviveylin.auto.RouteDescriptionScreenTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

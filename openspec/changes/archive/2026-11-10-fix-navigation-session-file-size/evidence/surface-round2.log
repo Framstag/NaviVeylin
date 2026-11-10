@@ -1,0 +1,105 @@
+== surface recount (round 2)
+taken: 2026-11-10T03:42:41Z
+-- tools/look.sh 'NavigationSessionKt' (unscoped)
+LOOK: 20 matches in 7 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'NavigationSessionKt'
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/proposal.md 4
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log 9
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface-round2.log 1
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/design.md 3
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/base-auto-kover-report.xml 1
+LOOK-FILE: openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/change-auto-kover-report.xml 1
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/proposal.md:53:auto/src` → 20 files (8 production, 12 test); `tools/look.sh 'NavigationSessionKt'` → 1 file,
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/proposal.md:61:`tools/look.sh 'NavigationSessionKt'` (1), `tools/look.sh 'NavigationSession\.kt' --path
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/proposal.md:80:the JVM facade class of the file the seam lived in (`Class.forName("com.naviveylin.auto.NavigationSessionKt")`,
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/proposal.md:89:`NavigationSessionKt`, and the row's probe prints `measurement=1589 verdict=violation` again.
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:29:auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:30:auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:51:        throw AssertionError("com.naviveylin.auto.NavigationSessionKt is not on the classpath: $it")
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:33:=== files that name the file's JVM facade class NavigationSessionKt ===
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:34:LOOK: 7 matches in 4 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'NavigationSessionKt'
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:39:auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:40:auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:51:        throw AssertionError("com.naviveylin.auto.NavigationSessionKt is not on the classpath: $it")
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:41:openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/base-auto-kover-report.xml:4965:<class name="com/naviveylin/auto/NavigationSessionKt" sourcefilename="NavigationSession.kt">
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:42:openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/change-auto-kover-report.xml:4965:<class name="com/naviveylin/auto/NavigationSessionKt" sourcefilename="NavigationSession.kt">
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface.log:43:openspec/changes/fix-navigation-session-file-size/evidence/surface.log:29:auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionKt")
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/evidence/surface-round2.log:3:-- tools/look.sh 'NavigationSessionKt' (unscoped)
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/design.md:43:facade class: `Class.forName("com.naviveylin.auto.NavigationSessionKt")` at `:49`, repeated in the
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/design.md:72:   keeps `NavigationSessionKt` alive and saves the one-string realignment, but it leaves an orphan declaration
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/design.md:122:lines, `CalculationNoticeDwellTest`'s two strings return to `com.naviveylin.auto.NavigationSessionKt`, and the
+openspec/changes/archive/2026-11-10-fix-navigation-session-file-size/tasks.md:33:  `Class.forName("com.naviveylin.auto.NavigationSessionKt")` and its `AssertionError` string become
+openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/base-auto-kover-report.xml:4965:<class name="com/naviveylin/auto/NavigationSessionKt" sourcefilename="NavigationSession.kt">
+openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/change-auto-kover-report.xml:4965:<class name="com/naviveylin/auto/NavigationSessionKt" sourcefilename="NavigationSession.kt">
+-- tools/look.sh 'NavigationSessionKt' --path auto/src
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src for 'NavigationSessionKt'
+-- tools/look.sh 'NavigationSession' --path auto/src
+LOOK: 55 matches in 21 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src for 'NavigationSession'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt 3
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/DeepLinkLogMessageTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt 6
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionRestoreTest.kt 2
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt 2
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt 3
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt 2
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionDarkModeTest.kt 3
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/SessionEndArrivalDecisionTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/CalculationNoticeDecisionTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt 2
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt 16
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationScreen.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/MapScreen.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/CarHostGuards.kt 2
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/DeepLinkAction.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/ErrorOverlayScreen.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/SessionLog.kt 3
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/SessionScreenStack.kt 1
+LOOK-FILE: auto/src/main/java/com/naviveylin/auto/NavigationSession.kt 2
+auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:17: * lifecycle events (task 1.5) — the logging the [NavigationSession] emits
+auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:95:     * map DBs). The full [NavigationSession] warmup cannot be executed without
+auto/src/test/java/com/naviveylin/auto/SessionLogTest.kt:102:        // Canonical order emitted by NavigationSession.startWarmup.
+auto/src/test/java/com/naviveylin/auto/DeepLinkLogMessageTest.kt:13: * text is exactly what the session refuses to search for. Pure-seam test — the [NavigationSession]
+auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt:26: * pattern as [NavigationSessionDarkModeTest]).
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:40:                    "NavigationSession's seams keep no calculationNoticeDwellRemainingMs(shownForMs, " +
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:49:        Class.forName("com.naviveylin.auto.NavigationSessionSeamsKt")
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:51:        throw AssertionError("com.naviveylin.auto.NavigationSessionSeamsKt is not on the classpath: $it")
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:73:            surfaceFailureReportElapsed(NavigationSession.ERROR_DISPLAY_MS - 1)
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:77:            surfaceFailureReportElapsed(NavigationSession.ERROR_DISPLAY_MS)
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt:83:            NavigationSession.ERROR_DISPLAY_MS
+auto/src/test/java/com/naviveylin/auto/NavigationSessionRestoreTest.kt:12: * rooted, so the stack stays leaveable when a mode ends). [NavigationSession]
+auto/src/test/java/com/naviveylin/auto/NavigationSessionRestoreTest.kt:18:class NavigationSessionRestoreTest {
+auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt:31: * The full [NavigationSession] guard path (exception → error screen) cannot
+auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt:70:     * [NavigationSession] served the real root screen (spec: `route-calculation-feedback` — One
+auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt:29: * do **not** pin: the collector's own line at `NavigationSession.kt:732`, which no unit test can
+auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt:30: * reach ([NavigationSession] cannot be constructed in Robolectric). Replacing that call with
+auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt:35:class NavigationSessionTripSendTest {
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:21: * [NavigationSession] needs a host-provided `CarContext` and cannot be constructed in Robolectric.
+auto/src/test/java/com/naviveylin/auto/SessionPresencePublishTest.kt:58:        val source = File("src/main/java/com/naviveylin/auto/NavigationSession.kt").readText()
+auto/src/test/java/com/naviveylin/auto/NavigationSessionDarkModeTest.kt:17: * Tests the host day/night mapping and logging of [NavigationSession]'s
+auto/src/test/java/com/naviveylin/auto/NavigationSessionDarkModeTest.kt:18: * [NavigationSession.onCarConfigurationChanged] path. The session itself
+auto/src/test/java/com/naviveylin/auto/NavigationSessionDarkModeTest.kt:24:class NavigationSessionDarkModeTest {
+auto/src/test/java/com/naviveylin/auto/SessionEndArrivalDecisionTest.kt:22: * These are the pure seams of [NavigationSession]'s teardown: the session itself needs a
+auto/src/test/java/com/naviveylin/auto/CalculationNoticeDecisionTest.kt:13: * These are the pure seams of [NavigationSession]'s notice sync: the session itself needs a
+auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt:280:        // opened the databases (`NavigationSession.kt:373-379`, `RootScreen.kt:127`), and the flag is not
+auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt:420:        // Every production call site (RootScreen, DetailsScreen, NavigationSession) passes no
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:13: * The rules [NavigationSession] applies, as pure seams a unit case can drive: a session needs a
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:17: * Split out of `NavigationSession.kt` (item #835, spec `backlog-sensors` — "A source file's size is a
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:29: * ([NavigationSession] cannot be constructed in Robolectric).
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:43: * ([NavigationSession] cannot be constructed in Robolectric).
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:52: * a route is being calculated). Pure seam for unit testing ([NavigationSession] cannot be
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:68: * navigation view on screen). Pure seam for unit testing ([NavigationSession] cannot be constructed
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:104:    elapsedMs >= NavigationSession.ERROR_DISPLAY_MS
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:117: * arrives just after [NavigationSession]'s `CALCULATION_NOTICE_DELAY_MS` must not replace a screen
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:132: * ([NavigationSession] cannot be constructed in Robolectric).
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:150: * for unit testing — [NavigationSession] itself needs a host-provided
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:162: * session root. Pure seam for unit testing ([NavigationSession] cannot be
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:179: * testing ([NavigationSession] cannot be constructed in Robolectric).
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:190: * still be looking for a parking spot. Pure seam for unit testing ([NavigationSession] cannot be
+auto/src/main/java/com/naviveylin/auto/NavigationSessionSeams.kt:212: * This is the start-specific half of the lifecycle wiring: a [NavigationSession] needs a
+auto/src/main/java/com/naviveylin/auto/Navigatio
+[LOOK-BOUND: cut at 8000 characters — narrow the pattern, or ask for --files]
+-- tools/look.sh 'NavigationSession\.kt:[0-9]' --path auto/src
+LOOK: 2 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src for 'NavigationSession\.kt:[0-9]'
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt 1
+LOOK-FILE: auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt 1
+auto/src/test/java/com/naviveylin/auto/NavigationSessionTripSendTest.kt:29: * do **not** pin: the collector's own line at `NavigationSession.kt:732`, which no unit test can
+auto/src/test/java/com/naviveylin/auto/MapScreenTest.kt:280:        // opened the databases (`NavigationSession.kt:373-379`, `RootScreen.kt:127`), and the flag is not

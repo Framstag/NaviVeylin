@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationTripTest" tests="26" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:47:05.738Z" hostname="dingens" time="0.946">
+  <properties/>
+  <testcase name="noTripTextWithoutAStreetName" classname="com.naviveylin.auto.NavigationTripTest" time="0.035"/>
+  <testcase name="tripFallsBackToRouteListInstruction" classname="com.naviveylin.auto.NavigationTripTest" time="0.04"/>
+  <testcase name="cadenceIgnoresLaneAndRoadNameUpdates" classname="com.naviveylin.auto.NavigationTripTest" time="0.033"/>
+  <testcase name="theTripTextFollowsTheRoadChange" classname="com.naviveylin.auto.NavigationTripTest" time="0.027"/>
+  <testcase name="cadencePublishesWhenNoPreviousState" classname="com.naviveylin.auto.NavigationTripTest" time="0.028"/>
+  <testcase name="cadencePublishesOnReroutingToggle" classname="com.naviveylin.auto.NavigationTripTest" time="0.026"/>
+  <testcase name="theStreetNameStaysInTheCardWithASafeArea" classname="com.naviveylin.auto.NavigationTripTest" time="0.03"/>
+  <testcase name="cadencePublishesOnRemainingTimeChange" classname="com.naviveylin.auto.NavigationTripTest" time="0.028"/>
+  <testcase name="cadencePublishesOnNavigationEnd" classname="com.naviveylin.auto.NavigationTripTest" time="0.025"/>
+  <testcase name="noTripWhenNotNavigating" classname="com.naviveylin.auto.NavigationTripTest" time="0.03"/>
+  <testcase name="cadencePublishesOnRoundedDistanceChange" classname="com.naviveylin.auto.NavigationTripTest" time="0.03"/>
+  <testcase name="guidanceAfterAFailedRerouteIsNotALoadingTrip" classname="com.naviveylin.auto.NavigationTripTest" time="0.06"/>
+  <testcase name="tripCarriesStepEstimateAndDestination" classname="com.naviveylin.auto.NavigationTripTest" time="0.05"/>
+  <testcase name="cadenceIgnoresSpeedAndPositionOnlyUpdates" classname="com.naviveylin.auto.NavigationTripTest" time="0.046"/>
+  <testcase name="theStreetNameRidesTheTravelEstimateTripText" classname="com.naviveylin.auto.NavigationTripTest" time="0.046"/>
+  <testcase name="theRefIsShownWithTheStreetName" classname="com.naviveylin.auto.NavigationTripTest" time="0.033"/>
+  <testcase name="stepEstimateUsesUnknownRemainingTimeWithoutSegmentTime" classname="com.naviveylin.auto.NavigationTripTest" time="0.047"/>
+  <testcase name="destinationFallsBackToCoordinates" classname="com.naviveylin.auto.NavigationTripTest" time="0.05"/>
+  <testcase name="carTripFactoryWiresTemplateIconsAndCarStrings" classname="com.naviveylin.auto.NavigationTripTest" time="0.064"/>
+  <testcase name="loadingTripWhileRerouting" classname="com.naviveylin.auto.NavigationTripTest" time="0.047"/>
+  <testcase name="destinationEstimateNeverReportsNegativeTime" classname="com.naviveylin.auto.NavigationTripTest" time="0.035"/>
+  <testcase name="theStreetNameStaysInTheCardWhenTheAreaIsUnsafe" classname="com.naviveylin.auto.NavigationTripTest" time="0.021"/>
+  <testcase name="cadencePublishesOnManeuverChange" classname="com.naviveylin.auto.NavigationTripTest" time="0.026"/>
+  <testcase name="destinationOmittedWithoutNameAndCoordinates" classname="com.naviveylin.auto.NavigationTripTest" time="0.025"/>
+  <testcase name="carTripFactoryPublishesNothingWithoutNavigation" classname="com.naviveylin.auto.NavigationTripTest" time="0.023"/>
+  <testcase name="loadingTripWhenArrivalTimeIsUnknown" classname="com.naviveylin.auto.NavigationTripTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

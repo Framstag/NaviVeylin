@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/check-doc-routes.sh" tests="0" failures="0" errors="0" time="2">
+<testsuite name="tools/check-doc-routes.sh" tests="0" failures="0" errors="0" time="1">
   <system-out>check-doc-routes: all 329 section references resolve, all 7 skill references resolve</system-out>
 </testsuite>

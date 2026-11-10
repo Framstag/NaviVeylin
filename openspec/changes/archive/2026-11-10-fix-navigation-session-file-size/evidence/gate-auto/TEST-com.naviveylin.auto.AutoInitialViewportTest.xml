@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoInitialViewportTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-10T03:46:27.618Z" hostname="dingens" time="0.655">
+  <properties/>
+  <testcase name="saved phone viewport wins over map bbox" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.212"/>
+  <testcase name="corrupt saved viewport is ignored" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.072"/>
+  <testcase name="map bbox used when no saved viewport" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.06"/>
+  <testcase name="newest saved viewport file wins" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.042"/>
+  <testcase name="latestSavedAutoViewport is null when no usable file" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.062"/>
+  <testcase name="default used when nothing installed and no saved viewport" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.081"/>
+  <testcase name="initialCenter wins over saved viewport and bbox" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.047"/>
+  <testcase name="first map db bbox failure falls through to default" classname="com.naviveylin.auto.AutoInitialViewportTest" time="0.077"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

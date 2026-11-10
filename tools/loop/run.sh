@@ -1148,6 +1148,22 @@ gate_answered() { # gate_answered <gate report> → 0 when the phase's answer ar
     answer_complete "$1" '^LOOP-(GATE|VERDICT):'
 }
 
+# Whether the **change** child's report carries any line the run's arms read (issue #827). The phase that runs the
+# gate is entered on the report's `LOOP-DIFF-READY` alone, and every arm the item is decided from reads a verdict or
+# a gate line — so a child that exits 0 and writes nothing falls between the two: the round before the gate, the gate
+# child and the tail are skipped without a word, and the outcome reads the item's own tree. Measured 2026-11-07 on
+# item #85: `worker-report.md` was 0 B and the child's stream ended `auto_retry_end success=false`, its branch carried
+# a commit, and the run recorded `blocked` on "reported success but no archived change appears in the run's diff" — a
+# reason that claims a child reported success for a child that reported nothing. The same silence was the run's own
+# stop for #95 of that run, where the tree stood at the base; the two readings are one fact about the phase and
+# differ only in the tree. This is what separates that silence from the three answers the prompt asks for, so the
+# gate phase is never skipped on a report that says nothing, and the reason names the phase.
+change_answered() { # change_answered <change report> → 0 when the report carries a line the arms read
+  [ -n "$(report_field "$1" LOOP-DIFF-READY)" ] || [ -n "$(report_field "$1" LOOP-GATE)" ] ||
+    [ -n "$(report_field "$1" LOOP-VERDICT)" ] ||
+    [ -n "$(report_field "$1" LOOP-TIMEOUT)" ] || [ -n "$(report_field "$1" LOOP-DEADLINE)" ]
+}
+
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
 # count zero blocking findings, which is a pass whose notes are recorded; a report that says nothing at all is
 # empty here, and an empty count keeps the loop's conservative reading — an old-shaped review never passes.
@@ -2389,6 +2405,18 @@ while true; do
   # every other shape, and kept beside `empty_tree_reading` for the same reason: it is decided before the outcome block
   # and it names a phase, not a verdict.
   phase_failure=""
+  # The change child's own silence is read here, before the phase that would follow it (issue #827): a report that
+  # carries no diff marker, no gate line and no verdict is nothing any arm below can read, so the round before the
+  # gate is not entered on it, no gate child is started, and the tail has nothing to archive — the item is that
+  # phase's failure instead. The branch the child may have left behind stays kept and the run still commits its tree
+  # (`end-item`, below), which is why the outcome must not fall through to the arm that names the item's diff. A tree
+  # still at the base is the run's own stop (`could not start`, further down) and is read there: both readings are
+  # taken, and the one that speaks for the run speaks first because it is the stronger statement about the child.
+  if [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ] && ! change_answered "$gate_report"; then
+    phase_failure="the change worker exited 0 and wrote no answer ($(wc -c < "$gate_report" 2>/dev/null || printf 0) B, no line the run reads) — the phase that would have made the change produced nothing the run could read, so the item is stopped by that phase and not by its own tree"
+    loop_state step A --name worker-answer --status fail --note "exit 0 and no answer" >/dev/null 2>&1 || true
+    progress note "the change child's answer is not an answer — the round before the gate and the gate child are not started on it"
+  fi
   if [ "$pre_gate" = on ] && [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ]; then
     change_diff_ready=$(report_field "$gate_report" LOOP-DIFF-READY)
     change_gate_claim=$(report_field "$gate_report" LOOP-GATE)

@@ -1098,6 +1098,12 @@ MUTATIONS=(
   '272.1@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the exclusion of a plan call, so the call that asks what a delta owes reads as the gate that decided the item and everything after it is spent after the gate (issue #830)@s#select(. == "--plan")#select(. == "--plan-never")#'
   '272.2@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the cd prefix the program sits behind, so the gate a child runs from another directory reads as no gate at all and the item has no split (issue #830)@s#(if .\[0\] == "cd" then .\[2:\] else . end)#(if .[0] == "cd-never" then .[2:] else . end)#'
   '272.3@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830)@s#(($w | run_word) as \$prog#(($w | .[-1]) as $prog#'
+  # 273.1 — a change child that answers nothing is that phase's failure, not the item's tree (issue #827). The reading
+  # is taken once, before the phase that would run the gate, so the gate child and the tail are not started on a report
+  # that says nothing and the outcome cannot fall through to the arm that names the item's diff. Mutation `273.1` drops
+  # the reading: the change child's silence is then no fact at all, the gate phase is skipped on it, and the item is
+  # blocked on "no archived change appears in the run's diff" — the reason #85 was recorded with.
+  '273.1@-@tools/loop/run.sh@run#anEmptyAnswerOverACommitIsTheChangePhasesFailure@the reading of the answer a change child wrote, so a 0-byte report over a branch is an answer the phases after it were never asked for and the item is blocked on its own diff (issue #827)@s|^  if \[ "\$worker_exit" -eq 0 \] && \[ "\$worker_write_decides" -eq 0 \] && ! change_answered "\$gate_report"; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

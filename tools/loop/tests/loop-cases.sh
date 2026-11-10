@@ -234,6 +234,7 @@ LOOP_SHELL_CASES=(
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
+  'run#anEmptyAnswerOverACommitIsTheChangePhasesFailure'
   'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops'
   'run#theRetryCapIsSpentAndTheRunStops'
   'run#aPhaseThatAnswersNothingIsThatPhasesFailure'
@@ -921,6 +922,7 @@ loop_run_shell_case() {
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
+    'run#anEmptyAnswerOverACommitIsTheChangePhasesFailure') fn=case_run_anEmptyAnswerOverACommitIsTheChangePhasesFailure ;;
     'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops') fn=case_run_aChildThatNeverStartedIsRetriedBeforeTheRunStops ;;
     'run#theRetryCapIsSpentAndTheRunStops') fn=case_run_theRetryCapIsSpentAndTheRunStops ;;
     'run#aPhaseThatAnswersNothingIsThatPhasesFailure') fn=case_run_aPhaseThatAnswersNothingIsThatPhasesFailure ;;
@@ -7711,6 +7713,74 @@ JSONL
   assert_not_contains "$log" "status/on-hold" "and is not put on hold"
   assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "nothing is written about it"
   assert_contains "$log" "--remove-label agent/in-progress" "and the in-progress mark comes off again"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# The other half of that reading (issue #827): the same answer of nothing, on a branch that carries a commit. The
+# silence was read as the item's own tree there only because the tree stood at the base; one commit further, the
+# same 0-byte report fell through the whole gate phase — no round before the gate, no gate child, no tail — and reached
+# the arm that names the item's diff. Measured 2026-11-07 (item #85 of the run 2026-11-07T19:53:44Z →
+# 2026-11-08T02:35:28Z): `worker-report.md` = 0 B, the child's stream ending `auto_retry_end success=false`, the
+# branch carrying a commit, and `.pi/issue-loop/run.json` recording `blocked` with "reported success but no archived
+# change appears in the run's diff" — 0 review rounds, no gate step, while the run's other empty answer (#95) was its
+# own stop. One silence, two readings, and the wrong one is the reason a person reads.
+case_run_anEmptyAnswerOverACommitIsTheChangePhasesFailure() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out f note branch
+  d=$(scratch); p=$(new_project)
+  # The retry budget is off: this case reads the shape the answer earns, not the retry above it (issue #752).
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=0/' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child leaves half a change in its tree — a path, no archive, no gate result — and an answer of nothing. The
+  # run commits what it finds, which is the branch #85's record was read off.
+  cat > "$d/worker-action.sh" <<'ACT'
+case "$1" in
+  worker*) printf 'half a change\n' > half-a-change.txt ;;
+esac
+ACT
+  : > "$d/no-answer.txt"
+  export PI_STUB_REPORT_WORKER="$d/no-answer.txt"
+  export PI_STUB_ACTION="$d/worker-action.sh"
+  export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  f=$(state_file "$p")
+  # The shape is both halves at once: a child that answered nothing, and a tree the run committed. The sibling above
+  # records no item at all for the same silence at the base, so a recorded item is what says this one is the commit.
+  assert_eq "1" "$(jq -r '.items | length' "$f")" "the item is recorded, so the tree was not at the base this time"
+  assert_eq "0" "$(wc -c < "$p/.pi/issue-loop/items/21/worker-report.md" 2>/dev/null || printf 0)" \
+    "and the child's answer is still empty"
+  branch=$(git -C "$p" branch --list 'fix/issue-21-*' --format='%(refname:short)' | head -1)
+  [ -n "$branch" ] || fail "the run committed nothing, so this case did not stage a branch to read the reason off"
+  assert_eq "half a change" "$(git -C "$p" show "$branch:half-a-change.txt" 2>/dev/null)" \
+    "the branch carries the run's own commit of the child's tree"
+  # The phase that would follow is not started on a report that says nothing, and the skip is not silent: the run says
+  # so and the item's own steps record it.
+  assert_eq "1" "$(grep -c 'prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the change child is the item's one child"
+  assert_eq "0" "$(grep -c 'prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "no gate child is started on an answer that carries no diff marker"
+  [ ! -e "$p/.pi/issue-loop/items/21/review-pre-gate.diff" ] ||
+    fail "a round before the gate read a report that answered nothing"
+  [ ! -e "$p/.pi/issue-loop/items/21/worker-tail-report.md" ] ||
+    fail "a tail ran for a change that never answered"
+  assert_contains "$out" "the change child's answer is not an answer" "the run says what it did not do"
+  assert_eq "fail" "$(jq -r '[.steps[] | select(.name == "worker-answer") | .status] | join(",")' "$f")" \
+    "the item's steps carry the reading as a failed phase"
+  # The item is the phase's, and the reason a person reads names that phase instead of the item's diff.
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item is recorded blocked"
+  note=$(jq -r '.items[0].note' "$f")
+  assert_contains "$note" "the change worker" "the reason names the phase that answered nothing"
+  assert_contains "$note" "wrote no answer" "and what it left"
+  assert_not_contains "$note" "no archived change appears" \
+    "not the item's diff, which claims the child reported success"
+  assert_not_contains "$note" "still at the base commit" "nor a tree that committed nothing"
+  assert_not_contains "$note" "could not start" "nor the run's own stop, which the empty tree earns"
+  # A block is the item's and reaches its tracker, with the branch that carries the attempt.
+  assert_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" "a blocked item is marked as awaiting a decision"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 

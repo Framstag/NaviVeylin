@@ -63,6 +63,15 @@ export function trimRecordLine(tool, total, bound) {
 }
 
 /**
+ * One line of the record for a repeat the rule replaced (issue #831): what the child asked for, what it was handed
+ * instead, and the path both are about. The line is what tells a repeat the rule withheld from one that entered —
+ * the event stream records the result the tool returned either way, so without it no reader can price the rule.
+ */
+export function repeatRecordLine(tool, path, withheld, kept) {
+  return `LOOP-TOOL-RESULT-REPEAT: ${tool} path=${path} chars=${withheld} kept=${kept}\n`;
+}
+
+/**
  * The rule: a result at or under the bound is returned untouched; one above it is cut to its first `bound`
  * characters — never in the middle of a surrogate pair — and carries one line naming the tool, the size and the
  * bound, and the trim is appended to `record` when a path names one.
@@ -108,7 +117,9 @@ export function alreadyReadNotice(path, size, turn) {
  * The repeat rule: the text of a read, or the one line naming the earlier read when this session already holds the
  * same content at the same path. A read whose sha differs from the ledger's is the session's own edit coming back, so
  * it is handed over whole — that read is a verification — and becomes what the next repeat is measured against. The
- * rule never throws: an error hands the text over exactly as the tool returned it.
+ * replacement is recorded when `read.record` names the item's trim record, so the withheld volume is a fact of the
+ * item rather than a figure the event stream's raw result has to be guessed at (issue #831). The rule never throws:
+ * an error hands the text over exactly as the tool returned it.
  */
 export function repeatResult(text, read, bound) {
   try {
@@ -117,7 +128,15 @@ export function repeatResult(text, read, bound) {
     const earlier = read.ledger.get(read.path);
     read.ledger.set(read.path, { sha, turn: read.turn, size: text.length });
     if (!earlier || earlier.sha !== sha) return text;
-    return alreadyReadNotice(read.path, earlier.size, earlier.turn);
+    const notice = alreadyReadNotice(read.path, earlier.size, earlier.turn);
+    if (read.record) {
+      try {
+        appendFileSync(read.record, repeatRecordLine(read.tool || "?", read.path, text.length, notice.length));
+      } catch {
+        // The repeat stands: a record that cannot be written is not a reason to hand the text over a second time.
+      }
+    }
+    return notice;
   } catch {
     return text; // a rule that could not be applied is not a reason to fail the read it was asked about
   }
@@ -193,7 +212,7 @@ export default function (pi) {
       if (!bound) return undefined;
       const record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
       const tool = event.toolName || "?";
-      const read = { path: readPath(tool, event.input), ledger, turn: turn || 1 };
+      const read = { path: readPath(tool, event.input), ledger, turn: turn || 1, record, tool };
       const content = trimContent(event.content, bound, tool, record, read);
       return content ? { content } : undefined;
     } catch {
@@ -246,7 +265,7 @@ function cli(argv) {
   }
   const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();
   const text = readFileSync(0, "utf8");
-  const read = { path: readPath(tool, { path }), ledger, turn };
+  const read = { path: readPath(tool, { path }), ledger, turn, record, tool };
   process.stdout.write(trimResult(repeatResult(text, read, bound), bound, tool, record));
   if (ledgerFile) writeLedger(ledgerFile, ledger);
   return 0;

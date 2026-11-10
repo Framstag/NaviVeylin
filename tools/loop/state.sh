@@ -771,6 +771,7 @@ cmd_done() {
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
                            reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
+                            repWithheld:$usage.repWithheld, repKept:$usage.repKept,
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
                            phases:$usage.phases, roles:$usage.roles, roleModels:$usage.roleModels,
@@ -910,8 +911,8 @@ num_or_null() {
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars}
-  local events="${1:-}" blob="" gate_cmd gate_prog="" word
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars,repWithheld,repKept}
+  local events="${1:-}" blob="" gate_cmd gate_prog="" word rep_record rep_withheld="null" rep_kept="null"
   # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
   # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
   # `bash tools/loop/gate.sh` and a bare command all reduce to the program a child's tool call names.
@@ -922,7 +923,19 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
     [ -n "$gate_prog" ] || gate_prog="$word"
   done
   if [ -n "$events" ] && [ -f "$events" ]; then
-    blob=$(jq -s -c --arg gate "$gate_prog" '
+    # What the repeat rule withheld is recorded beside the stream (issue #831): every replacement `repeatResult`
+    # makes appends a `LOOP-TOOL-RESULT-REPEAT` line to the item's trim record naming the characters the child
+    # asked for and the one line it was handed instead. The event stream cannot answer that — it records the result
+    # the tool returned either way — so the figure is read from the record, and a stream whose item kept no record
+    # leaves both null rather than a zero that would read as "the rule withheld nothing".
+    rep_record="$(dirname "$events")/tool-result-trims.log"
+    if [ -f "$rep_record" ]; then
+      rep_withheld=$(sed -n 's/^LOOP-TOOL-RESULT-REPEAT: .*chars=\([0-9][0-9]*\) kept=\([0-9][0-9]*\)$/\1/p' "$rep_record" \
+        | awk '{s += $1} END {print s + 0}')
+      rep_kept=$(sed -n 's/^LOOP-TOOL-RESULT-REPEAT: .*chars=\([0-9][0-9]*\) kept=\([0-9][0-9]*\)$/\2/p' "$rep_record" \
+        | awk '{s += $1} END {print s + 0}')
+    fi
+    blob=$(jq -s -c --arg gate "$gate_prog" --argjson repw "$rep_withheld" --argjson repk "$rep_kept" '
       def turns:
         reduce .[] as $e ({cur:null, done:[]};
           if $e.type == "message_update" and (($e.usage? // null) | type) == "object" then .cur = $e.usage
@@ -1071,6 +1084,8 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          reads: (if $reads > 0 then $reads else null end),
          dupReads: (if $reads > 0 then $dup.dup else null end),
          dupChars: (if $reads > 0 then $dup.chars else null end),
+         repWithheld: $repw,
+         repKept: $repk,
          phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
                   else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
          roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
@@ -1082,7 +1097,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null,"repWithheld":null,"repKept":null}' ;;
   esac
 }
 

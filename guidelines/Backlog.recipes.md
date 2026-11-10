@@ -172,16 +172,23 @@ the adapter owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`,
 That count used to be readable only offline, in the archive's own streams (issue #814): the item's record now carries
 it, so a report says whether the rule holds without `tools/loop-spend.py` being run first. `state.sh done` counts —
 per session, from the stream it already opens — the file reads whose path the **session** had already read
-(`metrics.dupReads`), the characters those repeats re-injected (`metrics.dupChars`, result characters of the repeat
+(`metrics.dupReads`), the characters those repeats returned (`metrics.dupChars`, result characters of the repeat
 only) and the reads they are a share of (`metrics.reads`, the same `ctx_read`/`read` pair the offline reader counts),
-and the report prints all three: the row's column after the calls-per-turn one as `repeat/total`, the trend's `reads:`
-line as the run's rate with the characters re-injected and the item that repeated most, beside the `calls:` line the
-paragraph below owns. The repeat is counted per session and not per item, because a reviewer reading what the worker
-read is a new conversation rather than a second read of a fact the item holds; the figure is a **warning, never a
-stop** — no key gates it and no outcome reads it — and an item whose stream measured no read records `null`, which
-the row and the trend print as `-` with their own reasons (a record that predates the field is told apart from one
-that met a run of items which opened no file). `report#anItemRecordsItsRepeatReads` is the case, and mutation
-records `96.1` and `96.2` are what prove it notices the count and the line go.
+and reads the item's own trim record for the two figures the rule itself makes (issue #831): what it kept out of the
+context (`metrics.repWithheld`) and what entered in its place (`metrics.repKept`, the characters of the one line).
+The report prints all of them: the row's column after the calls-per-turn one as `repeat/total`, the trend's `reads:`
+line as the run's rate with the withheld volume, what entered as a pointer and the item that repeated most, beside
+the `calls:` line the paragraph below owns. The raw volume the repeats returned is the denominator and is never
+called re-injected: a repeat whose content sha matches never entered the context at all, so the figure that says
+what it cost is the withheld one. The repeat is counted per session and not per item, because a reviewer reading
+what the worker read is a new conversation rather than a second read of a fact the item holds; the figure is a
+**warning, never a stop** — no key gates it and no outcome reads it — and an item whose stream measured no read
+records `null`, which the row and the trend print as `-` with their own reasons (a record that predates the field is
+told apart from one that met a run of items which opened no file), while a repeat whose item kept no trim record
+prints the raw volume with the dash that says what the rule withheld is unrecorded.
+`report#anItemRecordsItsRepeatReads` is the case, `report#theRepeatRuleNamesWhatItWithheld` the one for the withheld
+figure, and mutation records `96.1`, `96.2` and `96.3` are what prove they notice the count, the wording and the
+record the state reads the withheld volume from.
 
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round
@@ -1217,7 +1224,8 @@ edits between runs, which is exactly how the experiment #791 asks for (one run a
 Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
 faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, the
 run's tool calls per turn beside the items below its recorded floor (#757), and — since #814 — the reads the run's
-sessions repeated beside the characters they re-injected and the item that repeated most, and — since #759 — where the spend went,
+sessions repeated beside what the repeat rule withheld, what entered as its one line (since #831) and the item that
+repeated most, and — since #759 — where the spend went,
 the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
 share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
 with `-` and its reason where nobody measured one. The

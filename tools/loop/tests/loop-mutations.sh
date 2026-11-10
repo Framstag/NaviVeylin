@@ -933,7 +933,8 @@ MUTATIONS=(
   # state records the count, the characters and the base it is a share of; the report prints them and names the worst
   # item. Both halves carry the case `report#anItemRecordsItsRepeatReads`.
   '96.1@-@tools/loop/state.sh@report#anItemRecordsItsRepeatReads@the count of reads a session repeated, so an item that reopens a path it already read is a record a report can show (issue #814)@s|^         dupReads: (if \$reads > 0 then \$dup.dup else null end),$|         dupReads: null,|'
-  '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the worst item the repeat-reads line names, so the rate is printed beside nothing it can be acted on (issue #814)@s| chars re-injected| characters re-injected|'
+  '96.2@-@tools/loop/report.sh@report#theRepeatRuleNamesWhatItWithheld@the volume the repeat rule withheld, so the report prints a number the rule did not withhold and calls it a re-injection (issue #831)@s#were withheld by the repeat rule#were re-injected#'
+  '96.3@-@tools/loop/state.sh@report#theRepeatRuleNamesWhatItWithheld@the item trim record the state reads what the repeat rule withheld from, so the withheld volume is invisible and only the raw repeat result is left (issue #831)@s|^    rep_record="$(dirname "$events")/tool-result-trims.log"$|    rep_record=""|'
 
   # 97.x — the gate an item ran and the round that read its diff reach the item's record whichever arm it ended on
   # (issue #813). `gate_field` was computed 448 lines before the `falsified` arm and passed by the `closed` arm alone, so

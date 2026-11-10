@@ -409,14 +409,22 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # #814): a path a child has already read is cited rather than opened again. `tools/loop-spend.py` measures it
   # offline (`LOOP-SPEND-READS calls= duplicate=`), and until the state recorded it the report could not say whether
   # an item followed the rule or ignored it. The line prints the run repeats with the file reads they are a share
-  # of, the characters those repeats re-injected once and re-read for every turn after them, and the item that
-  # repeated most — the same three-part shape the calls line prints. A **warning, never a stop**: no key gates it, no
-  # item outcome reads it. The field absence is told apart from its null: a record written before the figure
-  # existed has no `dupReads` key at all, while one of this era that met an item which opened no file has it as
-  # `null` — and the two dashes say which of the two it is.
+  # of, what those repeats cost the context, and the item that repeated most — the same three-part shape the calls
+  # line prints. A **warning, never a stop**: no key gates it, no item outcome reads it. The field absence is told
+  # apart from its null: a record written before the figure existed has no `dupReads` key at all, while one of this
+  # era that met an item which opened no file has it as `null` — and the two dashes say which of the two it is.
+  #
+  # The characters are the *withheld* ones since #831. A repeat whose content sha matches is replaced by
+  # `tools/pi-trim-result.mjs` with one line naming the earlier read, so the result the event stream records for it
+  # never entered the context: printing that raw size as `re-injected` reported a lever #685 had already bought as
+  # a cost. The trim record an item keeps carries what the rule withheld and what entered in its place, `state.sh`
+  # reads that record into `metrics.repWithheld` / `metrics.repKept`, and the line prints the two beside the raw
+  # volume the repeats returned — the raw one stays the denominator a comparison with an item recorded before the
+  # rule is read on.
   | ([.items[]
       | select((.metrics.dupReads // null) != null and (.metrics.reads // 0) > 0)
-      | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0)}]) as $dups
+      | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0),
+         w: (.metrics.repWithheld // null), k: (.metrics.repKept // null)}]) as $dups
   | ( if ($dups | length) == 0 then
         if ([.items[] | select((.metrics | has("dupReads")) | not)] | length) > 0
            and ([.items[] | select(.metrics.tokens != null or (.metrics.calls // null) != null)] | length) > 0
@@ -425,9 +433,18 @@ trend=$(jq -r --argjson floor "$calls_floor" '
       else ([$dups[].d] | add) as $td
         | ([$dups[].r] | add) as $tr
         | ([$dups[].c] | add) as $tc
+        | ([$dups[] | select(.w != null)]) as $recorded
         | if $tr == 0 then "- · no item recorded a file read"
           elif $td == 0 then "\($td) of \($tr) file reads were a second read of a path the session already had · no item repeated a path"
-          else "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars re-injected · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
+          else "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · "
+               + (if ($recorded | length) == 0
+                    then "\($tc) chars those repeats returned — no trim record was read for them, so what the repeat rule withheld is unrecorded"
+                    else "\(([$recorded[].w] | add)) of the \($tc) chars those repeats returned were withheld by the repeat rule, \(([$recorded[].k] | add)) entered as a one-line pointer"
+                         + (if ($recorded | length) < ($dups | length)
+                              then " (a trim record was read for \($recorded | length) of the \($dups | length) items that repeated a path)"
+                              else "" end)
+                    end)
+               + " · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
           end
       end ) as $readsline
   # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so

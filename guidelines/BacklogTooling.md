@@ -134,15 +134,19 @@ LOOP_AGENT_CMD_<ROLE>[_<CLASS>]   how one role's child, or one class of item's, 
                                                        class key (issue #821)
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
 LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
-LOOP_CHILD_TURNS_MAX_<ROLE>  the turns one child may spend    one key per role (`WORKER` 170, `WORKER_GATE` 80,
-                                                       `WORKER_TAIL` 65, `WORKER_REWORK` 150,
-                                                       `REVIEWER` 75, `REVIEWER_PRE_GATE` 75);
-                                                       counted as the turns that child added to the item's event
-                                                       stream; a child that reaches its role's bound is ended, its
-                                                       item is recorded `blocked` with mechanism `bound`, and no
-                                                       decision label is written (issues #686, #784, #786); `0` =
-                                                       none. A value sits at or above the archive's p95 for its
-                                                       role (`guidelines/Backlog.recipes.md` §7b)
+LOOP_CHILD_TURNS_MAX_<ROLE>  the turns one child may spend    one key per role (`WORKER`, `WORKER_GATE`,
+                                                       `WORKER_TAIL`, `WORKER_REWORK`, `REVIEWER`,
+                                                       `REVIEWER_PRE_GATE`), and no value is repeated here: each
+                                                       one is stated beside the measurement that set it in the
+                                                       table `guidelines/Backlog.recipes.md` §7b carries, and
+                                                       `tools/check-doc-values.sh` compares that table with this
+                                                       profile and reports `LOOP-CHILD-TURNS-MAX: <role> prose
+                                                       <n> config <n>` when the two drift (issue #843); counted as
+                                                       the turns that child added to the item's event stream; a
+                                                       child that reaches its role's bound is ended, its item is
+                                                       recorded `blocked` with mechanism `bound`, and no decision
+                                                       label is written (issues #686, #784, #786); `0` = none. A
+                                                       value sits at or above the archive's p95 for its role
 LOOP_ITEM_CONTEXT_WARN   the context a child's turn costs    143124; one `LOOP-CONTEXT:` line when the child
                                                        crosses it, and nothing is ended (issue #760), `0` = none
 LOOP_ITEM_CONTEXT_MAX    the context that ends a child    200000; the largest `input + cacheRead` a turn reported,

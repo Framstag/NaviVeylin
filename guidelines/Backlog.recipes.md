@@ -403,9 +403,10 @@ names what happened (`LOOP-TIMEOUT: the child's writer (pid <n>) vanished before
 item is recorded `cut` with `bound` as its mechanism (issues #786, #790), and a child that is merely slow is waited for
 exactly as it was.
 
-A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (170 for the worker, 80 for the
-gate child, 65 for the tail, 150 for the rework round a refusal buys, 75 for a review round and 75 for the round
-before the gate; `0` or absent = no bound)
+A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (200 for the worker, 100 for the
+gate child, 65 for the tail, 150 for the rework round a refusal buys, 110 for a review round and 110 for the round
+before the gate — the six values `tools/loop/loop.conf` records, each beside the measurement that set it in the table
+below; `0` or absent = no bound)
 ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
 which the adapter already writes — minus the count standing when that child started, and checked in the same whole
 second as the two clocks, so the wait costs one `grep` per second and not one per look. That stream is **bounded**
@@ -443,10 +444,22 @@ applies is one the header already carried: the token listed five roles while six
 the role added after the token was written — could be ended at a bound the run's own header never printed
 (issue #842). A bound a run cannot be audited for is not a recorded bound.
 
-**Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
-role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),
-tail 65 (p95 56.2, max 60 over 20), review round 75 (p95 57.7, p99 68 over 234), the round before the gate 75 (n=12,
-max 55, every session censored). The first values sat at the **p75 of a twelve-session sample**, and the first run
+**Where a stop bound sits** (measured 2026-11-06, issue #786; re-read 2026-11-09 for #804 and #842): each value is
+the archive's own p95 or above, per role, and the value a run applies is the one `tools/loop/loop.conf` records —
+the two are stated together, one row per role, because a measurement and the bound it set move apart and a reader has
+to be able to tell which figure they are reading. `tools/check-doc-values.sh` compares every row with the profile and
+reddens the gate when one drifts, printing `LOOP-CHILD-TURNS-MAX: <role> prose <n> config <n>`.
+
+| role (`LOOP_CHILD_TURNS_MAX_<ROLE>`) | records | the measurement that set it |
+|---|---|---|
+| `LOOP_CHILD_TURNS_MAX_WORKER` | 200 | p50 77.5, p75 104, p90 138.5, p95 161.8, p99 196.6, max 219 over 346 sessions — 200 sits above the p99, where the 170 it replaced (the p95) ended 3–5 % of workers (issue #804) |
+| `LOOP_CHILD_TURNS_MAX_WORKER_GATE` | 100 | p50 37, p75 47.5, p90 67, p95 69, max 71 over 11 sessions — 80 was that maximum plus a margin and still ended #790's gate child at 80 turns, so 100 is 1.4× the observed maximum (issue #804) |
+| `LOOP_CHILD_TURNS_MAX_WORKER_TAIL` | 65 | p50 27.5, p75 37.5, p90 43.4, p95 56.2, max 60 over 20 tails — above the observed maximum, and the one value the raise of #804 left alone |
+| `LOOP_CHILD_TURNS_MAX_WORKER_REWORK` | 150 | 11 at the least, 60 at the median, 100 at the p95 over 109 rework sessions; 150 is a measured experiment and not a second p95 (issue #842) |
+| `LOOP_CHILD_TURNS_MAX_REVIEWER` | 110 | p50 31, p75 40, p90 52.7, p95 57.7, p99 68, max 107 over 234 rounds — the 75 it replaced sat **below** the observed maximum (issue #804) |
+| `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE` | 110 | n=12, p50 40, p95 55, max 55, every session censored at the old bound of 55 — too small a sample for a number of its own, so the role keeps the review round's |
+
+The first values sat at the **p75 of a twelve-session sample**, and the first run
 that used them ended three of its six items' workers at exactly 110 turns after 4.5–12 min, each leaving a 4–6 k-line
 patch behind, and stopped on the streak with 324 of its 480 minutes unused; over the whole archive **77 of 346 worker
 sessions (22 %) sit at or over 110**, which is what a stop bound at p75 buys. A bound above the population costs one

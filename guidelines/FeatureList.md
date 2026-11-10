@@ -65,7 +65,7 @@ Cases: `length: an over-long paragraph fails the run`, `length: a short paragrap
 - `RELEASE-NOTES.md` is **derived, not accumulated**: one entry per release version, replaced in place when the
   same version is generated again, entries ordered newest first. A version whose changes are all internal gets
   no entry and a verdict saying so.
-- Neither document carries a date or time. A "generated on" line would make the byte-identity rule unsatisfiable
+- No document carries a date or time. A "generated on" line would make the byte-identity rule unsatisfiable
   and would turn every run into a diff; where a document must be anchored in time, the release **version** is
   the anchor, and it is an input.
 
@@ -74,8 +74,8 @@ Cases: `regeneration: two runs produce the same file`, `catalogue: no generation
 
 - `STORE-LISTING.md` is **derived from the same entry, and fitted to the field it is pasted into**: one section per
   release version, its changes ordered by user impact, and at most the budget in characters. The order is the
-  shortlist's: a change whose spec the shortlist names is one a user can see or feel, and it ranks above one it does
-  not; the entry's own order settles each group.
+  shortlist's: a change whose first cited spec the shortlist names is one a user can see or feel, and it ranks above
+  one it does not; the entry's own order settles each group.
 - The budget is `listing_budget`, declared in `tools/gen-feature-list.sh` beside `maxpara`, **500 characters per
   entry** — the store field's limit, recorded with the item that asked for the document and not measured in this
   tree. It is per entry because one entry's areas cannot sum to one field.
@@ -87,7 +87,9 @@ Cases: `regeneration: two runs produce the same file`, `catalogue: no generation
 - The listing publishes the **gated** prose: it is rendered from the release note's own entry, after the gate has
   accepted it, so no model composes a second document.
 
-Cases: `listing: an over-budget entry is trimmed at a sentence boundary`,
+Cases: `listing: the budget is declared by the tool`,
+`listing: an over-budget entry is trimmed at a sentence boundary`,
+`listing: an over-budget entry is trimmed at a sentence boundary (the sentence that fits is published)`,
 `listing: the trim publishes no sentence the field cannot hold`,
 `listing: every published bullet ends at a sentence boundary`,
 `listing: a trimmed bullet keeps its source comment whole`,
@@ -95,9 +97,11 @@ Cases: `listing: an over-budget entry is trimmed at a sentence boundary`,
 `listing: a change the shortlist does not name is still published when it fits`,
 `listing: a change that does not fit is summarised not dropped`,
 `listing: the summarising bullet counts the changes it stands for`,
+`listing: the summarised version still fits the budget`,
 `listing: the listing is fitted to the budget the tool declares`,
 `listing: the listing states the budget it was fitted to`,
 `listing: re-running a version replaces its section byte for byte`,
+`listing: a version with no entry writes no listing`,
 `listing: a version with no entry writes no section`.
 
 ## 2. The shipped set is `openspec/specs/`
@@ -277,4 +281,4 @@ read`, `snapshot: versions order as the release format orders them (-1 < -10 < -
   about.
 - A spec leaving the shipped set: nothing. Its highlight is reported as stale and no longer required, and its
   capabilities are not published as changes.
-- Never edit `FEATURES.md` or `RELEASE-NOTES.md` by hand.
+- Never edit `FEATURES.md`, `RELEASE-NOTES.md` or `STORE-LISTING.md` by hand.

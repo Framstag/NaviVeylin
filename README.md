@@ -91,7 +91,7 @@ specs in `openspec/specs/`, so they cannot drift from what the app is specified 
 |----------|------------|
 | [`FEATURES.md`](FEATURES.md) | The feature catalogue, clustered by feature area, for phone and car |
 | [`RELEASE-NOTES.md`](RELEASE-NOTES.md) | One entry per release version, listing the user-visible capabilities that changed |
-| [`STORE-LISTING.md`](STORE-LISTING.md) | The same version entry as paste-ready store copy, inside the store field's budget (500 characters, declared once as `listing_budget` in the tool): the changes a user can see first, the rest summarised under one general bullet |
+| [`STORE-LISTING.md`](STORE-LISTING.md) | The same version entry as paste-ready store copy, inside the store field's budget (500 characters — the store field's limit, recorded with the item that asked for the document and not measured in this tree; declared once as `listing_budget` in the tool): the changes a user can see first, the rest summarised under one general bullet |
 
 ```bash
 # Regenerate the catalogue (and the note for a release version; a capability the note would list that no
@@ -107,7 +107,7 @@ bash tools/gen-feature-list.sh --check-classification
 ```
 
 `RELEASE-NOTES.md` and `STORE-LISTING.md` are absent until a release carries a user-visible change: a version with
-nothing to report gets no entry rather than an entry saying nothing happened. Neither document is ever edited by
+nothing to report gets no entry rather than an entry saying nothing happened. No document is ever edited by
 hand — the next run would discard the edit. The rules are `guidelines/FeatureList.md`; the tool and its data live in
 `tools/`.
 

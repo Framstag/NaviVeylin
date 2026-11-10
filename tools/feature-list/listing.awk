@@ -6,8 +6,8 @@
 # what a store field carries.
 #
 # The budget is the characters of the published bullets including their newlines, and the comments are counted in
-# neither. Order is impact, then the entry's own order: a bullet whose spec the shortlist names is a selling point
-# a user can see or feel, and ranks above one it does not. The fit keeps whole bullets, then the whole leading
+# neither. Order is impact, then the entry's own order: a bullet whose first cited spec the shortlist names is a
+# selling point a user can see or feel, and ranks above one it does not. The fit keeps whole bullets, then the whole leading
 # sentences of a bullet, and never a comment — a `<!-- cap: … -->` line is emitted complete or not at all. What
 # does not fit is summarised under one general bullet with the count of the changes it stands for, so a change is
 # trimmed, or summarised, and never dropped in silence.
@@ -67,8 +67,8 @@ END {
   if (failed) exit 2
   flush()
 
-  # Impact first: a bullet whose spec the shortlist names is one the product tells a user about. The entry's own
-  # order settles both groups, so the listing is a stable function of the entry and the shortlist.
+  # Impact first: a bullet whose first cited spec the shortlist names is one the product tells a user about. The
+  # entry's own order settles both groups, so the listing is a stable function of the entry and the shortlist.
   for (i = 1; i <= n; i++) {
     spec = key[i]
     sub(/#.*/, "", spec)

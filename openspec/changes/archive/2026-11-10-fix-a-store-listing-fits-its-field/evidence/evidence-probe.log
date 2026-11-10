@@ -1,0 +1,61 @@
+item #100 (§156, class/improvement) — verification probe, verdict skipped/needs-decision
+tree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop at 80df3a3cadec0c6c4961ef08220d08177f23a9b1 (+ prior items' commits e2d4283)
+tree left unchanged (`git status --porcelain` empty)
+
+== measure block (./tools/loop/measure.sh, run once, no --change: one open change `fix-mutation-harness-file-scope` was the tree's own newest, not this item's) ==
+LOOP-MEASURE base=80df3a3cadec0c6c4961ef08220d08177f23a9b1 paths=162 insertions=5916 deletions=22
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/._gradlew_test_-PforceTests_--no-build-cache.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh.xml tests=155 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_sensor-selftest.sh.xml tests=45 failures=0
+LOOP-MEASURE-CHANGE fix-mutation-harness-file-scope scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END
+(no gate run: nothing was planned, no file was touched — a skip owes no gate, as item #242's record states)
+
+== claim 1 verified: one renderer, the changelog one, no listing budget, no trim rule ==
+tools/gen-feature-list.sh:789-824 — the entry is `## <version>` then `### <area heading>` per area, one
+  `- **keyword** — paragraph.` bullet per changed user-visible capability (148 in the probe below).
+tools/gen-feature-list.sh:79 — `maxpara=320` is the ONLY length bound, and it is per bullet paragraph
+  (`feature-list-generation` "A paragraph stays short"), enforced on the note at :828-837 via gate.awk.
+tools/gen-feature-list.sh:842-863 — the version entry is one document; no second rendering exists.
+grep -rni 'store.listing|store listing|what.s new|play store limit|character budget|user impact' over
+  tools/, guidelines/FeatureList.md, README.md, openspec/specs/{release-notes-generation,feature-list-generation}/spec.md
+  → no hit: no store-listing form, no listing-level budget, no impact ordering, no trim rule in the tree.
+
+== the number: a real entry is 51x a store listing field ==
+probe (repeatable, writes only /tmp; no tree mutation):
+  rm -rf /tmp/fl-probe && mkdir -p /tmp/fl-probe/data /tmp/fl-probe/out \
+    && cp -r tools/feature-list/. /tmp/fl-probe/data/ \
+    && bash tools/gen-feature-list.sh --root "$PWD" --data-dir /tmp/fl-probe/data \
+         --out-dir /tmp/fl-probe/out --release 2026-10-08-9
+  → baseline /tmp/fl-probe/data/snapshots/2026-10-08-4.json; added 298, changed 78, removed 3;
+    "note: 2026-10-08-9 carries 148 changed and 0 removed user-visible capabilities (3 renames)";
+    release notes: /tmp/fl-probe/out/RELEASE-NOTES.md (1 entries, newest 2026-10-08-9)
+measured on that file:
+  whole file                                 25 859 bytes
+  one version entry (`## 2026-10-08-9`)      25 515 chars, 148 bullets
+  per bullet block (bullet + its cap comment)  min 77, median 175, max 235 chars
+  largest area block (`### Routing & Turn-by-Turn`)  7 585 chars
+  bullets that fit a 500-char budget         3 of 148
+  `head -c 500` of the entry ends:
+     `...in host** — Current and next step in host instruction panel.`
+     `  <!-- cap: auto/navigation-view#Current and next step in`
+  i.e. a naive cut stops inside the capability comment, mid-token — the "truncated mid-sentence" case
+  the item predicts, and 25 515 chars against Google Play's 500-char "What's new" field.
+
+== why gate 3 fails: the fix reverses a recorded design decision, and two parameters are unanswered ==
+recorded design decision, openspec/changes/archive/2026-10-09-generate-feature-list/design.md:152:
+  "**The prose is a model's, and a wrong claim could reach a store listing** → … store copy is written by
+   a human from the catalogue, not published from it."
+The issue's fix candidate ("a second renderer over the same entry, with the budget as a parameter of the
+area catalogue") is exactly publishing store copy from the tool. Nothing in the tree records the budget
+value (guidelines/Regulatory.md carries no store field limits and no "what's new" length), and the note
+carries no impact signal to order by (tools/feature-list/highlights.json keys: id, area, keyword, specs, why).
+ITEM_DECISION: recorded: none.

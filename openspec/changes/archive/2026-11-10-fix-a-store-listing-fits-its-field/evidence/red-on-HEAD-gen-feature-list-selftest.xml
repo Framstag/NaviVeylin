@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/tests/gen-feature-list-selftest.sh (HEAD 40cc58ff, the listing cases added)" tests="135" failures="14" errors="0" time="0">
+  <system-out>red on HEAD: 14 listing cases fail — HEAD writes no STORE-LISTING.md and declares no listing_budget</system-out>
+</testsuite>

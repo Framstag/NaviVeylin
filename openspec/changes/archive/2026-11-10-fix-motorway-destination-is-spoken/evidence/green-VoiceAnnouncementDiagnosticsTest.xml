@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.VoiceAnnouncementDiagnosticsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-10T11:33:04.098Z" hostname="dingens" time="0.005">
+  <properties/>
+  <testcase name="everyReasonIsCoordinateFree" classname="com.naviveylin.navigation.VoiceAnnouncementDiagnosticsTest" time="0.003"/>
+  <testcase name="aSuppressedGpsStateNamesItsReason" classname="com.naviveylin.navigation.VoiceAnnouncementDiagnosticsTest" time="0.0"/>
+  <testcase name="aHeldGpsStateNamesNoReason" classname="com.naviveylin.navigation.VoiceAnnouncementDiagnosticsTest" time="0.0"/>
+  <testcase name="aSpokenTurnNamesItsKindAndSurface" classname="com.naviveylin.navigation.VoiceAnnouncementDiagnosticsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+note archived change: C1/C2 are report-only (archived artifacts keep their historical §-citations and a later run may have overwritten their XML); C3/C4/C5 stay strict
+ok   C1 §references: 3 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 5 pairs confirmed, 1 exempted (not retained), 1 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 298 resolved and in range, 35 unresolved or ambiguous
+----
+evidence-check: PASS

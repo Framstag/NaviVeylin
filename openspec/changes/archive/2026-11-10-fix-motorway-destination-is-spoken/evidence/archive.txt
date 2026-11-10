@@ -1,0 +1,55 @@
+# Archive — fix-motorway-destination-is-spoken (item #807)
+
+Tail process (phase F), 2026-11-10, from the change root `/home/tim/projects/NaviVeylin/.pi/worktrees/loop`.
+
+    $ openspec archive fix-motorway-destination-is-spoken --yes
+    Task status: ✓ Complete
+    Specs to update:
+      voice-guidance: update
+    Applying changes to openspec/specs/voice-guidance/spec.md:
+      + 1 added
+    Totals: + 1, ~ 0, - 0, → 0
+    Specs updated successfully.
+    Change 'fix-motorway-destination-is-spoken' archived as '2026-11-10-fix-motorway-destination-is-spoken'.
+
+Checks after the archive, in the change root:
+
+    $ ls -d openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken
+    openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken
+
+    $ ls -d openspec/changes/fix-motorway-destination-is-spoken
+    ls: cannot access 'openspec/changes/fix-motorway-destination-is-spoken': No such file or directory
+                                                                # the unarchived directory is gone, as intended
+
+The delta merged: `openspec/specs/voice-guidance/spec.md` now carries the requirement
+"The motorway manoeuvre names its signposted destination" (line 177), beside "Navigation speaks the
+native voice instruction" (`:9`); the archived change keeps its own copy of the delta under
+`specs/voice-guidance/spec.md` (`## ADDED Requirements`).
+
+## Pointer checks
+
+Before the archive (`bash tools/loop/evidence-check.sh openspec/changes/fix-motorway-destination-is-spoken --root .`),
+output kept at `evidence/evidence-check.txt`:
+
+    ok   C1 §references: 3 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 5 pairs confirmed, 1 exempted (not retained), 1 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 333 resolved and in range, 0 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+After the archive, in archived mode, output kept at `evidence/evidence-check-archived.txt`:
+`evidence-check: PASS` (C5's 35 unresolved are the change's bare-basename citations, report-only).
+
+## The gate this close is taken over
+
+The gate ran once; its verdict line and the failing step's console are in
+`evidence/gate-classification-red.txt`, and the step is attributed to work this change does not touch in
+`evidence/gate-step-red-attribution.md` (four unclassified ids owed by the open changes
+`package-structure-as-five-kinds` and `domain-vocabulary-is-declared`, three stale classification keys
+red since at least item 741's gate of 2026-11-02 — copies in `evidence/red-before-classification-gate.txt`).
+The waiver travels in this item's report as `LOOP-GATE-WAIVED` /
+`LOOP-GATE-WAIVED-SUITE: bash tools/gen-feature-list.sh --check-classification`.
+
+Nothing was committed, staged, pushed or labelled here: the run's script owns git and the tracker.

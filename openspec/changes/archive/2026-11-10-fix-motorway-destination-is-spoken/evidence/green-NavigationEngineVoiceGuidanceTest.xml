@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-11-10T11:33:26.455Z" hostname="dingens" time="6.972">
+  <properties/>
+  <testcase name="stopCancelsAPendingGpsAnnouncement" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="5.824"/>
+  <testcase name="gpsFlapSpeaksOnlyTheStateThatHeld" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.066"/>
+  <testcase name="gpsAnnouncementIsSilentByDefault" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.037"/>
+  <testcase name="voiceInstructionAfterStopIsSilent" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.051"/>
+  <testcase name="voiceSwitchOffKeepsATurnSilent" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.051"/>
+  <testcase name="aMotorwayChangeNamesItsDestination" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.074"/>
+  <testcase name="aMotorwayLeaveKeepsItsDestinationUnspoken" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.057"/>
+  <testcase name="voiceSwitchChangeAppliesToTheNextInstruction" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.041"/>
+  <testcase name="theCarSessionReadsTheCarSwitch" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.155"/>
+  <testcase name="voiceSampleSequenceIsSpokenWhileNavigating" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.029"/>
+  <testcase name="gpsStateThatHoldsIsAnnouncedOnce" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.03"/>
+  <testcase name="thePhoneSessionReadsThePhoneSwitch" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.03"/>
+  <testcase name="gpsIgnoresTheSurfaceVoiceSwitch" classname="com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest" time="0.042"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

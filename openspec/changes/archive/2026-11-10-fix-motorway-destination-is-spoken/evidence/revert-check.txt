@@ -1,0 +1,30 @@
+# Revert-check — the destination clause is the thing the case pins
+
+The change is `VoiceGuidance.sentenceFor`'s clause (task 2.2), removed on its own with the parameter
+kept, so the two cases that word a destination are the only ones that can notice.
+
+## Red — clause removed, 2026-11-10T11:31:51Z
+
+`./gradlew :app:testMobileDebugUnitTest --tests 'com.naviveylin.navigation.NavigationEngineVoiceGuidanceTest'
+--tests 'com.naviveylin.navigation.VoiceGuidanceTest' --no-build-cache`
+
+```
+VoiceGuidanceTest > aMotorwayDestinationJoinsTheSentence FAILED
+    org.junit.ComparisonFailure: expected:<...otorway to the right[ towards München]> but was:<...otorway to the right[]>
+NavigationEngineVoiceGuidanceTest > aMotorwayChangeNamesItsDestination FAILED
+    java.lang.AssertionError: … expected:<[After 300 meters leave the motorway to the right towards München]>
+    but was:<[After 300 meters leave the motorway to the right]>
+16 tests completed, 2 failed
+```
+
+`revert-check-red.xml` is that run's tally (`tests="13" failures="1" errors="0"` for the engine class;
+the unit class's own tally is beside it in the same run's output).
+
+## Restored — 2026-11-10T11:32:06Z, final green — 2026-11-10T11:33:26Z
+
+`green-NavigationEngineVoiceGuidanceTest.xml` (`tests="13" failures="0" errors="0"`) and
+`green-VoiceGuidanceTest.xml` (`tests="4" failures="0" errors="0"`) are the restored run, after the
+unit class gained its fourth case (a destination with no recognised sample) and the production files
+had their final comment and import edit; the same invocation ran
+`GermanTranslationCompletenessTest` (green). `green-VoiceAnnouncementDiagnosticsTest.xml` (`tests="4"`)
+and `green-OffRouteAnnouncementTest.xml` (`tests="6"`) are from the run before it.

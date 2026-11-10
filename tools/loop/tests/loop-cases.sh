@@ -418,6 +418,7 @@ LOOP_SHELL_CASES=(
   'run#aRotatedStreamStillCountsTheTurnsItDropped'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
   'run#eachChildIsBoundedByItsOwnRolesTurns'
+  'run#eachRoleIsBoundedByItsOwnContext'
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
   'run#childPastItsContextBoundIsCut'
   'run#theRecordedZeroKeepsTheContextBoundOff'
@@ -1099,6 +1100,7 @@ loop_run_shell_case() {
     'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
+    'run#eachRoleIsBoundedByItsOwnContext') fn=case_run_eachRoleIsBoundedByItsOwnContext ;;
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
     'run#childPastItsContextBoundIsCut') fn=case_run_childPastItsContextBoundIsCut ;;
     'run#theRecordedZeroKeepsTheContextBoundOff') fn=case_run_theRecordedZeroKeepsTheContextBoundOff ;;
@@ -11787,24 +11789,31 @@ JSONL
 # The bound's rate is a figure the report names (issue #809): the run of 2026-11-06 21:19Z ended 2 of its 11 items at
 # `LOOP_ITEM_CONTEXT_MAX` — 18 % of what it attempted, 36 Mtok spent with nothing landed — and every report printed
 # those two items as one more `cut` and the rate on no line, so a run that hits the bound five times as often as the
-# archive read exactly like a healthy one. The line is the run's rate beside the archive's, the items the bound ended
-# named with what each kept, and the archive counted over the records that can name a mechanism: an item recorded
-# before `stopReason` existed can never be counted a hit, so counting it in the denominator reports the bound rarer
-# than it is — which is the direction the item was written about.
+# archive read exactly like a healthy one. The line is the run's rate beside the archive's and the items the bound
+# ended named with what each kept. It counts the **result** and not one mechanism field (measured 2026-11-10): `cut`
+# exists for exactly one reason — a bound the run enforces ended a phase of the item — while `stopReason: bound` is kept
+# off a round a review bound ended, so a run whose cuts were all review rounds printed `0 of N` with its items being
+# thrown away (2026-11-10, two of the day's three runs). The denominator is every item, and the archive is read the
+# same way, over the `blocked` + `bound` pair a record written before `cut` existed carries beside the `cut` ones.
 case_report_theBoundRateIsNamed() {
   # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p q out line
   d=$(scratch); p=$(new_project)
-  init_state "$p" 11 90
-  printf '[{"issue":21,"class":"improvement","verdict":"eligible","rank":1},{"issue":22,"class":"improvement","verdict":"eligible","rank":2}]' |
+  init_state "$p" 12 90
+  printf '[{"issue":21,"class":"improvement","verdict":"eligible","rank":1},{"issue":22,"class":"improvement","verdict":"eligible","rank":2},{"issue":23,"class":"improvement","verdict":"eligible","rank":3}]' |
     run_state "$p" queue >/dev/null
-  # Two items the bound ended: #21 kept a patch carrying three files, #22 kept none. The turns are the stream's.
+  # Three items the bound ended: #21 kept a patch carrying three files, #22 kept none, and #23 lost a review round to
+  # its own reading bound — the shape whose record names no mechanism (a spec requirement keeps `stopReason` off a
+  # round the run ended), which the line counted as no hit until 2026-11-10 while the item was in fact thrown away.
   for i in 1 2 3 4 5 6 7; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$d/seven.jsonl"
   for i in 1 2 3 4 5; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$d/five.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$d/three-turns.jsonl"
   printf -- '--- /dev/null\n+++ b/a.txt\n@@ -0,0 +1 @@\n+x\n--- /dev/null\n+++ b/b.txt\n@@ -0,0 +1 @@\n+y\n--- /dev/null\n+++ b/c.txt\n@@ -0,0 +1 @@\n+z\n' > "$d/three.patch"
   run_state "$p" done 21 --result cut --stop-reason bound --wall 42 --events "$d/seven.jsonl" \
     --leftover "$d/three.patch" >/dev/null
   run_state "$p" done 22 --result cut --stop-reason bound --wall 42 --events "$d/five.jsonl" >/dev/null
+  run_state "$p" done 23 --result cut --wall 42 --events "$d/three-turns.jsonl" \
+    --review-verdict cut-short >/dev/null
   for i in 31 32 33 34 35 36 37 38 39; do
     run_state "$p" done "$i" --result done --verdict closed --wall 10 >/dev/null
   done
@@ -11818,13 +11827,17 @@ case_report_theBoundRateIsNamed() {
   jq -nc '{run:{items:5}, items: [range(1;6) | {issue:(200 + .)}]}' \
     > "$p/.pi/issue-loop/runs/2026-11-02T00:00:00Z.json" || fail "could not write the archive's second run"
   out=$(run_report "$p") || fail "the report failed"
-  assert_contains "$out" "bound: 2 of 11 items (18.2 %)" \
-    "the run's rate, over the items it attempted"
-  assert_contains "$out" "archive: 3 of 17 items whose record names a mechanism (17.6 %)" \
-    "beside the archive's, over the records that can name one"
+  assert_contains "$out" "bound: 3 of 12 items (25.0 %)" \
+    "the run's rate, over the items it attempted, counts every item a bound ended"
+  assert_contains "$out" "archive: 3 of 25 items a bound ended (12.0 %)" \
+    "beside the archive's, over every archived record and not only the ones that name a mechanism"
   line=$(printf '%s\n' "$out" | grep '^bound: [0-9]' || true)
   assert_contains "$line" "#21 7 turns, 3 files" "the item the bound ended is named with what it kept"
   assert_contains "$line" "#22 5 turns" "and one that kept no patch is named with its turns alone"
+  assert_contains "$line" "#23 3 turns" \
+    "and a round the run ended is a hit too, though its record names no mechanism"
+  assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$(state_file "$p")")" \
+    "the record still keeps stopReason off a round the run ended — the line reads the result, not a second field"
   assert_not_contains "$line" "#31" "an item that closed is not named"
   # A run that hit the bound on nothing prints the zero it measured, and an archive with no finished run prints `-`:
   # a rate over nothing is not a measurement, and `0 %` would read as one.
@@ -16023,6 +16036,114 @@ EOF
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "context bound of 200000 tokens" \
     "and the reason on the item carries the reading, not only the exit status"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  return 0
+}
+
+# A reading phase is bounded by what that phase may read, not by the item's one number (measured 2026-11-10). Over the
+# day's three runs 19 items were attempted and 9 recorded `cut`, 8 of them at a largest context of 199 178–211 475
+# against the recorded 200 000, while the six that closed read 114 522, 116 750, 155 145, 174 700, 191 637 and 192 886
+# — the stop sat inside the population that finishes — and every one of the eight belonged to a role whose work **is**
+# reading the item. A role therefore reads its own key first (`LOOP_ITEM_CONTEXT_MAX_<ROLE>`, the shape its turn bound
+# already has) and the item's where it records none. This case records the item's key below the reviewer's reading and
+# leaves the reviewer's shipped key above it: the round must answer, where the tree before this change ended it at the
+# item's number and recorded the cut.
+case_run_eachRoleIsBoundedByItsOwnContext() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf action out status state reviewer_report over over_fifo over_pid i
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy loop.conf"
+  # The item's key is recorded low enough that both children cross it. It is written rather than shortened from the
+  # copy — the recorded policy is `loop.conf`'s and the case asserts the engine enforces what the profile says — and
+  # the reviewer's own key is left at the shipped value, which neither child reaches.
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' "$conf" > "$conf.item" || fail "could not record the item's context bound"
+  printf 'LOOP_ITEM_CONTEXT_MAX=160000\n' >> "$conf.item"
+  mv "$conf.item" "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=160000' "$conf" || fail "this case could not record the item's context bound"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX_REVIEWER=250000' "$conf" ||
+    fail "the shipped loop.conf records no reviewer context bound for this case to leave alone"
+  export LOOP_CONF="$conf"
+  # The worker reads 150 000 — under the item's key — and returns; the reviewer reads 200 000, over the item's key and
+  # under its own, and answers.
+  printf '{"type":"message_update","usage":{"input":150000,"output":10,"cacheRead":0,"cacheWrite":0}}\n{"type":"turn_end","message":{"role":"assistant"}}\n' > "$d/worker.jsonl"
+  printf '{"type":"message_update","usage":{"input":200000,"output":10,"cacheRead":0,"cacheWrite":0}}\n{"type":"turn_end","message":{"role":"assistant"}}\n' > "$d/reviewer.jsonl"
+  action="$d/context.sh"
+  cat > "$action" <<EOF
+case "\${1##*/}" in
+  reviewer-prompt-*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$d/reviewer.jsonl" >> "\$ev"
+    ;;
+  worker*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$d/worker.jsonl" >> "\$ev"
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer read past the item's key is not a failed run"
+  assert_contains "$out" \
+    'item-context-bounds=worker:160000,worker-gate:160000,worker-tail:160000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:160000' \
+    "the header names every role's own context bound, so the bound a run enforces is the bound it prints"
+  reviewer_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
+  [ -f "$reviewer_report" ] || fail "the round left no transcript; the run said: $out"
+  assert_not_contains "$(cat "$reviewer_report")" "LOOP-TIMEOUT" \
+    "the reviewer read 200 000 against its own 250 000, so the item's 160 000 does not end it"
+  assert_eq "done" "$(jq -r '.items[0].result' "$state")" \
+    "and the item keeps the outcome the round it answered earned"
+  assert_eq "PASS" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
+    "the round answered rather than being cut, which is what the item's record says it was"
+  assert_eq "" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "and no mechanism is recorded for an item no bound ended"
+  # …and the other side of the same rule: a reviewer that reads past its **own** key is ended, and the transcript
+  # names the key that fired rather than the item's — the one field a person reads to know which bound ended the round.
+  printf '{"type":"message_update","usage":{"input":260000,"output":10,"cacheRead":0,"cacheWrite":0}}\n{"type":"turn_end","message":{"role":"assistant"}}\n' > "$d/reviewer-over.jsonl"
+  action="$d/context-over.sh"
+  cat > "$action" <<EOF
+case "\${1##*/}" in
+  reviewer-prompt-*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$d/reviewer-over.jsonl" >> "\$ev"
+    read -r _ < "$d/over.fifo" || true
+    ;;
+  worker*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$d/worker.jsonl" >> "\$ev"
+    ;;
+esac
+EOF
+  over=$(new_project); over_fifo="$d/over.fifo"; mkfifo "$over_fifo"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( run_loop "$over" --items 1 --minutes 90 --review on > "$d/over-out" 2>&1 ) &
+  over_pid=$!
+  set +m
+  wait_for_stub_child "$over_fifo.ready" || true
+  exec 9<> "$over_fifo"
+  for i in $(seq 1 600); do kill -0 "$over_pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$over_pid" 2>/dev/null; then
+    kill -TERM -"$over_pid" 2>/dev/null || kill -TERM "$over_pid" 2>/dev/null
+    printf 'go\n' >&9 2>/dev/null || true
+    wait "$over_pid" 2>/dev/null
+    exec 9>&-
+    fail "the run was still waiting 60 s on a reviewer that had read past its own recorded bound of 250 000"
+  fi
+  wait "$over_pid" 2>/dev/null
+  exec 9>&-
+  reviewer_report="$over/.pi/issue-loop/items/21/reviewer-report-1.md"
+  [ -f "$reviewer_report" ] || fail "the round the reviewer's own bound ended kept no transcript"
+  assert_contains "$(cat "$reviewer_report")" \
+    "the child reached the recorded context bound of 250000 tokens (LOOP_ITEM_CONTEXT_MAX_REVIEWER) at 260000 tokens" \
+    "the bound that ended the round is named by its own key, not by the item's number"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$over")")" \
+    "and the item is recorded cut, as every phase the run's own bound ends is"
   return 0
 }
 

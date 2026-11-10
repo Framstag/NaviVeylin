@@ -360,7 +360,8 @@
         "MapStyling.md §17 \"The one lowering path is an explicit release\"",
         "MapStyling.md §17 \"Triggers\"",
         "MapStyling.md §17 \"Measured retention ceiling\"",
-        "MapStyling.md §17 \"No fault escapes a release\""
+        "MapStyling.md §17 \"No fault escapes a release\"",
+        "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\""
       ]
     },
     {
@@ -1031,7 +1032,8 @@
         "UIPhone.md §18 \"the channels differ by platform.\"",
         "UIPhone.md §18 \"the notification is re-posted only when its host-visible content changed.\"",
         "UIPhone.md §18 \"the notification is silent and ongoing.\"",
-        "UIPhone.md §19 \"`Notification.actions` is nullable and its icon is read with `getIcon()`.\""
+        "UIPhone.md §19 \"`Notification.actions` is nullable and its icon is read with `getIcon()`.\"",
+        "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\""
       ]
     },
     {
@@ -1186,7 +1188,8 @@
         "FeatureList.md §4 \"a capability is classified in the change that writes its delta.\"",
         "FeatureList.md §5 \"car support is a tag, and the car platform has one area.\"",
         "FeatureList.md §6 \"a source marker holds one key per line.\"",
-        "FeatureList.md §8 \"the version is an input.\""
+        "FeatureList.md §8 \"the version is an input.\"",
+        "FeatureList.md §1 \"a bullet the field cannot hold is trimmed, or summarised — never cut and never dropped.\""
       ]
     },
     {

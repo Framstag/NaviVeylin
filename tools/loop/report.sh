@@ -223,13 +223,28 @@ bound_share() { # bound_share <hits> <items> → "18.2 %", or "-" when there is 
 }
 
 cap_items=$(jq -r '.items | length' "$state_file")
-cap_hits=$(jq -r '[.items[] | select((.stopReason // "") == "bound")] | length' "$state_file")
-cap_named=$(jq -r '[ .items[]
-                     | select((.stopReason // "") == "bound")
-                     | "#\(.issue)"
-                       + (if (.metrics.turns // null) == null then "" else " \(.metrics.turns) turns" end)
-                       + (if (.leftoverFiles // null) == null then "" else ", \(.leftoverFiles) files" end) ]
-                   | join(" · ")' "$state_file")
+# What the line counts is the question the requirement asks — how many of the items the run's own bound ended — and
+# the record answers it in **two** fields, not one (measured 2026-11-10). The fifth result `cut` exists for exactly one
+# reason: a bound the run enforces ended a phase of the item (`state.sh`, `run.sh`: a turn bound, a context bound, the
+# child clock, the run's deadline or a vanished writer), so every item carrying it is a hit. `stopReason: bound` is the
+# narrower field — a spec requirement keeps it off the rounds a review bound ended, because no item child was ended
+# there — and a run whose cuts were all review rounds therefore printed `0 of N` while its items were being thrown
+# away: on 2026-11-10 two of the day's three runs recorded three such cuts and the line named none of them. A record
+# written before `cut` existed carries the same fact as `blocked` + `bound`, so that pair is counted too; counting
+# `cut` alone would lower the archive's rate for the one direction it exists to expose.
+#
+# The two halves are named apart so the hit is visibly a disjunction and so the mutation set can drop one of them
+# without a jq program quoted inside a sed expression.
+bound_hit_result='(.result == "cut")'
+bound_hit_mechanism='((.stopReason // "") == "bound")'
+bound_hit_select="select($bound_hit_result or $bound_hit_mechanism)"
+cap_hits=$(jq -r "[.items[] | $bound_hit_select] | length" "$state_file")
+cap_named=$(jq -r "[ .items[]
+                     | select($bound_hit_select)
+                     | \"#\(.issue)\"
+                       + (if (.metrics.turns // null) == null then \"\" else \" \(.metrics.turns) turns\" end)
+                       + (if (.leftoverFiles // null) == null then \"\" else \", \(.leftoverFiles) files\" end) ]
+                   | join(\" · \")" "$state_file")
 
 # The archive is the finished runs `state.sh init` kept beside this one — the directory it derives, a project's
 # `LOOP_RUNS_DIR` when it records one — read in one pass over every file it holds, with the run being reported left
@@ -249,16 +264,18 @@ if [ -d "$archive_runs" ]; then
     archived[${#archived[@]}]="$f"
   done
   if [ ${#archived[@]} -gt 0 ]; then
-    archive_hits=$(jq -rs '[ .[] | .items[]? | select(has("stopReason")) ]
-                          | map(select((.stopReason // "") == "bound")) | length' "${archived[@]}" 2>/dev/null)
-    archive_items=$(jq -rs '[ .[] | .items[]? | select(has("stopReason")) ] | length' "${archived[@]}" 2>/dev/null)
+    # The archive is read with the run's own selector, over every record rather than over the ones that name a
+    # mechanism: the field is the narrower half of the same fact, so an archive counted by it alone would print a rate
+    # the run's own side cannot be compared with (`report#theBoundRateIsNamed`).
+    archive_hits=$(jq -rs "[ .[] | .items[]? | $bound_hit_select ] | length" "${archived[@]}" 2>/dev/null)
+    archive_items=$(jq -rs '[ .[] | .items[]? ] | length' "${archived[@]}" 2>/dev/null)
   fi
 fi
 case "$archive_hits" in ''|*[!0-9]*) archive_hits="" ;; esac
 case "$archive_items" in ''|*[!0-9]*) archive_hits="" ;; esac
 archive_clause="-"
 if [ -n "$archive_hits" ]; then
-  archive_clause="$archive_hits of $archive_items items whose record names a mechanism ($(bound_share "$archive_hits" "$archive_items"))"
+  archive_clause="$archive_hits of $archive_items items a bound ended ($(bound_share "$archive_hits" "$archive_items"))"
 fi
 printf 'bound: %s of %s items (%s) · archive: %s' \
   "$cap_hits" "$cap_items" "$(bound_share "$cap_hits" "$cap_items")" "$archive_clause"

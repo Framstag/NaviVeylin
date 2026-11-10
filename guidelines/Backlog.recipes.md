@@ -539,16 +539,31 @@ second time (one place per fact): #836 re-proposed 200 000 → 250 000 and was c
 1.5 % over — while the seventh, #831 at 199 178, was ended by the rework round's **turn** bound instead, which is why
 the lever #842 moved is that turn count (the table's `LOOP_CHILD_TURNS_MAX_WORKER_REWORK` row) and not this value.
 
+**The refusal is scoped, not withdrawn: a role has its own context stop.** Measured on 2026-11-10 over that day's
+three runs (`runs/2026-11-09T21:42:41Z.json`, `runs/2026-11-10T08:19:24Z.json`, `run.json`): 19 items attempted, 9
+recorded `cut`, and **8 of the 9 ended at a largest context of 199 178–211 475** against the recorded 200 000 — 0.4 %
+under the stop to 5.7 % over — while the six items that closed read 114 522, 116 750, 155 145, 174 700, 191 637 and
+192 886, the largest **3.6 % under** it. So the stop sat inside the population that finishes. Every one of the eight
+belonged to the role whose work *is* reading the item: four to the rework worker that answers a finding list
+(`reviewVerdict: round2-ended`) and three to the review round that reads the diff (`cut-short`). That is a
+population the refusal above never measured — it measured the worker's diagnosis and the gate — so
+`LOOP_ITEM_CONTEXT_MAX_WORKER_REWORK` and `LOOP_ITEM_CONTEXT_MAX_REVIEWER` record **250 000**, the archive's own
+maximum largest context (244 764 over 300 item records) rounded up, and the four work phases inherit the item's
+200 000 by recording no key. The lever is read through the child's role, as its turns already are, and the run's
+header prints every figure beside them. The cost is the same one the rework turn count accepted: a reading session
+that runs away is ended 50 000 tokens later, at 2.3× the archive's median turn.
+
 That rate is a figure of the **run** and not of one item, so the report prints it (issue #809): the run of
 2026-11-06 21:19Z ended 2 of its 11 items at the stop — 18 % of what it attempted, 36 Mtok spent with nothing
 landed — and every line describing them read `cut`, while no line said how often it happens, so a run at five times
 the archive's rate printed the same shapes as a healthy one. The line is `bound:` beside the token band:
 `bound: 2 of 11 items (18.2 %) · archive: 11 of 247 items whose record names a mechanism (4.5 %) · #791 190 turns,
-16 files · #798 111 turns`. The class it counts is the record's own mechanism (`stopReason: bound`, the word every
-arm that ends a child at a bound the run enforces writes), so no vocabulary is added for it, and each side is
-counted over the records that *can* name a mechanism: on 2026-11-09, 160 of the archive's 407 item records predate
-the field, and an item that could never be counted a hit inflates the denominator — the rate reads lower than it is,
-the one direction this figure exists to stop. The items are named with what each kept, which is why
+16 files · #798 111 turns`. The class it counts is the record's own **result**, `cut` — the fifth result, which
+exists only for a phase a bound the run enforces ended — beside the `blocked` + `stopReason: bound` pair a record
+written before that result came into use carries. Counting the mechanism field alone under-reads the figure in the
+one direction it exists to stop (measured 2026-11-10): a spec requirement keeps `stopReason` off a round a review
+bound ended, because no item child was ended there, and two of that day's three runs therefore recorded three cuts
+each while the line named none of them. The items are named with what each kept, which is why
 `state.sh done --leftover` records `leftoverFiles` beside the path: the patch states how many files it carries and a
 count passed in beside it is a second account that can disagree, so the count is read from the file, and a path that
 does not resolve records nothing rather than `0 files`. It is a **measurement, never a stop** — no key bounds a rate

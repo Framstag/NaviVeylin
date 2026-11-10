@@ -219,6 +219,36 @@ case "$item_context_warn" in ''|*[!0-9]*) item_context_warn=0 ;; esac
 item_context_max="${LOOP_ITEM_CONTEXT_MAX:-0}"
 case "$item_context_max" in ''|*[!0-9]*) item_context_max=0 ;; esac
 
+# What the item's key above cannot say: the phases it bounds are not one population. Measured on 2026-11-10 over the
+# day's three runs (`.pi/issue-loop/runs/2026-11-09T21:42:41Z.json`, `runs/2026-11-10T08:19:24Z.json`, `run.json`):
+# 19 items attempted, 9 recorded `cut`, and 8 of the 9 ended at a largest context of 199 178–211 475 against the
+# recorded 200 000 — 0.4 % under it to 5.7 % over. Each of those belonged to the role whose work **is** reading the
+# item: four to the rework worker that answers a findings list, three to the review round that reads the diff, one to
+# the tail. The items that closed the same day read 114 522, 116 750, 155 145, 174 700, 191 637 and 192 886 — the
+# largest 3.6 % **under** the stop — so the item's one number sat inside the population that finishes, and whether a
+# session was converging or running away was decided by which side of 200 000 it happened to be on.
+#
+# A role's own key is therefore read the way its turns are (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issue #784): what a reading
+# phase may spend is a fact about that phase. A role whose key is absent inherits the item's, so a project that
+# records nothing new is bounded exactly as before, and a role recorded `0` is unbounded by it, as the item's `0` is.
+child_context_bound_key() { # child_context_bound_key <role> → the key that role's context stop is read from
+  printf 'LOOP_ITEM_CONTEXT_MAX_%s' "$(printf '%s' "$1" | tr '[:lower:]-' '[:upper:]_')"
+}
+child_context_bound() { # child_context_bound <role> → the tokens that role's child may reach; 0 = no bound
+  local role="$1" value
+  value=$(loop_conf_value "$(child_context_bound_key "$role")")
+  case "$value" in
+    ''|*[!0-9]*) value="$item_context_max" ;;
+  esac
+  printf '%s\n' "$value"
+}
+# What the header names, for the reason the per-role turn bounds are named there: a bound a run enforces and does not
+# print is a bound nobody can audit (issue #842).
+child_context_bounds=""
+for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-gate; do
+  child_context_bounds="${child_context_bounds:+$child_context_bounds,}$role:$(child_context_bound "$role")"
+done
+
 # The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
 # recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
 # neither is a fact about a phase (D16). Measured 2026-10-19 (issue #209): item #126's gate found 194 MB free
@@ -307,9 +337,9 @@ if [ -n "${LOOP_QUOTA_CMD:-}" ]; then
   quota_reader="${LOOP_QUOTA_CMD##* }"
   quota_reader="${quota_reader##*/}"
 fi
-printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s item-context-bounds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s\n' \
   "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles" "$quota_reader"
+  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$child_context_bounds" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles" "$quota_reader"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -1485,7 +1515,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_read ctx_new
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_read ctx_new ctx_bound ctx_bound_key
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -1508,6 +1538,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   if [ -n "$(printf '%s' "$role_cmd" | tr -d '[:space:]')" ]; then child_cmd="$role_cmd"; fi
   # …and the turns this role may spend, read from its own key rather than from one count the whole item shares (#784).
   turns_max=$(child_turn_bound "$role")
+  # …and the context this role's child may reach, read from its own key where the profile records one and from the
+  # item's where it does not. The key is kept beside the value because the transcript a person reads must name the
+  # bound that fired, exactly as the turn bound's line names its own key.
+  ctx_bound=$(child_context_bound "$role")
+  ctx_bound_key="LOOP_ITEM_CONTEXT_MAX"
+  if [ "$ctx_bound" != "$item_context_max" ]; then ctx_bound_key=$(child_context_bound_key "$role"); fi
   # The stream every child of the item appends to already holds what the children before this one spent, so the bound
   # is read as a **difference**: the count standing here is the baseline and what this child is bounded by is the
   # turns it adds. Read before the child starts, so a turn it takes between the fork and this line is its own.
@@ -1655,7 +1691,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     # could split at its gate knows it is worth more than the turns it saves. The recorded maximum ends the child,
     # because past it every further turn costs several times the first and that is a decision, not a slower
     # convergence. Both are off at `0`, which is why the whole block is skipped when neither key is recorded.
-    if [ "$item_context_warn" -gt 0 ] || [ "$item_context_max" -gt 0 ]; then
+    if [ "$item_context_warn" -gt 0 ] || [ "$ctx_bound" -gt 0 ]; then
       ctx_read=$(child_context "${LOOP_CHILD_EVENTS:-}" "$ctx_lines")
       ctx_new=${ctx_read%% *}
       ctx_lines=${ctx_read##* }
@@ -1667,7 +1703,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         printf 'LOOP-CONTEXT: the child\047s context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound\n' \
           "$ctx_max" "$item_context_warn"
       fi
-      if [ "$item_context_max" -gt 0 ] && [ "$ctx_max" -ge "$item_context_max" ]; then
+      if [ "$ctx_bound" -gt 0 ] && [ "$ctx_max" -ge "$ctx_bound" ]; then
         ended_by=context
         timed_out=1
         kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
@@ -1725,8 +1761,8 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       # bound's line carries its count: a person reading the blocked item must not have to re-derive from an exit
       # status, on a clock with minutes left, which number ended the child. `LOOP-TIMEOUT` is the line the run reads
       # as its own timeout, so the reviewer-round and pre-gate paths that already read a cut transcript keep working.
-      printf 'LOOP-TIMEOUT: the child reached the recorded context bound of %s tokens (LOOP_ITEM_CONTEXT_MAX) at %s tokens — the run ended it and everything it started\n' \
-        "$item_context_max" "$ctx_max" >> "$2"
+      printf 'LOOP-TIMEOUT: the child reached the recorded context bound of %s tokens (%s) at %s tokens — the run ended it and everything it started\n' \
+        "$ctx_bound" "$ctx_bound_key" "$ctx_max" >> "$2"
     elif [ "$ended_by" = writer ]; then
       # The event this wait ends on can only be written by a process that is running, so a writer that is gone is
       # the reason the wait ended — and the item's note must not read as a clock that fired (issue #795). The line

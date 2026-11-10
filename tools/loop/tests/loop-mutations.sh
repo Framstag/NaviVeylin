@@ -1065,6 +1065,19 @@ MUTATIONS=(
   # the header loop, where the run applies 150 and the header prints five roles.
   '269.1@-@tools/loop/loop.conf@run#eachChildIsBoundedByItsOwnRolesTurns@the figure the rework round key recorded, so the role keeps the p95 100 the measured experiment replaced and the case that quotes the six header figures reddens (issue #842)@s|^LOOP_CHILD_TURNS_MAX_WORKER_REWORK=150$|LOOP_CHILD_TURNS_MAX_WORKER_REWORK=100|'
   '269.2@-@tools/loop/run.sh@run#eachChildIsBoundedByItsOwnRolesTurns@the rework round in the header loop, so the header names five roles while six keys bound a child and the one bound this change moves is the one the run cannot be audited for (issue #842)@/^child_turn_bounds=""$/,/^for role in /s#^for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-gate; do$#for role in worker worker-gate worker-tail reviewer reviewer-pre-gate; do#'
+  # 270.x — a reading phase's context bound is its own (measured 2026-11-10). The item's one number sat inside the
+  # population that finishes: over the day's three runs 19 items were attempted, 9 recorded `cut`, and 8 of them ended at
+  # a largest context of 199 178–211 475 against the recorded 200 000 while the six that closed read 114 522–192 886.
+  # Every one belonged to a role whose work is reading the item — the rework worker and the review round. Three rules,
+  # one case each: the role's key is read first (`270.1`), the key the transcript names is the one that fired (`270.2`),
+  # and the header prints every role's figure (`270.3`).
+  '270.1@-@tools/loop/run.sh@run#eachRoleIsBoundedByItsOwnContext@the role key read before the item key, so a review round is ended by the item number however much of the item its work may read (measured 2026-11-10: 8 of 9 cuts)@s|^  value=$(loop_conf_value "$(child_context_bound_key "$role")")$|  value=""|'
+  '270.2@-@tools/loop/run.sh@run#eachRoleIsBoundedByItsOwnContext@the key the transcript names, so a child ended by its role reading bound is recorded as having reached the item bound — the field a person reads to know which bound fired (measured 2026-11-10)@s|^  if \[ "$ctx_bound" != "$item_context_max" \]; then ctx_bound_key=$(child_context_bound_key "$role"); fi$|  : # the mutation names the item key for every role|'
+  '270.3@-@tools/loop/run.sh@run#eachRoleIsBoundedByItsOwnContext@the per-role figures the header prints, so a bound a run enforces on six roles is a bound it names nowhere and cannot be audited for (issue #842, the same rule the turn bounds follow)@s|^  child_context_bounds="${child_context_bounds:+$child_context_bounds,}$role:$(child_context_bound "$role")"$|  child_context_bounds=""|'
+  # …and the rate the cuts are judged by counts them (`270.4`): `cut` exists for exactly one reason, while the
+  # mechanism field is kept off a round a review bound ended, so a run whose cuts were all review rounds printed
+  # `0 of N` with its items being thrown away (2026-11-10).
+  '270.4@-@tools/loop/report.sh@report#theBoundRateIsNamed@the half of the hit that reads the result, so every item a review bound ended is counted as no hit and a run at five times the archive rate reads like a healthy one (measured 2026-11-10)@s|^bound_hit_result=.*$|bound_hit_result=false|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

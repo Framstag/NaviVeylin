@@ -134,11 +134,16 @@ Present 4 and 5 in order, then `ask_user` with the options as choices and no def
 and its question and the queue keeps listing it; that is the point, because the answer is the owner's.
 It writes nothing before the owner chooses: no label, no comment and no body edit.
 
+An owner whose choice is to wait is answered like any other, and the difference is in what the queue then says: the
+park records that choice on the item and moves nothing, so the entry reads `parked: <the decision's first clause>`
+rather than the question the owner has settled (section 7).
+
 ## 7. On the choice, leave through the writer that exists
 
 ```bash
 tools/issues/answer.sh <issue> --continue --decision "<text>"
 tools/issues/answer.sh <issue> --device   --decision "<text>"   # the device lane
+tools/issues/answer.sh <issue> --park     --decision "<text>"   # the item waits; nothing moves
 tools/issues/answer.sh <issue> --retire   --decision "<text>" --evidence "<proof>"   # closure
 ```
 
@@ -147,6 +152,10 @@ the one clause that rejects each alternative, and the pointers already establish
 cases still owed). `answer.sh` writes the comment first — quoting the question it answers, so the marker
 `<!-- answers: … -->` binds to it — and only then performs the transition, so an answer whose transition fails
 still leaves its reason on the item.
+
+A park is the one answer that performs no transition, so its text carries the condition instead of a direction: the
+item keeps `agent/needs-decision` and its status, it stays in the queue, and a later answer may still continue or
+retire it — which is why the clause the decision opens with is the one the queue prints.
 
 Verify, then report the number and the new label set:
 

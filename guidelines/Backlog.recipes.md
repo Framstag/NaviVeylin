@@ -1262,7 +1262,9 @@ with `-` and its reason where nobody measured one — and, since #841, which of 
 stream a child outgrew is rotated, the rotation's record states the turns and the bytes it took, `state.sh done`
 records them as `metrics.streamRotation` (`null`, never zero, for a stream that was never rotated, and no key at all in
 a state written before the field existed), and the `truncated:` line prints the run's share of them, the figures
-dropped and each item's own — the totals print the same whether one item was cut or nine, so the extent alone is not
+dropped and each item's own — the turns over the items that lost one, the bytes over **every** rotated stream, a
+rotation that took only deltas being no lower bound and still what the bound removed — the totals print the same
+whether one item was cut or nine, so the extent alone is not
 the answer. Measured on the run started 2026-11-09T21:42:41Z: nine of fifteen items, 1 697 turns dropped against the
 1 372 the state recorded. It is a **warning, never a stop** — nothing reads the field to end a child — and
 `report#aTruncatedStreamSaysSo` is the case, mutation record `268.1` what proves it notices the items go. The

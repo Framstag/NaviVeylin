@@ -12089,7 +12089,12 @@ case_report_aTruncatedStreamSaysSo() {
   d=$(scratch); p=$(new_project)
   # #21's stream is the shape a rotation leaves: the record as its first line, then the turns that survived it. The
   # figures are `items/833/events.jsonl`'s own — 277 turns dropped for 8 804 864 B. #22's stream was never rotated, so
-  # the line must not name it, and its `metrics.streamRotation` is `null` rather than absent.
+  # the line must not name it, and its `metrics.streamRotation` is `null` rather than absent. #23's stream was rotated
+  # by the delta pass alone — bytes dropped, no turn — so it is no lower bound and its bytes are still part of what
+  # the bound removed. #24's stream carries **two** records, which the adapter does not write and a reader may still
+  # meet (a stream appended to by a rotation that did not replace the first): the turn count is the greatest record's
+  # and the bytes are the records' sum, so a reader that summed the count would say 32 turns and one that took the
+  # greatest byte figure would lose the other record's 400 000.
   cat > "$d/rotated.jsonl" <<'JSONL'
 {"type":"stream_rotation","dropped_lines":16662,"dropped_bytes":8804864,"dropped_turn_ends":277,"at":"2026-11-09T22:10:00Z"}
 {"type":"session","version":3,"id":"s1"}
@@ -12101,11 +12106,26 @@ JSONL
 {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
 {"type":"turn_end","message":{"role":"assistant","usage":{"input":200,"output":20,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
 JSONL
-  init_state "$p" 2 90
-  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+  cat > "$d/deltas.jsonl" <<'JSONL'
+{"type":"stream_rotation","dropped_lines":900,"dropped_bytes":100000,"dropped_turn_ends":0,"at":"2026-11-09T22:20:00Z"}
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/23/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":300,"output":30,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
+JSONL
+  cat > "$d/twice.jsonl" <<'JSONL'
+{"type":"stream_rotation","dropped_lines":400,"dropped_bytes":400000,"dropped_turn_ends":12,"at":"2026-11-09T22:30:00Z"}
+{"type":"stream_rotation","dropped_lines":120,"dropped_bytes":100000,"dropped_turn_ends":20,"at":"2026-11-09T22:40:00Z"}
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/24/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":400,"output":40,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
+JSONL
+  init_state "$p" 4 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4}]' |
     run_state "$p" queue >/dev/null
   run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/rotated.jsonl" >/dev/null
   run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/whole.jsonl" >/dev/null
+  run_state "$p" done 23 --result done --verdict closed --wall 42 --events "$d/deltas.jsonl" >/dev/null
+  run_state "$p" done 24 --result done --verdict closed --wall 42 --events "$d/twice.jsonl" >/dev/null
   f=$(state_file "$p")
   # The record's two figures are in the item's metrics, as numbers: the case cannot pass on two nulls, which is the
   # shape a report that read the stream again at print time would leave it in.
@@ -12115,16 +12135,24 @@ JSONL
     "and the bytes that rotation removed, as the stream's own record states them"
   assert_eq "null" "$(jq -r '.items[] | select(.issue == 22) | .metrics.streamRotation' "$f")" \
     "an item whose stream was never rotated records none, never a zero"
+  assert_eq "0" "$(jq -r '.items[] | select(.issue == 23) | .metrics.streamRotation.droppedTurnEnds' "$f")" \
+    "a rotation that removed only deltas records no turn, and still records its bytes"
+  assert_eq "100000" "$(jq -r '.items[] | select(.issue == 23) | .metrics.streamRotation.droppedBytes' "$f")"
+  assert_eq "20" "$(jq -r '.items[] | select(.issue == 24) | .metrics.streamRotation.droppedTurnEnds' "$f")" \
+    "two records: the turn count is the greatest record's, a cumulative figure and never a sum"
+  assert_eq "500000" "$(jq -r '.items[] | select(.issue == 24) | .metrics.streamRotation.droppedBytes' "$f")" \
+    "while the bytes are the records' sum, each record stating its own rotation's removals"
   out=$(run_report "$p") || fail "the report failed"
   trunc_line=$(printf '%s\n' "$out" | grep '^  truncated:' || true)
   [ -n "$trunc_line" ] || fail "the trend printed no line saying a figure is a lower bound (issue #841)"
-  assert_contains "$trunc_line" "1 of 2 items is a lower bound" \
+  assert_contains "$trunc_line" "2 of 4 items are a lower bound" \
     "the line counts the items whose figures are short against the items of the run"
-  assert_contains "$trunc_line" "277 turns and 8.4 MiB dropped" \
-    "prints what the records state was dropped, in the two figures they carry"
-  assert_contains "$trunc_line" "#21 277" \
-    "and names the item with the figure it dropped, the shape the calls and reads lines print"
+  assert_contains "$trunc_line" "297 turns dropped and 9 MiB removed by the 3 rotated streams" \
+    "prints the turns of the items that lost one and the bytes of every rotated stream: #23 is in the bytes and in no turn, and #24's two records are one record's turns and both records' bytes"
+  assert_contains "$trunc_line" "#21 277 · #24 20" \
+    "and names the items with the figure each dropped, the shape the calls and reads lines print"
   assert_not_contains "$trunc_line" "#22" "while an item whose stream was never rotated is not named"
+  assert_not_contains "$trunc_line" "#23" "nor one whose rotation took no turn, its bytes still being counted"
   # A state written before the field existed holds spend and no rotation at all, and the dash it prints says so
   # rather than reading as a run whose streams were never rotated — the distinction the repeat-reads line makes.
   jq 'del(.items[].metrics.streamRotation)' "$f" > "$f.old" && mv "$f.old" "$f"
@@ -12132,13 +12160,24 @@ JSONL
   assert_contains "$(printf '%s\n' "$out" | grep '^  truncated:' || true)" \
     "- · this state records no stream rotation — it was written before the report counted one" \
     "a state that predates the field says so, instead of reading as a run of streams nobody rotated"
+  # …and a state of this era whose one rotation took no turn: the bytes are printed, no item is called a lower
+  # bound, and the line does not read as a run whose streams were never rotated.
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":51,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 51 --result done --verdict closed --events "$d/deltas.jsonl" >/dev/null
+  out=$(run_report "$p") || fail "the report failed for a run whose one rotation took no turn"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  truncated:' || true)" \
+    "no figure of this run is a lower bound — 0.1 MiB removed by the 1 rotated stream, no turn dropped · #51" \
+    "a rotation that took no turn prints its bytes and says no figure is short"
   # …and a state of this era whose items met no rotation prints the other dash.
   run_state "$p" stop "the case ended the run between its states" >/dev/null
   init_state "$p" 1 90
   printf '[{"issue":51,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
   run_state "$p" done 51 --result done --verdict closed --events "$d/whole.jsonl" >/dev/null
   out=$(run_report "$p") || fail "the report failed for a run whose streams were never rotated"
-  assert_contains "$(printf '%s\n' "$out" | grep '^  truncated:' || true)" "- · no item lost a turn to a rotation" \
+  assert_contains "$(printf '%s\n' "$out" | grep '^  truncated:' || true)" \
+    "- · no item had its stream rotated" \
     "and a run whose streams all stayed inside their bound prints the reason, not a zero"
 }
 

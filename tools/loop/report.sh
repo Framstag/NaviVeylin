@@ -60,7 +60,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
     --state) need_value "$@"; state_opt="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,50p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,/^set -uo pipefail/p' "$0"; exit 0 ;;
     *) loop_die "report: unknown argument $1" ;;
   esac
 done
@@ -513,20 +513,28 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # summed from that stream is a lower bound, and the state now carries the record beside them, so the line names
   # the items whose figures are short, with the figure each dropped: the totals would print the same whether
   # one item was cut or nine (measured on the run of 2026-11-09T21:42:41Z: nine of fifteen, 1 697 dropped turns
-  # against the 1 372 the state recorded). The two figures are printed the shape the reads and calls lines print —
-  # the share the line prints first, then what was dropped, then the items. The absence of the field is told apart
-  # from its null, as every other line here does: a record written before this figure existed has no
+  # against the 1 372 the state recorded). The two figures are read from **two** selections and the line names both,
+  # because a rotation that removed only deltas leaves a stream the bound cut and no figure of it short: the turns
+  # and the item list are the items that lost a turn, while the bytes are summed over every item whose stream
+  # carries a rotation record — that figure is what the bound was about, and summing it over the truncated items
+  # alone under-reported the run and read as a total (the second reading of issue #841). The absence of the field is told
+  # apart from its null, as every other line here does: a record written before this figure existed has no
   # `streamRotation` key at all, while one of this era that met a run whose streams stayed inside their bound has
   # it as `null`. A **warning, never a stop**: nothing reads it to end a child.
+  | ([.items[] | select(.metrics.streamRotation != null)
+      | {i: .issue, b: (.metrics.streamRotation.droppedBytes // 0)}]) as $rot
   | ([.items[] | select((.metrics.streamRotation.droppedTurnEnds // 0) > 0)
-      | {i: .issue, t: .metrics.streamRotation.droppedTurnEnds,
-         b: (.metrics.streamRotation.droppedBytes // 0)}] | sort_by(-.t)) as $trunc
-  | ( if ($trunc | length) == 0 then
-        if ([.items[] | select((.metrics | has("streamRotation")) | not)] | length) > 0
+      | {i: .issue, t: .metrics.streamRotation.droppedTurnEnds}] | sort_by(-.t)) as $trunc
+  | ([.items[] | select((.metrics | has("streamRotation")) | not)] | length) as $rotless
+  | ( if ($rot | length) == 0 then
+        if $rotless > 0
           then "- · this state records no stream rotation — it was written before the report counted one"
-          else "- · no item lost a turn to a rotation" end
+          else "- · no item had its stream rotated" end
+      elif ($trunc | length) == 0 then
+        "no figure of this run is a lower bound — \([$rot[].b] | add | mib) removed by the \($rot | length) rotated stream\(if ($rot | length) == 1 then "" else "s" end), no turn dropped · "
+          + "\([$rot[] | "#\(.i)"] | join(" · "))"
       else "\($trunc | length) of \(.items | length) items \(if ($trunc | length) == 1 then "is" else "are" end)"
-           + " a lower bound — \([$trunc[].t] | add) turns and \([$trunc[].b] | add | mib) dropped · "
+           + " a lower bound — \([$trunc[].t] | add) turns dropped and \([$rot[].b] | add | mib) removed by the \($rot | length) rotated stream\(if ($rot | length) == 1 then "" else "s" end) · "
            + "\([$trunc[] | "#\(.i) \(.t)"] | join(" · "))"
       end ) as $truncline
   # What the run closed over (issue #811). A close over a red gate carries the clause it was waived with, and this

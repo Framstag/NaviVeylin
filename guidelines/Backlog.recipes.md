@@ -464,7 +464,8 @@ sessions (22 %) sit at or over 110**, which is what a stop bound at p75 buys. A 
 runaway child (~18 Mtok at the measured 106 k tokens a turn), and the token band is what flags that item; the cost a
 bound at p75 pays is the item that was working.
 
-**One value is an experiment and not a p95** (issue #842): the rework round's key moves 100 → 150, and 100 was that
+**One value is an experiment and not a p95** (issue #842): the rework round's key moves up — the table's
+`LOOP_CHILD_TURNS_MAX_WORKER_REWORK` row carries the figure and the measurement that set it — and 100 was that
 role's p95 over 109 sessions — the rule above, applied, and not a mistake in it. What moves the value is the one
 reading a distribution cannot give: which bound actually fired. The run started 2026-11-09T21:42:41Z cut seven items,
 six of them at or just past `LOOP_ITEM_CONTEXT_MAX` (200 949, 201 500, 201 545, 202 253, 202 372, 202 961 — 0.5 % to
@@ -477,8 +478,8 @@ Mtok, 4.8–9.1 %** of the run's 109 847 773 — not the 4.1 Mtok / 3.7 % the it
 
 **What the raise cannot be tested on is that item.** #831 sat **822 tokens** under the 200 000 context stop while its
 context rose **2 592 tokens a turn** (last 20 turns: 147 345 → 199 178), so the context arm ends that child within
-about one more turn and no 150-turn bound ever applies to it. What the experiment reads is a rework child that is
-**context-light** — one that reaches 150 turns with room left under the context stop — judged on the two figures the
+about one more turn and the bound in that row never applies to it. What the experiment reads is a rework child that is
+**context-light** — one that reaches that row's bound with room left under the context stop — judged on the two figures the
 raise was granted on: the **overshoot** of the items the bounds cut, and the share of the run's spend that falls
 **after the first gate** (78 % of 70.2 Mtok, 54.6 Mtok that run), because a larger bound buys more of the tail a cut
 was made of and never a promise that the item would have landed. The value is **provisional** until that reading
@@ -530,7 +531,7 @@ landed: neither moves the number. The refusal has since been met twice and is ex
 second time (one place per fact): #836 re-proposed 200 000 → 250 000 and was closed `NOT_PLANNED`, and the run of
 2026-11-09T21:42:41Z put six of its seven cuts there — 200 949, 201 500, 201 545, 202 253, 202 372, 202 961, 0.5 % to
 1.5 % over — while the seventh, #831 at 199 178, was ended by the rework round's **turn** bound instead, which is why
-the lever #842 moved is that turn count (150) and not this value.
+the lever #842 moved is that turn count (the table's `LOOP_CHILD_TURNS_MAX_WORKER_REWORK` row) and not this value.
 
 That rate is a figure of the **run** and not of one item, so the report prints it (issue #809): the run of
 2026-11-06 21:19Z ended 2 of its 11 items at the stop — 18 % of what it attempted, 36 Mtok spent with nothing

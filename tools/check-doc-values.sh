@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # check-doc-values.sh — the turn bounds a guideline states are the ones the profile records.
 #
-# `guidelines/Backlog.recipes.md` §7b is the one place the per-role turn bounds are stated, and
+# `guidelines/Backlog.recipes.md` §7b's table is the one place the per-role turn bounds are stated, and
 # `tools/loop/loop.conf` is the one place their values are recorded. The two drifted apart in silence (issue #843):
 # the prose kept the p95 figures of 2026-11-06 — worker 170, gate 80, review round 75, the round before the gate 75 —
 # while the profile recorded 200, 100, 110 and 110 after issue #804 moved them, and a reader who trusted the guideline
 # bounded a worker thirty turns early and a review round thirty-five late. A value that drifts in place is not a route,
 # so `tools/check-doc-routes.sh` could not report it: this is the check that reads the values.
 #
-# The section states each value in one table row — the key, the value the profile records, and the measurement that
+# The section's table states each value in one row — the key, the value the profile records, and the measurement that
 # set it — and this check reads that row by its key, so the prose is not parsed by its wording:
 #
 #   | `LOOP_CHILD_TURNS_MAX_WORKER` | 200 | p50 77.5, … over 346 sessions |
@@ -35,7 +35,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,38p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,31p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-doc-values: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done

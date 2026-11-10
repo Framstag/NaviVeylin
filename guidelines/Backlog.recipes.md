@@ -403,10 +403,8 @@ names what happened (`LOOP-TIMEOUT: the child's writer (pid <n>) vanished before
 item is recorded `cut` with `bound` as its mechanism (issues #786, #790), and a child that is merely slow is waited for
 exactly as it was.
 
-A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (200 for the worker, 100 for the
-gate child, 65 for the tail, 150 for the rework round a refusal buys, 110 for a review round and 110 for the round
-before the gate — the six values `tools/loop/loop.conf` records, each beside the measurement that set it in the table
-below; `0` or absent = no bound)
+A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (the six values
+`tools/loop/loop.conf` records, each beside the measurement that set it in the table below; `0` or absent = no bound)
 ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
 which the adapter already writes — minus the count standing when that child started, and checked in the same whole
 second as the two clocks, so the wait costs one `grep` per second and not one per look. That stream is **bounded**

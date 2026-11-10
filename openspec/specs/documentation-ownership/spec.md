@@ -728,6 +728,7 @@ matches and no others. A change MAY add a section to its derived set by naming i
   alone for five documents (one document, one companion layer, one concern family, one `Map*` document and the
   tooling document of the backlog concern); measured on base `650028bf`: 270 entries naming 10 documents for one
   `guidelines/Logging.md` edit
+
 ### Requirement: A relocation record names the owners it cites
 
 When a change proves that a rule it removed from the entry document is stated elsewhere, it SHALL cite each owner
@@ -765,3 +766,25 @@ no statement either skill makes moves out of the section that owns it.
   route check resolves both, so a removal of either pointer fails the suite instead of a run
 - **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
 
+### Requirement: A documented bound states the value the profile records
+
+A guideline section that states a bound the project's profile records SHALL state the value that profile records, beside the measurement that set it, and SHALL name the key it belongs to; a value already stated in the owning section is not restated elsewhere. A check SHALL compare every such value with the profile and report it per role, and SHALL need no build, no device and no network.
+
+#### Scenario: The table and the profile agree
+
+- **WHEN** the check reads the profile's `LOOP_CHILD_TURNS_MAX_<ROLE>` keys and the section's table of them
+- **THEN** every role's stated value equals the profile's, and the check exits 0 naming how many roles it compared
+- **Case**: `values#proseMatchesTheProfile`
+
+#### Scenario: A value the profile moved is reported
+
+- **WHEN** the profile records a value the section's table does not state
+- **THEN** the check exits non-zero and prints `LOOP-CHILD-TURNS-MAX: <role> prose <n> config <n>`, naming both
+  figures
+- **Case**: `values#aDriftedValueIsReported`
+
+#### Scenario: A role the section omits is reported
+
+- **WHEN** the profile records a `LOOP_CHILD_TURNS_MAX_<ROLE>` key the section's table has no row for
+- **THEN** the check exits non-zero and names that role with `prose -` and the figure the profile records
+- **Case**: `values#aRoleWithNoProseRow`

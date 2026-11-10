@@ -19,7 +19,8 @@ to understand its plan writes `sed -n 1,60p tools/loop/gate.sh`.
 2. a leading `cd <dir>` is dropped (its `&&` was already a cut);
 3. leading `VAR=value` assignments are dropped;
 4. `bash`, `sh`, `exec`, `command`, `timeout <n>`, `env` and `nohup` are dropped, with `timeout`'s numeric argument,
-   and steps 3–4 repeat;
+   and steps 3–4 repeat — the shipped clause names the four a case pins (`bash`, `sh`, `exec`, `timeout <n>`), and the
+   other three are the same branch, so the clause states less than the code does;
 5. the remaining first word must be the gate's program (`gate.sh`, or any path ending in `/gate.sh`);
 6. no word of the command may be `--plan`.
 
@@ -51,15 +52,18 @@ sites that state the rule.
 
 ## Alternatives the evidence eliminated
 
+The measurements below are read with the probe this change versions (`evidence/split-point.jq`, its output
+`evidence/split-point.log`) over each item's own `events.jsonl`.
+
 1. **The item's own proposal — the tail must not run in the gate's session.** Eliminated: it already does not.
    Since #744 a gate ends the child that ran it and `tail_after_gate` (`tools/loop/run.sh:1801`) renders a prompt and
    calls `run_child`; since #758 the gate is a child of its own. The five items' streams show it: three sessions in
    `items/808/events.jsonl` — `worker-prompt-round2`, `worker-tail-round2-prompt`, `reviewer-prompt-2` — and the
-   tail's 361 279 tokens are outside every gated session. A change that split the tail again would be the split it
-   already has.
+   tail's 361 279 tokens are outside every gated session (the probe names that session and its tokens). A change that
+   split the tail again would be the split it already has.
 2. **Exclude only `--plan`.** Eliminated by two of the five items: `items/738` (gate turn 42 of 55) and
    `items/819` (turn 44 of 62) split at `sed`/`git show`/`grep` over the gate's own file, with no plan call in the
-   session. A plan-only exclusion leaves those two records as wrong as they were.
+   session (the probe's output). A plan-only exclusion leaves those two records as wrong as they were.
 3. **Compare the whole command against `LOOP_GATE_CMD`.** Eliminated by the children's own wording: the calls that
    do run the gate carry `cd <dir> && …`, `timeout 300 …` and `bash …` prefixes the profile's value does not have,
    and the state reads the command as the tool call carried it.

@@ -1,0 +1,152 @@
+# where each of the five records the item was filed from was split at
+# command: for i in 719 738 808 810 819; do jq -s -f split-point.jq ../../$i/events.jsonl; done
+# probe: split-point.jq (beside this log)
+# run: 2026-11-10T00:40:19Z
+=== items/719 ===
+[
+  {
+    "role": "reviewer",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/719/reviewer-prompt-1.md",
+    "turns": 81,
+    "tokens_total": 5611427,
+    "tokens_after_split": null,
+    "fixed_predicate_says_gate": null,
+    "split_cmd": null,
+    "split_turn": null
+  },
+  {
+    "role": "worker",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/719/worker-prompt-round2.md",
+    "turns": 37,
+    "tokens_total": 3114185,
+    "tokens_after_split": 1544852,
+    "fixed_predicate_says_gate": false,
+    "split_cmd": "cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && ./tools/loop/gate.sh --plan --base ba96953f6d43df8ac5926c23697a75294cc10af2 2>&1 | tail -40",
+    "split_turn": 28
+  }
+]
+=== items/738 ===
+[
+  {
+    "role": "reviewer",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/738/reviewer-prompt-1.md",
+    "turns": 55,
+    "tokens_total": 3677074,
+    "tokens_after_split": 1505774,
+    "fixed_predicate_says_gate": false,
+    "split_cmd": "cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && grep -n \"FROM-CACHE\\|from_cache\" tools/loop/gate.sh | head -20; echo \"=== gate.sh base pick ===\"; grep -n \"from-git\\|base\\b\\|merge-base\" tools/loop/gate.sh | head -30; echo \"=== FROM-CACHE in gate.log ===\"; grep -c \"FROM-CACHE\" /home/tim/projects/NaviVeylin/.pi/issue-loop/items/738/gate.log; echo \"=== gate.log lines 740-754 ===\"; sed -n '735,754p' /home/tim/projects/NaviVeylin/.pi/issue-loop/items/738/gate.log",
+    "split_turn": 42
+  }
+]
+=== items/808 ===
+[
+  {
+    "role": "worker",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-prompt-round2.md",
+    "turns": 77,
+    "tokens_total": 6549119,
+    "tokens_after_split": 5175756,
+    "fixed_predicate_says_gate": false,
+    "split_cmd": "cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && ./tools/loop/gate.sh --plan --base fc9e0eb012dcfc781bf744d128acfac1cd9138f8 2>&1 | head -30",
+    "split_turn": 36
+  },
+  {
+    "role": "tail",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-tail-round2-prompt.md",
+    "turns": 14,
+    "tokens_total": 361279,
+    "tokens_after_split": null,
+    "fixed_predicate_says_gate": null,
+    "split_cmd": null,
+    "split_turn": null
+  },
+  {
+    "role": "reviewer",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/reviewer-prompt-2.md",
+    "turns": 39,
+    "tokens_total": 2331567,
+    "tokens_after_split": null,
+    "fixed_predicate_says_gate": null,
+    "split_cmd": null,
+    "split_turn": null
+  }
+]
+=== items/810 ===
+[
+  {
+    "role": "worker",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/810/worker-prompt-round2.md",
+    "turns": 82,
+    "tokens_total": 5699297,
+    "tokens_after_split": 5096453,
+    "fixed_predicate_says_gate": false,
+    "split_cmd": "cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && timeout 300 ./tools/loop/gate.sh --plan --base 8280d8aafefbc5f4db0c2ee1f778b836798f4fbb 2>&1 | tail -40",
+    "split_turn": 21
+  },
+  {
+    "role": "tail",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/810/worker-tail-round2-prompt.md",
+    "turns": 19,
+    "tokens_total": 509903,
+    "tokens_after_split": null,
+    "fixed_predicate_says_gate": null,
+    "split_cmd": null,
+    "split_turn": null
+  },
+  {
+    "role": "reviewer",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/810/reviewer-prompt-3.md",
+    "turns": 34,
+    "tokens_total": 1306451,
+    "tokens_after_split": null,
+    "fixed_predicate_says_gate": null,
+    "split_cmd": null,
+    "split_turn": null
+  }
+]
+=== items/819 ===
+[
+  {
+    "role": "reviewer",
+    "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/819/reviewer-prompt-1.md",
+    "turns": 62,
+    "tokens_total": 4531083,
+    "tokens_after_split": 2499645,
+    "fixed_predicate_says_gate": false,
+    "split_cmd": "cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && sed -n '1,60p' tools/loop/gate.sh",
+    "split_turn": 44
+  }
+]
+=== the share the item was filed from ===
+{
+  "sessions_split_at_a_gate_word": 5,
+  "tokens_after_the_split": 15822480,
+  "tokens_total": 23570758,
+  "sessions_that_ran_no_gate": [
+    {
+      "role": "reviewer",
+      "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/719/reviewer-prompt-1.md",
+      "tokens_total": 5611427
+    },
+    {
+      "role": "tail",
+      "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/worker-tail-round2-prompt.md",
+      "tokens_total": 361279
+    },
+    {
+      "role": "reviewer",
+      "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/reviewer-prompt-2.md",
+      "tokens_total": 2331567
+    },
+    {
+      "role": "tail",
+      "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/810/worker-tail-round2-prompt.md",
+      "tokens_total": 509903
+    },
+    {
+      "role": "reviewer",
+      "prompt": "/home/tim/projects/NaviVeylin/.pi/issue-loop/items/810/reviewer-prompt-3.md",
+      "tokens_total": 1306451
+    }
+  ]
+}

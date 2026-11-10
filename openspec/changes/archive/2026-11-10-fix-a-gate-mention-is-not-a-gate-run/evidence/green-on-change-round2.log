@@ -1,0 +1,4 @@
+# the case this change adds, run on the tree this round corrected
+# command: bash tools/loop/tests/loop-selftest.sh --case 'report#aCallThatNamesTheGateIsNotAGateRun'
+# run: 2026-11-10T00:39:30Z
+PASS report#aCallThatNamesTheGateIsNotAGateRun

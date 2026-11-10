@@ -9,11 +9,14 @@ commit), read every whitespace-separated word of a tool command as a possible pr
 durations of the calls `gateIds` collects) and `metrics.afterGate` (the tokens of the turns from that turn on).
 The item was filed from the share this produced.
 
-**Evidence, verified against the tree (issue #830).** The item's own figures are real and reproduce: `.pi/issue-loop/
-run.json` of the run it was filed from carries `metrics.afterGate.tokens` 15 822 480 of `total` 23 570 758 over five
-sessions, and `tools/loop/report.sh:519` prints that share (`:439` only selects it). What the split was taken at is not a gate. Over the five
+**Evidence, verified against the tree (issue #830).** The item's own figures are real and reproduce. The item was
+filed from `metrics.afterGate.tokens` 15 822 480 of `total` 23 570 758 over five sessions, and
+`tools/loop/report.sh:519` prints that share (`:439` only selects it); the same two numbers fall out of
+the item's own streams, read with the probe this change versions (`evidence/split-point.jq`, its output
+`evidence/split-point.log`): five sessions split at a gate word, 15 822 480 tokens after the split of 23 570 758 in
+all. What the split was taken at is not a gate. Over the five
 items the item was filed from, the session each record split at contains one of three shapes, and no other
-`gate.sh` word:
+`gate.sh` word (every figure below is the probe's):
 
 - `gate.sh --plan --base <sha>` — the call `tools/loop/prompts/worker.md:261` orders **first** in Phase D, before any
   work: `items/719/events.jsonl` (a `worker-prompt-round2` session, gate turn 28 of 37, 1 544 852 of 3 114 185
@@ -27,8 +30,11 @@ The item's *mechanism* does not hold and this change withdraws it: the tail is n
 gate ends the child that ran it and `tail_after_gate` (`tools/loop/run.sh:1801`) starts a fresh child, and since #758
 the gate is a child of its own (`tools/loop/prompts/gate-deferred.md`); the same streams show the tail as a session
 of its own — `items/808/events.jsonl`'s three sessions are `worker-prompt-round2`, `worker-tail-round2-prompt` and
-`reviewer-prompt-2`, and the tail's 361 279 tokens are not in any gated session. So the 67 % was not spend carried by
-the tail: it was the item's own derivation, split at a `--plan` call or a read.
+`reviewer-prompt-2`, and the tail's 361 279 tokens are not in any gated session (the probe's output,
+`evidence/split-point.log`, names that session and its tokens). So the 67 % was not spend carried by
+the tail: it was the item's own derivation, split at a `--plan` call or a read. What this change does not do is bound
+the tail's spend: the tail already runs in a session of its own, so the item's remedy is already in the tree and
+what was wrong was the measurement the item was filed from.
 
 **The red test.** `report#aCallThatNamesTheGateIsNotAGateRun` (`tools/loop/tests/loop-cases.sh`), red on the base
 commit `c0ddb97c` with `tools/loop/state.sh` restored from it (`evidence/red-on-HEAD.log` and its JUnit carrier
@@ -60,15 +66,18 @@ counts as the gate, because the figure it describes was read the wrong way.
 - `tools/loop/tests/loop-cases.sh` — the case `report#aCallThatNamesTheGateIsNotAGateRun`, registered in the case
   list and the dispatcher, with both arms: a mention and a plan are no gate; an invocation behind `cd`, `timeout` and `bash` is.
 - `tools/loop/tests/loop-mutations.sh` — three records, `267.1`–`267.3`, one per rule the case pins.
-- `openspec/changes/fix-a-gate-mention-is-not-a-gate-run/specs/agent-issue-loop/spec.md` — the requirement's clause
-  and the new scenario.
-- `guidelines/Backlog.recipes.md:554` — one clause in the paragraph that owns the figure.
+- `openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/specs/agent-issue-loop/spec.md` — the
+  requirement's clause and the new scenario (archived with the change).
+- `guidelines/Backlog.recipes.md:558` — one clause in the paragraph that follows the one that owns the figure.
 
 surface: 1 case added, 0 cases rewritten, 0 fixtures realigned, 1 requirement modified, 1 scenario added,
-3 mutations added, 1 guideline clause — `tools/look.sh 'afterGate|gateMs'` → 28 matches in 10 files before this
-delta, 47 in 13 after it (the three added files are this change's own prose), of which the tree's live assertions are
-the one case above, its three mutation records and the one guideline paragraph. The declared case count is
-`LOOP-MEASURE-SUITE cases=393`, one more than the base's 392.
+3 mutations added, 1 guideline clause — `tools/look.sh 'afterGate|gateMs'` → `LOOK: 47 matches in 13 files` on this
+tree (`evidence/look-surface.log`, run 2026-11-10), of which the tree's live assertions are
+the one case above, its three mutation records and the one guideline paragraph. The delta's own size is
+`git diff --numstat c0ddb97c..HEAD -- guidelines/Backlog.recipes.md tools/loop/state.sh
+tools/loop/tests/loop-cases.sh tools/loop/tests/loop-mutations.sh` → `11 0` (the guideline clause), `23 2` (the
+predicate), `62 0` (the case) and `11 0` (the three mutations); the suite's declared case count is
+`LOOP-MEASURE-SUITE cases=393`.
 
 ## Impact
 

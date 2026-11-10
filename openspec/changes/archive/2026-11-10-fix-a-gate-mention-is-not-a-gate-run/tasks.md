@@ -39,8 +39,25 @@
       **Verified** `tools/check-doc-routes.sh` and `tools/check-openspec-hygiene.sh` — the structural checks these
       two files owe; the gate runs them again.
 
-## 5. What is not done here
+## 5. The gate
 
-- The gate itself is deferred to the child that follows this one (`LOOP-DIFF-READY`), so no `LOOP-GATE` line is
-  claimed. The whole `loop-selftest.sh` set — which a delta to `tools/loop/tests/loop-cases.sh` is owed — and
-  `loop-mutations.sh --check` are that child's to run, not restated here.
+- The gate is `./tools/loop/gate.sh`, and it is this change's own: the whole `loop-selftest.sh` set — which a delta to
+  `tools/loop/tests/loop-cases.sh` is owed — `loop-mutations.sh --check`, and the structural checks of the files this
+  change edits. Round 1's gate (`tests=978 failures=0 errors=0`) is in `evidence/gate-run-line.md` and
+  `evidence/gate-summary.xml`; round 2 ran it again on the tree this round's corrections produced, so that the gate's
+  record names the tree the round's diff carries — round 1's record named another tree, because it ran before the tail
+  archived the change and merged the delta into the shipped spec.
+
+## 6. Round 2 — the corrections the review asked for
+
+- [x] 6.1 The review's blocking finding — the gate's record did not attest the tree the round read. The gate was run
+      again on the tree this round's corrections produced.
+- [x] 6.2 The measurements the record did not carry: the five records' split points, their tokens and the tail's
+      session are read by a probe this change versions (`evidence/split-point.jq`, its output
+      `evidence/split-point.log`), and the surface count by `tools/look.sh` (`evidence/look-surface.log`).
+- [x] 6.3 §5 above states the gate this change ran, not a gate deferred to a child that follows.
+- [x] 6.4 The case re-run on this round's tree: `evidence/green-on-change-round2.log` — `PASS
+      report#aCallThatNamesTheGateIsNotAGateRun`, run 2026-11-10T00:39:30Z.
+- [x] 6.5 The declaration check the delta owes first, re-run on this round's tree: `PASS
+      driver#everyCaseDeclaresTheFilesItCanReach` (`bash tools/loop/tests/loop-selftest.sh --case
+      driver#everyCaseDeclaresTheFilesItCanReach`).

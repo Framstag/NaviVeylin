@@ -320,6 +320,9 @@ LOOP_SHELL_CASES=(
   'adapter#theChildIsStartedWithTheResultBound'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
+  'adapter#aRotatedStreamKeepsEveryTurnEnd'
+  'adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded'
+  'state#theSpendSurvivesTheLossOfItsDeltaLines'
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
   'trim#aResultUnderTheBoundIsHandedOverWhole'
   'trim#theTrimIsRecorded'
@@ -1000,6 +1003,9 @@ loop_run_shell_case() {
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
+    'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
+    'adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded') fn=case_adapter_aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded ;;
+    'state#theSpendSurvivesTheLossOfItsDeltaLines') fn=case_state_theSpendSurvivesTheLossOfItsDeltaLines ;;
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
     'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
@@ -10519,6 +10525,196 @@ EMITTER
     "a stream under its bound is not rotated"
   assert_eq "40" "$(grep -c '"type":"turn_end"' "$short" || true)" \
     "and keeps every line it was given"
+  return 0
+}
+
+# A rotation keeps the records the spend is computed from (issue #840). Keeping the newest half of the lines dropped
+# whatever happened to be old, and the old lines are where `turn_end` and `tool_execution_end` live — the records
+# `state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `roles` and `afterGate` from. Measured on
+# the run started 2026-11-09T21:42:41Z: nine of fifteen item streams rotated and dropped 1 697 `turn_end` records
+# against the 1 372 turns the state recorded. What fills a stream is not records but deltas — 16 662 of the ~17 400
+# lines surviving in `items/833/events.jsonl` are `message_update` — so a rotation drops those first and keeps every
+# record line. A stream still over its bound after that pass is cut at all, which is what the case beside this one
+# pins (`adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded`).
+case_adapter_aRotatedStreamKeepsEveryTurnEnd() {
+  # files: tools/pi-child-events.sh
+  local d prompt emitter f pristine prefix single deltas kept_deltas dropped_lines dropped_bytes record_bytes
+  local delta_re line
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  delta_re='"type": *("message_update"|"tool_execution_update")'
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  # A stream of the shape a child's is: three deltas and a streamed tool output per turn, a turn record and the two
+  # tool records. The deltas are the bulk — about 1.4 kB per turn against 250 B of records — so a bound that trims
+  # the deltas brings the file under itself, which is what makes "no turn was dropped" the whole-line path's absence
+  # and not a coincidence of where the bound fell.
+  emitter="$d/emitter.sh"
+  cat > "$emitter" <<'EMITTER'
+#!/usr/bin/env bash
+pad='................................................................'
+i=0
+while [ "$i" -lt 30 ]; do
+  i=$((i + 1))
+  printf '{"type":"turn_start","n":%s}\n' "$i"
+  j=0
+  while [ "$j" -lt 3 ]; do
+    j=$((j + 1))
+    printf '{"type":"message_update","usage":{"input":%s,"output":1,"cacheRead":0,"cacheWrite":0},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"%s%s"}}\n' "$((i * 1000 + j))" "$pad" "$pad"
+  done
+  printf '{"type":"tool_execution_update","toolCallId":"c%s","output":"%s%s"}\n' "$i" "$pad" "$pad"
+  printf '{"type":"tool_execution_start","toolCallId":"c%s","toolName":"ctx_read"}\n' "$i"
+  printf '{"type":"tool_execution_end","toolCallId":"c%s","toolName":"ctx_read","durationMs":5}\n' "$i"
+  printf '{"type":"turn_end","message":{"role":"assistant","usage":{"input":%s,"output":2,"cacheRead":0,"cacheWrite":0},"durationMs":10,"content":[]}}\n' "$((i * 1000 + 3))"
+done
+printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
+EMITTER
+  pristine="$d/pristine.jsonl"
+  bash "$emitter" </dev/null > "$pristine"
+  f="$d/events.jsonl"
+  LOOP_CHILD_EVENTS="$f" LOOP_CHILD_EVENTS_MAX_BYTES=16384 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  [ -s "$f" ] || fail "the adapter kept no stream: $(head -3 "$d/out")"
+  assert_eq "stream_rotation" "$(head -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "the stream's first line records the rotation"
+  deltas=$(grep -cE "$delta_re" "$pristine" || true)
+  [ "$deltas" -gt 100 ] || fail "the fixture is not delta-heavy: $deltas delta lines beside 30 turns"
+  assert_eq "30" "$(grep -cE '"type": *"turn_end"' "$f" || true)" \
+    "every turn_end the child wrote survives the rotation"
+  assert_eq "30" "$(grep -cE '"type": *"tool_execution_end"' "$f" || true)" \
+    "and every tool_execution_end, the other record the spend is summed from"
+  assert_eq "0" "$(head -n 1 "$f" | jq -r '.dropped_turn_ends // 0' 2>/dev/null)" \
+    "so the record says it dropped no turn at all"
+  assert_eq "message_end" "$(tail -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "and the newest event survives as it did before"
+  # Every record line of the stream is in the rotation's result, once and in its own order: what a rotation may remove
+  # is the deltas, and this is the whole of what "keeps every record" means — a count of one type would not notice the
+  # other three going.
+  assert_eq "$(grep -vE "$delta_re" "$pristine" | cksum)" "$(tail -n +2 "$f" | grep -vE "$delta_re" | cksum)" \
+    "every record line of the stream survives the rotation, in order and once"
+  dropped_lines=$(head -n 1 "$f" | jq -r '.dropped_lines // 0' 2>/dev/null)
+  [ "$dropped_lines" -gt 0 ] || fail "the rotation of a delta-heavy stream dropped nothing: $dropped_lines lines"
+  kept_deltas=$(grep -cE "$delta_re" "$f" || true)
+  [ "$(( dropped_lines + kept_deltas ))" -le "$deltas" ] ||
+    fail "the rotation dropped more lines than the stream has deltas: $dropped_lines + $kept_deltas of $deltas"
+  line=$(LC_ALL=C awk '{ if (length($0) > n) n = length($0) } END { print n + 0 }' "$pristine")
+  [ "$(wc -c < "$f")" -le "$(( 16384 + line + 1 ))" ] ||
+    fail "the rotated stream is not bounded by its 16384 B plus one line: $(wc -c < "$f") B"
+
+  # …and the record says what it dropped, exactly (issue #840, "dropped_bytes must describe what was actually
+  # dropped"). One rotation, made by handing the child the first prefix of the stream that crosses the bound and
+  # nothing after it: the file it is handed is over its bound on its last line, so a single rotation runs, and then
+  # the arithmetic is exact — the bytes it dropped plus the record lines that survived are the file it was handed.
+  prefix="$d/prefix.jsonl"
+  awk -v bound=16384 '{ n += length($0) + 1; print; if (n > bound) exit }' "$pristine" > "$prefix"
+  single="$d/single.jsonl"
+  LOOP_CHILD_EVENTS="$single" LOOP_CHILD_EVENTS_MAX_BYTES=16384 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash -c "cat '$prefix'" "$prompt" </dev/null >"$d/out-single" 2>&1 ||
+    fail "the adapter exited non-zero on a stream that crosses its bound once: $(head -3 "$d/out-single")"
+  assert_eq "stream_rotation" "$(head -n 1 "$single" | jq -r '.type // ""' 2>/dev/null)" \
+    "a stream handed over already past its bound is rotated on its first event"
+  assert_eq "0" "$(tail -n +2 "$single" | grep -cE "$delta_re" || true)" \
+    "and one rotation takes every delta line of it, the bound being crossed once"
+  dropped_lines=$(head -n 1 "$single" | jq -r '.dropped_lines // 0' 2>/dev/null)
+  dropped_bytes=$(head -n 1 "$single" | jq -r '.dropped_bytes // 0' 2>/dev/null)
+  record_bytes=$(head -n 1 "$single" | wc -c | tr -d ' ')
+  assert_eq "$(wc -c < "$prefix" | tr -d ' ')" "$(( dropped_bytes + $(wc -c < "$single") - record_bytes ))" \
+    "the bytes the record says it dropped are the bytes of the lines it dropped, never the record it is written in"
+  assert_eq "$(grep -cE "$delta_re" "$prefix" || true)" "$dropped_lines" \
+    "and the lines it says it dropped are the delta lines of the file it was handed"
+  return 0
+}
+
+# The spend survives the loss of the delta lines it is read from (issue #840). A turn's usage is
+# `message_update.usage` — cumulative within a response, so the last update before the `turn_end` is the turn's
+# record — and every `turn_end` carries that same object as `message.usage`; measured over six archived item streams
+# (833, 830, 835, 100, 831, 807): 747 of 747 turns carry it, and 746 of 747 are byte-identical to the last update
+# before them (the 747th has no update at all, so its `turn_end` is the only record of what it spent). So a stream
+# whose deltas are gone — which is what a rotation leaves — must record the same turns, tokens and context as the
+# stream it was cut from, or the item's cost is a lower bound printed as a measurement.
+case_state_theSpendSurvivesTheLossOfItsDeltaLines() {
+  # files: tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f full trimmed
+  d=$(scratch); p=$(new_project)
+  full="$d/full.jsonl"
+  cat > "$full" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/51/worker-prompt.md"}]}}
+{"type":"message_update","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
+{"type":"message_update","usage":{"input":200,"output":20,"cacheRead":1000,"cacheWrite":0}}
+{"type":"message_update","usage":{"input":200,"output":30,"cacheRead":1000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":200,"output":30,"cacheRead":1000,"cacheWrite":0},"durationMs":1000,"content":[]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":300,"output":40,"cacheRead":2000,"cacheWrite":0},"durationMs":1000,"content":[]}}
+JSONL
+  # What the delta pass leaves: the same stream without the updates, and nothing else changed.
+  trimmed="$d/trimmed.jsonl"
+  grep -vE '"type": *"message_update"' "$full" > "$trimmed"
+  init_state "$p" 1 90
+  printf '[{"issue":51,"class":"bug","verdict":"eligible","rank":1},{"issue":52,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 51 --result done --verdict closed --wall 42 --events "$full" >/dev/null
+  run_state "$p" done 52 --result done --verdict closed --wall 42 --events "$trimmed" >/dev/null
+  f=$(state_file "$p")
+  # The figures are asserted as values, not only as the equality of two nulls: the trimmed stream's three turns spent
+  # 600 input, 80 output and 3 000 cache-read tokens, and the largest context any of them re-read is 2 300.
+  assert_eq "3" "$(jq -r '.items[1].metrics.turns' "$f")" "a rotated stream still counts every turn it took"
+  assert_eq "600" "$(jq -r '.items[1].metrics.tokens.input' "$f")" \
+    "and the input tokens of the turns whose updates are gone"
+  assert_eq "80" "$(jq -r '.items[1].metrics.tokens.output' "$f")" "and their output tokens"
+  assert_eq "3000" "$(jq -r '.items[1].metrics.tokens.cacheRead' "$f")" "and their cache reads"
+  assert_eq "2300" "$(jq -r '.items[1].metrics.context' "$f")" "and the largest context one of them re-read"
+  assert_eq "$(jq -c '.items[0].metrics.tokens' "$f")" "$(jq -c '.items[1].metrics.tokens' "$f")" \
+    "the spend of the two streams is one figure, so the rotation changed no measurement"
+  assert_eq "$(jq -c '.items[0].metrics.context' "$f")" "$(jq -c '.items[1].metrics.context' "$f")" \
+    "and neither did the context they were read at"
+  return 0
+}
+
+# The whole-line cut is the fallback, not the rule (issue #840): a stream the delta pass cannot bring under its bound
+# — the records alone outgrow it — is still cut at its oldest half, and the record still carries the turn count
+# cumulatively so `run.sh`'s `child_turns` does not reset. This is the residue the item leaves open as #841: a stream
+# that overflows after the delta pass is a lower bound still, and what this case pins is that it stays a *recorded*
+# one rather than the silent position-based drop the item is about.
+case_adapter_aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded() {
+  # files: tools/pi-child-events.sh
+  local d prompt emitter f drops kept
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  emitter="$d/emitter.sh"
+  cat > "$emitter" <<'EMITTER'
+#!/usr/bin/env bash
+pad='................................................................'
+i=0
+while [ "$i" -lt 60 ]; do
+  i=$((i + 1))
+  printf '{"type":"message_update","usage":{"input":%s,"output":1,"cacheRead":0,"cacheWrite":0},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"%s%s"}}\n' "$i" "$pad" "$pad"
+  printf '{"type":"turn_end","message":{"role":"assistant","usage":{"input":%s,"output":2,"cacheRead":0,"cacheWrite":0},"durationMs":10,"content":[{"type":"thinking","thinking":"%s%s"}]}}\n' "$i" "$pad" "$pad"
+done
+printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
+EMITTER
+  f="$d/events.jsonl"
+  LOOP_CHILD_EVENTS="$f" LOOP_CHILD_EVENTS_MAX_BYTES=4096 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  [ -s "$f" ] || fail "the adapter kept no stream: $(head -3 "$d/out")"
+  assert_eq "stream_rotation" "$(head -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "the stream's first line records the rotation"
+  assert_eq "message_end" "$(tail -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "and the newest event survives the cut"
+  assert_eq "0" "$(grep -cE '"type": *"message_update"' "$f" || true)" \
+    "the delta pass ran first: no delta line survives a rotation of this stream"
+  drops=$(head -n 1 "$f" | jq -r '.dropped_turn_ends // 0' 2>/dev/null)
+  kept=$(grep -cE '"type": *"turn_end"' "$f" || true)
+  [ "$drops" -gt 0 ] ||
+    fail "the records alone outgrew the bound, so the fallback owes a dropped turn count: the record says $drops"
+  assert_eq "60" "$(( drops + kept ))" \
+    "what the record dropped plus what the stream holds is every turn of the item, cumulatively"
+  assert_eq "1" "$(grep -c '"type":"stream_rotation"' "$f" || true)" \
+    "one record stands for every rotation the stream went through"
   return 0
 }
 

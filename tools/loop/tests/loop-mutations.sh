@@ -1040,6 +1040,14 @@ MUTATIONS=(
   '266.1@-@tools/loop/worktree.sh@run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart@the start reading the patch a bound-ended child left, so the item is worked from zero and the kept work is read by nobody (issue #754)@s#^  \[ -s "\$patch" \] [|][|] return 1$#  return 1#'
   '266.2@-@tools/loop/worktree.sh@run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase@the record of a patch that does not apply, so the item starts from the base and nothing says why it did (issue #754)@s#^  record_resume "\$item" "\$patch" no-apply$#  : #'
   '266.3@-@tools/loop/state.sh@run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase@the reading that puts the resume the start found into the item note, so the record is written and no reader of the item finds it (issue #754)@s#^  \[ -z "\${resume_note:-}" \] [|][|] note=.*$#  :#'
+  # 267.x — a rotation keeps the records the spend is computed from (issue #840). Keeping the newest half of the lines
+  # dropped the oldest half, and the oldest half is where `turn_end` and `tool_execution_end` live: nine of fifteen
+  # streams in the run of 2026-11-09T21:42:41Z rotated and dropped 1 697 `turn_end` records against 1 372 recorded
+  # turns, so the item's spend was a lower bound printed as a measurement. Two rules, one case each: the delta pass
+  # removes the deltas and nothing else (`267.1`), and the usage a turn falls back to survives their loss (`267.2`,
+  # without which the delta pass would be a rotation that keeps every turn and records none of their tokens).
+  '267.1@-@../pi-child-events.sh@adapter#aRotatedStreamKeepsEveryTurnEnd@the delta pass that drops the streamed deltas and keeps every record line, so a rotation is decided by line position again and takes the records the spend is summed from (issue #840)@s#^  delta_types=.*$#  delta_types='"'"'"type": *"no-line-of-this-kind"'"'"'#'
+  '267.2@-@tools/loop/state.sh@state#theSpendSurvivesTheLossOfItsDeltaLines@the usage a turn falls back to when a rotation has taken the update it ended on, so a rotated item records no tokens at all and its cost is a lower bound under a name that reads as a measurement (issue #840)@s#^            ((\.cur // (\$e\.message\.usage? // null)) as \$u$#            ((.cur // null) as $u#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

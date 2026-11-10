@@ -874,7 +874,11 @@ num_or_null() {
 # make the numbers honest:
 #
 #   * **a turn's spend is its last usage record**, not the sum of its updates — `usage` is cumulative within a
-#     response, so summing the updates would count the same tokens once per streamed chunk;
+#     response, so summing the updates would count the same tokens once per streamed chunk. The update may be gone
+#     and the turn still spend what it spent: a rotation drops the delta lines and keeps the records (issue #840),
+#     and every `turn_end` carries the usage its turn ended on as `message.usage` — the same object the last update
+#     carried, measured over six archived streams, 746 of 747 turns identical and the 747th carrying no update at all.
+#     So the `turn_end` is the record the turn falls back to, never a turn that vanishes from the total;
 #   * **the largest context is a maximum, not a sum**: the biggest `input + cacheRead` any turn reported, or a
 #     compaction's `tokensBefore` when one happened, because that is the size the window had to hold;
 #   * **nothing reported is null, never zero.** A provider that streams no usage leaves zeros, and a zero
@@ -926,7 +930,10 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       def turns:
         reduce .[] as $e ({cur:null, done:[]};
           if $e.type == "message_update" and (($e.usage? // null) | type) == "object" then .cur = $e.usage
-          elif $e.type == "turn_end" then ((if .cur != null then .done = (.done + [.cur]) else . end) | .cur = null)
+          elif $e.type == "turn_end" then
+            ((.cur // ($e.message.usage? // null)) as $u
+             | (if $u != null then .done = (.done + [$u]) else . end)
+             | .cur = null)
           else . end)
         | if .cur != null then (.done + [.cur]) else .done end;
       # The session is the phase, and a turn is where its spend and its clock are: the usage it ended on (the rule

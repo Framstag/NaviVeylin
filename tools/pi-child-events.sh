@@ -125,30 +125,86 @@ fi
 answer_file=$(mktemp) || { printf 'pi-child-events: cannot create a temporary file\n' >&2; exit 2; }
 trap 'rm -f "$answer_file"' EXIT
 
-# Rotate the kept stream rather than let it grow without bound: the newest half of the lines stays, the oldest half
-# is dropped, and the drop is *recorded* as the first line so a reader can tell a rotated stream from a short one and
-# add the turns it no longer holds — `run.sh`'s `child_turns` does, which is what keeps a child's turn bound counting
-# from zero after a rotation. The record's `dropped_turn_ends` is cumulative: the record it replaces is dropped with
-# the events it counted, so the count it carried is added to the one being dropped. Called only when the stream has
-# outgrown its bound, so the `wc`/`grep` here are paid once per rotation and never per event.
-rotate_events() { # rotate_events <file> — drop the oldest half of the lines and record the drop
-  local f="$1" lines keep drop turns prev rec tmp total
+# Rotate the kept stream rather than let it grow without bound. The **delta** lines go first and every record line
+# stays; only a stream that is still over its bound after that pass is cut at its oldest half. Either way the drop is
+# *recorded* as the first line, so a reader can tell a rotated stream from a short one and add the turns it no longer
+# holds — `run.sh`'s `child_turns` does, which is what keeps a child's turn bound counting from zero after a rotation.
+#
+# Why the deltas go first (issue #840): the oldest half of a stream is where the records live, and the records are
+# what `state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `roles` and `afterGate` from — so a
+# cut decided by line position made a rotated item's spend a lower bound printed as a measurement. Measured on the run
+# started 2026-11-09T21:42:41Z, nine of fifteen item streams rotated and dropped 1 697 `turn_end` records against the
+# 1 372 turns the state recorded. What fills a stream is not records but streamed deltas: in
+# `items/833/events.jsonl` 16 662 of the ~17 400 surviving lines are `message_update` (4 741 310 of 8 565 562 bytes,
+# 55 %), `tool_execution_update` another 255 184 B (3 %), so the deltas alone are most of what a bound has to trim.
+#
+# `message_update` may only go when **this** stream's `turn_end` records carry the same usage the deltas do: a turn's
+# usage is `message_update.usage` (cumulative within a response), every `turn_end` of the measured archive carries it
+# as `message.usage` (747 of 747 turns over six item streams), and `state.sh`'s `turns` reads it when no update
+# survives — but a provider that reports usage on the updates alone would lose a turn's spend with them. So the pass
+# reads the stream once and keeps the updates when any `turn_end` of it carries no `usage` object;
+# `tool_execution_update`, which nothing reads, goes either way. A stream that is still over its bound after that is
+# a lower bound still — that residue is issue #841, and it stays a *recorded* one.
+#
+# The record's shape is unchanged and `dropped_turn_ends` is cumulative: the record it replaces is dropped with the
+# events it counted, so the count it carried is added to the one being dropped. `dropped_lines` and `dropped_bytes`
+# are what this rotation removed — both passes together, and never the record they are written in. Called only when
+# the stream has outgrown its bound, so the passes here are paid once per rotation and never per event.
+rotate_events() { # rotate_events <file> — drop the delta lines, and the oldest half only if the stream is still over
+  # `kept_bytes` is deliberately not local: the caller's own counter is reset to what the rotation left, or a
+  # stream that rotated once would rotate on every event after it.
+  local f="$1" lines keep drop turns prev rec tmp total delta_types size_before size_tmp lines_tmp
+  local turn_ends turn_ends_with_usage keep_updates filter_rc cut cut_bytes
   lines=$(wc -l < "$f" 2>/dev/null) || true
   case "$lines" in ''|*[!0-9]*) lines=0 ;; esac
   # One line is the line just written: there is nothing older to drop, and dropping it would lose the newest event.
   [ "$lines" -ge 2 ] || return 0
-  keep=$(( lines / 2 ))
-  drop=$(( lines - keep ))
-  turns=$(head -n "$drop" "$f" 2>/dev/null | grep -cE '"type": *"turn_end"') || true
-  case "$turns" in ''|*[!0-9]*) turns=0 ;; esac
   prev=$(head -n 1 "$f" 2>/dev/null | sed -n 's/.*"dropped_turn_ends": *\([0-9][0-9]*\).*/\1/p')
   case "$prev" in ''|*[!0-9]*) prev=0 ;; esac
-  total=$(head -n "$drop" "$f" 2>/dev/null | wc -c | tr -d ' ') || total=0
-  case "$total" in ''|*[!0-9]*) total=0 ;; esac
+
+  # The delta pass. Which types may go is a property of the stream being rotated, not of this adapter's assumption
+  # about its agent: the updates are kept when a `turn_end` of it carries no usage for the turn to fall back on.
+  delta_types='"type": *("message_update"|"tool_execution_update")'
+  keep_updates=1
+  turn_ends=$(grep -cE '"type": *"turn_end"' "$f" 2>/dev/null) || true
+  case "$turn_ends" in ''|*[!0-9]*) turn_ends=0 ;; esac
+  turn_ends_with_usage=$(grep -E '"type": *"turn_end"' "$f" 2>/dev/null | grep -cE '"usage": *\{') || true
+  case "$turn_ends_with_usage" in ''|*[!0-9]*) turn_ends_with_usage=0 ;; esac
+  [ "$turn_ends" -eq 0 ] || [ "$turn_ends_with_usage" -ge "$turn_ends" ] || keep_updates=0
+  [ "$keep_updates" -eq 1 ] || delta_types='"type": *"tool_execution_update"'
+  tmp="$f.rotating.$$"
+  size_before=$(wc -c < "$f" 2>/dev/null) || size_before=0
+  # The record a previous rotation wrote goes with the pass: the one below replaces it and carries its turn count.
+  { grep -vE '"type": *"stream_rotation"' "$f" | grep -vE "$delta_types"; } > "$tmp"
+  filter_rc=$?
+  case "$size_before" in ''|*[!0-9]*) size_before=0 ;; esac
+  if [ "$filter_rc" -gt 1 ]; then rm -f -- "$tmp"; return 0; fi
+  lines_tmp=$(wc -l < "$tmp" 2>/dev/null) || lines_tmp=0
+  size_tmp=$(wc -c < "$tmp" 2>/dev/null) || size_tmp=0
+  case "$lines_tmp" in ''|*[!0-9]*) lines_tmp=0 ;; esac
+  case "$size_tmp" in ''|*[!0-9]*) size_tmp=0 ;; esac
+  drop=$(( lines - lines_tmp ))
+  total=$(( size_before - size_tmp ))
+
+  # The fallback: the records alone outgrew the bound, so the oldest half of them goes — and the turns it takes with
+  # it are recorded, cumulatively, so the count a reader adds them back to never falls.
+  turns=0
+  if [ "${events_bound:-0}" -gt 0 ] && [ "$size_tmp" -gt "$events_bound" ] && [ "$lines_tmp" -ge 2 ]; then
+    keep=$(( lines_tmp / 2 ))
+    cut=$(( lines_tmp - keep ))
+    drop=$(( drop + cut ))
+    turns=$(head -n "$cut" "$tmp" 2>/dev/null | grep -cE '"type": *"turn_end"') || true
+    case "$turns" in ''|*[!0-9]*) turns=0 ;; esac
+    cut_bytes=$(head -n "$cut" "$tmp" 2>/dev/null | wc -c | tr -d ' ')
+    case "$cut_bytes" in ''|*[!0-9]*) cut_bytes=0 ;; esac
+    total=$(( total + cut_bytes ))
+    { tail -n "+$(( cut + 1 ))" "$tmp"; } > "$tmp.cut" && mv -- "$tmp.cut" "$tmp"
+  fi
+
   rec=$(printf '{"type":"stream_rotation","dropped_lines":%s,"dropped_bytes":%s,"dropped_turn_ends":%s,"at":"%s"}' \
     "$drop" "$total" "$(( turns + prev ))" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")
-  tmp="$f.rotating.$$"
-  { printf '%s\n' "$rec"; tail -n "+$(( drop + 1 ))" "$f"; } > "$tmp" && mv -- "$tmp" "$f"
+  { printf '%s\n' "$rec"; cat -- "$tmp"; } > "$tmp.rec" && mv -- "$tmp.rec" "$f"
+  rm -f -- "$tmp" "$tmp.cut"
   kept_bytes=$(wc -c < "$f" 2>/dev/null) || kept_bytes=0
   case "$kept_bytes" in ''|*[!0-9]*) kept_bytes=0 ;; esac
 }

@@ -774,7 +774,7 @@ cmd_done() {
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
                            phases:$usage.phases, roles:$usage.roles, roleModels:$usage.roleModels,
-                           afterGate:$usage.afterGate}}]
+                           afterGate:$usage.afterGate, streamRotation:$usage.streamRotation}}]
       else
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
@@ -870,7 +870,7 @@ num_or_null() {
 
 # What one item's children spent, read from the event stream they appended to (issue #211). The stream is the
 # agent's: `tool_execution_end` names the tool that ran, `message_update.usage` carries the latest cumulative
-# usage of one response, `turn_end` closes that response, and a compaction carries `tokensBefore`. Three rules
+# usage of one response, `turn_end` closes that response, and a compaction carries `tokensBefore`. Four rules
 # make the numbers honest:
 #
 #   * **a turn's spend is its last usage record**, not the sum of its updates — `usage` is cumulative within a
@@ -882,7 +882,12 @@ num_or_null() {
 #   * **the largest context is a maximum, not a sum**: the biggest `input + cacheRead` any turn reported, or a
 #     compaction's `tokensBefore` when one happened, because that is the size the window had to hold;
 #   * **nothing reported is null, never zero.** A provider that streams no usage leaves zeros, and a zero
-#     printed as a figure reads as a measurement nobody made; the report prints `-` for a null.
+#     printed as a figure reads as a measurement nobody made; the report prints `-` for a null;
+#   * **a rotated stream is a lower bound, and its record says by how much.** Every figure above is summed from the
+#     lines a rotation left behind, so a stream the bound cut spends more than its record says: the
+#     `stream_rotation` record the adapter writes first carries the turns and the bytes that rotation took, and they
+#     are recorded beside the spend they are missing from (`streamRotation`, issue #841). Measured on the run started
+#     2026-11-09T21:42:41Z: nine of fifteen item streams rotated, 1 697 turns dropped against 1 372 recorded.
 #
 # The shape a session spent its budget in is two more counts (issue #757): the `tool_execution_end` lines are
 # the calls and the `turn_end` lines are the turns, and `report.sh` reads their ratio. It is recorded as the two
@@ -914,7 +919,7 @@ num_or_null() {
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars}
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,reads,dupReads,dupChars,streamRotation}
   local events="${1:-}" blob="" gate_cmd gate_prog="" word
   # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
   # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
@@ -1054,6 +1059,14 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
              else .seen[$k] = 1 end)) as $dup
       | ($r.reads | length) as $reads
       | ([$all[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) as $compacted
+      # What a rotation of this stream took (issue #841): `tools/pi-child-events.sh` writes one `stream_rotation`
+      # record as the first line of a stream it rotated, and every figure above is summed from what survived that —
+      # so an item whose stream rotated spends more than its record says and nothing else in the state says so. The
+      # two figures of the record are kept apart because they have different shapes: `dropped_turn_ends` is
+      # cumulative (a rotation carries the count of the record it replaces), so the greatest is the total;
+      # `dropped_bytes` is what that one rotation removed, so the records add up. A stream holding no record yields
+      # null, never the zero that two figures of `0` would read as.
+      | ([$all[] | select(.type == "stream_rotation")]) as $rot
       | ([$t[] | ((.input // 0) + (.cacheRead // 0))] | max) as $turnMax
       | ([$turnMax // 0, $compacted // 0] | max) as $context
       | {tools: (if ($tools | length) > 0 then $tools else null end),
@@ -1085,11 +1098,14 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          afterGate: (if ($gated | length) == 0 then null
                      else {tokens: ([$gated[].after] | add // 0),
                            total: ([$gated[].total] | add // 0),
-                           sessions: ($gated | length)} end)}' "$events" 2>/dev/null) || blob=""
+                           sessions: ($gated | length)} end),
+         streamRotation: (if ($rot | length) == 0 then null
+                           else {droppedTurnEnds: ([$rot[] | (.dropped_turn_ends // 0)] | max),
+                                 droppedBytes: ([$rot[] | (.dropped_bytes // 0)] | add)} end)}' "$events" 2>/dev/null) || blob=""
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"reads":null,"dupReads":null,"dupChars":null,"streamRotation":null}' ;;
   esac
 }
 

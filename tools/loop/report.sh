@@ -30,6 +30,12 @@
 # failing suite is flaky or broken. Prose is not a rate: before the field existed a waived red and a green gate both
 # printed `result: done`, and nothing accumulated the evidence that would either fix the flake or name it.
 #
+# Since issue #841 it says which of its own figures are lower bounds: a stream a child outgrew was rotated, the
+# adapter records what that rotation dropped, and the state carries the record beside the spend it is missing from
+# (`metrics.streamRotation`). The `truncated:` line names the items whose figures are short, with the figure each
+# dropped — the run's totals print the same whether one item was cut or nine, so the extent alone is not the answer.
+# A **warning, never a stop**, like every figure beside it.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -54,7 +60,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
     --state) need_value "$@"; state_opt="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,50p' "$0"; exit 0 ;;
     *) loop_die "report: unknown argument $1" ;;
   esac
 done
@@ -367,6 +373,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
                        else ((. * 10 | round) / 10 | "\(.) s") end;
   def mtok_n: ((. / 1000000 * 10 | round) / 10);
   def mtok: (. | mtok_n | "\(.) Mtok");
+  def mib: ((. / 1048576 * 10 | round) / 10 | "\(.) MiB");
   def items_n: if . == 1 then "1 item" else "\(.) items" end;
   ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0)}]) as $it
   | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
@@ -501,6 +508,27 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else "\((($a / $tot) * 100) | round) % — \($a | mtok_n) of \($tot | mtok_n) Mtok, from the first gate of \($n) session\(if $n == 1 then "" else "s" end)"
           end
       end ) as $gateline
+  # What the figures above cannot show (issue #841): a stream the child outgrew was rotated, and the record the
+  # adapter wrote first states what went — its `turn_end` records, and the bytes that rotation removed. Every figure
+  # summed from that stream is a lower bound, and the state now carries the record beside them, so the line names
+  # the items whose figures are short, with the figure each dropped: the totals would print the same whether
+  # one item was cut or nine (measured on the run of 2026-11-09T21:42:41Z: nine of fifteen, 1 697 dropped turns
+  # against the 1 372 the state recorded). The two figures are printed the shape the reads and calls lines print —
+  # the share the line prints first, then what was dropped, then the items. The absence of the field is told apart
+  # from its null, as every other line here does: a record written before this figure existed has no
+  # `streamRotation` key at all, while one of this era that met a run whose streams stayed inside their bound has
+  # it as `null`. A **warning, never a stop**: nothing reads it to end a child.
+  | ([.items[] | select((.metrics.streamRotation.droppedTurnEnds // 0) > 0)
+      | {i: .issue, t: .metrics.streamRotation.droppedTurnEnds,
+         b: (.metrics.streamRotation.droppedBytes // 0)}] | sort_by(-.t)) as $trunc
+  | ( if ($trunc | length) == 0 then
+        if ([.items[] | select((.metrics | has("streamRotation")) | not)] | length) > 0
+          then "- · this state records no stream rotation — it was written before the report counted one"
+          else "- · no item lost a turn to a rotation" end
+      else "\($trunc | length) of \(.items | length) items \(if ($trunc | length) == 1 then "is" else "are" end)"
+           + " a lower bound — \([$trunc[].t] | add) turns and \([$trunc[].b] | add | mib) dropped · "
+           + "\([$trunc[] | "#\(.i) \(.t)"] | join(" · "))"
+      end ) as $truncline
   # What the run closed over (issue #811). A close over a red gate carries the clause it was waived with, and this
   # is the count the issue asks for: the waived closes out of the closed items, with each suite a waiver named,
   # because the per-suite total is what tells a flaky suite from a broken one. The absence of the field is told
@@ -516,7 +544,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
         then "- · this state records no gate waiver — it was written before the report counted one"
       else "0 of \($closedItems) closed items · no close was over a gate that did not pass"
       end ) as $waivedline
-  | "  review: \($review)\n  waived: \($waivedline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
+  | "  review: \($review)\n  waived: \($waivedline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

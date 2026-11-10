@@ -352,6 +352,7 @@ LOOP_SHELL_CASES=(
   'state#aCutRecordsTheFilesItsPatchCarries'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
+  'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
   'report#aStreamWithoutDurationsPrintsDash'
   'report#aRolesTokensRecordTheModelThatAnswered'
@@ -1036,6 +1037,7 @@ loop_run_shell_case() {
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
+    'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
     'report#aRolesTokensRecordTheModelThatAnswered') fn=case_report_aRolesTokensRecordTheModelThatAnswered ;;
@@ -12014,6 +12016,73 @@ JSONL
   out=$(run_report "$p") || fail "the report failed for a run that opened no file"
   assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" "- · no item recorded a file read" \
     "and a run of items that answered without opening a file prints the other dash"
+}
+
+# The cost reader summed the turns and the sessions a rotated stream still holds, and nothing said the rest was
+# dropped (issue #841): in the run started 2026-11-09T21:42:41Z nine of fifteen item streams carried a
+# `stream_rotation` record — 1 697 dropped turns against the 1 372 the state recorded, 72 255 266 B in their
+# `dropped_bytes` — so `metrics.turns`, `metrics.tokens`, `metrics.phases`, `metrics.roles` and `metrics.afterGate`
+# were lower bounds printed as measurements, and the report printed them beside the two figures a reader would
+# compare them with. So the record of the rotation joins the item's metrics and the trend names the items whose
+# figures are short, with the figure each dropped. A **warning, never a stop**: nothing reads the field to end a
+# child.
+case_report_aTruncatedStreamSaysSo() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trunc_line
+  d=$(scratch); p=$(new_project)
+  # #21's stream is the shape a rotation leaves: the record as its first line, then the turns that survived it. The
+  # figures are `items/833/events.jsonl`'s own — 277 turns dropped for 8 804 864 B. #22's stream was never rotated, so
+  # the line must not name it, and its `metrics.streamRotation` is `null` rather than absent.
+  cat > "$d/rotated.jsonl" <<'JSONL'
+{"type":"stream_rotation","dropped_lines":16662,"dropped_bytes":8804864,"dropped_turn_ends":277,"at":"2026-11-09T22:10:00Z"}
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
+JSONL
+  cat > "$d/whole.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":200,"output":20,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
+JSONL
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/rotated.jsonl" >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/whole.jsonl" >/dev/null
+  f=$(state_file "$p")
+  # The record's two figures are in the item's metrics, as numbers: the case cannot pass on two nulls, which is the
+  # shape a report that read the stream again at print time would leave it in.
+  assert_eq "277" "$(jq -r '.items[] | select(.issue == 21) | .metrics.streamRotation.droppedTurnEnds' "$f")" \
+    "the turns a rotation dropped are recorded beside the spend they are missing from"
+  assert_eq "8804864" "$(jq -r '.items[] | select(.issue == 21) | .metrics.streamRotation.droppedBytes' "$f")" \
+    "and the bytes that rotation removed, as the stream's own record states them"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 22) | .metrics.streamRotation' "$f")" \
+    "an item whose stream was never rotated records none, never a zero"
+  out=$(run_report "$p") || fail "the report failed"
+  trunc_line=$(printf '%s\n' "$out" | grep '^  truncated:' || true)
+  [ -n "$trunc_line" ] || fail "the trend printed no line saying a figure is a lower bound (issue #841)"
+  assert_contains "$trunc_line" "1 of 2 items is a lower bound" \
+    "the line counts the items whose figures are short against the items of the run"
+  assert_contains "$trunc_line" "277 turns and 8.4 MiB dropped" \
+    "prints what the records state was dropped, in the two figures they carry"
+  assert_contains "$trunc_line" "#21 277" \
+    "and names the item with the figure it dropped, the shape the calls and reads lines print"
+  assert_not_contains "$trunc_line" "#22" "while an item whose stream was never rotated is not named"
+  # A state written before the field existed holds spend and no rotation at all, and the dash it prints says so
+  # rather than reading as a run whose streams were never rotated — the distinction the repeat-reads line makes.
+  jq 'del(.items[].metrics.streamRotation)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the field existed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  truncated:' || true)" \
+    "- · this state records no stream rotation — it was written before the report counted one" \
+    "a state that predates the field says so, instead of reading as a run of streams nobody rotated"
+  # …and a state of this era whose items met no rotation prints the other dash.
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":51,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 51 --result done --verdict closed --events "$d/whole.jsonl" >/dev/null
+  out=$(run_report "$p") || fail "the report failed for a run whose streams were never rotated"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  truncated:' || true)" "- · no item lost a turn to a rotation" \
+    "and a run whose streams all stayed inside their bound prints the reason, not a zero"
 }
 
 # The report totalled a run's spend and never said which phase spent it (issue #759): a run that paid two thirds

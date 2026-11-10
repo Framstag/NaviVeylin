@@ -1234,7 +1234,14 @@ run's tool calls per turn beside the items below its recorded floor (#757), and 
 sessions repeated beside the characters they re-injected and the item that repeated most, and — since #759 — where the spend went,
 the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
 share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
-with `-` and its reason where nobody measured one. The
+with `-` and its reason where nobody measured one — and, since #841, which of those figures are a **lower bound**: a
+stream a child outgrew is rotated, the rotation's record states the turns and the bytes it took, `state.sh done`
+records them as `metrics.streamRotation` (`null`, never zero, for a stream that was never rotated, and no key at all in
+a state written before the field existed), and the `truncated:` line prints the run's share of them, the figures
+dropped and each item's own — the totals print the same whether one item was cut or nine, so the extent alone is not
+the answer. Measured on the run started 2026-11-09T21:42:41Z: nine of fifteen items, 1 697 turns dropped against the
+1 372 the state recorded. It is a **warning, never a stop** — nothing reads the field to end a child — and
+`report#aTruncatedStreamSaysSo` is the case, mutation record `268.1` what proves it notices the items go. The
 rate is counted from the **verdict** a round ended on (`done --review-verdict`), never from the round count: the
 count is the round the loop *attempted* — `run.sh` writes it before the reviewer runs — so a round 1 that refused
 and then blocked carries the same `1` as one that passed, and review round 1 of #247 measured exactly that on

@@ -1,8 +1,8 @@
 # The change's own tree — this delta changes no compiled file, so the build it would otherwise owe is replaced by
-# the structural checks over the files it edits, plus the self-test of the check it adds. Regenerated after the last
-# edit to guidelines/Backlog.recipes.md (a paragraph break under the table).
+# the structural checks over the files it edits, plus the self-test of the check it adds. Regenerenerated after the
+# round-2 edits (the four section 7b sentences that now point at the table's row).
 
-2026-11-10T09:25:08Z
+2026-11-10T10:18:50Z
 
 $ bash tools/tests/check-doc-values-selftest.sh
 PASS  values#proseMatchesTheProfile — LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
@@ -23,11 +23,6 @@ check-rule-routes: 0 glob(s) match no tracked path, 1 rule(s) are reached by no 
 check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
 exit=1
 
-$ tools/check-openspec-hygiene.sh
-Every capability spec states its Purpose.
-OpenSpec artifacts are consistent: 18 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
-exit=0
-
 $ tools/check-todo-references.sh
 check-todo-references: excluded, and why:
   openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
@@ -43,7 +38,12 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
-check-todo-references: 67 citation(s) resolve through the recorded table; 10710 file(s) excluded by the allowlist above
+check-todo-references: 67 citation(s) resolve through the recorded table; 10723 file(s) excluded by the allowlist above
+exit=0
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
 exit=0
 
 $ tools/check-portability.sh
@@ -126,16 +126,438 @@ check-portability: the documented exception — the label that authorises work i
 check-portability: OK — 56 engines and 7 templates name no project value (118 value(s) read from the project)
 exit=0
 
-$ tools/loop/evidence-check.sh openspec/changes/fix-the-turn-bounds-state-the-value-the-profile-records
-ok   C1 §references: 0 checked, 0 exempted as archived pointers
-ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
-ok   C3 /tmp pointers: none cited
-ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
-ok   C5 file:line: 152 resolved and in range, 0 unresolved or ambiguous
-----
-evidence-check: PASS
+$ bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
 exit=0
 
-$ tools/loop/gate.sh --plan --base 4c400715860c22ae927284a7649acc4b19ba9a87   (the two commands this delta adds to the map)
-tools/check-doc-values.sh
-tools/tests/check-doc-values-selftest.sh
+$ openspec validate --specs
+✓ spec/about-dialog
+  ⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/adaptive-zoom
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/address-book-permission
+✓ spec/address-book-search
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/agent-issue-loop
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[19]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[24]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[25]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[27]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[28]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[29]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[35]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[37]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[38]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[39]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[42]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[44]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[46]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[54]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[55]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[58]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[62]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[63]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[73]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[77]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[78]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[82]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[85]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[93]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[96]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[98]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[99]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[103]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[108]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[109]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[110]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[115]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[121]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[122]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/always-on-display
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/android-automotive-os
+✓ spec/app
+✓ spec/auto
+✓ spec/auto-cross-device-sync
+✓ spec/auto-deep-links
+✓ spec/auto-destination-details
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-destination-picker
+✓ spec/auto-diagnostics
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[12]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-favorites
+✓ spec/auto-map-destination-picker
+✓ spec/auto-map-interaction
+✓ spec/auto-map-layout
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-map-renderer
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[12]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-navigation-hints
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-search
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-search-suggestions
+✓ spec/auto-smooth-follow
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-speed-zoom
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto-startup-hardening
+✓ spec/auto-turn-zoom
+✓ spec/auto/browse
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto/free-driving
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto/map-pan
+✓ spec/auto/navigation-view
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto/off-route-indicator
+✓ spec/auto/preferences
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/auto/screen-observation
+✓ spec/back-gesture
+✓ spec/backlog-sensors
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/backlog-source-of-truth
+✓ spec/basemap-cancel
+✓ spec/basemap-discovery
+✓ spec/basemap-download
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/basemap-loading
+✓ spec/basemap-ui
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/build-jvm-toolchain
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/build-sbom
+✓ spec/build-test-gate
+✓ spec/button-elevation
+✓ spec/canvas-overrun
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/car-host-fault-isolation
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/car-list-row-limit
+✓ spec/car-session-presence
+✓ spec/change-readiness
+✓ spec/ci-action-runtimes
+✓ spec/ci-gate-layout
+✓ spec/ci-unit-test-jni
+✓ spec/ci-vcpkg-cache
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/compass-button
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/compass-settings
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/cross-variant-ui-parity
+✓ spec/current-road-info
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/dark-mode
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/daylight-map-palette
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/decision-queue
+✓ spec/documentation-ownership
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[20]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[22]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/double-buffering
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/download-wake-lock
+✓ spec/enhanced-details-sheet
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/fav-auto-zoom
+✓ spec/fav-detail-save
+✓ spec/fav-group-color
+✓ spec/fav-management-ui
+  ⚠ [WARNING] requirements[12]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[16]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[17]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[18]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/fav-markers
+✓ spec/fav-ordering
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/fav-search
+✓ spec/fav-service
+  ⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/fav-star
+✓ spec/fav-starred-chip-bar
+✓ spec/favorite-search
+✓ spec/feature-list-generation
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/gps-bearing-smoothing
+✓ spec/gps-fix-quality
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/gps-location-marker
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/gps-provider-selection
+✓ spec/gps-render-coalescing
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/gps-speed-priority
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/group-grid-display
+✓ spec/group-ordering
+✓ spec/group-rename
+✓ spec/highlight-measurement
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/i18n-l10n
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/immediate-turn-instruction
+✓ spec/issue-backlog
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/issue-priority
+✓ spec/jnisync-java-scout
+✓ spec/keyboard-shortcuts
+✓ spec/kover-aggregate-report
+✓ spec/landscape-layout
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/lane-guidance
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/license-compliance
+✓ spec/location-options-ui
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/location-permissions
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/location-search
+  ⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[17]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[18]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/location-updates-lease
+✓ spec/long-press-candidate-picker
+✓ spec/long-press-details
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-canvas-screen
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-download-infrastructure
+  ⚠ [WARNING] requirements[14]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-download-ui
+✓ spec/map-long-press-timeout
+✓ spec/map-menu
+✓ spec/map-modes
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-pan-zoom
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-recenter-button
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-render
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-repository-source
+✓ spec/map-rotation-gesture
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-source-selection
+✓ spec/map-speed-widget
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/map-styles
+✓ spec/map-updates
+✓ spec/marker-render-accuracy
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/mini-map
+✓ spec/native-database-open
+✓ spec/native-tile-data-cache
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/nav-hints-layout
+✓ spec/nav-hud-visuals
+✓ spec/navigation-controller
+✓ spec/navigation-engine
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/navigation-ongoing-notification
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/navigation-state-display
+✓ spec/navigation-status-details
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/navigation-symbols
+✓ spec/next-turn-overlay
+✓ spec/off-route-indicator
+✓ spec/osm-attribution
+✓ spec/osmscout-jni
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[12]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/osmscout-native
+✓ spec/path-text-font-caching
+✓ spec/poi-search
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/precise-location-results
+✓ spec/project-metrics-report
+✓ spec/release-notes-generation
+✓ spec/release-target
+✓ spec/render-mode-switch
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/render-performance
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/render-projection-dpi
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/reroute-route-visibility
+✓ spec/reroute-trigger
+✓ spec/rerouting-visual-feedback
+✓ spec/road-lookup-bearing
+✓ spec/roundabout-renderer
+✓ spec/route-analysis
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/route-appearance
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/route-calculation-feedback
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/route-map-overview
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/route-panel-ui
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/route-planning-session
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/route-summary-dialog
+✓ spec/routing-avoidance
+✓ spec/routing-failure-reporting
+✓ spec/routing-max-speed
+✓ spec/routing-summary
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/search-dialog
+✓ spec/search-free-text
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/search-history
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/search-request-lifecycle
+✓ spec/search-result-ranking
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/settings-persistence
+✓ spec/shaping-inbox
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/share/location-receiving
+✓ spec/smooth-follow
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/smooth-zoom
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[9]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/sonar-analysis
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/spec-feature-index
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/speed-spike-filtering
+✓ spec/stale-citation-resolution
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/starred-ordering
+✓ spec/style-load-diagnostics
+✓ spec/test-coverage
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/tile-cache
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/tooling-portability
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/tooling-test-layout
+✓ spec/turn-instruction-localization
+✓ spec/unit-test-suite-runtime
+  ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[16]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/viewport-persist
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/voice-guidance
+✓ spec/zoom-controls
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/zoom-transition-scaling
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 186 passed, 0 failed (186 items)
+exit=0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit=0

@@ -1,11 +1,9 @@
-# The one erroring gate step of this item's single gate run, copied verbatim.
-# Source: this item's gate log, lines 1424-1442 (the item's evidence directory
-# carries the full log as gate-run.log). The gate line and exit that framed it:
+# The one erroring gate step of this item's round-2 gate run, copied verbatim from the gate log.
+# Source: the run's evidence directory, gate-run-round2.log (the full log of the run's one gate).
 
-LOOP-GATE: tests=989 failures=0 errors=1 (not retained as a JUnit XML — the gate runner's own tally) (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 13s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 294s, tools/loop/tests/loop-selftest.sh --from-git 8a2f1adbdaced0f79c4c2fccf5dfeab321d07a47 646s, bash tools/loop/tests/loop-mutations.sh --check 4s, tools/loop/tests/loop-mutations-selftest.sh 700s, bash tools/gen-feature-list.sh --check-classification 6s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 26s, tools/tests/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 96s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: bash tools/gen-feature-list.sh --check-classification
+LOOP-GATE: tests=955 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --from-git 4c400715860c22ae927284a7649acc4b19ba9a87 538s, bash tools/loop/tests/loop-mutations.sh --check 3s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 1s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 0s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 30s, tools/tests/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 100s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: bash tools/gen-feature-list.sh --check-classification
 GATE-EXIT=1
 
-gate: bash tools/gen-feature-list.sh --check-classification
 gen-feature-list: unclassified spec id(s):
   architecture-test-suite (introduced by the open change package-structure-as-five-kinds — classify it in that change, before it archives)
   domain-vocabulary (introduced by the open change domain-vocabulary-is-declared — classify it in that change, before it archives)
@@ -18,20 +16,19 @@ gen-feature-list: stale classification entry for a spec that no longer exists:
 specs read: 186
 classified: 189
 unclassified: 4
-delta spec ids: 18
+delta spec ids: 17
 stale: 3
 car-only areas: 1
 highlights: 19
 gen-feature-list: classification gate failed
-gate: bash tools/gen-feature-list.sh --check-classification — 6s
 
 # Why this step reddens: an unclassified spec id sets gate_errors
 # (tools/gen-feature-list.sh:214), while a stale classification entry is
 # reported without failing (tools/gen-feature-list.sh:246). The step therefore
-# fails on `unclassified: 4`, and each of the four ids is named by the gate
-# itself as introduced by another open change — not by this change.
-
-# NOTE: the two LOOP-GATE lines quoted above are the gate runner's own tallies,
-# not a suite's JUnit result — not retained as a JUnit XML; the log that printed
-# each one is this item's gate log (copied in the run's issue-loop evidence directory).
-openspec/changes/fix-the-turn-bounds-state-the-value-the-profile-records/evidence/red-before-item-837-gate.txt
+# fails on 'unclassified: 4', and each of the four ids is named by the gate
+# itself as introduced by another open change — 'package-structure-as-five-kinds'
+# and 'domain-vocabulary-is-declared' — not by this change, which adds no
+# capability id (its requirement joins the existing 'documentation-ownership' capability).
+# The same step was already red in item 837's gate in this change root:
+# 'tests=987 failures=0 errors=1 — failing: bash tools/gen-feature-list.sh --check-classification'.
+openspec/changes/archive/2026-11-10-fix-the-turn-bounds-state-the-value-the-profile-records/evidence/red-before-item-837-gate.txt

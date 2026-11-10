@@ -16,7 +16,7 @@
       `tools/loop/loop.conf` records — worker 200, gate child 100, tail 65, rework round 150, review round 110, the
       round before the gate 110 — each beside the measurement that set it.
       *Verification:* the sentence points at the table, which states all six values.
-- [x] 2.2 `guidelines/Backlog.recipes.md` section 7b :446-448 becomes one table: the role's key, the value the profile
+- [x] 2.2 `guidelines/Backlog.recipes.md` section 7b :451-458 becomes one table: the role's key, the value the profile
       records, and the measurement that set it (the figures the profile's own derivation carries).
       *Verification:* `tools/check-doc-values.sh` exits 0 with `prose matches config` over six roles.
 - [x] 2.3 `guidelines/BacklogTooling.md` :137-145 stops restating the six values and points at the section 7b table.
@@ -43,3 +43,20 @@
 - [x] 4.2 `tools/loop/evidence-check.sh openspec/changes/fix-the-turn-bounds-state-the-value-the-profile-records`
       reports no finding: every cited figure has its tally and every cited `path:NN` resolves.
       *Verification:* exit 0.
+
+## 5. The round-2 corrections (the findings of review round 1)
+
+- [x] 5.1 The prose around the table states no bound figure of its own: section 7b's four sentences that named the
+      rework round's bound now point at the table's `LOOP_CHILD_TURNS_MAX_WORKER_REWORK` row, so the value a reader
+      reads is the one the check compares (the review's NOTE 1 — the shape it refused, reduced to one role).
+      *Verification:* `tools/look.sh '150' --path guidelines/Backlog.recipes.md` reports two matches — the table's
+      own row and an unrelated figure elsewhere in the document — and none in prose.
+- [x] 5.2 The gate ran once over the tree this round reads, so the record's third field names it (the review's
+      BLOCKING): the gate's `LOOP-GATE-TREE` line and the round's diff identity are one digest, because both take
+      `tools/loop/lib.sh`'s `loop_change_identity` over the run's base `4c400715860c22ae927284a7649acc4b19ba9a87`.
+      *Verification:* the gate line's `diff=` is the value `review-2.diff.identity` carries.
+- [x] 5.3 The drift direction is proved on the tree itself, not only on a fixture: `tools/loop/loop.conf`'s worker
+      value was moved from 200 to 201, `tools/check-doc-values.sh` printed
+      `LOOP-CHILD-TURNS-MAX: worker prose 200 config 201` and exited 1, the file was restored, and the check was
+      green again (`evidence/revert-check-drift.txt`).
+      *Verification:* the recorded log carries the red line and the green line, and the tree holds 200.

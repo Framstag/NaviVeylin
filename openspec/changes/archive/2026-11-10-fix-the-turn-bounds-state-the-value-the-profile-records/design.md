@@ -13,7 +13,8 @@ run applies.
 State, in section 7b, one table: the role's key, the value `tools/loop/loop.conf` records, and the measurement that set it —
 the shape #833 landed for `LOOP_ITEM_CONTEXT_MAX` (a value beside its measurement, in one place). The two prose lists
 become that table and a pointer to it; `guidelines/BacklogTooling.md`'s key row stops restating values and points at
-the table, so the fact has one home in `guidelines/`.
+the table, so the fact has one home in `guidelines/`. The prose around the table points at the row it means and states
+no figure of its own, so every value the section states for a bound is one the check compares.
 
 Then a check that reads both sides and fails when they differ: `tools/check-doc-values.sh` takes every
 `LOOP_CHILD_TURNS_MAX_<ROLE>` key from the profile, finds the row that names it in the section 7b table, and prints
@@ -24,7 +25,9 @@ value change reddens the gate instead of waiting for a reader.
 
 ## Blast radius
 
-- 2 guideline documents, 3 passages (prose only; no rule is added to section 7b, one statement of each value replaces two).
+- 2 guideline documents, 3 passages (prose only; no rule is added to section 7b, one statement of each value replaces two),
+  and in round 2 the four sentences of section 7b that still stated the rework round's bound, which now point at the
+  table's row.
 - 1 new check, 1 new self-test — no engine line changes: `tools/loop/loop.conf` gains suite pairs only, and
   `tools/check-portability.sh` reads the engine, not the profile's values.
 - 1 requirement added to `documentation-ownership`; `agent-issue-loop` is untouched — it owns the header token that
@@ -35,7 +38,7 @@ value change reddens the gate instead of waiting for a reader.
 ## Rollback
 
 Revert the commit: the check and its self-test leave with it, `loop.conf`'s suite pairs leave with it, and the three
-prose passages return to the measurement-as-bound shape they had. Nothing the run executes reads the check, so a
+prose passages and the four sentences that point at the table's row return to the measurement-as-bound shape they had. Nothing the run executes reads the check, so a
 reverted tree runs exactly as before.
 
 ## Alternatives the evidence eliminated

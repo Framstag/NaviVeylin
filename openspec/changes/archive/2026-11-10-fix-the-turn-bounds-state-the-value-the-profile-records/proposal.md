@@ -33,3 +33,5 @@ surface: 2 guideline documents rewritten (3 passages: section 7b :406-408, secti
 check and 1 self-test added, 1 spec requirement added, 6 gate-suite pairs added, 0 cases rewritten, 0 engine lines
 changed — `tools/look.sh 'LOOP_CHILD_TURNS_MAX'` (92 matches in 37 files: 2 guideline documents state the values, 1
 profile records them in 8 lines, 1 engine reads them, the other 33 are cases, prompts and archived change history).
+Round 2 added one passage to the same document: section 7b's four sentences that still stated the rework round's
+bound now point at the table's row, so the value a reader reads is the one the check compares.

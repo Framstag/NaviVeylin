@@ -1,6 +1,6 @@
 # Gate attribution for this item's single gate run
 
-Gate line (gate runner's own tally — not retained as a JUnit XML; its log is this item's gate log): `tests=989 failures=0 errors=1 (…) — failing: bash tools/gen-feature-list.sh --check-classification`, `GATE-EXIT=1`. The failing output is copied verbatim in
+Gate line (gate runner's own tally — not retained as a JUnit XML; its log is this item's gate log): `tests=955 failures=0 errors=1 (…) — failing: bash tools/gen-feature-list.sh --check-classification`, `GATE-EXIT=1`. The failing output is copied verbatim in
 `evidence/gate-classification-red.txt`; the red-before proof is copied verbatim in
 `evidence/red-before-item-837-gate.txt`.
 

@@ -1,0 +1,18 @@
+# The drift direction proved on the tree itself (the review's NOTE 6): the profile's worker value moved by one,
+# the check reddened on the production file, the file was restored, and the check was green again.
+# Nothing outside tools/loop/loop.conf was touched, and the file's bytes after the restore are its bytes before.
+
+2026-11-10T10:18:20Z
+
+$ sed -i 's/^LOOP_CHILD_TURNS_MAX_WORKER=200$/LOOP_CHILD_TURNS_MAX_WORKER=201/' tools/loop/loop.conf
+$ bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: worker prose 200 config 201 — the guideline states a figure the profile does not record, so the bound a run applies is not the one a reader is given
+exit=1
+
+$ sed -i 's/^LOOP_CHILD_TURNS_MAX_WORKER=201$/LOOP_CHILD_TURNS_MAX_WORKER=200/' tools/loop/loop.conf
+$ bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+
+$ sed -n '176p' tools/loop/loop.conf
+LOOP_CHILD_TURNS_MAX_WORKER=200

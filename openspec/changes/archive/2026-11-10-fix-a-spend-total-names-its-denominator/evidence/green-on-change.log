@@ -1,0 +1,13 @@
+== green on the change, siblings, 2026-11-10T02:23:02Z
+PASS report#theSpendTotalsNameWhatTheyAreAShareOf
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#aRolesTokensRecordTheModelThatAnswered
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+PASS report#trendFiguresFromState
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#anItemRecordsItsRepeatReads
+PASS report#zeroUsagePrintsDashNotZero
+PASS driver#everyCaseDeclaresTheFilesItCanReach

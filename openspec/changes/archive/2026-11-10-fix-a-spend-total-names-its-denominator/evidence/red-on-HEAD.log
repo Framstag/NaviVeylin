@@ -1,0 +1,14 @@
+== red case on HEAD (base c0ddb97c) 2026-11-10T02:18:29Z
+report#theSpendTotalsNameWhatTheyAreAShareOf|   the phases' total is printed beside the wall the same items recorded, so the two reconcile: 'model 9.5 s · gate 5 s · other 0.3 s · 14.8 s over 1 item · 35 % of the 42 s the same items recorded' not found in:   phases: model 9.5 s · gate 5 s · other 0.3 s · 14.8 s over 1 item
+--- report#theSpendTotalsNameWhatTheyAreAShareOf[0] (exit 1)
+  the phases' total is printed beside the wall the same items recorded, so the two reconcile: 'model 9.5 s · gate 5 s · other 0.3 s · 14.8 s over 1 item · 35 % of the 42 s the same items recorded' not found in:   phases: model 9.5 s · gate 5 s · other 0.3 s · 14.8 s over 1 item
+FAIL report#theSpendTotalsNameWhatTheyAreAShareOf
+loop-selftest: 1 of 1 cases failed
+== declaration case
+driver#everyCaseDeclaresTheFilesItCanReach|   a case does not declare what it can be reached by: report#theSpendTotalsNameWhatTheyAreAShareOf:tools/loop/gate.sh
+--- driver#everyCaseDeclaresTheFilesItCanReach[0] (exit 1)
+  a case does not declare what it can be reached by: report#theSpendTotalsNameWhatTheyAreAShareOf:tools/loop/gate.sh
+FAIL driver#everyCaseDeclaresTheFilesItCanReach
+loop-selftest: 1 of 1 cases failed
+== declaration case on HEAD + this change's case 2026-11-10T02:18:47Z
+PASS driver#everyCaseDeclaresTheFilesItCanReach

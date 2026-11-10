@@ -1,0 +1,7 @@
+== the tree's state, measured 2026-11-10T02:19:12Z
+-- jq: phases total vs item walls over the items that recorded phases
+phasesMs=8187572 wallSeconds=16253.051 items=10
+-- jq: per item, tokens minus roles, and the turns before its first session record
+issue=829 tokens=1725668 roles=278094 diff=1447574
+issue=830 tokens=11610275 roles=4745089 diff=6865186
+issue=833 tokens=5440384 roles=3535653 diff=1904731

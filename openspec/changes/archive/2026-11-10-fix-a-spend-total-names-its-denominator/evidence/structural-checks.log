@@ -1,0 +1,13 @@
+== structural checks, 2026-11-10T02:23:55Z
+bash -n tools/loop/report.sh ok
+bash -n tools/loop/tests/loop-cases.sh ok
+bash -n tools/loop/tests/loop-mutations.sh ok
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 16 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+check-openspec-hygiene ok
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+check-doc-routes ok
+check-todo-references ok
+Change 'fix-a-spend-total-names-its-denominator' is valid
+== revalidated after the delta's last wording, 2026-11-10T02:24:24Z
+Change 'fix-a-spend-total-names-its-denominator' is valid

@@ -1,0 +1,11 @@
+== one mutation per site, 2026-11-10T02:23:45Z
+loop-mutations: selected 2 of 314 records (labels: 832.1 832.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.pfsQTA
+RED    832.1  report#theSpendTotalsNameWhatTheyAreAShareOf   (the phases printed as a share of the wall the same items recorded, so the total reads as the whole clock of the run (issue #832))
+       2026-11-10T02:23:48Z — the phases' total is printed beside the wall the same items recorded, so the two reconcile: 'model 9.5 s · gate 5 s · other 0.3 s · 14.8 s over 1 item · 35 % of the 42 s the same items recorded' not found in:   phases: model 9.5 s · gate 5 
+restore 832.1 report#theSpendTotalsNameWhatTheyAreAShareOf green again
+RED    832.2  report#theSpendTotalsNameWhatTheyAreAShareOf   (the tokens of the turns no session record covers, so the role total prints beside nothing it can be reconciled with (issue #832))
+       2026-11-10T02:23:53Z — and the role total is printed beside the tokens the same items recorded, the difference named: 'worker 6 Mtok · reviewer 1 Mtok · tail 1 Mtok · 8 Mtok over 1 item · of the 10 Mtok the same items recorded — 2 Mtok (20 %) in turns no session 
+restore 832.2 report#theSpendTotalsNameWhatTheyAreAShareOf green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

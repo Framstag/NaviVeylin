@@ -1,0 +1,69 @@
+# evidence-check — what the pointer check reported, and what was corrected
+
+Every line is a command's own output; the command is above it. Run from the change root, 2026-11-10 (phase F).
+
+## First run, as the tail found the change
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-spend-total-names-its-denominator --root .
+    FAIL C1 dangling §7 in openspec/changes/fix-a-spend-total-names-its-denominator (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    FAIL C1 dangling §7 in openspec/changes/fix-a-spend-total-names-its-denominator (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    FAIL C1 dangling §7 in openspec/changes/fix-a-spend-total-names-its-denominator (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    FAIL C1 dangling §7 in openspec/changes/fix-a-spend-total-names-its-denominator (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 292 resolved and in range, 2 unresolved or ambiguous
+    ----
+    evidence-check: FAIL (4)
+    EXIT=1
+
+C2–C5 were green: no quoted tally, no `/tmp` pointer, no surviving mutation marker, every `file:line` resolving
+(the 2 unresolved are ambiguous basenames, report-only by the check's own rule).
+
+## What the four were
+
+Located with a pattern search over the change directory (`ctx_grep` pattern `§7`, run before the correction); the
+lines as they stood then:
+
+    ./tasks.md:43:## 3. The guideline — `guidelines/Backlog.recipes.md` §7b
+    ./design.md:39:- `guidelines/Backlog.recipes.md` §7b: one sentence.
+    ./proposal.md:47:**Owning guideline section:** `guidelines/Backlog.recipes.md` §7b "What an item costs, and the bounds on it", the
+    ./proposal.md:68:4. **`guidelines/Backlog.recipes.md` §7b gains the rule** the two figures follow, with the measurement.
+
+Each was a **guideline section**, not a backlog `§`-issue: `guidelines/Backlog.recipes.md:254` `## §7b What an item
+costs, and the bounds on it`. The check's pattern is `§[0-9]+` (`tools/loop/evidence-check.sh:68`), so it read the
+`§7` inside `§7b` as a citation of the migration's `§ → issue` numbering, where no row 7 exists — two namespaces the
+check does not tell apart. The class is pre-existing at this base and outside this change (the same report is in
+`openspec/changes/archive/2026-11-06-loop-suite-cost-is-reported/evidence/evidence-check.txt`).
+
+## The correction
+
+The four citations were repointed at the same section by line, dropping the `§` the check misreads:
+`guidelines/Backlog.recipes.md:254` (`## §7b What an item costs, and the bounds on it`), verified with
+`tools/look.sh '^## ' --path guidelines/Backlog.recipes.md`. No claim, figure or observation changed — only the
+form of the four pointers. The gate result this report cites was copied beside the evidence it sits with:
+`evidence/gate-run.txt`.
+
+## Second run, after the correction
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-spend-total-names-its-denominator --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 296 resolved and in range, 2 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+    EXIT=0
+
+## Post-archive run (the archived path, after `openspec archive` moved the change)
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-10-fix-a-spend-total-names-its-denominator --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 296 resolved and in range, 2 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+    EXIT=0

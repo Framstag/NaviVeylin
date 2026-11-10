@@ -6,12 +6,12 @@ Reference: `proposal.md` for scope, root cause and the red run; `specs/decision-
 
 Requirement: "A park writes its answer and moves no label", scenarios "A park writes its answer and moves no
 label" and "A parked item prints the condition it waits for" — in
-`openspec/changes/fix-a-park-has-a-writer/specs/decision-queue/spec.md`.
+`openspec/changes/archive/2026-11-10-fix-a-park-has-a-writer/specs/decision-queue/spec.md`.
 
 - [x] 1.1 `answer#parkWritesTheAnswerAndKeepsTheMode`: the park posts the answer comment carrying the decision
       and the `answers:` marker and performs no transition (`issue edit|close` count 0), keeping the label and
       the status. Verify: red on the base — `answer: unknown argument --park: expected '0', got '2'`,
-      `.pi/issue-loop/items/845/red-on-HEAD.xml` `tests="2" failures="2"` (2026-11-10T10:28:12Z).
+      `evidence/red-on-HEAD.xml` `tests="2" failures="2"` (2026-11-10T10:28:12Z).
 - [x] 1.2 `decisions#aParkedItemIsListedAsParked`: the parked item stays listed and counted and its entry reads
       `parked: wait for #844` in both the JSON and the human form. Verify: red on the same base run —
       `expected 'parked: wait for #844', got 'Decision: wait for #844, the prerequisite, before either row moves'`.
@@ -33,7 +33,7 @@ label" and "A parked item prints the condition it waits for" — in
 - [x] 3.1 A2.1 mutates the empty `park)` arm in `tools/issues/answer.sh` (the arm whose emptiness *is* "a park
       performs no transition"); the case that must fail is `answer#parkWritesTheAnswerAndKeepsTheMode`. Verify:
       red when mutated, restored green — `mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)`
-      (`.pi/issue-loop/items/845/revert-check.log`).
+      (`evidence/revert-check.log`).
 - [x] 3.2 A2.2 mutates the `| if $parked == "" then` branch in `tools/issues/decisions.sh` (the branch that
       selects the queue entry); the case that must fail is `decisions#aParkedItemIsListedAsParked`. Verify: same
       shape, same log.
@@ -43,20 +43,24 @@ label" and "A parked item prints the condition it waits for" — in
 - [x] 4.1 `guidelines/Backlog.md` §5: "Six rules" → "Seven rules" and the new rule "a park writes its answer and
       moves no label", with the falsifying observation ("A park that moved a label would spoil the queue either
       way"); §5's reader sentence reworded to "the same writer every other answer leaves through". Verify:
-      `tools/check-doc-routes.sh` green (`.pi/issue-loop/items/845/structural-checks.log`).
+      `tools/check-doc-routes.sh` green (`evidence/structural-checks.log`).
 - [x] 4.2 `.pi/skills/answer-decision` sections 6 and 7: the park lane, its command line, and what the queue then says.
       Verify: the same structural run.
 - [x] 4.3 The delta `specs/decision-queue/spec.md` (ADDED requirement, two scenarios bound to the two cases) plus
-      this `proposal.md`. Verify: `openspec validate fix-a-park-has-a-writer --strict` → `Change
-      'fix-a-park-has-a-writer' is valid`, exit 0.
+      this `proposal.md`. Verify: `tools/check-openspec-hygiene.sh` → `OpenSpec artifacts are consistent`, exit 0
+      (`evidence/structural-checks.log`). The former `openspec validate fix-a-park-has-a-writer --strict` line is
+      withdrawn: the archive renamed the change to `2026-11-10-fix-a-park-has-a-writer`, and `openspec validate`
+      refuses an archived change (`Unknown item '2026-11-10-fix-a-park-has-a-writer'`).
 
 ## 5. Verification
 
 - [x] 5.1 No compiled file changes (`tools/**`, `guidelines/**`, `.pi/**`, tests only), so no build and no
       Gradle suite is owed — the structural checks stand in (`guidelines/Build.md` §2 scope block):
       `tools/check-doc-routes.sh`, `tools/check-doc-values.sh`, `tools/check-openspec-hygiene.sh`,
-      `tools/check-todo-references.sh`, `tools/check-evidence.sh`, each ending `exit=0`
-      (`.pi/issue-loop/items/845/structural-checks.log`).
-- [x] 5.2 The reached cases green on the change: 33 `PASS` lines (`.pi/issue-loop/items/845/green-cases.log`).
-- [x] 5.3 The artifacts: `openspec validate fix-a-park-has-a-writer --strict` and
-      `tools/check-openspec-hygiene.sh`, both green after this delta was written.
+      `tools/check-todo-references.sh`, `tools/loop/evidence-check.sh`, each ending `exit=0`
+      (`evidence/structural-checks.log`).
+- [x] 5.2 The reached cases green on the change: 33 `PASS` lines (`evidence/green-cases.log`); the round-2 run of
+      the two park cases and their two siblings, with the command that produced it and a timestamp per case, is
+      `evidence/green-cases-round2.log`.
+- [x] 5.3 The artifacts: `tools/check-openspec-hygiene.sh`, green after this delta was written
+      (`evidence/structural-checks.log`).

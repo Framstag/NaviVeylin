@@ -1,0 +1,17 @@
+# command: bash tools/issues/tests/issue-tooling-selftest.sh --case <case>   (run from the change root)
+# run: 2026-11-10T11:02:34Z   HEAD 08062c83   working tree: the round-2 corrections (answer.sh reads the answer's two constants from lib.sh)
+# 2026-11-10T11:02:34Z  answer#parkWritesTheAnswerAndKeepsTheMode
+PASS answer#parkWritesTheAnswerAndKeepsTheMode
+answer#parkWritesTheAnswerAndKeepsTheMode exit=0
+# 2026-11-10T11:02:35Z  decisions#aParkedItemIsListedAsParked
+PASS decisions#aParkedItemIsListedAsParked
+decisions#aParkedItemIsListedAsParked exit=0
+# 2026-11-10T11:02:36Z  answer#continueReturnsTheItemToTheQueue
+PASS answer#continueReturnsTheItemToTheQueue
+answer#continueReturnsTheItemToTheQueue exit=0
+# 2026-11-10T11:02:37Z  answer#theAnswerQuotesTheQuestionNotTheVerdictWord
+PASS answer#theAnswerQuotesTheQuestionNotTheVerdictWord
+answer#theAnswerQuotesTheQuestionNotTheVerdictWord exit=0
+# 2026-11-10T11:02:39Z  decisions#theQuestionIsNotTheVerdictWord
+PASS decisions#theQuestionIsNotTheVerdictWord
+decisions#theQuestionIsNotTheVerdictWord exit=0

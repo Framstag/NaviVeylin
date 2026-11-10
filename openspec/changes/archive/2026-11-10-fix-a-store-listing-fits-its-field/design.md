@@ -26,8 +26,8 @@ Two choices the decision left to the tree, and what settles each:
 
 - **The impact order is the shortlist's.** `tools/feature-list/highlights.json` is the tree's existing record of what
   the product tells a user about — one entry per selling point, the file the catalogue is built from. A bullet whose
-  spec a highlight names ranks above one it does not, and the entry's own order settles each group, so the order is a
-  stable function of two files and nothing is inferred. The area order is *not* an impact order: it is the
+  first cited spec a highlight names ranks above one it does not, and the entry's own order settles each group, so the
+  order is a stable function of two files and nothing is inferred. The area order is *not* an impact order: it is the
   changelog's grouping, which is the order this document exists to leave behind.
 - **The budget is 500 characters, per version.** It is the store field's limit, recorded with the item that asked for
   the document and not measured in this tree; the decision records why the scope is per entry — one entry's twelve

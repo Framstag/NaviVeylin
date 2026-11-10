@@ -1,0 +1,93 @@
+== 1. the gate's own check over this tree ==
+gen-feature-list: unclassified spec id(s):
+  architecture-test-suite (introduced by the open change package-structure-as-five-kinds — classify it in that change, before it archives)
+  domain-vocabulary (introduced by the open change domain-vocabulary-is-declared — classify it in that change, before it archives)
+  package-structure (introduced by the open change package-structure-as-five-kinds — classify it in that change, before it archives)
+  vocabulary-projection (introduced by the open change domain-vocabulary-is-declared — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 187
+classified: 190
+unclassified: 4
+delta spec ids: 17
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+rc=1
+
+== 2. this change's own delta id ==
+the change adds the capability 'store-listing-rendering' (openspec/specs/store-listing-rendering/spec.md)
+classified in tools/feature-list/specs.json: true
+the shipped spec exists: yes
+
+== 3. the four unclassified ids belong to two other open changes ==
+-- architecture-test-suite
+openspec/changes/package-structure-as-five-kinds/proposal.md | mtime 2026-11-09 18:44:28.265003455 +0100
+openspec/changes/package-structure-as-five-kinds/specs/architecture-test-suite/spec.md | mtime 2026-11-09 18:44:22.787948131 +0100
+openspec/changes/package-structure-as-five-kinds/tasks.md | mtime 2026-11-09 18:42:17.571692355 +0100
+-- domain-vocabulary
+openspec/changes/archive/2026-11-10-fix-the-turn-bounds-state-the-value-the-profile-records/evidence/gate-attribution.md | mtime 2026-11-10 11:20:04.142924320 +0100
+openspec/changes/archive/2026-11-10-fix-the-turn-bounds-state-the-value-the-profile-records/evidence/gate-classification-red.txt | mtime 2026-11-10 11:18:56.064411910 +0100
+openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken/evidence/archive.txt | mtime 2026-11-10 12:57:30.467430225 +0100
+openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken/evidence/gate-step-red-attribution.md | mtime 2026-11-10 12:57:02.712197869 +0100
+openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken/evidence/gate-classification-red.txt | mtime 2026-11-10 12:56:39.646968340 +0100
+openspec/changes/domain-vocabulary-is-declared/proposal.md | mtime 2026-11-09 19:10:54.554259237 +0100
+openspec/changes/domain-vocabulary-is-declared/specs/domain-vocabulary/spec.md | mtime 2026-11-09 19:09:12.462974506 +0100
+openspec/changes/domain-vocabulary-is-declared/tasks.md | mtime 2026-11-09 19:09:54.242503900 +0100
+-- package-structure
+openspec/changes/package-structure-as-five-kinds/proposal.md | mtime 2026-11-09 18:44:28.265003455 +0100
+openspec/changes/package-structure-as-five-kinds/specs/package-structure/spec.md | mtime 2026-11-09 18:44:11.427833482 +0100
+openspec/changes/package-structure-as-five-kinds/specs/architecture-test-suite/spec.md | mtime 2026-11-09 18:44:22.787948131 +0100
+openspec/changes/package-structure-as-five-kinds/tasks.md | mtime 2026-11-09 18:42:17.571692355 +0100
+-- vocabulary-projection
+openspec/changes/archive/2026-11-10-fix-the-turn-bounds-state-the-value-the-profile-records/evidence/gate-attribution.md | mtime 2026-11-10 11:20:04.142924320 +0100
+openspec/changes/archive/2026-11-10-fix-the-turn-bounds-state-the-value-the-profile-records/evidence/gate-classification-red.txt | mtime 2026-11-10 11:18:56.064411910 +0100
+openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken/evidence/gate-step-red-attribution.md | mtime 2026-11-10 12:57:02.712197869 +0100
+openspec/changes/archive/2026-11-10-fix-motorway-destination-is-spoken/evidence/gate-classification-red.txt | mtime 2026-11-10 12:56:39.646968340 +0100
+openspec/changes/domain-vocabulary-is-declared/proposal.md | mtime 2026-11-09 19:10:54.554259237 +0100
+openspec/changes/domain-vocabulary-is-declared/specs/vocabulary-projection/spec.md | mtime 2026-11-09 19:09:16.734028871 +0100
+openspec/changes/domain-vocabulary-is-declared/tasks.md | mtime 2026-11-09 19:09:54.242503900 +0100
+
+base commit 40cc58ff332952b6aca8b19deecd41e9aff81d23 is dated 2026-11-10 13:42:15 +0100
+
+== 4. the three stale classification entries are stale at the base commit ==
+search-name-matching: in specs.json at the base commit: true
+search-name-matching: the spec exists at the base commit: 0
+search-result-row-icon: in specs.json at the base commit: true
+search-result-row-icon: the spec exists at the base commit: 0
+start-map-selection: in specs.json at the base commit: true
+start-map-selection: the spec exists at the base commit: 0
+
+== 5. this change's diff against the base ==
+AGENTS.md
+README.md
+guidelines/FeatureList.md
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/design.md
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/evidence-probe.log
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/red-on-HEAD-gen-feature-list-selftest.log
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/red-on-HEAD-gen-feature-list-selftest.xml
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/review-round-1-requested.md
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/proposal.md
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/specs/store-listing-rendering/spec.md
+openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/tasks.md
+openspec/specs/store-listing-rendering/spec.md
+tools/feature-list/listing.awk
+tools/feature-list/specs.json
+tools/gen-feature-list.sh
+tools/issues/citations.json
+tools/tests/gen-feature-list-selftest.sh
+
+-- uncommitted (the round-2 repair) --
+ M AGENTS.md
+ M README.md
+ M guidelines/FeatureList.md
+ M openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/design.md
+ M openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/proposal.md
+ M openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/specs/store-listing-rendering/spec.md
+ M openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/tasks.md
+ M openspec/specs/store-listing-rendering/spec.md
+ M tools/feature-list/listing.awk
+?? openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/look-store-listing.log

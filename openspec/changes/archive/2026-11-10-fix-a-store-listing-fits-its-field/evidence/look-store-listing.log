@@ -1,0 +1,20 @@
+# tools/look.sh 'store listing' --files — which files hold the phrase, and how often
+LOOK: 39 matches in 18 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'store listing'
+LOOK-FILE: tools/feature-list/listing.awk 1
+LOOK-FILE: tools/gen-feature-list.sh 5
+LOOK-FILE: tools/tests/gen-feature-list-selftest.sh 3
+LOOK-FILE: guidelines/FeatureList.md 2
+LOOK-FILE: README.md 1
+LOOK-FILE: openspec/specs/android-automotive-os/spec.md 1
+LOOK-FILE: openspec/specs/store-listing-rendering/spec.md 3
+LOOK-FILE: openspec/changes/archive/2026-10-09-generate-feature-list/apply-evidence.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-09-generate-feature-list/design.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-09-generate-feature-list/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-17-github-issue-tooling/evidence/todo-dry-run.json 1
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/proposal.md 6
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/specs/store-listing-rendering/spec.md 3
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/look-store-listing.log 1
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/evidence/evidence-probe.log 3
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/design.md 2
+LOOK-FILE: openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/tasks.md 3
+LOOK-FILE: AGENTS.md 1

@@ -5,7 +5,7 @@ Reference: `proposal.md` for the surface and the red run, `specs/store-listing-r
 
 ## 1. The cases, red first
 
-Requirement: "A store listing fits the field it is pasted into", its five scenarios.
+Requirement: "A store listing fits the field it is pasted into", its six scenarios.
 
 - [x] 1.1 `tools/tests/gen-feature-list-selftest.sh` §9: a section of 16 cases over five versions (10-1-1-1 to
       10-1-1-5), a fresh fixture and the budget read from the tool's own `listing_budget` line, as the paragraph
@@ -28,8 +28,8 @@ Requirement: "A store listing fits the field it is pasted into", its five scenar
 Requirement: the same, scenarios one to four.
 
 - [x] 2.1 `tools/feature-list/listing.awk`: reads a version entry, keeps one bullet per line with its comment lines
-      under it, orders by the shortlist and then by the entry's own order, and fits the budget whole-bullet first and
-      whole-sentence second.
+      under it, orders by the shortlist (a bullet's first cited spec decides its rank) and then by the entry's own
+      order, and fits the budget whole-bullet first and whole-sentence second.
 - [x] 2.2 The summary: one general bullet naming the count it stands for, making room for itself from the end of the
       list, so a section is never over budget and a change is never dropped in silence.
 - [x] 2.3 `fit_sentences` never returns a prefix that ends inside a line: the cut is a `.` that ends the text or is
@@ -39,7 +39,7 @@ Requirement: the same, scenarios one to four.
 
 ## 3. The write site and the budget
 
-Requirement: the same, its fifth scenario.
+Requirement: the same, its fifth and sixth scenarios.
 
 - [x] 3.1 `tools/gen-feature-list.sh`: `listing_budget=500` beside `maxpara`, with its source in the comment; the
       budget is per version.
@@ -61,11 +61,20 @@ Requirement: the same.
       with every case that enforces them named.
 - [x] 4.3 `README.md`: the Features table row and the paragraph naming which documents may be absent; `AGENTS.md`:
       the Documentation Map row that routes §1, which names that section by its heading.
-- [x] 4.4 `tools/check-change-readiness.sh` reports `ok` for the change; `tools/check-openspec-hygiene.sh`,
-      `tools/check-doc-routes.sh` and `tools/check-doc-values.sh` report no finding over the changed paths.
+- [x] 4.4 `tools/check-openspec-hygiene.sh` reports no finding over the changed paths — every capability spec states
+      its Purpose, the store listing's included — and `tools/check-doc-routes.sh` and `tools/check-doc-values.sh`
+      report no finding over them either.
+- [x] 4.5 The capability's Purpose is written, not left as the sentence `openspec archive` writes: the delta carries
+      it and `openspec/specs/store-listing-rendering/spec.md` states it (the round-2 repair of the review's blocking
+      finding about the archive placeholder).
 
-## 5. The gate (not run by this change's own pass)
+## 5. The gate, the archive and the review
 
-- [ ] 5.1 The gate child runs `tools/loop/gate.sh --base 40cc58ff332952b6aca8b19deecd41e9aff81d23` over the diff and
-      records `LOOP-GATE-TREE` and `LOOP-GATE`.
-- [ ] 5.2 The independent review, then `openspec archive fix-a-store-listing-fits-its-field`.
+- [ ] 5.1 The gate runs `tools/loop/gate.sh --base 40cc58ff332952b6aca8b19deecd41e9aff81d23` over the diff and
+      records `LOOP-GATE-TREE` and `LOOP-GATE`. The round-2 worker runs it over the tree the review refused
+      (`head=0ba0bfcc8c3a1e7edc93fe346f684bfa0c0f391f`), not over the tree the round-1 gate measured
+      (`head=c3ee223de9e743dda0f6e378fc95351905535b61`).
+- [x] 5.2 `openspec archive fix-a-store-listing-fits-its-field`: the change is archived at
+      `openspec/changes/archive/2026-11-10-fix-a-store-listing-fits-its-field/`, with its evidence beside it.
+- [ ] 5.3 The independent review: round 1 refused the change (`LOOP-BLOCKING: 2`), and this round answers its
+      findings; the next round reads the tree this round's gate measured.

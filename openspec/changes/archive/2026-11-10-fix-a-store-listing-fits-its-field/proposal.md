@@ -5,7 +5,7 @@
 **Root cause.** `tools/gen-feature-list.sh` derives exactly one document from a version entry: the changelog-shaped
 release note (`tools/gen-feature-list.sh:811`), written whole and unbounded (`:827`–`:905`, the entry assembled and
 gated, then written per version). Nothing in the tool renders the same entry as store copy, so the only way to paste
-"What's new" into a store field is to cut the note by hand — and the note is 51 times the field.
+"What's new" into a store field is to cut the note by hand — and the note is 25 515 characters against the field's 500.
 
 **Evidence, measured on the release entry `2026-10-08-9`** (`/home/tim/projects/NaviVeylin/.pi/issue-loop/items/100/evidence-probe.log`,
 the item's own probe; the number is the probe's, not re-taken here): the entry is **25 515 characters over 148
@@ -27,9 +27,11 @@ from the catalogue, not published from it").
 production change reverted (`git show HEAD:tools/gen-feature-list.sh`): **14 of 135 cases fail**, every one of them a
 `listing:` case, because HEAD writes no `STORE-LISTING.md` and declares no `listing_budget`; XML
 `tests="135" failures="14"` (`red-on-HEAD-gen-feature-list-selftest.xml`, log beside it in the item's evidence
-directory). The first and smallest is `listing: the budget is declared by the tool`. Nothing in the tree renders a
-store listing today: `tools/look.sh 'store listing'` over `tools/`, `guidelines/`, `README.md` and
-`openspec/specs/` returns no hit outside this item's own additions.
+directory). The first and smallest is `listing: the budget is declared by the tool`. No file in the tree renders a
+store listing document: the sweep in `evidence/look-store-listing.log` (`tools/look.sh 'store listing'` over the
+tree) hits prose only — this change's own additions, the decision this change reverses at
+`openspec/changes/archive/2026-10-09-generate-feature-list/design.md:152`, and the Android store listing at
+`openspec/specs/android-automotive-os/spec.md:78`.
 
 ## Blast radius
 
@@ -57,11 +59,11 @@ store listing today: `tools/look.sh 'store listing'` over `tools/`, `guidelines/
   and `RELEASE-NOTES.md` themselves, `openspec/specs/**` while the change is open.
 
 surface: 1 renderer added (`tools/feature-list/listing.awk`), 1 write site in `tools/gen-feature-list.sh`
-(`tools/look.sh 'listing' --path tools/gen-feature-list.sh` → 15 matches, the constant, section 7a and the report
+(`tools/look.sh 'listing' --path tools/gen-feature-list.sh` → 28 matches, the constant, section 7a and the report
 line), 1 case section of 16
 (`tools/look.sh 'listing:' --path tools/tests/gen-feature-list-selftest.sh` → 33 matches, the 16 declarations and
 their comments), 1 classification line (`tools/look.sh 'store-listing-rendering' --path
  tools/feature-list/specs.json` → 1), 3 prose sites (`tools/look.sh 'listing' --path guidelines/FeatureList.md` →
-15 matches, `tools/look.sh 'STORE-LISTING' --path README.md` → 2, `tools/look.sh 'store listing' --path AGENTS.md`
+21 matches, `tools/look.sh 'STORE-LISTING' --path README.md` → 2, `tools/look.sh 'store listing' --path AGENTS.md`
 → 1), 1 entry in the generated-path list (`tools/look.sh 'STORE-LISTING' --path tools/issues/citations.json` → 1),
 and 1 requirement added in this change's delta (`specs/store-listing-rendering/spec.md`).

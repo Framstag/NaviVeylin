@@ -1,5 +1,11 @@
 # Spec Delta — store-listing-rendering
 
+## Purpose
+
+The project publishes, for each release version, a paste-ready store listing: the version's user-visible changes,
+ordered by the impact a user can feel and fitted to the character budget of the store field the listing is pasted
+into, so that the listing can be pasted without cutting it by hand.
+
 ## ADDED Requirements
 
 ### Requirement: A store listing fits the field it is pasted into
@@ -26,7 +32,8 @@ document SHALL state the budget it was fitted to.
 
 #### Scenario: The listing leads with the changes a user can see
 
-- **WHEN** the entry lists a change whose spec the shortlist does not name before one whose spec it does
+- **WHEN** the entry lists a change whose first cited spec the shortlist does not name before one whose first
+  cited spec it does
 - **THEN** the listing publishes the shortlisted change first, because the shortlist is the tree's record of what a
   user can see or feel, and publishes the other after it when the budget still holds it
 - **Case**: `listing: the listing leads with the shortlisted change`

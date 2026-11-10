@@ -1,0 +1,12 @@
+== doc-routes ==
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+rc=0
+== doc-values ==
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+rc=0
+== todo ==
+rc=0
+== hygiene ==
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+rc=0

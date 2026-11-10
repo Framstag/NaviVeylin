@@ -557,14 +557,14 @@ figure, never a stop: nothing in the run reads it, and the keys it would bound d
 
 **The gate a share is taken at is the call that ran it** (issue #830). Measured 2026-11-10 over the five items that
 were filed as two thirds of a run spent after its first gate (`.pi/issue-loop/items/{719,738,808,810,819}/
-events.jsonl`): every session those records split was split at `gate.sh --plan` — the call the worker's own Phase D
-asks for **first**, before it runs anything — or at a `sed`/`grep`/`git show` over the gate's own file, so the share
-printed as spend after the gate was the item's own derivation (50 %, 79 % and 89 % of three of the sessions; 41 % and
-55 % of the other two). The tail is not that session: since #744 the gate ends the child that ran it and
-`tail_after_gate` starts a fresh one, and the same streams show the tail's tokens in a session of their own. The
-engine reads the command's **program** — behind the `VAR=value` assignments, the `cd …` prefix and the
-`bash`/`sh`/`exec`/`timeout <n>` words a child writes — and a `--plan` call asks what a delta owes and runs no step,
-which is the rule the gate already applies to its own runs; a command whose argument is the gate's path is neither.
+events.jsonl`, read with `jq -s -f split-point.jq <items>/events.jsonl`; the probe and its output are versioned with
+the change that fixed it, `fix-a-gate-mention-is-not-a-gate-run`): every session those records split was split at
+`gate.sh --plan` — the call the worker's Phase D asks for **first** — or at a `sed`/`grep`/`git show` over the gate's
+own file, so the share printed as spend after the gate was the item's own derivation (50 %, 79 % and 89 % of three of
+the sessions; 41 % and 55 % of the other two). The tail is not that session: since #744 the gate ends the child that
+ran it and `tail_after_gate` (`tools/loop/run.sh:1801`) starts a fresh one. The engine reads the command's **program** —
+behind the `VAR=value` assignments, the `cd …` prefix and the `bash`/`sh`/`exec`/`timeout <n>` words a child writes — and
+a `--plan` call asks what a delta owes and runs no step; a command whose argument is the gate's path is neither.
 
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it

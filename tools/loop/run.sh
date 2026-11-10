@@ -628,7 +628,8 @@ keep_leftovers() { # keep_leftovers <item> → sets $leftover_patch (+ the file 
     # `diff HEAD` and not `diff`: a refused `end-item` leaves the work **staged** — the commit is what failed — and
     # `git diff` shows neither a staged addition nor a staged deletion, so the tracked half of the record would lose
     # exactly the work the loop's own commit path had staged (issue #308, measured on
-    # `run#aRefusedStartKeepsTheLeftoversItFound`: `demo-fix.txt` was staged and absent from the patch).
+    # `run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn`: `demo-fix.txt` was staged by the refused `end-item` and
+    # absent from a `git diff`-only patch).
     printf '# tracked changes (staged and unstaged, against HEAD):\n'
     git -C "$LOOP_WORKTREE" diff HEAD --no-color 2>/dev/null || true
     while IFS= read -r path; do
@@ -773,6 +774,32 @@ own_leftovers_of() { # own_leftovers_of <item> → 0 when this run ended that it
   case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
   case "$own_leftovers" in *" $1 "*) ;; *) return 1 ;; esac
   [ -s "$(loop_leftover_patch_of "$1")" ]
+}
+# The other way a tree is left dirty by work this run is responsible for (measured 2026-11-10). A child the run ended at a
+# bound is not the only producer: an item this run has **recorded** can leave its tree dirty behind it — the run of
+# 2026-11-10T08:19:24Z recorded #807 at 11:27:56Z and stopped 262 of its 480 minutes later over that item's leftovers
+# (`.pi/issue-loop/runs/2026-11-10T08:19:24Z.json`), which the refusal below read as "another item's" dirt because
+# `own_leftovers` is only appended by the cap arm. The rule that refusal protects is that nothing is discarded
+# unrecorded — and an item this run recorded, whose leftovers `keep_leftovers` has just written to its patch, is
+# recorded: the record is the item's own state entry and the patch beside it. Over the archive, five of the ten runs
+# that ended on this refusal had leftovers belonging to an item they had recorded themselves, 1 699 minutes unspent
+# (`jq -r '.run.stop.reason'` and the run's own `items[]` over `.pi/issue-loop/runs/*.json`).
+recorded_here() { # recorded_here <item> → 0 when this run's own state already holds that item
+  case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
+  [ -f "$LOOP_STATE_FILE" ] || return 1
+  [ "$(jq -r --argjson i "$1" '[.items[] | select(.issue == $i)] | length' "$LOOP_STATE_FILE" 2>/dev/null)" != "0" ]
+}
+# The work of an item this run recorded is written down and then discarded, so the next item can start: the same repair
+# the cap arm's leftovers take (issue #664), one condition wider. It is a refusal to *discard* without a record, never a
+# refusal to *work*, and the record is the item's own patch beside its own state entry.
+recorded_leftovers_of() { # recorded_leftovers_of <item> → 0 when this run recorded it and its work is now in its patch
+  recorded_here "${1:-}" || return 1
+  own_leftovers_of "$1" && return 0
+  keep_leftovers "$1"
+  [ -n "$leftover_patch" ] || return 1
+  own_leftovers="$own_leftovers$1 "
+  printf 'keeping the work #%s left after this run recorded it: %s\n' "$1" "$leftover_patch"
+  return 0
 }
 # A tree whose only leftovers are the module's gitlink — the module sits on another pin and its own tree is clean —
 # is not work: nothing inside the module was written, and placing the pin the base records loses nothing. The run
@@ -2144,9 +2171,14 @@ while true; do
         leftover_files=$(printf '%s\n' "$leftovers" | sed '/^$/d' | paste -sd, - | sed 's/,/, /g')
         start_after_discard=0
         retry_refusal=""
-        if own_leftovers_of "$owner_item" && discard_kept_worktree discard "$leftovers"; then
-          printf 'discarding the work #%s left: this run ended that child and wrote it to %s, so #%s starts on a clean tree\n' \
+        if recorded_leftovers_of "$owner_item" && discard_kept_worktree discard "$leftovers"; then
+          printf 'discarding the work #%s left after this run recorded it — %s, so #%s starts on a clean tree\n' \
             "$owner_item" "$(loop_leftover_patch_of "$owner_item")" "$issue"
+          # The console scrolls away, so the fact is written where a later reader looks for it: the run's own steps. The
+          # item it belongs to already carries its record and its label, which is why this is a step and not a second
+          # `done` for the same item — one record per item, and the record was the old arm's too.
+          loop_state step A --name "leftovers-discarded-$owner_item" --status ok \
+            --note "the work #$owner_item left after this run recorded it is kept at $(loop_leftover_patch_of "$owner_item") and was discarded so #$issue could start" >/dev/null 2>&1 || true
           retry_start_item
         elif submodule_only_dirt "$leftovers" && place_submodule_pin; then
           # The module on another pin is not work: nothing inside it was written, so the pin the base records is placed

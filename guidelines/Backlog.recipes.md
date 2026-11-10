@@ -1007,6 +1007,15 @@ all (#284). Measured 2026-10-26 the other way: #310 was ended at its cap at 08:0
 08:08:38Z, the start of #309 was refused at 08:09:04Z and the run stopped having spent 166 of its 400 minutes —
 234 minutes and the queued item unspent, for work that was green and archived (#664).
 
+The distinction the refusal needs is therefore not "dirty tree" but "work nothing records" (measured 2026-11-10).
+An item **this run has recorded** is not another item's work: the run writes its leftovers to that item's patch and
+discards the tree, and the start is retried, while an owner this run has not recorded keeps today's path to the end
+— escalate, record `blocked`, stop naming the item and the files. Measured on the run of 2026-11-10T08:19:24Z: #807
+was recorded at 11:27:56Z and the start of #100 was refused 3 s later over #807's own leftovers, so the run stopped
+at 11:58Z having spent 218 of its 480 minutes. Over the archive ten runs ended on this refusal and **five** of them
+had leftovers belonging to an item they had recorded themselves — 433, 117, 299, 234, 354 and 262 minutes unspent,
+**1 699** in all, which is the largest waste this tree has paid for a distinction it did not make.
+
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
 an invented one, because a fresh container or CI runner has neither and the item would block on its own

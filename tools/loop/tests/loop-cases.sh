@@ -270,8 +270,7 @@ LOOP_SHELL_CASES=(
   'run#resetWorktreeDiscardsWhatItNames'
   'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard'
   'run#resetWorktreeNamesTheDirtItCannotDiscard'
-  'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
-  'run#aRefusedStartKeepsTheLeftoversItFound'
+  'run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn'
   'run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin'
   'run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen'
   'run#theStartAfterTheRunsOwnEndedChildIsNotRefused'
@@ -957,8 +956,7 @@ loop_run_shell_case() {
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard') fn=case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard ;;
     'run#resetWorktreeNamesTheDirtItCannotDiscard') fn=case_run_resetWorktreeNamesTheDirtItCannotDiscard ;;
-    'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds') fn=case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds ;;
-    'run#aRefusedStartKeepsTheLeftoversItFound') fn=case_run_aRefusedStartKeepsTheLeftoversItFound ;;
+    'run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn') fn=case_run_aRecordedItemsLeftoversAreKeptAndTheStartGoesOn ;;
     'run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin') fn=case_run_placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin ;;
     'run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen') fn=case_run_aPinNoCloneHoldsIsRefusedBeforeThePrescreen ;;
     'run#theStartAfterTheRunsOwnEndedChildIsNotRefused') fn=case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused ;;
@@ -9085,76 +9083,52 @@ case_run_resetWorktreeNamesTheDirtItCannotDiscard() {
   [ -f "$wt/app/src/main/cpp/libosmscout/leftover.txt" ] || fail "the refusal discarded what it said it could not"
 }
 
-# A start the worktree refuses mid-run is the *previous* item's leftover, not the candidate's failure:
-# `start-item` refuses a dirty tree ("one writer per tree") and the run's catch-all arm ended the whole run on it.
-# The item whose work the tree held was already recorded for another reason, the leftover was attributed nowhere,
-# and the item that could not start was left in the queue untouched. Measured 2026-10-23: the run stopped at
-# 16:24 with `the item could not be started: loop: the worktree is not clean — refusing to start #270:` 166
-# minutes into an 8 h budget, 7 eligible items unworked and #270 carrying no state entry at all (#284). The
-# tree's own branch marker names its item, so the run records the leftovers there, escalates that item, names
-# the files it found, and stops: the tree is still dirty and nothing is discarded without --reset-worktree, so
-# no later candidate could start either.
-case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds() {
+# A start the worktree refuses mid-run is not the candidate's failure, and the work it names can be work this run
+# itself has already recorded (measured 2026-11-10). `start-item` refuses a dirty tree ("one writer per tree"), and
+# the run's catch-all arm ended the whole run on it: the item whose branch the marker names was already recorded by
+# this run — blocked, with its own reason and its own escalation — so what the refusal protected (a record of the
+# work) was in place, and the run discarded nothing and started nothing. Measured 2026-10-23 (#284): 166 minutes into
+# an 8 h budget, 7 eligible items unworked; and 2026-11-10T08:19:24Z: #807 recorded at 11:27:56Z and the run stopped
+# 262 of its 480 minutes later over that item's leftovers. Five of the ten runs the archive ended on this refusal had
+# leftovers belonging to an item they had recorded themselves — 1 699 minutes unspent — which is why the rule is not
+# "a dirty tree ends the run" but "work nothing records may not be discarded".
+case_run_aRecordedItemsLeftoversAreKeptAndTheStartGoesOn() {
   # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json
-  local d p out f reason log
+  local d p out f reason log tree patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
-  # The dirt is staged where an item's own commit cannot take it: the stub installs a `pre-commit` hook that
-  # refuses both of `end-item`'s commits, so #21 ends with its work still in the tree, as #274's round-2
-  # correction was left behind. How the tree came to be dirty is not what this case decides — the refusal is.
+  # The dirt is staged where an item's own commit cannot take it: the stub installs a `pre-commit` hook that refuses
+  # both of `end-item`'s commits, so #21 ends with its work still in the tree, as #807's did.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'h=$(git rev-parse --git-path hooks); mkdir -p "$h"; printf "#!/bin/sh\nexit 1\n" > "$h/pre-commit"; chmod +x "$h/pre-commit"'
   out=$(run_loop "$p" --items 2 --minutes 90 2>&1)
   f=$(state_file "$p")
-  assert_eq "1" "$(jq -r '.items | length' "$f")" "the run records one item, not one per account of it"
-  assert_eq "21" "$(jq -r '.items[0].issue' "$f")" "and that item is the one whose work the tree holds"
-  reason=$(jq -r '.run.stop.reason // ""' "$f")
-  assert_contains "$reason" "the worktree is not clean" "the stop reason says what the refusal was"
-  assert_contains "$reason" "#21" "and names the item whose work the tree holds, not only the candidate"
-  assert_contains "$reason" "demo-fix.txt" "with the files a reader has to work from"
-  assert_contains "$reason" "#22" "the candidate that could not start is named too"
-  # The leftover is recorded against the item that left it, and one item keeps one record: the reason #21 ended
-  # and the work it still owes are one account, so the report cannot count one item twice.
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item that left the work is recorded blocked"
-  assert_contains "$(jq -r '.items[0].note' "$f")" "still at the base commit" "its own reason is kept"
-  assert_contains "$(jq -r '.items[0].note' "$f")" "leftovers" "and the leftovers join it instead of replacing it"
-  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel' "$f")" \
-    "the escalation the run wrote is recorded with the item it belongs to"
-  log=$(cat "$GH_STUB_RECORD")
-  assert_contains "$log" "agent/needs-decision" "the leftover is escalated to a person"
-  assert_contains "$log" "fix/issue-21-" "with the branch that holds it as the evidence"
-  assert_eq "0" "$(grep -c 'issue close' <<<"$log" || true)" "nothing is closed on a tree nobody can start on"
-  # The candidate did nothing wrong and is not recorded: it stands in the queue as its owner set it.
-  assert_eq "1" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
-    "the run starts no second child, because no second item can start"
-  [ -f "$p/.pi/worktrees/loop/demo-fix.txt" ] || fail "the leftovers were discarded without --reset-worktree"
-  assert_eq "0" "$(git -C "$p/.pi/worktrees/loop" rev-list --count main..HEAD)" \
-    "and nothing was committed onto the branch"
-}
-
-# The other half of the same record: a start refused because the tree is not clean ends the run, and the leftovers
-# it found — the untracked file a refused `end-item` left, in this case — were named in the stop reason and written
-# nowhere (issue #308). They are written into the evidence directory of the item whose branch marker names them,
-# before the run ends, so `--reset-worktree` is no longer the only repair a person has.
-case_run_aRefusedStartKeepsTheLeftoversItFound() {
-  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json
-  local d p out reason f patch
-  d=$(scratch); p=$(new_project)
-  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
-  # The same shape as `run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`: the stub installs a `pre-commit` hook that
-  # refuses both of `end-item`'s commits, so #21 ends with its work still in the tree.
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
-    'h=$(git rev-parse --git-path hooks); mkdir -p "$h"; printf "#!/bin/sh\nexit 1\n" > "$h/pre-commit"; chmod +x "$h/pre-commit"'
-  out=$(run_loop "$p" --items 2 --minutes 90 2>&1)
-  f=$(state_file "$p")
-  reason=$(jq -r '.run.stop.reason // ""' "$f")
-  assert_contains "$reason" "the worktree is not clean" "the stop reason says what the refusal was: $out"
+  tree="$p/.pi/worktrees/loop"
   patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
-  [ -f "$patch" ] || fail "the leftovers of a refused start were not kept as a patch (reason: $reason)"
-  assert_contains "$(cat "$patch")" "demo-fix.txt" "the patch carries the untracked file the tree held"
-  assert_contains "$reason" "leftover-from-killed-run.patch" "and the stop reason names the patch it wrote"
-  assert_contains "$(jq -r '.items[0].note' "$f")" "leftovers" "the item whose work it is still carries its own account"
-  return 0
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  # The item whose work the tree holds is recorded once, by its own arm, with its own reason and its own escalation.
+  assert_eq "1" "$(jq -r '[.items[] | select(.issue == 21)] | length' "$f")" \
+    "the item whose work the tree holds is recorded once, not once per account of it"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and it is blocked, which is what its own arm decided"
+  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel' "$f")" \
+    "with the escalation its arm wrote, so the discard is not a silent one"
+  # …and the work it left is written down **before** it is discarded (issue #308): the record is the whole reason the
+  # dirt is discardable at all.
+  [ -f "$patch" ] || fail "the work of an item this run recorded was discarded without a record: $out"
+  assert_contains "$(cat "$patch")" "demo-fix.txt" "the patch carries the work the tree held"
+  assert_contains "$out" "after this run recorded it" "the run says which item's work it discards, and why it may"
+  assert_contains "$out" "keeping the work #21 left after this run recorded it:" \
+    "the run writes that work down before it discards it, and names where"
+  # The start that was refused is retried, so the item after the recorded one is worked rather than lost.
+  assert_eq "2" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the item after the recorded one starts, so one item's leftovers no longer end its run: $out"
+  assert_eq "2" "$(jq -r '.items | length' "$f")" "both items are recorded, the recorded one's leftovers notwithstanding"
+  assert_not_contains "$out" "the item could not be started" \
+    "so no start refusal ended the run for a tree whose work is recorded"
+  assert_not_contains "$reason" "the worktree is not clean" "the stop is a count of items, not the tree: $reason"
+  assert_contains "$reason" "item cap reached (2/2)" "and both items were worked: $reason"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_eq "0" "$(grep -c 'issue close' <<<"$log" || true)" "nothing is closed on a tree no commit could take"
 }
 
 # The dirt a run ended *itself* is not the dirt the mid-run refusal protects (issue #664). `keep_leftovers` writes

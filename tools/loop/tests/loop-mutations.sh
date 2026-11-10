@@ -153,7 +153,14 @@ MUTATIONS=(
   # 13.10 is the one distinction the mid-run refusal cannot read from the tree (issue #664): dirt this run ended
   # itself is already written to the item's patch, so that tree may be discarded and the start retried — the dirt
   # of another item is not, and still stops the run (`run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`).
-  '13.10@-@tools/loop/run.sh@run#theStartAfterTheRunsOwnEndedChildIsNotRefused@the run discarding the dirt its own ended child left, the record being in place@s|^        if own_leftovers_of "\$owner_item" .*$|        if false; then|'
+  '13.10@-@tools/loop/run.sh@run#theStartAfterTheRunsOwnEndedChildIsNotRefused@the run discarding the dirt its own ended child left, the record being in place@s|^        if recorded_leftovers_of .*$|        if false; then|'
+  # 13.16 and 13.17 are the same repair one condition wider (measured 2026-11-10): an item this run **recorded** is not
+  # "another item's" work, so its leftovers are written to its patch and discarded and the start is retried. The
+  # predicate is a reading of the run's own state, and the record is the patch written before anything is thrown away;
+  # `run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn` is red on each alone — 271.1 leaves the tree dirty (the run
+  # stops as it did until this change), 271.2 writes no record and the run stops over it instead of discarding.
+  '271.1@-@tools/loop/run.sh@run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn@the item this run recorded read out of its own state, so that item leftovers stop the run again — the 262 minutes of 2026-11-10T08:19:24Z@s|^  \[ "\$(jq -r --argjson i .*$|  [ 1 -eq 2 ]|'
+  '271.2@-@tools/loop/run.sh@run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn@the patch written before the work is discarded, so a tree is cleaned of work nothing records (issue #308)@s|^  keep_leftovers "\$1"$|  : # the mutation writes no record|'
   # 13.11 is the reason a retry answered with, which is not the dirt it was retried over (issue #664, round 2): the
   # retry's line was printed and dropped, so a start refused for its branch was recorded as "the worktree is not
   # clean" with an empty list of files, on a tree the run had just cleaned itself.
@@ -462,15 +469,13 @@ MUTATIONS=(
   '52.3@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@a pinned profile named as pinned, beside the one the engine ships (issue #277)@s|^  \[ "\$resolved/\$(basename "\$LOOP_CONF_PATH")" = "\$engine/loop.conf" \]$|  true|'
   # 53.x — a start the worktree refuses mid-run, and the three things the run owes when it ends on one (issue #284).
   # Measured 2026-10-23: the run stopped 166 minutes into an 8 h budget with `the item could not be started: loop:
-  # the worktree is not clean — refusing to start #270:`, 7 eligible items unworked, the item whose work the tree
-  # held named nowhere, and #270 carrying no state entry at all. One record per invariant, and each makes the same
-  # case red on its own: 53.1 leaves the leftovers unattributed (no escalation, no account under the item that left
-  # them), 53.2 records the item a second time instead of joining its one record — which is what counted one item
-  # twice in every figure the report derives from `.items` and let `next` read one block as two consecutive ones —
-  # and 53.3 puts the refusal's first line back as the stop reason, which names neither the item nor the files.
-  '53.1@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the leftovers recorded under the item whose work the tree holds, and escalated (issue #284)@s|^          if \[ "\$dry_run" -eq 0 \] && \[ -n "\$owner_item" \]; then$|          if false; then|'
-  '53.2@-@tools/loop/state.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@one record per item, a second account joining the note the item already has (issue #284)@s|^      if (\[\.items\[\] \| select(\.issue == \$i)\] \| length) == 0 then$|      if true then|'
-  '53.3@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the stop reason naming the item the leftovers belong to and the files it found (issue #284)@s|^          stop_run "the item could not be started: the worktree is not clean .*$|          stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|'
+  # 53.x — the mid-run attribution the refusal carried (issue #284) moved when an item's own recorded work became
+  # discardable (2026-11-10, `run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn`): `53.1` (escalate the item the tree's
+  # marker names), `53.2` (one record per item, a second account joining the note) and `53.3` (the stop reason naming the
+  # item and its files) each pinned a line only the refusal's failure path now reaches — a tree whose owner this run
+  # recorded but whose work cannot be written to a patch. No case reaches that path, so those records would report
+  # `not noticed` rather than a proven invariant. What replaced them is 271.1 and 271.2: the same repair, read in the
+  # direction the run now takes.
   # 53.1 — the report scans the kept worktree's own scratch root beside its own (issue #274). Measured 2026-10-23:
   # four `loop-selftest.*` trees and four poll loops under `.pi/worktrees/loop/.pi/tmp`, three of the trees past the
   # 120-minute threshold, and `loop-clean` printed its heading with no entry — the root a suite writes into is the
@@ -586,7 +591,9 @@ MUTATIONS=(
   '62.3@-@tools/loop/tests/loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
   '62.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
   '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue"$|    : # the mutation keeps no patch|'
-  '62.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^          own_leftovers_of "\$owner_item" \|\| keep_leftovers "\$owner_item"$|          : # the mutation keeps no patch|'
+  # 62.6 pinned the patch a **refused** start kept (issue #308). That refusal no longer ends a run whose owner this run
+  # recorded — its work is written to the patch and discarded, and `run#aRefusedStartKeepsTheLeftoversItFound` is gone with
+  # the arm it described. What the record protected is 271.2, and 62.5 still pins the cap-ended child's patch.
 
   # 255.x — the evidence check reads the roots it scans from the project's configuration, and an engine may hold no
   # project path (issue #255). The check came out of the `fix-loop` skill, whose C4 looked for a leftover

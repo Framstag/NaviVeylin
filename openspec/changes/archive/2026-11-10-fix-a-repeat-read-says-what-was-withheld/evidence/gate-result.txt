@@ -1,20 +1,15 @@
-gate command: ./tools/loop/gate.sh
+gate command: ./tools/loop/gate.sh --base d5d2e668e5acb4cffb47a832b83843f0d7e91be1
 run: once, in /home/tim/projects/NaviVeylin/.pi/worktrees/loop
 exit code: 1
 
 LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
-LOOP-GATE-TREE: head=b89f16dcb2b8ce1976c8bbe5e0d0f78af745d7d9 diff=a879203cc03fe474
+LOOP-GATE-TREE: head=695a5dacdc1ac210c55c50778e51543a94a5854d diff=bf5a238382a20cac
 
-LOOP-GATE: tests=1126 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 12s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 303s, tools/loop/tests/loop-selftest.sh --from-git 8a2f1adbdaced0f79c4c2fccf5dfeab321d07a47 734s, bash tools/loop/tests/loop-mutations.sh --check 6s, tools/loop/tests/loop-mutations-selftest.sh 783s, tools/issues/tests/issue-tooling-selftest.sh 215s, tools/issues/check-metadata.sh 1s, tools/issues/tests/metadata-mutations.sh --list 1s, tools/check-compose-sandbox-rule.sh 1s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, tools/tests/gen-feature-list-selftest.sh 16s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 25s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 1s) — failing: bash tools/gen-feature-list.sh --check-classification
+LOOP-GATE: tests=991 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 13s, tools/loop/tests/loop-selftest.sh --from-git d5d2e668e5acb4cffb47a832b83843f0d7e91be1 725s, bash tools/loop/tests/loop-mutations.sh --check 8s, tools/loop/tests/loop-mutations-selftest.sh 777s, bash tools/gen-feature-list.sh --check-classification 10s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 32s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 106s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: bash tools/gen-feature-list.sh --check-classification
 
-failing step: bash tools/gen-feature-list.sh --check-classification (4s)
+failing step: bash tools/gen-feature-list.sh --check-classification (10s)
 
-stderr tail from gate script:
-./tools/loop/gate.sh: Zeile 409: /usr/bin/sleep: Datei oder Verzeichnis nicht gefunden (x31)
-./tools/loop/gate.sh: Zeile 409: /usr/bin/sleep: Das Programm kann nicht ausgeführt oder verändert werden (busy)
-
-note: full gate stdout log was written by lean-ctx tee to
-/home/tim/.config/lean-ctx/tee/cd__home_tim_projects_NaviVeylin__pi_wor_cb66302d.log
-— unreachable from this child (pi-permission-system: external_directory denied).
+The full console log of this run is `evidence/gate-round-2.log`; the 23 tallies the gate wrote, one per suite it ran,
+are `evidence/gate-tallies-round-2/`. The one error is attributed in `evidence/gate-attribution.md`.

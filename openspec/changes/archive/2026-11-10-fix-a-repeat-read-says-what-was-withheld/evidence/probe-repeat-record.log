@@ -1,0 +1,9 @@
+command: bash /home/tim/projects/NaviVeylin/.pi/issue-loop/items/831/probe-repeat-record.sh
+file=/home/tim/projects/NaviVeylin/.pi/issue-loop/items/808/tool-result-trims.log
+trims=82
+repeats=0
+
+The probe counts the two line shapes in the record the bound writes beside an item's own event stream: the 82 trims the
+bound wrote, and the 0 repeat lines the repeat rule wrote — before this change it wrote none, and that is the defect
+(issue #831). The script is the item's own (`items/831/probe-repeat-record.sh`); the copy of its output in the item
+directory is `probe-repeat-record.log`.

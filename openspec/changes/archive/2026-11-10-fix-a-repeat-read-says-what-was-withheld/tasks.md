@@ -14,7 +14,8 @@ Requirement: "A run counts the reads its sessions repeated", its two scenarios.
       reads.
 - [x] 1.2 `report#anItemRecordsItsRepeatReads` rewritten: its three items' streams move into per-item directories,
       because the record is read from beside the stream; each item's `tool-result-trims.log` holds the repeat lines its
-      stream's repeats describe (20+30 characters withheld for #21, 40 for #22, none for #23). It asserts
+      stream's repeats describe (results of 20 and 30 characters for #21 with 30 withheld in all, a result of 40 for #22
+      with 30 withheld, none for #23). It asserts
       `metrics.withheld.reads`/`.chars` beside `dupReads`/`dupChars`, the trend's `reads:` line's new text, and — with
       the field deleted — the dash that says the state predates it.
 - [x] 1.3 `repeat#aRepeatAfterAnEditIsHandedOverWhole` is unchanged in what it asserts; the "a verification records no

@@ -1,9 +1,10 @@
 # Gate attribution — the one red step, and why this change does not own it
 
-The gate this item ran once reports one error — its `LOOP-GATE` tally line and failing step are carried verbatim in
-`evidence/gate-result.txt` (the `LOOP-GATE` line and the `failing step:` line), the failing step being
-`bash tools/gen-feature-list.sh --check-classification` (4s); the step's own stdout is in
-`evidence/bash_tools_gen-feature-list.sh_--check-classification.xml`.
+The gate this item ran once — the round-2 gate, `./tools/loop/gate.sh --base d5d2e668e5acb4cffb47a832b83843f0d7e91be1`
+(`evidence/gate-result.txt`, `evidence/gate-round-2.log`) — reports one error: its `LOOP-GATE` tally line and failing
+step are carried verbatim in `evidence/gate-result.txt` (the `LOOP-GATE` line and the `failing step:` line), the failing
+step being `bash tools/gen-feature-list.sh --check-classification` (10s); the step's own tally is in
+`evidence/gate-tallies-round-2/bash_tools_gen-feature-list.sh_--check-classification.xml`.
 
 ## What the step actually failed on
 
@@ -37,7 +38,10 @@ shipped (`openspec/specs/agent-issue-loop/spec.md`) and classified (`tools/featu
   same command: `exit=1`, `unclassified: 4` — `evidence/classification-check-before-work.log:1`,
   `evidence/classification-check-before-work.log:12`, `evidence/classification-check-before-work.log:18`.
 - **With this work**: the gate's own result (the XML above) and a run of the same command on the change root:
-  `exit=1` — `evidence/classification-check-change-root.log:18`.
+  `exit=1` — `evidence/classification-check-change-root.log:18`. That run still describes this tree: the command reads
+  `openspec/specs/*/spec.md`, `openspec/changes/*/specs/*/spec.md` and `tools/feature-list/`, and this round's
+  corrections touched none of them — the files it edited are `tools/loop/tests/loop-cases.sh` and this change's own
+  `design.md`, `proposal.md` and `tasks.md`.
 
 The two outputs are byte-identical. This change moves the step by nothing; the two other open changes' delta specs
 are the whole of the red.

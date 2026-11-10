@@ -3291,6 +3291,16 @@ a measurement, and a role whose turns named no model SHALL keep its totals and n
   with their total and `worker … · reviewer … · tail …` with the tokens they are a share of
 - **Case**: `report#theSpendIsSplitByPhaseRoleAndGate`
 
+#### Scenario: A spend total is printed beside the figure it is a share of
+
+- **WHEN** an item's record carries a wall longer than the durations of its turns and its tools, or a stream records
+  the turns of a child that opened no `session` record, so its tokens are in `metrics.tokens` and in no role
+- **THEN** the trend prints the phases' total beside the wall the same items recorded, as the percentage of it the
+  phases are, and the role total beside the tokens those items recorded with the tokens of the uncovered turns and
+  their share of the total named, and each clause is left out where its denominator is absent or equal, so a state
+  whose two figures agree prints the line it always printed
+- **Case**: `report#theSpendTotalsNameWhatTheyAreAShareOf`
+
 #### Scenario: The share spent after the first gate is stated with both its numbers
 
 - **WHEN** a session of the item runs the gate at a known turn and spends a known number of tokens from that turn on

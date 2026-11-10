@@ -12,7 +12,9 @@
 #
 # The mode matters because print mode carries the final assistant text and nothing else: a run could report an
 # item's verdict and wall time and not one tool call, token or context size, although the agent's own stream
-# carries all three. The stream is kept whole, so a later reader can re-derive any figure without a second run.
+# carries all three. The stream is kept, so a later reader can re-derive the figures it holds without a second run —
+# bounded at `LOOP_CHILD_EVENTS_MAX_BYTES` below, and a rotation is recorded so that what it no longer holds is read as
+# the lower bound it is (`:128`–`:139` states the bound and what a rotation keeps).
 #
 # Usage: pi-child-events.sh <command> [command args…] <prompt-file>
 #
@@ -154,7 +156,7 @@ rotate_events() { # rotate_events <file> — drop the delta lines, and the oldes
   # `kept_bytes` is deliberately not local: the caller's own counter is reset to what the rotation left, or a
   # stream that rotated once would rotate on every event after it.
   local f="$1" lines keep drop turns prev rec tmp total delta_types size_before size_tmp lines_tmp
-  local turn_ends turn_ends_with_usage keep_updates filter_rc cut cut_bytes
+  local turn_ends turn_ends_with_usage drop_updates filter_rc cut cut_bytes
   lines=$(wc -l < "$f" 2>/dev/null) || true
   case "$lines" in ''|*[!0-9]*) lines=0 ;; esac
   # One line is the line just written: there is nothing older to drop, and dropping it would lose the newest event.
@@ -163,19 +165,24 @@ rotate_events() { # rotate_events <file> — drop the delta lines, and the oldes
   case "$prev" in ''|*[!0-9]*) prev=0 ;; esac
 
   # The delta pass. Which types may go is a property of the stream being rotated, not of this adapter's assumption
-  # about its agent: the updates are kept when a `turn_end` of it carries no usage for the turn to fall back on.
-  delta_types='"type": *("message_update"|"tool_execution_update")'
-  keep_updates=1
-  turn_ends=$(grep -cE '"type": *"turn_end"' "$f" 2>/dev/null) || true
+  # about its agent: the updates are dropped only when the stream holds a `turn_end` and **every** one of them carries a
+  # usage the turn can be read from instead. A stream with no `turn_end` at all — an update-only stream — keeps them,
+  # its updates being the only usage record it has; the opposite reading dropped every usage line a 57-line update-only
+  # stream held and `state.sh`'s `turns` read 1 → 0 for it. The match is anchored at the line's own start, so a record
+  # line that merely quotes an event line is not taken for a delta and dropped — the one direction a rotation may not
+  # err in.
+  delta_types='^\{"type": *("message_update"|"tool_execution_update")'
+  drop_updates=0
+  turn_ends=$(grep -cE '^\{"type": *"turn_end"' "$f" 2>/dev/null) || true
   case "$turn_ends" in ''|*[!0-9]*) turn_ends=0 ;; esac
-  turn_ends_with_usage=$(grep -E '"type": *"turn_end"' "$f" 2>/dev/null | grep -cE '"usage": *\{') || true
+  turn_ends_with_usage=$(grep -E '^\{"type": *"turn_end"' "$f" 2>/dev/null | grep -cE '"usage": *\{') || true
   case "$turn_ends_with_usage" in ''|*[!0-9]*) turn_ends_with_usage=0 ;; esac
-  [ "$turn_ends" -eq 0 ] || [ "$turn_ends_with_usage" -ge "$turn_ends" ] || keep_updates=0
-  [ "$keep_updates" -eq 1 ] || delta_types='"type": *"tool_execution_update"'
+  if [ "$turn_ends" -gt 0 ] && [ "$turn_ends_with_usage" -ge "$turn_ends" ]; then drop_updates=1; fi
+  [ "$drop_updates" -eq 1 ] || delta_types='^\{"type": *"tool_execution_update"'
   tmp="$f.rotating.$$"
   size_before=$(wc -c < "$f" 2>/dev/null) || size_before=0
   # The record a previous rotation wrote goes with the pass: the one below replaces it and carries its turn count.
-  { grep -vE '"type": *"stream_rotation"' "$f" | grep -vE "$delta_types"; } > "$tmp"
+  { grep -vE '^\{"type": *"stream_rotation"' "$f" | grep -vE "$delta_types"; } > "$tmp"
   filter_rc=$?
   case "$size_before" in ''|*[!0-9]*) size_before=0 ;; esac
   if [ "$filter_rc" -gt 1 ]; then rm -f -- "$tmp"; return 0; fi

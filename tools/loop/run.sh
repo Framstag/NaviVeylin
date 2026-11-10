@@ -1400,7 +1400,7 @@ child_context() { # child_context <events file> <lines already read> → "<large
   max=0
   if [ "$total" -gt "$done_lines" ]; then
     blob=$(tail -n +$((done_lines + 1)) "$f" 2>/dev/null | head -n $((total - done_lines)) | jq -s -c '
-      (([.[] | select(.type == "message_update" or .type == "turn_end") | .usage? | select(type == "object")
+      (([.[] | select(.type == "message_update" or .type == "turn_end") | (.usage? // .message.usage?) | select(type == "object")
           | ((.input // 0) + (.cacheRead // 0))] | max) // 0) as $turn
       | (([.[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) // 0) as $compacted
       | [$turn, $compacted] | max' 2>/dev/null) || blob=""

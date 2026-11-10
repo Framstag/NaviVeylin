@@ -932,6 +932,9 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   done
   if [ -n "$events" ] && [ -f "$events" ]; then
     blob=$(jq -s -c --arg gate "$gate_prog" '
+      # A turn is read from the usage its last `message_update` carried, or from the one its own `turn_end` record
+      # carries when no update survives — the same rule `sessions` keeps per turn below (one place per fact), so a
+      # rotation that took the updates changes no figure this function prints (issue #840).
       def turns:
         reduce .[] as $e ({cur:null, done:[]};
           if $e.type == "message_update" and (($e.usage? // null) | type) == "object" then .cur = $e.usage

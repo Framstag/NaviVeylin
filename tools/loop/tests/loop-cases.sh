@@ -321,6 +321,7 @@ LOOP_SHELL_CASES=(
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
   'adapter#aRotatedStreamKeepsEveryTurnEnd'
+  'adapter#anUpdateOnlyStreamKeepsItsUpdates'
   'adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded'
   'state#theSpendSurvivesTheLossOfItsDeltaLines'
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
@@ -1005,6 +1006,7 @@ loop_run_shell_case() {
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
     'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
+    'adapter#anUpdateOnlyStreamKeepsItsUpdates') fn=case_adapter_anUpdateOnlyStreamKeepsItsUpdates ;;
     'adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded') fn=case_adapter_aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded ;;
     'state#theSpendSurvivesTheLossOfItsDeltaLines') fn=case_state_theSpendSurvivesTheLossOfItsDeltaLines ;;
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
@@ -10630,6 +10632,56 @@ EMITTER
     "the bytes the record says it dropped are the bytes of the lines it dropped, never the record it is written in"
   assert_eq "$(grep -cE "$delta_re" "$prefix" || true)" "$dropped_lines" \
     "and the lines it says it dropped are the delta lines of the file it was handed"
+  return 0
+}
+
+# An update-only stream keeps the usage records it has (issue #840). The delta pass drops `message_update` only when
+# every `turn_end` of the stream carries a usage for the turn to fall back on, and on a stream that holds **no**
+# `turn_end` that condition is vacuously true — so the pass dropped every update a 57-line update-only stream had and
+# `state.sh`'s `turns` read 1 → 0 for it, where the parent stream kept 28 updates. No turn record means no fallback: the
+# updates are the only usage the stream reports, and they stay.
+case_adapter_anUpdateOnlyStreamKeepsItsUpdates() {
+  # files: tools/pi-child-events.sh
+  local d prompt emitter pristine f updates prefix
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  emitter="$d/emitter.sh"
+  cat > "$emitter" <<'EMITTER'
+#!/usr/bin/env bash
+pad='................................................................'
+i=0
+while [ "$i" -lt 40 ]; do
+  i=$((i + 1))
+  printf '{"type":"message_update","usage":{"input":1000,"output":10,"cacheRead":20000,"cacheWrite":0},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"%s%s"}}\n' "$pad" "$pad"
+  printf '{"type":"tool_execution_update","toolCallId":"c%s","output":"%s%s"}\n' "$i" "$pad" "$pad"
+done
+printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
+EMITTER
+  pristine="$d/pristine.jsonl"
+  bash "$emitter" </dev/null > "$pristine"
+  [ "$(grep -cE '^\{"type": *"turn_end"' "$pristine" || true)" -eq 0 ] ||
+    fail "the fixture holds a turn_end, so its precondition is not the vacuous one"
+  # One rotation and no whole-line cut: the child is handed the first prefix of the stream that crosses the 16 KiB bound
+  # and nothing after it, so the delta pass is the only pass that runs and what survives it is the stream's own updates.
+  prefix="$d/prefix.jsonl"
+  awk -v bound=16384 '{ n += length($0) + 1; print; if (n > bound) exit }' "$pristine" > "$prefix"
+  updates=$(grep -cE '^\{"type": *"message_update"' "$prefix" || true)
+  [ "$updates" -gt 0 ] || fail "the handed-over prefix holds no update: $updates"
+  f="$d/events.jsonl"
+  LOOP_CHILD_EVENTS="$f" LOOP_CHILD_EVENTS_MAX_BYTES=16384 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash -c "cat '$prefix'" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  [ -s "$f" ] || fail "the adapter kept no stream: $(head -3 "$d/out")"
+  assert_eq "stream_rotation" "$(head -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "the stream is rotated, its size being past the 16384 B bound"
+  assert_eq "$updates" "$(grep -cE '^\{"type": *"message_update"' "$f" || true)" \
+    "every update of an update-only stream survives the rotation, the only usage record it has"
+  assert_eq "0" "$(grep -cE '^\{"type": *"tool_execution_update"' "$f" || true)" \
+    "while the streamed tool output, which nothing reads, goes either way"
+  assert_eq "0" "$(head -n 1 "$f" | jq -r '.dropped_turn_ends // 0' 2>/dev/null)" \
+    "and the record says it dropped no turn, there being none to drop"
   return 0
 }
 

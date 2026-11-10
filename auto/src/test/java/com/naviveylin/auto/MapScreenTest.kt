@@ -277,7 +277,7 @@ class MapScreenTest {
     @Test
     fun theFlagIsAppliedBeforeAnyStyleLoadSucceeds() = runTest(mainDispatcherRule.dispatcher) {
         // The startup push does not wait for a style load. A car map screen can exist before the session
-        // opened the databases (`NavigationSession.kt:373-379`, `RootScreen.kt:127`), and the flag is not
+        // opened the databases (`NavigationSession.kt:504`, `RootScreen.kt:127`), and the flag is not
         // lost there: `DBThread::SetStyleFlag` stores it whenever the database set is initialized, and
         // `isInitializedInternal()` is an `all_of` over that set — vacuously true while it is empty
         // (`DBThread.cpp:91-95`, `:422-427`) — while the open path installs the stored flags as the new

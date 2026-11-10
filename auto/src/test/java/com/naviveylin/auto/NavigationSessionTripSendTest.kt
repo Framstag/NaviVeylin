@@ -26,7 +26,7 @@ import org.robolectric.RobolectricTestRunner
  *
  * What these cases pin: the **decision** ([tripSendAllowed] and everything reachable from it here —
  * the send itself, the absence of a deferred sync, and the absence of a start/end call). What they
- * do **not** pin: the collector's own line at `NavigationSession.kt:732`, which no unit test can
+ * do **not** pin: the collector's own line at `NavigationSession.kt:740`, which no unit test can
  * reach ([NavigationSession] cannot be constructed in Robolectric). Replacing that call with
  * `hostGate.allowHostMutation()` therefore still leaves this class green — the residual gap is
  * recorded in `design.md`, D2.

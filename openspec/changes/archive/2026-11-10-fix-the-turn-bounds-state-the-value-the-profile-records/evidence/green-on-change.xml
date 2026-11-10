@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The green tally on the change's tree, 2026-11-10T09:23:25Z: the self-test's five cases, all five passing, over
+     throwaway fixtures and this tree. The structural checks the same tree owes (no compiled file changes here) are in
+     evidence/green-on-change.log; the verbatim self-test output is there too. -->
+<testsuite name="tools/tests/check-doc-values-selftest.sh" tests="5" failures="0" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-10T09:23:25Z"/>
+  </properties>
+  <testcase classname="values" name="values#proseMatchesTheProfile"/>
+  <testcase classname="values" name="values#aDriftedValueIsReported"/>
+  <testcase classname="values" name="values#aRoleWithNoProseRow"/>
+  <testcase classname="values" name="values#aRowTheProfileDoesNotRecord"/>
+  <testcase classname="values" name="values#aProfileWithoutTheKeysIsRefused"/>
+</testsuite>

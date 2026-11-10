@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of the red case on the pre-change records: the case file is this change's own, the two records it reads
+     are the base commit's (4c400715860c22ae927284a7649acc4b19ba9a87), and the run was taken at 2026-11-10T09:22:48Z.
+     `tools/check-doc-values.sh` prints `PASS`/`FAIL` per case nowhere — its self-test does — so this file carries the
+     case the self-test names and the check's own verdict and output; the verbatim output is evidence/red-on-HEAD.log. -->
+<testsuite name="tools/tests/check-doc-values-selftest.sh --case values#proseMatchesTheProfile" tests="1" failures="1" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-10T09:22:48Z"/>
+    <property name="base" value="4c400715860c22ae927284a7649acc4b19ba9a87"/>
+  </properties>
+  <testcase classname="values" name="values#proseMatchesTheProfile">
+    <failure message="the section's table and the profile disagree (exit 1): LOOP-CHILD-TURNS-MAX: worker prose - config 200 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it"/>
+  </testcase>
+</testsuite>

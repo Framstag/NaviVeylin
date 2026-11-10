@@ -1,0 +1,26 @@
+# The red case on the pre-change records — `values#proseMatchesTheProfile`
+#
+# The records this file is about are the base commit's, not this tree's: `git show HEAD:guidelines/Backlog.recipes.md`
+# and `git show HEAD:tools/loop/loop.conf` (commit 4c400715860c22ae927284a7649acc4b19ba9a87) copied under one root and
+# read at 2026-11-10T09:22:48Z. The check is this change's own file, so this is the pre-change prose against the check
+# that names it:
+#
+#   tools/check-doc-values.sh --root <that copy>   → exit 1
+#
+# The same lines are what `tools/tests/check-doc-values-selftest.sh --case values#proseMatchesTheProfile` printed on
+# this tree before the prose was rewritten (its FAIL line carried them verbatim):
+#
+#   FAIL  values#proseMatchesTheProfile: the section's table and the profile disagree (exit 1): … the six lines below
+#
+# Each line is a role the section states no keyed value for; the figure after `config` is the bound a run applies.
+LOOP-CHILD-TURNS-MAX: worker prose - config 200 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it
+LOOP-CHILD-TURNS-MAX: worker-gate prose - config 100 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it
+LOOP-CHILD-TURNS-MAX: worker-tail prose - config 65 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it
+LOOP-CHILD-TURNS-MAX: reviewer prose - config 110 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it
+LOOP-CHILD-TURNS-MAX: reviewer-pre-gate prose - config 110 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it
+LOOP-CHILD-TURNS-MAX: worker-rework prose - config 150 — guidelines/Backlog.recipes.md §7b states no value for this role, so a reader cannot tell the bound from the measurement that set it
+#
+# What the prose said instead, at the same commit: `guidelines/Backlog.recipes.md` :406-408 listed
+# `170 for the worker, 80 for the gate child, 65 for the tail, 150 for the rework round …, 75 for a review round and
+# 75 for the round before the gate`, and `guidelines/BacklogTooling.md` :137-139 repeated the same figures as the key
+# table's answer — four of them not the value `tools/loop/loop.conf` records.

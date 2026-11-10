@@ -184,7 +184,7 @@ child_max=$(child_cap)
 # `LOOP_ITEM_TOKENS_WARN` records — and it stops nothing. The count is read from the stream the child appends to
 # (`child_turns`), never from a child's claim. `0` is no bound, and a role this project records no key for has none:
 # a project with no such record owes nothing by it, the shape `LOOP_MIN_FREE_MIB` and `LOOP_ITEM_TOKENS_WARN`
-# already have. The derivation of this project's five values is beside them in `loop.conf`.
+# already have. The derivation of this project's six values is beside them in `loop.conf`.
 child_turn_bound() { # child_turn_bound <role> → the turns that role may spend; 0 = no bound
   local role="$1" value
   value=$(loop_conf_value "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')")
@@ -192,7 +192,7 @@ child_turn_bound() { # child_turn_bound <role> → the turns that role may spend
   printf '%s\n' "$value"
 }
 # What the header names, so a run can be repeated and audited (D2) and the header and the `LOOP-TIMEOUT` line that
-# ends a child cannot disagree about the bound they apply: every role `agent_roles` above can name, in that order,
+# ends a child cannot disagree about the bound they apply: every role `agent_roles` below can name, in that order,
 # the rework round included — a bound the header does not print is one a run cannot be audited for (issue #842).
 child_turn_bounds=""
 for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-gate; do

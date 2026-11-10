@@ -1054,10 +1054,13 @@ MUTATIONS=(
   # defect one line further out.
   '268.1@-@tools/loop/report.sh@report#aTruncatedStreamSaysSo@the items the truncated line names, so a reader is told a figure is a lower bound and not which item it is short for (issue #841)@s%^           + ".*join(.*))"$%           + ""%'
   # 269.1 — the rework round's turn bound is a measured 150, and the run's header prints it (issue #842). The role is the
-  # sixth turn-bound key and the header listed five, so a run could be ended at a bound its own header never named. The
-  # mutation restores the p95 the value was measured away from; dropping `worker-rework` from `run.sh`'s header loop
-  # reddens the same case through the same string, since the assertion quotes all six roles of the line.
-  '269.1@-@tools/loop/loop.conf@run#eachChildIsBoundedByItsOwnRolesTurns@the turn bound of the rework round recorded at the figure the run header prints, so the role keeps the p95 100 the measured experiment replaced and the header names a bound the run does not enforce (issue #842)@s|^LOOP_CHILD_TURNS_MAX_WORKER_REWORK=150$|LOOP_CHILD_TURNS_MAX_WORKER_REWORK=100|'
+  # sixth turn-bound key and the header listed five, so a run could be ended at a bound its own header never named.
+  # `269.1` restores the p95 the value was measured away from, and what it proves is the **value**: the header prints
+  # whatever the key holds, so a header that names 100 and a run that applies 100 agree — the case reddens because it
+  # quotes the six figures, not because the two disagree. `269.2` is the omission itself: the rework round dropped from
+  # the header loop, where the run applies 150 and the header prints five roles.
+  '269.1@-@tools/loop/loop.conf@run#eachChildIsBoundedByItsOwnRolesTurns@the figure the rework round key recorded, so the role keeps the p95 100 the measured experiment replaced and the case that quotes the six header figures reddens (issue #842)@s|^LOOP_CHILD_TURNS_MAX_WORKER_REWORK=150$|LOOP_CHILD_TURNS_MAX_WORKER_REWORK=100|'
+  '269.2@-@tools/loop/run.sh@run#eachChildIsBoundedByItsOwnRolesTurns@the rework round in the header loop, so the header names five roles while six keys bound a child and the one bound this change moves is the one the run cannot be audited for (issue #842)@/^child_turn_bounds=""$/,/^for role in /s#^for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-gate; do$#for role in worker worker-gate worker-tail reviewer reviewer-pre-gate; do#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

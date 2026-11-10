@@ -15711,7 +15711,7 @@ EOF
 # when a figure moves.
 case_run_eachChildIsBoundedByItsOwnRolesTurns() {
   # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p conf fifo worker_fixture reviewer_fixture extra action pid i status out state reviewer_report worker_report
+  local d p conf fifo worker_fixture reviewer_fixture extra action pid i status out state reviewer_report worker_report shipped
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
@@ -15778,7 +15778,15 @@ EOF
   # recorded there and a header printing five roles is the disagreement this assertion exists to catch.
   assert_contains "$out" \
     'child-turns-max=worker:20,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:8,reviewer-pre-gate:110' \
-    "and every role's figure in that order, the rework round's 150 among the five the project records (issue #842)"
+    "and every role's figure in that order, the rework round's 150 among the six the project records (issue #842)"
+  # …and the six figures a run reads out of the **shipped** configuration, this case's copy standing at its own 20 and
+  # 8 above: "the other five unchanged" was otherwise a reading rather than an assertion (issue #842, the correction
+  # round), so the shipped file's own numbers are quoted here in the order the header prints them.
+  shipped=$(for key in WORKER WORKER_GATE WORKER_TAIL WORKER_REWORK REVIEWER REVIEWER_PRE_GATE; do
+    sed -n "s/^LOOP_CHILD_TURNS_MAX_${key}=//p" "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | head -1
+  done | paste -sd, -)
+  assert_eq "200,100,65,150,110,110" "$shipped" \
+    "the six turn bounds the shipped loop.conf records: worker, worker-gate, worker-tail, worker-rework, reviewer, reviewer-pre-gate"
   worker_report="$p/.pi/issue-loop/items/21/worker-report.md"
   reviewer_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
   [ -f "$worker_report" ] || fail "the worker kept no transcript"

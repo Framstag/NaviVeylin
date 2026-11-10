@@ -458,12 +458,22 @@ role's p95 over 109 sessions — the rule above, applied, and not a mistake in i
 reading a distribution cannot give: which bound actually fired. The run started 2026-11-09T21:42:41Z cut seven items,
 six of them at or just past `LOOP_ITEM_CONTEXT_MAX` (200 949, 201 500, 201 545, 202 253, 202 372, 202 961 — 0.5 % to
 1.5 % over) and one, #831, at 199 178, **0.4 % under** it, ended by this key after 100 turns: there the turn count and
-not the token stop ended the item, and it is the only cut of that run a raise of this key could reach. Priced from that
-item's own record — 16 252 700 tokens over 198 turns, 82 084 a turn — fifty more turns is about 4.1 Mtok, 3.7 % of
-the run's 109.8 Mtok, spent on an item already 4 279 s in. What a reader takes from the raise is the two figures it was
-granted on: the **overshoot** of the items the bounds cut, and the share of the run's spend that falls **after the first
-gate** (78 % of 70.2 Mtok, 54.6 Mtok that run), because a larger bound buys more of the tail a cut was made of and
-never a promise that the item would have landed. The counter-weight is #686: the 35 items past 250 turns held **878 of
+not the token stop ended the item. **A turn is priced at the context it re-reads**, not at the item's blended average:
+that rework child averaged **105 511** tokens a turn over its last 100 turns (`turn_end` `input + cacheRead` on
+`.pi/issue-loop/items/831/events.jsonl`) and read **199 178** on its last one, so fifty more turns is **≈ 5.3–10.0
+Mtok, 4.8–9.1 %** of the run's 109 847 773 — not the 4.1 Mtok / 3.7 % the item's all-phase average gives
+(16 252 700 / 198 = 82 084 a turn, a worker-and-gate rate charged to a rework turn).
+
+**What the raise cannot be tested on is that item.** #831 sat **822 tokens** under the 200 000 context stop while its
+context rose **2 592 tokens a turn** (last 20 turns: 147 345 → 199 178), so the context arm ends that child within
+about one more turn and no 150-turn bound ever applies to it. What the experiment reads is a rework child that is
+**context-light** — one that reaches 150 turns with room left under the context stop — judged on the two figures the
+raise was granted on: the **overshoot** of the items the bounds cut, and the share of the run's spend that falls
+**after the first gate** (78 % of 70.2 Mtok, 54.6 Mtok that run), because a larger bound buys more of the tail a cut
+was made of and never a promise that the item would have landed. The value is **provisional** until that reading
+exists: until a run's cut items and after-gate share have been read against the 2026-11-09 six-over/one-under split,
+the reading is a `tasks.md` item of the change that moved the key and not a fact of the configuration. The
+counter-weight is #686: the 35 items past 250 turns held **878 of
 1 982 Mtok (44 %)** of the archive's spend, which is why this is fifty turns on one role and not a raise of the
 population. The **context** stop is not raised beside it — its refusal is recorded below, and #836's `NOT_PLANNED` is
 why the lever that moves is a turn count inside the provider's window and not the token bound.

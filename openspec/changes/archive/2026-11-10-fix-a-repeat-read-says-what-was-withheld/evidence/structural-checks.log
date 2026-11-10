@@ -1,0 +1,26 @@
+# structural checks — issue #831, change fix-a-repeat-read-says-what-was-withheld, 2026-11-10T16:37:43Z
+
+$ tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+
+$ bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.bMs31c
+loop-mutations: all 318 cases passed — every selected record applies to the file it names
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+
+$ tools/check-portability.sh
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 56 engines and 7 templates name no project value (118 value(s) read from the project)
+
+$ tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+
+$ tools/check-todo-references.sh
+check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 10797 file(s) excluded by the allowlist above

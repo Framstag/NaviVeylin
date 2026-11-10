@@ -1,0 +1,70 @@
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#recordsTheBaseBranchNotTheCheckout| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+state#recordsTheBaseBranchNotTheCheckout| HEAD ist jetzt bei ccaeebb a change landed on main
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#aDeadOwnersLockIsTakenOver
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#initKeepsTheStateItReplaces
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#initAnnouncesARunWithoutAStop
+PASS state#recordsTheBaseBranchNotTheCheckout
+PASS state#baseBranchIsAConfigurationKey
+PASS state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+PASS state#initAndShowRoundTrips
+state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.V8tEsy/cases/9/tree/case.9CJdXN/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (fef648b6ce83b7b8 → ea2df582fa20be97); a field was edited outside this script
+state#projectKeysAreReadFromLoopConf| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261110-163642')
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei 922dfb2 init
+state#projectKeysAreReadFromLoopConf| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#nextHonoursEveryStopCondition
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+PASS state#aBlockAtTheRunsBoundIsNoRefusal
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (800feb4)
+PASS state#theStreakIsTheRecordedCount
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (d1282fc)
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei d1282fc review: 2026-01-01-fix-demo round 1 passed (#21)
+state#projectKeysAreReadFromLoopConf| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d1282fc).
+state#projectKeysAreReadFromLoopConf| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#projectKeysAreReadFromLoopConf| closed #21 (completed)
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+state#projectKeysAreReadFromLoopConf|   landing #21 d1282fcb764e0697c57d3476a5f6c8fcf7d9e70d: unscored — the pipeline runs of this commit could not be read
+state#projectKeysAreReadFromLoopConf| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+state#projectKeysAreReadFromLoopConf|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#secondRunRefusesWithExit5
+state#projectKeysAreReadFromLoopConf| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+PASS state#defaultsComeFromLoopConf
+PASS state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+PASS state#projectKeysAreReadFromLoopConf
+PASS state#agentCommandIsTheOnlyIndirection
+PASS state#agentCommandRefusesAnEmptyValue
+PASS state#aRolesOwnCommandStartsOnlyThatRolesChild
+PASS state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo
+PASS state#theReworkRoundIsARoleOfItsOwn
+state#doneRecordsTheCommitItLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.V8tEsy/cases/1/tree/case.y3Yvx5/repo/.pi/issue-loop/runs/2026-11-10T16:36:54Z.json
+PASS state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes
+PASS state#theSpendSurvivesTheLossOfItsDeltaLines
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+PASS state#aCutRecordsTheFilesItsPatchCarries
+PASS state#aQuotaWindowIsAHoldNotAStop
+PASS state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+PASS state#noQuotaCommandAsksNothing
+PASS state#aHoldMovesTheDeadlineWithIt
+PASS state#doneRecordsTheCommitItLanded
+PASS state#theLandingScoreIsReadOnceAndStored
+PASS state#aLandingWithNoRunIsUnscored
+PASS state#aCloseOverARedGateRecordsWhyItWasWaived
+PASS state#aCloseOverARedGateWithoutAWaiverIsRefused
+PASS state#anItemsClassSelectsTheWorkerCommand
+loop-selftest: state 38 cases 271.12 s
+loop-selftest: all 38 cases passed (JDK 27, offline, no token, no sandbox) — 31.47 s, selection: --group state

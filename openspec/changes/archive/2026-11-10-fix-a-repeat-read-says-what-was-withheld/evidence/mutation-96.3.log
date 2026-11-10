@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 318 records (labels: 96.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.yqD7EI
+RED    96.3  repeat#aRepeatIsRecordedAsWhatItWithheld   (the line that records what the repeat rule withheld, so an item that repeats a path leaves no record of the volume the child was not handed and the report calls the raw result re-injected (issue #831))
+       2026-11-10T16:37:08Z — the repeat rule records nothing of the repeat it replaced: no record at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.CmCn6V/cases/0/tree/case.yT29n4/trims.log
+restore 96.3 repeat#aRepeatIsRecordedAsWhatItWithheld green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 318 records (labels: 96.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.7gskey
+RED    96.2  report#anItemRecordsItsRepeatReads   (the characters the repeat rule withheld of the run repeats, so the trend calls the raw repeat volume re-injected again and a figure the child never saw reads as one it did (issue #831))
+       2026-11-10T16:37:09Z — the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the ones the rule withheld of them and the worst item: '3 of 7 file reads were a second read of a path the session already had (43 
+restore 96.2 report#anItemRecordsItsRepeatReads green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

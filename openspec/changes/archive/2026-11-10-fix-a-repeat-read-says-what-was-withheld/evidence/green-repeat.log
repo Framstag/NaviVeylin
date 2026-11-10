@@ -1,0 +1,7 @@
+PASS repeat#aBrokenLedgerLeavesTheResultAsReturned
+PASS repeat#aRepeatIsRecordedAsWhatItWithheld
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain
+PASS repeat#aRepeatAfterAnEditIsHandedOverWhole
+PASS repeat#theRecordedZeroKeepsTheRepeatRuleOff
+loop-selftest: repeat 5 cases 7.02 s
+loop-selftest: all 5 cases passed (JDK 27, offline, no token, no sandbox) — 3.36 s, selection: --group repeat

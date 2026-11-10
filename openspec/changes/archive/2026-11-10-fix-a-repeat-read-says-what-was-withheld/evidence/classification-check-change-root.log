@@ -1,0 +1,18 @@
+gen-feature-list: unclassified spec id(s):
+  architecture-test-suite (introduced by the open change package-structure-as-five-kinds — classify it in that change, before it archives)
+  domain-vocabulary (introduced by the open change domain-vocabulary-is-declared — classify it in that change, before it archives)
+  package-structure (introduced by the open change package-structure-as-five-kinds — classify it in that change, before it archives)
+  vocabulary-projection (introduced by the open change domain-vocabulary-is-declared — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 187
+classified: 190
+unclassified: 4
+delta spec ids: 17
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1

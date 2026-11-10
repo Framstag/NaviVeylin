@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not t</system-out>
+</testsuite>

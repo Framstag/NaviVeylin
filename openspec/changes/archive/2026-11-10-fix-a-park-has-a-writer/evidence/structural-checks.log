@@ -1,0 +1,31 @@
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+tools/check-doc-routes.sh exit=0
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+tools/check-doc-values.sh exit=0
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 18 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+tools/check-openspec-hygiene.sh exit=0
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/tests/check-todo-references-selftest.sh            the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 10746 file(s) excluded by the allowlist above
+tools/check-todo-references.sh exit=0
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 309 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+tools/loop/evidence-check.sh exit=0

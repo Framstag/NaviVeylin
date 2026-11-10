@@ -1,0 +1,13 @@
+# The red case on HEAD 95efb9036e86b0eb72930085d00027e9949a3273, taken 2026-11-10T10:28:12Z from the change
+# root, with `tools/issues/answer.sh` and `tools/issues/decisions.sh` exactly as HEAD carries them and only the two
+# new cases and the `parked` fixture added. Two invocations, one case each, because a shell self-test's red proof is
+# its own `FAIL <case>` line and its exit code (`.pi/skills/revert-check`, "When the gate is a shell self-test"):
+#
+#   bash tools/issues/tests/issue-tooling-selftest.sh --case answer#parkWritesTheAnswerAndKeepsTheMode
+#   bash tools/issues/tests/issue-tooling-selftest.sh --case decisions#aParkedItemIsListedAsParked
+FAIL answer#parkWritesTheAnswerAndKeepsTheMode
+  a park is an answer: answer: unknown argument --park: expected '0', got '2'
+exit=1
+FAIL decisions#aParkedItemIsListedAsParked
+  the entry is the condition the park waits for, not the answer's own first line: expected 'parked: wait for #844', got 'Decision: wait for #844, the prerequisite, before either row moves'
+exit=1

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Generate the user-facing feature catalogue and the per-version release notes from the shipped specs.
+# Generate the user-facing feature catalogue, the per-version release notes and the per-version store listing from
+# the shipped specs.
 #
 # The shipped capability set is `openspec/specs/`: a capability reaches it when a change archives, so the
 # directory is the product's shipped surface and needs no filter. One capability key identifies one
@@ -82,6 +83,11 @@ maxpara=320   # the paragraph length bound, spec `feature-list-generation` "A pa
 # review": the rarest words of an area, shown, plus the count of the ones the gate left out. Ten keeps the report
 # readable (the first real generation produced 352 lines over 12 areas) without burying a vocabulary mismatch.
 max_words=10
+# The store listing's budget, in characters per release version — the field the copy is pasted into, not a number
+# this tree measured. 500 is Google Play's "What's new" limit, and the budget is per entry because the twelve
+# rendered areas cannot sum to one field (guidelines/FeatureList.md §1, and the item's recorded decision: the figure
+# is recorded here, beside the bound it belongs to, so a change to it is one line a reviewer can see).
+listing_budget=500
 prompts_dir="$data_dir/prompts"
 snapshots_dir="$data_dir/snapshots"
 cache_dir="$data_dir/cache"
@@ -897,6 +903,60 @@ else
     || fail "cannot write $out_dir/RELEASE-NOTES.md"
   entries=$(grep -c '^## ' "$out_dir/RELEASE-NOTES.md" || true)
   echo "release notes: $out_dir/RELEASE-NOTES.md ($entries entries, newest $release)"
+
+  # -------------------------------------------------------------------------
+  # 7a. The store listing: the same version entry, ordered by user impact and fitted to the store field
+  # -------------------------------------------------------------------------
+  # The entry is what a changelog publishes; a store field is shorter, unordered and pasted whole. The listing is
+  # derived from the entry the run has just gated, so its prose is the gated prose and no second document is
+  # written by a model. The budget is per version, and what the field cannot hold is summarised rather than lost.
+  jq -r '.highlights[].specs[]' "$highlights_file" | sort -u > "$work/shortlisted.txt"
+  { printf '## %s\n\n' "$release"
+    awk -v budget="$listing_budget" -v shortlist="$work/shortlisted.txt" \
+        -v statusfile="$work/listing.status" \
+        -f "$script_dir/feature-list/listing.awk" "$work/rel/$release.md"
+  } > "$work/listing-entry.md" \
+    || fail "the store listing could not be derived from the entry of $release"
+  listing_chars=$(sed -n 's/^chars=//p' "$work/listing.status")
+  listing_published=$(sed -n 's/^published=//p' "$work/listing.status")
+  listing_trimmed=$(sed -n 's/^trimmed=//p' "$work/listing.status")
+  listing_summarised=$(sed -n 's/^summarised=//p' "$work/listing.status")
+
+  # Derived, not accumulated, as the release note is: this version's listing replaces the one it replaces, every
+  # other version is untouched, and the sections stay ordered newest first. A section keeps its heading in the
+  # per-version file, so a split and a re-join leave it as it was; the trailing blank lines the split carries are
+  # dropped, so a section a later run does not touch does not grow one blank line per run.
+  mkdir -p "$work/listing"
+  if [ -f "$out_dir/STORE-LISTING.md" ]; then
+    awk -v dir="$work/listing" '
+      /^## / {
+        if (f != "") close(f)
+        v = substr($0, 4); gsub(/[^A-Za-z0-9.-]/, "", v)
+        f = dir "/" v ".md"
+      }
+      f != "" { print >> f }
+    ' "$out_dir/STORE-LISTING.md"
+    for f in "$work/listing"/*.md; do
+      [ -f "$f" ] || continue
+      awk '{ line[NR] = $0 }
+           END { last = NR; while (last > 0 && line[last] ~ /^[[:space:]]*$/) last--
+                 for (i = 1; i <= last; i++) print line[i] }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+    done
+  fi
+  cp "$work/listing-entry.md" "$work/listing/$release.md"
+  {
+    printf '# NaviVeylin — Store Listing\n\n'
+    printf '_Paste-ready store copy: one section per version, at most %s characters each, the changes a user can see\nfirst. Generated — never written by hand; drop the `<!-- cap: … -->` lines when pasting._\n' "$listing_budget"
+    for v in $(find "$work/listing" -name '*.md' -printf '%f\n' | sed 's/\.md$//' \
+               | sort -t- -k1,1nr -k2,2nr -k3,3nr -k4,4nr); do
+      printf '\n'
+      cat "$work/listing/$v.md"
+    done
+  } > "$work/STORE-LISTING.md"
+  cp "$work/STORE-LISTING.md" "$out_dir/STORE-LISTING.md.tmp" \
+    && mv "$out_dir/STORE-LISTING.md.tmp" "$out_dir/STORE-LISTING.md" \
+    || fail "cannot write $out_dir/STORE-LISTING.md"
+  echo "store listing: $out_dir/STORE-LISTING.md ($listing_published published, $listing_trimmed trimmed at a sentence boundary, $listing_summarised summarised, $listing_chars/$listing_budget chars)"
 fi
 
 # ---------------------------------------------------------------------------

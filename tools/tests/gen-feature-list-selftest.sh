@@ -740,7 +740,173 @@ grep -q '^changed:' "$work/r.out" && ok "notes: the changed set is reproducible 
   || bad "notes: the changed set is reproducible with no model"
 
 # ---------------------------------------------------------------------------
-# 9. The version is supplied, never discovered
+# 9. The store listing
+# ---------------------------------------------------------------------------
+
+# The budget the listing is fitted to is the tool's own constant, read here the way the paragraph bound is, so the
+# assertion cannot drift from the number the listing is trimmed against.
+listing_budget=$(sed -n 's/^listing_budget=\([0-9][0-9]*\).*/\1/p' "$tool")
+[ -n "$listing_budget" ] && ok "listing: the budget is declared by the tool" \
+  || bad "listing: the budget is declared by the tool" "no listing_budget= line in $tool"
+
+# listing_section <file> <version> — one version's listing, headings and blank lines included
+listing_section() {
+  [ -f "$1" ] || return 0
+  awk -v want="## $2" '$0 == want { inside = 1; next } /^## / { inside = 0 } inside' "$1"
+}
+# listing_length <file> <version> — the characters a paste of that version carries, measured as listing.awk
+# measures them: the bullet lines plus one newline each, and neither the headings nor the comments.
+listing_length() {
+  listing_section "$1" "$2" | awk '/^- / { n += length($0) + 1 } END { printf "%d", n + 0 }'
+}
+
+# listing_bullets <version> — the published bullets of one version, one per line
+listing_bullets() { listing_section "$out/STORE-LISTING.md" "$1" | grep -- '^- ' || true; }
+# listing_comments <version> — the source comments of one version, one per line
+listing_comments() { listing_section "$out/STORE-LISTING.md" "$1" | grep -- '<!-- cap:' || true; }
+
+# A fresh fixture for the listing: the six specs, a shortlist of three selling points, and a baseline to compare to.
+rm -rf "$data/snapshots" "$data/cache" "$out/RELEASE-NOTES.md" "$out/STORE-LISTING.md" "$repo/openspec/specs"
+mkdir -p "$repo/openspec/specs"
+spec alpha "Alpha first capability" "Alpha second capability" "Alpha third capability"
+spec beta "Beta sole capability" "Beta paired capability"
+spec delta "Delta car capability"
+spec epsilon "Epsilon car platform capability"
+spec gamma "Gamma internal capability"
+spec probe/nested "Nested internal capability"
+specs_; highlights_
+run --release 10-1-1-1 > "$work/r.out" 2>&1
+[ -f "$out/STORE-LISTING.md" ] && bad "listing: a version with no entry writes no listing" \
+  || ok "listing: a version with no entry writes no listing"
+
+# The trim: area one's bullet is one long sentence that fills the field, and area two's bullet is two sentences of
+# which only the first still fits — so the listing stops at that sentence, not inside it, and not inside the
+# comment under it.
+filler=""
+i=1; while [ "$i" -lt 10 ]; do filler="$filler alpha phrase"; i=$((i + 1)); done
+sed -i 's/Alpha first capability SHALL do the thing its name says\./Alpha first capability SHALL do the thing its name says when asked./' \
+  "$repo/openspec/specs/alpha/spec.md"
+sed -i 's/Beta sole capability SHALL do the thing its name says\./Beta sole capability SHALL do the thing its name says when asked./' \
+  "$repo/openspec/specs/beta/spec.md"
+sections
+cat > "$work/sec/one.notes.md" <<MD
+- **Alpha capability** — Alpha first capability leads the listing, and this sentence is deliberately long because the second sentence of the next area must not fit after it:$filler.
+  <!-- cap: alpha#Alpha first capability -->
+MD
+cat > "$work/sec/two.notes.md" <<'MD'
+- **Beta capability** — Beta capability keeps its promise. A second beta sentence carries the detail the field cannot hold at this budget, and it is written out at length so that the first sentence is all that fits beside the area before it.
+  <!-- cap: beta#Beta sole capability -->
+MD
+run --release 10-1-1-2 --sections "$work/sec" > "$work/r.out" 2>&1
+if [ "$(sed -n 's/^store listing: .*\(trimmed at a sentence boundary\).*/1/p' "$work/r.out")" = "1" ] \
+   && [ -n "$(listing_bullets 10-1-1-2)" ] \
+   && listing_section "$out/STORE-LISTING.md" 10-1-1-2 | grep -q 'Beta capability keeps its promise\.' \
+   && ! listing_section "$out/STORE-LISTING.md" 10-1-1-2 | grep -q 'second beta sentence' \
+   && listing_bullets 10-1-1-2 | awk '$0 !~ /\.$/ { bad = 1 } END { exit bad }'; then
+  ok "listing: an over-budget entry is trimmed at a sentence boundary"
+else
+  bad "listing: an over-budget entry is trimmed at a sentence boundary" \
+    "report: $(sed -n 's/^store listing: //p' "$work/r.out"); bullets: $(listing_bullets 10-1-1-2 | tr '\n' ' ')"
+fi
+listing_section "$out/STORE-LISTING.md" 10-1-1-2 | grep -q 'Beta capability keeps its promise\.' \
+  && ok "listing: an over-budget entry is trimmed at a sentence boundary (the sentence that fits is published)" \
+  || bad "listing: an over-budget entry is trimmed at a sentence boundary (the sentence that fits is published)"
+if [ -n "$(listing_bullets 10-1-1-2)" ] && ! listing_section "$out/STORE-LISTING.md" 10-1-1-2 | grep -q 'second beta sentence'; then
+  ok "listing: the trim publishes no sentence the field cannot hold"
+else
+  bad "listing: the trim publishes no sentence the field cannot hold"
+fi
+if [ -n "$(listing_bullets 10-1-1-2)" ] && listing_bullets 10-1-1-2 | awk '$0 !~ /\.$/ { bad = 1 } END { exit bad }'; then
+  ok "listing: every published bullet ends at a sentence boundary"
+else
+  bad "listing: every published bullet ends at a sentence boundary" "$(listing_bullets 10-1-1-2 | tr '\n' ' ')"
+fi
+if [ -n "$(listing_comments 10-1-1-2)" ] && ! listing_comments 10-1-1-2 | grep -qv -- '-->$'; then
+  ok "listing: a trimmed bullet keeps its source comment whole"
+else
+  bad "listing: a trimmed bullet keeps its source comment whole"
+fi
+is "listing: the listing is fitted to the budget the tool declares" "1" \
+  "$( [ "$(listing_length "$out/STORE-LISTING.md" 10-1-1-2)" -le "$listing_budget" ] && echo 1 || echo 0)"
+grep -q "at most $listing_budget characters each" "$out/STORE-LISTING.md" \
+  && ok "listing: the listing states the budget it was fitted to" \
+  || bad "listing: the listing states the budget it was fitted to"
+
+# The order: delta is user-visible but not shortlisted, beta is a selling point, and the entry lists delta first
+# because its area comes first. The listing reverses them, because a change a user can see outranks one they cannot.
+rm -f "$out/STORE-LISTING.md"
+sed -i 's/Delta car capability SHALL do the thing its name says\./Delta car capability SHALL do the thing its name says when asked./' \
+  "$repo/openspec/specs/delta/spec.md"
+sed -i 's/Beta sole capability SHALL do the thing its name says when asked\./Beta sole capability SHALL do the thing its name says when asked yesterday./' \
+  "$repo/openspec/specs/beta/spec.md"
+cat > "$work/sec/one.notes.md" <<'MD'
+- **Delta capability** — Delta car capability is the change the entry lists first and the shortlist does not name.
+  <!-- cap: delta#Delta car capability -->
+MD
+cat > "$work/sec/two.notes.md" <<'MD'
+- **Beta capability** — Beta capability is the selling point the shortlist names.
+  <!-- cap: beta#Beta sole capability -->
+MD
+run --release 10-1-1-3 --sections "$work/sec" > "$work/r.out" 2>&1
+first_bullet=$(listing_section "$out/STORE-LISTING.md" 10-1-1-3 | awk '/^- / { print; exit }')
+case "$first_bullet" in
+  *'Beta capability'*) ok "listing: the listing leads with the shortlisted change" ;;
+  *) bad "listing: the listing leads with the shortlisted change" "first bullet: $first_bullet" ;;
+esac
+listing_section "$out/STORE-LISTING.md" 10-1-1-3 | grep -q 'Delta capability' \
+  && ok "listing: a change the shortlist does not name is still published when it fits" \
+  || bad "listing: a change the shortlist does not name is still published when it fits"
+
+# The overflow: two bullets of one long sentence each, and only the first fits. The second is named by the general
+# bullet with the count of the changes it stands for, so a change that the field cannot carry is not silently lost.
+filler=""
+i=1; while [ "$i" -lt 14 ]; do filler="$filler beta phrase"; i=$((i + 1)); done
+sed -i 's/Beta sole capability SHALL do the thing its name says when asked yesterday\./Beta sole capability SHALL do the thing its name says when asked twice./' \
+  "$repo/openspec/specs/beta/spec.md"
+sed -i 's/Delta car capability SHALL do the thing its name says when asked\./Delta car capability SHALL do the thing its name says when asked again./' \
+  "$repo/openspec/specs/delta/spec.md"
+cat > "$work/sec/one.notes.md" <<MD
+- **Delta capability** — Delta car capability is one long sentence that the field can hold on its own:$filler.
+  <!-- cap: delta#Delta car capability -->
+MD
+cat > "$work/sec/two.notes.md" <<MD
+- **Beta capability** — Beta capability is one long sentence that the field cannot hold beside the other one:$filler.
+  <!-- cap: beta#Beta sole capability -->
+MD
+run --release 10-1-1-4 --sections "$work/sec" > "$work/r.out" 2>&1
+listing_section "$out/STORE-LISTING.md" 10-1-1-4 | grep -q 'General improvements and optimisations' \
+  && ok "listing: a change that does not fit is summarised not dropped" \
+  || bad "listing: a change that does not fit is summarised not dropped"
+listing_section "$out/STORE-LISTING.md" 10-1-1-4 | grep -q '1 further change\.' \
+  && ok "listing: the summarising bullet counts the changes it stands for" \
+  || bad "listing: the summarising bullet counts the changes it stands for" "$(listing_section "$out/STORE-LISTING.md" 10-1-1-4 | grep '^- ' | tr '\n' ' ')"
+is "listing: the summarised version still fits the budget" "1" \
+  "$( [ "$(listing_length "$out/STORE-LISTING.md" 10-1-1-4)" -le "$listing_budget" ] && echo 1 || echo 0)"
+
+cp "$out/STORE-LISTING.md" "$work/listing-before.md"
+run --release 10-1-1-4 --sections "$work/sec" > /dev/null 2>&1
+[ "$(sha256sum < "$work/listing-before.md")" = "$(sha256sum < "$out/STORE-LISTING.md")" ] \
+  && ok "listing: re-running a version replaces its section byte for byte" \
+  || bad "listing: re-running a version replaces its section byte for byte"
+
+# A version whose changes are all internal owes no section: the document keeps the three it has, byte for byte.
+cp "$out/STORE-LISTING.md" "$work/listing-before-internal.md"
+sections_before=$(grep -c '^## ' "$out/STORE-LISTING.md" 2>/dev/null)
+sed -i 's/Gamma internal capability SHALL do the thing its name says\./Gamma internal capability SHALL do the internal thing./' \
+  "$repo/openspec/specs/gamma/spec.md"
+run --release 10-1-1-5 > "$work/r.out" 2>&1
+if [ -n "$sections_before" ] \
+   && [ "$(grep -c '^## ' "$out/STORE-LISTING.md" 2>/dev/null)" = "$sections_before" ] \
+   && [ "$(sha256sum < "$work/listing-before-internal.md")" = "$(sha256sum < "$out/STORE-LISTING.md")" ] \
+   && grep -q 'nothing user-visible changed in 10-1-1-5' "$work/r.out"; then
+  ok "listing: a version with no entry writes no section"
+else
+  bad "listing: a version with no entry writes no section" \
+    "sections: $(grep -c '^## ' "$out/STORE-LISTING.md" 2>/dev/null); report: $(sed -n 's/^verdict: //p' "$work/r.out")"
+fi
+
+# ---------------------------------------------------------------------------
+# 10. The version is supplied, never discovered
 # ---------------------------------------------------------------------------
 
 rc "version: a run without a version fails with a usage error" 2 bash "$tool" --root "$repo" --data-dir "$data"

@@ -1,18 +1,20 @@
-# Feature-List Guidelines — the generated catalogue and release notes
+# Feature-List Guidelines — the generated catalogue, the release notes and the store listing
 
-How the user-facing feature catalogue and the release notes are derived from the shipped specs, what may keep
-them honest, and why nothing in them is hand-written.
+How the user-facing feature catalogue, the release notes and the store listing are derived from the shipped
+specs, what may keep them honest, and why nothing in them is hand-written.
 
 This document owns the rules and the measurements that proved them. The facts — where the tool lives, how to run
 it — are `AGENTS.md` "Documentation Map"; the behaviour contract is the capability specs
-`openspec/specs/spec-feature-index`, `feature-list-generation` and `release-notes-generation`.
+`openspec/specs/spec-feature-index`, `feature-list-generation`, `release-notes-generation` and
+`store-listing-rendering`.
 
 **Maintenance rule** — when a change supersedes a convention here, update this document in the same change. A
 rule in this document names the case that enforces it; a rule with no such case does not belong here.
 
-## 1. What the two documents are
+## 1. What the three documents are
 
-`FEATURES.md` and `RELEASE-NOTES.md` live at the repository root and are generated, never written.
+`FEATURES.md`, `RELEASE-NOTES.md` and `STORE-LISTING.md` live at the repository root and are generated, never
+written.
 
 - **Rule: an entry is a keyword and a short paragraph, one per selling point.** The catalogue leads with a
 short bold keyword a reader scans for (*Works without a connection*, *Know which lane to be in*) followed by one or
@@ -55,7 +57,7 @@ Cases: `length: an over-long paragraph fails the run`, `length: a short paragrap
 `gates: a keyword word the cited specs lack fails the run`, `density: one entry per capability fails the run`,
 `density: a merged area passes`, `catalogue: the report states the density it achieved`.
 
-**The two documents themselves:**
+**The three documents themselves:**
 
 - `FEATURES.md` is a **living document**: every run rewrites it whole, its areas are ordered by the area
   catalogue, and with identical inputs two runs produce byte-identical bytes. It must never be edited by hand —
@@ -69,6 +71,34 @@ Cases: `length: an over-long paragraph fails the run`, `length: a short paragrap
 
 Cases: `regeneration: two runs produce the same file`, `catalogue: no generation timestamp`,
 `notes: re-running a version replaces its entry byte for byte`.
+
+- `STORE-LISTING.md` is **derived from the same entry, and fitted to the field it is pasted into**: one section per
+  release version, its changes ordered by user impact, and at most the budget in characters. The order is the
+  shortlist's: a change whose spec the shortlist names is one a user can see or feel, and it ranks above one it does
+  not; the entry's own order settles each group.
+- The budget is `listing_budget`, declared in `tools/gen-feature-list.sh` beside `maxpara`, **500 characters per
+  entry** — the store field's limit, recorded with the item that asked for the document and not measured in this
+  tree. It is per entry because one entry's areas cannot sum to one field.
+- **Rule: a bullet the field cannot hold is trimmed, or summarised — never cut and never dropped.** A bullet that
+  does not fit whole is shortened to its whole leading sentences; a `<!-- cap: … -->` comment is emitted complete or
+  not at all, so a source marker is never truncated. The changes that then do not fit are summarised under one bullet,
+  *General improvements and optimisations*, carrying the count they stand for, and that bullet makes room for itself
+  by taking back the last change it can.
+- The listing publishes the **gated** prose: it is rendered from the release note's own entry, after the gate has
+  accepted it, so no model composes a second document.
+
+Cases: `listing: an over-budget entry is trimmed at a sentence boundary`,
+`listing: the trim publishes no sentence the field cannot hold`,
+`listing: every published bullet ends at a sentence boundary`,
+`listing: a trimmed bullet keeps its source comment whole`,
+`listing: the listing leads with the shortlisted change`,
+`listing: a change the shortlist does not name is still published when it fits`,
+`listing: a change that does not fit is summarised not dropped`,
+`listing: the summarising bullet counts the changes it stands for`,
+`listing: the listing is fitted to the budget the tool declares`,
+`listing: the listing states the budget it was fitted to`,
+`listing: re-running a version replaces its section byte for byte`,
+`listing: a version with no entry writes no section`.
 
 ## 2. The shipped set is `openspec/specs/`
 

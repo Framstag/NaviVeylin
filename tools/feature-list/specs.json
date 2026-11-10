@@ -177,6 +177,7 @@
     "sonar-analysis": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "spec-feature-index": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "stale-citation-resolution": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
+    "store-listing-rendering": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "speed-spike-filtering": { "area": "positioning", "userVisible": false, "surfaces": ["phone"] },
     "starred-ordering": { "area": "favorites", "userVisible": true, "surfaces": ["phone"] },
     "start-map-selection": { "area": "offline-maps", "userVisible": true, "surfaces": ["phone"] },

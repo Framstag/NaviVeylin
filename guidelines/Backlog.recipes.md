@@ -404,7 +404,8 @@ item is recorded `cut` with `bound` as its mechanism (issues #786, #790), and a 
 exactly as it was.
 
 A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (170 for the worker, 80 for the
-gate child, 65 for the tail, 75 for a review round and 75 for the round before the gate; `0` or absent = no bound)
+gate child, 65 for the tail, 150 for the rework round a refusal buys, 75 for a review round and 75 for the round
+before the gate; `0` or absent = no bound)
 ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
 which the adapter already writes — minus the count standing when that child started, and checked in the same whole
 second as the two clocks, so the wait costs one `grep` per second and not one per look. That stream is **bounded**
@@ -436,7 +437,11 @@ turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past
 (44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
 is a runaway and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
 the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
-`cut` with that count and `bound` as its mechanism (issues #786, #790).
+`cut` with that count and `bound` as its mechanism (issues #786, #790). The run's header prints every role's figure
+on one `child-turns-max=` token, in the order its `agent-roles=` names them, so the bound a `LOOP-TIMEOUT` line
+applies is one the header already carried: the token listed five roles while six keys existed, and the rework round —
+the role added after the token was written — could be ended at a bound the run's own header never printed
+(issue #842). A bound a run cannot be audited for is not a recorded bound.
 
 **Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
 role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),
@@ -447,6 +452,21 @@ patch behind, and stopped on the streak with 324 of its 480 minutes unused; over
 sessions (22 %) sit at or over 110**, which is what a stop bound at p75 buys. A bound above the population costs one
 runaway child (~18 Mtok at the measured 106 k tokens a turn), and the token band is what flags that item; the cost a
 bound at p75 pays is the item that was working.
+
+**One value is an experiment and not a p95** (issue #842): the rework round's key moves 100 → 150, and 100 was that
+role's p95 over 109 sessions — the rule above, applied, and not a mistake in it. What moves the value is the one
+reading a distribution cannot give: which bound actually fired. The run started 2026-11-09T21:42:41Z cut seven items,
+six of them at or just past `LOOP_ITEM_CONTEXT_MAX` (200 949, 201 500, 201 545, 202 253, 202 372, 202 961 — 0.5 % to
+1.5 % over) and one, #831, at 199 178, **0.4 % under** it, ended by this key after 100 turns: there the turn count and
+not the token stop ended the item, and it is the only cut of that run a raise of this key could reach. Priced from that
+item's own record — 16 252 700 tokens over 198 turns, 82 084 a turn — fifty more turns is about 4.1 Mtok, 3.7 % of
+the run's 109.8 Mtok, spent on an item already 4 279 s in. What a reader takes from the raise is the two figures it was
+granted on: the **overshoot** of the items the bounds cut, and the share of the run's spend that falls **after the first
+gate** (78 % of 70.2 Mtok, 54.6 Mtok that run), because a larger bound buys more of the tail a cut was made of and
+never a promise that the item would have landed. The counter-weight is #686: the 35 items past 250 turns held **878 of
+1 982 Mtok (44 %)** of the archive's spend, which is why this is fifty turns on one role and not a raise of the
+population. The **context** stop is not raised beside it — its refusal is recorded below, and #836's `NOT_PLANNED` is
+why the lever that moves is a turn count inside the provider's window and not the token bound.
 
 The bound was the item's first (one count over the stream every child appends to), and that made it decide *which
 phase* was discarded rather than whether the item was converging: measured 2026-11-05 over the ten items that ran
@@ -485,7 +505,11 @@ with. Each of the three had already written its red-on-HEAD case and its change 
 (`.pi/issue-loop/items/753`, `819`, `719`, whose kept patches carry 553 973, 509 913 and 512 102 bytes), so a wider bound
 buys more of the tail the cuts are made of rather than the item a cut interrupted. The value therefore stays
 200 000. What the bound owed is the reading of a kept patch and the rate beside it (#754, #809), and both have
-landed: neither moves the number.
+landed: neither moves the number. The refusal has since been met twice and is extended here rather than written a
+second time (one place per fact): #836 re-proposed 200 000 → 250 000 and was closed `NOT_PLANNED`, and the run of
+2026-11-09T21:42:41Z put six of its seven cuts there — 200 949, 201 500, 201 545, 202 253, 202 372, 202 961, 0.5 % to
+1.5 % over — while the seventh, #831 at 199 178, was ended by the rework round's **turn** bound instead, which is why
+the lever #842 moved is that turn count (150) and not this value.
 
 That rate is a figure of the **run** and not of one item, so the report prints it (issue #809): the run of
 2026-11-06 21:19Z ended 2 of its 11 items at the stop — 18 % of what it attempted, 36 Mtok spent with nothing

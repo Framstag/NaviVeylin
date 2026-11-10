@@ -970,10 +970,16 @@ MUTATIONS=(
   # (262.1), the run stops writing the same identity beside the diff a round is handed (262.2), the digest stops
   # depending on the change at all (262.3), and the one derivation stops leaving out the generated trees the round's
   # diff leaves out (262.4), which is the state where the gate and the round name two trees on a tree nobody corrected.
+  # 262.5 and 262.6 are the change's *own* files (issue #837): an open change is gitignored, so it was in no listing
+  # the derivation read while its archived self was in one — the archive's move and the run's tail both moved the
+  # digest of a change nobody corrected. The enumeration (262.5) and the archive's date prefix (262.6) are the two
+  # halves one case reads.
   '262.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the tree a full run records, so its record cannot be attributed to the content it measured (issue #819)@s|^    printf '\''%s\\t%s\\t%s\\n'\'' "\$session_key" "\$gate_argv" "\${tree_identity:-head=unknown diff=unknown}" >> "\$runs_record" 2>/dev/null \|\| true$|    printf '\''%s\\t%s\\n'\'' "$session_key" "$gate_argv" >> "$runs_record" 2>/dev/null \|\| true|'
   '262.2@-@tools/loop/run.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_change_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
   '262.3@-@tools/loop/lib.sh@gate#aThirdFullRunInOneSessionIsRefused@the digest of the change itself, so a tree corrected after the gate reads as the tree the gate measured (issue #819)@s|^  printf '\''head=%s diff=%s'\'' "\$head" "\$digest"$|  printf '\''head=%s diff=%s'\'' "$head" "0000000000000000"|'
   '262.4@-@tools/loop/lib.sh@gate#theGateAndTheRoundNameOneTree@the path set the one derivation leaves the generated trees out of, so a gate reads its own evidence as a correction of the tree it measured (issue #819)@s|^  loop_tree_identity "\${1:-}" "\${2:-}" "\$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"$|  loop_tree_identity "${1:-}" "${2:-}"|'
+  '262.5@-@tools/loop/lib.sh@gate#aMovedChangeNamesTheSameTree@the files a change carries in the digest, so a change being worked is in no listing the derivation reads while every path of its archived self is (issue #837)@s%^    git -C "\$tree" ls-files --others --ignored --exclude-standard \${ignored\[@\]+"\${ignored\[@\]}"} 2>/dev/null; } | sort -u |$%    true; } | sort -u |%'
+  '262.6@-@tools/loop/lib.sh@gate#aMovedChangeNamesTheSameTree@the date prefix removed from a change path under the archive, so a change renamed into the archive is a different tree from the one the gate named (issue #837)@s%^      if \[ -n "\$prefix" \]; then$%      if [ -z "$prefix" ]; then%'
   # 100.1 — the record an unreadable item gets instead of the stop, and the `break` that follows it (issue #808).
   # Restoring the stop is what the base did: the item is left unrecorded and the run ends on one item's socket. The
   # `--note` line that followed the record is left as a second command and fails harmlessly (`|| true`), so the

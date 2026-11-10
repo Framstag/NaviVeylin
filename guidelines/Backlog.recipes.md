@@ -724,15 +724,26 @@ The record names the tree the run measured, not only the child that paid for it:
 the count is read from, and the run writes it beside the diff a round is handed (`<diff>.identity`), so the reviewer's
 third item compares two recorded values instead of reading timestamps. Both moments take one derivation,
 `loop_change_identity`, over the paths the round's diff carries — the paths the run's base names plus every path git
-does not track, less the generated trees `LOOP_REVIEW_EXCLUDE_PATHSPEC` leaves out, each with the hash of its
-worktree content — never over `HEAD` or `git status`: the change child measures an uncommitted tree and the run
-commits it before the diff is written, so a commit-shaped digest would make the ordinary flow read as a corrected
-one, and a digest that took the change's own evidence would make the gate's own output read as the correction. What
-falsifies the rule is one digest at the two moments: the gate's `diff=` and the `.identity`'s must be equal on a tree
-nobody corrected (`gate#theGateAndTheRoundNameOneTree`), and a path outside the generated trees corrected after the
-gate must move it (the same case, and `gate#aThirdFullRunInOneSessionIsRefused` for a correction made between two full
-runs). Measured 2026-10-22 (issue #819): a change was archived with a gate its own round-2 corrections never ran —
-§5.6 of `openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` claims a re-run, every
+does not track, less the generated trees `LOOP_REVIEW_EXCLUDE_PATHSPEC` leaves out — and over the change's own files
+as the working tree holds them, tracked or not, under the one name the change has before it is archived: a path under
+the profile's `LOOP_CHANGE_SOURCE_DIR` and its `archive/` reads as its unarchived self once the date prefix
+`LOOP_CHANGE_ARCHIVE_PREFIX` records has been removed, and that same exclude leaves the gate's own `evidence/` out of
+both halves. Each path is hashed by its worktree content — never over `HEAD` or `git status`: the change child
+measures an uncommitted tree and the run commits it before the diff is written, so a commit-shaped digest would make
+the ordinary flow read as a corrected one, and a digest that took the change's own evidence would make the gate's own
+output read as the correction. Measured 2026-11-10 (issue #837): an open change is gitignored (`.gitignore`'s
+`openspec/changes/*/`, with `!openspec/changes/archive/`), so the derivation in force named none of its files —
+`diff=e3b0c44298fc1c14`, the sha256 of the empty string — while one file of that same change under `archive/` named a
+tree of its own (`diff=5439d8da57fe3501`), and the gate and the round disagreed on every archived record surveyed
+(three of three: #721 `gate=9553991d` against `review=19be6f7c`, #820 `5288eb2f` against `6177dd9d`, #833 `46ad1883`
+against `38d53474`). What falsifies the rule is one digest at the two moments: the gate's `diff=` and the
+`.identity`'s must be equal on a tree nobody corrected (`gate#theGateAndTheRoundNameOneTree`), and equal again once
+that change is moved under the archive's date-prefixed name and committed
+(`gate#aMovedChangeNamesTheSameTree`, whose two halves are mutations `262.5` and `262.6`), while a path outside the
+generated trees corrected after the gate must move it (both cases, and `gate#aThirdFullRunInOneSessionIsRefused` for a
+correction made between two full runs). Measured 2026-10-22 (issue #819): a change was archived with a gate its own
+round-2 corrections never ran — §5.6 of
+`openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` claims a re-run, every
 XML in that archive's `evidence/gate/` is stamped `12:23:41.923Z`–`12:26:30.823Z`, and the round-2 runs are stamped
 `12:42:56.420Z` and `12:43:06.048Z`, so the corrected tree was never gated and no record in the tree could say so.
 

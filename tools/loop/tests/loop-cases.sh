@@ -192,6 +192,7 @@ LOOP_SHELL_CASES=(
   'gate#theChildReadsTheProfileOfTheTreeItWorksIn'
   'gate#aThirdFullRunInOneSessionIsRefused'
   'gate#theGateAndTheRoundNameOneTree'
+  'gate#aMovedChangeNamesTheSameTree'
   'gate#runsUnderTheWorktreeEnvironment'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
@@ -877,6 +878,7 @@ loop_run_shell_case() {
     'gate#theChildReadsTheProfileOfTheTreeItWorksIn') fn=case_gate_theChildReadsTheProfileOfTheTreeItWorksIn ;;
     'gate#aThirdFullRunInOneSessionIsRefused') fn=case_gate_aThirdFullRunInOneSessionIsRefused ;;
     'gate#theGateAndTheRoundNameOneTree') fn=case_gate_theGateAndTheRoundNameOneTree ;;
+    'gate#aMovedChangeNamesTheSameTree') fn=case_gate_aMovedChangeNamesTheSameTree ;;
     'gate#runsUnderTheWorktreeEnvironment') fn=case_gate_runsUnderTheWorktreeEnvironment ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
@@ -13959,6 +13961,79 @@ case_gate_theGateAndTheRoundNameOneTree() {
     "the gate derives the identity the one derivation gives"
   assert_contains "$(cat "$LOOP_ENGINE/run.sh")" 'loop_change_identity "$worktree"' \
     "and so does the round's diff"
+  return 0
+}
+
+# The half the case above cannot see (issue #837): an open change is gitignored (`.gitignore:76-77` —
+# `openspec/changes/*/`, with `!openspec/changes/archive/`), so the two listings the digest is taken over named
+# *nothing* of a change being worked while every path of its archived self was named by the base's diff. The
+# archive's rename therefore moved the digest of a change nobody corrected, and the run's own tail — which edits the
+# change directory after the gate — moved it again. Measured on the item's own probe (`.pi/issue-loop/items/837/
+# probe-identity.log`, 2026-11-09T23:10Z): the tree as it stood read `diff=e3b0c44298fc1c14` — the sha256 of the empty
+# string — one file under `archive/` read `diff=5439d8da57fe3501`, and the same file under the unarchived name read
+# the empty tree again.
+#
+# So the derivation takes the change's own files as the working tree holds them, tracked or not, under the one name
+# a change has before it is archived, and re-applies the evidence exclusion the round's diff carries: the gate
+# writes its own `evidence/` after it has named its tree. A file of the change that is *not* generated output,
+# rewritten after the gate, still moves the digest — that is item 3's signal and this change keeps it.
+case_gate_aMovedChangeNamesTheSameTree() {
+  # files: tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base before unarchived moved committed evidence_only repaired
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy the loop configuration"
+  # The throwaway project carries this repository's two ignore rules, because the defect is what they do to the
+  # digest: a change that is being worked is a directory git does not see at all.
+  printf 'openspec/changes/*/\n!openspec/changes/archive/\n' >> "$p/.gitignore"
+  mkdir -p "$p/notes" && printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a note' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD)
+  # The one derivation, sourced and run the way `run.sh` runs it, over the run's own base regardless of the range a
+  # round's diff is taken over.
+  change_identity_of() {
+    ( cd "$p" && LOOP_CONF="$conf" bash -c '. "$1/lib.sh"; loop_resolve; loop_change_identity "$2" "$3"' \
+        _ "$LOOP_ENGINE" "$p" "$base" | sed -n 's/^.*diff=\([0-9a-f][0-9a-f]*\)$/\1/p' )
+  }
+  before=$(change_identity_of)
+  [ -n "$before" ] || fail "the tree with no change of its own names a digest: $before"
+
+  mkdir -p "$p/openspec/changes/demo/evidence"
+  printf '# proposal\n' > "$p/openspec/changes/demo/proposal.md"
+  printf '# design\n' > "$p/openspec/changes/demo/design.md"
+  printf '<testsuite name="demo" tests="1" failures="0"/>\n' > "$p/openspec/changes/demo/evidence/gate.xml"
+  unarchived=$(change_identity_of)
+  [ "$before" != "$unarchived" ] || \
+    fail "a change being worked is in the tree the gate names, evidence or not: $unarchived"
+
+  # The archive's move — the same files under the date-prefixed name — is a rename and not a correction.
+  mkdir -p "$p/openspec/changes/archive"
+  mv "$p/openspec/changes/demo" "$p/openspec/changes/archive/2026-11-10-demo"
+  moved=$(change_identity_of)
+  assert_eq "$unarchived" "$moved" \
+    "the archive's move of a change nobody corrected is the tree the gate measured"
+
+  # …and the commit the archive lands as carries the same change, so the round after it reads one tree too.
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the archived change' >/dev/null 2>&1 \
+    || fail "could not commit the archived change in the throwaway repository"
+  committed=$(change_identity_of)
+  assert_eq "$unarchived" "$committed" \
+    "a committed archive of the change is still the tree the gate measured"
+
+  # The gate writes its own evidence after it has named its tree, so the evidence trees leave the derivation out —
+  # including the half of it the change's own files add.
+  printf '<testsuite name="demo" tests="1" failures="1"/>\n' \
+    > "$p/openspec/changes/archive/2026-11-10-demo/evidence/gate.log"
+  evidence_only=$(change_identity_of)
+  assert_eq "$unarchived" "$evidence_only" \
+    "the evidence a gate writes after naming its tree is not a correction of it"
+
+  # …while a file of the change that is not generated output, rewritten after the gate, is: item 3 has to see it.
+  printf '# design, corrected\n' > "$p/openspec/changes/archive/2026-11-10-demo/design.md"
+  repaired=$(change_identity_of)
+  [ -n "$repaired" ] && [ "$repaired" != "$unarchived" ] || \
+    fail "a change's own file rewritten after the gate is a tree the gate never saw: $repaired"
   return 0
 }
 

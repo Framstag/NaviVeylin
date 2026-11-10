@@ -288,19 +288,51 @@ loop_bound_under_ceiling() { # <bound> → that bound, or the ceiling when the c
 # `git status` would make the ordinary flow read as a corrected one, because the change child measures an uncommitted
 # tree and the run commits it before the diff a reviewer reads is written.
 #
+# The name a change's own file goes by, with the archive's date prefix removed (issue #837): a finished change is
+# moved under `<family>/archive/<prefix><name>/`, and that move is a rename and not a correction, so a digest a gate
+# names has to read the same after it. The prefix is the profile's pattern (`LOOP_CHANGE_ARCHIVE_PREFIX`), matched
+# from the first character of the archived directory's name; a project that records none strips nothing, and then an
+# archived change is a tree apart from its unarchived self.
+loop_change_path() { # <path> <family> <archive prefix pattern> → the path under the change's own name
+  local p="$1" family="$2" prefix="$3" rest name
+  case "$p" in
+    "$family"/archive/*/*)
+      rest=${p#"$family"/archive/}
+      name=${rest%%/*}
+      if [ -n "$prefix" ]; then
+        # the profile's pattern is a sed expression, matched from the name's first character
+        name=$(printf '%s' "$name" | sed -E "s/^${prefix}//")
+      fi
+      printf '%s/%s/%s\n' "$family" "$name" "${rest#*/}" ;;
+    *) printf '%s\n' "$p" ;;
+  esac
+}
+
 # Usage: loop_tree_identity <tree> <base> [<pathspec to leave out>] → `head=<sha> diff=<digest>`, or nothing when git
 # cannot answer.
 loop_tree_identity() {
-  local tree=${1:-} base=${2:-} exclude=${3:-} head listing digest p h
-  local -a scope=()
+  local tree=${1:-} base=${2:-} exclude=${3:-} head listing digest p h family archive prefix
+  local -a scope=() ignored=()
   [ -n "$tree" ] && [ -n "$base" ] || return 0
   head=$(git -C "$tree" rev-parse HEAD 2>/dev/null) || return 0
   [ -n "$head" ] || return 0
   # `.` anchors the pathspec to the tree's root, which is the scope `git diff … -- .` has in `run.sh`, and the pathspec
   # is the one the round's diff is built with: a path that diff does not carry is not the change this digest names.
   if [ -n "$exclude" ]; then scope=(. "$exclude"); fi
+  # A change being worked is gitignored (`.gitignore`'s `openspec/changes/*/`), so neither listing above carries its
+  # files at all while its archived self carries every one of them: the archive's move alone moved this digest, and
+  # the run's own tail — which edits the change directory after the gate — moved it again (issue #837). The family's
+  # own files are therefore enumerated whether git tracks them or not, as the working tree holds them, with the
+  # archive's subtree left to the listings above (a path it carries is renamed by `loop_change_path`) and the evidence
+  # exclusion re-applied: a gate writes its own `evidence/` after it has named its tree.
+  family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR); family=${family:-openspec/changes}
+  archive="$family/archive"
+  prefix=$(loop_conf_value LOOP_CHANGE_ARCHIVE_PREFIX)
+  ignored=(-- "$family" ":(exclude)$archive/**")
+  [ -z "$exclude" ] || ignored+=("$exclude")
   listing=$( { git -C "$tree" diff --name-only "$base" ${scope[@]+"${scope[@]}"} 2>/dev/null
-    git -C "$tree" ls-files --others --exclude-standard ${scope[@]+"${scope[@]}"} 2>/dev/null; } | sort -u |
+    git -C "$tree" ls-files --others --exclude-standard ${scope[@]+"${scope[@]}"} 2>/dev/null
+    git -C "$tree" ls-files --others --ignored --exclude-standard ${ignored[@]+"${ignored[@]}"} 2>/dev/null; } | sort -u |
     while IFS= read -r p; do
       [ -n "$p" ] || continue
       if [ -e "$tree/$p" ]; then
@@ -308,8 +340,8 @@ loop_tree_identity() {
       else
         h="deleted"
       fi
-      printf '%s\t%s\n' "$p" "$h"
-    done )
+      printf '%s\t%s\n' "$(loop_change_path "$p" "$family" "$prefix")" "$h"
+    done | sort -u )
   digest=$(printf '%s' "$listing" |
     { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
   printf 'head=%s diff=%s' "$head" "$digest"

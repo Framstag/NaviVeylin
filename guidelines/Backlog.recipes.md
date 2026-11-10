@@ -409,14 +409,28 @@ ends a child that has spent **its own role's** turns, read from the item's event
 which the adapter already writes — minus the count standing when that child started, and checked in the same whole
 second as the two clocks, so the wait costs one `grep` per second and not one per look. That stream is **bounded**
 now (issue #802): `LOOP_CHILD_EVENTS_MAX_BYTES` (16 MiB on this project) is the size past which `tools/pi-child-events.sh`
-drops the oldest half of the lines and writes a `stream_rotation` record first — the lines, the bytes and a cumulative
-`dropped_turn_ends` — because the file grew for the item's whole life and was re-read whole by this bound every
-second. Measured 2026-11-06 over this archive (`evidence/archive-census.py` in the change
-`fix-an-item-stream-is-bounded-and-reported`): 254 streams held **3 483 MiB**, p50 11.84 MiB, p90 29.88 MiB, one
-63.47 MiB, and a 16 MiB bound leaves 2 573 MiB — above the median item's whole history, so an ordinary item is not
-rotated at all. The count adds what the record says was dropped to what the stream still holds, so a rotation cannot
-fall a child's count back to zero; `state.sh`'s usage sum still reads the stream that remains, which is the price of a
-bounded file and not a second reading of it. It exists because the clock
+rotates it and writes a `stream_rotation` record first — the lines, the bytes and a cumulative `dropped_turn_ends` —
+because the file grew for the item's whole life and was re-read whole by this bound every second. Measured 2026-11-06
+over this archive (`evidence/archive-census.py` in the change `fix-an-item-stream-is-bounded-and-reported`): 254
+streams held **3 483 MiB**, p50 11.84 MiB, p90 29.88 MiB, one 63.47 MiB, and a 16 MiB bound leaves 2 573 MiB — above
+the median item's whole history, so an ordinary item is not rotated at all.
+
+What a rotation drops is the deltas, not the oldest lines (issue #840). Dropping by line position took the records
+`state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `roles` and `afterGate` from: in the run
+started 2026-11-09T21:42:41Z nine of fifteen item streams rotated and dropped **1 697 `turn_end` records against the
+1 372 turns the state recorded**, so an item's cost was a lower bound printed as a measurement. The bulk of a stream
+is streamed deltas — in `items/833/events.jsonl` 16 662 of ~17 400 surviving lines are `message_update` (4 741 310 of
+8 565 562 bytes, 55 %), `tool_execution_update` another 255 184 B — so the pass drops `message_update` and
+`tool_execution_update`, keeps every record line, and the oldest-half cut runs only on a stream still over the bound
+afterwards. `message_update` is dropped only when every `turn_end` of that stream carries `message.usage`, the object
+its last update ended on (747 of 747 turns over six archived streams, 746 byte-identical to the last update and the
+747th with no update at all); a provider that reports usage on the updates alone keeps them. `state.sh`'s `turns`
+falls back to that `message.usage`, so the spend of a rotated stream is the spend of the stream it was cut from — on a
+copy of `items/833/events.jsonl` at a 4 MiB bound, 8 593 950 B → 3 590 953 B with all 90 `turn_end` records kept,
+where the line-position cut kept 57. The count adds what the record says was dropped to what the stream still holds,
+so a rotation cannot fall a child's count back to zero. A stream the delta pass cannot bring under the bound — its
+records alone outgrow it — is a lower bound still (issue #841), recorded as one rather than silently. It exists
+because the clock
 is the wrong unit for a child that keeps re-reading: cache re-read is **97 %** of what a loop child is charged, so a
 turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok
 (44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns

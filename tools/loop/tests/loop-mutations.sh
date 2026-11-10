@@ -1040,6 +1040,17 @@ MUTATIONS=(
   '266.1@-@tools/loop/worktree.sh@run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart@the start reading the patch a bound-ended child left, so the item is worked from zero and the kept work is read by nobody (issue #754)@s#^  \[ -s "\$patch" \] [|][|] return 1$#  return 1#'
   '266.2@-@tools/loop/worktree.sh@run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase@the record of a patch that does not apply, so the item starts from the base and nothing says why it did (issue #754)@s#^  record_resume "\$item" "\$patch" no-apply$#  : #'
   '266.3@-@tools/loop/state.sh@run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase@the reading that puts the resume the start found into the item note, so the record is written and no reader of the item finds it (issue #754)@s#^  \[ -z "\${resume_note:-}" \] [|][|] note=.*$#  :#'
+  # 267.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
+  # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
+  # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and
+  # at `sed`/`grep`/`git show` over the gate's own file, measured 2026-11-10 over
+  # `.pi/issue-loop/items/{719,738,808,810,819}/events.jsonl`; so the 67 % that read as spend after the gate was the
+  # item's own derivation. Three rules, one case: a plan asks and runs nothing (`267.1`), the program may sit behind
+  # the `cd …` prefix a child writes (`267.2`), and a command whose argument is the gate's path only reads it
+  # (`267.3`).
+  '267.1@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the exclusion of a plan call, so the call that asks what a delta owes reads as the gate that decided the item and everything after it is spent after the gate (issue #830)@s#select(. == "--plan")#select(. == "--plan-never")#'
+  '267.2@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the cd prefix the program sits behind, so the gate a child runs from another directory reads as no gate at all and the item has no split (issue #830)@s#(if .\[0\] == "cd" then .\[2:\] else . end)#(if .[0] == "cd-never" then .[2:] else . end)#'
+  '267.3@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830)@s#(($w | run_word) as \$prog#(($w | .[-1]) as $prog#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

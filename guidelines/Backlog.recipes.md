@@ -646,10 +646,14 @@ figure, never a stop: nothing in the run reads it, and the keys it would bound d
 never named** — while the phase line's three buckets held 7 586 s of the same run's 24 104 s window. Two measures were
 printed as one. The role split is folded from the `session` records, and a `turn_end` that stands before the first one
 was counted in `metrics.tokens` and in no bucket: a `stream_rotation` takes the head of a stream (item 738's own
-stream keeps its one `session` record at line 14 254 of 21 310, with the 138 turns the rotation dropped standing
-before it — `evidence/measure-stream-timestamps.log`), and a harness can write the record late. Those turns are now
+stream keeps its one `session` record at line 14 254 of 21 310, with **34** `turn_end` records standing before it whose
+usage sums to 2 311 165 — `evidence/real-stream-738.log`, and `evidence/measure-stream-timestamps.log` for the line
+counts — while the 138 turns that same rotation dropped are absent from the stream altogether, so no reader counts
+them and no bucket holds them), and a harness can write the record late. Those turns are now
 the bucket `metrics.roles.unattributed`, beside the three, and the trend prints every bucket the record holds rather
-than the three it was written with — so the buckets add up to the tokens the line is over. The clock cannot be split
+than the three it was written with — so the buckets add up to the tokens the line is over, including a turn the stream
+ends **inside**: a child the run ended at a bound leaves a last `message_update` whose `turn_end` never arrives, and
+that usage is a turn of the region it stands in, not a remainder (measured: 200 800 tokens of item 819's 6 489 672). The clock cannot be split
 that way: the stream carries a `timestamp` on 3 of item 808's 22 125 events, all of them `session` records (the same
 log), so no reader can bound what a child spent outside a turn and outside a tool call. The phases line prints that
 remainder instead of inventing a bucket for it — `… · 12.8 s over 1 item, 30 % of the 42 s of item wall — 29.2 s of it

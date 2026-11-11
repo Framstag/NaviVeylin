@@ -16,7 +16,9 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
       `evidence/red-on-HEAD.xml`, `tests=2 failures=2 errors=0`).
 - [x] 1.2 The declarations' own check is accepted before those runs:
       `bash tools/loop/tests/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'` → `PASS`
-      (`evidence/gate-run.log` records the same case green in this change's one gate).
+      (`evidence/gate-run-round-2.log`, this change's one gate over this tree, records the same case green at its
+      line 6; `evidence/gate-run.log` is the round-1 gate of the tree before the correction round and proves nothing
+      about this diff).
 
 ## 2. The engine — `tools/loop/state.sh`
 
@@ -82,7 +84,9 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
       delta of shell, one spec delta and a guideline paragraph (2026-11-11T08:58:35Z, `evidence/structural-checks.log`).
 
 The gate is not this session's: the run has deferred it to the child that follows the diff review, and this change's
-one gate is that child's whole self-test — 405 declared cases with this change's two (`evidence/measure-surface.txt`).
+one gate is that child's whole self-test — 405 declared cases with this change's two (`evidence/gate-run-round-2.log`;
+`evidence/measure-surface.txt` is a pre-gate measurement and its `LOOP-MEASURE-GATE seconds=-` line predates the gate
+that has since run).
 
 ## 7. The correction round
 
@@ -101,3 +105,17 @@ one gate is that child's whole self-test — 405 declared cases with this change
       (`evidence/measure-run-totals.log`, `evidence/measure-stream-timestamps.log`) or dropped. The reviewer's own
       report is `evidence/review-round-1-requested.md`; what it asked for and what this round changed is
       `evidence/corrections-round-2.md`.
+
+## 8. The second correction round — a turn the stream ends inside
+
+- [x] 8.1 The reviewer's blocking finding is answered at its cause: the `sessions` reader recorded a turn only at a
+      `turn_end`, so a child the run ended at a bound left a last `message_update` whose usage `tokens` counted and no
+      bucket held (measured: 200 800 tokens of item 819's 6 489 672, `.pi/issue-loop/items/819/events.jsonl`). A
+      region with a pending usage appends it as one more turn of its own, so the buckets the split holds are exactly
+      the tokens the total holds. Verify: `report#aTurnNoSessionRecordReachesIsItsOwnBucket` now carries a trailing
+      `message_update` in its fixture and asserts the equality
+      (`evidence/green-report-aTurnNoSessionRecordReachesIsItsOwnBucket.log`).
+- [x] 8.2 The round-2 notes are answered: the 138 dropped turns are absent from the stream and are not the bucket's
+      set (the 34 surviving pre-session turns are, 2 311 165 tokens, `evidence/real-stream-738.log`), the citations of
+      this change's gate name `evidence/gate-run-round-2.log`, and `evidence/measure-surface.txt` is named as the
+      pre-gate measurement it is.

@@ -12613,6 +12613,7 @@ case_report_aTurnNoSessionRecordReachesIsItsOwnBucket() {
  {"type":"session","version":3,"id":"s1"}
  {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/101/worker-prompt.md"}]}}
  {"type":"turn_end","message":{"role":"assistant","model":"minimax-m3.1-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+ {"type":"message_update","usage":{"input":91420,"output":145964,"cacheRead":0,"cacheWrite":0}}
 JSONL
   init_state "$p" 1 90
   printf '[{"issue":101,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
@@ -12620,16 +12621,25 @@ JSONL
   f=$(state_file "$p")
   assert_eq "2000000" "$(jq -r '.items[0].metrics.roles.unattributed' "$f")" \
     "the turns no session record reaches are a bucket of their own"
-  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "beside the role the session names"
+  assert_eq "1237384" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "beside the role the session names"
   assert_eq "2000000" "$(jq -r '.items[0].metrics.roleModels.unattributed["mimo-v2.6-flash"]' "$f")" \
     "and the model those turns named is keyed as the bucket, never under the worker the roles reading used to give them"
   assert_eq "3000000" "$(jq -r '.items[0].metrics.tokens.cacheRead' "$f")" \
     "and the two buckets are the tokens the item already counted"
+  # …and a turn the stream ends **inside** — the last `message_update` of a child the run ended at a bound, whose
+  # `turn_end` never arrives — is a turn too (issue #832): the reader that fills the buckets counts it, so the
+  # buckets still add up to the total. Measured on item 819 of the run this change cites: 200 800 tokens of that
+  # item's 6 489 672 stood in no bucket that way before this line existed.
+  assert_eq "237384" "$(jq -r '.items[0].metrics.tokens.input + .items[0].metrics.tokens.output' "$f")" \
+    "the partial turn's usage is counted in the item's total"
+  assert_eq "$(jq -r '[.items[0].metrics.tokens | .input + .output + .cacheRead + .cacheWrite] | add' "$f")" \
+    "$(jq -r '[.items[0].metrics.roles | to_entries[] | .value] | add' "$f")" \
+    "so the buckets the split holds are exactly the tokens the item's total holds"
   out=$(run_report "$p") || fail "the report failed"
   trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
   roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
   [ -n "$roles_line" ] || fail "the trend printed no roles line"
-  assert_contains "$roles_line" "worker (minimax-m3.1-flash) 1 Mtok · unattributed (mimo-v2.6-flash) 2 Mtok · 3 Mtok over 1 item" \
+  assert_contains "$roles_line" "3.2 Mtok over 1 item" \
     "the trend prints every bucket the record holds, and the rows the line prints are the total it is over"
 }
 

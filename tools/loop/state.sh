@@ -1046,6 +1046,15 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
                                             calls: ($m.content | calls_of)}])
              | .cur.usage = null)
           else . end)
+        # A turn the stream ends **inside** — its `message_update` carries the usage and its `turn_end` never
+        # arrives, which is the shape a child the run ends at a bound leaves (issue #832) — is a turn the `turns`
+        # reader counts and this one did not: measured on item 819 of the cited run, 200 800 tokens of its
+        # 73 220 472 stood in no bucket that way. The region it stands in holds it as one more turn of its own, so
+        # the buckets this reader fills sum the same usage the total does — and a stream whose turns all closed is
+        # unchanged, because a region with no pending usage appends nothing.
+        | (if (.cur.usage != null)
+             then .cur.turns = (.cur.turns + [{usage: .cur.usage, ms: 0, model: null, calls: []}])
+           else . end)
         | (if (.cur.turns | length) > 0 then (.done + [.cur]) else .done end);
 
       . as $all

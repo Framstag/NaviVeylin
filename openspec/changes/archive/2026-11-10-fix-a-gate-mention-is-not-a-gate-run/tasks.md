@@ -60,11 +60,18 @@
   `evidence/gate-run-line-round2.md` (`LOOP-GATE-TREE head=03439a42 diff=e88e3015`).
 - Neither of those records attests the tree this change lands. After both gates the round wrote four paths outside
   `evidence/` — `guidelines/Backlog.recipes.md` and the archived change's `design.md`, `proposal.md`, `tasks.md` — so
-  the digest a later reader would compute names a tree no gate measured. The merge onto `main` puts the delta's clause
-  into `openspec/specs/agent-issue-loop/spec.md` **before** the gate this change now runs, so the tail's Phase F has
-  nothing left to move on the path set; the gate's `LOOP-GATE-TREE` line on that merged tree is the record this change
-  claims. If that digest still differs from the tree the final diff carries, the difference is item #837 (the engine's
-  post-gate move), and the two trees are named here rather than the record being called attested.
+  the digest a later reader would compute names a tree no gate measured. The merge onto `main` put the delta's clause
+  into `openspec/specs/agent-issue-loop/spec.md` before the gate this change now ran, so the tail's Phase F had nothing
+  left to move on the path set.
+- The attesting run: `evidence/gate-run-line.md` (its step lines) and `evidence/gate.log` (its whole console, which the
+  step lines and the aggregate are read from) — `LOOP-GATE-TREE head=6f67ca18 diff=7f2fdad8`,
+  `tests=997 failures=0 errors=0`, longest steps `loop-selftest.sh --from-git` 597 s and `loop-mutations-selftest.sh`
+  629 s. The first run on that tree was red for a collision, not for the change: `--from-git` found
+  `.pi/tmp/.loop-selftest.lock` held by another suite (owner 2800790) and exited in 1 s (`tests=598 failures=0
+  errors=1`); the re-run is the one above. Per-suite tallies are not copied this round: `app/build/test-results/loop-gate/`
+  is shared with any other suite on the host and two files in it carried another run's 1800 s step, so the gate's own
+  console is the record. If a later reader's digest of this tree still differs from the diff's, the difference is item
+  #837 (the engine's post-gate move), and the two trees are named here rather than the record being called attested.
 
 ## 6. Round 2 — the corrections the review asked for
 

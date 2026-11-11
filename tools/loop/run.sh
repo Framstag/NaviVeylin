@@ -1410,8 +1410,10 @@ review_correction_scope() { # <refused head> <refusing report path>
 # directory an earlier item wrote is indistinguishable from this item's own gate. The kept worktree carries them
 # across items, and a child the round cap ends leaves the half-written state of its own gate behind (issue #253:
 # item #116's killed Gradle left `auto/build/test-results/testDebugUnitTest/binary/in-progress-results-generic.bin`,
-# and the next gate failed with `java.io.EOFException` on infrastructure instead of on a case; the same leftovers
-# defeat the "no test-results XML exists in the tree" refusal below, because there is always an XML).
+# and the next gate failed with `java.io.EOFException` on infrastructure instead of on a case; before the run read the
+# gate's own tally directory these leftovers also defeated the "no test-results XML exists in the tree" refusal, because
+# there was always an XML — the sweep is what keeps the directory the reading below reads clean, and what makes that
+# reading an answer about this item's gate).
 #
 # So every worker starts on a worktree without one. What is removed is a directory named `test-results` whose
 # parent is a `build` directory, inside the worktree, through `loop_scratch_remove`, whose four refusals are the
@@ -2749,9 +2751,25 @@ while true; do
     awk -F/ 'NF > 3 {print $4}' | sort -u)
   change=$(printf '%s\n' "$archives" | grep -x -- "$change_claim" 2>/dev/null | head -1)
   [ -n "$change" ] || change=$(printf '%s\n' "$archives" | head -1)
-  gate_xmls=$(find "$worktree" -path '*test-results*' -name '*.xml' 2>/dev/null | head -20)
+  # The gate's evidence is the tally this item's gate wrote, and one directory holds them (issue #849): the path the
+  # profile names (`LOOP_GATE_TALLY_DIR`), which the worker's own start clears (`clear_stale_test_results`) and which
+  # the gate clears once more before its first step (issue #848) — so what it holds now is this item's and nothing
+  # else. Reading every XML under any `test-results` path in the worktree instead counted what stood before the item:
+  # this repository tracks 24 such files, and `head -20` made the column the constant 20, so the no-evidence arm below
+  # could never fire in it (measured 2026-11-11: `find . -path '*test-results*' -name '*.xml' | wc -l` = 24,
+  # `git ls-files` counts 24). A profile that names no directory leaves the run with no tally to read.
+  gate_tally=$(loop_conf_value LOOP_GATE_TALLY_DIR)
+  case "$gate_tally" in
+    /*) gate_tally_dir="$gate_tally" ;;
+    '') gate_tally_dir="" ;;
+    *) gate_tally_dir="$worktree/$gate_tally" ;;
+  esac
+  gate_xmls=""
+  if [ -n "$gate_tally_dir" ] && [ -d "$gate_tally_dir" ]; then
+    gate_xmls=$(find "$gate_tally_dir" -maxdepth 1 -name '*.xml' 2>/dev/null | head -20)
+  fi
   gate_found=$(printf '%s' "$gate_xmls" | grep -c . || true)
-  progress gate "read — $gate_found test-results XML in the tree"
+  progress gate "read — $gate_found XML in the gate's tally directory ${gate_tally:-<none named>}"
   # The gate tally the item carries: the child's claim when it made one, what the run found otherwise,
   # and "skipped" when the project configured no gate at all (a project with no build still runs — D16).
   if [ -z "$LOOP_GATE_CMD" ]; then
@@ -2833,7 +2851,7 @@ while true; do
   elif [ -z "$change" ]; then
     outcome="blocked"; blocked_reason="reported success but no archived change appears in the run's diff"
   elif [ -n "$LOOP_GATE_CMD" ] && [ "$gate_found" -eq 0 ]; then
-    outcome="blocked"; blocked_reason="the report claims a gate result but no test-results XML exists in the tree"
+    outcome="blocked"; blocked_reason="the report claims a gate result but the gate's tally directory holds no XML (${gate_tally:-no LOOP_GATE_TALLY_DIR is named})"
   elif [ "$cited_evidence" -eq 1 ] && [ "$carried" -eq 0 ]; then
     outcome="blocked"; blocked_reason="the change cites a test result but carries no evidence in its own evidence/ directory"
   fi

@@ -998,6 +998,11 @@ MUTATIONS=(
   # carrier in it; the refusal (848.2) is what keeps two gates of one tree from writing it at once.
   '848.1@-@tools/loop/gate.sh@gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes@the sweep that leaves no carrier an earlier run wrote in the tally directory (issue #848)@s|^  rm -f "\$tally_root"/\*\.xml 2>/dev/null \|\| true$|  : # the mutation leaves the carrier an earlier run wrote|'
   '848.2@-@tools/loop/gate.sh@gate#aSecondGateRefusesWhileOneRuns@the refusal of a second gate of one tree while another holds the tally directory (issue #848)@s|^    if \[ "\$holder_pid" -gt 0 \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if false; then|'
+  # 849.1 — the reading the run's gate column replaced (issue #849). The record restores it: every XML under any
+  # `test-results` path in the worktree, capped at 20, instead of the one directory the item's gate writes. The case
+  # then fails on the number it reads for an item whose own gate wrote nothing, because the tracked evidence an
+  # archived change carries answers the arm that is asking whether this item's gate ran.
+  '849.1@-@tools/loop/run.sh@run#theGateColumnNamesThisItemsGateResult@the gate evidence read from one directory, not from every test-results path in the tree (issue #849)@s|^    gate_xmls=.*head -20)$|    gate_xmls=$(find "$worktree" -path "*test-results*" -name "*.xml" 2>/dev/null \| head -20)|;;s|^  if \[ -n "\$gate_tally_dir" \] && \[ -d "\$gate_tally_dir" \]; then$|  if true; then|'
   # 100.1 — the record an unreadable item gets instead of the stop, and the `break` that follows it (issue #808).
   # Restoring the stop is what the base did: the item is left unrecorded and the run ends on one item's socket. The
   # `--note` line that followed the record is left as a second command and fails harmlessly (`|| true`), so the

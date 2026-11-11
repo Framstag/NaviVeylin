@@ -105,7 +105,7 @@ loop_note() {
 }
 
 # What a gate tally says about the run it measured (issue #811). The tally is free text the run writes — a child's
-# `LOOP-GATE` line, the count of test-results XMLs it found, `skipped (no gate configured)`, `not run — …` — so the
+# `LOOP-GATE` line, the count of tallies the run found, `skipped (no gate configured)`, `not run — …` — so the
 # one predicate every reader of it needs is read out of the text and never out of a second field: `red` when it
 # carries a nonzero `failures=` or `errors=`, `green` when it carries the counts and they are zero, and `unknown`
 # when it carries neither, which are the shapes that measured no test. A reader that took `unknown` for `green`

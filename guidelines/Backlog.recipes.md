@@ -781,6 +781,17 @@ line saying whose it was. Having claimed the directory, it clears every `*.xml` 
 its first step writes one, each tally it writes carries `run="<pid>"`, and the console names the directory and
 that run (`LOOP-GATE-TALLY:`), so a reader copying the directory copies exactly the steps the gate ran.
 
+**The run reads an item's gate evidence from that directory too.** The count the run records for an item — its
+`read — <n>` line, the arm that refuses a report claiming a gate result, and the evidence a closure names — comes
+from the `*.xml` files in `LOOP_GATE_TALLY_DIR` and from nothing else. It read every XML under any `test-results` path
+in the worktree instead, so the number was the tree's own constant and the refusal could not fire anywhere this
+repository can run: measured 2026-11-11 (issue #849), the tree tracked 24 such files before any item ran — an
+archived change's `evidence/module-test-results/` and the gate-timings fixtures — `head -20` capped the reading at
+20 for every item, and the run logs of 2026-11-07 (`.pi/issue-loop/`) print `gate · read — 20 test-results XML in the
+tree` three times in one run — the third 76 s after item #90 was picked — and 13 times in the next. Two predicates
+over one tree was the defect: the sweep before every worker removes `*/build/test-results`, which holds the tally
+directory, while the reading matched `*test-results*`.
+
 A gate reads the profile beside its own engine — the tree whose paths it measures — and its log says which file that
 was: `LOOP-GATE-PROFILE: <path>` is the first line of a gate that runs something, and a profile read from outside
 that tree is named as pinned beside the one the engine ships. The run resolves its own configuration and keeps it

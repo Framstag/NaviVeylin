@@ -1,0 +1,5 @@
+# tools/check-glossary.sh — the whole tree, 2026-11-11T18:39:17Z
+check-glossary: drift favourites/favorite#operation /home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/di/AutoFavoritesProviderImpl.kt:3 — declared=favorite(193) observed=Favorite(3) in the operation role; reported, not refused
+check-glossary: drift zoom#operation /home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/ui/map/ZoomControls.kt:27 — declared=zoom(395) observed=Zoom(1) in the operation role; reported, not refused
+check-glossary: green rows=53 anchored=53 kinds=attribute,entity,operation,value files=469
+exit=0

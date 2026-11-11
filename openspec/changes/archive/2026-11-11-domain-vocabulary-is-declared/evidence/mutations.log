@@ -1,0 +1,45 @@
+phantom	glossary#aSurfaceTheCensusNeverObservesIsRefused	a declared surface the census never observes is refused, so a word the code does not carry cannot be declared into existence
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+drift	glossary#aForbiddenFormInItsRoleIsDrift	a forbidden form observed in the role it is forbidden in is a finding naming the file and the line, so a rename cannot leave the old spelling behind unremarked
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+undecided	glossary#aSplitWithNoDeclarationIsRefused	a spelling the code splits evenly is refused until a canonical form is declared, because no majority can settle it
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+overruled	glossary#anOverruledDeclarationIsRefused	a declared form a ten-to-one majority of the code contradicts is refused, with both counts on the line
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+kind-mismatch	glossary#aDeclaredKindWithNoSurfaceIsARefusal	a row's kind decides the grammatical role it must declare a surface in, so a value declaring only an operation is refused
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+unit-missing	glossary#aPhysicalAttributeWithoutUnitIsRefused	an attribute carrying a physical quantity names its unit, so a bare number cannot be declared as a distance or a speed
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+bool-prefix	glossary#aBareBooleanIsRefused	a declared boolean surface carries is/has/can, so a flag reads as a question rather than as a noun
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+unanchored	glossary#anUnanchoredRowIsRefused	a row carrying neither a case nor a named rule is refused where it is written, so a definition no proof stands behind never enters the tree
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+twin-term	glossary#twoRowsWithoutAnExclusionAreRefused	two rows of one kind that exclude neither each other nor anything else are one word written twice
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+lopsided-exclusion	glossary#aOneSidedExclusionIsRefused	an exclusion is mutual, so row A naming row B while B does not name A is refused naming both rows
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+unowned-term	glossary#aGlobalTermIsHomedInConcept	a global word's home kind is concept, so a feature word cannot be declared app-wide however many features use it
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+misplaced-term	glossary#aTermInANonCoiningKindIsRefused	only a coining kind declares a term, so a declared word whose type sits in a port, platform or shell package is reported
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+bad-name	glossary#aVacuousSuffixIsRefusedInACoiningKind	a vacuous suffix from the declared lexicon is refused in a coining kind, naming the type, the suffix and the lexicon's reason
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+undeclared-context	glossary#anUndeclaredScopeIsRefused	a row's scope names a feature the structure declaration carries, so the glossary cannot invent a context of its own
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-glossary.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 14 mutation(s) run, 14 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

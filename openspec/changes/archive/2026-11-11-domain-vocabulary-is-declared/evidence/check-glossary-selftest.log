@@ -1,0 +1,27 @@
+ok   glossary#aPolysemousWordCarriesItsScope — two rows of one word, each scoped and excluding the other, are accepted
+ok   glossary#aDuplicateKeyIsRefused — a second row carrying the same key fails and names the key
+ok   glossary#anUnanchoredRowIsRefused — a row with no anchor fails, naming what was looked for
+ok   glossary#anAnchorThatDoesNotResolveIsRefused — an anchor naming nothing fails with the anchor text
+ok   glossary#anAnchorThatDoesNotResolveIsRefused — a named rule is an anchor, and it resolves
+ok   glossary#aOneSidedExclusionIsRefused — an exclusion one row declares and the other does not is refused
+ok   glossary#twoRowsWithoutAnExclusionAreRefused — two rows of one kind that exclude the same nothing are refused
+ok   glossary#aDeclarationTheCodeConfirmsPasses — a declared spelling the code agrees with passes
+ok   glossary#anOverruledDeclarationIsRefused — a declared spelling a ten-to-one majority contradicts is refused, both counts named
+ok   glossary#aSplitWithNoDeclarationIsRefused — a split spelling with no declared form is refused, both counts named
+ok   glossary#aDeclaredSplitPasses — a declared split passes and the other spelling is reported as drift
+ok   glossary#aForbiddenFormInItsRoleIsDrift — a forbidden form declared in the type role fails, naming the file and line
+ok   glossary#aSurfaceTheCensusNeverObservesIsRefused — a declared surface the census never observes is refused, naming the surface
+ok   glossary#aDeclaredKindWithNoSurfaceIsARefusal — a row whose kind demands a type but declares an operation is refused
+ok   glossary#aBareBooleanIsRefused — a boolean surface with no prefix is refused, the prefixes named
+ok   glossary#aPhysicalAttributeWithoutUnitIsRefused — an attribute with no unit is refused
+ok   glossary#aGlobalTermIsHomedInConcept — a global row homed in a feature is refused
+ok   glossary#anUndeclaredScopeIsRefused — a scope the structure declaration does not carry is refused
+ok   glossary#aTermInANonCoiningKindIsRefused — a declared term declared in a platform package is refused
+ok   glossary#aVacuousSuffixIsRefusedInACoiningKind — a declared type with a vacuous suffix is refused, with the lexicon reason
+ok   glossary#aPortRoleIsNotAVacuousName — a port role carrying a refused suffix is legal, because a port does not coin a term
+ok   glossary#aRowWithAnUnknownFieldIsRefused — a row carrying a field the schema does not declare is refused
+ok   glossary#aMissingDeclarationFailsClosed — a missing structure declaration fails closed, naming the file
+ok   glossary#aRefusalNamesItsRowAndItsArtefact — one finding is one line, carrying key, file:line, counts and the word
+ok   glossary#aGreenRunPrintsFigures — a green run prints the rows, anchored rows, kinds and files it verified
+
+25 passed, 0 failed

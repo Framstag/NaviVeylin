@@ -1,0 +1,10 @@
+ok   projection#theDefinitionReachesTheType
+ok   projection#anExistingKdocIsNotRewritten
+ok   projection#aSkeletonIsEmittedForAMissingConcept
+ok   projection#anExistingSkeletonIsNotOverwritten
+ok   projection#aModifiedProjectionFailsTheCheck
+ok   projection#aCurrentTreeWritesNothing
+ok   projection#fiftyTermsAreOneCondition
+ok   projection#theFirstRunReports
+ok   projection#aThirdRecurrenceGoesToAPerson
+gen-glossary-selftest: 9 cases passed (offline, no Gradle, no device)

@@ -1,0 +1,11 @@
+# sensors: the workflow's row lists and the registry row — 2026-11-11T18:34:07Z
+PASS workflow#aRedRecordRunsNoRecordRow
+exit=0
+PASS sensors#loopSpendRow
+PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing
+sensor-selftest: 1 of 85 cases failed
+=== tools/sensors/tests/sensor-mutations.sh --list
+8.33 sensors#entryDocumentSizeRow — an entry document past its own row bound is a violation (issue #197) (tools/sensors/metrics/doc-context.sh)
+3.1 sensors#documentSizeRow — a normative document past the row bound is a violation (design D4) (tools/sensors/metrics/doc-context.sh)
+3.2 layers#aFigureInANormativeDocumentIsACondition — a measured figure inside a normative document is a condition (documentation-ownership, "A normative document carries no rationale and no procedure") (tools/sensors/metrics/doc-context.sh)
+exit=0

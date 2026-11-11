@@ -1,0 +1,52 @@
+check-glossary: census files=462 occurrences=333554 split-tokens=10964
+val 5397
+import 4795
+if 3028
+String 2760
+private 2704
+State 2626
+on 2483
+null 2430
+return 2313
+fun 2218
+get 2039
+set 1952
+Map 1892
+is 1874
+com 1764
+Double 1728
+androidx 1642
+new 1401
+compose 1301
+naviveylin 1298
+value 1298
+string 1203
+List 1187
+Model 1159
+public 1128
+Lat 1123
+Text 1115
+Name 1105
+Lon 1090
+client 1081
+to 1073
+double 1071
+assert 1044
+f 1002
+entry 984
+ui 974
+Location 972
+Route 953
+Entry 937
+Context 935
+prefix Basemap core 39
+prefix Basemap app 209
+prefix Basemap auto 8
+suffix KmH core 35
+suffix KmH app 159
+suffix KmH auto 84
+suffix Kmh core 1
+suffix Kmh app 121
+suffix Kmh auto 22
+bare-booleans 0
+types-with-a-vacuous-suffix 36

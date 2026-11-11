@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensors/tests/sensor-selftest.sh" tests="85" failures="1" errors="0" time="85" run="3605310">
+  <system-out>PASS sensors#loopSpendRow PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing sensor-selftest: 1 of 85 cases failed</system-out>
+</testsuite>

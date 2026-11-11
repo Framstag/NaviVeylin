@@ -1,0 +1,8 @@
+# red on the base commit 7032ef91 — 2026-11-11T18:31:49Z
+# the case: tools/tests/check-glossary-selftest.sh --case glossary#aRowWithAnUnknownFieldIsRefused
+7032ef91:tools/check-glossary.sh present=128
+7032ef91:tools/gen-glossary.sh present=128
+7032ef91:tools/tests/check-glossary-selftest.sh present=128
+7032ef91:tools/glossary/index.json present=128
+7032ef91:tools/sensors/metrics/vocabulary-drift.sh present=128
+# so the case cannot run on the base: the check it drives and the suite that carries it are both absent, and the suite exits 2 (environment unusable) rather than 0 — tests=0 failures=1

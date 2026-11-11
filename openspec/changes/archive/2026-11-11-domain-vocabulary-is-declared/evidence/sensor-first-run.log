@@ -1,0 +1,4 @@
+# SENSORS_TRIGGER=schedule, the row with no measurement on record — 2026-11-11T18:31:01Z
+vocabulary-drift: fingerprint=dbb089ecf514944ed474084b124361f7e88b882ac7e2abcb657a9e285288596b verdict=violation measurement=2 issue=- action=not filed (first exercise: no measurement on record)
+first exercise: row=vocabulary-drift findings=1 — no measurement on record, so this run wrote nothing (issue #667); a dispatch with inputs.apply=true records the first one
+exit=0

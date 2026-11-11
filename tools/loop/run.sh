@@ -2643,6 +2643,7 @@ while true; do
   # readers share. It happens before the run commits, so the tree the next attempt reads is the unarchived change and
   # no reader meets an archive no gate passed.
   gate_did_not_pass=0
+  gate_restore_line=""
   if [ "$verdict_claim" = blocked ]; then gate_did_not_pass=1; fi
   if [ "$tail_started" -eq 0 ]; then
     gate_tally_at_restore=$(report_field "$gate_report" LOOP-GATE)

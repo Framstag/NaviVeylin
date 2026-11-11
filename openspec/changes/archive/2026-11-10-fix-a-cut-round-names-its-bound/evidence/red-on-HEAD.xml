@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the loop's shell runner printed on the base tree d5d2e668 (engine unmodified, the case file is this
+     change's own), 2026-11-10T15:32:07Z and 2026-11-10T15:32:21Z, one named case per invocation. The shell runner
+     writes no JUnit, so this file carries the printed tally as the change's red-on-HEAD record; the verbatim output
+     is evidence/red-on-HEAD.log. -->
+<testsuite name="agent-issue-loop" tests="2" failures="2" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-10T15:32:07Z"/>
+  </properties>
+  <testcase classname="run" name="run#aPreGateReviewEndedAtItsBoundNamesIt">
+    <failure message="the reason on the item names the bound that ended the round and the figure it reached: 'turn bound of 3 turns' not found in: the run ended the pre-gate reviewer at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"/>
+  </testcase>
+  <testcase classname="run" name="run#aReviewerEndedAtItsTurnBoundIsNotARefusal">
+    <failure message="the reason on the item names the bound that ended the round and the figure it reached: 'turn bound of 3 turns' not found in: the run ended the reviewer of round 1 at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"/>
+  </testcase>
+</testsuite>

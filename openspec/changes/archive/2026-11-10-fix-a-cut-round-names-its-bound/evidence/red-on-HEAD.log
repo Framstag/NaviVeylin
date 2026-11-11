@@ -1,0 +1,15 @@
+# red run on HEAD d5d2e668, 2026-11-10T15:32:07Z
+# bash tools/loop/tests/loop-selftest.sh --case 'run#aPreGateReviewEndedAtItsBoundNamesIt'
+run#aPreGateReviewEndedAtItsBoundNamesIt|   the reason on the item names the bound that ended the round and the figure it reached: 'turn bound of 3 turns' not found in: the run ended the pre-gate reviewer at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run
+--- run#aPreGateReviewEndedAtItsBoundNamesIt[0] (exit 1)
+  the reason on the item names the bound that ended the round and the figure it reached: 'turn bound of 3 turns' not found in: the run ended the pre-gate reviewer at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run
+FAIL run#aPreGateReviewEndedAtItsBoundNamesIt
+loop-selftest: 1 of 1 cases failed
+# exit=1 2026-11-10T15:32:13Z
+# bash tools/loop/tests/loop-selftest.sh --case 'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
+run#aReviewerEndedAtItsTurnBoundIsNotARefusal|   the reason on the item names the bound that ended the round and the figure it reached: 'turn bound of 3 turns' not found in: the run ended the reviewer of round 1 at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.D1b4vS/cases/0/tree/case.TLFYNL/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch
+--- run#aReviewerEndedAtItsTurnBoundIsNotARefusal[0] (exit 1)
+  the reason on the item names the bound that ended the round and the figure it reached: 'turn bound of 3 turns' not found in: the run ended the reviewer of round 1 at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.D1b4vS/cases/0/tree/case.TLFYNL/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch
+FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+loop-selftest: 1 of 1 cases failed
+# exit=1 2026-11-10T15:32:21Z

@@ -3428,6 +3428,10 @@ The round a review bound ended SHALL be written on the branch as a cut with its 
 tree wrote before `cut` carried a bound keeps that `blocked` + `bound` pair out of the streak, while a pre-mechanism
 pair with no stop reason still stops the run, and an answer the *transport* cut twice is not this case: no bound
 ended it, so it stays a block with its reason.
+The reason a bound-ended round leaves on the item SHALL name the bound that ended it and the figure it reached,
+quoted from the child's own `LOOP-TIMEOUT` line, and SHALL NOT offer the two bounds in general as the answer: a
+person reading the item tells the turn bound from the context bound, and how far past it the child ran, without
+a transcript they were not handed (issue #829).
 
 #### Scenario: A round the turn bound ended leaves no decision behind
 
@@ -3479,6 +3483,22 @@ ended it, so it stays a block with its reason.
   and a state written before the mechanism existed, whose two `blocked` items carry no stop reason, still stops the
   run as it always did
 - **Case**: `state#aBlockAtTheRunsBoundIsNoRefusal`
+
+#### Scenario: A review round the turn bound cut names the bound and its figure
+
+- **WHEN** the run ends review round 1 at the reviewer's role's turn bound of 3 turns, after the child took 3 turns
+- **THEN** the reason on the item names the turn bound, the figure it reached and the key it is recorded in
+  (`LOOP_CHILD_TURNS_MAX_REVIEWER`), quoted from the round's own `LOOP-TIMEOUT` line, beside the round, the cut and
+  the sentence that leaves the change for the next run
+- **Case**: `run#aReviewerEndedAtItsTurnBoundIsNotARefusal`
+
+#### Scenario: The round before the gate names the bound that cut it
+
+- **WHEN** the round before the gate is ended at the reviewer's turn bound and its transcript carries the bound,
+  the key and the count
+- **THEN** the item is recorded `cut` with that reason naming the turn bound, the figure and the key, no gate child
+  is started on the unread diff, and no round after the gate is asked
+- **Case**: `run#aPreGateReviewEndedAtItsBoundNamesIt`
 
 ### Requirement: The suite runs as legs on separate runners, and a leg is its own verdict
 

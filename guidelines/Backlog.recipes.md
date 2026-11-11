@@ -579,7 +579,14 @@ transcript carries `LOOP-DEADLINE: the run's deadline passed at <deadlineAt> …
 and the run records the deadline as its stop, so a run that ends there is not replaced as one that "never
 recorded a stop reason". Every child is read back that way, the reviewer of a review round included: a round whose
 transcript carries `LOOP-DEADLINE` was cut rather than answered, so no retry and no rework worker follows it and
-the item is not escalated (the round-1 review of #674). Measured 2026-10-20: eleven of fifteen stuck runs were
+the item is not escalated (the round-1 review of #674).
+
+A reason a bound-ended round leaves on the item quotes the child's own `LOOP-TIMEOUT` line, so it names the bound
+and the figure it reached instead of offering `one of its spend bounds` in their place — #753's and #819's records
+carried 200 427 and 200 733 tokens against the 200 000 stop, and a reason that named neither the context bound nor
+its reading (issue #829).
+
+Measured 2026-10-20: eleven of fifteen stuck runs were
 past their own `--minutes 90`,
 the longest heartbeat read `291m30s`, and not one carried a `LOOP-TIMEOUT` line although the cap was 2 700 s
 (#227). The completion record the wait ends on is cleared **before** the child is started, not after it: cleared

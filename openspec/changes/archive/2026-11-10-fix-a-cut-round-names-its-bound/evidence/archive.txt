@@ -1,0 +1,37 @@
+# archive — fix-a-cut-round-names-its-bound (item #829), tail process (phase F), 2026-11-10
+
+    $ openspec archive fix-a-cut-round-names-its-bound --yes
+    
+    Proposal warnings in proposal.md (non-blocking):
+      ⚠ Change must have a What Changes section. Missing required sections. Expected headers: "## Why" and "## What Changes". Ensure deltas are documented in specs/ using delta headers.
+    Task status: ✓ Complete
+    
+    Specs to update:
+      agent-issue-loop: update
+    Applying changes to openspec/specs/agent-issue-loop/spec.md:
+      ~ 1 modified
+    Totals: + 0, ~ 1, - 0, → 0
+    Specs updated successfully.
+    Change 'fix-a-cut-round-names-its-bound' archived as '2026-11-10-fix-a-cut-round-names-its-bound'.
+
+Checks after the archive, in the change root:
+
+    $ ls -d openspec/changes/archive/2026-11-10-fix-a-cut-round-names-its-bound
+    openspec/changes/archive/2026-11-10-fix-a-cut-round-names-its-bound
+    $ ls -d openspec/changes/fix-a-cut-round-names-its-bound   → not found (the unarchived directory is gone, as intended)
+
+The delta merged: `openspec/specs/agent-issue-loop/spec.md:3416` "An item the run's own bound cut is
+recorded `cut`, not `blocked`" now carries all 8 scenarios, including the two this change added —
+"A review round the turn bound cut names the bound and its figure" (`openspec/specs/agent-issue-loop/spec.md:3486`)
+and "The round before the gate names the bound that cut it" (`openspec/specs/agent-issue-loop/spec.md:3494`).
+
+Pointer checks: `evidence/evidence-check.txt` before the archive — `evidence-check: PASS` (C1 0 checked,
+C2 2 confirmed + 2 exempted "not retained", C3–C5 clean, 412 file:line resolved); and
+`evidence/evidence-check-archived.txt` after it — `evidence-check: PASS` again (archived mode).
+
+The gate's one red step is attributed in `evidence/gate-classification-attribution.md`, with the red-before
+copies (`red-before-classification-gate.txt` items 741/721, `red-before-item-807-gate.txt`,
+`red-before-item-837-gate.txt`) beside it; the waiver travels in this item's report as `LOOP-GATE-WAIVED` /
+`LOOP-GATE-WAIVED-SUITE: bash tools/gen-feature-list.sh --check-classification`.
+
+Nothing was committed, staged, pushed or labelled here: the run's script owns git and the tracker.

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one case this change adds, against `tools/loop/report.sh` as HEAD (8243410e) has it:
+     `bash tools/loop/tests/loop-selftest.sh --case report#aCutItemIsNamedOnceAndItsKeptWorkWithIt` in this change's
+     worktree, 2026-11-11T17:12:16Z, transcript `red-on-HEAD.log`. The case's state holds the record of a bound-cut
+     item that kept a patch (`result: cut`, `stopReason: bound`, `leftover`) — the shape #847 and #839 carry in
+     `.pi/issue-loop/run.json` of the run of 2026-11-11T11:37:08Z — and the record of a block that kept a patch and
+     names no mechanism, the shape a tree wrote before `cut` existed. On HEAD the report prints the first item on its
+     `resume` line and again on its recovery line, which says the run's clock ended it, so `1 of 1` cases fails. -->
+<testsuite name="report#aCutItemIsNamedOnceAndItsKeptWorkWithIt" tests="1" failures="1" errors="0" time="0" run="2026-11-11T17:12:16Z">
+  <testcase name="report#aCutItemIsNamedOnceAndItsKeptWorkWithIt">
+    <failure message="and the same item is not named again as one the run's clock ended, which its record denies: 'recover #21' should not appear in:">3. recover #21 — the run's clock ended it and its work is kept at …/leftover-from-killed-run.patch (red-on-HEAD.log:48)</failure>
+  </testcase>
+  <system-out>FAIL report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+loop-selftest: 1 of 1 cases failed
+</system-out>
+</testsuite>

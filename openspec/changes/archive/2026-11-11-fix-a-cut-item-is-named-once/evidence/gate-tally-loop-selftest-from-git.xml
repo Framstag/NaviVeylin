@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --from-git db1971d1577ec39004d14c7d27ea9c5b94d6c87b" tests="410" failures="0" errors="0" time="642" run="351259">
+  <system-out>loop-selftest: phase 2 cases 25.85 s loop-selftest: repeat 5 cases 34.23 s loop-selftest: all 410 cases passed (JDK 27, offline, no token, no sandbox) — 640.56 s, selection: --from-git db1971d1577ec39004d14c7d27ea9c5b94d6c87b</system-out>
+</testsuite>

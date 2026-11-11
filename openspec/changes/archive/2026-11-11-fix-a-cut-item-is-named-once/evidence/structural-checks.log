@@ -1,0 +1,15 @@
+# structural checks over the files this delta edits: guidelines/Backlog.recipes.md (7e), the change spec delta, the mutation set, and the change itself. 2026-11-11T17:17:01Z
+--- tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach  (the gate plan first line)
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+--- bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.TffwoD
+loop-mutations: all 335 cases passed — every selected record applies to the file it names
+--- tools/check-doc-routes.sh
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+--- tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 18 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+--- tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+--- tools/check-change-readiness.sh openspec/changes/fix-a-cut-item-is-named-once
+LOOP-CHANGE-READY: ok

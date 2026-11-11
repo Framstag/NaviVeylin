@@ -1,0 +1,99 @@
+# red-on-HEAD: bash tools/loop/tests/loop-selftest.sh --case report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+# against tools/loop/report.sh as HEAD (8243410e) has it, in the change root .pi/worktrees/loop, 2026-11-11T17:12:16Z
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   and the same item is not named again as one the run's clock ended, which its record denies: 'recover #21' should not appear in: **agent-issue-loop — 2026-11-11T17:12:17Z** (budget 2 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base ffc5adee7ea7)
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| bounds: result bound 8000 · context warn 143124 · context max 200000
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| closed 0 · mis-diagnosed 0 · skipped 0 · blocked 1 · cut 1 · budget left 0 items / 90 min · spent 0 min
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| stop: not stopped — the run is still going, or it ended without recording a reason
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| over the item token bound (16858818 tokens): none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| bound: 1 of 2 items (50.0 %) · archive: - · #21, 0 files
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| closed 0 · mis-diagnosed 0 · skipped 0 · blocked 1 · cut 1 of 2 items · budget 90 min
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| | issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| | #21 | bug | cut |  |  |  |  | - | - | - | - | - | cut | the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about | bound | - | - | - |
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| | #22 | bug | blocked |  |  |  |  | - | - | - | - | - | blocked | the run's deadline passed at an earlier moment — the child running then was ended | - | - | - | - |
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| merged finished attempts: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| no exclusions
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| skipped: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| mis-diagnosed: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| excluded before any work: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| cut short by the run's own bound: #21 - (the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about)
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| decisions the owner owes: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| branches: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| landed, removable: none
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/worktrees/loop)
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/issue-loop/run.json
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| trend — this run's own items; no rate is green or red in one run:
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   review: - · no round of this run ended in a verdict · 0 undecided · 2 never reviewed
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   waived: - · no item of this run closed
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   wall:   - · no item recorded a wall time
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   calls:  - · no item recorded a turn
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   reads:  - · no item recorded a file read
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   phases: - · no item recorded a phase duration
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   roles:  - · no item recorded a session role
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   after the first gate: - · no item of this run ran a gate in its stream
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   truncated: - · no item had its stream rotated
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   landings: - · no item of this run landed
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| 
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt| actions the caller owes:
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   1. re-run the gate for #22 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/issue-loop/items/22/worker-report.md
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   2. resume #21 — the run ended a child of it at a bound, so no decision is owed — the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/issue-loop/items/21
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   3. recover #21 — the run's clock ended it and its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.I3uIPF/leftover-from-killed-run.patch
+report#aCutItemIsNamedOnceAndItsKeptWorkWithIt|   4. recover #22 — the run's clock ended it and its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.I3uIPF/leftover-from-an-older-tree.patch
+--- report#aCutItemIsNamedOnceAndItsKeptWorkWithIt[0] (exit 1)
+  and the same item is not named again as one the run's clock ended, which its record denies: 'recover #21' should not appear in: **agent-issue-loop — 2026-11-11T17:12:17Z** (budget 2 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base ffc5adee7ea7)
+
+bounds: result bound 8000 · context warn 143124 · context max 200000
+
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 1 · cut 1 · budget left 0 items / 90 min · spent 0 min
+
+stop: not stopped — the run is still going, or it ended without recording a reason
+
+over the item token bound (16858818 tokens): none
+bound: 1 of 2 items (50.0 %) · archive: - · #21, 0 files
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 1 · cut 1 of 2 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | cut |  |  |  |  | - | - | - | - | - | cut | the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about | bound | - | - | - |
+| #22 | bug | blocked |  |  |  |  | - | - | - | - | - | blocked | the run's deadline passed at an earlier moment — the child running then was ended | - | - | - | - |
+
+merged finished attempts: none
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+cut short by the run's own bound: #21 - (the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about)
+decisions the owner owes: none
+branches: none
+landed, removable: none
+worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/worktrees/loop)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/issue-loop/run.json
+
+trend — this run's own items; no rate is green or red in one run:
+  review: - · no round of this run ended in a verdict · 0 undecided · 2 never reviewed
+  waived: - · no item of this run closed
+  wall:   - · no item recorded a wall time
+  calls:  - · no item recorded a turn
+  reads:  - · no item recorded a file read
+  phases: - · no item recorded a phase duration
+  roles:  - · no item recorded a session role
+  after the first gate: - · no item of this run ran a gate in its stream
+  truncated: - · no item had its stream rotated
+  landings: - · no item of this run landed
+
+actions the caller owes:
+  1. re-run the gate for #22 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/issue-loop/items/22/worker-report.md
+  2. resume #21 — the run ended a child of it at a bound, so no decision is owed — the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.JAs7C8/repo/.pi/issue-loop/items/21
+  3. recover #21 — the run's clock ended it and its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.I3uIPF/leftover-from-killed-run.patch
+  4. recover #22 — the run's clock ended it and its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sFM3qz/cases/0/tree/case.I3uIPF/leftover-from-an-older-tree.patch
+FAIL report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+loop-selftest: 1 of 1 cases failed

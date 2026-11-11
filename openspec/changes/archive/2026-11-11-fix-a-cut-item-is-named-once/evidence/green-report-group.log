@@ -1,0 +1,23 @@
+# green-on-change: bash tools/loop/tests/loop-selftest.sh --group report, then --case run#aReviewerEndedAtItsTurnBoundIsNotARefusal, in the change root, 2026-11-11T17:13:38Z
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#aCallThatNamesTheGateIsNotAGateRun
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#aRolesTokensRecordTheModelThatAnswered
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+PASS report#aTurnNoSessionRecordReachesIsItsOwnBucket
+PASS report#thePhaseLineNamesTheClockItIsAShareOf
+PASS report#trendFiguresFromState
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#anItemRecordsItsRepeatReads
+PASS report#theSpendIsWorkNotWaiting
+PASS report#aTruncatedStreamSaysSo
+PASS report#landingsAreTheStoredNumber
+PASS report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+loop-selftest: report 34 cases 216.24 s
+loop-selftest: all 34 cases passed (JDK 27, offline, no token, no sandbox) — 25.51 s, selection: --group report
+--- run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal

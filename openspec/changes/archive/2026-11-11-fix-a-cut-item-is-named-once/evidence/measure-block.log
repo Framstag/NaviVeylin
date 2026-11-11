@@ -1,0 +1,68 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=db1971d1577ec39004d14c7d27ea9c5b94d6c87b paths=38 insertions=3326 deletions=28
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/focused-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/green-on-change.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/green-on-change.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/measure-block.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/mutation-274.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-an-answered-item-is-work/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/gate-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/gate-run.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/green-carrier.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/green-refusal.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/measure-block.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/mutations-848.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/red-on-head-refusal.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/red-on-head-refusal.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-11-fix-gate-tallies-belong-to-one-run/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop/gate.sh
+LOOP-MEASURE-PATH tools/loop/prescreen.sh
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/worktree.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git db1971d1577ec39004d14c7d27ea9c5b94d6c87b
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=410 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-cut-item-is-named-once scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 1 case rewritten (3 assertions and a comment), 1 guideline section realigned, 1 spec scenario
+LOOP-MEASURE-END

@@ -45,6 +45,7 @@ ISSUES_SHELL_CASES=(
   'create#anEmptyGatePathRefusesTierB'
   'create#theDeclaredGatePathIsTheOneRun'
   'create#aTierBIsFiledWithItsDecisions'
+  'create#theAnswerShapeIsWrittenFromTheConstants'
   'create#theShapeIsInTheBodyRecord'
   'create#aTierAIsFiled'
   'create#aTierBIsFiled'
@@ -88,6 +89,7 @@ ISSUES_SHELL_CASES=(
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#theQuestionIsNotTheVerdictWord'
   'decisions#aParkedItemIsListedAsParked'
+  'decisions#anAnsweredCreationIsNotAParkedItem'
   'decisions#emptyQueueIsNotAnError'
   'decisions#theOldestQueuedItemIsListed'
   'decisions#aReadThatCannotCoverTheSetIsRefused'
@@ -201,6 +203,7 @@ issues_run_shell_case() {
     'create#anEmptyGatePathRefusesTierB') case_create_anEmptyGatePathRefusesTierB ;;
     'create#theDeclaredGatePathIsTheOneRun') case_create_theDeclaredGatePathIsTheOneRun ;;
     'create#aTierBIsFiledWithItsDecisions') case_create_aTierBIsFiledWithItsDecisions ;;
+    'create#theAnswerShapeIsWrittenFromTheConstants') case_create_theAnswerShapeIsWrittenFromTheConstants ;;
     'create#theShapeIsInTheBodyRecord') case_create_theShapeIsInTheBodyRecord ;;
     'create#aTierAIsFiled') case_create_aTierAIsFiled ;;
     'create#aTierBIsFiled') case_create_aTierBIsFiled ;;
@@ -244,6 +247,7 @@ issues_run_shell_case() {
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
     'decisions#aParkedItemIsListedAsParked') case_decisions_aParkedItemIsListedAsParked ;;
+    'decisions#anAnsweredCreationIsNotAParkedItem') case_decisions_anAnsweredCreationIsNotAParkedItem ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
     'decisions#theOldestQueuedItemIsListed') case_decisions_theOldestQueuedItemIsListed ;;
     'decisions#aReadThatCannotCoverTheSetIsRefused') case_decisions_aReadThatCannotCoverTheSetIsRefused ;;
@@ -984,6 +988,29 @@ case_decisions_aParkedItemIsListedAsParked() {
   assert_contains "$out" "1 item(s) await a decision" "the item is still counted, because it still awaits an answer"
 }
 
+# An answer is not a park by its shape (issue #859). The filing path records a tier-B finding's answered forks in
+# exactly the shape `--park` writes, and the decision label can reach such an item afterwards — so a reader that trusts
+# the shape prints `parked: …` for an item nobody parked, and the fork its answer names is still open. The park is the
+# statement that also carries the mark, and the one without it prints the question its own marker binds.
+case_decisions_anAnsweredCreationIsNotAParkedItem() {
+  export GH_STUB_DIR="$(scenario answered-creation)"
+  local out status question
+  out=$(run_tool decisions.sh --json 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_eq "1" "$(printf '%s' "$out" | jq 'length')" \
+    "the answered creation still carries the label, so it is still listed"
+  question=$(printf '%s' "$out" | jq -r '.[0].question')
+  assert_eq "merge or keep the file?" "$question" \
+    "the entry is the question the answer binds, because nobody parked this item"
+  assert_eq "0" "$(printf '%s' "$question" | grep -c 'parked:' || true)" \
+    "no entry of the park's kind is printed for it"
+
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the human form exits 0 as well: $out"
+  assert_contains "$out" "#77  merge or keep the file?" "and prints the bound question where the question stands"
+  assert_contains "$out" "1 item(s) await a decision" "the item is still counted, because its fork is still open"
+}
+
 # ----------------------------------------------------------------------------- cases: duplicates
 
 # The sweep's own tracker: `tools/issues/tests/fixtures/scenarios/duplicates` holds one fingerprint shared by three
@@ -1471,6 +1498,8 @@ case_answer_parkWritesTheAnswerAndKeepsTheMode() {
   [ -n "$comment" ] || fail "the park was not recorded on the item"
   assert_contains "$(sed -n "${comment}p" "$log")" 'wait for #844' "the comment carries the decision"
   assert_contains "$(sed -n "${comment}p" "$log")" 'answers:' "and names the question it answers"
+  assert_contains "$(sed -n "${comment}p" "$log")" '<!-- park -->' \
+    "and carries the mark only a park writes, which is what tells the queue it is one"
   transitions=$(grep -c 'issue \(edit\|close\)' "$log" || true)
   assert_eq "0" "$transitions" "a park performs no transition: $(cat "$log")"
 }
@@ -3288,6 +3317,32 @@ case_create_aTierBIsFiledWithItsDecisions() {
     *needs-decision*) fail "the item carries the decision label it should not: $(cat "$log")" ;;
   esac
   assert_contains "$(sed -n "${edit_ln}p" "$log")" "status/open" "the state is set after the answers"
+}
+
+# The answer's shape has one home (issue #859). #845 declared it in `tools/issues/lib.sh:334-335` and left the filing
+# path spelling both halves out, so mutating either constant moved nothing this path wrote and the mutation that must
+# kill this case stayed green. The assertion is that literal shape on purpose: the constants' own values are what a
+# filing writes, so a filing that no longer follows them is red here rather than green.
+case_create_theAnswerShapeIsWrittenFromTheConstants() {
+  local dir log out finding changes gate profile comment_line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  printf '[]\n' > "$dir/issues.json"
+  changes=$(shape_changes "$dir" ready-change)
+  gate="$dir/gate.sh"; shape_gate_ok "$gate"
+  profile=$(shape_profile "$dir" "$gate")
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" ISSUES_CHANGES_DIR="$changes"
+  finding=$(jq -n '{sourceId: "923", title: "the answer shape from its one home", class: "bug",
+                    category: "ui", claim: "c", anchor: "a", body: "b", change: "ready-change",
+                    labels: ["class/bug", "category/ui", "status/open"],
+                    questions: [{question: "merge or keep the file?", decision: "keep it"}]}')
+  out=$(printf '%s' "$finding" | run_tool create.sh --profile "$profile" --json) ||
+    fail "a complete tier-B finding was refused: $out"
+  comment_line=$(grep 'issue comment' "$log" | head -1)
+  [ -n "$comment_line" ] || fail "the finding's recorded answer was not written: $(cat "$log")"
+  assert_contains "$comment_line" "Decision: keep it" \
+    "the answer's first half is the one the shared library defines, so mutating that constant moves this comment"
+  assert_contains "$comment_line" "<!-- answers: merge or keep the file? -->" \
+    "and its marker is defined there too, so mutating that one moves this comment as well"
 }
 
 case_create_theShapeIsInTheBodyRecord() {

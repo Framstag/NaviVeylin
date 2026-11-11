@@ -102,6 +102,11 @@ fi
 # `decisions.sh` reads the same two, so this writer and the queue's reader keep one copy rather than two.
 answer_comment="${ISSUES_ANSWER_PREFIX}${decision}"
 [ -n "$question" ] && answer_comment="$answer_comment"$'\n'"${ISSUES_ANSWER_MARKER}${question} -->"
+# A park says it is one (issue #859). The shape above says what a comment is, not who wrote it — the filing path
+# records a tier-B finding's answered forks in that same shape, and the decision label can reach such an item later —
+# so the mark is the one line that tells the queue this answer came from `--park`. It rides in the same comment,
+# because a park is still one answer written through the same writer.
+[ "$outcome" = "park" ] && answer_comment="$answer_comment"$'\n'"${ISSUES_PARK_MARKER}"
 
 bash "$here/update.sh" "$issue" --comment "$answer_comment" >/dev/null || exit $?
 

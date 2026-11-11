@@ -327,25 +327,42 @@ issues_question_of() { # <comment-json> → the question it carries, one line
 }
 
 # The two halves an answer is made of (issue #845): the line the decision is recorded on, and the marker that binds
-# that line to the question it answers. `answer.sh` writes them and `decisions.sh` reads them, so the writer and
-# the queue's reader keep one copy of the shape rather than two. `tools/issues/create.sh:400` still spells the same
-# two strings out as literals — a second home this change does not close — and `core/WorkPackage.java` restates the
-# marker only because that core is standalone Java, exactly as it restates the question program above.
+# that line to the question it answers. `answer.sh` writes them, `decisions.sh` reads them and `tools/issues/create.sh`
+# writes a tier-B finding's recorded answers from them (issue #859), so every writer and the queue's reader keep one
+# copy of the shape rather than two. `core/WorkPackage.java` restates the marker only because that core is standalone
+# Java, exactly as it restates the question program above.
 ISSUES_ANSWER_PREFIX='Decision: '
 ISSUES_ANSWER_MARKER='<!-- answers: '
 
-# What a parked item's queue entry says (issue #845). A park is an answer that changes no label, so the item stays in
-# the queue — and its last statement is then the answer, whose own first line read back as a question would say the
-# fork is still open. The program takes a comment body and answers `parked: <the decision's first clause>`, or the
-# empty string when the body is not an answer; an answer is both halves of the shape above, so a comment that merely
-# opens with the prefix is not one. The first clause is the decision up to its first `,`, `;` or `.`, so the entry is
-# one line and is the condition the park waits for. It reads `$answerPrefix` and `$answerMarker`, which the caller
-# binds with `--arg` from the two constants above.
+# The mark only a park writes (issue #859). The shape above says what a comment is, not who wrote it: the filing path
+# records a tier-B finding's answered forks in exactly that shape, so a statement of the shape is not evidence of a
+# park — and the decision label can reach such an item afterwards, so it is not evidence either. `answer.sh --park`
+# appends this line to the comment it writes, in the same body, because a park is still one answer.
+ISSUES_PARK_MARKER='<!-- park -->'
+
+# The question an answer binds to itself (issue #859): the payload of the `answers` marker, or the empty string when
+# the statement carries none. It is what the queue prints for an answer-shaped statement that carries no park's mark —
+# the fork that answer names is still open, and its own first line would print `Decision: …` where a question stands.
+# It reads `$answerMarker`, which the caller binds with `--arg` from the constant above.
+ISSUES_ANSWER_BOUND_JQ='split("\n")
+  | (map(select(startswith($answerMarker))) | .[0] // "")
+  | ltrimstr($answerMarker)
+  | sub("\\s*-->\\s*$"; "")'
+
+# What a parked item's queue entry says (issue #845, #859). A park is an answer that changes no label, so the item
+# stays in the queue — and its last statement is then the answer, whose own first line read back as a question would
+# say the fork is still open. The program takes a comment body and answers `parked: <the decision's first clause>`, or
+# the empty string when the body is not a park; a park is both halves of the shape above *and* the mark only a park
+# writes, so a statement of the shape alone — a filed finding's recorded answer — is not one (issue #859). The first
+# clause is the decision up to its first `,`, `;` or `.`, so the entry is one line and is the condition the park waits
+# for. It reads `$answerPrefix`, `$answerMarker` and `$parkMarker`, which the caller binds with `--arg` from the three
+# constants above.
 ISSUES_PARKED_JQ='split("\n") as $lines
   | ($lines | map(select(test("\\S")))) as $text
   | ($text[0] // "") as $first
   | ([$text[] | select(startswith($answerMarker))] | length) as $marks
-  | if (($first | startswith($answerPrefix)) and ($marks > 0))
+  | ([$text[] | select(. == $parkMarker)] | length) as $parks
+  | if (($first | startswith($answerPrefix)) and ($marks > 0) and ($parks > 0))
     then "parked: " + (($first | ltrimstr($answerPrefix)) | sub("[,;.][\\s\\S]*$"; "") | sub("[[:space:]]+$"; ""))
     else "" end'
 

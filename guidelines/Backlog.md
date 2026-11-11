@@ -171,6 +171,15 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   for a fork, which is the shape #196 and #243 removed (issue #845). It spends a decision slot exactly as it did
   before the answer: the ceiling counts the items that carry the label *and* the loop's opt-in, and a park removes
   neither — `agent/eligible` is the owner's label, not the answer verb's.
+- **Rule: a park is recognised by its own mark, and the answer's shape is no evidence.** The shape an answer is made of
+  has one home — `ISSUES_ANSWER_PREFIX` and `ISSUES_ANSWER_MARKER` in `tools/issues/lib.sh` — and every writer reads
+  it there, the filing path included, because it says what a comment is and never who wrote it: a tier-B filing
+  records its answered forks in exactly that shape, and the decision label can reach such an item afterwards. So
+  `tools/issues/answer.sh --park` writes the line `ISSUES_PARK_MARKER` (`<!-- park -->`) into the same comment, and the
+  queue's `ISSUES_PARKED_JQ` answers `parked: …` only for a statement that carries it; an answer without the mark
+  prints the question its own marker binds (`ISSUES_ANSWER_BOUND_JQ`), because the fork that answer names is still open
+  (issue #859; cases `decisions#aParkedItemIsListedAsParked`, `decisions#anAnsweredCreationIsNotAParkedItem` and
+  `create#theAnswerShapeIsWrittenFromTheConstants`).
 - **Rule: a block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
   choice a block leaves — retry the item, or abandon it — because a reason is not something a person can answer.
 - **Rule: a stale skip asks its own question, and is never parked on a bare hold.** The verdict says the item's

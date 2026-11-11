@@ -1,5 +1,5 @@
 {
-  "comment": "The revert-checks of the question predicate (issue #243): every reader takes the escalation's `**The decision:**` line, and only a comment without that marker falls back to its first non-empty line. The escalation comment opens with its verdict word, so the fallback alone answers `needs-decision` and an answer binds to `<!-- answers: needs-decision -->` — measured on #196's own answer. One mutation per implementation, because the shell readers share one jq program and the Java core restates it: A1.1 mutates the program in `tools/issues/lib.sh` (read by `decisions.sh` and `answer.sh`), A1.2 the restatement in `WorkPackage.java`. A2.1 and A2.2 are the park lane (issue #845), one mutation per invariant: the outcome that writes no state, and the queue entry that says what a park waits for instead of the question it settled. Run it with `bash tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json`; `.pi/skills/mutation-runner` owns how and `.pi/skills/revert-check` owns the rule.",
+  "comment": "The revert-checks of the question predicate (issue #243): every reader takes the escalation's `**The decision:**` line, and only a comment without that marker falls back to its first non-empty line. The escalation comment opens with its verdict word, so the fallback alone answers `needs-decision` and an answer binds to `<!-- answers: needs-decision -->` — measured on #196's own answer. One mutation per implementation, because the shell readers share one jq program and the Java core restates it: A1.1 mutates the program in `tools/issues/lib.sh` (read by `decisions.sh` and `answer.sh`), A1.2 the restatement in `WorkPackage.java`. A2.1 and A2.2 are the park lane (issue #845), one mutation per invariant: the outcome that writes no state, and the queue entry that says what a park waits for instead of the question it settled. A3.1–A3.3 are the park's own mark (issue #859), which is what tells the queue a statement is a park rather than an answer the filing path recorded: the mark written, the mark required, and the bound question printed for an answer without it. Run it with `bash tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json`; `.pi/skills/mutation-runner` owns how and `.pi/skills/revert-check` owns the rule.",
   "case-cmd": "bash tools/issues/tests/issue-tooling-selftest.sh --case {case}",
   "mutations": [
     {
@@ -30,9 +30,33 @@
       "label": "A2.2",
       "case": "decisions#aParkedItemIsListedAsParked",
       "file": "tools/issues/decisions.sh",
-      "search": "| if $parked == \"\" then",
-      "replace": "| if true then",
+      "search": "| if $parked != \"\" then",
+      "replace": "| if false then",
       "why": "the queue prints what a park waits for, not the answer's own first line where the question stood"
+    },
+    {
+      "label": "A3.1",
+      "case": "answer#parkWritesTheAnswerAndKeepsTheMode",
+      "file": "tools/issues/answer.sh",
+      "search": "&& answer_comment=\"$answer_comment\"$'\\n'\"${ISSUES_PARK_MARKER}\"",
+      "replace": "&& :",
+      "why": "the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer"
+    },
+    {
+      "label": "A3.2",
+      "case": "decisions#anAnsweredCreationIsNotAParkedItem",
+      "file": "tools/issues/lib.sh",
+      "search": "($marks > 0) and ($parks > 0)",
+      "replace": "($marks > 0)",
+      "why": "the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it"
+    },
+    {
+      "label": "A3.3",
+      "case": "decisions#anAnsweredCreationIsNotAParkedItem",
+      "file": "tools/issues/decisions.sh",
+      "search": "            elif $bound != \"\" then $bound",
+      "replace": "            elif false then $bound",
+      "why": "the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs"
     }
   ]
 }

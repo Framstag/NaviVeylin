@@ -394,10 +394,12 @@ if [ "$shape" = "b" ]; then
   decisions=0
   while IFS=$'\t' read -r asked answered; do
     [ -n "$asked" ] || continue
-    # The form `tools/issues/answer.sh` writes and `WorkPackage.java` reads: the `Decision:` line is the marker
-    # that makes a comment an answer, and the marker under it names the question it settles (#196).
+    # The two halves of the form `tools/issues/answer.sh` writes and `WorkPackage.java` reads, read from the one home
+    # `tools/issues/lib.sh` declares for them (issue #859): the `Decision:` line is the marker that makes a comment an
+    # answer, and the marker under it names the question it settles (#196). #845 gave the shape that home and this path
+    # went on spelling both halves out, so a mutation of either constant moved nothing here.
     asked=${asked//>/}
-    comment="Decision: ${answered}"$'\n'"<!-- answers: ${asked} -->"
+    comment="${ISSUES_ANSWER_PREFIX}${answered}"$'\n'"${ISSUES_ANSWER_MARKER}${asked} -->"
     gh issue comment "$number" --body "$comment" >/dev/null || exit $?
     decisions=$((decisions + 1))
   done < <(jq -r '.questions[]? | [(.question // ""), (.decision // "")] | @tsv' <<< "$finding")

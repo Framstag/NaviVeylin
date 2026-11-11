@@ -1,0 +1,39 @@
+[
+  {
+    "number": 77,
+    "state": "OPEN",
+    "title": "§77 A filed finding whose forks were answered at filing time",
+    "updatedAt": "2026-11-11T10:00:00Z",
+    "body": "<!-- nvid: 77 -->\n\n- **Observed** ✗: two rows disagree.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ],
+    "comments": [
+      {
+        "body": "**The decision:** merge or keep the file?",
+        "createdAt": "2026-11-10T08:00:00Z"
+      },
+      {
+        "body": "Decision: keep the file\n<!-- answers: merge or keep the file? -->",
+        "createdAt": "2026-11-11T10:00:00Z"
+      }
+    ]
+  }
+]

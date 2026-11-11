@@ -87,9 +87,15 @@ read_count=$(printf '%s' "$issues" | jq 'length')
 # in this queue with its decision recorded as the last comment, and printing that comment's first line would put
 # `Decision: …` where a question stands — the shape #196 and #243 removed. The entry is what the park waits for
 # instead, `parked: <the decision's first clause>`, and the item is still counted because it still awaits an answer.
+#
+# An answer is not a park by its shape alone (issue #859). The filing path records a tier-B finding's answered forks in
+# exactly that shape, and the decision label can reach such an item afterwards, so the park is the statement that also
+# carries the mark `--park` writes; an answer-shaped statement without it prints the question its own marker binds,
+# because that fork is still open. Everything else falls through to the question predicate unchanged.
 selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" \
                                  --arg answerPrefix "$ISSUES_ANSWER_PREFIX" \
-                                 --arg answerMarker "$ISSUES_ANSWER_MARKER" '
+                                 --arg answerMarker "$ISSUES_ANSWER_MARKER" \
+                                 --arg parkMarker "$ISSUES_PARK_MARKER" '
   [ .[]
     | select((.state // "OPEN") != "CLOSED")
     | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
@@ -102,7 +108,10 @@ selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" \
           | (.body // "")
           | . as $statement
           | ($statement | '"$ISSUES_PARKED_JQ"') as $parked
-          | if $parked == "" then ($statement | '"$ISSUES_QUESTION_JQ"') else $parked end
+          | ($statement | '"$ISSUES_ANSWER_BOUND_JQ"') as $bound
+          | if $parked != "" then $parked
+            elif $bound != "" then $bound
+            else ($statement | '"$ISSUES_QUESTION_JQ"') end
         )
       }
   ]

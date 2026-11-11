@@ -1,0 +1,17 @@
+=== the whole case set, the gate for a delta that owns tools/loop/** ===
+command: bash tools/loop/tests/loop-selftest.sh --jobs 4   (4 in flight, so the host is not the measurement)
+taken 2026-11-11T20:36:49Z
+
+PASS 412 of 413
+
+--- the one case with no verdict of its own ---
+1120:run#aHupEndedRunRecordsItsStopAndUnpicksItsItem|   a run ended by HUP reports the signal it took: expected '129', got '137'
+1121:--- run#aHupEndedRunRecordsItsStopAndUnpicksItsItem[0] (exit 1)
+
+The 137 it reports is the SIGKILL that ended this session, not the case's answer: the case had not returned.
+It is not this change's — the same case in a four-way pool on the HEAD engine, with the same case file and an
+unmodified engine, also never answers: 51 PASS, and the two cases this change adds as the expected reds, and no
+verdict line for it (evidence/pool-head.log). Alone it passes 4 of 4 on this tree and 4 of 4 on HEAD's.
+
+--- the two cases this change adds are red on HEAD ---
+see evidence/red-on-HEAD.log

@@ -3530,7 +3530,7 @@ scratch root to itself, and the workflow SHALL take a leg's own exit status as a
 
 ### Requirement: The bound on a child is priced in what it spends, not in how many turns it takes
 
-The run SHALL bound a child in what a turn costs, not in how many turns it takes: it SHALL read the largest context the child's stream reported (`input + cacheRead`, or a compaction's `tokensBefore`, whichever is greater) in the wait that enforces the clock and the turn count, SHALL print one checkpoint line at `LOOP_ITEM_CONTEXT_WARN`, and SHALL end it and everything it started at the bound the child's **role** records, `LOOP_ITEM_CONTEXT_MAX_<ROLE>`, falling back to `LOOP_ITEM_CONTEXT_MAX` where a role records none. Both keys SHALL be recorded values named in the run's header; `0` or no key is no bound. An item this bound ends SHALL be recorded `cut` with `bound` as its stop reason, exactly as every other bound the run enforces ends one (issue #790): the phase is the next run's to resume, not a finding about the item.
+The run SHALL bound a child in what a turn costs, not in how many turns it takes: it SHALL read the largest context the child's **own** lines of its stream reported (`input + cacheRead`, or a compaction's `tokensBefore`, whichever is greater) — the lines standing before it started are the baseline, because every child of an item appends to one stream — in the wait that enforces the clock and the turn count, SHALL print one checkpoint line at `LOOP_ITEM_CONTEXT_WARN`, and SHALL end it and everything it started at the bound the child's **role** records, `LOOP_ITEM_CONTEXT_MAX_<ROLE>`, falling back to `LOOP_ITEM_CONTEXT_MAX` where a role records none. Both keys SHALL be recorded values named in the run's header; `0` or no key is no bound. An item this bound ends SHALL be recorded `cut` with `bound` as its stop reason, exactly as every other bound the run enforces ends one (issue #790) — and SHALL first be continued by the run that cut it: that run SHALL apply the work it kept onto the branch's `HEAD` and start exactly **one** continuation child from it, whose answer decides the item. A second cut of the same item, and a kept patch the applier does not take, SHALL leave the item `cut`, with the non-apply recorded and no continuation started.
 
 #### Scenario: A child whose context crosses the recorded bound is ended and named
 
@@ -3540,8 +3540,28 @@ The run SHALL bound a child in what a turn costs, not in how many turns it takes
 - **THEN** the run prints the checkpoint once, naming the recorded 143 124, ends the child's process group, writes
   `LOOP-TIMEOUT: the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000
   tokens — the run ended it and everything it started` into the child's transcript with the wall clock's own exit
-  status, records the item `cut` with `bound` as its stop reason and that line as its note, and closes nothing
+  status, records the item `cut` with `bound` as its stop reason and that line as its note, and closes nothing — after
+  it has applied the work the cut child left and started one continuation child, which this case's fixture cuts at the
+  same bound, so the second cut is the item's `cut` and no third child starts
 - **Case**: `run#childPastItsContextBoundIsCut`
+
+#### Scenario: A worker the context bound ended is continued by the run that cut it
+
+- **WHEN** a worker is ended at the recorded context bound having left its change in the tree, and the run's own
+  deadline has not passed
+- **THEN** the run puts the tree back on the branch's `HEAD`, applies the kept patch onto it, records the resume as
+  `applied`, renders and starts exactly one continuation child on the work package plus the patch, records its step as
+  `worker-continuation`, and the item's outcome is that child's answer with the continuation sentence in its note
+- **Case**: `run#aContextCutWorkerIsContinuedByItsOwnRun`
+
+#### Scenario: A cut whose kept work does not apply stays cut
+
+- **WHEN** the work a cut child left is a patch the applier does not take — a child the bound ended before it wrote
+  anything leaves a patch with no hunk in it
+- **THEN** the run starts no continuation, records the item `cut` with `bound` as its stop reason, records the
+  applier's `no-apply` answer with the item, and says on its own output that the work does not apply onto the branch's
+  `HEAD`
+- **Case**: `run#aCutWhosePatchDoesNotApplyIsLeftCut`
 
 #### Scenario: A reading phase is bounded by its own key
 

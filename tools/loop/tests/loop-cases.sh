@@ -371,6 +371,7 @@ LOOP_SHELL_CASES=(
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
+  'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#reportsAnAgedItemDirectory'
@@ -1071,6 +1072,7 @@ loop_run_shell_case() {
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
+    'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt') fn=case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#reportsAnAgedItemDirectory') fn=case_clean_reportsAnAgedItemDirectory ;;
@@ -7484,13 +7486,66 @@ case_run_treeOfACapEndedChildIsKeptAsAPatch() {
   assert_contains "$(cat "$report")" "leftover-from-killed-run.patch" "with the file itself"
   # The record is persisted beside the transcript (issue #674): the run's own state names the patch, so the report
   # the run prints can point a caller at the work an ended child left without a reader having to find the item's
-  # transcript first. `state.sh done --leftover` is what writes it, and the action list is where it is printed.
+  # transcript first. `state.sh done --leftover` is what writes it, and the action list is where it is printed — on
+  # the one line that names the item (issue #850): the cap is a bound the run enforces, so the item is the caller's
+  # to resume and the patch it kept is part of that line, not a second entry saying a clock ended it.
   assert_eq "$patch" "$(jq -r '.items[0].leftover // ""' "$p/.pi/issue-loop/run.json")" \
     "the item's state record names the patch the ended child's work is kept in"
-  assert_contains "$out" "recover #21" "and the report's action list names the recovery as the caller's"
-  assert_contains "$out" "leftover-from-killed-run.patch" "with the path it is kept at"
+  assert_contains "$out" "resume #21" "and the report's action list names the item as the caller's to resume"
+  assert_contains "$out" "leftover-from-killed-run.patch" "with the path the work it left is kept at"
+  assert_not_contains "$out" "recover #21" \
+    "and names it once, not again as work the run's clock ended — the cap is a bound the run ended it at (issue #850)"
   assert_eq "$(git -C "$tree" status --porcelain | grep -c 'half-applied.txt' || true)" "1" \
     "and the tree still carries what the child left, so the patch is a record beside it and not a replacement"
+  return 0
+}
+
+# An item the run's own bound ended is named once, and never as the run's clock (issue #850). The action list took
+# `resume` from `.result == "cut"` and `recover` from the presence of a leftover, and a cut child leaves a leftover
+# whenever it left work — so #847 and #839 of the run of 2026-11-11T11:37:08Z were actions 10 and 11 (`resume`) and
+# again 12 and 13 (`recover`), 2 of the 12 lines it printed, while the run's own window closed at 15:14:07Z against a
+# 23:05:00Z deadline and neither child was ended by a clock. The record cannot tell the two causes apart: a `cut`
+# carries `bound` and no other mechanism, the run's own deadline included (`state.sh done --stop-reason`, and
+# `run#childIsEndedAtTheRunsDeadline` reads the deadline's own record as `bound`), so the cause a line names is the
+# one the result states — a phase the run ended and the next run resumes — and the item's own note says which bound
+# it was. The recovery line is left to the record that carries kept work and no bound cut, which is the shape a tree
+# wrote before `cut` existed, and whose end was the run's clock.
+case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out resume_line cut_patch old_patch
+  d=$(scratch); p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' \
+    | run_state "$p" queue >/dev/null
+  # The item a bound ended, carrying the work its child left: the shape #847's record has.
+  cut_patch="$d/leftover-from-killed-run.patch"
+  printf 'half-applied\n' > "$cut_patch"
+  run_state "$p" done 21 --result cut --verdict cut --stop-reason bound --leftover "$cut_patch" \
+    --note "the child reached the recorded context bound of 200000 tokens at 200174 tokens · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about" \
+    >/dev/null || fail "the state refused the record of a cut item that kept a patch"
+  # …and the record a tree wrote before `cut` existed for the same end, which is the one whose cause the run's own
+  # clock is: `blocked`, with the mechanism outside the item's vocabulary and the work still kept beside it.
+  old_patch="$d/leftover-from-an-older-tree.patch"
+  printf 'unfinished edit\n' > "$old_patch"
+  run_state "$p" done 22 --result blocked --verdict blocked --leftover "$old_patch" \
+    --note "the run's deadline passed at an earlier moment — the child running then was ended" \
+    >/dev/null || fail "the state refused the record of a block that kept a patch"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'resume #21' || true)" \
+    "a cut item is the caller's to resume, on one line: $out"
+  assert_not_contains "$out" "recover #21" \
+    "and the same item is not named again as one the run's clock ended, which its record denies"
+  resume_line=$(printf '%s\n' "$out" | grep 'resume #21' || true)
+  assert_contains "$resume_line" "$cut_patch" \
+    "the line that names the item carries the work its child left, so the one entry is the whole of what a caller owes it"
+  assert_contains "$resume_line" "200174 tokens" \
+    "and the item's own note, which is where the bound that ended it is named"
+  assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'recover #22' || true)" \
+    "the record that carries kept work and no bound cut is the recovery line's own: $out"
+  assert_not_contains "$out" "resume #22" \
+    "and it is not named as a cut item, because nothing recorded a bound that ended it"
+  assert_contains "$(printf '%s\n' "$out" | grep 'recover #22' || true)" "$old_patch" \
+    "the recovery line still names the patch the work is kept in"
   return 0
 }
 

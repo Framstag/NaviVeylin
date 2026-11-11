@@ -1369,9 +1369,16 @@ trend (#814); and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
-item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a label write
-the tracker refused with the item it left stale. A count is not
-an answer, so `none` is printed only when all five sources were
+item that owns it, the kept worktree, an item whose gate never completed with its transcript, a label write
+the tracker refused with the item it left stale, an item the run's own bound ended (`resume #N`, carrying the
+phase it was cut in and the patch its child left: a `cut` is the one result every bound the run enforces leaves,
+the run's own deadline included, and the item's note names which bound that was — #788, #850), and the kept work
+of a record that carries no bound cut (`recover #N`, the shape a tree wrote before `cut` existed — #674). An
+item is one line: the two arms are a partition by the result the record states, because the patch is the
+consequence of a cut and not its cause, and the guard that read the patch printed #847 and #839 twice in one
+run's action list — 2 of its 12 lines — the second time as work the run's clock ended with 7 h 51 m of its budget
+left (#850). A count is not
+an answer, so `none` is printed only when all seven sources were
 read and empty — it never hides a branch that carries work.
 
 Every one of those figures is a comparison, and since #815 the bound it is read against travels with it: the state

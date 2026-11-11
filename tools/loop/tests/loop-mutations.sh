@@ -1132,6 +1132,14 @@ MUTATIONS=(
   # `status/on-hold` back over the answer `answer.sh` just removed: the state #830 sat in from 05:40:15Z to the end
   # of that day, and the four items of the 2026-11-10 run's 25 exclusions that shared its reason.
   '274.1@-@tools/loop/prescreen.sh@prescreen#anAnsweredBranchIsWorkNotADecision@the answer read and its attempt set aside, so an answered item is re-escalated with the label and the hold the answer removed and no answer can ever reach the run (issue #847)@s|^          if \[ "\$write" -eq 1 \] && \[ "\$attempt_state" != "adoptable" \]; then$|          if false; then|'
+  # 275.x — an item the run's own bound ended is named once (issue #850). The action list took `resume` from the result
+  # `cut` and `recover` from the presence of a kept patch, and a cut child that left work satisfies both, so #847 and
+  # #839 of the run of 2026-11-11T11:37:08Z were 2 of that run's 12 actions twice — the second line saying the run's
+  # clock ended them with 7 h 51 m of its budget left. Two rules, one case each: the recovery arm's guard is the
+  # record's result and not its patch (`275.1`), and the patch a cut child left is named on the resume line that
+  # already names the item (`275.2`).
+  '275.1@-@tools/loop/report.sh@report#aCutItemIsNamedOnceAndItsKeptWorkWithIt@the guard that keeps a bound cut off the recovery line, so one item is listed twice and the second line names a clock that did not end it (issue #850)@s#select(.result != "cut") | select((.leftover // "") != "")#select((.leftover // "") != "")#'
+  '275.2@-@tools/loop/report.sh@report#aCutItemIsNamedOnceAndItsKeptWorkWithIt@the path of the work a bound-ended child left, carried on the resume line, so the one line that names the item leaves the caller without the patch it kept (issue #850)@s#(.note // ""), (.leftover // "")#(.note // ""), ""#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

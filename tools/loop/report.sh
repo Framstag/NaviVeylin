@@ -687,22 +687,31 @@ while IFS=$'\t' read -r issue; do
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
 done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select(.result != "cut") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
-# The item a bound ended is work and not a question (issue #788): it carries no decision label, so this is where a
-# caller learns it is waiting — with the phase that was cut and the branch the attempt left, which the next run
-# takes up.
-while IFS=$'\t' read -r issue note; do
+# The item the run's own bound ended is work and not a question (issue #788): it carries no decision label, so this is
+# where a caller learns it is waiting — with the phase that was cut and the branch the attempt left, which the next
+# run takes up. One item is one line, and the line is the resume line (issue #850): a `cut` is the result every bound
+# the run enforces leaves on the item — the child clock, the turn bound, the token bound and the run's own deadline
+# alike (`state.sh done --stop-reason`, and `run#childIsEndedAtTheRunsDeadline` reads the deadline's own record as
+# `bound`) — so the patch a cut child left is named here, on the line that already names the item, and the recovery
+# arm below is left to the record that carries kept work and no bound cut. Measured 2026-11-11T11:37:08Z: #847 and
+# #839 were `cut` with `bound` and a leftover, and the report printed each of them twice — 2 of the 12 actions it
+# listed — the second line saying the run's clock had ended them with 7 h 51 m of the run's budget still to go.
+while IFS=$'\t' read -r issue note patch; do
   [ -n "${issue:-}" ] || continue
-  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable} · transcript $state_dir/items/$issue"
-done < <(jq -r '.items[] | select(.result == "cut") | [(.issue | tostring), (.note // "")] | @tsv' "$state_file")
+  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable}${patch:+ · its work is kept at $patch} · transcript $state_dir/items/$issue"
+done < <(jq -r '.items[] | select(.result == "cut") | [(.issue | tostring), (.note // ""), (.leftover // "")] | @tsv' "$state_file")
 
-# The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An
-# item the run's deadline cut carries no decision label, so this line is the only place the report tells a caller
-# that the run, not the item, ended it — and where the work it left is.
+# The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An item the
+# run's clock ended carries no decision label, so this line is the only place the report tells a caller that the run,
+# not the item, ended it — and where the work it left is. Its guard is the record's result and not its patch (issue
+# #850): the guard that read the patch named a cause the record does not carry, because a cut child's leftover is a
+# consequence of the cut and not its cause, so the same item was listed twice. What is left here is the record that
+# carries kept work and no bound cut — the shape a tree wrote before `cut` existed, whose end was that run's clock.
 while IFS=$'\t' read -r issue patch; do
   [ -n "${issue:-}" ] || continue
   [ -n "${patch:-}" ] || continue
   actions[${#actions[@]}]="recover #$issue — the run's clock ended it and its work is kept at $patch"
-done < <(jq -r '.items[] | select((.leftover // "") != "") | [(.issue | tostring), .leftover] | @tsv' "$state_file")
+done < <(jq -r '.items[] | select(.result != "cut") | select((.leftover // "") != "") | [(.issue | tostring), .leftover] | @tsv' "$state_file")
 
 if [ -d "$LOOP_WORKTREE" ]; then
   actions[${#actions[@]}]="keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"

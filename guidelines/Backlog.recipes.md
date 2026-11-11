@@ -525,7 +525,9 @@ median largest context; 10 of the 300 recorded items (3.3 %) reached it, and `ev
 lists them. Both are `0` or absent =
 no bound, and neither replaces another: the turn bound still ends a session that batches badly at a small context,
 and *splitting* the session at the checkpoint — a fresh child handed the change and the evidence, the shape
-`tools/loop/prompts/worker-tail.md` already has — is the cheaper half of the same idea and a change of its own.
+`tools/loop/prompts/worker-tail.md` already has — is the cheaper half of the same idea; the split it names for the
+**cut** case is the continuation issue #851 landed, which the section on the cut below states (a patch the run that cut
+the child applies itself, and one child from it).
 
 **The lever above that stop is refused, and the measurement is recorded here so a reader meets it before
 re-proposing it** (issue #833). The run of 2026-11-07T19:53Z recorded three of its items past the bound — 200 427,
@@ -1337,6 +1339,23 @@ item that starts a fresh worker on a fresh tree. A state a run wrote before issu
 older state reads it as it always did. Measured 2026-11-05: five of six runs stopped on the two-block streak with
 758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound cuts, and the first run carrying the
 per-role turn bounds ended after 156 of its 480 minutes with three of six items ended at exactly 110 turns.
+
+The **context** bound is the one of these a run resumes itself (issue #851). The run of 2026-11-11T11:37:08Z cut two
+of its eight items there — #847 at 200 174 tokens after 142 turns, #839 at 200 869 after 125 — keeping 1 010 460 B
+(160 hunks over 5 files) and 1 323 610 B (188 hunks) in their own patches, and the two are 33.08 of the run's 75.45
+Mtok (44 %) that closed nothing; the run then stopped `queue empty` at 15:14:07Z against a 23:05:00Z deadline, 435 min
+of its own budget unspent, with both patches in hand — and the next attempt applied neither (2 of 2, `run.resumes`
+records `outcome: no-apply`), because the base had moved between the runs. So the run applies the patch itself, onto
+the branch's own `HEAD`, and starts **one** continuation child from it (`worker-prompt-continuation.md`, step
+`worker-continuation`, the role `worker` and its bounds unchanged); the item is then that child's answer as any item
+is. Three limits make it safe: a second context cut of the same item is the item's `cut` — one continuation per item,
+so the loop always ends an item — a patch the applier does not take leaves the item `cut` with the non-apply recorded
+(#754's own answer, and the shape of a child the bound ended before it wrote anything, whose patch carries no hunk),
+and no continuation is started once the run's deadline has passed: `run_child` would end it on its first second and
+record the **clock** where the context bound fired, which is the distinction #829 and #785 are about. The reading the
+bound takes is the child's own lines of the stream, not the whole file: every child of an item appends to one stream,
+so a reading taken from line zero is the item's largest context and a fresh session would be cut on its first reading
+by the number that ended the child before it (measured in this change's own first red run).
 
 What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
 `LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide

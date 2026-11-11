@@ -18,6 +18,7 @@
 # Usage:
 #   worktree.sh create [--base <sha>] [--branch <name>]
 #   worktree.sh start-item <issue> <slug> [--change <name>]
+#   worktree.sh continue-item <issue>
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh branch-state <issue> <branch>
@@ -262,6 +263,9 @@ copy_named_change() { # <issue> <change> — refuses when the tree holds no such
 # a worker exists, so the item is worked on what it had done instead of paying for the same reading from zero. Nothing
 # is committed: what the tree holds is the child's unclaimed work, and what the next child makes of it is its claim.
 #
+# The same applier serves the **run that cut the child** (issue #851), which needs one thing more than a later run does:
+# see `continue_from_leftover` below.
+#
 # A patch that does not apply is not a discarded record either (measured 2026-11-08 on three kept patches: items/791 and
 # items/729 exit 1, items/16 exit 128) — `--3way` absorbs a base that moved under the diff, and when that also fails the
 # tree is put back on the base and the non-apply is recorded with the item, so the item is workable from the base and the
@@ -288,9 +292,54 @@ resume_from_leftover() { # <item> → 0 the kept patch is applied, 1 there is no
 # What the resume step found, in the item's own record (`state.sh record-resume`). A start runs before the run knows what
 # the item will become, so the outcome is written beside the run state and `done` folds it into the note: one place, because
 # every arm that records an item writes its own prose. A run with no state file — a bare `start-item` — records nothing.
-record_resume() { # <item> <patch> <applied|no-apply>
+record_resume() { # <item> <patch> <applied|no-apply> [detail]
+  local item="$1" patch="$2" outcome="$3" detail="${4:-}"
   [ -f "$LOOP_STATE_FILE" ] || return 0
-  bash "$LOOP_DIR/state.sh" record-resume "$1" --patch "$2" --outcome "$3" >&2 || true
+  if [ -n "$detail" ]; then
+    bash "$LOOP_DIR/state.sh" record-resume "$item" --patch "$patch" --outcome "$outcome" --detail "$detail" >&2 || true
+    return 0
+  fi
+  bash "$LOOP_DIR/state.sh" record-resume "$item" --patch "$patch" --outcome "$outcome" >&2 || true
+}
+
+# The patch a run cut its own child for, applied by that same run (issue #851). A run of 2026-11-11 ended two of eight
+# items at `LOOP_ITEM_CONTEXT_MAX`, kept 1 010 460 B and 1 323 610 B of their work in their own patches — 44 % of the
+# run's spend, closing nothing — and then stopped on an empty queue 435 min before its own deadline; the next run's
+# applier failed on both, because the base had moved under them between the runs (2 of 2). Applying it in the run that
+# cut it is the one moment the tree the patch was taken from is the tree it is applied to.
+#
+# `resume_from_leftover` is the applier, unchanged. What this adds is the tree it is applied **to**: the run is still
+# standing in what the killed child left, which is the patch's own content, so the diff cannot be applied to it and
+# nothing is gained by trying. The branch's HEAD is therefore what the tree is put back on first — the branch carries no
+# commit of that child's (`keep_leftovers`' rule) — and what the continuation starts on is exactly what the record
+# holds, not a file a process killed with `SIGKILL` left half-written. Only the ignored paths under the record directory
+# that the patch **carries** are removed before it is applied: `keep_leftovers` names the ones above its size bound and
+# copies nothing of them, so those are in the tree and in no record, and they stay.
+continue_from_leftover() { # <item> → 0 applied, 1 no patch, 2 no apply (the codes `resume_from_leftover` returns)
+  local item="$1" patch path record_dir rc=0
+  case "$item" in ''|*[!0-9]*) loop_die "continue-item: usage: worktree.sh continue-item <issue>" ;; esac
+  [ -d "$worktree" ] || loop_die "continue-item: no worktree at $worktree — run 'create' first"
+  patch=$(loop_leftover_patch_of "$item")
+  [ -s "$patch" ] || return 1
+  gitw reset -q --hard >&2 || loop_die "continue-item: could not put the worktree back on its branch's HEAD"
+  gitw clean -qfd >&2 || loop_die "continue-item: could not remove the untracked work the ended child left"
+  record_dir="${LOOP_UNTRACKED_RECORD_DIR:-}"
+  record_dir="${record_dir%/}"
+  if [ -n "$record_dir" ]; then
+    while IFS= read -r path; do
+      [ -n "$path" ] || continue
+      grep -qF "+++ b/$path" "$patch" 2>/dev/null || continue
+      rm -f -- "$worktree/$path" || loop_die "continue-item: could not clear $path, which the patch carries"
+    done < <(gitw ls-files --others --ignored --exclude-standard -- "$record_dir" 2>/dev/null)
+  fi
+  resume_from_leftover "$item" || rc=$?
+  # The sentence the item's own note opens with (`state.sh done`). It says what a later run cannot: the phase was resumed
+  # by the run that cut it, in the same tree, rather than handed forward as a patch whose base may have moved.
+  case "$rc" in
+    0) record_resume "$item" "$patch" applied "the run continued the item in the run that cut it — its child passed the context bound, so the work it left in $patch was applied onto the branch's HEAD and one continuation child took it from there" ;;
+    2) record_resume "$item" "$patch" no-apply "the work the child this run cut left in $patch does not apply onto the branch's HEAD, so the run recorded the cut instead of continuing the item" ;;
+  esac
+  return "$rc"
 }
 
 cmd_start_item() {
@@ -999,6 +1048,7 @@ cmd="${1:-}"; shift || true
 case "$cmd" in
   create) cmd_create "$@" ;;
   start-item) cmd_start_item "$@" ;;
+  continue-item) continue_from_leftover "$@" ;;
   end-item) cmd_end_item "$@" ;;
   record-review-round) cmd_record_review_round "$@" ;;
   record-review-failure) cmd_record_review_failure "$@" ;;
@@ -1014,6 +1064,6 @@ case "$cmd" in
   check-module-pin) cmd_check_module_pin "$@" ;;
   strip-scratch) cmd_strip_scratch "$@" ;;
   remove) cmd_remove "$@" ;;
-  ""|-h|--help) sed -n '2,33p' "$0" ;;
+  ""|-h|--help) sed -n '2,34p' "$0" ;;
   *) loop_die "unknown command '$cmd'" ;;
 esac

@@ -242,6 +242,18 @@ child_context_bound() { # child_context_bound <role> → the tokens that role's 
   esac
   printf '%s\n' "$value"
 }
+
+# Which bound ended a child, read back from the transcript the run wrote it into. Two of them end an item's worker and
+# only one of them is a phase a fresh session is the cheaper half of (issue #851): the context bound is what a *new*
+# session pays instead of the re-read of a grown one, while the turn bound and the wall clock measure what the child
+# spent failing to converge. `run_child` already names the bound it enforced and the key it is recorded in, so this is
+# one read of one line and not a second reading of the stream.
+child_ended_by_context_bound() { # <report> → 0 when that child's own LOOP-TIMEOUT line names the context bound
+  case "$(report_field "$1" LOOP-TIMEOUT 2>/dev/null)" in
+    *"the recorded context bound of"*) return 0 ;;
+  esac
+  return 1
+}
 # What the header names, for the reason the per-role turn bounds are named there: a bound a run enforces and does not
 # print is a bound nobody can audit (issue #842).
 child_context_bounds=""
@@ -1591,6 +1603,14 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # is read as a **difference**: the count standing here is the baseline and what this child is bounded by is the
   # turns it adds. Read before the child starts, so a turn it takes between the fork and this line is its own.
   turns_base=$(child_turns "${LOOP_CHILD_EVENTS:-}")
+  # …and the context bound is a difference for the same reason and one more (issue #851). A reading taken from the whole
+  # stream is the **item's** largest context, not this child's — so a child started on a fresh window inherited the
+  # number that ended the child before it, and a continuation (whose whole point is the fresh window) was ended on its
+  # first reading by the bound that cut its predecessor. The lines standing here are this child's baseline, and what it
+  # is bounded by is the reading it adds.
+  ctx_lines=0
+  if [ -f "${LOOP_CHILD_EVENTS:-}" ]; then ctx_lines=$(wc -l < "$LOOP_CHILD_EVENTS" 2>/dev/null || printf 0); fi
+  case "$ctx_lines" in ''|*[!0-9]*) ctx_lines=0 ;; esac
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
   # carries no other child's test results (issue #253). The **tail** child is the exception and is why this line is
   # not a `worker*` glob (issue #744): it is started *after* the gate wrote those results because the archive it
@@ -2326,10 +2346,76 @@ while true; do
     "CLASS=$class" "PROPOSE_CLASS=$propose_class"
 
   started=$(date +%s%3N)
-  run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"
+  # The report the item is read from: the worker's, or the continuation's when this run ended that worker at its context
+  # bound and continued the item itself (issue #851). Everything after this line reads `$worker_report`/`$worker_exit`,
+  # never the path, so the continuation needs no arm of its own below.
+  worker_report="$item_dir/worker-report.md"
+  run_child "$item_dir/worker-prompt.md" "$worker_report"
   worker_exit=$?
   loop_state step A --name worker --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
     --note "exit $worker_exit" >/dev/null
+
+  # ── the bound ended this worker: this run continues the item, it does not hand it forward (issue #851) ─────────────
+  #
+  # The bound is not the defect. `LOOP_ITEM_CONTEXT_MAX` stays 200 000 and the checkpoint stays 143 124 (#836), and a
+  # child the run ended is never committed (#754). What cost the run of 2026-11-11T11:37:08Z 33.08 of its 75.45 Mtok
+  # (44 %) was **when** the work was resumed: it cut #847 at 200 174 tokens after 142 turns and #839 at 200 869 after
+  # 125, kept 1 010 460 B and 1 323 610 B of their work in their own patches, closed neither, and then stopped `queue
+  # empty` 435 min before its own deadline with both patches in hand — and the next run applied neither (2 of 2, `run.resumes`
+  # records `outcome: no-apply`), because the base had moved under them between the runs. A patch applied in the run that
+  # cut it is a continuation, in the one tree it was taken from; the same patch one run later is a coin toss.
+  #
+  # Exactly one continuation per item, and only while the run's own deadline has not passed. A second context cut is the
+  # item's `cut` — that ceiling is what keeps this from being a loop that never ends an item — and a continuation started
+  # after the deadline would be ended on its first second, replacing the bound's own reason with the clock's, which is the
+  # distinction #829 and #785 paid for.
+  if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] && child_ended_by_context_bound "$worker_report"; then
+    deadline_epoch=$(jq -r '.run.deadlineEpoch // 0' "$LOOP_STATE_FILE" 2>/dev/null)
+    case "$deadline_epoch" in ''|*[!0-9]*) deadline_epoch=0 ;; esac
+    if [ "$deadline_epoch" -gt 0 ] && [ "$(date +%s)" -ge "$deadline_epoch" ]; then
+      progress note "#${issue} is not continued: the run's own deadline has passed, so a continuation would be ended on its first second and would replace the bound's reason with the clock's"
+    else
+      # The patch this child left, read before `worktree.sh` runs: the step applies exactly that file, and the item's
+      # note names it (the run's own record of the work, kept beside the tree as #754 leaves it — nothing is committed).
+      continuation_patch="$leftover_patch"
+      continuation_resume=0
+      bash "$LOOP_DIR/worktree.sh" continue-item "$issue" > "$item_dir/continuation-resume.log" 2>&1 || continuation_resume=$?
+      case "$continuation_resume" in
+        0)
+          # What the patch holds, in the child's own terms: the files and the hunks are counted from the record, so a
+          # continuation reads how much work stands in the tree instead of `git diff`-ing a tree a reviewer would then
+          # have to trust.
+          continuation_files=$(grep -c '^+++ ' "$continuation_patch" 2>/dev/null || printf 0)
+          continuation_hunks=$(grep -c '^@@' "$continuation_patch" 2>/dev/null || printf 0)
+          continuation_paths=$(sed -n 's#^+++ b/#  - #p' "$continuation_patch" 2>/dev/null | head -20)
+          render_prompt "$LOOP_DIR/prompts/worker-continuation.md" "$item_dir/worker-prompt-continuation.md" \
+            "GATE_STEP=$(gate_step_text "$pre_gate")" \
+            "ISSUE=$issue" "CLASS=$class" "PROPOSE_CLASS=$propose_class" \
+            "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+            "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
+            "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+            "PATCH=$continuation_patch" "PATCH_FILES=$continuation_files" \
+            "PATCH_HUNKS=$continuation_hunks" "PATCH_PATHS=$continuation_paths" \
+            "BOUND_LINE=$(report_field "$worker_report" LOOP-TIMEOUT)"
+          progress item "continuing #$issue from the work its ended worker left — $continuation_patch ($continuation_files file(s), $continuation_hunks hunk(s)) — one continuation, and its report is written to $item_dir/worker-continuation-report.md"
+          run_child "$item_dir/worker-prompt-continuation.md" "$item_dir/worker-continuation-report.md"
+          worker_exit=$?
+          worker_report="$item_dir/worker-continuation-report.md"
+          loop_state step A --name worker-continuation \
+            --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
+            --note "exit $worker_exit · from $continuation_patch, applied onto $(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null | cut -c1-12)" >/dev/null
+          ;;
+        2)
+          # The patch does not apply to the branch's HEAD: nothing is continued and nothing is discarded silently —
+          # `continue-item` records the non-apply with the item, and the outcome below leaves it `cut` with that note.
+          progress note "#${issue} is not continued: the work its ended worker left does not apply onto the branch's HEAD, so the item keeps the cut for the next run — see $item_dir/continuation-resume.log"
+          ;;
+        *)
+          progress note "#${issue} is not continued: no kept patch was found to apply — see $item_dir/continuation-resume.log"
+          ;;
+      esac
+    fi
+  fi
 
   # The gate ends the child that ran it, and a second fresh child carries the evidence (issue #744,
   # `tail_after_gate` above). Its archive is not that child's: the child **before** the gate completes the change and
@@ -2364,7 +2450,7 @@ while true; do
   fi
   # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
   # deferred the gate to a child of its own below (issue #758).
-  gate_report="$item_dir/worker-report.md"
+  gate_report="$worker_report"
   gate_child="worker"
   gate_exit="$worker_exit"
   gate_write_note="$worker_write_note"

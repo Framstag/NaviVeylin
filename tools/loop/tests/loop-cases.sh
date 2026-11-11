@@ -364,6 +364,8 @@ LOOP_SHELL_CASES=(
   'report#aSessionThatSwitchedModelRecordsBothTallies'
   'report#aStateWithoutAModelKeepsItsRoleTotals'
   'report#aRoleWhoseTurnNamedNoModelKeepsItsRow'
+  'report#aTurnNoSessionRecordReachesIsItsOwnBucket'
+  'report#thePhaseLineNamesTheClockItIsAShareOf'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
@@ -1056,6 +1058,8 @@ loop_run_shell_case() {
     'report#aSessionThatSwitchedModelRecordsBothTallies') fn=case_report_aSessionThatSwitchedModelRecordsBothTallies ;;
     'report#aStateWithoutAModelKeepsItsRoleTotals') fn=case_report_aStateWithoutAModelKeepsItsRoleTotals ;;
     'report#aRoleWhoseTurnNamedNoModelKeepsItsRow') fn=case_report_aRoleWhoseTurnNamedNoModelKeepsItsRow ;;
+    'report#aTurnNoSessionRecordReachesIsItsOwnBucket') fn=case_report_aTurnNoSessionRecordReachesIsItsOwnBucket ;;
+    'report#thePhaseLineNamesTheClockItIsAShareOf') fn=case_report_thePhaseLineNamesTheClockItIsAShareOf ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
@@ -12591,6 +12595,75 @@ JSONL
   roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
   assert_contains "$roles_line" "worker (mimo-v2.6-flash) 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item" \
     "the modelled tally names its model, the unmodelled one keeps the role's row, and the rows are the total"
+}
+
+# A turn the record cannot place under a role was in the item's tokens and in none of the buckets (issue #832): the
+# role split is folded from the sessions, and a `session` record opens a child's stream only where the stream still
+# carries it — a rotation takes the head, and a harness can write the record late. Measured on the run of
+# 2026-11-07T19:53:44Z (`.pi/issue-loop/runs/2026-11-07T19:53:44Z.json`): its 13 items recorded 73 220 472 tokens
+# against 55 680 163 under a role — 17 540 309, 24 %, that the trend printed inside no bucket and never named. So the
+# turns no session record reaches are a bucket of their own, and the buckets the line prints are the total it is over.
+case_report_aTurnNoSessionRecordReachesIsItsOwnBucket() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/orphan.jsonl" <<'JSONL'
+ {"type":"turn_end","message":{"role":"assistant","model":"mimo-v2.6-flash","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+ {"type":"session","version":3,"id":"s1"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/101/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","model":"minimax-m3.1-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":101,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 101 --result done --verdict closed --wall 42 --events "$d/orphan.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "2000000" "$(jq -r '.items[0].metrics.roles.unattributed' "$f")" \
+    "the turns no session record reaches are a bucket of their own"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "beside the role the session names"
+  assert_eq "2000000" "$(jq -r '.items[0].metrics.roleModels.unattributed["mimo-v2.6-flash"]' "$f")" \
+    "and the model those turns named is keyed as the bucket, never under the worker the roles reading used to give them"
+  assert_eq "3000000" "$(jq -r '.items[0].metrics.tokens.cacheRead' "$f")" \
+    "and the two buckets are the tokens the item already counted"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  [ -n "$roles_line" ] || fail "the trend printed no roles line"
+  assert_contains "$roles_line" "worker (minimax-m3.1-flash) 1 Mtok · unattributed (mimo-v2.6-flash) 2 Mtok · 3 Mtok over 1 item" \
+    "the trend prints every bucket the record holds, and the rows the line prints are the total it is over"
+}
+
+# The phase line printed three buckets and a total that covered a third of the run it was read against, and nothing
+# said so (issue #832): measured on the run of 2026-11-07T19:53:44Z, the three phase counters held 7 586 s of a
+# 24 104 s window — nothing in the block said the figures are measures of different things, or where the difference
+# goes. The state records both halves — `metrics.phases` and the item's own `wallSeconds` — so the line prints the
+# clock the three buckets are a share of, and names what lies outside both a turn and a tool.
+case_report_thePhaseLineNamesTheClockItIsAShareOf() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend phases_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/phased.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s1"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/102/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+ {"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_read","durationMs":300,"isError":false}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":102,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 102 --result done --verdict closed --wall 42 --events "$d/phased.jsonl" >/dev/null
+  f=$(state_file "$p")
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  phases_line=$(printf '%s\n' "$trend" | grep '^  phases:' || true)
+  [ -n "$phases_line" ] || fail "the trend printed no phases line"
+  assert_contains "$phases_line" "model 1 s · other 0.3 s · 1.3 s over 1 item, 3 % of the 42 s of item wall — 40.7 s of it in neither a turn nor a tool" \
+    "the phase line names the item clock the three buckets are a share of, and what they leave out"
+  # …and an item whose record holds no wall has no denominator: the line says so rather than printing the total as if
+  # it were the clock it was read against.
+  jq 'del(.stateDigest) | del(.items[].metrics.wallSeconds)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for an item that recorded no wall"
+  phases_line=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p" | grep '^  phases:' || true)
+  assert_contains "$phases_line" "1.3 s over 1 item — no item wall recorded to read it against" \
+    "an item that recorded no wall leaves the line with no denominator, and says so"
 }
 
 # Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the

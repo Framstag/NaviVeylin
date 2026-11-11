@@ -468,6 +468,17 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # measurement that was made; the line below says when no gate ran at all.
   | ([.items[] | .metrics.phases | select(. != null)]) as $phs
   | ([.items[] | .metrics.roles | select(. != null)]) as $rol
+  # The order the roles line prints is the trio it always printed followed by every other bucket the record holds
+  # (issue #832): the bucket a turn no `session` record reaches is counted in is not one of the three, and a line over a
+  # literal trio would drop it from a total the state already counts. Read off the records rather than declared here,
+  # so a bucket a later reader adds prints without an edit to this file.
+  | (["worker", "reviewer", "tail"]
+     + ([$rol[] | keys[]] | unique
+        | map(select(. as $k | (["worker", "reviewer", "tail"] | index($k)) == null)))) as $order
+  # The clock the three buckets are a share of (issue #832): the items that recorded a phase figure also record their
+  # own wall, so the line prints the share the buckets are and the time they leave outside both a turn and a tool —
+  # the two halves over one set of items, never over the run window, which also holds the landings and the holds.
+  | ([.items[] | select(.metrics.phases != null) | .metrics.wallSeconds | select(. != null)] | add) as $phsWall
   | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
   # What a state written before this figure existed holds instead: some spend and no split at all. That is a
   # different answer from a run whose items measured nothing, the distinction the calls line already makes.
@@ -482,8 +493,11 @@ trend=$(jq -r --argjson floor "$calls_floor" '
              {n: "other", ms: ([$phs[].otherMs] | add)}]
             | map(select(.ms > 0))) as $b
         | ([$b[].ms] | add) as $total
-        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)"
-          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)"
+        | ( if $phsWall != null and $phsWall > 0 then
+              ", \(((($total / 1000) / $phsWall) * 100 | round)) % of the \(($phsWall * 1000) | dur) of item wall — \(((($phsWall * 1000) - $total) | if . < 0 then 0 else . end) | dur) of it in neither a turn nor a tool"
+            else " — no item wall recorded to read it against" end ) as $wallnote
+        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)\($wallnote)"
+          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)\($wallnote)"
           end
       end ) as $phaseline
   | ( if ($rol | length) == 0 then
@@ -497,7 +511,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
       # measurement.
       elif ([.items[] | .metrics.roleModels | select(. != null)] | length) > 0 then
         ([.items[] | .metrics.roleModels | select(. != null)]) as $rm
-        | (["worker", "reviewer", "tail"]
+        | ($order
            | map(. as $r
                  | ([$rm[] | .[$r] // {}]
                     | reduce .[] as $o ({}; reduce ($o | to_entries[]) as $e (.;
@@ -511,7 +525,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else "\($rows | map(if .model == null then "\(.role) \(.tok | mtok)"
                               else "\(.role) (\(.model)) \(.tok | mtok)" end) | join(" · ")) · \(([$rows[].tok] | add) | mtok) over \($rol | length | items_n)"
           end
-      else (["worker", "reviewer", "tail"]
+      else ($order
             | map(. as $r | {role: $r, tok: ([$rol[] | .[$r] | select(. != null)] | add)})
             | map(select(.tok != null))) as $by
         | if ($by | length) == 0 then "- · no item recorded a session that reported tokens"

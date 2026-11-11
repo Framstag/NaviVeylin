@@ -912,7 +912,13 @@ num_or_null() {
 #   * **`roles`** — each `session` record opens one child's stream and its first `user` message is the prompt file
 #     the run handed it, which is the only thing in the stream that names the role. The path does: `worker-tail` is
 #     the tail, `reviewer` the reviewer, everything else a worker. Read from the prompt's *words* (the rule
-#     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`;
+#     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`.
+#     A turn can also stand **before** the stream's first `session` record — the record a rotation took off the head,
+#     or one a harness writes late — and those turns are tokens the item spent all the same: they are collected in a
+#     bucket of their own (`unattributed`), because the role they were spent under is the one fact the stream no
+#     longer holds (issue #832). Read as "no session, so no role" they were counted in `tokens` and in no bucket,
+#     and the run of 2026-11-07T19:53:44Z printed 73 220 472 tokens against 55 680 163 under a role with nothing
+#     saying where the 24 % went;
 #   * **`afterGate`** — over the sessions that ran a gate, the tokens of the turns from the first gate turn on and
 #     those sessions' own tokens, so a share has both halves in the record;
 #   * **`withheld`** — the repeats the rule replaced, read from the record the rule writes beside this stream
@@ -1011,12 +1017,16 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
                           and ([$w[] | select(. == "--plan")] | length == 0));
       def calls_of: [((. // [])[] | select(.type == "toolCall")
                       | {id: (.id // ""), gate: (((.arguments?.command? // "") | tostring) | is_gate)})];
+      # Every turn is collected in the region it stands in (issue #832). The reducer opens with a region of its own —
+      # `orphan:true`, the turns that stand before the first `session` record of the stream — and a `session` record
+      # closes it and opens a real one, so the turns the role reading cannot place are a region rather than a gap. A region
+      # that collected no turn is kept by neither, so the split of a stream whose every turn is inside a session is the
+      # split it always was.
       def sessions:
-        reduce .[] as $e ({cur:null, done:[]};
+        reduce .[] as $e ({cur:{prompt:null, usage:null, turns:[], orphan:true}, done:[]};
           if $e.type == "session" then
-            (if .cur != null then .done = (.done + [.cur]) else . end)
-            | .cur = {prompt:null, usage:null, turns:[]}
-          elif .cur == null then .
+            (if (.cur.turns | length) > 0 then .done = (.done + [.cur]) else . end)
+            | .cur = {prompt:null, usage:null, turns:[], orphan:false}
           elif $e.type == "message_start" and (($e.message.role? // "") == "user") and (.cur.prompt == null) then
             .cur.prompt = (($e.message.content // "")
               | if type == "array" then (map(.text? // "") | join("")) else tostring end)
@@ -1035,7 +1045,8 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
                                             calls: ($m.content | calls_of)}])
              | .cur.usage = null)
           else . end)
-        | (if .cur != null then (.done + [.cur]) else .done end);
+        | (if (.cur.turns | length) > 0 then (.done + [.cur]) else .done end);
+
       . as $all
       | ($all | turns) as $t
       | ($all | sessions) as $ses
@@ -1046,32 +1057,36 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       | ([$all[] | select(.type == "tool_execution_end")]) as $ends
       | ([$ends[] | select($gateIds[(.toolCallId // "")] // false) | (.durationMs? // 0)] | add // 0) as $gateMs
       | ([$ends[] | select(($gateIds[(.toolCallId // "")] // false) | not) | (.durationMs? // 0)] | add // 0) as $otherMs
-      | (reduce ($ses[] | {role: ((.prompt // "") | ascii_downcase
+      # …and the region no session record reaches is the bucket its own turns are counted in (issue #832), so the
+      # buckets this object holds are exactly the turns `tokens` sums; the bucket stays `null` where no turn stood in
+      # it, the rule every figure of this function keeps.
+      | (reduce ($ses[] | {role: (if .orphan then "unattributed" else ((.prompt // "") | ascii_downcase
                                   | if test("worker-tail") then "tail"
                                     elif test("reviewer") then "reviewer"
-                                    else "worker" end),
+                                    else "worker" end) end),
                            tok: ([.turns[] | .usage | tok] | add // 0)}) as $s
-           ({worker:null, reviewer:null, tail:null};
-            .[$s.role] = (if $s.tok > 0 then (((.[$s.role]) // 0) + $s.tok) else .[$s.role] end))) as $roles
+           ({worker:null, reviewer:null, tail:null, unattributed:null};
+             .[$s.role] = (if $s.tok > 0 then (((.[$s.role]) // 0) + $s.tok) else .[$s.role] end))) as $roles
       # …and the model each of those turns named, beside the role total (issue #823). The model is read off the same
       # `turn_end` message the tokens are, so a role that answered on two models is two tallies rather than one row
       # priced at whichever model came first, and two sessions of one role sum their models instead of overwriting. A
       # role whose turns named no model stays null, never an empty object — the rule every figure of this function
-      # keeps.
-      | (reduce ($ses[] | {role: ((.prompt // "") | ascii_downcase
+      # keeps. The orphan region is keyed as `roles` keys it (issue #832): its turns do name models, and a pass that
+      # left them under `worker` would print those tokens twice — once as the workers model row and once as the bucket.
+      | (reduce ($ses[] | {role: (if .orphan then "unattributed" else ((.prompt // "") | ascii_downcase
                                   | if test("worker-tail") then "tail"
                                     elif test("reviewer") then "reviewer"
-                                    else "worker" end),
+                                    else "worker" end) end),
                            models: ([.turns[]
                                      | select((.model // null) != null)
                                      | {m: .model, t: (.usage | tok)}]
                                     | group_by(.m) | map({key: .[0].m, value: ([.[].t] | add)}) | from_entries)}) as $s
-           ({worker:null, reviewer:null, tail:null};
+           ({worker:null, reviewer:null, tail:null, unattributed:null};
             .[$s.role] = (if ($s.models | length) > 0
                           then (reduce ($s.models | to_entries[]) as $e (.[$s.role] // {};
                                   .[$e.key] = ((.[$e.key] // 0) + $e.value)))
                           else .[$s.role] end))) as $roleModels
-      | ([$ses[] | ([.turns[] | any(.calls[]?; .gate)] | index(true)) as $g
+      | ([$ses[] | select(.orphan | not) | ([.turns[] | any(.calls[]?; .gate)] | index(true)) as $g
            | select($g != null)
            | {after: ([.turns[$g:][] | .usage | tok] | add // 0),
               total: ([.turns[] | .usage | tok] | add // 0)}]) as $gated

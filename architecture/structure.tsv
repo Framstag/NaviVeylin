@@ -2,7 +2,7 @@
 # Columns, tab-separated, on every line below that does not start with #: module, package, kind, feature, may_import.
 # kind is one of concept, port, feature, platform, shell. feature is the business name a feature or platform row carries, - when the package serves several or none.
 # may_import is the permission the kind's rules give, not a census of the imports the code has today: - is "nothing of ours", "any" is shell only.
-# Measured 2026-11-11: 320 main sources over 25 source packages — find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | sed 's#/[^/]*$##' | sort -u | wc -l
+# Measured 2026-11-11: 320 main sources over 25 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (320); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (25).
 # One row per package as the tree stands today, no file moved: a package the pilot or a later migration splits keeps its row until the files move.
 app	com.naviveylin	shell	-	any
 app	com.naviveylin.data	platform	-	concept,port

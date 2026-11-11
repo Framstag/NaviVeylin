@@ -1,0 +1,9 @@
+# red-on-HEAD: the two cases issue #859 owes, against the change root as 372abed0 has it
+# taken 2026-11-11T20:24:40Z on HEAD 372abed096d8fe5183f1a69c2ee3d4a7e177b426
+# case 1: bash tools/issues/tests/issue-tooling-selftest.sh --case decisions#anAnsweredCreationIsNotAParkedItem
+  the entry is the question the filing path's answer binds, not a park nobody wrote: expected 'merge or keep the file?', got 'parked: keep the file'
+FAIL decisions#anAnsweredCreationIsNotAParkedItem
+exit=1
+# case 2: bash tools/issues/tests/issue-tooling-selftest.sh --case create#theAnswerShapeIsWrittenFromTheConstants
+PASS create#theAnswerShapeIsWrittenFromTheConstants
+exit=0

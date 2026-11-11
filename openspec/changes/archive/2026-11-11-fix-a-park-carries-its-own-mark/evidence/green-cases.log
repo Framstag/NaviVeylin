@@ -1,0 +1,8 @@
+# taken 2026-11-11T20:41:37Z on the change tree (base 372abed096d8fe5183f1a69c2ee3d4a7e177b426 + the change).
+# bash tools/issues/tests/issue-tooling-selftest.sh --case <case>, one case at a time
+PASS decisions#anAnsweredCreationIsNotAParkedItem
+PASS create#theAnswerShapeIsWrittenFromTheConstants
+PASS decisions#aParkedItemIsListedAsParked
+PASS answer#parkWritesTheAnswerAndKeepsTheMode
+PASS decisions#listsTheQueueAndItsQuestions
+PASS decisions#theQuestionIsNotTheVerdictWord

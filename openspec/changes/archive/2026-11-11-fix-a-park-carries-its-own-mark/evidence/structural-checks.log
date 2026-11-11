@@ -1,0 +1,50 @@
+# taken 2026-11-11T20:45:47Z on the change tree (base 372abed096d8fe5183f1a69c2ee3d4a7e177b426 + the change).
+# the change readiness checker and the five structural checks the delta owes
+# ./tools/check-change-readiness.sh openspec/changes/fix-a-park-carries-its-own-mark
+LOOP-CHANGE-READY: ok
+exit=0
+# ./tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+# ./tools/check-doc-routes.sh
+check-doc-routes: all 337 section references resolve, all 7 skill references resolve
+exit=0
+# ./tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+# ./tools/check-todo-references.sh
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/tests/check-todo-references-selftest.sh            the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 11133 file(s) excluded by the allowlist above
+exit=0
+# bash tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+# tools/issues/tests/create-mutations.json — 5 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+2.1	create#theAnswerShapeIsWrittenFromTheConstants	the answer's first half having one home (issue #859) — the filing path writes the decision line from this constant, so moving it moves the recorded answer
+2.2	create#theAnswerShapeIsWrittenFromTheConstants	the same home for the marker half (issue #859) — the filing path binds each decision to its question with this constant, so moving it moves the comment it writes
+exit=0
+# bash tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+exit=0

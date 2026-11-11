@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The JUnit-shaped tally of red-on-HEAD.log: one `testcase` per case issue #859 owes, read off that log's FAIL line
+     and its two exit statuses. A shell self-test prints PASS/FAIL lines rather than a suite report
+     (`.pi/skills/revert-check`, "When the gate is a shell self-test"), so the tally is transcribed from the log the
+     same way the archived `fix-a-park-has-a-writer` change transcribed its own. Taken 2026-11-11T20:24:40Z on the base
+     372abed096d8fe5183f1a69c2ee3d4a7e177b426, in the change root .pi/worktrees/loop.
+
+     `tests="2" failures="1"` is the honest tally of a shell gate: the first case fails on the base, and the second is
+     green there — its red state is the mutation the base does not catch, which is `STAYS-GREEN` in
+     red-mutations-on-HEAD.log (2.1 and 2.2 of tools/issues/tests/create-mutations.json). -->
+<testsuite name="tools/issues/tests/issue-tooling-selftest.sh" tests="2" failures="1" errors="0" timestamp="2026-11-11T20:24:40Z">
+  <testcase classname="issue-tooling" name="decisions#anAnsweredCreationIsNotAParkedItem">
+    <failure message="the entry is the question the filing path's answer binds, not a park nobody wrote: expected 'merge or keep the file?', got 'parked: keep the file'">decisions.sh reads any statement of the answer's shape as a park, so an item the filing path answered at intake prints a park nobody made.</failure>
+  </testcase>
+  <testcase classname="issue-tooling" name="create#theAnswerShapeIsWrittenFromTheConstants">
+    <system-out>passes on the base, and that is its red state: the case asserts the literal shape, so mutating either constant in tools/issues/lib.sh leaves the filing path's comment unchanged — `STAYS-GREEN` for 2.1 and 2.2 in red-mutations-on-HEAD.log, 2026-11-11T20:25:11Z.</system-out>
+  </testcase>
+</testsuite>

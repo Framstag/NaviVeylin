@@ -1,0 +1,32 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=372abed096d8fe5183f1a69c2ee3d4a7e177b426 paths=10 insertions=159 deletions=22
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH tools/issues/answer.sh
+LOOP-MEASURE-PATH tools/issues/create.sh
+LOOP-MEASURE-PATH tools/issues/decisions.sh
+LOOP-MEASURE-PATH tools/issues/lib.sh
+LOOP-MEASURE-PATH tools/issues/tests/create-mutations.json
+LOOP-MEASURE-PATH tools/issues/tests/decision-question-mutations.json
+LOOP-MEASURE-PATH tools/issues/tests/fixtures/scenarios/answered-creation/
+LOOP-MEASURE-PATH tools/issues/tests/fixtures/scenarios/parked/issues.json
+LOOP-MEASURE-PATH tools/issues/tests/issue-tooling-cases.sh
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/tests/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-SUITE cases=411 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-park-carries-its-own-mark scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 cases added, 0 rewritten, 1 fixture added, 1 fixture realigned, 12 mutations over 2 sets, 4 engine files
+LOOP-MEASURE-END

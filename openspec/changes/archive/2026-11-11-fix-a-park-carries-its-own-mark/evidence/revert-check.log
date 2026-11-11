@@ -1,0 +1,49 @@
+# taken 2026-11-11T20:48:47Z on the change tree (base 372abed096d8fe5183f1a69c2ee3d4a7e177b426 + the change).
+# the revert-check of the invariants this change adds, full output per mutation
+# bash tools/mutate.sh --mutations tools/issues/tests/create-mutations.json
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/create.sh
+  GREEN(exit 0)  restored, and the case passes again
+2.1	create#theAnswerShapeIsWrittenFromTheConstants	the answer's first half having one home (issue #859) — the filing path writes the decision line from this constant, so moving it moves the recorded answer
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+2.2	create#theAnswerShapeIsWrittenFromTheConstants	the same home for the marker half (issue #859) — the filing path binds each decision to its question with this constant, so moving it moves the comment it writes
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 5 mutation(s) run, 5 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+exit=0
+
+# bash tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/core/WorkPackage.java
+  GREEN(exit 0)  restored, and the case passes again
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/answer.sh
+  GREEN(exit 0)  restored, and the case passes again
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/decisions.sh
+  GREEN(exit 0)  restored, and the case passes again
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/answer.sh
+  GREEN(exit 0)  restored, and the case passes again
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/decisions.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 7 mutation(s) run, 7 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+exit=0

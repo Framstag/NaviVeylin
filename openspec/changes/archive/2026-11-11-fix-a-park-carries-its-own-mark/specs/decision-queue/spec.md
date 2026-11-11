@@ -1,0 +1,62 @@
+# Spec Delta — decision-queue
+
+## ADDED Requirements
+
+### Requirement: Every writer and reader of an answer's shape reads one home
+
+The two halves an answer is made of — the `Decision: ` line the decision is recorded on, and the `<!-- answers: … -->`
+marker that binds it to the question it answers — SHALL be defined once, in the engine's shared library, and every
+writer SHALL read them from there: the answer verb, the decision queue and the filing path that records a tier-B
+finding's answered forks on the item it files. Mutating either definition SHALL move every comment written from it, so
+the shape a writer records is the shape the reader reads rather than a copy that can drift from it.
+
+#### Scenario: The filing path writes the answer's shape from the one home
+
+- **WHEN** a tier-B finding's answered forks are recorded on the item it files
+- **THEN** the comment carries both halves of the answer's shape read from the shared library — mutating either
+  definition changes what the filing path records — and it binds each decision to the question it settles with the
+  same marker the queue reads
+- **Case**: `create#theAnswerShapeIsWrittenFromTheConstants`
+
+## MODIFIED Requirements
+
+### Requirement: A park writes its answer and moves no label
+
+The answer verb SHALL accept a park as an outcome that records the decision through the same writer as every other
+answer and performs no transition: no label, no status, no close. The item SHALL therefore keep the decision label,
+stay answerable and stay in the queue, and the queue SHALL print `parked: <the decision's first clause>` where the
+question stood, because the fork is settled and the condition is what a reader needs now.
+
+A park SHALL be recognised by a mark only a park writes, and not by the answer's shape alone. The shape says what a
+comment is, not who wrote it: the filing path records a tier-B finding's answered forks in exactly that shape, and the
+decision label can reach such an item afterwards, so an answer without the mark SHALL be an item that still awaits the
+fork its answer names — its entry is that question, read out of the answer's own marker.
+
+It is the fourth outcome, the one the requirement 'An answer performs the transition it implies' does not name —
+that requirement's three outcomes (returning the item to the queue, moving it to the device lane, closing it as a
+decision not to act) are the ones that move — and the one case the requirement 'The queue names what awaits a
+decision and what each item asks' does not print as a question: a parked item's entry is the condition it waits
+for.
+
+#### Scenario: A park writes its answer and moves no label
+
+- **WHEN** the answer verb is called with the park outcome and a decision
+- **THEN** the answer is posted as a comment carrying the decision, the marker that binds it to the question it
+  answers, and the mark only a park writes, the item keeps the decision label and the status it already carries, and no
+  label or status write and no close is performed
+- **Case**: `answer#parkWritesTheAnswerAndKeepsTheMode`
+
+#### Scenario: A parked item prints the condition it waits for
+
+- **WHEN** the queue is asked for an item whose last statement is such a park
+- **THEN** the item is still listed and still counted, and its entry reads `parked: <the decision's first
+  clause>` instead of the question the park has settled
+- **Case**: `decisions#aParkedItemIsListedAsParked`
+
+#### Scenario: An answered creation is not a parked item
+
+- **WHEN** the last statement on an item carrying the decision label is an answer that carries no park's mark — the
+  shape the filing path writes for a tier-B finding's answered forks
+- **THEN** the item is still listed and still counted, and its entry is the question that answer binds, never
+  `parked: …`, because nobody parked it and the fork its answer names is still open
+- **Case**: `decisions#anAnsweredCreationIsNotAParkedItem`

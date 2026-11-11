@@ -1,0 +1,11 @@
+# taken 2026-11-11T20:25:11Z on HEAD 372abed096d8fe5183f1a69c2ee3d4a7e177b426\n
+# bash tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --only "2.1 2.2"
+2.1	create#theAnswerShapeIsWrittenFromTheConstants	the filing path writing the answer's first half from the one home (issue #859); spelled as a literal beside it, the mutation of the constant moves nothing
+  STAYS-GREEN  create#theAnswerShapeIsWrittenFromTheConstants passed with the mutation in place (1 occurrence(s) replaced in tools/issues/lib.sh) — the case does not assert the invariant
+  GREEN(exit 0)  restored, and the case passes again
+2.2	create#theAnswerShapeIsWrittenFromTheConstants	the filing path writing the answer's second half from the same home (issue #859), so the question a filed answer binds is the marker the queue reads
+  STAYS-GREEN  create#theAnswerShapeIsWrittenFromTheConstants passed with the mutation in place (1 occurrence(s) replaced in tools/issues/lib.sh) — the case does not assert the invariant
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 2 mutation(s) run, 0 went red and restored green, 2 problem(s)
+exit=1

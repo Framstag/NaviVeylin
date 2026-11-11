@@ -575,6 +575,18 @@ child answers nothing is a failed phase.
   commit`
 - **Case**: `run#aPhaseThatAnswersNothingIsThatPhasesFailure`
 
+#### Scenario: A change child that answers nothing is recorded as that phase's failure
+
+- **WHEN** the change child exits 0 and leaves a report that carries no `LOOP-DIFF-READY`, no `LOOP-GATE`
+  and no `LOOP-VERDICT` — no line the run's own arms read — and the commit the run makes of its tree leaves
+  HEAD past the run's base commit
+- **THEN** the round before the gate and the gate child are not started and no tail is written, the item's
+  steps record the phase `fail` with the note `exit 0 and no answer`, the run prints that the change child's
+  answer is not an answer, and the item is recorded `blocked` with a reason that names the change phase —
+  not `no archived change appears in the run's diff`, not `the tree is still at the base commit` and not
+  the run's own `could not start`, and the branch that carries the child's committed tree is kept
+- **Case**: `run#anEmptyAnswerOverACommitIsTheChangePhasesFailure`
+
 #### Scenario: The gate's evidence is read by the run
 
 - **WHEN** an item claims a gate result

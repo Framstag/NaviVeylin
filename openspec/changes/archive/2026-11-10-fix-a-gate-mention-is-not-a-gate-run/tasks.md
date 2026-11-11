@@ -63,15 +63,16 @@
   the digest a later reader would compute names a tree no gate measured. The merge onto `main` put the delta's clause
   into `openspec/specs/agent-issue-loop/spec.md` before the gate this change now ran, so the tail's Phase F had nothing
   left to move on the path set.
-- The attesting run: `evidence/gate-run-line.md` (its step lines) and `evidence/gate.log` (its whole console, which the
-  step lines and the aggregate are read from) — `LOOP-GATE-TREE head=6f67ca18 diff=7f2fdad8`,
-  `tests=997 failures=0 errors=0`, longest steps `loop-selftest.sh --from-git` 597 s and `loop-mutations-selftest.sh`
-  629 s. The first run on that tree was red for a collision, not for the change: `--from-git` found
-  `.pi/tmp/.loop-selftest.lock` held by another suite (owner 2800790) and exited in 1 s (`tests=598 failures=0
-  errors=1`); the re-run is the one above. Per-suite tallies are not copied this round: `app/build/test-results/loop-gate/`
-  is shared with any other suite on the host and two files in it carried another run's 1800 s step, so the gate's own
-  console is the record. If a later reader's digest of this tree still differs from the diff's, the difference is item
-  #837 (the engine's post-gate move), and the two trees are named here rather than the record being called attested.
+- The attesting run is the one on the merged tree, and its record is `evidence/gate-run-line.md` with the whole
+  console beside it in `evidence/gate.log`: that file carries this run's `LOOP-GATE-TREE` line, the aggregate and the
+  per-step durations, so a reader compares the gate's own digest against the diff's rather than a number copied here —
+  a figure in this file would move the digest the figure is about. The first run on the merged tree was red for a
+  collision and not for the change (`loop-selftest.sh --from-git` found `.pi/tmp/.loop-selftest.lock` held by another
+  suite and exited in 1 s); the evidence file names it as the rejected run, with its numbers.
+- Per-suite tallies are not copied this round: `app/build/test-results/loop-gate/` is shared with any other suite on
+  the host, and two of its files carried another run's 1800 s step. The gate's console is the record. If a later
+  reader's digest of this tree still differs from the diff's, the difference is item #837 (the engine's post-gate
+  move), and the two trees are named in `evidence/gate-run-line.md` rather than the record being called attested.
 
 ## 6. Round 2 — the corrections the review asked for
 

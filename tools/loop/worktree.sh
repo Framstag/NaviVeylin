@@ -21,6 +21,7 @@
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh branch-state <issue> <branch>
+#   worktree.sh set-aside <issue> <branch>
 #   worktree.sh merge-item <issue> <branch>
 #   worktree.sh release-branch <branch>
 #   worktree.sh prune-landed [--apply]
@@ -336,7 +337,7 @@ $dirty"
       gitw switch -C "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
       printf 'item #%s on branch %s (reused — the branch carries no commit of its own)\n' "$issue" "$branch"
     elif [ "$state" = "unfinished" ] || [ "$state" = "rework-cut" ]; then
-      set_aside="loop/leftover/issue-$issue-$slug-$(date -u +%Y%m%dT%H%M%SZ)"
+      set_aside=$(leftover_name "$branch")
       gitw branch -m "$branch" "$set_aside" >&2 ||
         loop_die "start-item: could not set the blocked attempt's branch aside"
       if [ "$state" = "rework-cut" ]; then
@@ -526,6 +527,38 @@ cmd_branch_state() { # <issue> <branch> → <state> TAB <change> TAB <evidence>
       ;;
   esac
   printf '%s\t%s\t%s\n' "$state" "$change" "$evidence"
+}
+
+# The name a branch the run sets aside keeps its commits under: the branch's own name without its `fix/` prefix —
+# the issue, the slug and the UTC it was set aside — so the item it belongs to is readable from the leftover itself,
+# and `prune-landed` sweeps that one namespace. One owner of the name, because `start-item` and the pre-screen both
+# set a branch aside (#232, #847).
+leftover_name() { # <branch> → loop/leftover/<issue>-<slug>-<utc>
+  printf 'loop/leftover/%s-%s\n' "${1#fix/}" "$(date -u +%Y%m%dT%H%M%SZ)"
+}
+
+# The commits are what a set-aside keeps, so the rename is the whole of it: nothing is deleted, and a rename git
+# refuses — the branch another worktree stands on — is the refusal it is, never a set-aside that did not happen.
+set_aside_branch() { # <branch> → the leftover name on stdout, or the refusal and the refusal's exit status
+  local branch="$1" name
+  name=$(leftover_name "$branch")
+  gitr branch -m "$branch" "$name" >&2 || return "$LOOP_REFUSE"
+  printf '%s\n' "$name"
+}
+
+# A finished attempt the owner has answered is a rework round, not a question (#847): the pre-screen sets the
+# attempt's branch aside exactly as `start-item` sets a blocked one aside, and the item is then worked again on its
+# own branch, cut fresh from the base. The rename is also what makes the answer durable — the run's state is
+# machine-local and the branch is not, so the next run reads what was executed from git rather than from a comment.
+cmd_set_aside() { # <issue> <branch>
+  local issue="${1:-}" branch="${2:-}" name
+  case "$issue" in ''|*[!0-9]*) loop_die "set-aside: usage: worktree.sh set-aside <issue> <branch>" ;; esac
+  [ -n "$branch" ] || loop_die "set-aside: usage: worktree.sh set-aside <issue> <branch>"
+  gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
+    loop_refuse "there is no branch $branch to set aside"
+  name=$(set_aside_branch "$branch") || exit $?
+  printf 'set-aside: branch %s renamed to %s, its commits are kept\n' "$branch" "$name" >&2
+  printf '%s\n' "$name"
 }
 
 # The branch of a finished attempt is merged onto the run's base and the item is closed by the run's own
@@ -971,6 +1004,7 @@ case "$cmd" in
   record-review-failure) cmd_record_review_failure "$@" ;;
   adopt-item) cmd_adopt_item "$@" ;;
   branch-state) cmd_branch_state "$@" ;;
+  set-aside) cmd_set_aside "$@" ;;
   merge-item) cmd_merge_item "$@" ;;
   release-branch) cmd_release_branch "$@" ;;
   prune-landed) cmd_prune_landed "$@" ;;

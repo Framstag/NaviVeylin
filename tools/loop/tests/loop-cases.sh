@@ -422,6 +422,8 @@ LOOP_SHELL_CASES=(
   'repeat#aRepeatIsRecordedAsWhatItWithheld'
   'run#childPastItsTurnBoundIsCut'
   'prescreen#aReworkCutBranchIsWork'
+  'prescreen#anAnsweredBranchIsWorkNotADecision'
+  'prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch'
   'worktree#setsAsideAReworkCutBranchAndStartsFresh'
   'run#aRotatedStreamStillCountsTheTurnsItDropped'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
@@ -766,6 +768,8 @@ loop_run_shell_case() {
     'prescreen#aFinishedAttemptBranchIsADecision') fn=case_prescreen_aFinishedAttemptBranchIsADecision ;;
     'prescreen#aBlockedAttemptBranchIsWork') fn=case_prescreen_aBlockedAttemptBranchIsWork ;;
     'prescreen#aReworkCutBranchIsWork') fn=case_prescreen_aReworkCutBranchIsWork ;;
+    'prescreen#anAnsweredBranchIsWorkNotADecision') fn=case_prescreen_anAnsweredBranchIsWorkNotADecision ;;
+    'prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch') fn=case_prescreen_anAnswerToAnotherAttemptDoesNotReworkTheBranch ;;
     'prescreen#landedBranchIsNotADecision') fn=case_prescreen_landedBranchIsNotADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
@@ -3024,6 +3028,121 @@ case_prescreen_aReworkCutBranchIsWork() {
     "it is queued as work instead"
   assert_eq "0" "$(grep -c 'agent/needs-decision' "$GH_STUB_RECORD" || true)" \
     "and no decision label is written for it, so the cap's population does not grow"
+}
+
+
+# An answer a person recorded is the item's next phase, not a question to ask again (issue #847).
+# `answer.sh --continue` removes `agent/needs-decision` and the hold, and the next pre-screen read the branch
+# again — a reviewer's refusal is its owner's (#185) — and wrote both back with a fresh escalation comment, so the
+# answer was recorded and re-asked for ever: measured 2026-11-10 on #830, whose answer at 05:40:15Z was re-escalated
+# at 08:20:31Z with the same sentence, and on #845 `review-refused`, #832 and #837 `archived-not-green` under the
+# identical reason. The item is worked again on its own branch, the shape a blocked attempt's branch already gets
+# (#232): its commits are kept under a leftover name and the branch is cut fresh from the base.
+#
+# What binds the answer to the attempt is the question it quotes: the branch rule's question names the branch and
+# the head commit it carries, so an answer that quotes *this* attempt's question is the owner speaking about this
+# attempt, and an answer to an earlier attempt's question leaves the current one standing.
+case_prescreen_anAnsweredBranchIsWorkNotADecision() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p s base branch head question out leftover
+  d=$(scratch); p=$(new_project)
+  init_state "$p" 3 90
+  base=$(git -C "$p" rev-parse HEAD)
+  branch="fix/issue-21-a-refused-attempt"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-attempted/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence/TEST-attempted.xml"
+  printf 'The reviewer refused this change in review round 1.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence/review-failed-round-1.md"
+  printf 'the previous attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt"
+  git -C "$p" checkout -q main
+  # The escalation the answer quotes, in the shape the pre-screen writes it (#847: the question names the attempt).
+  head=$(git -C "$p" rev-parse --short=12 "refs/heads/$branch")
+  question="branch $branch carries a commit the run's base does not — a previous attempt's work is on it (head $head)"
+  s="$d/scenario"
+  cp -r "$(scenario six)" "$s"
+  jq --arg q "$question" --arg b "$branch" '
+    map(if .number == 21 then . + {comments: [
+      {author: {login: "Framstag"}, createdAt: "2026-11-10T04:10:00Z", body: ($q + "\n\nEvidence: " + $b)},
+      {author: {login: "Framstag"}, createdAt: "2026-11-10T05:40:15Z",
+       body: ("Decision: apply the two findings and continue\n<!-- answers: " + $q + " -->")}
+    ]} else . end)' "$s/issues.json" > "$s/issues.json.tmp" && mv "$s/issues.json.tmp" "$s/issues.json" ||
+    fail "this case could not record the answer on its item"
+  export GH_STUB_DIR="$s"
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
+    "an item whose owner answered its branch question is work, not a decision asked a second time"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .reason')" "$branch" \
+    "and the record names the branch the answer reworks"
+  assert_eq "$branch" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .evidence')" \
+    "with the branch as the record's evidence"
+  assert_eq "0" "$(jq -r '[.excluded[]? | select(.issue == 21)] | length' "$(state_file "$p")")" \
+    "so nothing is recorded as awaiting a decision"
+  assert_eq "0" "$(grep -c 'agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "and the decision label the answer removed is not written back"
+  assert_eq "21" "$(jq -r '.queue[] | select(.issue == 21) | .issue' "$(state_file "$p")")" \
+    "it is queued as work instead"
+  leftover=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-21-*')
+  [ -n "$leftover" ] ||
+    fail "the answered attempt's commits were not kept: $(git -C "$p" branch --list 'fix/issue-21-*')"
+  assert_eq "$head" "$(git -C "$p" rev-parse --short=12 "$leftover")" \
+    "the attempt is kept under a leftover name, its commit where the answer left it"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .reason')" "$leftover" \
+    "and the record names where the run put it"
+  git -C "$p" rev-parse --verify --quiet "refs/heads/$branch" >/dev/null 2>&1 &&
+    fail "the item's branch still carries the attempt the answer reworks"
+}
+
+# The other half of the same reading: an answer binds to the attempt whose question it quotes, so an answer to an
+# earlier attempt's question does not rework the attempt standing on the branch now. Read as "answered" by the
+# branch name alone, the second attempt's own refusal — which reached a person as a fresh escalation — would be
+# reworked without ever being read (issue #847).
+case_prescreen_anAnswerToAnotherAttemptDoesNotReworkTheBranch() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p s base branch head question out
+  d=$(scratch); p=$(new_project)
+  init_state "$p" 3 90
+  base=$(git -C "$p" rev-parse HEAD)
+  branch="fix/issue-21-a-refused-attempt"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-attempted/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence/TEST-attempted.xml"
+  printf 'The reviewer refused this change in review round 1.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence/review-failed-round-1.md"
+  printf 'the second attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the second attempt (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the second attempt"
+  git -C "$p" checkout -q main
+  head=$(git -C "$p" rev-parse --short=12 "refs/heads/$branch")
+  question="branch $branch carries a commit the run's base does not — a previous attempt's work is on it (head 0123456789ab)"
+  s="$d/scenario"
+  cp -r "$(scenario six)" "$s"
+  jq --arg q "$question" --arg b "$branch" '
+    map(if .number == 21 then . + {comments: [
+      {author: {login: "Framstag"}, createdAt: "2026-11-09T04:10:00Z", body: ($q + "\n\nEvidence: " + $b)},
+      {author: {login: "Framstag"}, createdAt: "2026-11-09T05:40:15Z",
+       body: ("Decision: apply the two findings and continue\n<!-- answers: " + $q + " -->")}
+    ]} else . end)' "$s/issues.json" > "$s/issues.json.tmp" && mv "$s/issues.json.tmp" "$s/issues.json" ||
+    fail "this case could not record the answer on its item"
+  export GH_STUB_DIR="$s"
+
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
+    "an answer to an earlier attempt's question leaves this attempt's question standing"
+  assert_eq "$head" "$(git -C "$p" rev-parse --short=12 "refs/heads/$branch")" \
+    "and the attempt the question is about is not set aside"
+  assert_eq "0" "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-21-*' | grep -c . || true)" \
+    "no leftover branch is made for it"
 }
 
 

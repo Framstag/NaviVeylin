@@ -1126,6 +1126,12 @@ MUTATIONS=(
   # the reading: the change child's silence is then no fact at all, the gate phase is skipped on it, and the item is
   # blocked on "no archived change appears in the run's diff" — the reason #85 was recorded with.
   '273.1@-@tools/loop/run.sh@run#anEmptyAnswerOverACommitIsTheChangePhasesFailure@the reading of the answer a change child wrote, so a 0-byte report over a branch is an answer the phases after it were never asked for and the item is blocked on its own diff (issue #827)@s|^  if \[ "\$worker_exit" -eq 0 \] && \[ "\$worker_write_decides" -eq 0 \] && ! change_answered "\$gate_report"; then$|  if false; then|'
+  # 274.1 — an item whose owner answered its branch question is work, not the same question asked again (issue #847).
+  # The record removes the two things that arm does — read the answer and set the attempt's branch aside — so the
+  # pre-screen meets the refused branch again, records the decision, and the run writes `agent/needs-decision` and
+  # `status/on-hold` back over the answer `answer.sh` just removed: the state #830 sat in from 05:40:15Z to the end
+  # of that day, and the four items of the 2026-11-10 run's 25 exclusions that shared its reason.
+  '274.1@-@tools/loop/prescreen.sh@prescreen#anAnsweredBranchIsWorkNotADecision@the answer read and its attempt set aside, so an answered item is re-escalated with the label and the hold the answer removed and no answer can ever reach the run (issue #847)@s|^          if \[ "\$write" -eq 1 \] && \[ "\$attempt_state" != "adoptable" \]; then$|          if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

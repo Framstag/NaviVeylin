@@ -183,6 +183,44 @@ previous_attempt_branch_of() { # <issue> → the branch that carries work the ru
   done < <(git -C "$LOOP_ROOT" for-each-ref --format='%(refname:short)' "refs/heads/fix/issue-$1-*" 2>/dev/null)
 }
 
+# The question a person has already answered about this branch (#847). The answer `tools/issues/answer.sh` records
+# carries the question it answers on a marker line, and the branch rule's question names the attempt it is about —
+# the branch and the head commit it carries — so an answer whose marker names *this* attempt is the owner speaking
+# about it. An answer recorded before a question named its attempt carries the branch alone, and it is read as an
+# answer about that branch: there was no attempt identity to bind it to.
+#
+# The fallback is the answer path's own (issue #196): an answer written before the marker existed has no question
+# of its own, so the nearest earlier comment that is not itself an answer is the one it answered.
+branch_question_answered() { # <issue> <branch> <head> → the question the answer quotes, or nothing
+  local issue="$1" branch="$2" head="$3" comments first answers asked="" q answer=""
+  [ -n "$head" ] || return 0
+  comments=$(loop_issue_json "$issue" --comments 2>/dev/null) || return 0
+  [ -n "$comments" ] || return 0
+  # One line per comment: its first non-empty line — where both the answer path and the queue read a question —
+  # and the question its own marker names, when it carries one.
+  while IFS=$'\t' read -r first answers; do
+    case "$first" in
+      Decision:*)
+        q="$answers"
+        [ -n "$q" ] || q="$asked"
+        case "$q" in
+          *"$branch"*"head $head"*) answer="$q" ;;
+          *"$branch"*"head "*) ;;          # another attempt's question: this one still stands
+          *"$branch"*) answer="$q" ;;     # recorded before a question named its attempt
+        esac
+        ;;
+      *) [ -n "$first" ] && asked="$first" ;;
+    esac
+  done < <(printf '%s' "$comments" | jq -r '
+    (.comments // [])[]
+    | ( ( .body // "" ) | split("\n") | map(gsub("^[ \t]+|[ \t]+$"; "")) | map(select(. != "")) ) as $lines
+    | [ ($lines[0] // "")
+        , ([ $lines[] | select(startswith("<!-- answers: ") and endswith(" -->"))
+             | ltrimstr("<!-- answers: ") | rtrimstr(" -->") ] | .[0] // "") ]
+    | @tsv' 2>/dev/null)
+  [ -z "$answer" ] || printf '%s\n' "$answer"
+}
+
 # ── selection ────────────────────────────────────────────────────────────────────────────────────
 
 candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit" 2>/dev/null) ||
@@ -403,12 +441,43 @@ the item is left open and no child was started: shape $changes_family/${named_ch
           evidence="$attempt_branch"
           ;;
         *)
-          verdict="$decision_verdict"
-          reason="branch $attempt_branch carries a commit the run's base does not — a previous attempt's work is on it"
-          evidence="$attempt_branch"
-          # The label still suppresses a second escalation comment: the branch is the new *evidence*, not a new
-          # decision, and the item was already escalated when the label was written.
-          [ "$awaiting_label" -eq 1 ] && already_escalated=1
+          # An answer the owner already gave is the item's next phase, not a question to ask a second time (#847):
+          # `answer.sh --continue` removes the decision label and the hold, the branch rule read the branch again and
+          # wrote both back with a fresh escalation comment, so an item whose branch carried a finished attempt and
+          # a refused review had no reachable path at all — measured 2026-11-10 on #830 (answered 05:40:15Z,
+          # re-escalated 08:20:31Z with the same sentence) and on #845, #832 and #837 under the identical reason.
+          # The answer is executed where it is read: the attempt's commits are kept under a leftover name and the
+          # item is worked again on its own branch, the shape a blocked attempt's branch already gets (#232).
+          #
+          # The question names the attempt it is about, because the answer records the question it answers: a
+          # branch and a head commit are what an answer can be bound to, and an answer to an earlier attempt's
+          # question leaves this one standing. A dry run writes nothing, so there it stays the decision it would be.
+          attempt_head=$(git -C "$LOOP_ROOT" rev-parse --short=12 "refs/heads/$attempt_branch" 2>/dev/null)
+          question="branch $attempt_branch carries a commit the run's base does not — a previous attempt's work is on it (head $attempt_head)"
+          answered=""
+          leftover=""
+          if [ "$write" -eq 1 ] && [ "$attempt_state" != "adoptable" ]; then
+            answered=$(branch_question_answered "$number" "$attempt_branch" "$attempt_head")
+            [ -z "$answered" ] ||
+              leftover=$(bash "$LOOP_DIR/worktree.sh" set-aside "$number" "$attempt_branch" | tail -1)
+          fi
+          if [ -n "$leftover" ]; then
+            reason="the owner answered the question $attempt_branch states — its commits are kept under $leftover and the item is worked again on its own branch"
+            evidence="$attempt_branch"
+          else
+            verdict="$decision_verdict"
+            if [ -n "$answered" ]; then
+              # The answer is on the item and the run could not execute it: git refused the rename, or this is a dry
+              # run. The question is still the item's, and the reason says why the answer did not land.
+              reason="$question — the answer recorded on this item was not executed: $attempt_branch could not be set aside here"
+            else
+              reason="$question"
+            fi
+            evidence="$attempt_branch"
+            # The label still suppresses a second escalation comment: the branch is the new *evidence*, not a new
+            # decision, and the item was already escalated when the label was written.
+            [ "$awaiting_label" -eq 1 ] && already_escalated=1
+          fi
           ;;
       esac
     fi

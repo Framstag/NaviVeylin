@@ -1157,6 +1157,19 @@ pre-screen excluded an item whose branch `branch-state` read `adoptable` the who
 on a project tree that was not clean, and the run escalated it after its owner had answered the only question
 it had — one of that run's ten decision slots.
 
+The owner's answer outranks that record, and the pre-screen is what executes it (issue #847). `answer.sh
+--continue` takes `agent/needs-decision` and the hold off, and before this the branch rule read the refused branch
+again, wrote both back and posted a fresh escalation comment: an item whose branch carried a finished attempt and a
+refused review could not be answered at all. Measured 2026-11-10: #830's answer went on at 05:40:15Z and was
+re-escalated at 08:20:31Z with the same sentence, its owner landed the branch by hand, and #845, #832 and #837 sat
+under the identical reason — four items of that run's 25 exclusions. The rule is the one a blocked attempt's branch
+already had (#232): the attempt's commits are kept under a leftover name, the item's branch is cut fresh from the
+base, and the item is worked. What binds an answer to an attempt is the question the answer quotes
+(`<!-- answers: … -->`, #196), so the branch rule's question names the attempt it is about — the branch and the head
+commit it carries — and an answer to an earlier attempt's question leaves the current one standing. A rename git
+refuses, because another worktree stands on that branch, is named on the item and the question stays: a set-aside
+that did not happen must not read as one that did.
+
 A number a change carries is the output of a command in its record, or it is not a claim. The worker's package
 hands it the block that reads the change's own numbers — the paths, the checks the pathspec owes, the tallies the
 tree carries, the suite's declared case count with the command that printed it, the gate's own timing, and the

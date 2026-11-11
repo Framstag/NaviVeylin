@@ -86,11 +86,11 @@ measures nothing and SHALL name no tree.
 
 ### Requirement: The change is completed before the gate, and a fresh child records the gate's result
 
-The change child SHALL end at its diff. A fresh child SHALL apply the reviewer's findings and complete the change —
-cited results, the pointer check, the delta and the archive — before it runs the gate; the child after the gate SHALL
-write only the change's `evidence/`. A gate whose tally is red, or says it was not run, SHALL leave the change under
-its unarchived name, and the run SHALL restore it before it commits. An item's recorded spend SHALL be the sum of its
-children's streams.
+The change child SHALL end at its diff; a fresh child SHALL apply the reviewer's findings and complete the change —
+cited results, the pointer check, the archive — before it runs the gate, and the child after it SHALL write only the
+change's `evidence/`. A gate the item's verdict is `blocked` for, or — with no verdict — a red tally or one that says
+it was not run, SHALL leave the change unarchived, and the run SHALL restore it before it commits. An item's spend
+SHALL be its children's sum.
 
 #### Scenario: The change is completed before the gate measures the tree
 
@@ -106,7 +106,7 @@ children's streams.
   change is under the archive's date-prefixed directory
 - **THEN** the run moves it back under the unarchived name and prints the move before it commits, when the item's
   verdict is `blocked` — or when no child reported a verdict and the tally is all there is — a name the tree holds no
-  archive of is refused rather than reported as restored, and a tally that passed moves nothing
+  archive of is refused rather than reported as restored, and a verdict that is not `blocked` moves nothing
 - **AND** a red tally a closing child waived with `LOOP-GATE-WAIVED` closes the item and the archive stands, because
   the waiver is the judgement the archive was taken under and the verdict is read before the move is decided
 - **Case**: `gate#aRedGateRestoresTheChangeToItsUnarchivedName`, `run#aCloseOverARedGateIsWaivedOrBlocked`

@@ -5,13 +5,14 @@ is nobody to ask, so a question you cannot answer from the tree is a verdict (`s
 never a guess and never a request. A second, fresh process reviews what you produce, and the run's own
 script — not your report — decides whether the item closed.
 
-Your phases end **before the archive**. What is left of the change — its evidence, the mechanical pointer check and the
-archive the delta merges into — is written by the process that stands **before the gate**: the gate child,
-`tools/loop/prompts/worker-gate.md`, which the run starts from the block you print when your own session ends, handed
-what you established and the last lines of your own output. That order is the item's own rule (issue #837): the tree
-the gate measures and the tree a round reads have to be one, so nothing that writes the change directory is left to a
-phase after the gate. So do not archive the change here, and do not report a `closed` verdict: it is the gate child's
-and the tail's, and it is a claim about an archive you did not write.
+Your phases end **before the archive**, unless the gate section below is your own. What is left of the change — its
+evidence, the mechanical pointer check and the archive the delta merges into — is written by the child that stands
+**before the gate**: the gate child, `tools/loop/prompts/worker-gate.md`, which the run starts from the block you print
+when your own session ends, handed what you established and the last lines of your own output; or, where the gate is
+yours (the section below says so), by your own last phase as that section states. That order is the item's own rule
+(issue #837): the tree the gate measures and the tree a round reads have to be one, so nothing that writes the change
+directory is left to a phase after the gate. So archive the change only where that section tells you to, and never
+report a `closed` verdict: it is the tail's, and it is a claim about an archive the phase before the gate wrote.
 
 Where your session ends is the run's to say, and Phase D ends with it: **at the gate** when the gate is yours, or at
 **the diff** when the run has deferred the gate to a fresh child that applies a reviewer's findings first. Read the end

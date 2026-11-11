@@ -64,8 +64,9 @@ the run's script                          the change child (fresh, per item)    
     hand over a prepared package                      ▼
     verify, close, record                   (E)      the diff is read first, by the reviewer beside it
      commit, merge, record                  phase E  the findings applied in one pass,
+                                                     the change completed and archived,
                                                      then the gate — one fresh child
-                                            phase F  archived, with the evidence
+                                            phase F  the gate's result and its evidence
                                                      (another fresh child, below)
 ```
 
@@ -99,7 +100,8 @@ says — because the writer holds the diff before the reviewer does and the find
 #812; measured: of the 165 round-1 reports the loop's item archive holds, 103 refuse, and those three classes are
 what their 141 blocking findings say).
 
-The gate is where a gated item's **first** child ends, and the archive is written by a second one. Measured on the
+The gate is where a gated item's **first** child ends, the child before it writes the change's archive, and the
+second one records the gate's result. Measured on the
 archive (`python3 tools/loop-spend.py`, 2026-11-02, 213 items / 524 sessions / 30 795 turns): of the 274 sessions
 that ran a gate, **1.43 B of their 1.83 B tokens were charged after the first `LOOP-GATE` line** — 13 700 turns at
 104 k of context per turn, against 7 868 at 52 k before it — because everything the derivation had put into that

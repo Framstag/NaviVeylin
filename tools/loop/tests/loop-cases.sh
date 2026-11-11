@@ -14267,6 +14267,14 @@ case_gate_theGateCompletesTheChangeBeforeTheGate() {
     "which the tail is told as the rule its phase follows: $tail"
   assert_contains "$deferred" 'archived before the gate' \
     "and the change child's own section names the order: $deferred"
+  # The two shapes tell the same child opposite things unless each defers to the other (issue #837's review): the
+  # deferred shape's archive belongs to the gate child, while in the one-child shape the child *is* the gate child and
+  # `gate-own.md` hands it the archive — so `worker.md` names that section as the exception and this asserts both halves.
+  assert_contains "$(cat "$LOOP_ENGINE/prompts/worker.md")" 'unless the gate section below is your own' \
+    "the change child's own prompt points at the section that makes the archive its own"
+  assert_contains "$(cat "$LOOP_ENGINE/prompts/gate-own.md")" 'the change child is
+this child in this shape' \
+    "and that section says whose the archive is, in the one-child shape and in a rework round"
   return 0
 }
 

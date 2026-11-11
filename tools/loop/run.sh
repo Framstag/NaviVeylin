@@ -2331,10 +2331,11 @@ while true; do
   loop_state step A --name worker --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
     --note "exit $worker_exit" >/dev/null
 
-  # The gate ends the child that ran it, and a second fresh child carries the evidence and the archive (issue
-  # #744, `tail_after_gate` above). A child the run ended, or one that already answered for itself (a skip, a
-  # falsification), has no tail: there is nothing to archive and nothing to carry, and the run reads the item's
-  # report where it has always read it.
+  # The gate ends the child that ran it, and a second fresh child carries the evidence (issue #744,
+  # `tail_after_gate` above). Its archive is not that child's: the child **before** the gate completes the change and
+  # archives it (issue #837), so the gate names a tree the round after it reads unchanged. A child the run ended, or
+  # one that already answered for itself (a skip, a falsification), has no tail: there is nothing to record and nothing
+  # to carry, and the run reads the item's report where it has always read it.
   #
   # The gate child's own difference in the project's tree is read here, before the tail overwrites the reading: it
   # is a fact about that child, and a tail child that then writes nothing would otherwise erase it (#285's note).
@@ -2382,7 +2383,8 @@ while true; do
   # what a round costs.
   #
   # What stays where it was: the review round after the gate, because a change is judged after its verification as
-  # well, and the tail that writes the archive. The round below is **not** a round of the review budget: it refuses
+  # well. The tail records the gate's result and the evidence; the archive is the child **before** the gate's (issue
+  # #837). The round below is **not** a round of the review budget: it refuses
   # nothing, the item is never blocked by what it finds, and the round `--max-review-rounds` bounds is the one after
   # the gate. Its report stays in the item's directory and is named in the item's step, which is where a reader finds
   # what the change was asked to fix before its gate ran.
@@ -2649,6 +2651,9 @@ while true; do
     gate_tally_at_restore=$(report_field "$gate_report" LOOP-GATE)
     if [ "$(gate_tally_state "$gate_tally_at_restore")" = red ]; then gate_did_not_pass=1; fi
     case "$gate_tally_at_restore" in *"not run"*) gate_did_not_pass=1 ;; esac
+    # A gate child that archived and then answered nothing twice leaves no verdict and no tally (issue #810, the
+    # `phase_failure` arm above): nothing speaks for that gate, so the archive it wrote is restored like a red one.
+    if [ -z "$verdict_claim" ] && [ -z "$gate_tally_at_restore" ] && [ -n "$phase_failure" ]; then gate_did_not_pass=1; fi
   fi
   if [ "$gate_did_not_pass" -eq 1 ]; then
     restore_name=$(report_field "$final_report" LOOP-CHANGE)
@@ -2659,7 +2664,11 @@ while true; do
     esac
     if [ -n "$gate_restore_line" ]; then
       printf '%s\n' "$gate_restore_line"
-      loop_state step A --name change-restore --status ok --note "$gate_restore_line" >/dev/null 2>&1 || true
+      # A refusal is not a restore: it is recorded as a skip, so `state.sh show` does not read an operator-facing
+      # refusal as a step that succeeded.
+      loop_state step A --name change-restore \
+        --status "$(case "$gate_restore_line" in LOOP-CHANGE-RESTORED:*) printf ok ;; *) printf skip ;; esac)" \
+        --note "$gate_restore_line" >/dev/null 2>&1 || true
     fi
   fi
 

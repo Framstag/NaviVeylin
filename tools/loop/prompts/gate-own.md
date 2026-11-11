@@ -2,7 +2,9 @@
 names the tree it was written from, and those two names have to be one — so everything that writes the change
 directory is done *before* the gate: copy the XMLs you cite into the change's own `evidence/` directory and into
 `{{EVIDENCE_DIR}}`, run `bash tools/loop/evidence-check.sh <the change directory> --root .` from the change root and
-fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`). The date prefix the
+fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+this child in this shape, so the archive is yours; a rework round starts with the change already archived, and there
+you complete nothing and leave the directory where it is. The date prefix the
 archive adds is what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree
 reads the same before and after the move. Nothing outside the change's `evidence/` directory is written after the gate:
 a repair made there is a tree the gate never measured.

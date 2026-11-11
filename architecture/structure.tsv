@@ -1,0 +1,31 @@
+# architecture/structure.tsv — the structure declaration (change package-structure-as-five-kinds, task 1.2).
+# Columns, tab-separated, on every line below that does not start with #: module, package, kind, feature, may_import.
+# kind is one of concept, port, feature, platform, shell. feature is the business name a feature or platform row carries, - when the package serves several or none.
+# may_import is the permission the kind's rules give, not a census of the imports the code has today: - is "nothing of ours", "any" is shell only.
+# Measured 2026-11-11: 320 main sources over 25 source packages — find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | sed 's#/[^/]*$##' | sort -u | wc -l
+# One row per package as the tree stands today, no file moved: a package the pilot or a later migration splits keeps its row until the files move.
+app	com.naviveylin	shell	-	any
+app	com.naviveylin.data	platform	-	concept,port
+app	com.naviveylin.di	shell	-	any
+app	com.naviveylin.location	platform	-	concept,port
+app	com.naviveylin.memory	platform	-	concept,port
+app	com.naviveylin.navigation	feature	navigation	concept,port
+app	com.naviveylin.service	platform	-	concept,port
+app	com.naviveylin.share	feature	share	concept,port
+app	com.naviveylin.ui	shell	-	any
+app	com.naviveylin.ui.about	platform	about	concept,port,feature/about
+app	com.naviveylin.ui.addressbook	platform	addressbook	concept,port,feature/addressbook
+app	com.naviveylin.ui.attribution	platform	attribution	concept,port,feature/attribution
+app	com.naviveylin.ui.favorites	platform	favourites	concept,port,feature/favourites
+app	com.naviveylin.ui.map	platform	map	concept,port,feature/map
+app	com.naviveylin.ui.mapmanager	platform	mapsource	concept,port,feature/mapsource
+app	com.naviveylin.ui.navigation	platform	navigation	concept,port,feature/navigation
+app	com.naviveylin.ui.route	feature	route	concept,port
+app	com.naviveylin.ui.theme	platform	-	concept,port
+app	com.naviveylin.util	concept	-	-
+auto	com.naviveylin.auto	shell	-	any
+core	com.naviveylin.core	concept	-	-
+core	com.naviveylin.core.addressbook	port	-	concept
+core	com.naviveylin.core.details	feature	details	concept,port
+core	com.naviveylin.core.mapsource	feature	mapsource	concept,port
+core	com.naviveylin.core.search	feature	search	concept,port

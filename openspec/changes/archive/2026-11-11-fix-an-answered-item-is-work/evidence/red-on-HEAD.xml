@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest --case prescreen#anAnsweredBranchIsWorkNotADecision" tests="1" failures="1" errors="0" timestamp="2026-11-11T16:13:04Z">
+  <testcase name="prescreen#anAnsweredBranchIsWorkNotADecision">
+    <failure>an item whose owner answered its branch question is work, not a decision asked a second time: expected 'eligible', got 'needs-decision' — the pre-screen reads the branch's verdict again and never the answer the item records, so the answer can only be given again</failure>
+  </testcase>
+  <system-out>FAIL prescreen#anAnsweredBranchIsWorkNotADecision — loop-selftest: 1 of 1 cases failed (red-on-HEAD.log)</system-out>
+</testsuite>

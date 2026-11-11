@@ -1,0 +1,5 @@
+prescreen#anAnsweredBranchIsWorkNotADecision|   an item whose owner answered its branch question is work, not a decision asked a second time: expected 'eligible', got 'needs-decision'
+--- prescreen#anAnsweredBranchIsWorkNotADecision[0] (exit 1)
+  an item whose owner answered its branch question is work, not a decision asked a second time: expected 'eligible', got 'needs-decision'
+FAIL prescreen#anAnsweredBranchIsWorkNotADecision
+loop-selftest: 1 of 1 cases failed

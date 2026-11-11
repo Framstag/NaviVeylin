@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest --case prescreen#anAnsweredBranchIsWorkNotADecision --case prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch" tests="2" failures="0" errors="0" timestamp="2026-11-11T16:17:01Z">
+  <testcase name="prescreen#anAnsweredBranchIsWorkNotADecision"/>
+  <testcase name="prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch"/>
+  <system-out>PASS prescreen#anAnsweredBranchIsWorkNotADecision; PASS prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch</system-out>
+</testsuite>

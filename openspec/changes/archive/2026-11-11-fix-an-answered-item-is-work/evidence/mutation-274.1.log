@@ -1,0 +1,9 @@
+=== 2026-11-11T16:17:06Z mutation 274.1
+loop-mutations: selected 1 of 333 records (labels: 274.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.sIsOpU
+RED    274.1  prescreen#anAnsweredBranchIsWorkNotADecision   (the answer read and its attempt set aside, so an answered item is re-escalated with the label and the hold the answer removed and no answer can ever reach the run (issue #847))
+       2026-11-11T16:17:09Z — an item whose owner answered its branch question is work, not a decision asked a second time: expected 'eligible', got 'needs-decision'
+restore 274.1 prescreen#anAnsweredBranchIsWorkNotADecision green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit=0

@@ -16,9 +16,9 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
       `evidence/red-on-HEAD.xml`, `tests=2 failures=2 errors=0`).
 - [x] 1.2 The declarations' own check is accepted before those runs:
       `bash tools/loop/tests/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'` → `PASS`
-      (`evidence/gate-run-round-2.log`, this change's one gate over this tree, records the same case green at its
-      line 6; `evidence/gate-run.log` is the round-1 gate of the tree before the correction round and proves nothing
-      about this diff).
+      (`evidence/gate-run-round-3.log`, the gate over this tree, records the same case green at its line 6;
+      `evidence/gate-run-round-2.log` and `evidence/gate-run.log` measured earlier trees and prove nothing about this
+      one).
 
 ## 2. The engine — `tools/loop/state.sh`
 
@@ -41,8 +41,9 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
 ## 3. The report — `tools/loop/report.sh`
 
 - [x] 3.1 The role order is the trio the line always printed followed by every key the record holds that the trio does
-      not, and both arms of the line read it. Verify: the red case prints
-      `worker (minimax-m3.1-flash) 1 Mtok · unattributed (mimo-v2.6-flash) 2 Mtok · 3 Mtok over 1 item`, and
+      not, and both arms of the line read it. Verify: the correction round's fixture — an orphan region, a session, and a
+      trailing `message_update` — prints
+      `worker (minimax-m3.1-flash) 1 Mtok · unattributed (mimo-v2.6-flash) 2 Mtok · 3.2 Mtok over 1 item`, and
       `report#aRoleWhoseTurnNamedNoModelKeepsItsRow` still prints
       `worker (mimo-v2.6-flash) 1 Mtok · reviewer 3 Mtok · 4 Mtok over 1 item`.
 - [x] 3.2 The phase line prints the share of the item wall the three buckets are, and the time they leave outside a
@@ -57,11 +58,14 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
 ## 4. The mutation records — `tools/loop/tests/loop-mutations.sh`
 
 - [x] 4.1 `832.1` mutates `state.sh` so the orphan region is sent back to the prompt the stream no longer carries (the
-      bucket stays `null`), and `832.2` mutates `report.sh` so the phase line prints no denominator. Verify:
+      bucket stays `null`), `832.2` mutates `report.sh` so the phase line prints no denominator, and `832.3` drops the
+      pending usage a `turn_end` never closed (the correction round's invariant, `state.sh`:1055). Verify:
       `bash tools/loop/tests/loop-mutations.sh --check --files 'tools/loop/state.sh tools/loop/report.sh'` → `all 59
-      cases passed — every selected record applies to the file it names`, and the two-record run reports `RED` with the
-      case's own assertion then `restore … green again` (2026-11-11T08:58:19Z and 08:58:23Z,
-      `red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0`; `evidence/mutation-run.log`). The rest of the file
+      cases passed — every selected record applies to the file it names`, and the three-record run reports `RED` with
+      the case's own assertion then `restore … green again` (2026-11-11T08:58:19Z and 08:58:23Z for the first two,
+      `red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0`; `evidence/mutation-run.log`; `832.3` at
+      10:50:10Z, `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`, `evidence/mutation-run-832.3.log`). The
+      rest of the file
       set is the gate child's: the harness owes the whole set before a change that owns `tools/loop/**` is archived.
 
 ## 5. The guideline — `guidelines/Backlog.recipes.md` section 7b
@@ -77,16 +81,19 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
       `report#aRolesTokensRecordTheModelThatAnswered`, `report#aStateWithoutAModelKeepsItsRoleTotals`,
       `report#aStreamWithoutDurationsPrintsDash` and `report#aCallThatNamesTheGateIsNotAGateRun` — a whole file-set run,
       `bash tools/loop/tests/loop-selftest.sh --files 'tools/loop/state.sh tools/loop/report.sh'` → `all 190 cases
-      passed … 212.76 s` (`evidence/green-on-change.log`).
+      passed … 212.76 s` (`evidence/green-on-change.log`); the current proof of the same claim over the corrected tree
+      is the third round's gate, `405 of 405` with `failures=0` (`evidence/gate-run-round-3.log`).
 - [x] 6.2 The structural check of the files this change edits — it compiles nothing: `bash -n tools/loop/state.sh`,
       `bash -n tools/loop/report.sh`, `bash -n tools/loop/tests/loop-cases.sh` and
       `bash -n tools/loop/tests/loop-mutations.sh`, all clean. No build is run for a
       delta of shell, one spec delta and a guideline paragraph (2026-11-11T08:58:35Z, `evidence/structural-checks.log`).
 
 The gate is not this session's: the run has deferred it to the child that follows the diff review, and this change's
-one gate is that child's whole self-test — 405 declared cases with this change's two (`evidence/gate-run-round-2.log`;
-`evidence/measure-surface.txt` is a pre-gate measurement and its `LOOP-MEASURE-GATE seconds=-` line predates the gate
-that has since run).
+one gate is that child's whole self-test — 405 declared cases with this change's two, the third round's gate over
+the corrected tree (`evidence/gate-run-round-3.log`, whose line sums to `1009` with no failure and no error, and
+`405 of 405`);
+`evidence/measure-surface.txt` is a pre-gate measurement and its `LOOP-MEASURE-GATE seconds=-` line predates every gate
+that has since run.
 
 ## 7. The correction round
 
@@ -109,13 +116,20 @@ that has since run).
 ## 8. The second correction round — a turn the stream ends inside
 
 - [x] 8.1 The reviewer's blocking finding is answered at its cause: the `sessions` reader recorded a turn only at a
-      `turn_end`, so a child the run ended at a bound left a last `message_update` whose usage `tokens` counted and no
-      bucket held (measured: 200 800 tokens of item 819's 6 489 672, `.pi/issue-loop/items/819/events.jsonl`). A
-      region with a pending usage appends it as one more turn of its own, so the buckets the split holds are exactly
-      the tokens the total holds. Verify: `report#aTurnNoSessionRecordReachesIsItsOwnBucket` now carries a trailing
+      `turn_end`, so a child the run ended at a bound left a pending usage `tokens` counted and no bucket held —
+      measured on item 819 of the cited run, **200 800** of its **6 489 672** tokens, with the buckets at 6 288 872
+      before the correction and 6 489 672 after (`evidence/measure-item-819.log`, the engine's own reducer from each
+      revision over `.pi/issue-loop/items/819/events.jsonl`). A region with a pending usage appends it as one more turn
+      of its own, so the buckets the split holds are exactly the tokens the total holds. Verify:
+      `report#aTurnNoSessionRecordReachesIsItsOwnBucket` now carries a trailing
       `message_update` in its fixture and asserts the equality
-      (`evidence/green-report-aTurnNoSessionRecordReachesIsItsOwnBucket.log`).
+      (`evidence/green-report-aTurnNoSessionRecordReachesIsItsOwnBucket.log`), and `832.3` mutates the line back
+      (`evidence/mutation-run-832.3.log`).
 - [x] 8.2 The round-2 notes are answered: the 138 dropped turns are absent from the stream and are not the bucket's
       set (the 34 surviving pre-session turns are, 2 311 165 tokens, `evidence/real-stream-738.log`), the citations of
-      this change's gate name `evidence/gate-run-round-2.log`, and `evidence/measure-surface.txt` is named as the
-      pre-gate measurement it is.
+      this change's gate name the round its tree belongs to (`evidence/gate-run-round-3.log` for the corrected tree),
+      and `evidence/measure-surface.txt` is named as the pre-gate measurement it is.
+- [x] 8.3 The correction's own surface is declared and pinned: `proposal.md`'s surface line now names the realigned
+      fixture, its two rewritten assertions and the three mutation records, and `832.3`
+      (`tools/loop/tests/loop-mutations.sh`) drops the pending usage so the case goes red
+      (`evidence/mutation-run-832.3.log`, `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`).

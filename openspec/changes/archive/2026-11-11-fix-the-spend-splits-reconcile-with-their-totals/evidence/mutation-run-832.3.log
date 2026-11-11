@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 330 records (labels: 832.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.HwnA74
+RED    832.3  report#aTurnNoSessionRecordReachesIsItsOwnBucket   (the turn the stream ends inside is a turn of its region, so the buckets the split holds are exactly the tokens the total holds (issue #832))
+       2026-11-11T10:50:32Z — beside the role the session names: expected '1237384', got '1000000'
+restore 832.3 report#aTurnNoSessionRecordReachesIsItsOwnBucket green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

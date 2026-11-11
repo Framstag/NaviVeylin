@@ -1,0 +1,12 @@
+# item 819 — the total, the buckets before the correction, and the buckets after it
+# taken 2026-11-11T10:50:28Z; the reducer is the engine's own child_usage_json jq program, extracted from each revision and run over .pi/issue-loop/items/819/events.jsonl
+# command: bash .pi/issue-loop/scratch/measure-819.sh   (each line: revision, the item's tokens, the sum of its buckets, the gap, the buckets it holds)
+e63be83c	tokens=6489672	buckets=6288872	gap=200800	keys=reviewer,unattributed
+HEAD	tokens=6489672	buckets=6489672	gap=0	keys=reviewer,unattributed
+
+# the run's own record of the same item, for the total it carries:
+# command: jq -r '[.items[]|select(.issue==819)|.metrics.tokens|.cacheRead+.input+.output]|.[]' .pi/issue-loop/runs/2026-11-07T19:53:44Z.json
+6489672
+# and the role sum the shipped record holds for it (the pre-correction reading):
+# command: jq -r '[.items[]|select(.issue==819)|.metrics.roles|to_entries[]|.value//0]|add' .pi/issue-loop/runs/2026-11-07T19:53:44Z.json
+4531083

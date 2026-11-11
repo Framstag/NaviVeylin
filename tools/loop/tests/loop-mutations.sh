@@ -1048,12 +1048,15 @@ MUTATIONS=(
   'role-model.1@-@tools/loop/state.sh@report#aRolesTokensRecordTheModelThatAnswered@the model a turn answered with, so a role total names no model and every archived item is a price without its subject (issue #823)@s#^ *model: (($m.responseModel? // $m.model? // null)$#model: (null)#'
   'role-model.2@-@tools/loop/report.sh@report#aRolesTokensRecordTheModelThatAnswered@the model the trend names in a role row, so the line prints a row a reader cannot tell apart from the bare role total (issue #823)@s#if .model == null then#if true then#'
   'role-model.3@-@tools/loop/report.sh@report#aRoleWhoseTurnNamedNoModelKeepsItsRow@the row of a role no model explained, so the rows the line prints no longer add up to the total it is over (issue #823)@s#map(select(.tok > 0))#map(select(.tok > 0 and .model != null))#'
-  # 832.1 and 832.2 are issue #832's two invariants: the bucket a turn no `session` record reaches is counted in, and
-  # the clock the phase line is a share of. The first sends the orphan region back to the prompt the stream no longer
-  # carries, which is the reading that counted those turns in the total and in no bucket; the second removes the
+  # 832.1, 832.2 and 832.3 are issue #832's three invariants: the bucket a turn no `session` record reaches is counted
+  # in, the turn the stream ends **inside** is a turn too (so the buckets are exactly the total), and the clock the
+  # phase line is a share of. The first sends the orphan region back to the prompt the stream no longer carries, which
+  # is the reading that counted those turns in the total and in no bucket; the second drops the pending usage the
+  # `turn_end` never closed, which is the 200 800 tokens of item 819 the round-2 review measured; the third removes the
   # denominator, so the line prints the three buckets as if they were the clock.
   '832.1@-@tools/loop/state.sh@report#aTurnNoSessionRecordReachesIsItsOwnBucket@the bucket the turns no session record reaches are counted in, so the spend is in the item total and in no bucket of the split (issue #832)@s#if .orphan then "unattributed"#if false then "unattributed"#'
   '832.2@-@tools/loop/report.sh@report#thePhaseLineNamesTheClockItIsAShareOf@the share of the item clock the three phase buckets are, so the line prints their total as if it were the run (issue #832)@s#if \$phsWall != null and \$phsWall > 0 then#if false then#'
+  '832.3@-@tools/loop/state.sh@report#aTurnNoSessionRecordReachesIsItsOwnBucket@the turn the stream ends inside is a turn of its region, so the buckets the split holds are exactly the tokens the total holds (issue #832)@s#.cur.turns + \[{usage: .cur.usage, ms: 0, model: null, calls: \[\]}\]#.cur.turns + \[\]#'
   # 266.x — the patch a bound-ended child left is the next attempt's input (issue #754). The run commits nothing that
   # child did not claim, so the item's branch stood at the base and every later run paid for the same reading from zero:
   # 44 kept patches were never read, #791's 7728 lines among them. Three rules, one case each: the start finds the

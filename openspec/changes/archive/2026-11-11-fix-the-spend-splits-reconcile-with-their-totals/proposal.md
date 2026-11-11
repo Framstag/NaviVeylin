@@ -20,8 +20,10 @@ measures over two different sets:
 sessions alone (`:1014`–`:1038`, `:1049`–`:1055`), whose reducer drops every turn that stands before the stream's first
 `session` record — so a turn the record cannot place under a role is in the total and in no bucket, and the two
 figures are over different sets by construction. Measured on the filed run's items, per item: #738 records 5 988 239
-tokens and 3 677 074 under a role (its `session` record stands at line 14 254 of 21 310 of the item's own stream,
-with the 138 turns a `stream_rotation` took off the head — `evidence/measure-stream-timestamps.log`), #753 4 797 233
+tokens and 3 677 074 under a role (its `session` record stands at line 14 254 of 21 310 of the item's own stream, with
+**34** `turn_end`s before it whose usage sums to 2 311 165 — the bucket this change fills — while the 138 turns a
+`stream_rotation` took off the head are absent from the stream altogether: `evidence/real-stream-738.log`,
+`evidence/measure-stream-timestamps.log` for the line counts), #753 4 797 233
 against 3 160 625, #715 6 939 763 against 6 427 758.
 
 **The clock half is one measure printed without its denominator**, and the record already holds both halves: the
@@ -65,10 +67,13 @@ delta adds the bucket those three leave out and the denominator the phase line i
 **Owning guideline section:** `guidelines/Backlog.recipes.md` section 7b "What an item costs, and the bounds on it", the
 paragraph at `:621`–`:639` that names `metrics.phases` and `metrics.roles`.
 
-surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 1 engine reducer and 1 report line in two files
-(`state.sh`: the `sessions` reducer's orphan region and the bucket `roles` and `roleModels` key it as; `report.sh`: the
-`roles:` line's role order and the `phases:` line's denominator), 1 requirement modified (two scenarios added), 2
-mutation records, 1 guideline paragraph. The record is `evidence/measure-surface.txt`, which carries the case count
+surface: 2 cases added and 1 fixture realigned with 2 of its assertions rewritten (the correction round gave
+`report#aTurnNoSessionRecordReachesIsItsOwnBucket` a trailing `message_update` and the equality it asserts), 1 engine
+reducer and 1 report line in two files
+(`state.sh`: the `sessions` reducer's orphan region, the pending usage a `turn_end` never closed, and the bucket `roles`
+and `roleModels` key it as; `report.sh`: the `roles:` line's role order and the `phases:` line's denominator), 1
+requirement modified (two scenarios added), 3 mutation records (`832.1`, `832.2`, `832.3`), 1 guideline paragraph. The
+record is `evidence/measure-surface.txt`, which carries the pre-correction case count
 (**405** with this change's two cases) and the surface line itself; the passes the count came from are
 `bash tools/loop/tests/loop-selftest.sh --list` and `tools/look.sh '<rule>' --files` over the cases, the engine, the
 prompts and the fixtures.

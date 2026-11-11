@@ -76,9 +76,10 @@ phase line and one ordering on the role line; no key gates anything and no outco
   which turns the split does not reach.
 - **Folding the pre-session turns into the next session's role.** Eliminated by the stream: the `session` record that
   follows is not the region's owner — in `.pi/issue-loop/items/738/events.jsonl` the surviving record is one of the
-  two sessions the rotation left, and the 138 turns it dropped stood before it under a prompt the stream no longer
-  holds. A fold would attribute a worker's tokens to whichever session survived, which is the mis-attribution the
-  bucket exists to avoid.
+  two sessions the rotation left, and the 34 `turn_end`s that stand before it (2 311 165 tokens, the bucket this change
+  fills) belong to the region the rotation left behind, not to that record; the 138 turns the rotation itself dropped
+  are absent from the stream and no reader counts them. A fold would attribute a worker's tokens to whichever session
+  survived, which is the mis-attribution the bucket exists to avoid.
 - **Reading the role from the child's stream file name or from the item's phase.** Eliminated by the harness: one
   item's `events.jsonl` holds every child it started (three sessions in item 808's stream, one each for worker,
   reviewer and tail), so no file-level fact names which child a turn came from.

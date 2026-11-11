@@ -36,3 +36,36 @@ ok   C5 file:line: 375 resolved and in range, 0 unresolved or ambiguous
 ----
 evidence-check: PASS
 tools/loop/evidence-check.sh exit=0
+# 2026-11-11T19:5xZ  HEAD 0246b5ed  the landing tree (same tree the gate measured)
+== tools/check-doc-routes.sh
+check-doc-routes: all 337 section references resolve, all 7 skill references resolve
+exit=0
+== tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+== tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+== tools/check-todo-references.sh
+check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 11141 file(s) excluded by the allowlist above
+exit=0
+== tools/loop/evidence-check.sh openspec/changes/archive/2026-11-10-fix-a-park-has-a-writer
+ok   C5 file:line: 380 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (1)
+exit=0
+# correction: the evidence-check line above passed a relative path, so the checker read this archived change as a live one and its strict C2 failed the aggregate tally.
+# The archived mode needs the `/openspec/changes/archive/` prefix in the argument; the run below is that one.
+== tools/loop/evidence-check.sh ./openspec/changes/archive/2026-11-10-fix-a-park-has-a-writer
+note archived change: C1/C2 are report-only (archived artifacts keep their historical §-citations and a later run may have overwritten their XML); C3/C4/C5 stay strict
+ok   C1 §references: 9 checked, 0 exempted as archived pointers
+DRIFT C2 tests=243 failures=0 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 1 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 380 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+evidence-check exit=0 (PASS; C2 notes the aggregate as drift, see gate-attribution.md)

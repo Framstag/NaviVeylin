@@ -1,3 +1,5 @@
+# ROUND 1 LOG — written 2026-11-10T10:33:22Z, before the round-2 correction to tools/issues/answer.sh; it carries no HEAD of its own (the round-1 gate over that tree named 3b9e896e).
+# The 33 PASS lines below therefore claim nothing about the landing tree. The landing tree is measured by the gate's own step (`all 166 cases passed … HEAD 0246b5ed`) and the round-2 tree by `green-cases-round2.log`.
 PASS lib#discoversTheCurrentProject
 lib#discoversTheCurrentProject -> exit 0
 PASS lib#refusesOutsideAGitTree

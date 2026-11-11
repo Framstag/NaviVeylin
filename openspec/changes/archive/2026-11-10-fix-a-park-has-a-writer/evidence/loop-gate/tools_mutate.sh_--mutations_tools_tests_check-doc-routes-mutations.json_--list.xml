@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+<testsuite name="tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list" tests="0" failures="0" errors="0" time="1" run="1042717">
   <system-out>rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renam</system-out>
 </testsuite>

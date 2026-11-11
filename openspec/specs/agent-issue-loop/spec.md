@@ -310,7 +310,12 @@ item SHALL be able to invoke version control on its own behalf. A previous attem
 what it *carries*, read by **patch identity** and not by ancestry — the run lands work as `fix: … (#N)`, so such
 a branch is not an ancestor of the base: a branch whose attempt **finished** — one archived change of its own,
 added by a commit that names its issue — SHALL be merged and its item closed by the run; when that branch's own
-evidence is not admissible for adoption it SHALL be refused and escalated as a decision; and when its evidence
+evidence is not admissible for adoption it SHALL be refused and escalated as a decision, unless the owner has
+answered that question and the run sets that attempt's branch aside — then the attempt's commits SHALL be kept
+under a name the run gives them and the item SHALL be worked again on its own branch, the shape a branch that
+carries no archived change of its own already gets; a set-aside git refuses — another worktree stands on the
+branch — SHALL keep the verdict the decision the run escalates, the reason saying the recorded answer was not
+executed, so a set-aside that did not happen does not read as one that did; and when its evidence
 admits it but the project tree, the base or the replay refuses the merge, it SHALL be refused and recorded as the
 item's mechanism `unmergeable` beside the pre-screen's exclusion, with no decision label and no item record, so
 the item stays queued work the next run retries; a branch that carries commits and no archived change of its own
@@ -366,6 +371,28 @@ SHALL NOT be a decision: its commits SHALL be kept under a name the run gives th
   never silent
 - **Case**: `prescreen#aFinishedAttemptBranchIsADecision`, `worktree#refusesABranchCarryingAPreviousAttempt`,
   `run#leftoverBranchIsRecordedNotDropped`
+
+#### Scenario: An answered attempt is a rework round, not a question asked again
+
+- **WHEN** the pre-screen meets an item whose branch carries a finished attempt that is not admissible for
+  adoption — the reviewer refused it, its last round was announced and never answered, or its change is there and
+  never verified — and the item records an answer that quotes the question that branch states, naming the branch
+  and the head commit it carries
+- **THEN** where the run sets the branch aside the item is queued as work instead of awaiting a decision: no
+  decision label is written, no exclusion is recorded and no decision slot is spent; the attempt's commits are kept
+  under a leftover name the run gives them and the item is worked again on its own branch, cut fresh from the run's
+  base, so an answer a person gave is executed rather than re-asked — and where git refuses that rename the verdict
+  stays the decision with the reason saying the recorded answer was not executed, so a set-aside that did not
+  happen does not read as one that did
+- **Case**: `prescreen#anAnsweredBranchIsWorkNotADecision`
+
+#### Scenario: An answer to another attempt's question leaves this attempt's question standing
+
+- **WHEN** the pre-screen meets a branch whose question is still open, and the item's recorded answer quotes a
+  question that names that branch and a head commit it no longer carries
+- **THEN** the branch is not touched and the verdict stays the decision the run escalates, because the answer speaks
+  about an attempt that was set aside and the question about the attempt standing now has not been read by anybody
+- **Case**: `prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch`
 
 #### Scenario: A landed leftover is not a decision
 

@@ -1,0 +1,7 @@
+== the run's own totals — the figures the guideline and the cases file publish
+run file: .pi/issue-loop/runs/2026-11-07T19:53:44Z.json
+read: 2026-11-11T09:31:05Z
+jq -r '[.items[] | select(.metrics.roles != null)] | length' -> 13
+jq -r '[.items[].metrics.tokens | .cacheRead + .input + .output] | add' -> 73220472
+jq -r '[.items[].metrics.roles[]] | add' -> 55676163
+gap: 73220472 - 55676163 = 17544309 (24 % of 73220472)

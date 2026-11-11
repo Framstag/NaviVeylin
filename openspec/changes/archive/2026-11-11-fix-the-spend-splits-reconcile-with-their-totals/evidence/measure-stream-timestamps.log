@@ -1,0 +1,6 @@
+== the streams the claims about timestamps and the rotated head are read from
+read: 2026-11-11T09:31:05Z
+wc -l < .pi/issue-loop/items/808/events.jsonl -> 22125
+jq -c 'select(.timestamp != null) | .type' over it | sort | uniq -c ->       3 "session" 
+wc -l < .pi/issue-loop/items/738/events.jsonl -> 21310
+the line its one session record stands at -> 14254

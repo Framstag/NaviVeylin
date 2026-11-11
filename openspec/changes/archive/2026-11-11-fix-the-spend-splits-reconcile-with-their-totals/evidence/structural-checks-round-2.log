@@ -1,0 +1,7 @@
+== structural checks of the files the correction round touches — round 2
+2026-11-11T09:31:05Z
+bash -n tools/loop/state.sh: clean
+bash -n tools/loop/report.sh: clean
+bash -n tools/loop/tests/loop-cases.sh: clean
+bash -n tools/loop/tests/loop-mutations.sh: clean
+structural check only: this round corrects prose and comments — it compiles nothing

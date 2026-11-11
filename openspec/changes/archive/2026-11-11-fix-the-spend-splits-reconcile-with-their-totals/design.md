@@ -27,10 +27,10 @@ construction, and the state's own arithmetic says so.
 
 **1b. `roleModels` keys the same region the same way.** The model pass reads the same `$ses[]` and mapped an orphan
 region to `worker` by the null prompt, so an orphan turn's model stayed under the worker while its tokens went to the
-bucket: measured on item 738's own stream through the change's reader, the `roles:` line printed
-`worker (mimo-v2.6-flash) 2.3 Mtok · reviewer (minimax-m3.1-flash) 3.7 Mtok · unattributed 2.3 Mtok · 8.3 Mtok`
-against 5 988 239 tokens — the same 2.3 Mtok twice. Both passes now use the one role expression, so the model rows and
-the bucket cannot disagree.
+bucket — the same tokens printed twice. Both passes now use the one role expression, so the model rows and
+the bucket cannot disagree; the line the change prints on item 738's own stream is in
+`evidence/real-stream-738.log`: `reviewer (minimax-m3.1-flash) 3.7 Mtok · unattributed (mimo-v2.6-flash) 2.3 Mtok ·
+6 Mtok over 1 item`.
 
 **2. `report.sh` prints every bucket the record holds.** The role order is the trio the line always printed, followed
 by any key the record holds that the trio does not (`unattributed`, and whatever a later bucket is called), built from
@@ -40,7 +40,9 @@ whose models are recorded keeps its `(model)` rows and the bucket prints as its 
 `report#aRoleWhoseTurnNamedNoModelKeepsItsRow` already pins for a role no model explained.
 
 **3. The phase line names the clock its buckets are a share of.** The denominator is the sum of `wallSeconds` over the
-items that recorded a phase figure, so the numerator and the denominator are over one set of items. The line prints
+items that recorded a phase figure and a wall of their own; the buckets are summed over every item that recorded a
+phase figure, so an item that recorded phases and no wall is in the numerator and not in the denominator, and the two
+halves are over one set only where every item of it recorded a wall. The line prints
 `… · 12.8 s over 1 item, 30 % of the 42 s of item wall — 29.2 s of it in neither a turn nor a tool`, and where no
 item of that set recorded a wall it prints `— no item wall recorded to read it against` rather than a total that reads
 as the run.
@@ -55,8 +57,10 @@ phase line and one ordering on the role line; no key gates anything and no outco
   `null`, the rule every figure of the function keeps.
 - `report.sh`: the role order (`:470`–`:535`) and the phase line (`:469`–`:502`). The numbers are this change's own, as
   the tree stands after it.
-- `metrics.tokens`, `metrics.phases`, `metrics.afterGate`, `metrics.calls`, `metrics.turns` and every per-item column
-  are byte-identical: the passes that compute them are the passes that computed them before. `afterGate` stays over
+- `metrics.tokens`, `metrics.phases`, `metrics.afterGate`, `metrics.calls` and `metrics.turns` carry the figures
+  they carried before: the passes that compute them are the passes that computed them before. `metrics.roles` and
+  `metrics.roleModels` gain one key beside the three (`unattributed`), and the report's per-item columns are
+  unchanged. `afterGate` stays over
   the **sessions** that ran a gate — an orphan region is no session, and the split point it would give is unknown.
 - A state written before this change has no `unattributed` key and prints exactly what it printed: the trio, and a
   phase line with no denominator only where the item recorded no wall.
@@ -79,8 +83,8 @@ phase line and one ordering on the role line; no key gates anything and no outco
   item's `events.jsonl` holds every child it started (three sessions in item 808's stream, one each for worker,
   reviewer and tail), so no file-level fact names which child a turn came from.
 - **A fourth phase bucket for the clock.** Eliminated by the record: the stream carries a `timestamp` on 3 of item
-  808's 22 125 events, all of them `session` records, so no reader can bound the time a child spent outside a turn
-  and outside a tool call — the figure would be invented, not measured.
+  808's 22 125 events, all of them `session` records (`evidence/measure-stream-timestamps.log`), so no reader can
+  bound the time a child spent outside a turn and outside a tool call — the figure would be invented, not measured.
 - **Comparing the phase sum against `run.startedEpoch`–`run.stop.at`.** Eliminated by what the window holds: it also
   holds the run's own pre-screen, landings, archives and holds, so the difference would be read as a child's idle time
   when it is the run's own work. The item wall is the clock a child's phases are inside.

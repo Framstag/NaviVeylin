@@ -16,7 +16,7 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
       `evidence/red-on-HEAD.xml`, `tests=2 failures=2 errors=0`).
 - [x] 1.2 The declarations' own check is accepted before those runs:
       `bash tools/loop/tests/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'` → `PASS`
-      (2026-11-11T08:35:39Z).
+      (`evidence/gate-run.log` records the same case green in this change's one gate).
 
 ## 2. The engine — `tools/loop/state.sh`
 
@@ -64,7 +64,7 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
 
 ## 5. The guideline — `guidelines/Backlog.recipes.md` section 7b
 
-- [x] 5.1 The paragraph at `:621`–`:639` that names `metrics.phases` and `metrics.roles` gained the bucket beside the
+- [x] 5.1 The paragraph at `:641`–`:658` that gained the bucket beside the
       three roles, the reason a turn can stand outside a session, and the phase line's denominator. Verify:
       `tools/look.sh 'unattributed' --path guidelines/Backlog.recipes.md --files` finds the paragraph.
 
@@ -75,10 +75,29 @@ is `evidence/red-on-HEAD.xml`, its log `evidence/red-on-HEAD.log`.
       `report#aRolesTokensRecordTheModelThatAnswered`, `report#aStateWithoutAModelKeepsItsRoleTotals`,
       `report#aStreamWithoutDurationsPrintsDash` and `report#aCallThatNamesTheGateIsNotAGateRun` — a whole file-set run,
       `bash tools/loop/tests/loop-selftest.sh --files 'tools/loop/state.sh tools/loop/report.sh'` → `all 190 cases
-      passed … 212.76 s` (started 2026-11-11T08:54:35Z, `evidence/green-on-change.log`).
+      passed … 212.76 s` (`evidence/green-on-change.log`).
 - [x] 6.2 The structural check of the files this change edits — it compiles nothing: `bash -n tools/loop/state.sh`,
-      `bash -n tools/loop/report.sh` and `bash -n tools/loop/tests/loop-cases.sh`, all clean. No build is run for a
+      `bash -n tools/loop/report.sh`, `bash -n tools/loop/tests/loop-cases.sh` and
+      `bash -n tools/loop/tests/loop-mutations.sh`, all clean. No build is run for a
       delta of shell, one spec delta and a guideline paragraph (2026-11-11T08:58:35Z, `evidence/structural-checks.log`).
 
 The gate is not this session's: the run has deferred it to the child that follows the diff review, and this change's
 one gate is that child's whole self-test — 405 declared cases with this change's two (`evidence/measure-surface.txt`).
+
+## 7. The correction round
+
+- [x] 7.1 The reviewer's blocking finding is answered: the roles total the run file yields is **55 676 163** and the
+      gap it derives is **17 544 309** (24 % unchanged), so the figures published in
+      `guidelines/Backlog.recipes.md`, in this change's `proposal.md` and in the comment of
+      `tools/loop/tests/loop-cases.sh` are corrected. Verify: `jq -r '[.items[].metrics.roles[]] | add'
+      .pi/issue-loop/runs/2026-11-07T19:53:44Z.json` → `55676163`
+      (`evidence/measure-run-totals.log`).
+- [x] 7.2 The reviewer's notes are answered: the phase line's denominator is no longer claimed to be over the
+      numerator's set (in `guidelines/Backlog.recipes.md`, in `tools/loop/report.sh`'s comment and in `design.md`), the
+      guideline paragraph this task names is the one the change added, the design's byte-identical claim names the
+      columns that move, `tools/loop/state.sh`'s comment no longer claims the orphan region's role is a fact the
+      stream no longer holds, the structural check names the fourth file `evidence/structural-checks.log` checks, and
+      the measurements that were named but carried by no artifact are carried now
+      (`evidence/measure-run-totals.log`, `evidence/measure-stream-timestamps.log`) or dropped. The reviewer's own
+      report is `evidence/review-round-1-requested.md`; what it asked for and what this round changed is
+      `evidence/corrections-round-2.md`.

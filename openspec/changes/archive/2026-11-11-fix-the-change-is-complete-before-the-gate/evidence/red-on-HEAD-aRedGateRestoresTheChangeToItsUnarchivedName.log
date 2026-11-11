@@ -1,0 +1,10 @@
+# gate#aRedGateRestoresTheChangeToItsUnarchivedName — 2026-11-11T06:25:36Z
+# tools/loop/tests/loop-selftest.sh --case gate#aRedGateRestoresTheChangeToItsUnarchivedName
+
+gate#aRedGateRestoresTheChangeToItsUnarchivedName|   the restore a red gate owes the item succeeds: _: Zeile 1: loop_change_restore: Kommando nicht gefunden: expected '0', got '127'
+--- gate#aRedGateRestoresTheChangeToItsUnarchivedName[0] (exit 1)
+  the restore a red gate owes the item succeeds: _: Zeile 1: loop_change_restore: Kommando nicht gefunden: expected '0', got '127'
+FAIL gate#aRedGateRestoresTheChangeToItsUnarchivedName
+loop-selftest: 1 of 1 cases failed
+
+exit=1

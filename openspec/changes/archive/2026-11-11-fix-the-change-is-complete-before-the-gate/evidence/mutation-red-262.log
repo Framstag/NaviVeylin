@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 327 records (labels: 262.5 262.6 262.7)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.cPzovf
+RED    262.5  gate#aMovedChangeNamesTheSameTree   (the files a change carries in the digest, so a change being worked is in no listing the derivation reads while every path of its archived self is (issue #837))
+       2026-11-11T06:38:04Z — a change being worked is in the tree the gate names, evidence or not: e3b0c44298fc1c14
+restore 262.5 gate#aMovedChangeNamesTheSameTree green again
+RED    262.6  gate#aMovedChangeNamesTheSameTree   (the date prefix removed from a change path under the archive, so a change renamed into the archive is a different tree from the one the gate named (issue #837))
+       2026-11-11T06:38:07Z — the archive's move of a change nobody corrected is the tree the gate measured: expected '077cde14780a260c', got '6ead8ac2b170551a'
+restore 262.6 gate#aMovedChangeNamesTheSameTree green again
+RED    262.7  gate#aRedGateRestoresTheChangeToItsUnarchivedName   (the move that puts a change back under its unarchived name, so an item whose gate did not pass is left archived and the next attempt reads it as work nobody graded (issue #837))
+       2026-11-11T06:38:10Z — the restore a red gate owes the item succeeds: LOOP-CHANGE-RESTORE-REFUSED: openspec/changes/archive/2026-11-10-demo could not be moved back to openspec/changes/demo: expected '0', got '1'
+restore 262.7 gate#aRedGateRestoresTheChangeToItsUnarchivedName green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

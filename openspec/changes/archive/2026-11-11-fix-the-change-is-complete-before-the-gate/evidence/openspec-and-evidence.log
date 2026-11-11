@@ -1,0 +1,25 @@
+# the change's own structural checks — 2026-11-11T06:32:55Z
+
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+$ openspec validate fix-the-change-is-complete-before-the-gate --strict
+Change 'fix-the-change-is-complete-before-the-gate' has issues
+⚠ [WARNING] agent-issue-loop/spec.md: ADDED "The change is completed before the gate, and a fresh child records the gate's result": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show fix-the-change-is-complete-before-the-gate --json --deltas-only
+exit=0
+
+$ bash tools/loop/evidence-check.sh openspec/changes/fix-the-change-is-complete-before-the-gate --root .
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 6 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 396 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0

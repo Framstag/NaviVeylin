@@ -15616,9 +15616,11 @@ case_phase_oneCallPrintsThePhaseState() {
     "and its checklist is the tail child's own prompt: $out"
   assert_contains "$out" '1. **Read the gate result you were handed, and never re-run it.**' \
     "whose items are printed as they stand: $out"
-  # …and the section is that phase's alone: phase F's checklist names the archive and never the apply step of the
-  # prompt whose child has already ended.
-  assert_contains "$out" 'Archive the change' "the phase's own archive step is printed: $out"
+  # …and the section is that phase's alone, and it archives nothing: the change is completed before the gate
+  # (issue #837), so the tail's checklist carries the evidence-only rule and never an archive step, nor the apply step
+  # of the prompt whose child has already ended.
+  assert_not_contains "$out" 'Archive the change' "the tail archives nothing, so no archive step is printed: $out"
+  assert_contains "$out" 'writes no path outside' "and its evidence-only rule is printed: $out"
   assert_not_contains "$out" 'Use the apply and verification skills' "and no other phase's items: $out"
 
   # Phase E is the gate child's phase (issue #758): the run defers the gate to that child, so its checklist is read

@@ -1,0 +1,36 @@
+# the cases this delta reaches, beside the three it adds — 2026-11-11T06:30:12Z
+
+$ bash tools/loop/tests/loop-selftest.sh --case gate#theGateAndTheRoundNameOneTree
+PASS gate#theGateAndTheRoundNameOneTree
+
+$ bash tools/loop/tests/loop-selftest.sh --case gate#aThirdFullRunInOneSessionIsRefused
+PASS gate#aThirdFullRunInOneSessionIsRefused
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+
+$ bash tools/loop/tests/loop-selftest.sh --case mutation#everyDeclaredRecordApplies
+PASS mutation#everyDeclaredRecordApplies
+
+$ bash tools/loop/tests/loop-selftest.sh --case gate#aRedGateRestoresTheChangeToItsUnarchivedName
+PASS gate#aRedGateRestoresTheChangeToItsUnarchivedName
+
+$ bash tools/loop/tests/loop-selftest.sh --case gate#theGateCompletesTheChangeBeforeTheGate
+PASS gate#theGateCompletesTheChangeBeforeTheGate
+
+# the run- and prompt-level cases the order reaches — 2026-11-11T06:32:05Z
+
+$ bash tools/loop/tests/loop-selftest.sh --case prompt#workerNamesEveryPhaseAndSkill
+prompt#workerNamesEveryPhaseAndSkill| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesEveryPhaseAndSkill|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesEveryPhaseAndSkill| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#workerNamesEveryPhaseAndSkill
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#childUsageIsRecordedPerItem
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#childUsageIsRecordedPerItem
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#aRedGateIsBlockedByTheTail
+PASS run#aRedGateIsBlockedByTheTail

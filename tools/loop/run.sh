@@ -2572,31 +2572,6 @@ while true; do
     fi
   fi
 
-  # A red gate is not a landing (issue #837, the owner's decision recorded on the item at 2026-11-11T06:04:18Z): the
-  # change is completed — its pointers checked, its delta merged and the directory archived — **before** the gate
-  # measures the tree, so a gate that does not pass leaves a change nobody may read as archived. The restore is the
-  # run's and not a child's prose for the reason every other judgement here is the run's: the decision is the gate's
-  # own tally, read by the one predicate its readers share, and a restore after a green gate would unarchive the very
-  # change the item is about to land. It happens here, before the tail is started and before the run commits, so the
-  # tree the next attempt reads is the unarchived change and no reader meets an archive no gate passed.
-  gate_did_not_pass=0
-  gate_tally_at_restore=$(report_field "$gate_report" LOOP-GATE)
-  if [ "$(gate_tally_state "$gate_tally_at_restore")" = red ]; then gate_did_not_pass=1; fi
-  case "$gate_tally_at_restore" in *"not run"*) gate_did_not_pass=1 ;; esac
-  gate_restore_line=""
-  if [ "$gate_did_not_pass" -eq 1 ]; then
-    restore_name=$(report_field "$gate_report" LOOP-CHANGE)
-    case "$restore_name" in ''|-) restore_name="$change_diff_ready" ;; esac
-    case "$restore_name" in
-      ''|-|none) ;;
-      *) gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true ;;
-    esac
-  fi
-  if [ -n "$gate_restore_line" ]; then
-    printf '%s\n' "$gate_restore_line"
-    loop_state step A --name change-restore --status ok --note "$gate_restore_line" >/dev/null 2>&1 || true
-  fi
-
   tail_started=0
   tail_exit=0
   tail_report="$item_dir/worker-tail-report.md"
@@ -2653,6 +2628,39 @@ while true; do
   # (openspec change `falsified-items-close-in-the-loop`).
   falsified_mechanism=$(report_field "$final_report" LOOP-FALSIFIED 2>/dev/null || true)
   falsified_measurement=$(report_field "$final_report" LOOP-MEASURED 2>/dev/null || true)
+
+  # A red gate is not a landing (issue #837, the owner's decision recorded on the item at 2026-11-11T06:04:18Z): the
+  # change is completed — its pointers checked, its delta merged and the directory archived — **before** the gate
+  # measures the tree, so a gate that does not pass leaves a change nobody may read as archived. The restore is the
+  # run's and not a child's prose for the reason every other judgement here is the run's: a restore after a green gate
+  # would unarchive the very change the item is about to land.
+  #
+  # The predicate is the item's **verdict**, and only where no verdict exists is it the gate's own tally. A red gate
+  # the closing child waived with `LOOP-GATE-WAIVED` is a close the record carries and the report counts
+  # (`run#aCloseOverARedGateIsWaivedOrBlocked`, issue #811), so the archive it closed over stays — the tail's report is
+  # read before this point, which is why this decision is taken here and not before the tail is started. A gate no
+  # child could speak for — no tail ran at all — is restored from the tally alone, through the one predicate its
+  # readers share. It happens before the run commits, so the tree the next attempt reads is the unarchived change and
+  # no reader meets an archive no gate passed.
+  gate_did_not_pass=0
+  if [ "$verdict_claim" = blocked ]; then gate_did_not_pass=1; fi
+  if [ "$tail_started" -eq 0 ]; then
+    gate_tally_at_restore=$(report_field "$gate_report" LOOP-GATE)
+    if [ "$(gate_tally_state "$gate_tally_at_restore")" = red ]; then gate_did_not_pass=1; fi
+    case "$gate_tally_at_restore" in *"not run"*) gate_did_not_pass=1 ;; esac
+  fi
+  if [ "$gate_did_not_pass" -eq 1 ]; then
+    restore_name=$(report_field "$final_report" LOOP-CHANGE)
+    case "$restore_name" in ''|-) restore_name="$change_diff_ready" ;; esac
+    case "$restore_name" in
+      ''|-|none) ;;
+      *) gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true ;;
+    esac
+    if [ -n "$gate_restore_line" ]; then
+      printf '%s\n' "$gate_restore_line"
+      loop_state step A --name change-restore --status ok --note "$gate_restore_line" >/dev/null 2>&1 || true
+    fi
+  fi
 
   # The run verifies rather than trusts: it commits the child's work itself and then reads the tree, the
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).

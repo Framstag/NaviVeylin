@@ -1,0 +1,10 @@
+# gate#aMovedChangeNamesTheSameTree — 2026-11-11T06:25:35Z
+# tools/loop/tests/loop-selftest.sh --case gate#aMovedChangeNamesTheSameTree
+
+gate#aMovedChangeNamesTheSameTree|   a change being worked is in the tree the gate names, evidence or not: e3b0c44298fc1c14
+--- gate#aMovedChangeNamesTheSameTree[0] (exit 1)
+  a change being worked is in the tree the gate names, evidence or not: e3b0c44298fc1c14
+FAIL gate#aMovedChangeNamesTheSameTree
+loop-selftest: 1 of 1 cases failed
+
+exit=1

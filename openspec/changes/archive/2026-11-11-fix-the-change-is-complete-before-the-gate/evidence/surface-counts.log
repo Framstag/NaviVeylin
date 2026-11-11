@@ -1,0 +1,60 @@
+# tools/look.sh counts for the rules this change touches — 2026-11-11T06:28:47Z
+LOOK: 11 matches in 5 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'loop_change_identity'
+LOOK-FILE: tools/loop/lib.sh 1
+LOOK-FILE: tools/loop/run.sh 2
+LOOK-FILE: tools/loop/gate.sh 2
+LOOK-FILE: tools/loop/tests/loop-cases.sh 5
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 1
+tools/loop/lib.sh:386:loop_change_identity() { # <tree> <base> → `head=<sha> diff=<digest>` over what the round's diff carries
+tools/loop/run.sh:1377:  # `loop_change_identity`, derived from the run's own base whatever range this diff is taken over, so a correction
+tools/loop/run.sh:1380:  loop_change_identity "$worktree" "${base:-$1}" > "$2.identity"
+tools/loop/gate.sh:205:# the same `loop_change_identity`, so the reviewer compares two recorded values instead of inferring one — and a
+tools/loop/gate.sh:209:  tree_identity=$(loop_change_identity "$LOOP_ROOT" "$base")
+tools/loop/tests/loop-cases.sh:14077:# One derivation, `loop_change_identity`, both callers, over the paths the round's diff carries.
+tools/loop/tests/loop-cases.sh:14106:    ( cd "$p" && LOOP_CONF="$conf" bash -c '. "$1/lib.sh"; loop_resolve; loop_change_identity "$2" "$3"' _ "$LOOP_ENGINE" "$p" "$1" |
+tools/loop/tests/loop-cases.sh:14121:  assert_contains "$(cat "$LOOP_ENGINE/gate.sh")" 'loop_change_identity "$LOOP_ROOT" "$base"' \
+tools/loop/tests/loop-cases.sh:14123:  assert_contains "$(cat "$LOOP_ENGINE/run.sh")" 'loop_change_identity "$worktree"' \
+tools/loop/tests/loop-cases.sh:14156:    ( cd "$p" && LOOP_CONF="$conf" bash -c '. "$1/lib.sh"; loop_resolve; loop_change_identity "$2" "$3"' \
+tools/loop/tests/loop-mutations.sh:985:  '262.2@-@tools/loop/run.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_change_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
+LOOK: 4 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'loop_tree_identity'
+LOOK-FILE: tools/loop/lib.sh 3
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 1
+tools/loop/lib.sh:342:# Usage: loop_tree_identity <tree> <base> [<pathspec to leave out>] → `head=<sha> diff=<digest>`, or nothing when git
+tools/loop/lib.sh:344:loop_tree_identity() {
+tools/loop/lib.sh:387:  loop_tree_identity "${1:-}" "${2:-}" "$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"
+tools/loop/tests/loop-mutations.sh:987:  '262.4@-@tools/loop/lib.sh@gate#theGateAndTheRoundNameOneTree@the path set the one derivation leaves the generated trees out of, so a gate reads its own evidence as a correction of the tree it measured (issue #819)@s|^  loop_tree_identity "\${1:-}" "\${2:-}" "\$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"$|  loop_tree_identity "${1:-}" "${2:-}"|'
+LOOK: 5 matches in 3 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'LOOP_CHANGE_ARCHIVE_PREFIX'
+LOOK-FILE: tools/loop/lib.sh 3
+LOOK-FILE: tools/loop/prompts/worker-gate.md 1
+LOOK-FILE: tools/loop/loop.conf 1
+tools/loop/lib.sh:305:# to read the same after it. The prefix is the profile's pattern (`LOOP_CHANGE_ARCHIVE_PREFIX`), matched from the
+tools/loop/lib.sh:329:  prefix=$(loop_conf_value LOOP_CHANGE_ARCHIVE_PREFIX)
+tools/loop/lib.sh:360:  prefix=$(loop_conf_value LOOP_CHANGE_ARCHIVE_PREFIX)
+tools/loop/prompts/worker-gate.md:95:      what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree reads the
+tools/loop/loop.conf:510:LOOP_CHANGE_ARCHIVE_PREFIX="[0-9]{4}-[0-9]{2}-[0-9]{2}-"
+LOOK: 4 matches in 3 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'loop_change_restore'
+LOOK-FILE: tools/loop/lib.sh 1
+LOOK-FILE: tools/loop/run.sh 1
+LOOK-FILE: tools/loop/tests/loop-cases.sh 2
+tools/loop/lib.sh:394:loop_change_restore() { # <tree> <change name> → `LOOP-CHANGE-RESTORED:` or `LOOP-CHANGE-RESTORE-REFUSED:`
+tools/loop/run.sh:2587:      *) gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true ;;
+tools/loop/tests/loop-cases.sh:14218:    ( cd "$p" && LOOP_CONF="$conf" bash -c '. "$1/lib.sh"; loop_resolve; loop_change_restore "$2" demo' \
+tools/loop/tests/loop-cases.sh:14234:  assert_contains "$(cat "$LOOP_ENGINE/run.sh")" 'loop_change_restore "$worktree"' \
+LOOK: 8 matches in 5 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'LOOP_CHANGE_SOURCE_DIR'
+LOOK-FILE: tools/loop/lib.sh 3
+LOOK-FILE: tools/loop/run.sh 1
+LOOK-FILE: tools/loop/prescreen.sh 1
+LOOK-FILE: tools/loop/loop.conf 1
+LOOK-FILE: tools/loop/worktree.sh 2
+tools/loop/lib.sh:292:# A change is worked under `<LOOP_CHANGE_SOURCE_DIR>/<name>/`, which this project's `.gitignore` leaves out
+tools/loop/lib.sh:294:# `<LOOP_CHANGE_SOURCE_DIR>/archive/<date>-<name>/`, which git does see (issue #837). The archive's move is a
+tools/loop/lib.sh:299:  family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+tools/loop/run.sh:2132:  changes_family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+tools/loop/prescreen.sh:310:    changes_family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+tools/loop/loop.conf:501:LOOP_CHANGE_SOURCE_DIR="openspec/changes"
+tools/loop/worktree.sh:222:# family is the project's (`LOOP_CHANGE_SOURCE_DIR`), never a literal here.
+tools/loop/worktree.sh:230:  family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines for 'loop_change_identity'
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+guidelines/Backlog.recipes.md:773:`loop_change_identity`, over the paths the round's diff carries — the paths the run's base names plus every path git
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'aMovedChangeNamesTheSameTree\|aRedGateRestores\|theGateCompletesTheChangeBeforeTheGate'

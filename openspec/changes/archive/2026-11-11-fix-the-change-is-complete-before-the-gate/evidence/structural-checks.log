@@ -1,0 +1,35 @@
+# structural checks of the delta this change edits — 2026-11-11T06:28:59Z
+
+$ bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 330 section references resolve, all 7 skill references resolve
+exit=0
+
+$ bash tools/check-todo-references.sh
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 203 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 10926 file(s) excluded by the allowlist above
+exit=0
+# structural checks, second half — 2026-11-11T06:29:03Z
+
+$ bash tools/check-portability.sh
+  openspec/**	the project's documents
+  guidelines/**	the project's documents
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 56 engines and 7 templates name no project value (118 value(s) read from the project)
+exit=0
+
+$ bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.6U8odc
+loop-mutations: all 327 cases passed — every selected record applies to the file it names
+exit=0
+
+$ bash tools/check-openspec-hygiene.sh openspec/changes/fix-the-change-is-complete-before-the-gate
+check-openspec-hygiene.sh: unknown argument 'openspec/changes/fix-the-change-is-complete-before-the-gate'
+exit=0

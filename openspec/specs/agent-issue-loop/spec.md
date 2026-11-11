@@ -3200,62 +3200,6 @@ be what prevents a second consume.
 - **THEN** the run does not select that item again, and the leftover is only disk hygiene
 - **Case**: `prescreen#aClosedItemIsNotSelected`
 
-### Requirement: The gate ends the child that ran it, and a fresh child writes the archive
-
-The worker phase of a gated item SHALL be two fresh children. The first SHALL end when it reports its gate line, and
-a second SHALL carry the gate's result, the change's `tasks.md` and the gate's own output into the evidence and
-archive phases, so the tail is charged the project's baseline once instead of the first child's context per turn. An
-item's recorded spend SHALL be the sum of its children's streams.
-
-#### Scenario: The gate line ends the child that ran the gate
-
-- **WHEN** an item's first child reports a `LOOP-GATE` line and was not ended by the run's own clocks
-- **THEN** that child's session ends there, a second fresh child is started for the evidence and archive phases, and
-  the run reads the item's verdict, change, gate line and decision from the second child's report — while a first
-  child that reports `skipped`, `blocked`, `falsified` or no line at all starts no second child, because there is no
-  archive to write
-- **Case**: `run#childUsageIsRecordedPerItem`, `run#falsifiedSkipClosesWithItsMeasurement`
-
-#### Scenario: The tail starts at the baseline, and the item pays for both children
-
-- **WHEN** an item's two children each wrote an event stream
-- **THEN** the item's recorded tokens, tools and cost are the sum of the two streams, and the largest context it
-  records is the largest single session's — the second child's first turn is charged the project's baseline, not the
-  context the first child had reached
-- **Case**: `run#childUsageIsRecordedPerItem`
-
-#### Scenario: The tail is handed the gate, the tasks and the gate's own output
-
-- **WHEN** the second child is started
-- **THEN** its prompt names the gate line the first child reported, the change and the `tasks.md` it planned, the root
-  cause and red test the first child established, and a bounded extract of the gate it ran — the first child's own
-  tool output, where the gate printed, and its closing answer after it — so it re-derives none of them and reads no
-  path twice
-- **Case**: `run#childUsageIsRecordedPerItem`
-
-#### Scenario: A gate that did not pass is the tail's verdict, and the item is blocked with it
-
-- **WHEN** the tail child finds that the gate did not pass on the change's own paths
-- **THEN** it archives nothing and reports `blocked` with the gate line and the failing output it was handed, and the
-  run records the item `blocked` with that verdict and the gate's own numbers in its reason — never as "no archived
-  change appears in the run's diff", which is the opposite of what the tail reported and drops what the next attempt
-  needs
-- **Case**: `run#aRedGateIsBlockedByTheTail`
-
-#### Scenario: The rework of a refusing round is split the same way
-
-- **WHEN** a review round refuses a change and the repair worker the round buys reports its gate line
-- **THEN** that worker ends there too and a fresh child carries its archive, because a repair round that paid the tail
-  in-session would cost what the item did
-- **Case**: `run#aBlockingRefusalStillTakesTheRoundTwoPath`
-
-#### Scenario: A phase's checklist is the prompt of the child that is handed the phase
-
-- **WHEN** the phase state is printed for a phase a second process performs
-- **THEN** the checklist it prints is that process's own prompt section, and the call names the file it read it
-  from, rather than a section of a prompt whose child has already ended
-- **Case**: `phase#oneCallPrintsThePhaseState`
-
 ### Requirement: A report reports the shape a run spent its budget in
 
 The report printed what an item cost and nothing about the shape it spent it in, so a session that made one tool call per turn read exactly like one that batched its independent reads (issue #757). It SHALL derive each item's calls per turn from the counts its event stream records, print the run's rate, and name the items below a recorded floor — a floor that SHALL only ever warn.
@@ -3821,11 +3765,16 @@ running them, and leave no record of its own, so the child is handed the scoped 
 
 That record SHALL name the tree the run measured: the commit it was taken on and a digest of the change itself. The
 digest SHALL be taken over the paths the round's diff carries — the paths the run's base names and every path git does
-not track, less the generated trees the review's diff leaves out (the profile's `LOOP_REVIEW_EXCLUDE_PATHSPEC`) — with
-the hash of each path's working-tree content, so the same content reads as the same tree whether the change is
-committed or not, and so the evidence a gate writes *after* naming its tree cannot read as a correction of it. The gate
-SHALL name the same identity on its own output before its first step, and a refusal SHALL name the tree each earlier
-run measured beside the command it ran. A `--plan` call measures nothing and SHALL name no tree.
+not track, less the generated trees the review's diff leaves out (the profile's `LOOP_REVIEW_EXCLUDE_PATHSPEC`) — and
+over the change's own files as the working tree holds them, tracked or not, under the one name the change has before
+it is archived: a path under the profile's `LOOP_CHANGE_SOURCE_DIR` and its `archive/` SHALL read as
+`<LOOP_CHANGE_SOURCE_DIR>/<name>/…` with the date prefix the profile records as `LOOP_CHANGE_ARCHIVE_PREFIX` removed,
+and the same exclude SHALL leave the change's generated trees out of both halves. Each path SHALL be hashed by its
+working-tree content, so the same content reads as the same tree whether the change is committed or not, so a tree
+written into a change directory after the gate is not the tree the gate measured, and so the evidence a gate writes
+after naming its tree cannot read as a correction of it. The gate SHALL name the same identity on its own output before
+its first step, and a refusal SHALL name the tree each earlier run measured beside the command it ran. A `--plan` call
+measures nothing and SHALL name no tree.
 
 #### Scenario: The third full run in one child is refused with the scoped command
 
@@ -3856,6 +3805,18 @@ run measured beside the command it ran. A `--plan` call measures nothing and SHA
 - **AND** a path outside the generated trees corrected after the gate gives a different digest
 - **AND** both moments take one derivation, so neither can hold a path set of its own
 - **Case**: `gate#theGateAndTheRoundNameOneTree`
+
+#### Scenario: A change's own files name one tree, archived or not
+
+- **WHEN** a change's own files are in the tree under the unarchived name when a gate names the tree it measured, and
+  that change is moved under the archive's date-prefixed directory name before the identity beside a round's diff is
+  derived
+- **THEN** the two digests are equal, so the archive's move of a change nobody corrected is not a tree the gate never
+  saw, whether the move is committed or still uncommitted
+- **AND** a non-evidence file of that change rewritten after the gate gives a different digest, so a change directory
+  repaired after the gate is still a tree the reviewer's third item can see
+- **AND** a file written into the change's `evidence/` after the gate gives the same digest
+- **Case**: `gate#aMovedChangeNamesTheSameTree`
 
 ### Requirement: The change child grades its own diff before it reports
 
@@ -4448,3 +4409,78 @@ A start refused because the worktree is not clean SHALL NOT end the run when the
 - **WHEN** an item's start is refused mid-run and the item the branch marker names is not one this run has recorded, or its work cannot be written to a patch
 - **THEN** the leftovers are kept, the item is recorded blocked with them and escalated, the stop reason names that item and the files — not the refusal's first line — and the item that could not start keeps no record of its own
 - **AND** no case exercises this path: the branch marker always names the item the run is working, and an unwritable item directory breaks the run earlier. The gap is stated beside the mutation set, which pins the discard (`271.1`, `271.2`) instead
+
+### Requirement: The change is completed before the gate, and a fresh child records the gate's result
+
+The change child SHALL end at its diff. A fresh child SHALL apply the reviewer's findings and complete the change —
+cited results, the pointer check, the delta and the archive — before it runs the gate; the child after the gate SHALL
+write only the change's `evidence/`. A gate whose tally is red, or says it was not run, SHALL leave the change under
+its unarchived name, and the run SHALL restore it before it commits. An item's recorded spend SHALL be the sum of its
+children's streams.
+
+#### Scenario: The change is completed before the gate measures the tree
+
+- **WHEN** a change child's session has ended at its diff and the reviewer's findings, if any, have been applied
+- **THEN** the cited test results are copied, the mechanical pointer check is run and what it reports is fixed, the
+  change is archived with the delta it merges, and only then does the gate run — so the tree the gate names is the tree
+  the round after it reads, and the phase that follows the gate writes no path of the change outside its `evidence/`
+- **Case**: `gate#theGateCompletesTheChangeBeforeTheGate`
+
+#### Scenario: A red gate restores the change to its unarchived name
+
+- **WHEN** the gate's tally carries a nonzero `failures=` or `errors=`, or its line says the gate was not run, and the
+  change is under the archive's date-prefixed directory
+- **THEN** the run moves it back under the unarchived name and prints the move before it commits, when the item's
+  verdict is `blocked` — or when no child reported a verdict and the tally is all there is — a name the tree holds no
+  archive of is refused rather than reported as restored, and a tally that passed moves nothing
+- **AND** a red tally a closing child waived with `LOOP-GATE-WAIVED` closes the item and the archive stands, because
+  the waiver is the judgement the archive was taken under and the verdict is read before the move is decided
+- **Case**: `gate#aRedGateRestoresTheChangeToItsUnarchivedName`, `run#aCloseOverARedGateIsWaivedOrBlocked`
+
+#### Scenario: The gate line ends the child that ran the gate
+
+- **WHEN** an item's first child reports a `LOOP-GATE` line and was not ended by the run's own clocks
+- **THEN** that child's session ends there, a second fresh child is started to record the gate's result, and the run
+  reads the item's verdict, change, gate line and decision from it — while a first child that reports `skipped`,
+  `blocked`, `falsified` or no line at all starts no second child, because there is no result to record
+- **Case**: `run#childUsageIsRecordedPerItem`, `run#falsifiedSkipClosesWithItsMeasurement`
+
+#### Scenario: The tail starts at the baseline, and the item pays for both children
+
+- **WHEN** an item's two children each wrote an event stream
+- **THEN** the item's recorded tokens, tools and cost are the sum of the two streams, and the largest context it
+  records is the largest single session's — the second child's first turn is charged the project's baseline, not the
+  context the first child had reached
+- **Case**: `run#childUsageIsRecordedPerItem`
+
+#### Scenario: The tail is handed the gate, the tasks and the gate's own output
+
+- **WHEN** the second child is started
+- **THEN** its prompt names the gate line the child before the gate reported, the change and the `tasks.md` it planned,
+  the root cause and red test the change child established, and a bounded extract of the gate it ran — that child's own
+  tool output, where the gate printed, and its closing answer after it — so it re-derives none of them and reads no
+  path twice
+- **Case**: `run#childUsageIsRecordedPerItem`
+
+#### Scenario: A gate that did not pass is the tail's verdict, and the item is blocked with it
+
+- **WHEN** the tail child finds that the gate did not pass on the change's own paths
+- **THEN** the tail reports `blocked` with the gate line and the failing output it was handed, the run restores the
+  change to its unarchived name from that verdict, and the item is recorded `blocked` with that verdict and the gate's
+  own numbers in its reason — never as "no archived change appears in the run's diff", which is the opposite of what
+  the tail reported and drops what the next attempt needs
+- **Case**: `run#aRedGateIsBlockedByTheTail`
+
+#### Scenario: The rework of a refusing round is split the same way
+
+- **WHEN** a review round refuses a change and the repair worker the round buys reports its gate line
+- **THEN** that worker ends there too and a fresh child carries its result, because a repair round that paid the tail
+  in-session would cost what the item did
+- **Case**: `run#aBlockingRefusalStillTakesTheRoundTwoPath`
+
+#### Scenario: A phase's checklist is the prompt of the child that is handed the phase
+
+- **WHEN** the phase state is printed for a phase a second process performs
+- **THEN** the checklist it prints is that process's own prompt section, and the call names the file it read it
+  from, rather than a section of a prompt whose child has already ended
+- **Case**: `phase#oneCallPrintsThePhaseState`

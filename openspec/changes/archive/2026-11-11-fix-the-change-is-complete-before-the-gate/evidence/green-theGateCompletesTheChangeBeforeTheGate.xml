@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="green-theGateCompletesTheChangeBeforeTheGate" tests="1" failures="0" errors="0" time="0">
+  <system-out>PASS gate#theGateCompletesTheChangeBeforeTheGate  exit=0 </system-out>
+</testsuite>

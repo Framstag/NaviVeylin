@@ -89,8 +89,8 @@ The gate's result decides which half of this phase you run, and there is no thir
    waiver only one transcript holds is a red nobody counts. A red on the change's own paths is `blocked`. Write
    `LOOP-VERDICT: blocked` with the gate line and the failing output you read from `{{GATE_OUTPUT}}` as the reason,
    state the one question a person has to answer (`LOOP-DECISION`), and stop. Do not delete the change, do not unstage
-   anything, and do not edit the tree: the run has already restored the change to its unarchived name, and the next
-   attempt reads it as this item's work.
+   anything, and do not edit the tree: the run restores the change to its unarchived name once your verdict is
+   `blocked`, and the next attempt reads it as this item's work.
 3. **A gate that passed is verified against what it measured.** Confirm the directory the change was archived as
    before the gate, the change's `tasks.md`, and the red test the first process named — `{{RED_TEST}}` — is the one
    the gate's own tallies carry. A claim the tree does not support is `blocked`, not a verdict on the gate.

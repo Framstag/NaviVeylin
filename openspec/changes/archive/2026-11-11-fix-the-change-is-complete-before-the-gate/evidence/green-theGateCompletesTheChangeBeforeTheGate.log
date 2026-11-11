@@ -1,0 +1,6 @@
+# gate#theGateCompletesTheChangeBeforeTheGate — 2026-11-11T06:31:23Z
+# tools/loop/tests/loop-selftest.sh --case gate#theGateCompletesTheChangeBeforeTheGate
+
+PASS gate#theGateCompletesTheChangeBeforeTheGate
+
+exit=0

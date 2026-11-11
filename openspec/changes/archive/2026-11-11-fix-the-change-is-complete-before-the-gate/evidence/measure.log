@@ -1,0 +1,44 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=6264d0c351b29293178d8572fb8313ac4fff9914 paths=11 insertions=406 deletions=67
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH tools/loop/lib.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop/prompts/gate-deferred.md
+LOOP-MEASURE-PATH tools/loop/prompts/gate-own.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker-gate.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker-tail.md
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git 6264d0c351b29293178d8572fb8313ac4fff9914
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=403 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-the-change-is-complete-before-the-gate scenarios=12 cases=12 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-the-change-is-complete-before-the-gate/evidence/green-aMovedChangeNamesTheSameTree.xml tests=1 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-change-is-complete-before-the-gate/evidence/green-aRedGateRestoresTheChangeToItsUnarchivedName.xml tests=1 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-change-is-complete-before-the-gate/evidence/green-theGateCompletesTheChangeBeforeTheGate.xml tests=1 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-change-is-complete-before-the-gate/evidence/red-on-HEAD-aMovedChangeNamesTheSameTree.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-change-is-complete-before-the-gate/evidence/red-on-HEAD-aRedGateRestoresTheChangeToItsUnarchivedName.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-change-is-complete-before-the-gate/evidence/red-on-HEAD-theGateCompletesTheChangeBeforeTheGate.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END

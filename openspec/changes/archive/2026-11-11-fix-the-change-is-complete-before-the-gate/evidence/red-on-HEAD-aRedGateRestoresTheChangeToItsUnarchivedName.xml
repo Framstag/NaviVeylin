@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="red-on-HEAD-aRedGateRestoresTheChangeToItsUnarchivedName" tests="1" failures="1" errors="0" time="0">
+  <system-out>loop-selftest: 1 of 1 cases failed  exit=1 </system-out>
+</testsuite>

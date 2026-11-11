@@ -1,0 +1,6 @@
+# gate#aRedGateRestoresTheChangeToItsUnarchivedName — 2026-11-11T06:31:22Z
+# tools/loop/tests/loop-selftest.sh --case gate#aRedGateRestoresTheChangeToItsUnarchivedName
+
+PASS gate#aRedGateRestoresTheChangeToItsUnarchivedName
+
+exit=0

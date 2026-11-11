@@ -16,3 +16,27 @@ A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits fo
 mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
 mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
 A2.2 exit=0
+# 2026-11-11T19:53:10Z   HEAD 4076df66   working tree: the round-3 corrections (the landing tree's prose)
+# 2026-11-11T19:53:10Z  --only "A2.1 A2.2"   (one run, both labels)
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/answer.sh
+  GREEN(exit 0)  restored, and the case passes again
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/decisions.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 2 mutation(s) run, 2 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+
+# The failing reason, captured rather than asserted (reviewer note 2): the runner's own RED line carries no
+# assertion, so each mutation was applied by hand, the named case run against it, and the file restored from a
+# byte-compared copy — `cmp` clean, so the tree the gate sees is the tree before the mutation.
+# 2026-11-11T19:52Z  A2.1  answer.sh, `  park)` → `  park) … --remove-label "$decision_label" … ; :`
+  a park performs no transition: gh issue comment 71 --body $'Decision: wait for #844, the prerequisite, before the rows are merged\n<!-- answers: **The decision:** merge the two rows into one, or keep both and mark the newer authoritative? -->'
+gh issue edit 71 --remove-label agent/needs-decision: expected '0', got '1'
+FAIL answer#parkWritesTheAnswerAndKeepsTheMode
+  restored: cmp /tmp/a845.bak tools/issues/answer.sh → clean
+# 2026-11-11T19:52Z  A2.2  decisions.sh, `| if $parked == "" then` → `| if true then`
+  the entry is the condition the park waits for, not the answer's own first line: expected 'parked: wait for #844', got 'Decision: wait for #844, the prerequisite, before either row moves'
+FAIL decisions#aParkedItemIsListedAsParked
+  restored: cmp /tmp/d845.bak tools/issues/decisions.sh → clean

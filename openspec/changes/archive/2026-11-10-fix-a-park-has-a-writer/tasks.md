@@ -33,10 +33,11 @@ label" and "A parked item prints the condition it waits for" — in
 - [x] 3.1 A2.1 mutates the empty `park)` arm in `tools/issues/answer.sh` (the arm whose emptiness *is* "a park
       performs no transition"); the case that must fail is `answer#parkWritesTheAnswerAndKeepsTheMode`. Verify:
       red when mutated, restored green — `mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)`
-      (`evidence/revert-check.log`).
+      (`evidence/revert-check.log`), and the failing assertion itself — `a park performs no transition: …
+      --remove-label agent/needs-decision: expected '0', got '1'` — is in the same log's captured block.
 - [x] 3.2 A2.2 mutates the `| if $parked == "" then` branch in `tools/issues/decisions.sh` (the branch that
       selects the queue entry); the case that must fail is `decisions#aParkedItemIsListedAsParked`. Verify: same
-      shape, same log.
+      shape, same log, and its captured assertion in the same log's captured block.
 
 ## 4. The prose the rule lives in
 
@@ -48,9 +49,8 @@ label" and "A parked item prints the condition it waits for" — in
       Verify: the same structural run.
 - [x] 4.3 The delta `specs/decision-queue/spec.md` (ADDED requirement, two scenarios bound to the two cases) plus
       this `proposal.md`. Verify: `tools/check-openspec-hygiene.sh` → `OpenSpec artifacts are consistent`, exit 0
-      (`evidence/structural-checks.log`). The former `openspec validate fix-a-park-has-a-writer --strict` line is
-      withdrawn: the archive renamed the change to `2026-11-10-fix-a-park-has-a-writer`, and `openspec validate`
-      refuses an archived change (`Unknown item '2026-11-10-fix-a-park-has-a-writer'`).
+      (`evidence/structural-checks.log`). The change is archived, so the hygiene check is the check it gets;
+      `openspec validate` is run over the open set, not over an archived change.
 
 ## 5. Verification
 
@@ -59,8 +59,12 @@ label" and "A parked item prints the condition it waits for" — in
       `tools/check-doc-routes.sh`, `tools/check-doc-values.sh`, `tools/check-openspec-hygiene.sh`,
       `tools/check-todo-references.sh`, `tools/loop/evidence-check.sh`, each ending `exit=0`
       (`evidence/structural-checks.log`).
-- [x] 5.2 The reached cases green on the change: 33 `PASS` lines (`evidence/green-cases.log`); the round-2 run of
-      the two park cases and their two siblings, with the command that produced it and a timestamp per case, is
-      `evidence/green-cases-round2.log`.
+- [x] 5.2 The reached cases green on the change: the whole 166-case self-test the gate runs over the landing tree
+      (`evidence/loop-gate/tools_issues_tests_issue-tooling-selftest.sh.xml`, `tests="166" failures="0"
+      errors="0"`, stamped with the landing HEAD), which is the tree this change ships; the five stamped cases of
+      the round-2 tree — both park cases and their two siblings — are `evidence/green-cases-round2.log`
+      (`HEAD 08062c83`, 2026-11-10T11:02:34Z). The 33 `PASS` lines in `evidence/green-cases.log` are the round-1
+      record: that log carries no HEAD and no timestamp and was written before the round-2 correction, so they are
+      kept as the round-1 run and claim nothing about the landing tree.
 - [x] 5.3 The artifacts: `tools/check-openspec-hygiene.sh`, green after this delta was written
       (`evidence/structural-checks.log`).

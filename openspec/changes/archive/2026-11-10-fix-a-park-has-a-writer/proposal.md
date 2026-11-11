@@ -15,8 +15,9 @@ and `decisions#aParkedItemIsListedAsParked` prints the answer's own first line
 (`Decision: wait for #844, the prerequisite, before either row moves`) where the queue owes the condition.
 
 **The single resulting fix:** `tools/issues/answer.sh` gains the fourth outcome `--park`, which writes the answer
-— the `Decision: …` line and its `<!-- answers: … -->` marker, whose shape has one home in `tools/issues/lib.sh`
-beside the question program — and performs no transition; `tools/issues/decisions.sh` prints
+— the `Decision: …` line and its `<!-- answers: … -->` marker, whose shape this change puts in one place,
+`tools/issues/lib.sh` beside the question program, for the writer and the reader it names — and performs no
+transition; `tools/issues/decisions.sh` prints
 `parked: <the decision's first clause>` for an item whose last statement is such an answer.
 
 **Owning requirement:** `openspec/specs/decision-queue/spec.md`, "An answer performs the transition it implies"

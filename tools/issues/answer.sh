@@ -99,7 +99,7 @@ if [ "${#question}" -gt "$question_limit" ]; then
   question="${question:0:$question_limit} … (clipped at $question_limit characters)"
 fi
 # The two halves an answer is made of live in `tools/issues/lib.sh` (issue #845): the writer below reads them and
-# `decisions.sh` reads the same two, so the shape of an answer has one home rather than two copies to keep in step.
+# `decisions.sh` reads the same two, so this writer and the queue's reader keep one copy rather than two.
 answer_comment="${ISSUES_ANSWER_PREFIX}${decision}"
 [ -n "$question" ] && answer_comment="$answer_comment"$'\n'"${ISSUES_ANSWER_MARKER}${question} -->"
 

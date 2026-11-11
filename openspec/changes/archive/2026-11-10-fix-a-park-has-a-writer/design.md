@@ -4,7 +4,7 @@
 
 The answer verb's vocabulary is the whole vocabulary of a decision: one flag per outcome
 (`tools/issues/answer.sh:36-39`; `:31-33` on the base commit), one arm each in the transition block that follows the
-answer comment (`tools/issues/answer.sh:107-121`). A person who decides that the item must wait has no outcome to
+answer comment (`tools/issues/answer.sh:109-123`). A person who decides that the item must wait has no outcome to
 name, and the skill that answers decisions has no writer to leave through — so the decision is written beside the
 item, in another item's body, and the queue keeps printing the question it settles.
 
@@ -12,13 +12,16 @@ item, in another item's body, and the queue keeps printing the question it settl
 
 A fourth outcome that writes and moves nothing.
 
-- `--park` sets `outcome="park"` and adds one arm to the transition block (`tools/issues/answer.sh:108-111`) that
-  performs no write at all, so the comment written at `tools/issues/answer.sh:104` is the whole effect. The item keeps
+- `--park` sets `outcome="park"` and adds one arm to the transition block (`tools/issues/answer.sh:110-113`) that
+  performs no write at all, so the comment written at `tools/issues/answer.sh:106` is the whole effect. The item keeps
   `agent/needs-decision` (it still awaits an answer, and a later answer may still continue or retire it) and keeps
   whatever status it carries.
 - The two strings an answer is made of move into `tools/issues/lib.sh`, beside `ISSUES_QUESTION_JQ`:
   `ISSUES_ANSWER_PREFIX` (`Decision: `) and `ISSUES_ANSWER_MARKER` (`<!-- answers: `). `answer.sh` writes the answer
-  from those two constants and `decisions.sh` reads the same two, so the shape of an answer has one home.
+  from those two constants and `decisions.sh` reads the same two, so the two scripts this change writes carry one
+  copy of the shape rather than two. `tools/issues/create.sh:399-400` still spells the same two strings out as
+  literals, and `tools/issues/core/WorkPackage.java` restates the marker because that core is standalone Java — the
+  second home and the restatement are both older than this change and neither is closed here.
 - `decisions.sh` learns one predicate: when the last statement's first line starts with the answer prefix **and** the
   comment carries the marker, the item has been answered and still carries the label — a park — so the entry is
   `parked: <the decision's first clause>` in the place the question stands. The first clause is the decision up to its
@@ -30,6 +33,17 @@ queue's job is to keep it in front of a reader, and the difference a park makes 
 waits for. The work package already carries the answer to the next worker — `tools/issues/core/WorkPackage.java:177-200`
 reads the answer's marker, not the queue's rendering — so the parked item's `<<<ITEM_DECISION` block states the
 recorded decision without a second change.
+
+## Why the delta is ADDED
+
+The park is a new contract, so the delta adds a requirement rather than rewriting one — and it does qualify an
+older requirement's scope without modifying it: `openspec/specs/decision-queue/spec.md:58`, "An answer performs the
+transition it implies", still enumerates "returning the item to the queue, moving it to the device lane, or closing
+it as a decision not to act — and only that one", which does not admit a no-transition answer. The added
+requirement says so in its own text ("It is the fourth outcome, the one the requirement 'An answer performs the
+transition it implies' does not name"), so a reader of the capability meets the reconciliation at the requirement
+that reconciles; the older requirement is left standing because its enumeration is still the whole of what a
+transition is, and a park is the outcome that performs none.
 
 ## Blast radius
 

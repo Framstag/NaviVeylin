@@ -327,9 +327,10 @@ issues_question_of() { # <comment-json> → the question it carries, one line
 }
 
 # The two halves an answer is made of (issue #845): the line the decision is recorded on, and the marker that binds
-# that line to the question it answers. `answer.sh` writes them and `decisions.sh` reads them, so the shape of an
-# answer has one home; `core/WorkPackage.java` restates the two only because that core is standalone Java, exactly
-# as it restates the question program above.
+# that line to the question it answers. `answer.sh` writes them and `decisions.sh` reads them, so the writer and
+# the queue's reader keep one copy of the shape rather than two. `tools/issues/create.sh:400` still spells the same
+# two strings out as literals — a second home this change does not close — and `core/WorkPackage.java` restates the
+# marker only because that core is standalone Java, exactly as it restates the question program above.
 ISSUES_ANSWER_PREFIX='Decision: '
 ISSUES_ANSWER_MARKER='<!-- answers: '
 

@@ -161,7 +161,9 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   the queue for ever and keep spending a decision slot; `tools/issues/close.sh` takes the label off in the same
   write that records the settled state, for every path that closes — the run, a person, a declared check.
 - **Rule: a park writes its answer and moves no label.** A person who decides that the item must wait has made a
-  decision, not left one open, so `tools/issues/answer.sh --park` writes the answer the other outcomes write — with
+  decision, not left one open — and that is a *park answer*, which is not the state §5's preamble calls "a decision
+  parked by removing `agent/eligible`": that one records nothing on the item, while a park answer is written on it
+  and moves no label — so `tools/issues/answer.sh --park` writes the answer the other outcomes write — with
   the `<!-- answers: … -->` marker binding it to the question — and performs no transition: the item keeps the
   decision label, stays answerable and stays in the queue, which prints `parked: <the decision's first clause>` where
   the question stood (`tools/issues/decisions.sh`). A park that moved a label would spoil the queue either way: the

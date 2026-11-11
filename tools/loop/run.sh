@@ -2657,11 +2657,17 @@ while true; do
   fi
   if [ "$gate_did_not_pass" -eq 1 ]; then
     restore_name=$(report_field "$final_report" LOOP-CHANGE)
-    case "$restore_name" in ''|-) restore_name="$change_diff_ready" ;; esac
+    case "$restore_name" in ''|-) restore_name="${change_diff_ready:-}" ;; esac
     case "$restore_name" in
-      ''|-|none) ;;
-      *) gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true ;;
+      ''|-|none) gate_did_not_pass=0 ;;
+      *) # Nothing to restore is not a refusal to report: a child that never started, or one that answered nothing, names
+         # no change and leaves no archive, so this arm stays silent rather than printing a refusal into a transcript that
+         # asked for none — and only a tree that really carries the archive is moved.
+         [ -n "$(loop_change_archive_dir "$worktree" "$restore_name")" ] || gate_did_not_pass=0 ;;
     esac
+  fi
+  if [ "$gate_did_not_pass" -eq 1 ]; then
+    gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true
     if [ -n "$gate_restore_line" ]; then
       printf '%s\n' "$gate_restore_line"
       # A refusal is not a restore: it is recorded as a skip, so `state.sh show` does not read an operator-facing

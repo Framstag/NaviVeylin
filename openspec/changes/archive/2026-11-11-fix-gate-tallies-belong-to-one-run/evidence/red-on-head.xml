@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest --case gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes" tests="1" failures="1" errors="0" timestamp="2026-11-11T11:56:47Z">
+  <testcase name="gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes">
+    <failure>and the gate names the tally directory it wrote and the run that wrote it: 'LOOP-GATE-TALLY: …/tally run=' not found in the gate's log — on HEAD the directory is one per tree, so the carrier an earlier run left beside the tally the gate wrote is never cleared and never named as another run's</failure>
+  </testcase>
+  <system-out>FAIL gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes — loop-selftest: 1 of 1 cases failed (evidence/red-on-head.log)</system-out>
+</testsuite>

@@ -1,0 +1,33 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=db1971d1577ec39004d14c7d27ea9c5b94d6c87b paths=4 insertions=206 deletions=4
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH tools/loop/gate.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git db1971d1577ec39004d14c7d27ea9c5b94d6c87b
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=407 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-gate-tallies-belong-to-one-run scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-gate-tallies-belong-to-one-run/evidence/red-on-head-refusal.xml tests=1 failures=1
+LOOP-MEASURE-TALLY openspec/changes/fix-gate-tallies-belong-to-one-run/evidence/red-on-head.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 2 cases added, 0 rewritten, 2 mutation records added, 1 guideline paragraph, 0 fixtures — `tools/look.sh 'LOOP_GATE_TALLY_DIR' --path tools`: 4 files hold the key (the profile names the path, `gate.sh` writes it, `measure.sh` sums it, and the cases name a throwaway directory 20 times and empty the key twice). The directory's readers read it whole and need no edit once it is one run's; the suite's own count moved from 405 to 407 (`tools/loop/tests/loop-selftest.sh --list`).
+LOOP-MEASURE-END

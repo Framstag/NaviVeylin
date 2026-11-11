@@ -1,0 +1,19 @@
+gate#aSecondGateRefusesWhileOneRuns|   a gate refused because another gate holds the tally directory exits 4: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+gate#aSecondGateRefusesWhileOneRuns| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aSecondGateRefusesWhileOneRuns| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aSecondGateRefusesWhileOneRuns| LOOP-GATE-TREE: head=a9dd4a550936f59c77bf2367c265462051c789be diff=3d96e1b9a404715b
+gate#aSecondGateRefusesWhileOneRuns| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/suite.sh
+gate#aSecondGateRefusesWhileOneRuns| notes: all 1 cases passed
+gate#aSecondGateRefusesWhileOneRuns| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/suite.sh — 0s
+gate#aSecondGateRefusesWhileOneRuns| LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/suite.sh 0s): expected '4', got '0'
+--- gate#aSecondGateRefusesWhileOneRuns[0] (exit 1)
+  a gate refused because another gate holds the tally directory exits 4: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-TREE: head=a9dd4a550936f59c77bf2367c265462051c789be diff=3d96e1b9a404715b
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/suite.sh
+notes: all 1 cases passed
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/suite.sh — 0s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rfEgC7/cases/0/tree/case.oqy6o0/suite.sh 0s): expected '4', got '0'
+FAIL gate#aSecondGateRefusesWhileOneRuns
+loop-selftest: 1 of 1 cases failed

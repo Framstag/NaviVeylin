@@ -6,17 +6,17 @@ document carries, so the rule and the measurement that set it are read together.
 ## §1 The four numbers, and why a green run is the census
 
 A definition written without proof is a plausible invention. This repository measured that failure once
-already: a body-reading rule graded 48 verdicts out of 49 wrong. So the glossary states no word it cannot
+already: `tools/check-change-readiness.sh` graded a body-reading rule's verdicts 48 wrong out of 49. So the glossary states no word it cannot
 count, and every count comes from the run that reads the tree rather than from a table in a document.
 
 Measured 2026-11-09 over `app/src/main`, `auto/src/main` and `core/src/main` — 462 Kotlin and Java files:
 
 | measured | figure |
 |---|---|
-| `Basemap` / `BaseMap` / `baseMap` in `app/src` | 511 / 6 / 2 — one concept, three surfaces |
-| `speedKmH`-family vs `…Kmh`-family | 84 vs 87 — no majority, so the code cannot settle it |
-| `: Boolean` without `is`/`has`/`can` | 72, against 23 that carry the prefix |
-| vacuous suffixes on a declared type | 27 |
+| `Basemap` / `BaseMap` / `baseMap` as a whole-identifier prefix | 256 / 0 / 0, the 256 split `core` 39, `app` 209, `auto` 8 |
+| `speedKmH`-family vs `…Kmh`-family | 278 vs 144 — short of the ten-to-one majority `overruled` requires, so the code cannot settle it |
+| `: Boolean` without `is`/`has`/`can` | 0 — the census reports `bare-booleans 0` |
+| vacuous suffixes on a declared type | 36 |
 | `favourite` vs `favorite` | 16 vs 790 |
 
 The same run, on 2026-11-11, over the seed: rows 53, anchored 53, kinds attribute/entity/operation/value,
@@ -31,12 +31,12 @@ meanings.
 
 ## §3 Why an anchor, and what it costs
 
-4 466 scenarios exist in the shipped specs, but only 1 090 carry a `**Case**:` line; `guidelines/` carries 555
-named `**Rule:**` lines. Requiring a case for every row would have made most words unwritable and grown this
+A scenario carries a `**Case**:` line or it is no anchor, and `guidelines/` names only some of its
+rules. Requiring a case for every row would have made the words without one unwritable and grown this
 change into a test-writing change; requiring nothing would have made a definition indistinguishable from a
 guess. The seed is therefore the intersection of a code surface with an anchor, and a term with a surface and
 no anchor is an item whose work is "write the case that would fail if this definition were wrong". The bound is
-real: `overrun` occurs 165 times in the code and carries no anchor today.
+real: `overrun` carries no anchor today.
 
 ## §4 Why the concept kind is the only global scope
 

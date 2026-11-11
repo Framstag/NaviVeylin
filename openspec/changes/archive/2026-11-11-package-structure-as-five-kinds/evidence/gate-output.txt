@@ -1,0 +1,9 @@
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-TREE: head=b8f9d6ef7b6ef08375e231711663ac25fc50eec3 diff=58b0e87cba0f499d
+LOOP-GATE: nothing owed — no path this profile gates changed since 6cf7ba501582a7494db71cb379cc1484806ee37a
+
+# command: cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && ./tools/loop/gate.sh
+# run once by the gate child of item #846, 2026-11-11, exit 0, full output above (6 lines, untrimmed).
+# No suite ran, no test artifacts produced — the gate reports nothing owed for this delta.

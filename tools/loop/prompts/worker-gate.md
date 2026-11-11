@@ -5,9 +5,10 @@ and applied it; its session ended at the **diff** (it printed `LOOP-DIFF-READY`)
 that diff before the gate — that is the order this run uses, because a finding a reader can make from the diff alone
 must not cost a gate and then a second full pass (issue #758).
 
-Your job is what is left, and it is two things at most: **apply the findings the reviewer wrote, if there are any**,
-and then **run the project's gate once**. You diagnose nothing, you plan nothing, you re-derive nothing, and you
-repair nothing after the gate: it is evidence, not a thing to retry.
+Your job is what is left, and it is three things at most: **apply the findings the reviewer wrote, if there are
+any**, **complete the change** — its evidence, its pointers and its archive, all of it before the gate — and then
+**run the project's gate once**. You diagnose nothing, you plan nothing, you re-derive nothing, and you repair nothing
+after the gate: it is evidence, not a thing to retry.
 
 Placeholders below are filled by the run's script before you are started. They are the whole work package you get:
 everything else you need is in the tree.
@@ -67,7 +68,7 @@ with: each is what the process you are started in refuses, before any rule of th
   `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
   refused.
 
-## Phase E — the findings, then the gate
+## Phase E — the findings, then the change completed, then the gate
 
 1. **Apply the findings, if there are any, and nothing else.** The reviewer's report is `{{FINDINGS_PATH}}`; when that
    value says the round found no blocking finding, there is nothing to apply and you go straight to step 2. Each
@@ -76,7 +77,27 @@ with: each is what the process you are started in refuses, before any rule of th
    assertion the change does not have is **not yours to invent** — apply what can be applied, and say what you left in
    the gate line's own words rather than widening the change. Do not re-plan, do not re-diagnose, and do not re-read the
    item's whole package for a finding that already says what to do.
-2. **Run the project's gate once**, exactly as the run's configuration states it:
+2. **Complete the change before you run the gate.** The gate names the tree it measures and a round's diff names the
+   tree it was written from, and those two names have to be one — so every write to the change directory happens
+   *now*, before the gate starts, in this order:
+   a. copy every test result you cite into the change's own `evidence/` directory (the versioned half) and into
+      `{{EVIDENCE_DIR}}`, at the moment it is produced;
+   b. run the mechanical pointer check from the change root and fix what it reports: every `file:line`, every quoted
+      `tests=`/`failures=`, every `/tmp` pointer and every `§N`:
+
+      ```
+      bash tools/loop/evidence-check.sh <the change directory> --root .
+      ```
+
+   c. archive the change — `{{CHANGE_ROOT}}/openspec/changes/<name>/` → `…/openspec/changes/archive/<date>-<name>/` —
+      and confirm the delta merged into the capability spec: `openspec archive --yes`, then check that the directory
+      is under the archive and that the capability spec carries the requirement. The date prefix the archive adds is
+      what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree reads the
+      same before and after this move, committed or not.
+
+   Nothing outside the change's `evidence/` directory is written after step 3: a repair made there is a tree the gate
+   never measured, which is the one thing the round after the gate refuses the item for.
+3. **Run the project's gate once**, exactly as the run's configuration states it:
 
    ```
    {{GATE_CMD}}
@@ -91,12 +112,15 @@ with: each is what the process you are started in refuses, before any rule of th
    you the command the delta owes instead, and that refusal is not a red gate — it is the engine saying this child has
    spent its measurements.
 3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
-   result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy.
-4. **A gate that did not pass is not yours to repair.** The tail child records the item `blocked` with the failing
-   output you printed. Do not delete the change, do not unstage anything, and do not edit the tree after the gate: the
-   next attempt reads it as this item's work.
-5. **Do not archive the change, do not commit, do not push, and do not touch the issue tracker.** The run's script owns
-   git, the labels and the closure, and the tail child owns the archive. Leave the tree as the gate left it.
+   result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy. The
+   change's own `evidence/` directory is generated output the round's diff leaves out, so a copy there is not a
+   correction of the tree the gate measured — and it is the only directory you write after the gate.
+4. **A gate that did not pass is not yours to repair.** The run restores such a change to its unarchived name before
+   the tail child is started, and the tail records the item `blocked` with the failing output you printed. Do not
+   delete the change, do not unstage anything, and do not edit the tree after the gate: the next attempt reads it as
+   this item's work.
+5. **Do not commit, do not push, and do not touch the issue tracker.** The run's script owns git, the labels and the
+   closure. Leave the tree as the gate left it.
 
 ## What the run reads back from your report
 

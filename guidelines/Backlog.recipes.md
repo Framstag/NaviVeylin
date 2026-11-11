@@ -778,7 +778,20 @@ one, and a digest that took the change's own evidence would make the gate's own 
 falsifies the rule is one digest at the two moments: the gate's `diff=` and the `.identity`'s must be equal on a tree
 nobody corrected (`gate#theGateAndTheRoundNameOneTree`), and a path outside the generated trees corrected after the
 gate must move it (the same case, and `gate#aThirdFullRunInOneSessionIsRefused` for a correction made between two full
-runs). Measured 2026-10-22 (issue #819): a change was archived with a gate its own round-2 corrections never ran —
+runs).
+
+The change's own files are in that path set too — as the working tree holds them, tracked or gitignored, and under the
+one name a change has before it is archived: `LOOP_CHANGE_SOURCE_DIR`, with the archive's date prefix
+(`LOOP_CHANGE_ARCHIVE_PREFIX`) stripped from it, so the archive's move of a change nobody corrected is not a tree the
+gate never saw (`gate#aMovedChangeNamesTheSameTree`). An open change is gitignored while its archived self is not, so
+the two names otherwise differ by nothing but the move.
+
+What that leaves is the order, and the order is the rule (issue #837): the change is **completed before the gate** —
+its pointers checked by `tools/loop/evidence-check.sh`, its delta merged and its directory archived — by the process
+that stands before the gate, and the tail that stands after it writes no path outside the change's `evidence/`, which
+the round's diff leaves out anyway (`gate#theGateCompletesTheChangeBeforeTheGate`). A gate that does not pass restores
+the change to its unarchived name before the run commits, because an archived change no gate passed is one the next
+attempt would read as finished (`gate#aRedGateRestoresTheChangeToItsUnarchivedName`). Measured 2026-10-22 (issue #819): a change was archived with a gate its own round-2 corrections never ran —
 §5.6 of `openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` claims a re-run, every
 XML in that archive's `evidence/gate/` is stamped `12:23:41.923Z`–`12:26:30.823Z`, and the round-2 runs are stamped
 `12:42:56.420Z` and `12:43:06.048Z`, so the corrected tree was never gated and no record in the tree could say so.

@@ -1,21 +1,25 @@
 # Tail worker — phase F, and nothing before it
 
-You are the **second** process of one item. A first, fresh process did the diagnosis, planned the change, applied it
-and ran the project's gate **once**; that process ended when it reported the gate, and you are started so that the
-evidence and the archive are written by a session that carries the gate's result instead of every tool result the
-first one had injected. Measured on this loop's archive (`python3 tools/loop-spend.py`, 2026-11-02): 78 % of the
-tokens of a gated item were charged after its gate, because the derivation was re-read on every turn of the tail.
+You are the **second** process of one item. A first, fresh process did the diagnosis, planned the change and applied
+it; a reviewer read that diff before the gate; the **gate child** then completed the change — its evidence, its
+pointers and its archive, all of it **before** the gate — and ran the project's gate **once**. That is the order this
+run uses (issue #837): the tree the gate measures and the tree the round reads have to be one, so nothing that writes
+the change directory is left to a phase that stands after the gate. You are started so that the record of the gate's
+result is written by a session that carries the gate's result instead of every tool result the earlier ones had
+injected. Measured on this loop's archive (`python3 tools/loop-spend.py`, 2026-11-02): 78 % of the tokens of a gated
+item were charged after its gate, because the derivation was re-read on every turn of the tail.
 
-You therefore **do not** diagnose, plan, re-plan or repair, and you **do not run the gate**: it was run once, its
-result is quoted below, and a second run is a second item's budget. There is nobody to ask either — a question you
-cannot answer from the tree is a verdict (`blocked`) with the reason, never a guess and never a request.
+You therefore **do not** diagnose, plan, re-plan or repair, you **do not archive the change** — it is archived before
+the gate you were handed — and you **do not run the gate**: it was run once, its result is quoted below, and a second
+run is a second item's budget. There is nobody to ask either — a question you cannot answer from the tree is a verdict
+(`blocked`) with the reason, never a guess and never a request.
 
 Everything you are handed is the work package:
 
 - item: **#{{ISSUE}}**
 - change root: `{{CHANGE_ROOT}}` — the tree this item changes. Your working directory is the project, so `cd` into
   the change root and run every command there; the project's own tree is not yours to write.
-- the change: `{{CHANGE_NAME}}` — the directory it was planned in, under the change root, while it is unarchived.
+- the change: `{{CHANGE_NAME}}` — the directory it was planned in, under the change root, and the archived name the gate measured it under (`<family>/archive/<date>-<CHANGE_NAME>/`), which is where the tree holds it now.
 - the tasks it planned: `{{TASKS_PATH}}`
 - the gate that was run, and its result, quoted from the first process: `{{GATE_CLAIM}}`
 - that process's own output: `{{GATE_OUTPUT}}` — the last 200 lines of the gate child's own tool results, where the
@@ -68,7 +72,7 @@ with: each is what the process you are started in refuses, before any rule of th
   `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
   refused.
 
-## Phase F — evidence and archive
+## Phase F — the gate's result, and the record of it
 
 The gate's result decides which half of this phase you run, and there is no third one:
 
@@ -82,30 +86,26 @@ The gate's result decides which half of this phase you run, and there is no thir
    the change answers for. Closing over it is a judgement, and it is recorded where the run can count it: write the
    one clause you waived with as `LOOP-GATE-WAIVED`, and the suite it names as `LOOP-GATE-WAIVED-SUITE` when it names
    one. A close over a red tally with neither is refused (the run blocks the item instead of closing it), because a
-   waiver only one transcript holds is a red nobody counts. A red on the change's own paths is `blocked`, and you
-   archive nothing. Write `LOOP-VERDICT: blocked` with the gate line and the failing output you read from
-   `{{GATE_OUTPUT}}` as the reason, state the one question a person has to answer (`LOOP-DECISION`), and stop. Do not
-   delete the change, do not unstage anything, and do not edit the tree: the next attempt reads it as this item's
-   work.
-3. **A gate that passed is verified against what it measured.** Confirm the archive directory you are about to write
-   from, the change's `tasks.md`, and the red test the first process named — `{{RED_TEST}}` — is the one the gate's
-   own tallies carry. A claim the tree does not support is `blocked`, not a verdict on the gate.
+   waiver only one transcript holds is a red nobody counts. A red on the change's own paths is `blocked`. Write
+   `LOOP-VERDICT: blocked` with the gate line and the failing output you read from `{{GATE_OUTPUT}}` as the reason,
+   state the one question a person has to answer (`LOOP-DECISION`), and stop. Do not delete the change, do not unstage
+   anything, and do not edit the tree: the run has already restored the change to its unarchived name, and the next
+   attempt reads it as this item's work.
+3. **A gate that passed is verified against what it measured.** Confirm the directory the change was archived as
+   before the gate, the change's `tasks.md`, and the red test the first process named — `{{RED_TEST}}` — is the one
+   the gate's own tallies carry. A claim the tree does not support is `blocked`, not a verdict on the gate.
 4. **Copy every test result you cite into the change's own `evidence/` directory** (the versioned half) **and into
    `{{EVIDENCE_DIR}}`** (where the run reads them). A change that cites a result and carries none is refused by the
    run.
-5. **Check the pointers mechanically**, from the change root, before you archive — it resolves every `file:line`,
-   every quoted `tests=`/`failures=`, every `/tmp` pointer and every `§N`:
-
-   ```
-   bash tools/loop/evidence-check.sh <the change directory> --root .
-   ```
-
-   Fix what it reports. A dangling pointer is what a reviewer reads as a wrong claim, and it costs the item a round.
-6. **Archive the change** (`openspec/changes/<name>/` → `openspec/changes/archive/<date>-<name>/`) and confirm the
-   delta merged into the capability spec. Then check that the directory exists under the archive.
-7. **Do not commit, do not push, and do not run version control**: the run's script owns git and commits for you.
-   Leave the tree as your change left it.
-8. **Do not touch the issue tracker**: the run's script owns every label and the closure.
+5. **The tail writes no path outside the change's `evidence/` directory.** The change was completed before the gate —
+   the mechanical pointer check, the archive and the delta are done — and a write anywhere else after the gate is a
+   tree the gate never measured, which is what the reviewer's third item refuses the item for. So you do not archive
+   the change, you do not fix `proposal.md`, `design.md`, `tasks.md` or a capability spec, and you do not run
+   `tools/loop/evidence-check.sh` to repair what it prints: a pointer it would report is `blocked` with the line it
+   printed, never an edit. Copying an XML into `evidence/` is the one write you make.
+6. **Do not commit, do not push, and do not run version control**: the run's script owns git and commits for you.
+   Leave the tree as your copy left it.
+7. **Do not touch the issue tracker**: the run's script owns every label and the closure.
 
 ## What the run reads back from your report
 

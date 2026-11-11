@@ -5,5 +5,9 @@ change a reader has already agreed with. A gate you run here would be a second o
 spends its budget on a change nobody has read yet.
 
 So your session ends at the **diff**, not at a gate: copy the XMLs you cite into `{{EVIDENCE_DIR}}` as they are
-produced, archive nothing, and print the block below with `LOOP-DIFF-READY` in place of the gate line. The gate child
-is handed your answer and runs the gate; the tail that follows it writes the evidence and the archive.
+produced, leave the change unarchived, and print the block below with `LOOP-DIFF-READY` in place of the gate line. The
+gate child is handed your answer, completes the change — its pointers, its delta and its archive — and then runs the
+gate over that completed tree; the tail that follows the gate only copies evidence and records the result, because a
+change directory written after the gate is a tree the gate never measured (issue #837). A gate that does not pass
+restores the change to its unarchived name, so the change is completed and archived before the gate and never left
+archived by one.

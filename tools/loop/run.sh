@@ -1879,7 +1879,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
 # because a child that re-read a 200-line transcript on every turn is what this split exists to stop paying for —
 # `jq` and a `tail` cost the run two forks, and no turn of the tail is charged for the rest.
 tail_after_gate() { # tail_after_gate <gate report> <tail prompt> <tail report> — sets tail_started, tail_exit
-  local gate_report="$1" prompt="$2" report="$3" gate change_name root_cause red_test tasks output
+  local gate_report="$1" prompt="$2" report="$3" gate change_name root_cause red_test tasks output archived_change
   gate=""
   gate=$(report_field "$gate_report" LOOP-GATE)
   [ -n "$gate" ] || return 1
@@ -1887,12 +1887,17 @@ tail_after_gate() { # tail_after_gate <gate report> <tail prompt> <tail report> 
   root_cause=$(report_field "$gate_report" LOOP-ROOT-CAUSE)
   red_test=$(report_field "$gate_report" LOOP-RED-TEST)
   # The tasks the change planned, as the path it sits at — the one file the tail reads to know what the gate was
-  # verifying. A gate report that names no change the tree holds says so instead of handing the child a path that
-  # is not there.
+  # verifying. The change is completed before the gate and therefore archived by the time the tail runs (issue #837),
+  # so both names are read: the archived directory of that change first, and the unarchived one for a tree the run
+  # hands a change the archive step could not move. A gate report that names no change the tree holds says so instead
+  # of handing the child a path that is not there.
   tasks="none — the gate report names no change whose tasks.md this tree holds"
   case "$change_name" in
     ''|-) ;;
-    *) if [ -f "$worktree/$changes_family/$change_name/tasks.md" ]; then
+    *) archived_change=$(loop_change_archive_dir "$worktree" "$change_name")
+       if [ -n "$archived_change" ] && [ -f "$worktree/$archived_change/tasks.md" ]; then
+         tasks="$worktree/$archived_change/tasks.md"
+       elif [ -f "$worktree/$changes_family/$change_name/tasks.md" ]; then
          tasks="$worktree/$changes_family/$change_name/tasks.md"
        fi ;;
   esac
@@ -2565,6 +2570,31 @@ while true; do
           --note "$gate_note" >/dev/null
       fi
     fi
+  fi
+
+  # A red gate is not a landing (issue #837, the owner's decision recorded on the item at 2026-11-11T06:04:18Z): the
+  # change is completed — its pointers checked, its delta merged and the directory archived — **before** the gate
+  # measures the tree, so a gate that does not pass leaves a change nobody may read as archived. The restore is the
+  # run's and not a child's prose for the reason every other judgement here is the run's: the decision is the gate's
+  # own tally, read by the one predicate its readers share, and a restore after a green gate would unarchive the very
+  # change the item is about to land. It happens here, before the tail is started and before the run commits, so the
+  # tree the next attempt reads is the unarchived change and no reader meets an archive no gate passed.
+  gate_did_not_pass=0
+  gate_tally_at_restore=$(report_field "$gate_report" LOOP-GATE)
+  if [ "$(gate_tally_state "$gate_tally_at_restore")" = red ]; then gate_did_not_pass=1; fi
+  case "$gate_tally_at_restore" in *"not run"*) gate_did_not_pass=1 ;; esac
+  gate_restore_line=""
+  if [ "$gate_did_not_pass" -eq 1 ]; then
+    restore_name=$(report_field "$gate_report" LOOP-CHANGE)
+    case "$restore_name" in ''|-) restore_name="$change_diff_ready" ;; esac
+    case "$restore_name" in
+      ''|-|none) ;;
+      *) gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true ;;
+    esac
+  fi
+  if [ -n "$gate_restore_line" ]; then
+    printf '%s\n' "$gate_restore_line"
+    loop_state step A --name change-restore --status ok --note "$gate_restore_line" >/dev/null 2>&1 || true
   fi
 
   tail_started=0

@@ -6,7 +6,8 @@
   "docRoutes": "tools/doc-routes.json",
   "checks": {
     "comment": "THE PROJECT CHECKS — the paths of checks another tool may run, by name, so the tooling never hard-codes a path into an engine (`tools/check-portability.sh`). `changeReady` is the readiness checker a tier-B finding must pass before it is filed: `tools/check-change-readiness.sh` (capability `change-readiness`). An EMPTY value is a declaration that this project has no readiness check — and then the filing path refuses a tier-B finding with `gate-not-configured` rather than filing it unchecked. A path that is not there is refused the same way.",
-    "changeReady": "tools/check-change-readiness.sh"
+    "changeReady": "tools/check-change-readiness.sh",
+  "glossary": "tools/check-glossary.sh"
   },
   "allowedAuthors": ["Framstag"],
   "requiredLabels": ["agent/eligible"],

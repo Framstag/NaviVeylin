@@ -1,0 +1,27 @@
+{
+  "profile": 1,
+  "comment": "The address book's words — a person's entries and the values inside them.",
+  "rows": [
+    {
+      "key": "address#entity",
+      "definition": "One entry a person keeps for a place or a person, with the fields the app can act on.",
+      "not": "not a map position, which the entry may carry but does not define",
+      "surfaces": { "type": "Address" },
+      "anchor": ["case: auto: AddressBookScreenTest.theAddressBookListFitsTheHostsCapacity"]
+    },
+    {
+      "key": "contact#entity",
+      "definition": "The set of reachable values — phone, address, site — one entry carries for a person.",
+      "not": "not the address, which is one of the values",
+      "surfaces": { "type": "Contact" },
+      "anchor": ["case: ContactLinksTest#aBareHostGetsHttpsAndIsLinked"]
+    },
+    {
+      "key": "link#entity",
+      "definition": "A contact value the platform can open, resolved to a target scheme or to nothing.",
+      "not": "not a navigation route, which is drawn inside the app",
+      "surfaces": { "type": "Link" },
+      "anchor": ["rule: the two `Contact` values are links on the phone."]
+    }
+  ]
+}

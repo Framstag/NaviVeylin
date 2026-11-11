@@ -1,0 +1,35 @@
+{
+  "profile": 1,
+  "comment": "The map-source feature's words — the installed data and the business of keeping it current.",
+  "rows": [
+    {
+      "key": "repository#entity",
+      "definition": "A configured place the app fetches map data from, with the metadata that describes it.",
+      "not": "not an installation, which is a fetched copy on this device",
+      "surfaces": { "type": "Repository" },
+      "anchor": ["case: MapManagerDeleteRepositoryMapTest.deletingARepositoryInstallationRemovesItsDirectory"]
+    },
+    {
+      "key": "installation#entity",
+      "definition": "One fetched basemap copy on this device, with the directory it occupies.",
+      "not": "not the repository it came from",
+      "surfaces": { "type": "Installation" },
+      "anchor": ["rule: an installed-map update is staged beside its target and swapped in when complete"]
+    },
+    {
+      "key": "update#entity",
+      "definition": "A newer copy of an installed basemap, staged and swapped in when it is complete.",
+      "not": "not a download, which is the transfer rather than the swap",
+      "surfaces": { "type": "Update" },
+      "anchor": ["case: app: MapManagerUpdatesQueueTest updateOneItemRunsOnlyThatOne"]
+    },
+    {
+      "key": "availability#attribute",
+      "definition": "Whether a repository's data can be fetched and installed right now.",
+      "not": "not the data's version, which says what the copy is",
+      "surfaces": { "property": "availability" },
+      "unit": "none",
+      "anchor": ["case: app: MapManagerUpdatesQueueTest aFailedSwapIsReportedAndKeepsTheInstallation"]
+    }
+  ]
+}

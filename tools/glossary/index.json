@@ -1,0 +1,47 @@
+{
+  "profile": 1,
+  "comment": "The glossary index — the closed kind vocabulary, the vacuous-name lexicon and the projection switches. One owner per fact: a row of a per-feature file carries a definition, an exclusion, its surfaces, its anchor and its home kind; this file carries only what every row is read against. The scopes are NOT here: they are the `feature` column of architecture/structure.tsv, read at run time (design D4). Every suffix in `vacuous` is refused in the coining kinds only, because a port role (LocationProvider) is a name the kind demands (design D7).",
+  "kinds": ["entity", "value", "operation", "attribute", "boolean", "event", "constant"],
+  "roleOfKind": {
+    "entity": "type",
+    "value": "type",
+    "operation": "operation",
+    "attribute": "property",
+    "boolean": "property",
+    "event": "event",
+    "constant": "constant"
+  },
+  "roles": ["type", "property", "operation", "event", "constant"],
+  "booleanPrefixes": ["is", "has", "can"],
+  "vacuous": [
+    { "suffix": "Manager", "reason": "names who calls a thing, not what the thing does", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Helper", "reason": "a helper is a function that has not found its owner", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Util", "reason": "a util is a package, and a package is declared in architecture/structure.tsv", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Info", "reason": "info says a value carries something, never what it means", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Data", "reason": "data is the shape of a value, not the word for it", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Impl", "reason": "an implementation is named by the port it implements", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Handler", "reason": "a handler names an event it does not declare", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Processor", "reason": "a processor names a pass over data it does not own", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Provider", "reason": "a provider is a port role, legal in `port` and vacuous in a coining kind", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Bridge", "reason": "a bridge names a seam, and a seam is a `port`", "refusedKinds": ["concept", "feature"] },
+    { "suffix": "Wrapper", "reason": "a wrapper names a delegation, not a concept", "refusedKinds": ["concept", "feature"] }
+  ],
+  "projections": {
+    "kdoc": true,
+    "skeleton": true,
+    "skeletonRoot": "app/src/main/java",
+    "skeletonPackage": "com.naviveylin.concept",
+    "skeletonSuffix": "",
+    "comment": "Both on: a declared definition reaches the type that owns it as KDoc, and a `concept` row whose type no file declares is emitted as a skeleton under `skeletonRoot`/`skeletonPackage`. The generator is run by a person, never by Gradle (task 4.3)."
+  },
+  "census": {
+    "comment": "The three source sets of design D1 and nothing else; test sources and the native layer are out of scope, so the declaration never claims a word the project does not own. `stoplist` is the language's own vocabulary — a keyword or a platform type is not a domain word — and it is what keeps the seed's candidate set a list of terms rather than a list of tokens.",
+    "roots": ["app/src/main", "auto/src/main", "core/src/main"],
+    "extensions": ["kt", "java"],
+    "splitRatio": 10,
+    "stoplist": [
+      "abstract", "all", "also", "and", "annotation", "array", "as", "assert", "at", "boolean", "break", "by", "byte", "catch", "char", "class", "companion", "const", "constructor", "continue", "crossinline", "data", "default", "do", "double", "else", "enum", "expect", "false", "field", "file", "final", "finally", "float", "for", "fun", "get", "if", "implements", "import", "in", "infix", "init", "inline", "inner", "instanceof", "int", "interface", "internal", "is", "it", "lateinit", "let", "long", "map", "native", "new", "noinline", "not", "null", "object", "of", "open", "operator", "or", "out", "override", "package", "param", "private", "protected", "public", "reified", "return", "sealed", "set", "short", "static", "super", "suspend", "synchronized", "tailrec", "this", "throw", "throws", "to", "transient", "true", "try", "typealias", "unit", "val", "value", "var", "vararg", "void", "volatile", "when", "where", "while", "with",
+      "any", "arraylist", "boolean", "byte", "char", "collection", "comparable", "comparator", "double", "enum", "exception", "float", "hashmap", "int", "integer", "iterable", "iterator", "linkedhashmap", "list", "long", "longarray", "nullpointerexception", "number", "object", "optional", "pair", "predicate", "runtimeexception", "sequence", "set", "short", "string", "stringbuilder", "supplier", "throwable", "triple", "unit", "unsupportedoperationexception", "uri", "url", "uuid"
+    ]
+  }
+}

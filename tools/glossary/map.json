@@ -1,0 +1,137 @@
+{
+  "profile": 1,
+  "comment": "The map feature's words — the drawn surface, what it draws and how a person moves it.",
+  "rows": [
+    {
+      "key": "basemap#entity",
+      "definition": "One installed, versioned set of map data a view can be pointed at.",
+      "not": "not the stylesheet that decides how that data is coloured",
+      "surfaces": { "type": "Basemap" },
+      "anchor": ["case: BasemapManagerTest.testSuccessfulDownloadInstallsTheBasemap"]
+    },
+    {
+      "key": "tile#entity",
+      "definition": "One square of rendered map at one magnification, drawn and cached as a unit.",
+      "not": "not a frame, which is a whole canvas of tiles",
+      "surfaces": { "type": "Tile" },
+      "anchor": ["case: app: RouteRowDerivationTest rows tile the polyline without a gap or an overlap"]
+    },
+    {
+      "key": "epoch#entity",
+      "definition": "The counter that tells a consumer whether the data it drew has been replaced since.",
+      "not": "not a timestamp, which says when the data arrived",
+      "surfaces": { "type": "Epoch" },
+      "anchor": ["rule: Pure GPS position updates must NOT increment the epoch"]
+    },
+    {
+      "key": "marker#entity",
+      "definition": "A glyph pinned to one map position, drawn above the map content.",
+      "not": "not an overlay, which paints rather than pins",
+      "surfaces": { "type": "Marker" },
+      "anchor": ["case: app: LocationMarkerOverlayPaletteTest"]
+    },
+    {
+      "key": "viewport#entity",
+      "definition": "The rectangle of the map world a surface currently shows, in world terms rather than pixels.",
+      "not": "not the canvas size the viewport is drawn into",
+      "surfaces": { "type": "Viewport" },
+      "anchor": ["rule: The viewport keeps the FINAL magnification while the display walks."]
+    },
+    {
+      "key": "zoom#operation",
+      "definition": "To change the magnification a viewport holds, leaving its centre where it was unless a follow mode moves it.",
+      "not": "not a pan, which moves the centre at one magnification",
+      "surfaces": { "operation": "zoom" },
+      "canonical": "zoom",
+      "anchor": ["case: app: MapCanvasDoubleTapZoomTest double tap at the maximum magnification leaves the viewport alone"]
+    },
+    {
+      "key": "style#entity",
+      "definition": "The declared set of rendering rules a basemap is drawn through.",
+      "not": "not the palette the app's own chrome uses",
+      "surfaces": { "type": "Style" },
+      "anchor": ["case: auto: MapScreenTest a style switch loads the stylesheet set once"]
+    },
+    {
+      "key": "layer#entity",
+      "definition": "One stackable group of map content that can be shown or hidden as a whole.",
+      "not": "not a marker, which is one pinned object",
+      "surfaces": { "type": "Layer" },
+      "anchor": ["rule: the speed-camera and police-checkpoint layers sit behind a country-keyed feature gate, off by default."]
+    },
+    {
+      "key": "overlay#entity",
+      "definition": "Content painted over the map for one presentation, owning no map data of its own.",
+      "not": "not a layer, which is map content and moves with the map",
+      "surfaces": { "type": "Overlay" },
+      "anchor": ["rule: a Compose map-content overlay sits above the frame bitmap and below the markers"]
+    },
+    {
+      "key": "surface#entity",
+      "definition": "One host-owned drawing target a map renderer is given and never owns.",
+      "not": "not the frame, which is the bitmap the renderer fills for it",
+      "surfaces": { "type": "Surface" },
+      "anchor": ["rule: CRITICAL — the renderer never owns the surface"]
+    },
+    {
+      "key": "renderer#entity",
+      "definition": "The component that fills a frame from the map data and hands it to the surface.",
+      "not": "not the surface, which the host owns",
+      "surfaces": { "type": "Renderer" },
+      "anchor": ["case: auto: AutoMapRendererMarkerDrawCacheTest"]
+    },
+    {
+      "key": "anchor#attribute",
+      "definition": "The point of a follow viewport, as a fraction of the canvas, that the followed position is drawn at.",
+      "not": "not the viewport's centre, which a browse viewport keeps",
+      "surfaces": { "property": "anchor" },
+      "unit": "fraction",
+      "anchor": ["rule: The anchor fraction is relative to the map canvas, and the resolved value is published once."]
+    },
+    {
+      "key": "camera#entity",
+      "definition": "The smoothed view a follow mode animates, as distinct from the raw fix driving it.",
+      "not": "not the fix, which is where the device is",
+      "surfaces": { "type": "Camera" },
+      "anchor": ["rule: the session's own camera moves are the only ones while it is open."]
+    },
+    {
+      "key": "compass#entity",
+      "definition": "The control that returns a turned map to north and reports how far it is turned.",
+      "not": "not the bearing of the vehicle, which the map may follow",
+      "surfaces": { "type": "Compass" },
+      "anchor": ["rule: the compass palette is per-presentation, never a theme role."]
+    },
+    {
+      "key": "bearing#attribute",
+      "definition": "The direction of travel over the ground, in degrees clockwise from north.",
+      "not": "not the map's rotation, which is the direction the canvas is turned",
+      "surfaces": { "property": "bearing" },
+      "unit": "degrees",
+      "anchor": ["case: auto: NavigationTemplateMapperTest a known exit ordinal selects a number-bearing maneuver type"]
+    },
+    {
+      "key": "accuracy#attribute",
+      "definition": "The radius the platform reports a position might be wrong by.",
+      "not": "not the distance to the next step, which is measured along the route",
+      "surfaces": { "property": "accuracy" },
+      "unit": "meters",
+      "anchor": ["case: app: LocationMarkerOverlayPaletteTest theDrawnAccuracyRingChangesWithThePresentation,"]
+    },
+    {
+      "key": "gesture#operation",
+      "definition": "A touch sequence a person makes on the map canvas, recognised as one intent.",
+      "not": "not a key or a car-host command, which arrives from outside the canvas",
+      "surfaces": { "operation": "gesture" },
+      "anchor": ["case: app: MapGestureComposeTest twoTapsInsideTheDoubleTapWindowReportOneDoubleTap"]
+    },
+    {
+      "key": "magnification#attribute",
+      "definition": "How far the map is zoomed in, as the factor the projection is computed at.",
+      "not": "not the number of times a person tapped",
+      "surfaces": { "property": "magnification" },
+      "unit": "factor",
+      "anchor": ["rule: The viewport keeps the FINAL magnification while the display walks."]
+    }
+  ]
+}

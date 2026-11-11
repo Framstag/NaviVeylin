@@ -1,0 +1,13 @@
+{
+  "profile": 1,
+  "comment": "The share feature's words.",
+  "rows": [
+    {
+      "key": "share#operation",
+      "definition": "To hand a place or a route to another app on the device, so it opens there.",
+      "not": "not a link inside a contact, which the app opens itself",
+      "surfaces": { "operation": "share" },
+      "anchor": ["case: auto: ManeuverGlyphsTest the car hint icon uses the shared exit symbol"]
+    }
+  ]
+}

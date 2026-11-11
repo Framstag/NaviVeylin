@@ -1,0 +1,118 @@
+{
+  "comment": "The revert-check of `domain-vocabulary`'s fourteen refusals (change `domain-vocabulary-is-declared`, task 7.1): one mutation per refusal word, each removing the guard that raises it and naming the case that must fail when it is gone. Run it with `bash tools/mutate.sh --mutations tools/tests/check-glossary-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite. Every search is one line, unique in `tools/check-glossary.sh`, because the runner's replacement is literal and line-based; the file is restored byte for byte afterwards.",
+  "case-cmd": "bash tools/tests/check-glossary-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "phantom",
+      "case": "glossary#aSurfaceTheCensusNeverObservesIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "      emit 1 phantom \"$key\" \"$where\" \"the declared $role surface '$name' is observed nowhere in the census\"",
+      "replace": "      :",
+      "why": "a declared surface the census never observes is refused, so a word the code does not carry cannot be declared into existence"
+    },
+    {
+      "label": "drift",
+      "case": "glossary#aForbiddenFormInItsRoleIsDrift",
+      "file": "tools/check-glossary.sh",
+      "search": "        emit 1 drift \"$key\" \"$dline\" \"declared=$name observed=$form in the $role role, which the row forbids\"",
+      "replace": "        :",
+      "why": "a forbidden form observed in the role it is forbidden in is a finding naming the file and the line, so a rename cannot leave the old spelling behind unremarked"
+    },
+    {
+      "label": "undecided",
+      "case": "glossary#aSplitWithNoDeclarationIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "          emit 1 undecided \"$key\" \"$where\" \"the token is observed as $topform $topcount and $(printf '%s' \"$second\" | cut -f3) $(printf '%s' \"$second\" | cut -f4) in the $role role, and the row declares no canonical form\"",
+      "replace": "          :",
+      "why": "a spelling the code splits evenly is refused until a canonical form is declared, because no majority can settle it"
+    },
+    {
+      "label": "overruled",
+      "case": "glossary#anOverruledDeclarationIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "            emit 1 overruled \"$key\" \"$where\" \"declared=$canonical($ccount) observed=$topform($topcount), a majority the declaration contradicts\"",
+      "replace": "            :",
+      "why": "a declared form a ten-to-one majority of the code contradicts is refused, with both counts on the line"
+    },
+    {
+      "label": "kind-mismatch",
+      "case": "glossary#aDeclaredKindWithNoSurfaceIsARefusal",
+      "file": "tools/check-glossary.sh",
+      "search": "      emit 1 kind-mismatch \"$key\" \"$where\" \"kind '$kind' demands a '$expected_role' surface; the row declares ${surfaces_text:-none}\"",
+      "replace": "      :",
+      "why": "a row's kind decides the grammatical role it must declare a surface in, so a value declaring only an operation is refused"
+    },
+    {
+      "label": "unit-missing",
+      "case": "glossary#aPhysicalAttributeWithoutUnitIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "    emit 1 unit-missing \"$key\" \"$where\" \"the attribute declares no unit, so its quantity has no scale\"",
+      "replace": "    :",
+      "why": "an attribute carrying a physical quantity names its unit, so a bare number cannot be declared as a distance or a speed"
+    },
+    {
+      "label": "bool-prefix",
+      "case": "glossary#aBareBooleanIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "        *) emit 1 bool-prefix \"$key\" \"$where\" \"the boolean surface '$name' carries no prefix; accepted: $(paste -sd, \"$tmp/boolprefixes.txt\")\" ;;",
+      "replace": "        *) : ;;",
+      "why": "a declared boolean surface carries is/has/can, so a flag reads as a question rather than as a noun"
+    },
+    {
+      "label": "unanchored",
+      "case": "glossary#anUnanchoredRowIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "    emit 1 unanchored \"$key\" \"$where\" \"the row carries neither a case nor a rule anchor; looked in openspec/specs/**/spec.md and guidelines/*.md\"",
+      "replace": "    :",
+      "why": "a row carrying neither a case nor a named rule is refused where it is written, so a definition no proof stands behind never enters the tree"
+    },
+    {
+      "label": "twin-term",
+      "case": "glossary#twoRowsWithoutAnExclusionAreRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "          printf \"1\\ttwin-term\\t%s\\trow:%d\\t%s and %s are both kind %s and exclude the same nothing\\n\", key[i], i, key[i], key[j], kind[i]",
+      "replace": "          :",
+      "why": "two rows of one kind that exclude neither each other nor anything else are one word written twice"
+    },
+    {
+      "label": "lopsided-exclusion",
+      "case": "glossary#aOneSidedExclusionIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "            printf \"1\\tlopsided-exclusion\\t%s\\trow:%d\\t%s names %s and %s does not name %s\\n\", key[i], i, key[i], key[j], key[j], key[i]",
+      "replace": "            :",
+      "why": "an exclusion is mutual, so row A naming row B while B does not name A is refused naming both rows"
+    },
+    {
+      "label": "unowned-term",
+      "case": "glossary#aGlobalTermIsHomedInConcept",
+      "file": "tools/check-glossary.sh",
+      "search": "    emit 1 unowned-term \"$key\" \"$where\" \"the row is declared global (a concept file) and homed '$home'; a global term's home kind is concept\"",
+      "replace": "    :",
+      "why": "a global word's home kind is concept, so a feature word cannot be declared app-wide however many features use it"
+    },
+    {
+      "label": "misplaced-term",
+      "case": "glossary#aTermInANonCoiningKindIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "            emit 1 misplaced-term \"$key\" \"${where2}\" \"the declared term is declared in a '$pkgkind' package ($pkgname); only concept and feature/<name> coin a term\"",
+      "replace": "            :",
+      "why": "only a coining kind declares a term, so a declared word whose type sits in a port, platform or shell package is reported"
+    },
+    {
+      "label": "bad-name",
+      "case": "glossary#aVacuousSuffixIsRefusedInACoiningKind",
+      "file": "tools/check-glossary.sh",
+      "search": "          emit 1 bad-name \"$key\" \"$where\" \"the declared type '$name' carries the suffix $suffix in kind '$home': $reason\"",
+      "replace": "          :",
+      "why": "a vacuous suffix from the declared lexicon is refused in a coining kind, naming the type, the suffix and the lexicon's reason"
+    },
+    {
+      "label": "undeclared-context",
+      "case": "glossary#anUndeclaredScopeIsRefused",
+      "file": "tools/check-glossary.sh",
+      "search": "      emit 1 undeclared-context \"$key\" \"$where\" \"scope '$scope' is not a feature architecture/structure.tsv declares\"",
+      "replace": "      :",
+      "why": "a row's scope names a feature the structure declaration carries, so the glossary cannot invent a context of its own"
+    }
+  ]
+}

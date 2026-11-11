@@ -197,7 +197,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
           SENSORS_SINCE: ${{ steps.record.outputs.since }}
-        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend,libosmscout-lag "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend,libosmscout-lag,vocabulary-drift "$SENSORS_MODE"
 
       # The scan's row, and only for a commit whose scan has finished: the scan is a pipeline of its own, so
       # its record exists minutes after the build's, and a tick that read too early would report a failed check

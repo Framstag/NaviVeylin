@@ -22,6 +22,8 @@ the same change; the supersession itself is recorded in `guidelines/Design.why.m
 
 ## 1. Module layering
 
+- **Rule: placement is declared in `architecture/structure.tsv`, a word's meaning in `tools/glossary/`** **MUST**: which kind a package is, and which imports that kind's rules allow, is the structure declaration (change `package-structure-as-five-kinds`); what one of the domain's words means and how it is spelt is the glossary (`guidelines/Glossary.md`, change `domain-vocabulary-is-declared`). The bullets below state the behaviour this layering makes possible; none of them restates a placement.
+
 - **Rule: only `:app` touches the JNI layer and Android context-bound storage** **MUST**: `:app` is the only module that touches the JNI layer and Android
   context-bound storage.
 - **Rule: `:core` holds the shared, Android-lean logic both variants use** `:core` = shared, Android-lean logic used by both `:app` and `:auto`

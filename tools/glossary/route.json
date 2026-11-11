@@ -1,0 +1,56 @@
+{
+  "profile": 1,
+  "comment": "The route feature's words — the plan itself, its steps and the geometry they are drawn along.",
+  "rows": [
+    {
+      "key": "route#entity",
+      "definition": "The ordered plan from one place to another, with the legs and instructions a person follows.",
+      "not": "not the track, which is where the device has actually been",
+      "surfaces": { "type": "Route" },
+      "anchor": ["case: app(device): RouteStepLiveGuidanceDeviceTest a route change publishes the full step list"]
+    },
+    {
+      "key": "step#entity",
+      "definition": "One instruction and the stretch of road it is valid for.",
+      "not": "not a maneuver alone, which names the action without the stretch",
+      "surfaces": { "type": "Step" },
+      "anchor": ["case: app(device): RouteStepLiveGuidanceDeviceTest the next-next hint is a nested step"]
+    },
+    {
+      "key": "leg#entity",
+      "definition": "One uninterrupted stretch between two instructions, with its own distance.",
+      "not": "not the whole route, which is every leg",
+      "surfaces": { "type": "Leg" },
+      "anchor": ["case: auto: RouteDescriptionScreenTest a row's distance is its own leg"]
+    },
+    {
+      "key": "polyline#entity",
+      "definition": "The path the route follows, as the ordered points a surface draws through.",
+      "not": "not a track, which is recorded rather than planned",
+      "surfaces": { "type": "Polyline" },
+      "anchor": ["case: app: RouteRowDerivationTest rows tile the polyline without a gap or an overlap"]
+    },
+    {
+      "key": "exit#entity",
+      "definition": "The numbered way off a road that the next instruction names.",
+      "not": "not a roundabout arm, which carries an ordinal instead of an exit number",
+      "surfaces": { "type": "Exit" },
+      "anchor": ["case: auto: RouteDescriptionScreenTest a roundabout exit row shows its exit number"]
+    },
+    {
+      "key": "motorway#entity",
+      "definition": "A road the route enters and leaves by slip roads rather than by crossing a junction.",
+      "not": "not a grade-separated interchange the route crosses through its arms",
+      "surfaces": { "type": "Motorway" },
+      "anchor": ["case: app: RoutePanelLocalizedRowsTest roundabout and motorway manoeuvres appear in the list"]
+    },
+    {
+      "key": "ordinal#attribute",
+      "definition": "Which arm of a roundabout, counted from where the route enters, the instruction takes.",
+      "not": "not the exit number a motorway junction carries",
+      "surfaces": { "property": "ordinal" },
+      "unit": "count",
+      "anchor": ["case: app(device): RouteStepModelBridgeTest a roundabout leave step carries ordinal and direction"]
+    }
+  ]
+}

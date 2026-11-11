@@ -1,0 +1,14 @@
+{
+  "profile": 1,
+  "comment": "The favourites feature's words. The scope is `favourites` because architecture/structure.tsv says so; the word is `favorite`, the spelling the code writes 736 times against `favourite` not at all — the declaration is the one place that spelling is decided (issue #839's second face). The row is the verb because the noun the code declares under that name is a screen in the car module, and a word a screen names is the screen's, not the term's.",
+  "rows": [
+    {
+      "key": "favourites/favorite#operation",
+      "definition": "To keep a place or a search result so it can be opened again without typing it.",
+      "not": "not to navigate to it, which the route feature does",
+      "surfaces": { "operation": "favorite" },
+      "canonical": "favorite",
+      "anchor": ["rule: both favourites levels are browse-and-select only."]
+    }
+  ]
+}

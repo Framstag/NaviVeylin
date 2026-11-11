@@ -185,6 +185,19 @@
       "fingerprint": { "fields": ["kind"] }
     },
     {
+      "id": "vocabulary-drift",
+      "cmd": "tools/sensors/metrics/vocabulary-drift.sh",
+      "cron": "0 8 * * *",
+      "threshold": 0,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "maxFilings": 2,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["refusal"] }
+    },
+    {
       "id": "metadata-invariant",
       "cmd": "tools/sensors/metrics/metadata-invariant.sh",
       "cron": "0 9 * * *",

@@ -32,6 +32,11 @@ data class DeepLinkDestination(
  * - [None] — the payload is not a link and carries no location.
  */
 sealed interface DeepLinkResult {
+    /**
+     * The place a route ends at, as the plan names it rather than as a coordinate.
+     *
+     * declared by destination#entity; edit the declaration, not this block.
+     */
     data class Destination(val destination: DeepLinkDestination) : DeepLinkResult
     data object UnusableLink : DeepLinkResult
     data object None : DeepLinkResult

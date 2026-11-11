@@ -1,0 +1,63 @@
+{
+  "profile": 1,
+  "comment": "The app-wide words — home kind `concept`, the only global scope (`domain-vocabulary`, \"The concept kind is the only global scope\"). A word here belongs to no feature and is read by all of them.",
+  "rows": [
+    {
+      "key": "diagnostics#entity",
+      "definition": "The record of what the app did, written so a person can reconstruct a session it was not watching.",
+      "not": "not a log line of the build or the test run",
+      "surfaces": { "type": "Diagnostics" },
+      "anchor": ["rule: a log or diagnostics line never carries a coordinate."]
+    },
+    {
+      "key": "settings#entity",
+      "definition": "The one stored document a person's choices survive a restart in.",
+      "not": "not a preference the running process holds only in memory",
+      "surfaces": { "type": "Settings" },
+      "anchor": ["rule: settings persist as one `@Serializable` JSON, fields defaulted and decoded leniently"]
+    },
+    {
+      "key": "locale#value",
+      "definition": "The language and number conventions a rendered text is written for.",
+      "not": "not the language the app's own resources are authored in",
+      "surfaces": { "type": "Locale" },
+      "anchor": ["rule: every user-facing number and coordinate formatter takes an explicit locale."]
+    },
+    {
+      "key": "location#entity",
+      "definition": "The device's own position, as the platform reports it.",
+      "not": "not a place a person typed or a search returned",
+      "surfaces": { "type": "Location" },
+      "anchor": ["rule: location and diagnostics are personal data, so the developer is the controller and each live regime's duties bind."]
+    },
+    {
+      "key": "theme#entity",
+      "definition": "The one set of colours and type a surface draws its chrome with, per presentation.",
+      "not": "not a palette a map layer borrows for its content",
+      "surfaces": { "type": "Theme" },
+      "anchor": ["rule: status colors live outside the theme."]
+    },
+    {
+      "key": "version#entity",
+      "definition": "The identity a build presents to the platform and to the store.",
+      "not": "not the basemap's data version, which is one map's own",
+      "surfaces": { "type": "Version" },
+      "anchor": ["rule: the version is an input."]
+    },
+    {
+      "key": "timestamp#value",
+      "definition": "The moment a record was written, as the clock reported it.",
+      "not": "not the counter that says the data was replaced",
+      "surfaces": { "type": "Timestamp" },
+      "anchor": ["case: NotificationHostSendLoggingTest.aPostIsRecordedWithItsContentAndTimestamp"]
+    },
+    {
+      "key": "duration#attribute",
+      "definition": "How long something took, as one measured span rather than a count of steps.",
+      "not": "not the distance the same step covers",
+      "surfaces": { "property": "duration" },
+      "unit": "milliseconds",
+      "anchor": ["case: report#aStreamWithoutDurationsPrintsDash"]
+    }
+  ]
+}

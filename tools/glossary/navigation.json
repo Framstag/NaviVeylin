@@ -1,0 +1,64 @@
+{
+  "profile": 1,
+  "comment": "The navigation feature's words — what a running guidance session tells a person, step by step.",
+  "rows": [
+    {
+      "key": "guidance#entity",
+      "definition": "A session that follows a route and tells a person what to do next.",
+      "not": "not a route plan, which exists before anyone drives it",
+      "surfaces": { "type": "Guidance" },
+      "anchor": ["case: app(device): RouteStepLiveGuidanceDeviceTest"]
+    },
+    {
+      "key": "maneuver#entity",
+      "definition": "One instruction in a route, with the road shape that instruction expects.",
+      "not": "not a step, which is the position in the list the instruction is issued from",
+      "surfaces": { "type": "Maneuver" },
+      "anchor": ["case: auto: ManeuverGlyphsTest"]
+    },
+    {
+      "key": "arrival#entity",
+      "definition": "The end of the route, and the moment guidance stops.",
+      "not": "not a waypoint the route passes through",
+      "surfaces": { "type": "Arrival" },
+      "anchor": ["rule: NAVIGATION content is destination, manoeuvre, distance, arrival and the stop action."]
+    },
+    {
+      "key": "distance#attribute",
+      "definition": "How far a person still has to travel along the route to the next instruction or the end.",
+      "not": "not the distance as the crow flies to the same point",
+      "surfaces": { "property": "distance" },
+      "unit": "meters",
+      "anchor": ["case: app: NavigationNotificationContentFormatterTest zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown"]
+    },
+    {
+      "key": "notification#entity",
+      "definition": "The system surface that carries one guidance instruction while the app is not drawn.",
+      "not": "not the diagnostics record, which is written for the developer",
+      "surfaces": { "type": "Notification" },
+      "anchor": ["case: app: NavigationNotificationBuilderTest"]
+    },
+    {
+      "key": "destination#entity",
+      "definition": "The place a route ends at, as the plan names it rather than as a coordinate.",
+      "not": "not a place the plan merely passes through",
+      "surfaces": { "type": "Destination" },
+      "anchor": ["rule: NAVIGATION content is destination, manoeuvre, distance, arrival and the stop action."]
+    },
+    {
+      "key": "glyph#entity",
+      "definition": "The small drawn symbol that stands for one instruction's road shape.",
+      "not": "not the text of the instruction it illustrates",
+      "surfaces": { "type": "Glyph" },
+      "anchor": ["case: auto: ManeuverGlyphsTest"]
+    },
+    {
+      "key": "speed#attribute",
+      "definition": "How fast the followed position moves, as the source that owns it reports.",
+      "not": "not the speed a map surface estimates, which is its own figure",
+      "surfaces": { "property": "speed" },
+      "unit": "metersPerSecond",
+      "anchor": ["case: app: AutoZoomSpeedSourceTest.navigationUsesEngineSpeed"]
+    }
+  ]
+}

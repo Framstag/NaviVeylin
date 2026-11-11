@@ -1056,6 +1056,7 @@
       ],
       "rules": [
         "Design.md §1 \"only `:app` touches the JNI layer and Android context-bound storage\"",
+        "Design.md §1 \"placement is declared in `architecture/structure.tsv`, a word's meaning in `tools/glossary/`\"",
         "Design.md §1 \"`:core` holds the shared, Android-lean logic both variants use\"",
         "Design.md §1 \"a shared behaviour lives once, in `:core` beside the state it reads\"",
         "Design.md §1 \"`:auto` consumes app functionality through `:core` provider interfaces\"",
@@ -1245,6 +1246,63 @@
         "Regulatory.md §9 \"a source-level privacy gate carries one rule per delivery shape, not one per field name.\"",
         "Regulatory.md §9 \"the exported diagnostics text and both viewers lead with the disclosure of what the file holds and its retention window.\"",
         "Regulatory.md §9 \"the car render entry carries the committed frame's magnification, the projection DPI and the bitmap size, and no centre.\""
+      ]
+    },
+    {
+      "glob": "guidelines/Glossary.*",
+      "sections": [
+        "Glossary.md §1",
+        "Glossary.md §2",
+        "Glossary.md §3",
+        "Glossary.md §4",
+        "Glossary.md §5",
+        "Glossary.md §6",
+        "Glossary.md §7"
+      ],
+      "rules": [
+        "Glossary.md §1 \"the vocabulary classifies nothing and names no rule.\"",
+        "Glossary.md §2 \"one key is one term in one role, and no two rows share a key.\"",
+        "Glossary.md §2 \"a row declares one surface per role it occupies, with the forms forbidden in that role.\"",
+        "Glossary.md §2 \"a physical quantity names its unit, and a boolean carries `is`/`has`/`can`.\"",
+        "Glossary.md §3 \"an anchor resolves, or the row does not exist.\"",
+        "Glossary.md §3 \"a definition excludes its neighbours, and the exclusion is mutual.\"",
+        "Glossary.md §4 \"a global term is homed in `concept`, and a scope names a feature the structure declaration carries.\"",
+        "Glossary.md §4 \"only a coining kind declares a term.\"",
+        "Glossary.md §5 \"a refusal is one line naming the row's key, the file and line a surface was found on, the artefact the finding was decided against, and exactly one refusal word.\"",
+        "Glossary.md §5 \"the declaration settles a split spelling, and the code settles a majority.\"",
+        "Glossary.md §6 \"the projection is additive.\"",
+        "Glossary.md §6 \"`--check` fails instead of writing.\"",
+        "Glossary.md §7 \"the bound and the identity are the row's, and the class escalates to a person.\""
+      ]
+    },
+    {
+      "glob": "tools/glossary/**",
+      "sections": [
+        "Glossary.md §1",
+        "Glossary.md §2",
+        "Glossary.md §5",
+        "Glossary.md §6"
+      ]
+    },
+    {
+      "glob": "tools/check-glossary*",
+      "sections": [
+        "Glossary.md §1",
+        "Glossary.md §3",
+        "Glossary.md §4",
+        "Glossary.md §5"
+      ]
+    },
+    {
+      "glob": "tools/gen-glossary*",
+      "sections": [
+        "Glossary.md §6"
+      ]
+    },
+    {
+      "glob": "tools/sensors/metrics/vocabulary-drift.sh",
+      "sections": [
+        "Glossary.md §7"
       ]
     }
   ]

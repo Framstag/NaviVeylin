@@ -1,0 +1,27 @@
+{
+  "profile": 1,
+  "comment": "The search feature's words — what a person asks for, and what comes back.",
+  "rows": [
+    {
+      "key": "search#entity",
+      "definition": "A question a person asks the app for places, addressed by text rather than by map position.",
+      "not": "not a browse, which moves the map without asking for a place",
+      "surfaces": { "type": "Search" },
+      "anchor": ["case: auto: SearchScreenTest.aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter"]
+    },
+    {
+      "key": "query#entity",
+      "definition": "The text and filters one search is issued with.",
+      "not": "not the results the query returns",
+      "surfaces": { "type": "Query" },
+      "anchor": ["rule: a typed Places query also searches favorites."]
+    },
+    {
+      "key": "history#entity",
+      "definition": "The searches a person issued before, kept in the order they ran.",
+      "not": "not a favorite, which a person chose to keep",
+      "surfaces": { "type": "History" },
+      "anchor": ["case: auto: SearchHistoryScreenTest.theSearchHistoryListFitsTheHostsCapacity"]
+    }
+  ]
+}

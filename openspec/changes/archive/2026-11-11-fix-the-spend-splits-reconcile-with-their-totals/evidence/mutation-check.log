@@ -1,0 +1,3 @@
+loop-mutations: selected 59 of 329 records (files: tools/loop/state.sh tools/loop/report.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.OhyDE4
+loop-mutations: all 59 cases passed — every selected record applies to the file it names

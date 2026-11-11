@@ -1,0 +1,6 @@
+2026-11-11T08:58:35Z
+bash -n tools/loop/state.sh: clean
+bash -n tools/loop/report.sh: clean
+bash -n tools/loop/tests/loop-cases.sh: clean
+bash -n tools/loop/tests/loop-mutations.sh: clean
+structural check only: this delta compiles nothing — two shell readers, one cases file, one mutation record file, one guideline paragraph, one spec delta

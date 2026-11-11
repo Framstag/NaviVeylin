@@ -1,0 +1,19 @@
+=== 2026-11-11T08:45:03Z item 738 events through the change
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 10 · max-review-rounds 2 · base abd97ac05861
+state: bounds result 8000 · context warn 143124 · context max 200000
+state: deadline 2026-11-11T10:15:03Z
+recorded done (#738 closed)
+=== the item's own record
+{"tokens":5988239,"roles":{"reviewer":3677074,"tail":null,"unattributed":2311165,"worker":null},"phases":{"gateMs":0,"modelMs":430893,"otherMs":19490},"wallSeconds":1481.599}
+=== the trend
+trend — this run's own items; no rate is green or red in one run:
+  review: - · no round of this run ended in a verdict · 0 undecided · 1 never reviewed
+  waived: 0 of 1 closed items · no close was over a gate that did not pass
+  wall:   median 1482 s (min 1482, max 1482) · 1 items
+  calls:  1.29 calls per turn (115 calls / 89 turns) · none below the recorded floor of 1.05 per turn
+  reads:  6 of 22 file reads were a second read of a path the session already had (27 %) · 24078 chars in the repeat results · 0 chars of them withheld by the repeat rule · worst #738 6 of 22
+  phases: model 430.9 s · other 19.5 s · 450.4 s over 1 item, 30 % of the 1481.6 s of item wall — 1031.2 s of it in neither a turn nor a tool
+  roles:  reviewer (minimax-m3.1-flash) 3.7 Mtok · unattributed (mimo-v2.6-flash) 2.3 Mtok · 6 Mtok over 1 item
+  after the first gate: - · no item of this run ran a gate in its stream
+  truncated: 1 of 1 items is a lower bound — 138 turns dropped and 8 MiB removed by the 1 rotated stream · #738 138
+  landings: - · no item of this run landed

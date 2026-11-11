@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 329 records (labels: 832.1 832.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.pvDcoR
+RED    832.1  report#aTurnNoSessionRecordReachesIsItsOwnBucket   (the bucket the turns no session record reaches are counted in, so the spend is in the item total and in no bucket of the split (issue #832))
+       2026-11-11T08:58:19Z — the turns no session record reaches are a bucket of their own: expected '2000000', got 'null'
+restore 832.1 report#aTurnNoSessionRecordReachesIsItsOwnBucket green again
+RED    832.2  report#thePhaseLineNamesTheClockItIsAShareOf   (the share of the item clock the three phase buckets are, so the line prints their total as if it were the run (issue #832))
+       2026-11-11T08:58:23Z — the phase line names the item clock the three buckets are a share of, and what they leave out: 'model 1 s · other 0.3 s · 1.3 s over 1 item, 3 % of the 42 s of item wall — 40.7 s of it in neither a turn nor a tool' not found in:   phases: m
+restore 832.2 report#thePhaseLineNamesTheClockItIsAShareOf green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

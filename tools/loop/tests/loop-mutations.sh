@@ -98,7 +98,7 @@ fi
 MUTATIONS=(
   '9.1@-@tools/loop/state.sh@state#secondRunRefusesWithExit5@the lock that keeps one run per repository@s|^  if ! mkdir "$LOCK_FILE" 2>/dev/null; then|  if false; then|'
   '9.2@-@tools/loop/worktree.sh@worktree#refusesWhenMainAdvanced@the stale-base refusal@s|^  if \[ "$current" != "$base" \]; then|  if false; then|'
-  '9.3@writes@tools/loop/run.sh@labels#writesOnlyBetweenChildren@one writer per tree: the child runs while the wrapper writes state@s|^  run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$item_dir/worker-prompt.md" ) > "$item_dir/worker-report.md" 2>\&1 \&\n  worker_pid=$!\n  ( while kill -0 "$worker_pid" 2>/dev/null; do bash "$LOOP_DIR/state.sh" step A --name during-child --status running >/dev/null 2>\&1; sleep 0.02; done ) \&\n  wait "$worker_pid"|'
+  '9.3@writes@tools/loop/run.sh@labels#writesOnlyBetweenChildren@one writer per tree: the child runs while the wrapper writes state@s|^  run_child "$item_dir/worker-prompt.md" "$worker_report"$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$item_dir/worker-prompt.md" ) > "$worker_report" 2>\&1 \&\n  worker_pid=$!\n  ( while kill -0 "$worker_pid" 2>/dev/null; do bash "$LOOP_DIR/state.sh" step A --name during-child --status running >/dev/null 2>\&1; sleep 0.02; done ) \&\n  wait "$worker_pid"|'
   '9.4@-@tools/loop/run.sh@labels#trapRemovesInProgressOnSignal@the signal trap that removes the in-progress label@s|^      loop_labels unpick "$in_progress" >&2 \|\| true$|      : # the mutation keeps the in-progress label|'
   '9.5@-@tools/loop/run.sh@run#childClaimWithoutCommitIsBlocked@the run verifying instead of trusting the child@s|^  elif \[ "\$last_exit" -ne 0 \]; then|  elif false; then|;;s|^  elif \[ "\$verdict_claim" = "skipped" \]; then|  elif false; then|;;s|^  elif \[ "\$head_now" = "\$base" \]; then|  elif false; then|;;s|^  elif \[ -z "\$change" \]; then|  elif false; then|;;s|^  elif \[ -n "\$LOOP_GATE_CMD" \] && \[ "\$gate_found" -eq 0 \]; then|  elif false; then|;;s|^  elif \[ "\$cited_evidence" -eq 1 \] && \[ "\$carried" -eq 0 \]; then|  elif false; then|'
   '9.6@-@tools/loop/run.sh@run#decisionCapRefusesToStart@the decision cap that stops a run@s|^if \[ "${open_decisions:-0}" -ge "$max_decisions" \]; then|if false; then|'
@@ -1147,6 +1147,14 @@ MUTATIONS=(
   # already names the item (`275.2`).
   '275.1@-@tools/loop/report.sh@report#aCutItemIsNamedOnceAndItsKeptWorkWithIt@the guard that keeps a bound cut off the recovery line, so one item is listed twice and the second line names a clock that did not end it (issue #850)@s#select(.result != "cut") | select((.leftover // "") != "")#select((.leftover // "") != "")#'
   '275.2@-@tools/loop/report.sh@report#aCutItemIsNamedOnceAndItsKeptWorkWithIt@the path of the work a bound-ended child left, carried on the resume line, so the one line that names the item leaves the caller without the patch it kept (issue #850)@s#(.note // ""), (.leftover // "")#(.note // ""), ""#'
+  # 276.x — a child the context bound ended is continued by the run that cut it (issue #851). The run of
+  # 2026-11-11T11:37:08Z cut #847 at 200 174 tokens and #839 at 200 869, kept 1 010 460 B and 1 323 610 B in their own
+  # patches — 44 % of its spend, closing nothing — stopped 435 min before its deadline with both in hand, and the next
+  # run applied neither (2 of 2, `outcome: no-apply`). Two rules, one case each: the continuation itself (`276.1`), and
+  # the reading it needs — a child's own lines rather than the whole stream it shares (`276.2`), without which the
+  # continuation is ended on its first reading by the number that ended the child before it.
+  '276.1@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the block that continues an item its own context bound cut, so the work is handed to the next run as a patch whose base has moved (issue #851)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] && child_ended_by_context_bound "\$worker_report"; then$|  if false; then|'
+  '276.2@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the baseline that makes the context bound the child'"'"'s own reading, so a fresh session inherits the number that ended the child before it and the continuation is cut on its first reading (issue #851)@s|^  if \[ -f "\${LOOP_CHILD_EVENTS:-}" \]; then ctx_lines=.*$|  ctx_lines=0|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

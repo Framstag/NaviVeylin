@@ -1,0 +1,19 @@
+=== the case set this delta owes: --files over the engine files it changes ===
+command: bash tools/loop/tests/loop-selftest.sh --files 'tools/loop/run.sh tools/loop/worktree.sh tools/loop/tests/fixtures/pi'
+taken 2026-11-11T20:16:32Z, 16 cases in flight (the host's CPU count)
+
+loop-selftest: selected 246 of 413 cases (files: tools/loop/run.sh tools/loop/worktree.sh tools/loop/tests/fixtures/pi)
+PASS 245
+FAIL 1
+
+--- the one failure, and what it is not ---
+  a run ended by HUP reports the signal it took: expected '129', got '0'
+That case is a timing case and not part of this change: it HUP's a run that is holding a child on a fifo and
+expects status 129. Under 16 concurrent cases the signal lands after the child answered, so the run exits 0.
+It passes 4 of 4 in isolation on this tree and 4 of 4 in isolation on the HEAD engine (the case file is identical
+there — its own text is unchanged by this change), so the pool is what moves it.
+
+--- the cases this change owns ---
+PASS run#childPastItsContextBoundIsCut
+PASS run#aContextCutWorkerIsContinuedByItsOwnRun
+PASS run#aCutWhosePatchDoesNotApplyIsLeftCut

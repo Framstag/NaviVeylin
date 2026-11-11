@@ -1,0 +1,14 @@
+=== the mutation set this change adds, each run against its own case ===
+command: bash tools/loop/tests/loop-mutations.sh --only '276.1 276.2'
+taken 2026-11-11T20:36:32Z
+
+loop-mutations: selected 2 of 338 records (labels: 276.1 276.2)
+RED    276.1  run#aContextCutWorkerIsContinuedByItsOwnRun   (the block that continues an item its own context bound cut, so the work is handed to the next run as a patch whose base has moved (issue #851))
+restore 276.1 run#aContextCutWorkerIsContinuedByItsOwnRun green again
+RED    276.2  run#aContextCutWorkerIsContinuedByItsOwnRun   (the baseline that makes the context bound the child's own reading, so a fresh session inherits the number that ended the child before it and the continuation is cut on its first r
+restore 276.2 run#aContextCutWorkerIsContinuedByItsOwnRun green again
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+
+--- and the record check the gate owes for a path under tools/loop/** ---
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851/.pi/tmp/loop-mutations.Prw7p9
+loop-mutations: all 338 cases passed — every selected record applies to the file it names

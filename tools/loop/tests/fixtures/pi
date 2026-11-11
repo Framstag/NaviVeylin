@@ -16,8 +16,10 @@
 #   PI_STUB_REPORT_WORKER / PI_STUB_REPORT_REVIEWER / PI_STUB_REPORT_TAIL / PI_STUB_REPORT_GATE override it per role.
 #                      The tail child is the one the run starts after the gate (issue #744), and the one that writes the
 #                      item's verdict; the gate child is the one the run defers the gate to (issue #758), and the one
-#                      that prints the gate line. Both are roles of their own because a case stages their answers
-#                      differently from the change child's.
+#                      that prints the gate line; the continuation is the worker's second process, started by the run
+#                      that cut its first one at the context bound (issue #851), and a case that stages it reads
+#                      *which* child's answer ended the item. All four are roles of their own because a case stages
+#                      their answers differently from the change child's.
 #   PI_STUB_EVENTS     a JSONL fixture the stub prints on stdout *before* its report — the child's own event
 #                      stream, which the adapter keeps and the run records (issue #211). A real child emits it
 #                      because it is started in event mode; printing it here is the same wire without a model.
@@ -142,6 +144,7 @@ fi
 report="${PI_STUB_REPORT:-}"
 case "${prompt##*/}" in
   *-tail*) report="${PI_STUB_REPORT_TAIL:-${PI_STUB_REPORT_WORKER:-$report}}" ;;
+  *continuation*) report="${PI_STUB_REPORT_CONTINUATION:-${PI_STUB_REPORT_WORKER:-$report}}" ;;
   worker-gate*) report="${PI_STUB_REPORT_GATE:-${PI_STUB_REPORT_WORKER:-$report}}" ;;
   worker*) [ -n "${PI_STUB_REPORT_WORKER:-}" ] && report="$PI_STUB_REPORT_WORKER" ;;
   reviewer*) [ -n "${PI_STUB_REPORT_REVIEWER:-}" ] && report="$PI_STUB_REPORT_REVIEWER" ;;

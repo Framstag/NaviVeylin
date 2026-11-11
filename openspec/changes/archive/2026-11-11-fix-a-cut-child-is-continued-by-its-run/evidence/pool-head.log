@@ -1,0 +1,213 @@
+PASS run#aShapingVerdictWritesTheLabel
+PASS run#aVerdictOutsideTheListWritesNoLabel
+PASS run#aChangeWhosePremiseMovedIsNotRePlanned
+PASS run#aForkTheChangeDoesNotAnswerIsNamed
+PASS run#aTierBItemWritesNoSecondChange
+PASS run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen
+PASS run#aDirtyProjectTreeIsRefusedBeforeThePreScreen
+PASS run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames
+PASS run#aFailedPreScreenRecordsItsStopReason
+PASS run#anUnreadableItemIsNotTheEndOfTheRun
+PASS run#anEmptyTreeIsRefusedBeforeTheGateChild
+PASS run#aFailedEscalationWriteIsNamed
+PASS run#aVanishedWriterEndsTheWait
+PASS run#aFailedUnpickIsNamed
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#aSlowChildIsNotMistakenForAVanishedWriter
+PASS run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+PASS run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart
+PASS run#anEmptyAnswerOverACommitIsTheChangePhasesFailure
+PASS run#aHostWithoutThePlacementReadingIsRefused
+PASS run#aChildThatNeverStartedIsRetriedBeforeTheRunStops
+PASS run#aPhaseThatAnswersNothingIsThatPhasesFailure
+PASS run#aChildIsGivenOneScratchDirectory
+PASS run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#aMergedBranchIsRemoved
+PASS run#announcesAndRecordsTheReviewRound
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+PASS run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+PASS run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn
+PASS run#aZeroRoundBudgetIsRefused
+PASS run#aRetriedStartStopsWithItsOwnReason
+PASS run#aSkipClearsTheInProgressMark
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aCorrectiveRoundIsHandedTheCorrections
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+PASS run#aFencedClosingBlockIsACompleteAnswer
+PASS run#aRedGateIsBlockedByTheTail
+PASS run#aBlockedItemRecordsTheRoundThatReadIt
+PASS run#awaitingDecisionIsNotEscalatedAgain
+PASS run#aReviewDiffNamesTheTreeItWasWrittenFrom
+PASS run#aRotatedStreamStillCountsTheTurnsItDropped
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+run#aContextCutWorkerIsContinuedByItsOwnRun|   the run cut the worker at the context bound and started no continuation from the work it kept: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 item-context-bounds=worker:200000,worker-gate:200000,worker-tail:200000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:200000 min-free-mib=1024 free-mib=6362 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+run#aContextCutWorkerIsContinuedByItsOwnRun| run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop
+run#aContextCutWorkerIsContinuedByItsOwnRun| lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/lock (owner 1738133)
+run#aContextCutWorkerIsContinuedByItsOwnRun| state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base e543ef3cc7ca
+run#aContextCutWorkerIsContinuedByItsOwnRun| state: bounds result 8000 · context warn 143124 · context max 200000
+run#aContextCutWorkerIsContinuedByItsOwnRun| state: deadline 2026-11-11T22:03:27Z
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: pre-screen · 1s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/prescreen.log
+run#aContextCutWorkerIsContinuedByItsOwnRun| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#aContextCutWorkerIsContinuedByItsOwnRun|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+run#aContextCutWorkerIsContinuedByItsOwnRun| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261111-203329')
+run#aContextCutWorkerIsContinuedByItsOwnRun| HEAD ist jetzt bei e543ef3 init
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop on branch loop-20261111-203329 from e543ef3cc7ca (1 local.prop* copied)
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop on loop-20261111-203329 from e543ef3cc7ca
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: worktree · 2s · ready — loop on loop-20261111-203329 from e543ef3cc7ca
+run#aContextCutWorkerIsContinuedByItsOwnRun| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#aContextCutWorkerIsContinuedByItsOwnRun| stub gh: recorded `gh issue edit`
+run#aContextCutWorkerIsContinuedByItsOwnRun| pick #21
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: item · 3s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/worker-report.md
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/worker-report.md)
+run#aContextCutWorkerIsContinuedByItsOwnRun| LOOP-CONTEXT: the child's context reached 210000 tokens (LOOP_ITEM_CONTEXT_WARN records 143124) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: worker-prompt finished in 3s (exit 124, log 402 B)
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: commit · 6s · end-item skipped — the run ended this child, so its tree is not committed; HEAD is e543ef3cc7ca (base e543ef3cc7ca)
+run#aContextCutWorkerIsContinuedByItsOwnRun| loop: gate · 6s · read — 0 test-results XML in the tree
+run#aContextCutWorkerIsContinuedByItsOwnRun| stub gh: recorded `gh issue edit`
+run#aContextCutWorkerIsContinuedByItsOwnRun| unpick #21
+run#aContextCutWorkerIsContinuedByItsOwnRun| item #21: cut (the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started) · 2.856s · 0 review round(s)
+run#aContextCutWorkerIsContinuedByItsOwnRun| stop: item cap reached (1/1)
+run#aContextCutWorkerIsContinuedByItsOwnRun| **agent-issue-loop — 2026-11-11T20:33:34Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 10 · base e543ef3cc7ca)
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| bounds: result bound 8000 · context warn 143124 · context max 200000
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 1 · budget left 0 items / 90 min · spent 0 min
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| stop: item cap reached (1/1)
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| over the item token bound (16858818 tokens): none
+run#aContextCutWorkerIsContinuedByItsOwnRun| bound: 1 of 1 items (100.0 %) · archive: - · #21 1 turns, 2 files
+run#aContextCutWorkerIsContinuedByItsOwnRun| closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 1 of 1 items · budget 90 min
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| | issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+run#aContextCutWorkerIsContinuedByItsOwnRun| |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+run#aContextCutWorkerIsContinuedByItsOwnRun| | #21 | bug | cut |  |  |  | 0 xml | 0 | 2s | - | - | - | cut | the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch | bound | - | 0 | - |
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| merged finished attempts: none
+run#aContextCutWorkerIsContinuedByItsOwnRun| no exclusions
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| skipped: none
+run#aContextCutWorkerIsContinuedByItsOwnRun| mis-diagnosed: none
+run#aContextCutWorkerIsContinuedByItsOwnRun| excluded before any work: none
+run#aContextCutWorkerIsContinuedByItsOwnRun| cut short by the run's own bound: #21 off (the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch)
+run#aContextCutWorkerIsContinuedByItsOwnRun| decisions the owner owes: none
+run#aContextCutWorkerIsContinuedByItsOwnRun| branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261111-203329
+run#aContextCutWorkerIsContinuedByItsOwnRun| landed, removable: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261111-203329
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop (kept for the next run)
+run#aContextCutWorkerIsContinuedByItsOwnRun| state: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/run.json
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| trend — this run's own items; no rate is green or red in one run:
+run#aContextCutWorkerIsContinuedByItsOwnRun|   review: - · no round of this run ended in a verdict · 0 undecided · 1 never reviewed
+run#aContextCutWorkerIsContinuedByItsOwnRun|   waived: - · no item of this run closed
+run#aContextCutWorkerIsContinuedByItsOwnRun|   wall:   median 3 s (min 3, max 3) · 1 items
+run#aContextCutWorkerIsContinuedByItsOwnRun|   calls:  0 calls per turn (0 calls / 1 turns) · below the recorded floor of 1.05 per turn: #21 0
+run#aContextCutWorkerIsContinuedByItsOwnRun|   reads:  - · no item recorded a file read
+run#aContextCutWorkerIsContinuedByItsOwnRun|   phases: - · no item recorded a phase duration
+run#aContextCutWorkerIsContinuedByItsOwnRun|   roles:  - · no item recorded a session role
+run#aContextCutWorkerIsContinuedByItsOwnRun|   after the first gate: - · no item of this run ran a gate in its stream
+run#aContextCutWorkerIsContinuedByItsOwnRun|   truncated: - · no item had its stream rotated
+run#aContextCutWorkerIsContinuedByItsOwnRun|   landings: - · no item of this run landed
+run#aContextCutWorkerIsContinuedByItsOwnRun| 
+run#aContextCutWorkerIsContinuedByItsOwnRun| actions the caller owes:
+run#aContextCutWorkerIsContinuedByItsOwnRun|   1. resume #21 — the run ended a child of it at a bound, so no decision is owed — the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch · transcript /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21
+run#aContextCutWorkerIsContinuedByItsOwnRun|   2. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree: no recorded build output in the kept worktree (0 B)
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#aContextCutWorkerIsContinuedByItsOwnRun| kept fix/issue-21-an-eligible-bug-whose-cited-path-still-e — checked out
+run#aContextCutWorkerIsContinuedByItsOwnRun| removed loop-20261111-203329 (its patches are in the base)
+run#aContextCutWorkerIsContinuedByItsOwnRun| worktree: 1 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it)
+--- run#aContextCutWorkerIsContinuedByItsOwnRun[0] (exit 1)
+  the run cut the worker at the context bound and started no continuation from the work it kept: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 item-context-bounds=worker:200000,worker-gate:200000,worker-tail:200000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:200000 min-free-mib=1024 free-mib=6362 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/lock (owner 1738133)
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base e543ef3cc7ca
+state: bounds result 8000 · context warn 143124 · context max 200000
+state: deadline 2026-11-11T22:03:27Z
+loop: pre-screen · 1s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/prescreen.log
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261111-203329')
+HEAD ist jetzt bei e543ef3 init
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop on branch loop-20261111-203329 from e543ef3cc7ca (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop on loop-20261111-203329 from e543ef3cc7ca
+loop: worktree · 2s · ready — loop on loop-20261111-203329 from e543ef3cc7ca
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+pick #21
+loop: item · 3s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/worker-report.md
+loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/worker-report.md)
+LOOP-CONTEXT: the child's context reached 210000 tokens (LOOP_ITEM_CONTEXT_WARN records 143124) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound
+loop: worker-prompt finished in 3s (exit 124, log 402 B)
+loop: commit · 6s · end-item skipped — the run ended this child, so its tree is not committed; HEAD is e543ef3cc7ca (base e543ef3cc7ca)
+loop: gate · 6s · read — 0 test-results XML in the tree
+stub gh: recorded `gh issue edit`
+unpick #21
+item #21: cut (the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started) · 2.856s · 0 review round(s)
+stop: item cap reached (1/1)
+**agent-issue-loop — 2026-11-11T20:33:34Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 10 · base e543ef3cc7ca)
+
+bounds: result bound 8000 · context warn 143124 · context max 200000
+
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 1 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (1/1)
+
+over the item token bound (16858818 tokens): none
+bound: 1 of 1 items (100.0 %) · archive: - · #21 1 turns, 2 files
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 1 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | cut |  |  |  | 0 xml | 0 | 2s | - | - | - | cut | the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch | bound | - | 0 | - |
+
+merged finished attempts: none
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+cut short by the run's own bound: #21 off (the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch)
+decisions the owner owes: none
+branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261111-203329
+landed, removable: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261111-203329
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/run.json
+
+trend — this run's own items; no rate is green or red in one run:
+  review: - · no round of this run ended in a verdict · 0 undecided · 1 never reviewed
+  waived: - · no item of this run closed
+  wall:   median 3 s (min 3, max 3) · 1 items
+  calls:  0 calls per turn (0 calls / 1 turns) · below the recorded floor of 1.05 per turn: #21 0
+  reads:  - · no item recorded a file read
+  phases: - · no item recorded a phase duration
+  roles:  - · no item recorded a session role
+  after the first gate: - · no item of this run ran a gate in its stream
+  truncated: - · no item had its stream rotated
+  landings: - · no item of this run landed
+
+actions the caller owes:
+  1. resume #21 — the run ended a child of it at a bound, so no decision is owed — the worker process exited 124 — the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens — the run ended it and everything it started · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch · its work is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch · transcript /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/issue-loop/items/21
+  2. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: no recorded build output in the kept worktree (0 B)
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/manual/issue-851-head/.pi/tmp/loop-selftest.0Xbp56/cases/0/tree/case.otcR8R/repo/.pi/worktrees/loop
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+kept fix/issue-21-an-eligible-bug-whose-cited-path-still-e — checked out
+removed loop-20261111-203329 (its patches are in the base)
+worktree: 1 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it)
+FAIL run#aContextCutWorkerIsContinuedByItsOwnRun
+run#aCutWhosePatchDoesNotApplyIsLeftCut|   and the applier's answer is recorded, not swallowed: expected 'no-apply', got ''
+--- run#aQuotaHoldPausesTheRunAndResumesIt[2] (exit 1)
+  and the applier's answer is recorded, not swallowed: expected 'no-apply', got ''
+FAIL run#aCutWhosePatchDoesNotApplyIsLeftCut
+PASS run#aCloseOverARedGateIsWaivedOrBlocked
+PASS run#aQuotaHoldPausesTheRunAndResumesIt

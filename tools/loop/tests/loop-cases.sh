@@ -433,6 +433,8 @@ LOOP_SHELL_CASES=(
   'run#eachRoleIsBoundedByItsOwnContext'
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
   'run#childPastItsContextBoundIsCut'
+  'run#aContextCutWorkerIsContinuedByItsOwnRun'
+  'run#aCutWhosePatchDoesNotApplyIsLeftCut'
   'run#theRecordedZeroKeepsTheContextBoundOff'
   'state#aQuotaWindowIsAHoldNotAStop'
   'state#aQuotaCheckThatCannotBeMadeIsNotARefusal'
@@ -1127,6 +1129,8 @@ loop_run_shell_case() {
     'run#eachRoleIsBoundedByItsOwnContext') fn=case_run_eachRoleIsBoundedByItsOwnContext ;;
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
     'run#childPastItsContextBoundIsCut') fn=case_run_childPastItsContextBoundIsCut ;;
+    'run#aContextCutWorkerIsContinuedByItsOwnRun') fn=case_run_aContextCutWorkerIsContinuedByItsOwnRun ;;
+    'run#aCutWhosePatchDoesNotApplyIsLeftCut') fn=case_run_aCutWhosePatchDoesNotApplyIsLeftCut ;;
     'run#theRecordedZeroKeepsTheContextBoundOff') fn=case_run_theRecordedZeroKeepsTheContextBoundOff ;;
     'state#aQuotaWindowIsAHoldNotAStop') fn=case_state_aQuotaWindowIsAHoldNotAStop ;;
     'run#theQuotaSwitchIsExplicit') fn=case_run_theQuotaSwitchIsExplicit ;;
@@ -16637,7 +16641,7 @@ EOF
 # tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it.
 case_run_childPastItsContextBoundIsCut() {
   # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p conf fifo fixture action pid i status out report
+  local d p conf fifo fixture action pid i status out report log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
@@ -16667,6 +16671,8 @@ JSON
 ev="\${LOOP_CHILD_EVENTS:-}"
 [ -n "\$ev" ] || exit 1
 cat "$fixture" >> "\$ev"
+# …and work in the tree, because a child that left nothing leaves a patch with no hunk in it and nothing to continue
+printf 'the work the bound ended\n' > demo-fix.txt
 EOF
   export PI_STUB_ACTION="$action"
   fifo="$d/wait.fifo"; mkfifo "$fifo"
@@ -16714,6 +16720,194 @@ EOF
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "context bound of 200000 tokens" \
     "and the reason on the item carries the reading, not only the exit status"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  # …and the item was **continued** by the run that cut it before it was left (issue #851): the patch the first child's
+  # work was kept in is applied by the same run, onto the same branch, and one more child reads it. That child is
+  # held on the same fifo and its own stream crosses the same bound, so it is cut too — and the ceiling is what the
+  # last four assertions are about: exactly one continuation, and the item stays `cut` rather than becoming a loop
+  # that never ends it.
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "the run that cut the worker continues the item itself, exactly once: $out"
+  assert_eq "2" "$(grep -cE '^prompt: worker-(prompt|prompt-continuation)\.md$' <<<"$log" || true)" \
+    "and no third child starts — one continuation per item is the ceiling that keeps an item from never ending"
+  [ -f "$p/.pi/issue-loop/items/21/worker-prompt-continuation.md" ] ||
+    fail "the run started a continuation without rendering its prompt"
+  assert_not_contains "$(cat "$p/.pi/issue-loop/items/21/worker-prompt-continuation.md")" "{{" \
+    "every placeholder in the continuation's skeleton is filled before that child is started"
+  assert_contains "$(cat "$p/.pi/issue-loop/items/21/worker-continuation-report.md")" \
+    "the recorded context bound of 200000 tokens" \
+    "the continuation is bounded the same way, and its own transcript says which bound ended it"
+  assert_eq "applied" "$(jq -r '.resumes["21"].outcome // ""' "$(state_file "$p")")" \
+    "the work the cut child left was applied in the run that cut it, not handed to the next one as a patch: $out"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "continued the item in the run that cut it" \
+    "and the item's own record says so, so a reader is not told the next run is the one that resumes it"
+  return 0
+}
+
+# The other half of the same rule (issue #851): the continuation is not a bookkeeping line, it is a child that reads the
+# work the bound ended and whose answer decides the item. The run of 2026-11-11T11:37:08Z cut #847 at 200 174 tokens and
+# #839 at 200 869, kept 1 010 460 B and 1 323 610 B of their work in their own patches, closed neither, and stopped 435
+# min before its deadline with both patches in hand — and the next run applied neither (2 of 2, the base had moved). A
+# child that is continued in the run that cut it is a phase of that run; the same patch one run later is a coin toss.
+case_run_aContextCutWorkerIsContinuedByItsOwnRun() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out f log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
+  # The first worker leaves real work in the tree and its own stream crosses the bound while the case holds it; the
+  # continuation is released by the case and answers with a report **of its own**, which is what makes the assertion
+  # about the item's result a claim about whose answer was read. No third child can follow: there is no fixture for it,
+  # and the ceiling the case above pins would have to be gone first.
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+JSON
+  printf '%s\n' \
+    'LOOP-VERDICT: skipped' \
+    'LOOP-SKIP-VERDICT: needs-diagnosis' \
+    'LOOP-ROOT-CAUSE: the tree the bound left holds the change, and what it still owes is a diagnosis only a person can make' \
+    'LOOP-RED-TEST: none — the continuation changed nothing' > "$d/continuation-report.txt"
+  export PI_STUB_REPORT_CONTINUATION="$d/continuation-report.txt"
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'the fix the bound ended\n' > demo-fix.txt
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    ;;
+  worker-prompt-continuation.md)
+    # What the continuation starts on: the work the killed child left, put back onto the branch's HEAD by the run, and
+    # nothing committed — the two facts a continuation that only re-ran the first prompt could not show.
+    { git rev-parse HEAD; git status --porcelain -uall; } > "$d/continuation-tree.txt" 2>&1
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do
+    grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null || {
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run cut the worker at the context bound and started no continuation from the work it kept: $(cat "$d/out")"
+  }
+  printf 'go\n' >&8 2>/dev/null || true
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "the run that continued the item is not a failed run: $out"
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "exactly one continuation child is started for the item: $out"
+  assert_contains "$out" "continuing #21 from the work its ended worker left" \
+    "and the run says on its own output that it continued the item rather than handing it forward"
+  [ -f "$d/continuation-tree.txt" ] || fail "the continuation never ran its own action"
+  assert_contains "$(cat "$d/continuation-tree.txt")" "demo-fix.txt" \
+    "the continuation starts on the work the cut child left, applied by the run that cut it"
+  assert_contains "$(cat "$d/continuation-tree.txt")" "openspec/changes/archive/2026-01-01-fix-demo/proposal.md" \
+    "and on the change it had archived, not on a tree the run reset and forgot to reapply"
+  f=$(state_file "$p")
+  assert_eq "applied" "$(jq -r '.resumes["21"].outcome // ""' "$f")" \
+    "the resume is recorded as applied, which is what the item's note is read from"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "worker-continuation")] | length' "$f")" \
+    "the state carries the continuation as its own step, so a reader tells it from a rework"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$f")" \
+    "the item is decided by the continuation's answer, not by the bound that ended the first child: $out"
+  assert_eq "needs-diagnosis" "$(jq -r '.items[0].verdict' "$f")" \
+    "and by its verdict, which is a word only that report carries"
+  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$f")" \
+    "so the item is not recorded as the cut the first child reached"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "continued the item in the run that cut it" \
+    "and its note says the same, so the record and the report agree about who resumed the phase"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a skipped item"
+  return 0
+}
+
+# …and the arm that leaves the item alone (issue #851): a cut whose kept work does not apply is still `cut`, with the
+# non-apply recorded and no continuation started. The applier's own answer decides it, exactly as it does for a later
+# run (#754), so a worker the bound ended before it wrote anything — the patch is then the header `keep_leftovers`
+# always writes and no hunk at all — costs the item its continuation and not its record.
+case_run_aCutWhosePatchDoesNotApplyIsLeftCut() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out f log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
+  # The worker crosses the bound without writing anything: what `keep_leftovers` writes is the patch's preamble and no
+  # hunk, which neither `git apply` nor `--3way` takes (measured on items/16, exit 128, "no valid patches in input").
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+JSON
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md) cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}" ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child whose context had passed the recorded bound"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a cut whose kept work does not apply is not a failed run: $out"
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "0" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "no continuation is started from a patch the applier does not take: $out"
+  f=$(state_file "$p")
+  assert_eq "cut" "$(jq -r '.items[0].result' "$f")" "the item stays cut, which is the phase the next run resumes"
+  assert_eq "no-apply" "$(jq -r '.resumes["21"].outcome // ""' "$f")" \
+    "and the applier's answer is recorded, not swallowed"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "does not apply onto the branch's HEAD" \
+    "the item's note says why it was not continued"
+  assert_contains "$out" "the work its ended worker left does not apply onto the branch's HEAD" \
+    "and so does the run's own output, so a reader of the console is not left with a silent cut"
   return 0
 }
 

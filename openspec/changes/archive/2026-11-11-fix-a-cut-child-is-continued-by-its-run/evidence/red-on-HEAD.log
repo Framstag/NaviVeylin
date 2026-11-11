@@ -1,0 +1,11 @@
+=== red on HEAD (8361c0fe), the two new cases, engine unchanged (tools/loop/tests/{loop-cases.sh,fixtures/pi} copied in) ===
+taken 2026-11-11T19:57:29Z in a worktree detached at main
+
+80:  the run cut the worker at the context bound and started no continuation from the work it kept: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate
+158:FAIL run#aContextCutWorkerIsContinuedByItsOwnRun
+
+--- the second case ---
+3:  and the applier's answer is recorded, not swallowed: expected 'no-apply', got ''
+4:FAIL run#aCutWhosePatchDoesNotApplyIsLeftCut
+
+loop-selftest: 1 of 1 cases failed (each run, one case)

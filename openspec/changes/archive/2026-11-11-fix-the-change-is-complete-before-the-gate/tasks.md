@@ -81,14 +81,14 @@
   `phase#oneCallPrintsThePhaseState` (a stale assertion of the archive step the change removes). Both repaired in one
   pass: the restore is decided from the item's verdict after the closing child, and the case asserts the phase's
   evidence-only rule instead. Verification: `evidence/rework-round-1.md` with the four focused case logs beside it.
-- [ ] 9.2 The second and last gate run of this item, over the corrected and completed tree — one line, never re-run.
+- [x] 9.2 The second and last gate run of this item, over the corrected and completed tree — one line, never re-run.
 
 ## 8. The gate is not this session's
 
-- [ ] 8.1 The gate runs in the fresh child the run starts after this session's diff: that child applies the
+- [x] 8.1 The gate runs in the fresh child the run starts after this session's diff: that child applies the
   reviewer's findings, completes the change — the pointer check, the delta and the archive — and runs
   `./tools/loop/gate.sh` once on the completed tree, as `tools/loop/prompts/worker-gate.md` now states. This session
   prints `LOOP-DIFF-READY` and runs no gate.
-- [ ] 8.2 The delta merged into `openspec/specs/agent-issue-loop/spec.md` and the change archived under
+- [x] 8.2 The delta merged into `openspec/specs/agent-issue-loop/spec.md` and the change archived under
   `openspec/changes/archive/<date>-fix-the-change-is-complete-before-the-gate/` are that child's, and the identity
   beside the diff this session hands over is the tree the gate then measures.

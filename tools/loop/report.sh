@@ -475,9 +475,11 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   | (["worker", "reviewer", "tail"]
      + ([$rol[] | keys[]] | unique
         | map(select(. as $k | (["worker", "reviewer", "tail"] | index($k)) == null)))) as $order
-  # The clock the three buckets are a share of (issue #832): the items that recorded a phase figure also record their
-  # own wall, so the line prints the share the buckets are and the time they leave outside both a turn and a tool —
-  # the two halves over one set of items, never over the run window, which also holds the landings and the holds.
+  # The clock the three buckets are a share of (issue #832): the wall is the sum of the items that recorded a phase
+  # figure and a wall of their own, so the line prints the share the buckets are and the time they leave outside
+  # both a turn and a tool — a denominator over the items that recorded a wall, never over the run window, which
+  # also holds the landings and the holds. An item that recorded phases and no wall is in the numerator and not in
+  # the denominator, so the two halves are over one set only where every item of it recorded a wall.
   | ([.items[] | select(.metrics.phases != null) | .metrics.wallSeconds | select(. != null)] | add) as $phsWall
   | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
   # What a state written before this figure existed holds instead: some spend and no split at all. That is a

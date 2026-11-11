@@ -639,19 +639,23 @@ trend prints the run's three sums beside each other, each `-` with its reason wh
 figure, never a stop: nothing in the run reads it, and the keys it would bound do not exist yet.
 
 **A split is only a split if the parts are the whole** (issue #832). Measured on the run of 2026-11-07T19:53:44Z
-(`.pi/issue-loop/runs/2026-11-07T19:53:44Z.json`): its thirteen items recorded **73 220 472 tokens against 55 680 163
-under a role — 17 540 309, 24 %, that the trend printed inside no bucket and never named** — while the phase line's
-three buckets held 7 586 s of the same run's 24 104 s window. Two measures were printed as one. The role split is
-folded from the `session` records, and a `turn_end` that stands before the first one was counted in `metrics.tokens`
-and in no bucket: a `stream_rotation` takes the head of a stream (`items/738/events.jsonl` keeps its `session` record
-at line 14 254 of 21 310, with the 138 turns the rotation dropped standing before it), and a harness can write the
-record late. Those turns are now the bucket `metrics.roles.unattributed`, beside the three, and the trend prints
-every bucket the record holds rather than the three it was written with — so the buckets add up to the tokens the
-line is over. The clock cannot be split that way: the stream carries a `timestamp` on 3 of item 808's 22 125 events,
-all of them `session` records, so no reader can bound what a child spent outside a turn and outside a tool call. The
-phases line prints that remainder instead of inventing a bucket for it — `… · 12.8 s over 1 item, 30 % of the 42 s of
-item wall — 29.2 s of it in neither a turn nor a tool` — summed over the items that recorded a phase figure, so the
-numerator and the denominator are over one set.
+(`.pi/issue-loop/runs/2026-11-07T19:53:44Z.json`; the totals read with `jq` and kept in
+`evidence/measure-run-totals.log` under
+`openspec/changes/archive/2026-11-11-fix-the-spend-splits-reconcile-with-their-totals/`): its thirteen items recorded
+**73 220 472 tokens against 55 676 163 under a role — 17 544 309, 24 %, that the trend printed inside no bucket and
+never named** — while the phase line's three buckets held 7 586 s of the same run's 24 104 s window. Two measures were
+printed as one. The role split is folded from the `session` records, and a `turn_end` that stands before the first one
+was counted in `metrics.tokens` and in no bucket: a `stream_rotation` takes the head of a stream (item 738's own
+stream keeps its one `session` record at line 14 254 of 21 310, with the 138 turns the rotation dropped standing
+before it — `evidence/measure-stream-timestamps.log`), and a harness can write the record late. Those turns are now
+the bucket `metrics.roles.unattributed`, beside the three, and the trend prints every bucket the record holds rather
+than the three it was written with — so the buckets add up to the tokens the line is over. The clock cannot be split
+that way: the stream carries a `timestamp` on 3 of item 808's 22 125 events, all of them `session` records (the same
+log), so no reader can bound what a child spent outside a turn and outside a tool call. The phases line prints that
+remainder instead of inventing a bucket for it — `… · 12.8 s over 1 item, 30 % of the 42 s of item wall — 29.2 s of it
+in neither a turn nor a tool` — the share taken of the wall the items that recorded a phase figure *and* a wall
+recorded, so the two halves are over one set only where every item of it recorded a wall; an item that recorded
+phases and no wall is in the numerator and not in the denominator.
 
 **The gate a share is taken at is the call that ran it** (issue #830). Measured 2026-11-10 over the five items that
 were filed as two thirds of a run spent after its first gate: the streams are the run's own record

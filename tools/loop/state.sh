@@ -915,9 +915,10 @@ num_or_null() {
 #     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`.
 #     A turn can also stand **before** the stream's first `session` record — the record a rotation took off the head,
 #     or one a harness writes late — and those turns are tokens the item spent all the same: they are collected in a
-#     bucket of their own (`unattributed`), because the role they were spent under is the one fact the stream no
-#     longer holds (issue #832). Read as "no session, so no role" they were counted in `tokens` and in no bucket,
-#     and the run of 2026-11-07T19:53:44Z printed 73 220 472 tokens against 55 680 163 under a role with nothing
+#     bucket of their own (`unattributed`), because the `session` record that opens a region is what names the role,
+#     and a region no `session` record opened has none — the prompt such a region may still carry is not read as one
+#     (issue #832). Read as "no session, so no role" they were counted in `tokens` and in no bucket,
+#     and the run of 2026-11-07T19:53:44Z printed 73 220 472 tokens against 55 676 163 under a role with nothing
 #     saying where the 24 % went;
 #   * **`afterGate`** — over the sessions that ran a gate, the tokens of the turns from the first gate turn on and
 #     those sessions' own tokens, so a share has both halves in the record;

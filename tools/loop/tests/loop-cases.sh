@@ -12600,8 +12600,9 @@ JSONL
 # A turn the record cannot place under a role was in the item's tokens and in none of the buckets (issue #832): the
 # role split is folded from the sessions, and a `session` record opens a child's stream only where the stream still
 # carries it — a rotation takes the head, and a harness can write the record late. Measured on the run of
-# 2026-11-07T19:53:44Z (`.pi/issue-loop/runs/2026-11-07T19:53:44Z.json`): its 13 items recorded 73 220 472 tokens
-# against 55 680 163 under a role — 17 540 309, 24 %, that the trend printed inside no bucket and never named. So the
+# 2026-11-07T19:53:44Z (`.pi/issue-loop/runs/2026-11-07T19:53:44Z.json`; the totals read with `jq` and kept in
+# `evidence/measure-run-totals.log`): its 13 items recorded 73 220 472 tokens against 55 676 163 under a role —
+# 17 544 309, 24 %, that the trend printed inside no bucket and never named. So the
 # turns no session record reaches are a bucket of their own, and the buckets the line prints are the total it is over.
 case_report_aTurnNoSessionRecordReachesIsItsOwnBucket() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json

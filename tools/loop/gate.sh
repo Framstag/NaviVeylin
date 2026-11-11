@@ -27,7 +27,8 @@
 #
 # Exit: 0 everything that ran passed (or nothing was owed); 1 something failed, and the line names which; 2 usage
 # or a base this tree cannot resolve; 3 this child has already spent the full runs the profile records, so this one
-# was refused and measured nothing (neither a red nor a green).
+# was refused and measured nothing (neither a red nor a green); 4 another gate of this tree holds the tally
+# directory, so this one was refused before it wrote a tally and measured nothing either.
 #
 # A gate is a measurement, and a measurement is taken once: see `runs_max` below and the refusal it arms.
 #
@@ -333,9 +334,85 @@ ran_entries=""
 #
 # That file is per step (issue #801): a step that shares its output with the step beside it shares the summary its
 # tally is derived from, so each slot of a wave gets its own output, its own completion record and its own stop.
+# A gate's tallies belong to the run that wrote them (issue #848). The tally directory is one path the profile names
+# — one per tree, not one per run — and until this pair of halves existed nothing made it one run's: a step file an
+# earlier run left survived the next one, and a reader copying the directory as the gate's evidence copied a step the
+# gate never ran. Measured 2026-11-10 (item #830): the green gate's directory held a carrier reading
+# `tests="1" failures="1" time="1800"` with the `LOOP-GATE-STEP:` overrun of a run that had been red for the
+# self-test suite's own lock, and `tools_tests_check-portability-selftest.sh.xml` reading `tests="31" failures="4"`
+# — neither step ran that way in the run being archived, and excluding them by mtime window took three attempts.
+#
+# The first half is the rule the self-test suite already applies to itself (`tools/loop/tests/loop-selftest.sh`,
+# "one suite per repository", issue #295), applied to the gate as a whole: the run holds the directory's lock for its
+# whole life, so a second gate of this tree refuses by name before it runs a step. The second half is the sweep: a
+# run clears every carrier the directory still holds before its first step writes one, so a run that crashed, or the
+# run before, cannot be read as this one's. Each tally then carries the run that wrote it, and the console names the
+# directory and that run, so a copy made mid-run is told apart from another run's without its mtime.
+tally_lock=""
+tally_owner="$$ $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+# The lock this gate holds is released, never left for the next run to find dead; only the record this gate wrote is
+# removed, so a lock that changed hands is somebody else's and stays.
+gate_release_tally() {
+  [ -n "$tally_lock" ] || return 0
+  [ "$(cat "$tally_lock/owner" 2>/dev/null)" = "$tally_owner" ] && rm -rf "$tally_lock" 2>/dev/null
+  tally_lock=""
+}
+gate_take_tally() { # → the directory is this run's, or this gate has refused and measured nothing
+  local holder holder_pid attempt
+  [ -n "$tally_root" ] || return 0
+  tally_lock="$tally_root/.gate.lock"
+  mkdir -p "$tally_root" 2>/dev/null || true
+  if ! mkdir "$tally_lock" 2>/dev/null; then
+    holder=""
+    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+      holder=$(cat "$tally_lock/owner" 2>/dev/null || printf '')
+      [ -n "$holder" ] && break
+      sleep 0.1
+    done
+    holder_pid=${holder%% *}
+    case "$holder_pid" in ''|*[!0-9]*) holder_pid=0 ;; esac
+    if [ "$holder_pid" -gt 0 ] && kill -0 "$holder_pid" 2>/dev/null; then
+      printf 'LOOP-GATE-REFUSED: another gate of this tree holds %s (owner %s) — one gate per tree, because two gates would write one tally directory and a step of one would be read as the other run (issue #848)\n' \
+        "$tally_lock" "$holder"
+      printf 'wait for it, run the gate in another worktree, or remove %s if that process is not a gate\n' "$tally_lock"
+      tally_lock=""
+      exit 4
+    fi
+    # A gate ended by a signal no trap can catch leaves its lock behind, and a lock whose owner is gone must not
+    # refuse every run that follows it: the next one takes it over and says whose it was. Only the record this run
+    # read is removed, and the `mkdir` below decides between two runs that took the same dead lock over at once.
+    if [ "$(cat "$tally_lock/owner" 2>/dev/null)" != "$holder" ]; then
+      printf 'LOOP-GATE-REFUSED: the lock %s changed hands while this gate read it — one gate per tree\n' "$tally_lock"
+      tally_lock=""
+      exit 4
+    fi
+    rm -rf "$tally_lock" 2>/dev/null || true
+    mkdir "$tally_lock" 2>/dev/null || {
+      printf 'LOOP-GATE-REFUSED: another gate took %s while this one read it — one gate per tree\n' "$tally_lock"
+      tally_lock=""
+      exit 4
+    }
+    say "LOOP-GATE-TALLY: took over the lock $tally_lock: its owner ${holder:-an unknown process} is not running any more"
+  fi
+  if ! printf '%s\n' "$tally_owner" > "$tally_lock/owner" 2>/dev/null; then
+    # A lock that cannot say who holds it cannot be released by its holder, and leaving it behind would refuse the
+    # next run as a dead owner's: remove what this run just made and refuse.
+    rm -rf "$tally_lock" 2>/dev/null || true
+    tally_lock=""
+    printf 'LOOP-GATE-REFUSED: cannot write the owner of %s — no lock is held\n' "$tally_root"
+    exit 4
+  fi
+  # Every carrier the directory still holds is an earlier run's — a run that crashed, or the one before this.
+  rm -f "$tally_root"/*.xml 2>/dev/null || true
+  say "LOOP-GATE-TALLY: $tally_root run=${tally_owner%% *}"
+}
+
 gate_tmp=$(mktemp -d "${TMPDIR:-/tmp}/loop-gate-steps.XXXXXX") \
   || loop_die "gate: cannot create the directory that carries the steps' output"
-trap 'rm -rf "$gate_tmp"' EXIT
+trap 'gate_release_tally; rm -rf "$gate_tmp"' EXIT
+# The directory is claimed before any step writes a tally into it, and after the refusals above: a gate that owes
+# nothing, prints a plan or has spent its runs measures nothing and leaves no lock behind.
+gate_take_tally
 
 # One slot per running step: its command, its process, its output, its completion record, its clock, and the two facts
 # a reader needs beside the status — whether the bound ended it, and whether its bytes already reached the console.
@@ -482,8 +559,8 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
     # records the build — the round-3 reviewer of #273 read that copy as short and refused a round on a tally that
     # was present (measured 2026-10-23, issue #278).
     name=$(printf '%s' "${cmd#./}" | tr '/ ' '__' | cut -c1-80)
-    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s" time="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
-      "$cmd" "$n" "$f" "$err" "$took" \
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s" time="%s" run="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
+      "$cmd" "$n" "$f" "$err" "$took" "${tally_owner%% *}" \
       "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
       > "$tally_root/$name.xml" 2>/dev/null || true
   fi

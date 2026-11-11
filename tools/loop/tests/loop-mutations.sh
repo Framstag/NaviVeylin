@@ -992,6 +992,12 @@ MUTATIONS=(
   '262.5@-@tools/loop/lib.sh@gate#aMovedChangeNamesTheSameTree@the files a change carries in the digest, so a change being worked is in no listing the derivation reads while every path of its archived self is (issue #837)@s%^    git -C "\$tree" ls-files --others --ignored --exclude-standard \${ignored\[@\]+"\${ignored\[@\]}"} 2>/dev/null; } | sort -u |$%    true; } | sort -u |%'
   '262.6@-@tools/loop/lib.sh@gate#aMovedChangeNamesTheSameTree@the date prefix removed from a change path under the archive, so a change renamed into the archive is a different tree from the one the gate named (issue #837)@s%^      if \[ -n "\$prefix" \]; then$%      if [ -z "$prefix" ]; then%'
   '262.7@-@tools/loop/lib.sh@gate#aRedGateRestoresTheChangeToItsUnarchivedName@the move that puts a change back under its unarchived name, so an item whose gate did not pass is left archived and the next attempt reads it as work nobody graded (issue #837)@s%^  if ! mv "\$tree/\$archived" "\$tree/\$target" 2>/dev/null; then$%  if true; then%'
+  # 848.x — a gate's tallies belong to the run that wrote them (issue #848). The tally directory is one path the
+  # profile names, so a step file an earlier run left survived the next one and a reader copying the directory copied
+  # a step the gate never ran (measured 2026-11-10, item #830). The sweep (848.1) is what leaves no earlier run's
+  # carrier in it; the refusal (848.2) is what keeps two gates of one tree from writing it at once.
+  '848.1@-@tools/loop/gate.sh@gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes@the sweep that leaves no carrier an earlier run wrote in the tally directory (issue #848)@s|^  rm -f "\$tally_root"/\*\.xml 2>/dev/null \|\| true$|  : # the mutation leaves the carrier an earlier run wrote|'
+  '848.2@-@tools/loop/gate.sh@gate#aSecondGateRefusesWhileOneRuns@the refusal of a second gate of one tree while another holds the tally directory (issue #848)@s|^    if \[ "\$holder_pid" -gt 0 \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if false; then|'
   # 100.1 — the record an unreadable item gets instead of the stop, and the `break` that follows it (issue #808).
   # Restoring the stop is what the base did: the item is left unrecorded and the run ends on one item's socket. The
   # `--note` line that followed the record is left as a second command and fails harmlessly (`|| true`), so the

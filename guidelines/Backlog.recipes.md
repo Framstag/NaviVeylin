@@ -766,6 +766,21 @@ records the build as well as `find` and `grep -r` do. Measured 2026-10-23 (issue
 leading `.`, and the round-3 reviewer of #273 counted five files where the directory held six, refusing a round on
 a tally that was present.
 
+**The directory a run writes its tallies into is that run's.** The directory is one path the profile names
+(`LOOP_GATE_TALLY_DIR`) — one per tree, not one per run — and that is what made a step file of one run readable as
+the next run's: measured 2026-11-10 (item #830), the directory of a green gate held a carrier stating one case, one
+failure and the 1800 s overrun of a run that had been red for the self-test suite's own lock, and another stating
+four failures of a suite that gate did not run — steps the gate never ran. Excluding them by mtime window took three
+attempts, and the record was finally made from the gate's console instead
+(`openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/evidence/gate-run-line.md` carries both
+the numbers and that sentence). A gate now
+holds the directory's lock (`.gate.lock` inside it, the owner's pid and start time beside it) for the whole run and
+refuses a second gate of the tree by name — exit 4, no `LOOP-GATE:` line, and the lock left as it was found — the
+rule the self-test suite already applies to itself (issue #295); a lock whose owner is gone is taken over with a
+line saying whose it was. Having claimed the directory, it clears every `*.xml` the directory still holds before
+its first step writes one, each tally it writes carries `run="<pid>"`, and the console names the directory and
+that run (`LOOP-GATE-TALLY:`), so a reader copying the directory copies exactly the steps the gate ran.
+
 A gate reads the profile beside its own engine — the tree whose paths it measures — and its log says which file that
 was: `LOOP-GATE-PROFILE: <path>` is the first line of a gate that runs something, and a profile read from outside
 that tree is named as pinned beside the one the engine ships. The run resolves its own configuration and keeps it

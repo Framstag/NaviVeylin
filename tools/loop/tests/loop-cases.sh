@@ -181,6 +181,8 @@ LOOP_SHELL_CASES=(
   'gate#independentStepsRunTogether'
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
   'gate#aPooledWavePrintsEachStepWholeWhenItEnds'
+  'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes'
+  'gate#aSecondGateRefusesWhileOneRuns'
   'driver#aGroupFilterRunsOnlyItsOwnCases'
   'driver#aFilterThatNamesNoCaseRefuses'
   'driver#theListIsFilteredTheSameWayASuiteRunIs'
@@ -874,6 +876,8 @@ loop_run_shell_case() {
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
     'gate#aPooledWavePrintsEachStepWholeWhenItEnds') fn=case_gate_aPooledWavePrintsEachStepWholeWhenItEnds ;;
+    'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes') fn=case_gate_aCarrierAnotherRunWroteIsNotReadAsThisOnes ;;
+    'gate#aSecondGateRefusesWhileOneRuns') fn=case_gate_aSecondGateRefusesWhileOneRuns ;;
     'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
     'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
     'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
@@ -5317,6 +5321,106 @@ SUITE
   assert_contains "$out" "LOOP-GATE: tests=1 failures=0" "and the gate's tally is read from the same run"
   assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="1" failures="0"' \
     "the tally the run's own check reads carries that suite's numbers"
+  return 0
+}
+
+# A gate's tallies belong to the run that wrote them (issue #848). The tally directory is one path the profile names
+# — one per tree, not one per run — and the gate neither claimed it for the length of a run nor cleared what the run
+# before it left, so a step file an earlier run wrote survived the next one. Measured 2026-11-10 (item #830): the
+# green gate's directory held a carrier reading `tests="1" failures="1" time="1800"` with a `LOOP-GATE-STEP:`
+# overrun of a run that was red for the self-test suite's own lock, and `tools_tests_check-portability-selftest.sh.xml`
+# reading `tests="31" failures="4"` — neither step ran that way in the run being archived, and copying the directory
+# by mtime window took three attempts to exclude them. The gate now clears every carrier the directory still holds
+# before its first step writes one, so a reader copying it copies exactly the steps the gate ran.
+case_gate_aCarrierAnotherRunWroteIsNotReadAsThisOnes() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out carriers run_id
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  cat > "$d/suite.sh" <<'SUITE'
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  # The carrier an earlier run of this tree wrote: a step this gate does not owe, carrying numbers of its own.
+  mkdir -p "$d/tally"
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="bash %s/other-suite.sh" tests="2" failures="1" errors="0" time="1800">\n  <system-out>LOOP-GATE-STEP: bash %s/other-suite.sh exceeded 1800 s</system-out>\n</testsuite>\n' \
+    "$d" "$d" > "$d/tally/an-earlier-run.xml"
+  log="$d/gate.log"
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 \
+    || fail "the gate failed: $(cat "$log")"
+  out=$(cat "$log")
+  assert_contains "$out" "LOOP-GATE: tests=1 failures=0 errors=0" \
+    "the gate's own line carries the numbers of the suite it ran: $out"
+  assert_contains "$out" "LOOP-GATE-TALLY: $d/tally run=" \
+    "and the gate names the tally directory it wrote and the run that wrote it: $out"
+  carriers=$(find "$d/tally" -name '*.xml' 2>/dev/null | sort)
+  assert_eq "1" "$(printf '%s\n' "$carriers" | grep -c . || true)" \
+    "the directory holds the one carrier this gate wrote, not the one an earlier run left: $carriers"
+  out=$(cat "$d"/tally/*.xml 2>/dev/null)
+  assert_contains "$out" 'tests="1" failures="0"' \
+    "the tally the run's own check reads is the suite this gate ran"
+  assert_not_contains "$out" 'failures="1"' "and no carrier an earlier run left is read as this one's"
+  # The marker the tally carries, against the run the gate named: a carrier that arrives from elsewhere is told
+  # apart from this run's without its mtime.
+  run_id=$(sed -n 's/^LOOP-GATE-TALLY: .* run=\([0-9][0-9]*\)$/\1/p' "$log" | head -1)
+  [ -n "$run_id" ] || fail "the gate named no run for the directory it wrote: $(cat "$log")"
+  assert_contains "$out" "run=\"$run_id\"" "and the tally carries the run that wrote it"
+  return 0
+}
+
+# The other half of the same rule (issue #848): the directory is one per tree, so two gates must not share it at
+# once — the rule the self-test suite already applies to itself (`tools/loop/tests/loop-selftest.sh`, one suite per
+# repository, issue #295), applied to the gate as a whole. A gate that is refused has measured nothing, so it must
+# not print a `LOOP-GATE:` line a reader could take for a green one.
+case_gate_aSecondGateRefusesWhileOneRuns() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A suite that leaves the mark of having run: a refused gate must not reach it.
+  cat > "$d/suite.sh" <<SUITE
+: > "$d/suite-ran"
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  # A gate of this tree that is still running holds the directory. This shell is that owner: its pid is alive for the
+  # whole of this case, so the refusal is the live-owner one and not the dead-owner takeover.
+  mkdir -p "$d/tally/.gate.lock"
+  printf '%s %s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$d/tally/.gate.lock/owner"
+  log="$d/gate.log"
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1
+  rc=$?
+  out=$(cat "$log")
+  assert_eq "4" "$rc" "a gate refused because another gate holds the tally directory exits 4: $out"
+  assert_contains "$out" "LOOP-GATE-REFUSED: another gate of this tree holds $d/tally/.gate.lock (owner $$" \
+    "and names the lock and the process holding it: $out"
+  assert_not_contains "$out" "LOOP-GATE: tests=" \
+    "a refused gate measured nothing and claims no numbers"
+  [ ! -e "$d/suite-ran" ] || fail "the refused gate ran a step it owed"
+  assert_contains "$(cat "$d/tally/.gate.lock/owner" 2>/dev/null)" "$$" \
+    "and the lock it did not hold is left as it was found"
   return 0
 }
 

@@ -1,5 +1,5 @@
 {
-  "comment": "The revert-checks of the question predicate (issue #243): every reader takes the escalation's `**The decision:**` line, and only a comment without that marker falls back to its first non-empty line. The escalation comment opens with its verdict word, so the fallback alone answers `needs-decision` and an answer binds to `<!-- answers: needs-decision -->` — measured on #196's own answer. One mutation per implementation, because the shell readers share one jq program and the Java core restates it: A1.1 mutates the program in `tools/issues/lib.sh` (read by `decisions.sh` and `answer.sh`), A1.2 the restatement in `WorkPackage.java`. Run it with `bash tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json`; `.pi/skills/mutation-runner` owns how and `.pi/skills/revert-check` owns the rule.",
+  "comment": "The revert-checks of the question predicate (issue #243): every reader takes the escalation's `**The decision:**` line, and only a comment without that marker falls back to its first non-empty line. The escalation comment opens with its verdict word, so the fallback alone answers `needs-decision` and an answer binds to `<!-- answers: needs-decision -->` — measured on #196's own answer. One mutation per implementation, because the shell readers share one jq program and the Java core restates it: A1.1 mutates the program in `tools/issues/lib.sh` (read by `decisions.sh` and `answer.sh`), A1.2 the restatement in `WorkPackage.java`. A2.1 and A2.2 are the park lane (issue #845), one mutation per invariant: the outcome that writes no state, and the queue entry that says what a park waits for instead of the question it settled. Run it with `bash tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json`; `.pi/skills/mutation-runner` owns how and `.pi/skills/revert-check` owns the rule.",
   "case-cmd": "bash tools/issues/tests/issue-tooling-selftest.sh --case {case}",
   "mutations": [
     {
@@ -17,6 +17,22 @@
       "search": "            if (stripped.startsWith(QUESTION_MARKER)) {",
       "replace": "            if (stripped.startsWith(QUESTION_MARKER) && false) {",
       "why": "the same rule in the work package's fallback, which the answer's marker now makes rare but not absent"
+    },
+    {
+      "label": "A2.1",
+      "case": "answer#parkWritesTheAnswerAndKeepsTheMode",
+      "file": "tools/issues/answer.sh",
+      "search": "  park)",
+      "replace": "  park) bash \"$here/update.sh\" \"$issue\" --remove-label \"$decision_label\" >/dev/null || exit $?; :",
+      "why": "a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in"
+    },
+    {
+      "label": "A2.2",
+      "case": "decisions#aParkedItemIsListedAsParked",
+      "file": "tools/issues/decisions.sh",
+      "search": "| if $parked == \"\" then",
+      "replace": "| if true then",
+      "why": "the queue prints what a park waits for, not the answer's own first line where the question stood"
     }
   ]
 }

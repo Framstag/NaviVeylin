@@ -9,9 +9,14 @@
 #
 # The answer is recorded before the state changes: a state without its reason is the record #192 is about.
 #
+# `--park` is the fourth outcome and the only one that writes no state: the item is answered with a decision to wait,
+# so it keeps the label that makes it answerable and the status it already carries (issue #845), and the queue prints
+# it as `parked: <the first clause of the decision>` instead of the question — the question is settled, and what a
+# reader needs now is the condition.
+#
 # Exit: 0 answered, 2 usage, 3 policy or "this item awaits no decision".
 #
-# Usage: answer.sh <issue> --decision <text> [--continue|--device|--retire]
+# Usage: answer.sh <issue> --decision <text> [--continue|--device|--park|--retire]
 #                  [--evidence <text>] [--profile <path>] [--json]
 set -uo pipefail
 
@@ -30,17 +35,18 @@ while [ $# -gt 0 ]; do
     --decision) need_value "$@"; decision="${2:-}"; shift 2 ;;
     --continue) outcome="continue"; shift ;;
     --device) outcome="device"; shift ;;
+    --park) outcome="park"; shift ;;
     --retire) outcome="retire"; shift ;;
     --evidence) need_value "$@"; evidence="${2:-}"; shift 2 ;;
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     --*) issues_die "answer: unknown argument $1" ;;
     *) [ -z "$issue" ] || issues_die "answer: issue given twice"; issue="$1"; shift ;;
   esac
 done
 
-case "$issue" in ''|*[!0-9]*) issues_die "answer: usage: answer.sh <issue> --decision <text> [--continue|--device|--retire]" ;; esac
+case "$issue" in ''|*[!0-9]*) issues_die "answer: usage: answer.sh <issue> --decision <text> [--continue|--device|--park|--retire]" ;; esac
 [ -n "$decision" ] || issues_die "answer: --decision is required — an answer nobody can read is not an answer"
 case "$outcome" in
   retire) [ -n "$evidence" ] || issues_die "answer: --retire needs --evidence — a closure without its proof is refused by the tooling anyway" ;;
@@ -92,13 +98,19 @@ question_limit=2000
 if [ "${#question}" -gt "$question_limit" ]; then
   question="${question:0:$question_limit} … (clipped at $question_limit characters)"
 fi
-answer_comment="Decision: $decision"
-[ -n "$question" ] && answer_comment="$answer_comment"$'\n'"<!-- answers: $question -->"
+# The two halves an answer is made of live in `tools/issues/lib.sh` (issue #845): the writer below reads them and
+# `decisions.sh` reads the same two, so this writer and the queue's reader keep one copy rather than two.
+answer_comment="${ISSUES_ANSWER_PREFIX}${decision}"
+[ -n "$question" ] && answer_comment="$answer_comment"$'\n'"${ISSUES_ANSWER_MARKER}${question} -->"
 
 bash "$here/update.sh" "$issue" --comment "$answer_comment" >/dev/null || exit $?
 
 # 2. the transition the answer implies.
 case "$outcome" in
+  park)
+    # The park is the answer and nothing else: the item keeps the decision label — so it stays in the queue and a
+    # later answer may still continue or retire it — and keeps the status it already carries (issue #845).
+    ;;
   continue|device)
     status="$open_status"
     [ "$outcome" = "device" ] && { status="$device_status"; [ -n "$status" ] || issues_die "answer: the profile's roles section declares no deviceStatus"; }

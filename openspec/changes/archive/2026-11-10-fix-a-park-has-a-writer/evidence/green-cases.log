@@ -1,0 +1,68 @@
+# ROUND 1 LOG — written 2026-11-10T10:33:22Z, before the round-2 correction to tools/issues/answer.sh; it carries no HEAD of its own (the round-1 gate over that tree named 3b9e896e).
+# The 33 PASS lines below therefore claim nothing about the landing tree. The landing tree is measured by the gate's own step (`all 166 cases passed … HEAD 0246b5ed`) and the round-2 tree by `green-cases-round2.log`.
+PASS lib#discoversTheCurrentProject
+lib#discoversTheCurrentProject -> exit 0
+PASS lib#refusesOutsideAGitTree
+lib#refusesOutsideAGitTree -> exit 0
+PASS lib#noProjectValueInTheEngine
+lib#noProjectValueInTheEngine -> exit 0
+PASS lib#exitCodeConstants
+lib#exitCodeConstants -> exit 0
+PASS lib#statusPrefixNeedsTheProfile
+lib#statusPrefixNeedsTheProfile -> exit 0
+PASS lib#questionIsReadFromANonEmptyComment
+lib#questionIsReadFromANonEmptyComment -> exit 0
+PASS lib#coreIsCompiledNotLaunched
+lib#coreIsCompiledNotLaunched -> exit 0
+PASS lib#retriesATransientFailure
+lib#retriesATransientFailure -> exit 0
+PASS lib#reportsAnUnreachableTrackerAfterTheLastRetry
+lib#reportsAnUnreachableTrackerAfterTheLastRetry -> exit 0
+PASS lib#doesNotRetryAnAuthoritativeFailure
+lib#doesNotRetryAnAuthoritativeFailure -> exit 0
+PASS lib#doesNotRetryAnAppend
+lib#doesNotRetryAnAppend -> exit 0
+PASS lib#onlyTheSeamCallsTheRealCli
+lib#onlyTheSeamCallsTheRealCli -> exit 0
+PASS surface#noDeletePath
+surface#noDeletePath -> exit 0
+PASS surface#reservedLabelRefusesInEveryWritePath
+surface#reservedLabelRefusesInEveryWritePath -> exit 0
+PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+surface#reservationIsNotBypassedByTheOtherLabelFlags -> exit 0
+PASS surface#theStubRefusesAnEditWithNoField
+surface#theStubRefusesAnEditWithNoField -> exit 0
+PASS decisions#listsTheQueueAndItsQuestions
+decisions#listsTheQueueAndItsQuestions -> exit 0
+PASS decisions#theQuestionIsNotTheVerdictWord
+decisions#theQuestionIsNotTheVerdictWord -> exit 0
+PASS decisions#aParkedItemIsListedAsParked
+decisions#aParkedItemIsListedAsParked -> exit 0
+PASS decisions#emptyQueueIsNotAnError
+decisions#emptyQueueIsNotAnError -> exit 0
+PASS decisions#theOldestQueuedItemIsListed
+decisions#theOldestQueuedItemIsListed -> exit 0
+PASS decisions#aReadThatCannotCoverTheSetIsRefused
+decisions#aReadThatCannotCoverTheSetIsRefused -> exit 0
+PASS answer#requiresTheDecisionText
+answer#requiresTheDecisionText -> exit 0
+PASS answer#refusesWhatIsNotADecision
+answer#refusesWhatIsNotADecision -> exit 0
+PASS answer#continueReturnsTheItemToTheQueue
+answer#continueReturnsTheItemToTheQueue -> exit 0
+PASS answer#parkWritesTheAnswerAndKeepsTheMode
+answer#parkWritesTheAnswerAndKeepsTheMode -> exit 0
+PASS answer#theAnswerNamesTheQuestion
+answer#theAnswerNamesTheQuestion -> exit 0
+PASS answer#theAnswerQuotesTheQuestionNotTheVerdictWord
+answer#theAnswerQuotesTheQuestionNotTheVerdictWord -> exit 0
+PASS answer#deviceMovesToTheDeviceLane
+answer#deviceMovesToTheDeviceLane -> exit 0
+PASS answer#retireClosesAsRetired
+answer#retireClosesAsRetired -> exit 0
+PASS shaping#theDecisionQueueIgnoresTheShapingLabel
+shaping#theDecisionQueueIgnoresTheShapingLabel -> exit 0
+PASS decision-queue#theReaderWritesNothingBeforeTheChoice
+decision-queue#theReaderWritesNothingBeforeTheChoice -> exit 0
+PASS decision-queue#theReaderTakesAnIdOrTheQueue
+decision-queue#theReaderTakesAnIdOrTheQueue -> exit 0

@@ -33,7 +33,7 @@ token, proves exactly that on every push.
 | 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
 | 6 | `tooling-portability` | the proof that another project can use all of it | **applied 2026-10-18** — `tools/check-portability.sh` (the leak check, its value set read from the profile and the per-tool configs at run time) with `tools/tests/check-portability-selftest.sh` and its 21 cases, `tools/mutate.sh` with the seven revert-checks as a versioned mutation set, the two skills `portability-check` and `mutation-runner`, the synthetic project `tools/tests/fixtures/foreign-project/` on which the whole toolchain runs without an engine edit, `PORTING.md` (the recipe, its commands executed by the self-test), one `Check portability` CI step and the check's own classification line; no engine file was changed — the check is the proof, not a fix |
 | 7 | `wire-sensor-inputs` | the rows' declared inputs, materialised — and the checks' schedule back on | **applied 2026-10-18** — `tools/build-inputs.sh` (the manifest, `--check` against the registry, the per-module coverage conversion, the result record that survives a red build) and `tools/fetch-build-inputs.sh` (a commit's record, exit 3 = not built yet) with their cases, selftest, eight mutations and one `Check the build inputs` CI step; `build.yml` publishes the record as one artifact, `sensors.yml` fetches it with the workflow's own read-only token and its `schedule` is restored; the host dry run is the change's `report.md` |
-| 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **applied 2026-10-20** — `tools/issues/decisions.sh` (the queue, each item with the question it carries) and `tools/issues/answer.sh` (the answer verb: comment first, then `--continue`/`--device`/`--retire` through the existing writers), the worker's `LOOP-DECISION` field carried into every escalation; spec `decision-queue`; the twelve-item drain that unblocked the loop is its field test (`openspec/changes/archive/2026-10-19-decision-queue/evidence/drain.txt`) |
+| 7 | `decision-queue` | the human lane — the queue, the answer path, the mid-item handover | **applied 2026-10-20** — `tools/issues/decisions.sh` (the queue, each item with the question it carries) and `tools/issues/answer.sh` (the answer verb: comment first, then `--continue`/`--device`/`--retire` through the existing writers, and `--park`, the fourth outcome added 2026-11-10, which writes no state), the worker's `LOOP-DECISION` field carried into every escalation; spec `decision-queue`; the twelve-item drain that unblocked the loop is its field test (`openspec/changes/archive/2026-10-19-decision-queue/evidence/drain.txt`) |
 | 8 | `loop-queue-next-up` | a per-item override the pre-screen honours | **applied 2026-11-07** — `roles.nextUpAgent` (`agent/next-up`) read from the profile and lifted ahead of the queue's category and class keys in `tools/loop/prescreen.sh`, carried in the state's queue and the dry run, the fixture `tools/loop/tests/fixtures/scenarios/pinned/`, the cases `prescreen#aPinnedItemLeadsTheQueue` and `prescreen#aProfileWithNoPinPinsNothing`, the mutation `259.1`, and the ranking paragraph in `Backlog.recipes.md`; spec `agent-issue-loop`, requirement "A next-up label leads the queue and decides nothing else" |
 
 **What this document owns.** The concept: the participants and the flow, what the tracker holds, the
@@ -143,7 +143,7 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
-Six rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
+Seven rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
 the *candidates* in it — the items that carry both the decision label and the loop's opt-in, so a decision parked
 by removing `agent/eligible` (the owner's "not yet") never spends a slot that stops work on the ones they can
 answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
@@ -160,6 +160,17 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 - **Rule: a closure leaves no decision label behind.** An item that carries the label and is closed would stay in
   the queue for ever and keep spending a decision slot; `tools/issues/close.sh` takes the label off in the same
   write that records the settled state, for every path that closes — the run, a person, a declared check.
+- **Rule: a park writes its answer and moves no label.** A person who decides that the item must wait has made a
+  decision, not left one open — and that is a *park answer*, which is not the state §5's preamble calls "a decision
+  parked by removing `agent/eligible`": that one records nothing on the item, while a park answer is written on it
+  and moves no label — so `tools/issues/answer.sh --park` writes the answer the other outcomes write — with
+  the `<!-- answers: … -->` marker binding it to the question — and performs no transition: the item keeps the
+  decision label, stays answerable and stays in the queue, which prints `parked: <the decision's first clause>` where
+  the question stood (`tools/issues/decisions.sh`). A park that moved a label would spoil the queue either way: the
+  item would leave it carrying an unanswered question, or it would stay and print `Decision: …` where a reader looks
+  for a fork, which is the shape #196 and #243 removed (issue #845). It spends a decision slot exactly as it did
+  before the answer: the ceiling counts the items that carry the label *and* the loop's opt-in, and a park removes
+  neither — `agent/eligible` is the owner's label, not the answer verb's.
 - **Rule: a block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
   choice a block leaves — retry the item, or abandon it — because a reason is not something a person can answer.
 - **Rule: a stale skip asks its own question, and is never parked on a bare hold.** The verdict says the item's
@@ -189,7 +200,8 @@ views kept apart, the short-term one priced in this tree's own numbers (files to
 parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items hitting the same
 mechanism would do to it). The recommendation then states which view decided, because an average of the two is exactly
 the judgement this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through
-`answer.sh` — the same transition every other answer takes, so a skill that skipped it would be a second writer.
+`answer.sh` — the same writer every other answer leaves through, so a skill that wrote its own comment would be a
+second writer.
 
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Three of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `unspecifiable`, `too-wide` and

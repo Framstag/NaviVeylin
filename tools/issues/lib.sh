@@ -326,6 +326,29 @@ issues_question_of() { # <comment-json> → the question it carries, one line
   printf '%s' "$json" | jq -r '.body // "" | '"$ISSUES_QUESTION_JQ"
 }
 
+# The two halves an answer is made of (issue #845): the line the decision is recorded on, and the marker that binds
+# that line to the question it answers. `answer.sh` writes them and `decisions.sh` reads them, so the writer and
+# the queue's reader keep one copy of the shape rather than two. `tools/issues/create.sh:400` still spells the same
+# two strings out as literals — a second home this change does not close — and `core/WorkPackage.java` restates the
+# marker only because that core is standalone Java, exactly as it restates the question program above.
+ISSUES_ANSWER_PREFIX='Decision: '
+ISSUES_ANSWER_MARKER='<!-- answers: '
+
+# What a parked item's queue entry says (issue #845). A park is an answer that changes no label, so the item stays in
+# the queue — and its last statement is then the answer, whose own first line read back as a question would say the
+# fork is still open. The program takes a comment body and answers `parked: <the decision's first clause>`, or the
+# empty string when the body is not an answer; an answer is both halves of the shape above, so a comment that merely
+# opens with the prefix is not one. The first clause is the decision up to its first `,`, `;` or `.`, so the entry is
+# one line and is the condition the park waits for. It reads `$answerPrefix` and `$answerMarker`, which the caller
+# binds with `--arg` from the two constants above.
+ISSUES_PARKED_JQ='split("\n") as $lines
+  | ($lines | map(select(test("\\S")))) as $text
+  | ($text[0] // "") as $first
+  | ([$text[] | select(startswith($answerMarker))] | length) as $marks
+  | if (($first | startswith($answerPrefix)) and ($marks > 0))
+    then "parked: " + (($first | ltrimstr($answerPrefix)) | sub("[,;.][\\s\\S]*$"; "") | sub("[[:space:]]+$"; ""))
+    else "" end'
+
 # The statement a *shaping* comment carries (capability `shaping-inbox`). The run writes it from
 # `tools/loop/labels.sh`: the verdict word on the first line, then `**The shaping:**` and the clause that produced
 # it — the same two-part shape the escalation uses for its question, so a writer and a reader cannot drift about

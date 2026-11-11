@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/tests/metadata-mutations.sh --list" tests="0" failures="0" errors="0" time="4" run="1042717">
+  <system-out>the-writer-skips-the-marker      no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671) settled-record-not-checked       an item whose body keeps a settled state must carry a settled label, or the displaced state is invisible (#683) shape-key-not-written            the shape a finding is filed in is written through the body record's </system-out>
+</testsuite>

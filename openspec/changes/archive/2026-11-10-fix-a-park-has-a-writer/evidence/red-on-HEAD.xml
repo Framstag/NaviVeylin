@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The JUnit-shaped tally of evidence/red-on-HEAD.log: one `testcase` per case the red run ran, read off the two
+     `FAIL <case>` lines and their exit status 1. A shell self-test prints PASS/FAIL lines rather than a suite
+     report (`.pi/skills/revert-check`, "When the gate is a shell self-test"), so the tally is transcribed from the
+     log the same way the archived `fix-the-turn-bounds-…` change transcribed its own. Taken 2026-11-10T10:28:12Z
+     on HEAD 95efb9036e86b0eb72930085d00027e9949a3273. -->
+<testsuite name="tools/issues/tests/issue-tooling-selftest.sh" tests="2" failures="2" errors="0" timestamp="2026-11-10T10:28:12Z">
+  <testcase classname="issue-tooling" name="answer#parkWritesTheAnswerAndKeepsTheMode">
+    <failure message="a park is an answer: answer: unknown argument --park: expected '0', got '2'">answer.sh:38 refuses --park as an unknown argument, so the choice to park has no writer.</failure>
+  </testcase>
+  <testcase classname="issue-tooling" name="decisions#aParkedItemIsListedAsParked">
+    <failure message="the entry is the condition the park waits for, not the answer's own first line: expected 'parked: wait for #844', got 'Decision: wait for #844, the prerequisite, before either row moves'">decisions.sh prints the answer's own first line where the question stands.</failure>
+  </testcase>
+</testsuite>

@@ -514,20 +514,23 @@ A turn is a unit of **shape**, not of cost (issue #760): every turn re-reads the
 turns bounds how many times the conversation is paid for and never what one payment costs, and the turn bound
 therefore fires at a price it cannot see. So a third bound is priced in what a turn costs, from the reading the
 report already takes (`tools/loop/state.sh`'s `child_usage_json`: the greatest `input + cacheRead` a usage record
-reports, or a compaction's `tokensBefore`) but which nothing read while a child ran: `LOOP_ITEM_CONTEXT_WARN`
-prints one `LOOP-CONTEXT:` line naming the reading and never ends anything, and `LOOP_ITEM_CONTEXT_MAX` ends the
-child exactly as the turn bound does, its transcript carrying `LOOP-TIMEOUT: the child reached the recorded context
-bound of <n> tokens (LOOP_ITEM_CONTEXT_MAX) at <m> tokens`. Measured over the 300 item records of
+reports, or a compaction's `tokensBefore`) but which nothing read while a child ran: `LOOP_ITEM_CONTEXT_WARN` prints one `LOOP-CONTEXT:` line naming the reading, and takes the split the configuration
+calls the cheaper half of the bound below it (issue #856): the item's first worker is ended there, below the stop, and
+the run continues it from the work it left exactly as the continuation issue #851 landed for a child the stop ends —
+one child, the kept patch applied onto the branch's `HEAD`, recorded `worker-checkpoint` where the stop's is
+`worker-continuation`. `LOOP_ITEM_CONTEXT_MAX` still ends every child exactly as the turn bound does, its transcript
+carrying `LOOP-TIMEOUT: the child reached the recorded context bound of <n> tokens (LOOP_ITEM_CONTEXT_MAX) at <m>
+tokens`. Measured over the 300 item records of
 `.pi/issue-loop/run.json` and `runs/*.json` (2026-11-05): the largest context per item is p50 107 669, p75 143 124,
 p90 174 984, p95 191 815, maximum 244 764. The checkpoint is the p75 (143 124) — one line on about a quarter of the
 items, the hardest among them — and the stop is 200 000, above the p95, where a turn costs 1.86× the archive's
 median largest context; 10 of the 300 recorded items (3.3 %) reached it, and `evidence/context-distribution.txt`
 lists them. Both are `0` or absent =
-no bound, and neither replaces another: the turn bound still ends a session that batches badly at a small context,
-and *splitting* the session at the checkpoint — a fresh child handed the change and the evidence, the shape
-`tools/loop/prompts/worker-tail.md` already has — is the cheaper half of the same idea; the split it names for the
-**cut** case is the continuation issue #851 landed, which the section on the cut below states (a patch the run that cut
-the child applies itself, and one child from it).
+no bound, and neither replaces another: the turn bound still ends a session that batches badly at a small context.
+The split is the item's **first worker** only: a continuation, a rework round, a gate, a tail and a review round run on
+to their own bound, so one item cannot be split twice and the checkpoint cannot become a loop that never ends an item.
+The split it names for the **cut** case is the same continuation (a patch the run that cut the child applies itself,
+and one child from it), which the section on the cut below states and whose step is `worker-continuation`.
 
 **The lever above that stop is refused, and the measurement is recorded here so a reader meets it before
 re-proposing it** (issue #833). The run of 2026-11-07T19:53Z recorded three of its items past the bound — 200 427,

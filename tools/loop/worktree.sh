@@ -18,7 +18,7 @@
 # Usage:
 #   worktree.sh create [--base <sha>] [--branch <name>]
 #   worktree.sh start-item <issue> <slug> [--change <name>]
-#   worktree.sh continue-item <issue>
+#   worktree.sh continue-item <issue> [checkpoint|bound]
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh branch-state <issue> <branch>
@@ -315,9 +315,10 @@ record_resume() { # <item> <patch> <applied|no-apply> [detail]
 # holds, not a file a process killed with `SIGKILL` left half-written. Only the ignored paths under the record directory
 # that the patch **carries** are removed before it is applied: `keep_leftovers` names the ones above its size bound and
 # copies nothing of them, so those are in the tree and in no record, and they stay.
-continue_from_leftover() { # <item> → 0 applied, 1 no patch, 2 no apply (the codes `resume_from_leftover` returns)
-  local item="$1" patch path record_dir rc=0
-  case "$item" in ''|*[!0-9]*) loop_die "continue-item: usage: worktree.sh continue-item <issue>" ;; esac
+continue_from_leftover() { # <item> [checkpoint] → 0 applied, 1 no patch, 2 no apply (the codes `resume_from_leftover` returns)
+  local item="$1" reason="${2:-bound}" patch path record_dir rc=0
+  case "$item" in ''|*[!0-9]*) loop_die "continue-item: usage: worktree.sh continue-item <issue> [checkpoint|bound]" ;; esac
+  case "$reason" in bound|checkpoint) ;; *) loop_die "continue-item: the reason is bound or checkpoint, not '$reason'" ;; esac
   [ -d "$worktree" ] || loop_die "continue-item: no worktree at $worktree — run 'create' first"
   patch=$(loop_leftover_patch_of "$item")
   [ -s "$patch" ] || return 1
@@ -334,9 +335,12 @@ continue_from_leftover() { # <item> → 0 applied, 1 no patch, 2 no apply (the c
   fi
   resume_from_leftover "$item" || rc=$?
   # The sentence the item's own note opens with (`state.sh done`). It says what a later run cannot: the phase was resumed
-  # by the run that cut it, in the same tree, rather than handed forward as a patch whose base may have moved.
+  # by the run that ended it, in the same tree, rather than handed forward as a patch whose base may have moved.
   case "$rc" in
-    0) record_resume "$item" "$patch" applied "the run continued the item in the run that cut it — its child passed the context bound, so the work it left in $patch was applied onto the branch's HEAD and one continuation child took it from there" ;;
+    0) case "$reason" in
+         checkpoint) record_resume "$item" "$patch" applied "the run continued the item in the run that reached its context checkpoint — its child reached the recorded checkpoint, so the work it left in $patch was applied onto the branch's HEAD and one continuation child took it from there" ;;
+         *) record_resume "$item" "$patch" applied "the run continued the item in the run that cut it — its child passed the context bound, so the work it left in $patch was applied onto the branch's HEAD and one continuation child took it from there" ;;
+       esac ;;
     2) record_resume "$item" "$patch" no-apply "the work the child this run cut left in $patch does not apply onto the branch's HEAD, so the run recorded the cut instead of continuing the item" ;;
   esac
   return "$rc"

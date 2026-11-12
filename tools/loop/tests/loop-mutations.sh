@@ -1172,6 +1172,15 @@ MUTATIONS=(
   # is printed once (`277.2`).
   '277.1@-@tools/loop/report.sh@report#anActionNamesAnItemPathThatExists@the derivation of the item root from the loop root the state belongs to, so a report printed from an archived state names `.pi/issue-loop/runs/items/<n>`, a directory the tree does not hold (issue #855)@s#^\[ -d "\$item_root" \] || item_root=.*$##'
   '277.2@-@tools/loop/report.sh@report#anActionNamesAnItemPathThatExists@the guard that keeps the sentence the record already carries about the kept patch off the resume line, so the line prints it twice and a caller reads one path as two (issue #855)@s|^  if \[ -n "\$patch" \] && \[ "\${note#\*"\$patch"}" = "\$note" \]; then$|  if [ -n "$patch" ]; then|'
+  # 278.x — the checkpoint the profile records is taken, not only printed (issue #856). The item's run of
+  # 2026-11-11T11:37:08Z cut #847 at 200 174 tokens after 142 turns and #839 at 200 869 after 125 — 33 275 315 of its
+  # 75 442 305 tokens (44.1 %) — and both had crossed the recorded 143 124 long before the stop. Three rules, one
+  # case each: the split exists (`278.1`), it is recorded as the checkpoint's continuation rather than the stop's
+  # (`278.2`), and it is taken only from a child that has work to continue (`278.3`), so the checkpoint does not become
+  # the bound #836 refused to lower.
+  '278.1@-@tools/loop/run.sh@run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound@the checkpoint split itself, so the item keeps paying for the grown context until the stop cuts it and the work is handed to the next run (issue #856)@s|^      if \[ "\$item_context_warn" -gt 0 \] && \[ "\$phase" = worker-prompt \] && \[ "\$ctx_max" -ge "\$item_context_warn" \]; then$|      if false; then|'
+  '278.2@-@tools/loop/run.sh@run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound@the step the checkpoint split records, so a checkpoint continuation is written as the worker-continuation of the stop and a reader cannot tell which reading ended the phase (issue #856)@s|^        \*"the recorded context checkpoint of"\*) continuation_step=worker-checkpoint|        *"the recorded context checkpoint of"*) continuation_step=worker-continuation|'
+  '278.3@-@tools/loop/run.sh@run#aWorkerAtTheCheckpointWithNoWorkRunsOn@the work the tree must carry before the checkpoint ends the child, so a session that has only read is cut at 143 124 and the item loses the stop the profile records (issue #856)@s|^        if \[ "\$ctx_has_work" -eq 1 \]; then$|        if true; then|'
   # 854.x — a skip's reason is the line the report prints (issue #854). The skip arm passed the child's sentence as
   # `--root-cause` and the constant `skipped by the worker` as `--note`, and `report.sh` prints the note, so the run
   # of 2026-11-11T11:37:08Z printed `#838 too-wide (skipped by the worker)` and `#844 stale (skipped by the worker)`

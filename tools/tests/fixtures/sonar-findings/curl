@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Stub `curl` for the findings dump's offline self-test: answers the three API calls `tools/sonar-findings.sh`
+# makes from files in `CURL_STUB_DIR`, so the dump is exercised with no network and no token.
+#
+# Env: CURL_STUB_DIR (the directory the answers are read from), CURL_STUB_STATUS (the HTTP status every call
+#      answers with, default 200), CURL_STUB_RECORD (a file each invocation is appended to).
+# The caller passes `-w '\n%{http_code}'`, so the body and the status are separated the way the real tool
+# separates them.
+set -uo pipefail
+if [ -n "${CURL_STUB_RECORD:-}" ]; then
+  printf 'curl %s\n' "$*" >> "$CURL_STUB_RECORD"
+fi
+
+dir="${CURL_STUB_DIR:?}"
+url=""
+for arg in "$@"; do
+  case "$arg" in http*) url="$arg" ;; esac
+done
+
+status="${CURL_STUB_STATUS:-200}"
+body=""
+case "$url" in
+  *project_analyses*)
+    [ -f "$dir/analyses.json" ] && body=$(cat "$dir/analyses.json") || body='{"analyses":[]}'
+    ;;
+  *issues/search*)
+    page=$(printf '%s' "$url" | sed -n 's/.*[?&]p=\([0-9][0-9]*\).*/\1/p')
+    file="$dir/issues-page${page:-1}.json"
+    [ -f "$file" ] || file="$dir/issues.json"
+    if [ -f "$file" ]; then body=$(cat "$file"); else body='{"total":0,"issues":[]}'; fi
+    ;;
+  *measures/component*)
+    [ -f "$dir/measures.json" ] && body=$(cat "$dir/measures.json") || body='{"component":{}}'
+    ;;
+  *)
+    body='{}'
+    status=404
+    ;;
+esac
+printf '%s\n%s\n' "$body" "$status"

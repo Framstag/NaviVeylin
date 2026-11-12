@@ -161,6 +161,45 @@
       "fingerprint": { "fields": ["job", "step"] }
     },
     {
+      "id": "sonar-reliability",
+      "cmd": "tools/sensors/metrics/sonar-reliability.sh",
+      "cron": "0 14 * * *",
+      "threshold": 0,
+      "comparison": "greater-than",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "code-quality",
+      "lifecycle": "file+close",
+      "input": "sonar-findings.json",
+      "fingerprint": { "fields": ["rule"] }
+    },
+    {
+      "id": "sonar-maintainability",
+      "cmd": "tools/sensors/metrics/sonar-maintainability.sh",
+      "cron": "30 14 * * *",
+      "threshold": 0,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "code-quality",
+      "lifecycle": "file+close",
+      "input": "sonar-findings.json",
+      "fingerprint": { "fields": ["rule"] }
+    },
+    {
+      "id": "sonar-duplication",
+      "cmd": "tools/sensors/metrics/sonar-duplication.sh",
+      "cron": "0 15 * * *",
+      "threshold": 2.5,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "code-quality",
+      "lifecycle": "file+close",
+      "input": "sonar-findings.json",
+      "fingerprint": { "fields": ["project"] }
+    },
+    {
       "id": "pr-conflicts",
       "cmd": "tools/sensors/conditions/pr-conflicts.sh",
       "cron": "30 */4 * * *",

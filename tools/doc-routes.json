@@ -452,7 +452,8 @@
         "BuildEvidence.md §7"
       ],
       "rules": [
-        "BuildEvidence.md §7 \"the analysis is a consumer of the reports, and gates nothing.\""
+        "BuildEvidence.md §7 \"the analysis is a consumer of the reports, and gates nothing.\"",
+        "BuildEvidence.md §7 \"the scan publishes a findings record, and three sensor rows read it, and neither gates a merge.\""
       ]
     },
     {
@@ -658,6 +659,7 @@
         "Backlog.md §3 \"one item is one issue, and everything a reader selects on is a label.\"",
         "Backlog.md §3 \"priority is a stored fact with a recorded basis, not a number recomputed on every reading.\"",
         "Backlog.md §3 \"the tracker's own classification is an axis of its own, and a container is never work.\"",
+        "Backlog.md §3 \"The analysis's three rows are one area, and one rule is one item.\"",
         "Backlog.md §4 \"an invariant is stated with the observation that would falsify it.\"",
         "Backlog.md §14 \"a reversal is recorded, not deleted.\"",
         "Backlog.md §5 \"an answer reaches the next worker's package.\"",

@@ -99,6 +99,12 @@ body's `tier:` record: `tier` says whether an item is worked as a cause or as a 
 what the tracker calls it, and an item may be either tier under any type — an Epic is a container whatever the
 shape of its children.
 
+**The analysis's three rows are one area, and one rule is one item.** `sonar-reliability`,
+`sonar-maintainability` and `sonar-duplication` declare `category/code-quality` with their own
+`lifecycle: file+close`, and their identity is the rule a finding breaks: every finding of that rule lands in
+one item instead of one item per finding, and the item closes when the rule's findings are gone
+(`BacklogTooling.md` §9).
+
 ## 4. The invariants
 
 **Rule: an invariant is stated with the observation that would falsify it.** These are the rules the mechanism must satisfy. Each names the mechanism that holds it and the observation

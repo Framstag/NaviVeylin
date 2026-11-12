@@ -137,6 +137,23 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+      # The findings record: what the analysis measured for *this* commit — every open issue's rule, path,
+      # software quality and impact severity, plus the project's duplication measures — dumped after the scanner
+      # (`tools/sonar-findings.sh`, design D1). It polls `api/project_analyses/search` until the analysis carries
+      # `$GITHUB_SHA`, so a record read before the Compute Engine finished would be the previous analysis's: a
+      # fixed finding would keep its open issue and a new one would be invisible for a cycle (design D2).
+      #
+      # `if: success()` and never `if: always()`, unlike the result record below: a red scan measured nothing, so
+      # a record it published would make the three analysis rows read "no findings" from a scan that did not
+      # measure — the failure `sonar-analysis` forbids for the scan itself (design D6). The credential stays
+      # here: the checks' pipeline fetches this as an artifact and holds no SonarQube credential.
+      - name: Dump the findings record
+        if: success()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        run: bash tools/sonar-findings.sh
+
       # The scan's own outcome, written for every run and published as the artifact the checks' pipeline
       # fetches. Without it a scan that has never once succeeded is indistinguishable from a healthy one: three
       # failed scans of `main` filed no item of any kind (issue #751). `tools/build-inputs.sh` is the one place
@@ -169,4 +186,17 @@ jobs:
         with:
           name: scan-inputs
           path: scan-result.json
+          if-no-files-found: error
+
+      # The findings record is an artifact of its own rather than a second entry in `scan-inputs`: that artifact
+      # carries exactly one path, because a second entry moves the archive root and turns "what the artifact
+      # carries" into a path a check would have to model (design D1). `if: success()` for the reason the dump step
+      # carries it, and `if-no-files-found: error` so a green scan that dumped nothing is red here instead of
+      # reading as a project with no findings.
+      - name: Publish the findings record
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sonar-findings
+          path: sonar-findings.json
           if-no-files-found: error

@@ -275,6 +275,73 @@ if [ -f "$wf" ]; then
   fi
 fi
 
+# ── the scan publishes the findings it measured ───────────────────────────────────────────────────
+# The analysis measures reliability, maintainability and duplication on every push to `main`; until this record
+# existed nothing but the badge read the result. The three analysis rows file from `sonar-findings.json`, so the
+# workflow has to produce it, upload it as an artifact of its own, and do that only for a scan that succeeded: a
+# red scan measured nothing, and a record it published would make three rows read "no findings" (spec
+# sonar-analysis, 'The scan publishes the findings it measured for the commit it analysed').
+if [ -f "$wf" ]; then
+  # The path the rows declare, not a second copy of it: the three rows are what read the record, so their own
+  # `input` is what the artifact has to carry.
+  findings_paths=$(jq -r '[.rows[]? | select(.id | test("^sonar-")) | .input // empty] | unique | .[]' \
+    "$root/tools/sensors/sensors.json" 2>/dev/null)
+  findings_path=$(printf '%s\n' "$findings_paths" | head -1)
+  if [ -z "$findings_path" ]; then
+    error "$wf_rel" 1 "no 'sonar-*' row declares the findings record — the workflow would publish a record no row reads (spec backlog-sensors, 'One issue holds every finding of one kind')"
+  elif [ "$(printf '%s\n' "$findings_paths" | grep -c .)" -ne 1 ]; then
+    error "$wf_rel" 1 "the 'sonar-*' rows disagree on the findings path: $(printf '%s' "$findings_paths" | tr '\n' ' ') — one record, one path (spec backlog-sensors, 'A pipeline's measured record travels beside its result record')"
+  fi
+
+  dump_block=$(step_block "$wf" 'tools/sonar-findings.sh')
+  if [ -z "$dump_block" ]; then
+    error "$wf_rel" 1 "no step runs 'bash tools/sonar-findings.sh' — the analysis's findings reach nothing but the badge (spec sonar-analysis, 'The scan publishes the findings it measured for the commit it analysed')"
+  else
+    dump_line=$(grep -n 'tools/sonar-findings.sh' "$wf" | head -1 | cut -d: -f1)
+    case "$(printf '%s\n' "$dump_block" | grep -E '^[[:space:]]*if:' | head -1)" in
+      *'success()'*) ;;
+      *) error "$wf_rel" "$dump_line" "the dump step's 'if:' line is not 'if: success()' — a red scan measured nothing, and its record would read as a project with no findings (spec sonar-analysis, 'A scan that did not succeed publishes no findings')" ;;
+    esac
+  fi
+
+  findings_block=$(step_block "$wf" 'name: sonar-findings')
+  if [ -z "$findings_block" ]; then
+    error "$wf_rel" 1 "no step publishes the findings record as the 'sonar-findings' artifact — the checks' run fetches exactly that name (spec sonar-analysis, 'The record names the commit it measured')"
+  else
+    findings_line=$(grep -n 'name: sonar-findings' "$wf" | head -1 | cut -d: -f1)
+    case "$(printf '%s\n' "$findings_block" | grep -E '^[[:space:]]*if:' | head -1)" in
+      *'success()'*) ;;
+      *) error "$wf_rel" "$findings_line" "the findings upload's 'if:' line is not 'if: success()' — a failed scan publishes no findings record, or its failure reads as zero findings (spec sonar-analysis, 'A scan that did not succeed publishes no findings')" ;;
+    esac
+    findings_upload_paths=$(printf '%s\n' "$findings_block" | awk '
+      /^[[:space:]]*path:/ { collecting = 1; line = $0; sub(/^[[:space:]]*path:[[:space:]]*/, "", line);
+                           if (line != "" && line != "|" && line != ">-" && line != ">") print line; next }
+      collecting && /^[[:space:]]*[A-Za-z_-]+:/ { collecting = 0 }
+      collecting && NF { line = $0; sub(/^[[:space:]]*/, "", line); print line }')
+    if [ -z "$findings_path" ]; then
+      :   # already reported above: there is no declared path to compare against
+    elif [ "$(printf '%s\n' "$findings_upload_paths" | grep -c .)" -ne 1 ] ||
+         [ "$(printf '%s\n' "$findings_upload_paths")" != "$findings_path" ]; then
+      error "$wf_rel" "$findings_line" "the upload lists '$(printf '%s' "$findings_upload_paths" | tr '\n' ' ')', not the rows' '$findings_path' alone — the artifact would carry a different path than the rows read (spec sonar-analysis, 'The record names the commit it measured')"
+    fi
+  fi
+
+  # The credential boundary: the dump and its upload live in the workflow that holds the scanner token, and
+  # neither carries the tracker's. A findings record written with the tracker credential would make the scan
+  # pipeline a tracker writer, which is the separation both workflow files exist for.
+  for block_name in dump findings; do
+    case "$block_name" in
+      dump) block="$dump_block"; line_hint=$(grep -n 'tools/sonar-findings.sh' "$wf" | head -1 | cut -d: -f1) ;;
+      findings) block="$findings_block"; line_hint=$(grep -n 'name: sonar-findings' "$wf" | head -1 | cut -d: -f1) ;;
+    esac
+    [ -n "$block" ] || continue
+    while IFS= read -r credential; do
+      [ -n "$credential" ] || continue
+      error "$wf_rel" "${line_hint:-1}" "the findings record's step carries the tracker credential '$credential' — the record is produced in the workflow that holds the scanner token and reaches the checks' run as an artifact only (spec sonar-analysis, 'The findings record carries no credential out of the scan pipeline')"
+    done < <(printf '%s\n' "$block" | grep -oE 'SENSORS_TOKEN|GH_TOKEN' || true)
+  done
+fi
+
 # ── the quality gate is never waited for ───────────────────────────────────────────────────────────
 for f in "$wf" "$props"; do
   [ -f "$f" ] || continue

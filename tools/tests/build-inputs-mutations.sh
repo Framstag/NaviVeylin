@@ -44,6 +44,12 @@ MUTATIONS=(
   '5.12@.github/workflows/sensors.yml@s/inputs.apply == true/inputs.apply == '\''true'\''/@sensor:workflow#onlyTwoTriggers@the dispatch apply is compared as the boolean it is declared to be'
   '5.13@tools/fetch-build-inputs.sh@s/^conclusion=.*/conclusion=success/@inputs#reportsTheRunsConclusion@the conclusion the caller gates its rows on is the run'"'"'s own'
   '5.14@tools/build-inputs.sh@s/xml_instruction_percentage "\$jacoco_vendored_xml"/xml_instruction_percentage "$jacoco_xml"/@inputs#splitsTheJavaModulesCoverageByProvenance@the vendored provenance is read from its own report, not from the module'"'"'s own one'
+  '3.3@tools/build-inputs.sh@s/"\$scan_result" "\$sonar_findings" "\$job_timings"/"$scan_result" "$job_timings"/@inputs#theFindingsRecordIsPairedNotWritten@the manifest pairs the scan'"'"'s findings record with its producer without writing it'
+  '1.6@tools/sonar-findings.sh@s/--arg revision "\$revision"/--arg revision "$analysis_date"/@sonar:sonar-findings#theRecordNamesTheCommitItMeasured@the record names the commit the analysis carries, not the analysis'"'"'s date'
+  '1.7@tools/sonar-findings.sh@s/select(.revision == \$rev)/select(true)/@sonar:sonar-findings#aStaleAnalysisIsRefused@only an analysis carrying the commit'"'"'s revision is published'
+  '1.8@.github/workflows/sonar.yml@s/if: success\(\)/if: always()/@sonar:sonar-findings#aRedScanPublishesNoFindings@a failed scan publishes no findings record'
+  '1.9@tools/sonar-findings.sh@s|severity: \.severity,|severity: ($issue.severity // ""),|@sonar:sonar-findings#severityComesFromTheIssuesImpacts@the severity is the impact'"'"'s, not the legacy field'"'"'s'
+  '1.10@tools/sonar-findings.sh@s/  truncated=true/  truncated=false/@sonar:sonar-findings#completenessIsStated@a bounded read states its bound'
 )
 
 if [ "$mode" = "list" ]; then
@@ -69,6 +75,7 @@ for entry in "${MUTATIONS[@]}"; do
   suite="bash tools/tests/build-inputs-selftest.sh"
   case "$case_name" in
     sensor:*) suite="bash tools/sensors/tests/sensor-selftest.sh"; case_name="${case_name#sensor:}" ;;
+    sonar:*) suite="bash tools/tests/sonar-findings-selftest.sh"; case_name="${case_name#sonar:}" ;;
   esac
   cp "$file" "$backup"
   if ! sed -i "$expr" "$file"; then

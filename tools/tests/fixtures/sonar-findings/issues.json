@@ -1,0 +1,46 @@
+{
+  "total": 4,
+  "issues": [
+    {
+      "key": "i1",
+      "rule": "java:S2095",
+      "component": "app/src/main/java/com/naviveylin/map/BasemapManager.java",
+      "message": "close this resource",
+      "severity": "MAJOR",
+      "impacts": [
+        {"softwareQuality": "RELIABILITY", "severity": "MEDIUM"}
+      ]
+    },
+    {
+      "key": "i2",
+      "rule": "java:S2095",
+      "component": "app/src/main/java/com/naviveylin/core/ResourceHandle.java",
+      "message": "close this resource",
+      "severity": "BLOCKER",
+      "impacts": [
+        {"softwareQuality": "RELIABILITY", "severity": "BLOCKER"}
+      ]
+    },
+    {
+      "key": "i3",
+      "rule": "kotlin:S3776",
+      "component": "app/src/main/kotlin/com/naviveylin/map/MapViewModel.kt",
+      "message": "reduce this function's cognitive complexity",
+      "severity": "HIGH",
+      "impacts": [
+        {"softwareQuality": "MAINTAINABILITY", "severity": "HIGH"}
+      ]
+    },
+    {
+      "key": "i4",
+      "rule": "java:S1192",
+      "component": "app/src/main/java/com/naviveylin/ui/Settings.java",
+      "message": "define a constant instead of duplicating this literal",
+      "severity": "LOW",
+      "impacts": [
+        {"softwareQuality": "RELIABILITY", "severity": "LOW"},
+        {"softwareQuality": "MAINTAINABILITY", "severity": "MEDIUM"}
+      ]
+    }
+  ]
+}

@@ -62,6 +62,14 @@ MUTATIONS=(
   '8.33@tools/sensors/metrics/doc-context.sh@s/sensors_compare "$size" "$threshold" greater-than/sensors_compare "$size" "$threshold" below-floor/@sensors#entryDocumentSizeRow@an entry document past its own row bound is a violation (issue #197)'
   '3.1@tools/sensors/metrics/doc-context.sh@s#sensors_compare "$size" "$threshold" greater-than || continue#sensors_compare "$size" "$threshold" below-floor || continue#@sensors#documentSizeRow@a normative document past the row bound is a violation (design D4)'
   '3.2@tools/sensors/metrics/doc-context.sh@s#if \[ "$scope" = "normative-purity" \]; then#if false; then#@layers#aFigureInANormativeDocumentIsACondition@a measured figure inside a normative document is a condition (documentation-ownership, "A normative document carries no rationale and no procedure")'
+  '4.7@tools/sensors/metrics/sonar-reliability.sh@s/sensors_fingerprint "$fields" "rule"/sensors_fingerprint "$fields" "severity"/@sensors#oneRuleIsOneCondition@the condition identity is the rule, not the band it happens to be measured at'
+  '4.8@tools/sensors/metrics/sonar-maintainability.sh@s/"$count" violation/"0" violation/@sensors#aShrinkingRuleKeepsItsItem@a shrunken rule records the smaller measurement it holds'
+  '4.9@tools/sensors/metrics/sonar-reliability.sh@s/select(.state == "OPEN")/select(.state == "CLOSED")/@sensors#aClearedRuleClosesItsItem@a recorded open condition is the one a clear names'
+  '4.10@tools/sensors/metrics/sonar-reliability.sh@s/sensors_fingerprint "$fields" "rule"/sensors_fingerprint "$fields" "rule severity"/@sensors#severityIsNotTheIdentity@a severity change is the same item, not a second one'
+  '4.11@tools/sensors/sensors.json@s/"id": "sonar-reliability",/"id": "sonar-reliability",\n      "maxFilings": 5,/@sensors#theAnalysisRowsDeclareNoFilingCap@no analysis row declares a filing cap of its own (design D7)'
+  '4.12@tools/sensors/run.sh@s/-ge "$SENSORS_MAX_FILINGS" \]; then/-ge 100 ]; then/@sensors#aMultipliedKindSetIsListed@a run files at most the bound its row carries, and the rest leaves as one summary'
+  '5.4@.github/workflows/sensors.yml@s/--workflow sonar.yml --artifact sonar-findings/--workflow sonar.yml --artifact scan-inputs/@workflow#theFindingsRecordIsFetchedBeforeItsRowsRun@the findings record is fetched from its own artifact'
+  '5.5@.github/workflows/sensors.yml@s/echo "findings-ready=false"/echo "findings-ready=true"/@workflow#theFindingsReadinessIsReportedApart@a record that is not there is reported as not-ready, not as ready'
 )
 
 if [ "$mode" = "list" ]; then

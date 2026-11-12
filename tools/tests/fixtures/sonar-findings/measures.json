@@ -1,0 +1,10 @@
+{
+  "component": {
+    "key": "fixture-project",
+    "measures": [
+      {"metric": "duplicated_lines_density", "value": "2.3"},
+      {"metric": "duplicated_lines", "value": "986"},
+      {"metric": "ncloc", "value": "42853"}
+    ]
+  }
+}

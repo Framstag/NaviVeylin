@@ -953,6 +953,18 @@ MUTATIONS=(
   '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the characters the repeat rule withheld of the run repeats, so the trend calls the raw repeat volume re-injected again and a figure the child never saw reads as one it did (issue #831)@s| withheld by the repeat rule| re-injected|'
   '96.3@-@../pi-trim-result.mjs@repeat#aRepeatIsRecordedAsWhatItWithheld@the line that records what the repeat rule withheld, so an item that repeats a path leaves no record of the volume the child was not handed and the report calls the raw result re-injected (issue #831)@s|appendFileSync(record, repeatRecordLine(tool, text.length, notice.length));|void 0;|'
 
+  # 858.x — the repeat rule's ledger is the item's, not the child's (issue #858). The hook kept it in a `Map` that lives
+  # as long as one child process, so an item split at its gate handed its gate child, whole, every path its worker had
+  # already paid for: measured on the run of 2026-11-11T11:37:08Z the rule withheld 1 370 of the 486 700 characters the
+  # items' repeat results carried (0.3 %), and the two items that read most were the two that were split. Four lines
+  # carry it — the ledger the environment names, the session the one line names, and the adapter that names both for
+  # every child of the item (two lines, one case) — and the report's clause is the fifth: once the ledger spans the
+  # children, the withheld figure is no share of `dupChars`, so the trend prints it as the rule's own volume.
+  '858.1@-@../pi-trim-result.mjs@repeat#anItemsLedgerSpansItsChildren@the ledger the environment names for the item, so a second child of the item meets every earlier read as a first read and is handed text its worker already paid for (issue #858)@s|^  let ledgerFile = process\.env\.LOOP_TOOL_RESULT_LEDGER .*$|  let ledgerFile = "";|'
+  '858.2@-@../pi-trim-result.mjs@repeat#anItemsLedgerSpansItsChildren@the session the one line names, so a repeat of an item reads as this child’s own read and a reader cannot tell which child was handed the text (issue #858)@s|^  const reader = session ? .*$|  const reader = "of this session";|'
+  '858.3@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheItemsLedger@the ledger named beside the item’s event stream, so every child of the item keeps a ledger of its own and the rule is one child deep again (issue #858)@s|^  export LOOP_TOOL_RESULT_LEDGER=.*$|  : # the mutation names the item ledger nowhere|'
+  '858.4@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheItemsLedger@the session a child is named by, so a repeat of the item carries a line that cannot say which child read the path (issue #858)@s|^export LOOP_CHILD_SESSION=.*$|export LOOP_CHILD_SESSION=""|'
+
   # 97.x — the gate an item ran and the round that read its diff reach the item's record whichever arm it ended on
   # (issue #813). `gate_field` was computed 448 lines before the `falsified` arm and passed by the `closed` arm alone, so
   # a blocked item — the arm most gates end in — recorded `metrics.gate: ""` and `report.sh` ordered a re-run of a gate

@@ -18,7 +18,7 @@
 // The same archive says the bound is only half of it (issue #685): `LOOP-SPEND-READS calls=6021 duplicate=2847` —
 // 47 % of the reads are a second read of a path that child already had, and every one of them is injected once more
 // and re-read by every turn that follows. The bound does not know the child already holds the text. So the handler
-// carries a second rule over the per-session ledger it keeps for the read tools: a repeat whose content sha matches
+// carries a second rule over the ledger the item keeps for its read tools: a repeat whose content sha matches
 // the earlier read is replaced by one line naming the turn it was read at, its size and the range syntax, because a
 // reader that wants part of that text again asks for the range and not for the file. A repeat whose sha differs is
 // the session's own edit coming back — 728 of the archive's 2 042 per-session repeats follow an edit of that path —
@@ -28,6 +28,15 @@
 // it withheld is written down too (issue #831): the rule appends `LOOP-TOOL-RESULT-REPEAT: <tool> chars=<n> kept=<k>` to
 // the record the bound already writes, so an item's evidence says how much of a repeat's own result the child was not
 // handed, instead of leaving the report to call the raw volume re-injected.
+//
+// The ledger is the **item's**, not the child's (issue #858). One child process is one session, so a `Map` that lives as
+// long as the hook is one child deep: an item split at its gate starts its gate child on an empty ledger, and every path
+// the worker read is a first read again — whole. Measured on the run of 2026-11-11T11:37:08Z, the rule withheld 1 370 of
+// the 486 700 characters the items' repeat results carried (0.3 %), and the two items that read most were the two that
+// were split (#848 31 of 83 reads, #849 27 of 77). So the adapter names one ledger file beside the item's event stream
+// (`LOOP_TOOL_RESULT_LEDGER`), every child of the item opens it and writes back what it read, and the line a repeat is
+// replaced by names the **session** that read the path (`LOOP_CHILD_SESSION`): the child that follows is not that
+// session, and a line saying "this session" would be a false one.
 //
 // Two entry points, one pair of rules:
 //
@@ -110,14 +119,16 @@ export function contentSha(text) {
   return createHash("sha256").update(text, "utf8").digest("hex").slice(0, 32);
 }
 
-/** The one line a repeat read is replaced by: the text the session holds, where it read it, and how to take a range. */
-export function alreadyReadNotice(path, size, turn) {
-  return `[LOOP-ALREADY-READ: ${path} (${size} characters) was read at turn ${turn} of this session and is`
+/** The one line a repeat read is replaced by: the text the item holds, the session and turn it was read at, and how to
+ * take a range of it instead. A read with no session named is the fallback wording this rule shipped with. */
+export function alreadyReadNotice(path, size, turn, session = "") {
+  const reader = session ? `in the ${session} session` : "of this session";
+  return `[LOOP-ALREADY-READ: ${path} (${size} characters) was read at turn ${turn} ${reader} and is`
     + ` unchanged since — read a range instead of the whole file again (ctx_read mode="lines:N-M")]\n`;
 }
 
 /**
- * The repeat rule: the text of a read, or the one line naming the earlier read when this session already holds the
+ * The repeat rule: the text of a read, or the one line naming the earlier read when the item already holds the
  * same content at the same path. A read whose sha differs from the ledger's is the session's own edit coming back, so
  * it is handed over whole — that read is a verification — and becomes what the next repeat is measured against. A
  * replacement is recorded beside the trims (`repeatRecordLine`), because what the child was not handed is a fact only
@@ -128,9 +139,9 @@ export function repeatResult(text, read, bound, tool = "?", record = "") {
     if (!(bound > 0) || !read || !read.path || !read.ledger) return text;
     const sha = contentSha(text);
     const earlier = read.ledger.get(read.path);
-    read.ledger.set(read.path, { sha, turn: read.turn, size: text.length });
+    read.ledger.set(read.path, { sha, turn: read.turn, size: text.length, session: read.session || "" });
     if (!earlier || earlier.sha !== sha) return text;
-    const notice = alreadyReadNotice(read.path, earlier.size, earlier.turn);
+    const notice = alreadyReadNotice(read.path, earlier.size, earlier.turn, earlier.session || "");
     if (record) {
       try {
         appendFileSync(record, repeatRecordLine(tool, text.length, notice.length));
@@ -145,8 +156,10 @@ export function repeatResult(text, read, bound, tool = "?", record = "") {
 }
 
 /**
- * The session's ledger as a CLI invocation finds it again: `sha <tab> turn <tab> size <tab> path` per line, so the
- * case that drives this file repeats a read across two processes the way one child repeats it across two turns.
+ * The item's ledger as a second child process finds it again: `sha <tab> turn <tab> size <tab> session <tab> path` per
+ * line, so the child started after this one repeats a read the way one child repeats it across two turns (issue #858).
+ * A line of an older shape — four columns, when the ledger was one child's — is dropped: the read it recorded is then an
+ * item's first read and is handed over whole, which is the side this rule may err on.
  */
 export function readLedger(file) {
   const ledger = new Map();
@@ -154,15 +167,16 @@ export function readLedger(file) {
   try {
     text = readFileSync(file, "utf8");
   } catch {
-    return ledger; // no ledger yet: this read is the session's first
+    return ledger; // no ledger yet: this read is the item's first
   }
   for (const line of text.split("\n")) {
     const parts = line.split("\t");
-    if (parts.length < 4 || !parts[0]) continue;
-    ledger.set(parts.slice(3).join("\t"), {
+    if (parts.length < 5 || !parts[0]) continue;
+    ledger.set(parts.slice(4).join("\t"), {
       sha: parts[0],
       turn: Number.parseInt(parts[1], 10) || 0,
       size: Number.parseInt(parts[2], 10) || 0,
+      session: parts[3],
     });
   }
   return ledger;
@@ -171,7 +185,9 @@ export function readLedger(file) {
 /** A ledger that cannot be written costs a repeat, never the result it was being kept for. */
 export function writeLedger(file, ledger) {
   const lines = [];
-  for (const [path, entry] of ledger) lines.push(`${entry.sha}\t${entry.turn}\t${entry.size}\t${path}`);
+  for (const [path, entry] of ledger) {
+    lines.push(`${entry.sha}\t${entry.turn}\t${entry.size}\t${entry.session || ""}\t${path}`);
+  }
   try {
     writeFileSync(file, lines.length ? `${lines.join("\n")}\n` : "");
   } catch {
@@ -195,11 +211,15 @@ export function trimContent(content, bound, tool, record, read) {
   return changed ? out : null;
 }
 
-/** The extension factory: one hook, the bound the run recorded, and the reads this session has already been handed. */
+/** The extension factory: one hook, the bound the run recorded, and the ledger of what this item's children read. */
 export default function (pi) {
-  // The ledger is the session's: one child process is one session, so a Map that lives as long as the hook is
-  // per-session, and the turn a read happened at is the number of the turn this process has started.
-  const ledger = new Map();
+  // The ledger is the item's (issue #858): the adapter names the file beside the item's event stream, so the child
+  // started after this one opens the reads this one made instead of meeting every one of them as a first read. With no
+  // file named — a child started by hand — the ledger is this process's own, which is what the rule shipped with. The
+  // turn is the number of the turn this process has started, and the session is what the notice names it by.
+  const ledgerFile = process.env.LOOP_TOOL_RESULT_LEDGER || "";
+  const session = process.env.LOOP_CHILD_SESSION || "";
+  const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();
   let turn = 0;
   try {
     pi.on("turn_start", async () => {
@@ -214,8 +234,11 @@ export default function (pi) {
       if (!bound) return undefined;
       const record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
       const tool = event.toolName || "?";
-      const read = { path: readPath(tool, event.input), ledger, turn: turn || 1 };
+      const read = { path: readPath(tool, event.input), ledger, turn: turn || 1, session };
       const content = trimContent(event.content, bound, tool, record, read);
+      // What the read tool returned is the item's now, so the child that follows this one finds it: written even when
+      // the result itself was handed over unchanged, because a first read is what the next one is measured against.
+      if (read.path && ledgerFile) writeLedger(ledgerFile, ledger);
       return content ? { content } : undefined;
     } catch {
       return undefined; // the result stands as the tool returned it
@@ -225,8 +248,9 @@ export default function (pi) {
 
 /**
  * The CLI: the same rules over stdin, for the cases and for a reader who wants to see what they would do. A read tool
- * call is named by `--path` (the path the tool was given) and `--turn`, and `--ledger` carries the session's ledger
- * from one invocation to the next, so a case repeats a read the way a child repeats one across two turns.
+ * call is named by `--path` (the path the tool was given) and `--turn`, and the ledger is the one the environment names
+ * (`LOOP_TOOL_RESULT_LEDGER`, what the adapter hands every child of an item) or the one `--ledger` names, so a case
+ * drives a read the way the item's second child meets the first one's.
  */
 function cli(argv) {
   let bound = recordedBound(process.env.LOOP_TOOL_RESULT_MAX_CHARS);
@@ -234,7 +258,8 @@ function cli(argv) {
   let record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
   let path = "";
   let turn = 1;
-  let ledgerFile = "";
+  let ledgerFile = process.env.LOOP_TOOL_RESULT_LEDGER || "";
+  let session = process.env.LOOP_CHILD_SESSION || "";
   for (let i = 0; i < argv.length; i += 1) {
     const name = argv[i];
     const value = argv[i + 1];
@@ -256,9 +281,12 @@ function cli(argv) {
     } else if (name === "--ledger") {
       ledgerFile = value || "";
       i += 1;
+    } else if (name === "--session") {
+      session = value || session;
+      i += 1;
     } else if (name === "-h" || name === "--help") {
       process.stdout.write("usage: pi-trim-result.mjs --bound <chars> [--tool <name>] [--record <file>]"
-        + " [--path <file>] [--turn <n>] [--ledger <file>] < result\n");
+        + " [--path <file>] [--turn <n>] [--ledger <file>] [--session <name>] < result\n");
       return 0;
     } else {
       process.stderr.write(`pi-trim-result: unknown argument ${name}\n`);
@@ -267,7 +295,7 @@ function cli(argv) {
   }
   const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();
   const text = readFileSync(0, "utf8");
-  const read = { path: readPath(tool, { path }), ledger, turn };
+  const read = { path: readPath(tool, { path }), ledger, turn, session };
   process.stdout.write(trimResult(repeatResult(text, read, bound, tool, record), bound, tool, record));
   if (ledgerFile) writeLedger(ledgerFile, ledger);
   return 0;

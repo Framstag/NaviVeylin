@@ -326,6 +326,7 @@ LOOP_SHELL_CASES=(
   'adapter#modeFlagIsItsOwnArgument'
   'adapter#theChildIsStartedWithoutContextFiles'
   'adapter#theChildIsStartedWithTheResultBound'
+  'adapter#theChildIsStartedWithTheItemsLedger'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
   'adapter#aRotatedStreamKeepsEveryTurnEnd'
@@ -425,6 +426,7 @@ LOOP_SHELL_CASES=(
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'repeat#aRepeatIsRecordedAsWhatItWithheld'
+  'repeat#anItemsLedgerSpansItsChildren'
   'run#childPastItsTurnBoundIsCut'
   'prescreen#aReworkCutBranchIsWork'
   'prescreen#anAnsweredBranchIsWorkNotADecision'
@@ -1032,6 +1034,7 @@ loop_run_shell_case() {
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
+    'adapter#theChildIsStartedWithTheItemsLedger') fn=case_adapter_theChildIsStartedWithTheItemsLedger ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
     'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
@@ -1128,6 +1131,7 @@ loop_run_shell_case() {
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'repeat#aRepeatIsRecordedAsWhatItWithheld') fn=case_repeat_aRepeatIsRecordedAsWhatItWithheld ;;
+    'repeat#anItemsLedgerSpansItsChildren') fn=case_repeat_anItemsLedgerSpansItsChildren ;;
     'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
     'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
@@ -12669,8 +12673,8 @@ JSONL
   reads_line=$(printf '%s\n' "$trend" | grep '^  reads:' || true)
   [ -n "$reads_line" ] || fail "the trend printed no repeat-reads line"
   assert_contains "$reads_line" \
-    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars of them withheld by the repeat rule · worst #21 2 of 5" \
-    "the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the ones the rule withheld of them and the worst item"
+    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars withheld by the repeat rule · worst #21 2 of 5" \
+    "the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld (which the item's ledger counts across its children, so they are no share of the results above) and the worst item"
   # …and the raw volume is never called re-injected again: it is either withheld or handed over, and the line says which.
   assert_not_contains "$reads_line" "re-injected" \
     "the trend does not label the repeat results' characters as re-injected, which the rule may have replaced"
@@ -16382,6 +16386,82 @@ case_repeat_aRepeatIsRecordedAsWhatItWithheld() {
     --path "$file" --turn 6 --ledger "$d/ledger.txt" --record "$d/edits.log" < "$file" > "$d/edited.txt" \
     || fail "the result rule exited non-zero on the read after an edit: $(head -3 "$d/edited.txt")"
   [ ! -s "$d/edits.log" ] || fail "a read after the session edited the path is recorded as withheld: $(cat "$d/edits.log")"
+  return 0
+}
+
+# The repeat rule's ledger was one child process deep (issue #858): the hook keeps it in a `Map` that lives as long as
+# the process, so an item split at its gate starts its gate child on an empty ledger and every path the worker read is a
+# *first* read again — handed over whole. Measured on the run of 2026-11-11T11:37:08Z: 90 of 251 file reads repeated a
+# path at 486 700 characters, and the rule withheld 1 370 of them, 0.3 %; the two items that read most are the two that
+# were split (#848 31 of 83 reads, #849 27 of 77). So the ledger is the **item's**: the adapter names one file beside
+# the item's event stream (`LOOP_TOOL_RESULT_LEDGER`, which `adapter#theChildIsStartedWithTheItemsLedger` proves), every
+# child of the item opens it and writes back what it read, and the line a repeat is replaced by names the session that
+# read the path — the child that follows is not that session, and a line claiming "this session" would be false.
+case_repeat_anItemsLedgerSpansItsChildren() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d file ledger
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what an item has read: tools/pi-trim-result.mjs is not in the tree (issue #858)"
+  d=$(scratch)
+  ledger="$d/tool-result-ledger.tsv"
+  file="$d/section.md"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'z'; printf '\nLAST-LINE\n'; } > "$file"
+  # The worker's read. The ledger the environment names does not exist yet, so this is the item's first read.
+  LOOP_TOOL_RESULT_LEDGER="$ledger" LOOP_CHILD_SESSION='worker-prompt' \
+    node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+      --path "$file" --turn 3 < "$file" > "$d/worker.txt" \
+    || fail "the result rule exited non-zero on the item's first read: $(head -3 "$d/worker.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/worker.txt")" "an item's first read is handed over whole"
+  # The gate child: another process, its own turn numbers, the same item.
+  LOOP_TOOL_RESULT_LEDGER="$ledger" LOOP_CHILD_SESSION='worker-gate-prompt' \
+    node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+      --path "$file" --turn 1 < "$file" > "$d/gate.txt" \
+    || fail "the result rule exited non-zero on the item's second child: $(head -3 "$d/gate.txt")"
+  assert_not_contains "$(cat "$d/gate.txt")" 'FIRST-LINE' \
+    "the item's second child is handed the line, not text its worker already paid for"
+  assert_contains "$(cat "$d/gate.txt")" 'LOOP-ALREADY-READ' "and that line says the item already has the path"
+  assert_contains "$(cat "$d/gate.txt")" 'worker-prompt' \
+    "naming the session that read it, not the one reading it now"
+  assert_contains "$(cat "$d/gate.txt")" 'turn 3' "and the turn that session read it at"
+  [ -s "$ledger" ] || fail "the ledger the environment named was not written: $ledger holds nothing"
+  # A path the worker edited no longer holds the sha the ledger recorded, so the read is a verification: whole.
+  printf 'EDITED-LINE\n' >> "$file"
+  LOOP_TOOL_RESULT_LEDGER="$ledger" LOOP_CHILD_SESSION='worker-gate-prompt' \
+    node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+      --path "$file" --turn 2 < "$file" > "$d/edited.txt" \
+    || fail "the result rule exited non-zero on the read after an edit: $(head -3 "$d/edited.txt")"
+  assert_contains "$(cat "$d/edited.txt")" 'EDITED-LINE' \
+    "a path whose content changed comes back whole, whoever read it last"
+  assert_not_contains "$(cat "$d/edited.txt")" 'LOOP-ALREADY-READ' \
+    "and nothing says the item holds what it no longer does"
+  return 0
+}
+
+# What a repeat is measured against is the item, so one file has to be named for it (issue #858). The adapter is where
+# the item's own paths are named — the trim record already lands beside the child's event stream — so the ledger does
+# too, and the child is named by the prompt the run handed it: the line a repeat is replaced by has to say which session
+# read the path, and "this session" is false for every child but the first.
+case_adapter_theChildIsStartedWithTheItemsLedger() {
+  # files: tools/pi-child-events.sh
+  local d prompt recorder got
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  mkdir -p "$d/items/858"
+  prompt="$d/items/858/worker-gate-prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'printf "%s\n%s\n" "$LOOP_TOOL_RESULT_LEDGER" "$LOOP_CHILD_SESSION" > "$RECORD"'
+  } > "$recorder"
+  LOOP_CHILD_EVENTS="$d/items/858/events.jsonl" RECORD="$d/env.txt" \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  got=$(cat "$d/env.txt" 2>/dev/null || true)
+  assert_eq "$d/items/858/tool-result-ledger.tsv" "$(printf '%s\n' "$got" | sed -n '1p')" \
+    "the child is handed the ledger beside the item's event stream, so its item's earlier reads are its own"
+  assert_eq "worker-gate-prompt" "$(printf '%s\n' "$got" | sed -n '2p')" \
+    "and it is named by the prompt it was handed, which is the session a repeat's line names"
   return 0
 }
 

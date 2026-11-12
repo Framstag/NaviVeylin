@@ -176,20 +176,33 @@ it, so a report says whether the rule holds without `tools/loop-spend.py` being 
 per session, from the stream it already opens — the file reads whose path the **session** had already read
 (`metrics.dupReads`), the characters of the repeats' own results (`metrics.dupChars`) and the reads they are a share of
 (`metrics.reads`, the same `ctx_read`/`read` pair the offline reader counts). Since #831 it also says what the rule
-**withheld** of those, and the stream cannot: it records the tool's answer, not the one line the context was handed. So
+**withheld**, and the stream cannot: it records the tool's answer, not the one line the context was handed. So
 the rule appends `LOOP-TOOL-RESULT-REPEAT: <tool> chars=<n> kept=<k>` to the record the bound already writes beside the
 child's stream, and the state reads that file into `metrics.withheld` (`{reads, chars}`, each repeat's own size less the
 line that replaced it, floored at zero; `null`, never a zero, for a directory that holds no repeat record). The report
 prints all of it: the row's column after the calls-per-turn one as `repeat/total`, the trend's `reads:` line as the
-run's rate with the characters in the repeat results, the characters the rule withheld of them and the item that
-repeated most, beside the `calls:` line the paragraph below owns — and it does not call the raw volume re-injected,
+run's rate with the characters in the repeat results, the characters the rule withheld — the record's own figure, which
+may exceed those characters, because since #858 the ledger the rule measures a read against is the item's — and the item
+that repeated most, beside the `calls:` line the paragraph below owns — and it does not call the raw volume re-injected,
 because since #685 that is a volume the child may never have seen. The repeat is counted per session and not per item,
 because a reviewer reading what the worker read is a new conversation rather than a second read of a fact the item
-holds; the figure is a **warning, never a stop** — no key gates it and no outcome reads it — and an item whose stream
+holds. What the item holds is a separate question, and one child process deep was the wrong answer (issue #858): the
+hook kept its ledger in a `Map` that lives as long as the process, so an item split at its gate started its gate child
+on an empty ledger and every path the worker read came back whole — over the run of 2026-11-11T11:37:08Z the rule
+withheld 1 370 of the 486 700 characters the items' repeat results carried, 0.3 %, and the two items that read most were
+the two that were split. So the ledger is the **item's**: the adapter names one file beside the item's event stream
+(`LOOP_TOOL_RESULT_LEDGER`), every child of the item reads it at its first read and writes back what it read, and the
+line a repeat is replaced by names the session that read the path — `LOOP_CHILD_SESSION`, the name of the prompt the
+run handed that child — because "this session" is false for every child after the first. A ledger line carries
+`sha`, turn, size and session ahead of the path, and a line of the older four-column shape is dropped rather than
+misread, so a stale entry costs one read and never a stale one. The two figures are therefore not one number's halves:
+a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop** — no key
+gates it and no outcome reads it — and an item whose stream
 measured no read records `null`, which the row and the trend print as `-` with their own reasons (a record that
 predates the field is told apart from one that met a run of items which opened no file).
-`report#anItemRecordsItsRepeatReads` and `repeat#aRepeatIsRecordedAsWhatItWithheld` are the cases, and mutation records
-`96.1`–`96.3` are what prove they notice the count, the withheld half and the record all go.
+`report#anItemRecordsItsRepeatReads` and `repeat#aRepeatIsRecordedAsWhatItWithheld` are the cases of the count and the
+record, `repeat#anItemsLedgerSpansItsChildren` and `adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger,
+and mutation records `96.1`–`96.3` and `858.1`–`858.4` are what prove they notice each half go.
 
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round

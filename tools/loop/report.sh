@@ -437,10 +437,13 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # the child (issue #831), and the item that repeated most — the same three-part shape the calls line prints. The two
   # halves are kept apart because since #685 they are different numbers: the rule replaces a repeat with one line, so the
   # characters a repeat result holds are either material the child never saw or material it did, and the single figure
-  # called `re-injected` said the second about both. A **warning, never a stop**: no key gates it, no item outcome reads
-  # it. The field absence is told apart from its null: a record written before the figure existed has no `dupReads` key
-  # at all, while one of this era that met an item which opened no file has it as `null` — and the two dashes say which
-  # of the two it is.
+  # called `re-injected` said the second about both. Since #858 the two are not halves of one figure in either
+  # direction: the ledger the rule measures a read against is the item ledger, so a path the worker read and the gate
+  # child read again is withheld and is not in `dupChars`, which counts a repeat within one session alone — which is why
+  # the line says the characters the rule withheld and does not call them a share of the repeat results. A **warning,
+  # never a stop**: no key gates it, no item outcome reads it. The field absence is told apart from its null: a record
+  # written before the figure existed has no `dupReads` key at all, while one of this era that met an item which opened
+  # no file has it as `null` — and the two dashes say which of the two it is.
   | ([.items[]
       | select((.metrics.dupReads // null) != null and (.metrics.reads // 0) > 0)
       | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0),
@@ -458,7 +461,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else ([$dups[] | select(.w != null) | .w]) as $w
             | ( if ($w | length) == 0
                   then "the withheld share of the repeat rule is unrecorded — this state predates the figure"
-                  else "\($w | add) chars of them withheld by the repeat rule" end ) as $wline
+                  else "\($w | add) chars withheld by the repeat rule" end ) as $wline
             | "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars in the repeat results · \($wline) · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
           end
       end ) as $readsline

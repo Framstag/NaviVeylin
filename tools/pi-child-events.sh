@@ -96,6 +96,12 @@ fi
 prompt="${!#}"        # the last argument
 cmd=("${@:1:$#-1}")   # …and everything before it starts the child
 
+# Which session a read belongs to is the child this prompt starts (issue #858). A repeat is replaced by one line naming
+# the session that read the path, and "this session" is false for every child of an item but its first — so the name is
+# the run's own artifact, the prompt the run handed this child, which is the same input `run.sh`'s `child_role` reads. A
+# child started by hand still gets a name rather than none.
+export LOOP_CHILD_SESSION="$(basename "$prompt" .md)"
+
 # How large the kept stream may grow before its oldest events are dropped (issue #802). Measured 2026-11-06 over
 # this archive: 254 `events.jsonl` files held 3 483 MiB — p50 11.84 MiB, p90 29.88 MiB, one 63.47 MiB — and the file
 # grows for the item's whole life with no bound anywhere in this path: `LOOP_TOOL_RESULT_MAX_CHARS` bounds a result
@@ -119,6 +125,11 @@ if [ -n "$events" ]; then
   # child's own event stream, which `run.sh` puts in the item's directory, so a reader of the item can see which
   # result was trimmed and re-read the range instead of trusting a cut line.
   export LOOP_TOOL_RESULT_TRIM_RECORD="$(dirname "$events")/tool-result-trims.log"
+  # …and the ledger the repeat rule measures a read against is the **item's**, not the child's (issue #858): the rule
+  # keeps it in one `Map` per process, so the child started after this one met every path its item had already read as a
+  # first read and was handed the text whole again. The file lives beside the item's stream, as the record does, and
+  # every child of the item reads it at its first read and writes back what it read.
+  export LOOP_TOOL_RESULT_LEDGER="$(dirname "$events")/tool-result-ledger.tsv"
 fi
 
 # The answer is held in a file and not in a variable because the reader below runs in a pipeline, whose

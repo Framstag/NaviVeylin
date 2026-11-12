@@ -1,0 +1,16 @@
+loop-mutations: selected 4 of 347 records (labels: 858.1 858.2 858.3 858.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.QCKF3j
+RED    858.1  repeat#anItemsLedgerSpansItsChildren   (the ledger the environment names for the item, so a second child of the item meets every earlier read as a first read and is handed text its worker already paid for (issue #858))
+       2026-11-12T21:23:21Z — the item's second child is handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE
+restore 858.1 repeat#anItemsLedgerSpansItsChildren green again
+RED    858.2  repeat#anItemsLedgerSpansItsChildren   (the session the one line names, so a repeat of an item reads as this child’s own read and a reader cannot tell which child was handed the text (issue #858))
+       2026-11-12T21:23:24Z — naming the session that read it, not the one reading it now: 'worker-prompt' not found in: [LOOP-ALREADY-READ: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OAxNFJ/cases/0/tree/case.lWdfrP/section.md (622 characters
+restore 858.2 repeat#anItemsLedgerSpansItsChildren green again
+RED    858.3  adapter#theChildIsStartedWithTheItemsLedger   (the ledger named beside the item’s event stream, so every child of the item keeps a ledger of its own and the rule is one child deep again (issue #858))
+       2026-11-12T21:23:27Z — the child is handed the ledger beside the item's event stream, so its item's earlier reads are its own: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.HiZxgZ/cases/0/tree/case.gn8irC/items/858/tool-result-l
+restore 858.3 adapter#theChildIsStartedWithTheItemsLedger green again
+RED    858.4  adapter#theChildIsStartedWithTheItemsLedger   (the session a child is named by, so a repeat of the item carries a line that cannot say which child read the path (issue #858))
+       2026-11-12T21:23:30Z — and it is named by the prompt it was handed, which is the session a repeat's line names: expected 'worker-gate-prompt', got ''
+restore 858.4 adapter#theChildIsStartedWithTheItemsLedger green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

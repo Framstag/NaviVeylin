@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the two cases this change adds, against the engine as HEAD (7e441575) has it:
+     `bash tools/loop/tests/loop-selftest.sh --case repeat#anItemsLedgerSpansItsChildren` and the same for
+     `adapter#theChildIsStartedWithTheItemsLedger`, in this change's worktree, 2026-11-12T21:20:56Z (the clock read as
+     the run started), transcript `red-on-head.log`. The first case drives the rule's own CLI twice with one ledger
+     named by `LOOP_TOOL_RESULT_LEDGER` — the worker's read, then the gate child's read of the same path — and then
+     once more after an edit of that path. On HEAD the CLI reads no ledger the environment names, so the second child is
+     handed the text whole and the first assertion about it fails; the adapter has named no such file either, which is
+     the second case's failure. The second half of the first case — a read after an edit — passes on HEAD and on the
+     fix alike, which is what says the rule still hands a changed path over whole. -->
+<testsuite name="loop-selftest --case repeat#anItemsLedgerSpansItsChildren; adapter#theChildIsStartedWithTheItemsLedger" tests="2" failures="2" errors="0" timestamp="2026-11-12T21:20:56Z">
+  <testcase name="repeat#anItemsLedgerSpansItsChildren">
+    <failure>the item's second child is handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE …LAST-LINE</failure>
+  </testcase>
+  <testcase name="adapter#theChildIsStartedWithTheItemsLedger">
+    <failure>the child is handed the ledger beside the item's event stream, so its item's earlier reads are its own: expected '…/items/858/tool-result-ledger.tsv', got ''</failure>
+  </testcase>
+  <system-out>FAIL repeat#anItemsLedgerSpansItsChildren — loop-selftest: 1 of 1 cases failed (red-on-head.log); FAIL adapter#theChildIsStartedWithTheItemsLedger — loop-selftest: 1 of 1 cases failed (red-on-head.log)</system-out>
+</testsuite>

@@ -1,0 +1,12 @@
+PASS adapter#modeFlagIsItsOwnArgument
+PASS adapter#theChildIsStartedWithoutContextFiles
+PASS adapter#theChildIsStartedWithTheResultBound
+PASS adapter#theChildIsStartedWithTheItemsLedger
+PASS adapter#theChildIsStartedWithItsToolDirectoryOnPath
+PASS adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded
+PASS adapter#aRotatedStreamKeepsEveryTurnEnd
+PASS adapter#anUpdateOnlyStreamKeepsItsUpdates
+PASS adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded
+PASS adapter#theChildIsStartedWithTheShellPolicy
+loop-selftest: adapter 10 cases 33.53 s
+loop-selftest: all 10 cases passed (JDK 27, offline, no token, no sandbox) — 7.41 s, selection: --group adapter

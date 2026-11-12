@@ -1,0 +1,17 @@
+2026-11-12T21:20:56Z
+repeat#anItemsLedgerSpansItsChildren|   the item's second child is handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE
+repeat#anItemsLedgerSpansItsChildren| zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+repeat#anItemsLedgerSpansItsChildren| LAST-LINE
+--- repeat#anItemsLedgerSpansItsChildren[0] (exit 1)
+  the item's second child is handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE
+zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+LAST-LINE
+FAIL repeat#anItemsLedgerSpansItsChildren
+loop-selftest: 1 of 1 cases failed
+rc=1
+adapter#theChildIsStartedWithTheItemsLedger|   the child is handed the ledger beside the item's event stream, so its item's earlier reads are its own: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.8IwuAI/cases/0/tree/case.m0zrQN/items/858/tool-result-ledger.tsv', got ''
+--- adapter#theChildIsStartedWithTheItemsLedger[0] (exit 1)
+  the child is handed the ledger beside the item's event stream, so its item's earlier reads are its own: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.8IwuAI/cases/0/tree/case.m0zrQN/items/858/tool-result-ledger.tsv', got ''
+FAIL adapter#theChildIsStartedWithTheItemsLedger
+loop-selftest: 1 of 1 cases failed
+rc=1

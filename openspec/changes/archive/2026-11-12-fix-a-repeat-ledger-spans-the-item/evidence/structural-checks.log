@@ -1,0 +1,17 @@
+=== selftest: driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+=== tools/check-portability.sh
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 57 engines and 8 templates name no project value (119 value(s) read from the project)
+=== tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 19 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+=== openspec validate --strict
+Unknown item 'openspec/changes/fix-a-repeat-ledger-spans-the-item'. Did you mean: fix-a-repeat-ledger-spans-the-item, fix-a-project-tree-is-refused-before-the-item, enhanced-details-sheet, fix-a-change-child-cites-the-gates-selection, fix-a-role-tally-records-its-model?
+=== openspec validate --strict
+Change 'fix-a-repeat-ledger-spans-the-item' is valid
+=== measure surface
+LOOP-MEASURE-SUITE cases=418 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-CHANGE fix-a-repeat-ledger-spans-the-item scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 cases added, 1 rewritten, 4 mutation records added, 1 report clause and 1 guideline section realigned —

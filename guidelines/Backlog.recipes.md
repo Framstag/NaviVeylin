@@ -650,16 +650,22 @@ report the loop had written; they were readable only by summing the raw streams 
 thirds of its clock inside the gate and a run that paid it reading printed the same shapes — the defect
 `LOOP_ITEM_TOKENS_WARN` was added to cure one level down (#662). The item's record now carries the three splits,
 read from the stream `state.sh done` already opens: `metrics.phases` (the turns' own `durationMs` as model time, the
-`tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) as the
+`tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) or one of
+the checks the profile's own map names (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) as the
 gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
-and a tool's the execution after it), `metrics.roles` (each session's tokens keyed by the role its prompt **path**
+and a tool's the execution after it), `metrics.gateRepeat` beside it (the part of that gate no `gate.sh` call paid —
+the checks a child ran itself, counted and timed, `null` where a child ran none, issue #857: 674 s of item #849's
+1 497 s of gate-adjacent time, in four calls whose stream order puts the two largest *before* its gate),
+`metrics.roles` (each session's tokens keyed by the role its prompt **path**
 names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), with
 `metrics.roleModels` beside it (those turns' tokens keyed by the model each `turn_end` message named — `responseModel`
 when the provider reported one, else `model` — so a role that answered on two models is two tallies rather than one row
 priced at whichever came first, and the report reads `role (model) tokens` while a role no model explained keeps a row
 of the role alone, and a state that records no model keeps the role totals and names none), and
 `metrics.afterGate` (the tokens from a session's first gate turn on, and that session's own tokens). The report's
-trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured. It is a
+trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured, and names
+the part of the gate bucket no gate run paid (the profile's map is what makes a suite a child ran by hand the gate's
+work rather than ordinary tool time, `gate.sh --plan` its own list of commands and so no run of anything). It is a
 figure, never a stop: nothing in the run reads it, and the keys it would bound do not exist yet.
 
 **A split is only a split if the parts are the whole** (issue #832). Measured on the run of 2026-11-07T19:53:44Z

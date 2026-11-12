@@ -485,6 +485,16 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # the denominator, so the two halves are over one set only where every item of it recorded a wall.
   | ([.items[] | select(.metrics.phases != null) | .metrics.wallSeconds | select(. != null)] | add) as $phsWall
   | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
+  # How much of that gate a child paid outside `gate.sh` (issue #857). The bucket holds every call that ran a check the
+  # map names — whoever started it — so the line names the part of it that no gate run paid: 674 s of the 1 497 s of
+  # gate-adjacent time item #849 holds, in four calls a child ran by hand. The field is `null` where no child ran one,
+  # so a run of none adds no clause rather than `0 s`.
+  | ([.items[] | .metrics.gateRepeat | select(. != null)]) as $rep
+  | ([$rep[].ms] | add // 0) as $repMs
+  | ([$rep[].calls] | add // 0) as $repCalls
+  | ( if $repMs > 0
+        then " · \($repMs | dur) of that gate was \($repCalls) check\(if $repCalls == 1 then "" else "s" end) a child ran itself"
+      else "" end ) as $repnote
   # What a state written before this figure existed holds instead: some spend and no split at all. That is a
   # different answer from a run whose items measured nothing, the distinction the calls line already makes.
   | ([.items[] | select(.metrics.tokens != null or (.metrics.roles // null) != null)] | length) as $hasSpend
@@ -501,8 +511,8 @@ trend=$(jq -r --argjson floor "$calls_floor" '
         | ( if $phsWall != null and $phsWall > 0 then
               ", \(((($total / 1000) / $phsWall) * 100 | round)) % of the \(($phsWall * 1000) | dur) of item wall — \(((($phsWall * 1000) - $total) | if . < 0 then 0 else . end) | dur) of it in neither a turn nor a tool"
             else " — no item wall recorded to read it against" end ) as $wallnote
-        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)\($wallnote)"
-          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)\($wallnote)"
+        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)\($wallnote)\($repnote)"
+          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)\($wallnote)\($repnote)"
           end
       end ) as $phaseline
   | ( if ($rol | length) == 0 then

@@ -1,0 +1,249 @@
+run#theGateColumnNamesThisItemsGateResult|   the column reads the tally directory, so an item that ran no gate reads none: 'read — 0 XML in the gate's tally directory' not found in: agent-issue-loop: items=2 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 item-context-bounds=worker:200000,worker-gate:200000,worker-tail:200000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:200000 min-free-mib=1024 free-mib=6426 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+run#theGateColumnNamesThisItemsGateResult| run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop
+run#theGateColumnNamesThisItemsGateResult| lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/lock (owner 2191415)
+run#theGateColumnNamesThisItemsGateResult| state: budget 2 items / 90 min · review on · may-close yes · max-decisions 10 · max-review-rounds 2 · base df76ed567664
+run#theGateColumnNamesThisItemsGateResult| state: bounds result 8000 · context warn 143124 · context max 200000
+run#theGateColumnNamesThisItemsGateResult| state: deadline 2026-11-12T13:26:21Z
+run#theGateColumnNamesThisItemsGateResult| loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/prescreen.log
+run#theGateColumnNamesThisItemsGateResult| pre-screen: 2 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#theGateColumnNamesThisItemsGateResult|   #21 [bug/car] rank 1 — §21 A bug
+run#theGateColumnNamesThisItemsGateResult|   #22 [bug/ui] rank 2 — §22 A bug
+run#theGateColumnNamesThisItemsGateResult| loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+run#theGateColumnNamesThisItemsGateResult| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261112-115622')
+run#theGateColumnNamesThisItemsGateResult| HEAD ist jetzt bei df76ed5 the evidence an earlier item archived
+run#theGateColumnNamesThisItemsGateResult| worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop on branch loop-20261112-115622 from df76ed567664 (1 local.prop* copied)
+run#theGateColumnNamesThisItemsGateResult| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop on loop-20261112-115622 from df76ed567664
+run#theGateColumnNamesThisItemsGateResult| loop: worktree · 1s · ready — loop on loop-20261112-115622 from df76ed567664
+run#theGateColumnNamesThisItemsGateResult| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#theGateColumnNamesThisItemsGateResult| stub gh: recorded `gh issue edit`
+run#theGateColumnNamesThisItemsGateResult| pick #21
+run#theGateColumnNamesThisItemsGateResult| loop: item · 2s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/21/worker-report.md
+run#theGateColumnNamesThisItemsGateResult| loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/21/worker-report.md)
+run#theGateColumnNamesThisItemsGateResult| loop: worker-prompt finished in 0s (exit 0, log 206 B)
+run#theGateColumnNamesThisItemsGateResult| loop: commit · 2s · end-item returned — HEAD df76ed567664 (base df76ed567664)
+run#theGateColumnNamesThisItemsGateResult| loop: gate · 2s · read — 1 test-results XML in the tree
+run#theGateColumnNamesThisItemsGateResult| stub gh: recorded `gh issue edit`
+run#theGateColumnNamesThisItemsGateResult| unpick #21
+run#theGateColumnNamesThisItemsGateResult| stub gh: recorded `gh issue edit`
+run#theGateColumnNamesThisItemsGateResult| commented on #21 (left open)
+run#theGateColumnNamesThisItemsGateResult| escalate #21
+run#theGateColumnNamesThisItemsGateResult| item #21: skipped (stale) · 0.376s · 0 review round(s)
+run#theGateColumnNamesThisItemsGateResult| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#theGateColumnNamesThisItemsGateResult| stub gh: recorded `gh issue edit`
+run#theGateColumnNamesThisItemsGateResult| pick #22
+run#theGateColumnNamesThisItemsGateResult| loop: item · 4s · picked #22 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/worker-report.md
+run#theGateColumnNamesThisItemsGateResult| loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/worker-report.md)
+run#theGateColumnNamesThisItemsGateResult| loop: worker-prompt finished in 0s (exit 0, log 223 B)
+run#theGateColumnNamesThisItemsGateResult| loop: worker-tail-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/worker-tail-report.md)
+run#theGateColumnNamesThisItemsGateResult| loop: worker-tail-prompt finished in 0s (exit 0, log 223 B)
+run#theGateColumnNamesThisItemsGateResult| loop: commit · 4s · end-item returned — HEAD b9ce89525595 (base df76ed567664)
+run#theGateColumnNamesThisItemsGateResult| loop: gate · 4s · read — 2 test-results XML in the tree
+run#theGateColumnNamesThisItemsGateResult| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-item2 (72054fd)
+run#theGateColumnNamesThisItemsGateResult| loop: reviewer-prompt-1 started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/reviewer-report-1.md)
+run#theGateColumnNamesThisItemsGateResult| loop: reviewer-prompt-1 finished in 0s (exit 0, log 14 B)
+run#theGateColumnNamesThisItemsGateResult| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-item2 (a3d06b0)
+run#theGateColumnNamesThisItemsGateResult| Aktualisiere df76ed5..a3d06b0
+run#theGateColumnNamesThisItemsGateResult| Fast-forward
+run#theGateColumnNamesThisItemsGateResult|  item2-fix.txt                                                        | 1 +
+run#theGateColumnNamesThisItemsGateResult|  openspec/changes/archive/2026-01-01-fix-item2/evidence/TEST-demo.xml | 1 +
+run#theGateColumnNamesThisItemsGateResult|  .../archive/2026-01-01-fix-item2/evidence/review-round-1-passed.md   | 4 ++++
+run#theGateColumnNamesThisItemsGateResult|  .../2026-01-01-fix-item2/evidence/review-round-1-requested.md        | 5 +++++
+run#theGateColumnNamesThisItemsGateResult|  openspec/changes/archive/2026-01-01-fix-item2/proposal.md            | 1 +
+run#theGateColumnNamesThisItemsGateResult|  5 files changed, 12 insertions(+)
+run#theGateColumnNamesThisItemsGateResult|  create mode 100644 item2-fix.txt
+run#theGateColumnNamesThisItemsGateResult|  create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/evidence/TEST-demo.xml
+run#theGateColumnNamesThisItemsGateResult|  create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/evidence/review-round-1-passed.md
+run#theGateColumnNamesThisItemsGateResult|  create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/evidence/review-round-1-requested.md
+run#theGateColumnNamesThisItemsGateResult|  create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/proposal.md
+run#theGateColumnNamesThisItemsGateResult| merged: branch fix/issue-22-a-bug -> a3d06b0 · commits b39b9dd8788f7f338ba29f8d67a619e0b091f4cd,b9ce895255954c711c40274f4998e44df1b5f21f,72054fd301792c8d2b14847a765ca62ffa483d79,a3d06b01e4c15a08c7fcd3622ce7fcafa26c23d0
+run#theGateColumnNamesThisItemsGateResult| HEAD ist jetzt bei a3d06b0 review: 2026-01-01-fix-item2 round 1 passed (#22)
+run#theGateColumnNamesThisItemsGateResult| Branch fix/issue-22-a-bug entfernt (war a3d06b0).
+run#theGateColumnNamesThisItemsGateResult| released: branch fix/issue-22-a-bug removed (its work is in the base)
+run#theGateColumnNamesThisItemsGateResult| stub gh: recorded `gh issue edit`
+run#theGateColumnNamesThisItemsGateResult| stub gh: recorded `gh issue edit`
+run#theGateColumnNamesThisItemsGateResult| closed #22 (completed)
+run#theGateColumnNamesThisItemsGateResult| close #22
+run#theGateColumnNamesThisItemsGateResult|   landing #22 a3d06b01e4c15a08c7fcd3622ce7fcafa26c23d0: unscored — the pipeline runs of this commit could not be read
+run#theGateColumnNamesThisItemsGateResult| item #22: closed (2026-01-01-fix-item2) · 1.233s · 1 review round(s)
+run#theGateColumnNamesThisItemsGateResult| pre-screen: 2 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#theGateColumnNamesThisItemsGateResult|   #21 [bug/car] rank 1 — §21 A bug
+run#theGateColumnNamesThisItemsGateResult|   #22 [bug/ui] rank 2 — §22 A bug
+run#theGateColumnNamesThisItemsGateResult| stop: item cap reached (2/2)
+run#theGateColumnNamesThisItemsGateResult| **agent-issue-loop — 2026-11-12T11:56:28Z** (budget 2 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base a3d06b01e4c1)
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| bounds: result bound 8000 · context warn 143124 · context max 200000
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| closed 1 · mis-diagnosed 0 · skipped 1 · blocked 0 · cut 0 · budget left 0 items / 90 min · spent 0 min
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| stop: item cap reached (2/2)
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| over the item token bound (16858818 tokens): none
+run#theGateColumnNamesThisItemsGateResult| bound: 0 of 2 items (0.0 %) · archive: -
+run#theGateColumnNamesThisItemsGateResult| closed 1 · mis-diagnosed 0 · skipped 1 · blocked 0 · cut 0 of 2 items · budget 90 min
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| | issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+run#theGateColumnNamesThisItemsGateResult| |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+run#theGateColumnNamesThisItemsGateResult| | #21 | bug | stale |  | the claim no longer holds in the tree | none — nothing was reached | 1 xml | 0 | 0s | - | - | - | skipped | skipped by the worker | - | - | - | - |
+run#theGateColumnNamesThisItemsGateResult| | #22 | bug | closed | 2026-01-01-fix-item2 | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 1 | 1s | - | - | - | done | - | - | - | - | - |
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| merged finished attempts: #22 fix/issue-22-a-bug · commits b39b9dd8788f7f338ba29f8d67a619e0b091f4cd,b9ce895255954c711c40274f4998e44df1b5f21f,72054fd301792c8d2b14847a765ca62ffa483d79,a3d06b01e4c15a08c7fcd3622ce7fcafa26c23d0 · evidence 
+run#theGateColumnNamesThisItemsGateResult| no exclusions
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| skipped: #21 stale (skipped by the worker)
+run#theGateColumnNamesThisItemsGateResult| mis-diagnosed: none
+run#theGateColumnNamesThisItemsGateResult| excluded before any work: none
+run#theGateColumnNamesThisItemsGateResult| cut short by the run's own bound: none
+run#theGateColumnNamesThisItemsGateResult| decisions the owner owes: #21
+run#theGateColumnNamesThisItemsGateResult| branches: fix/issue-21-a-bug loop-20261112-115622
+run#theGateColumnNamesThisItemsGateResult| landed, removable: fix/issue-21-a-bug loop-20261112-115622
+run#theGateColumnNamesThisItemsGateResult| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop (kept for the next run)
+run#theGateColumnNamesThisItemsGateResult| state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/run.json
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| trend — this run's own items; no rate is green or red in one run:
+run#theGateColumnNamesThisItemsGateResult|   review: 1/1 first rounds passed · 0 undecided · 1 never reviewed
+run#theGateColumnNamesThisItemsGateResult|   waived: 0 of 1 closed items · no close was over a gate that did not pass
+run#theGateColumnNamesThisItemsGateResult|   wall:   median 1 s (min 0, max 1) · 2 items
+run#theGateColumnNamesThisItemsGateResult|   calls:  - · no item recorded a turn
+run#theGateColumnNamesThisItemsGateResult|   reads:  - · no item recorded a file read
+run#theGateColumnNamesThisItemsGateResult|   phases: - · no item recorded a phase duration
+run#theGateColumnNamesThisItemsGateResult|   roles:  - · no item recorded a session role
+run#theGateColumnNamesThisItemsGateResult|   after the first gate: - · no item of this run ran a gate in its stream
+run#theGateColumnNamesThisItemsGateResult|   truncated: - · no item had its stream rotated
+run#theGateColumnNamesThisItemsGateResult|   landings: - · no landing is scored yet · 1 unscored
+run#theGateColumnNamesThisItemsGateResult| 
+run#theGateColumnNamesThisItemsGateResult| actions the caller owes:
+run#theGateColumnNamesThisItemsGateResult|   1. decide #21 — the run escalated it (stale): skipped by the worker · the comment itself: gh issue view 21
+run#theGateColumnNamesThisItemsGateResult|   2. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+run#theGateColumnNamesThisItemsGateResult| worktree: removed app/build (16384 B)
+run#theGateColumnNamesThisItemsGateResult| worktree: 1 build path(s) removed from the kept worktree: 16384 B — its sources and its git state stay
+run#theGateColumnNamesThisItemsGateResult| worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop
+run#theGateColumnNamesThisItemsGateResult| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#theGateColumnNamesThisItemsGateResult| removed fix/issue-21-a-bug (its patches are in the base)
+run#theGateColumnNamesThisItemsGateResult| removed loop-20261112-115622 (its patches are in the base)
+run#theGateColumnNamesThisItemsGateResult| worktree: 2 landed branch(es) removed · 0 kept (carries work the base does not) · 0 kept (checked out) · 0 kept (the reviewer refused it)
+--- run#theGateColumnNamesThisItemsGateResult[0] (exit 1)
+  the column reads the tally directory, so an item that ran no gate reads none: 'read — 0 XML in the gate's tally directory' not found in: agent-issue-loop: items=2 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 item-context-bounds=worker:200000,worker-gate:200000,worker-tail:200000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:200000 min-free-mib=1024 free-mib=6426 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/lock (owner 2191415)
+state: budget 2 items / 90 min · review on · may-close yes · max-decisions 10 · max-review-rounds 2 · base df76ed567664
+state: bounds result 8000 · context warn 143124 · context max 200000
+state: deadline 2026-11-12T13:26:21Z
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/prescreen.log
+pre-screen: 2 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 A bug
+  #22 [bug/ui] rank 2 — §22 A bug
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261112-115622')
+HEAD ist jetzt bei df76ed5 the evidence an earlier item archived
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop on branch loop-20261112-115622 from df76ed567664 (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop on loop-20261112-115622 from df76ed567664
+loop: worktree · 1s · ready — loop on loop-20261112-115622 from df76ed567664
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+pick #21
+loop: item · 2s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/21/worker-report.md
+loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/21/worker-report.md)
+loop: worker-prompt finished in 0s (exit 0, log 206 B)
+loop: commit · 2s · end-item returned — HEAD df76ed567664 (base df76ed567664)
+loop: gate · 2s · read — 1 test-results XML in the tree
+stub gh: recorded `gh issue edit`
+unpick #21
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+escalate #21
+item #21: skipped (stale) · 0.376s · 0 review round(s)
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+pick #22
+loop: item · 4s · picked #22 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/worker-report.md
+loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/worker-report.md)
+loop: worker-prompt finished in 0s (exit 0, log 223 B)
+loop: worker-tail-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/worker-tail-report.md)
+loop: worker-tail-prompt finished in 0s (exit 0, log 223 B)
+loop: commit · 4s · end-item returned — HEAD b9ce89525595 (base df76ed567664)
+loop: gate · 4s · read — 2 test-results XML in the tree
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-item2 (72054fd)
+loop: reviewer-prompt-1 started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/items/22/reviewer-report-1.md)
+loop: reviewer-prompt-1 finished in 0s (exit 0, log 14 B)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-item2 (a3d06b0)
+Aktualisiere df76ed5..a3d06b0
+Fast-forward
+ item2-fix.txt                                                        | 1 +
+ openspec/changes/archive/2026-01-01-fix-item2/evidence/TEST-demo.xml | 1 +
+ .../archive/2026-01-01-fix-item2/evidence/review-round-1-passed.md   | 4 ++++
+ .../2026-01-01-fix-item2/evidence/review-round-1-requested.md        | 5 +++++
+ openspec/changes/archive/2026-01-01-fix-item2/proposal.md            | 1 +
+ 5 files changed, 12 insertions(+)
+ create mode 100644 item2-fix.txt
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/evidence/TEST-demo.xml
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/evidence/review-round-1-passed.md
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/evidence/review-round-1-requested.md
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-item2/proposal.md
+merged: branch fix/issue-22-a-bug -> a3d06b0 · commits b39b9dd8788f7f338ba29f8d67a619e0b091f4cd,b9ce895255954c711c40274f4998e44df1b5f21f,72054fd301792c8d2b14847a765ca62ffa483d79,a3d06b01e4c15a08c7fcd3622ce7fcafa26c23d0
+HEAD ist jetzt bei a3d06b0 review: 2026-01-01-fix-item2 round 1 passed (#22)
+Branch fix/issue-22-a-bug entfernt (war a3d06b0).
+released: branch fix/issue-22-a-bug removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #22 (completed)
+close #22
+  landing #22 a3d06b01e4c15a08c7fcd3622ce7fcafa26c23d0: unscored — the pipeline runs of this commit could not be read
+item #22: closed (2026-01-01-fix-item2) · 1.233s · 1 review round(s)
+pre-screen: 2 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 A bug
+  #22 [bug/ui] rank 2 — §22 A bug
+stop: item cap reached (2/2)
+**agent-issue-loop — 2026-11-12T11:56:28Z** (budget 2 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base a3d06b01e4c1)
+
+bounds: result bound 8000 · context warn 143124 · context max 200000
+
+closed 1 · mis-diagnosed 0 · skipped 1 · blocked 0 · cut 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (2/2)
+
+over the item token bound (16858818 tokens): none
+bound: 0 of 2 items (0.0 %) · archive: -
+closed 1 · mis-diagnosed 0 · skipped 1 · blocked 0 · cut 0 of 2 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | stale |  | the claim no longer holds in the tree | none — nothing was reached | 1 xml | 0 | 0s | - | - | - | skipped | skipped by the worker | - | - | - | - |
+| #22 | bug | closed | 2026-01-01-fix-item2 | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 1 | 1s | - | - | - | done | - | - | - | - | - |
+
+merged finished attempts: #22 fix/issue-22-a-bug · commits b39b9dd8788f7f338ba29f8d67a619e0b091f4cd,b9ce895255954c711c40274f4998e44df1b5f21f,72054fd301792c8d2b14847a765ca62ffa483d79,a3d06b01e4c15a08c7fcd3622ce7fcafa26c23d0 · evidence 
+no exclusions
+
+skipped: #21 stale (skipped by the worker)
+mis-diagnosed: none
+excluded before any work: none
+cut short by the run's own bound: none
+decisions the owner owes: #21
+branches: fix/issue-21-a-bug loop-20261112-115622
+landed, removable: fix/issue-21-a-bug loop-20261112-115622
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/issue-loop/run.json
+
+trend — this run's own items; no rate is green or red in one run:
+  review: 1/1 first rounds passed · 0 undecided · 1 never reviewed
+  waived: 0 of 1 closed items · no close was over a gate that did not pass
+  wall:   median 1 s (min 0, max 1) · 2 items
+  calls:  - · no item recorded a turn
+  reads:  - · no item recorded a file read
+  phases: - · no item recorded a phase duration
+  roles:  - · no item recorded a session role
+  after the first gate: - · no item of this run ran a gate in its stream
+  truncated: - · no item had its stream rotated
+  landings: - · no landing is scored yet · 1 unscored
+
+actions the caller owes:
+  1. decide #21 — the run escalated it (stale): skipped by the worker · the comment itself: gh issue view 21
+  2. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: removed app/build (16384 B)
+worktree: 1 build path(s) removed from the kept worktree: 16384 B — its sources and its git state stay
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.VfqdGA/cases/0/tree/case.PhEMST/repo/.pi/worktrees/loop
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+removed fix/issue-21-a-bug (its patches are in the base)
+removed loop-20261112-115622 (its patches are in the base)
+worktree: 2 landed branch(es) removed · 0 kept (carries work the base does not) · 0 kept (checked out) · 0 kept (the reviewer refused it)
+FAIL run#theGateColumnNamesThisItemsGateResult
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one case this change adds, against the engine as HEAD (4a14574fc6b0) has it:
+     `bash tools/loop/tests/loop-selftest.sh --case run#theGateColumnNamesThisItemsGateResult` in this change's
+     worktree, 2026-11-12T11:56:24Z, transcript `red-on-head.log`. The case's fixture is the tree this repository
+     actually is — a tracked archived change whose evidence directory is named `module-test-results` — an item that
+     claims no gate and leaves no tally, and a second item whose own gate leaves one. On HEAD the run reads 1
+     test-results XML for the first item and 2 for the second (its own plus the tracked one), records `1 xml` for an
+     item that ran no gate, and the report never names it; the case asserts the tally directory instead. -->
+<testsuite name="loop-selftest --case run#theGateColumnNamesThisItemsGateResult" tests="1" failures="1" errors="0" timestamp="2026-11-12T11:56:24Z">
+  <testcase name="run#theGateColumnNamesThisItemsGateResult">
+    <failure>the column reads the tally directory, so an item that ran no gate reads none: 'read — 0 XML in the gate's tally directory' not found in the run's log, which carries 'loop: gate · 2s · read — 1 test-results XML in the tree' for the first item and 'loop: gate · 4s · read — 2 test-results XML in the tree' for the second — the tracked evidence of an archived change was read as the first item's gate result</failure>
+  </testcase>
+  <system-out>FAIL run#theGateColumnNamesThisItemsGateResult — loop-selftest: 1 of 1 cases failed (evidence/red-on-head.log)</system-out>
+</testsuite>

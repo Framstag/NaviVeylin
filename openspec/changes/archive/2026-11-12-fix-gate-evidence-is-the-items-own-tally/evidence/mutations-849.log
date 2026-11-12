@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 340 records (labels: 849.1 849.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.5FZWxC
+RED    849.1  run#theGateColumnNamesThisItemsGateResult   (the gate evidence read from one directory, not from every test-results path in the tree (issue #849))
+       2026-11-12T11:57:51Z — the column reads the tally directory, so an item that ran no gate reads none: 'read — 0 XML in the gate's tally directory' not found in: agent-issue-loop: items=2 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=1
+restore 849.1 run#theGateColumnNamesThisItemsGateResult green again
+RED    849.2  run#theGateColumnNamesThisItemsGateResult   (the empty field an item that claimed no gate and left no tally carries, so the report names the gate a caller is owed (issue #849))
+       2026-11-12T11:58:10Z — and its record carries no gate result rather than the count of a file the item never wrote: expected '', got '0 xml'
+restore 849.2 run#theGateColumnNamesThisItemsGateResult green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

@@ -24,7 +24,9 @@ entry records.
   entry gains the session that read the path, and `alreadyReadNotice` names it —
   `was read at turn 3 in the worker-prompt session` — because "this session" is false for every child after the first.
   A ledger line is `sha <tab> turn <tab> size <tab> session <tab> path`; a four-column line (a ledger of the older
-  shape) is dropped rather than misread, and a dropped entry costs one read, never a stale one.
+  shape) is dropped rather than misread, and a dropped entry costs one read, never a stale one. The hook's own two
+  lines — the ledger it opens and the one it writes back — are proven by a case that loads the extension itself
+  (`repeat#theHookWritesTheItemsLedger`); the CLI's own lines by the cases that drive the CLI.
 - `tools/pi-child-events.sh` also names the session: `LOOP_CHILD_SESSION` is the prompt's basename, the run's own
   artifact and the same input `run.sh`'s `child_role` reads — so no new engine line, and no second copy of the role
   vocabulary in the adapter.
@@ -35,14 +37,14 @@ entry records.
 ## Blast radius
 
 The rule's two entry points (hook and CLI) and the one file the run names for them; the trend's clause; the guideline
-section that states the rule (`guidelines/Backlog.recipes.md` section 7b); the cases that assert the notice and the trend line.
+section that states the rule (`guidelines/Backlog.recipes.md` §7a); the cases that assert the notice and the trend line.
 Nothing reads the ledger but the rule itself, and nothing in the run reads `metrics.withheld` to decide anything — it is
 a warning figure — so no item's outcome moves.
 
 What it costs per read: one `Map` of every path the item read, and one rewrite of the item's ledger file per read tool
-call. That rewrite is one line per path the item read, and the item's own turn bound bounds how many paths that is; the
-volume it saves is the one the item measured — 389 156 characters of repeat reads over the six unbounded items, at
-`tools/loop-spend.py`'s amplification of 43–55. A ledger that cannot be written costs a repeat, never the result
+call. That rewrite is one line per path the item read, so the ledger holds one line per path the item has read; the
+volume it saves is the one the item measured — 389 156 characters of repeat reads over the six unbounded items. A
+ledger that cannot be written costs a repeat, never the result
 (`writeLedger` swallows its own error, as it already did).
 
 ## Rollback
@@ -65,4 +67,4 @@ so a run started on the reverted tree reads its old items as it did.
   round is one of the item's children like any other. The risk the item names — a stale notice rather than a stale read
   — is what naming the session answers.
 - **A `loop.conf` key bounding the ledger's age or size** — no measurement asks for one; the file is one line per path
-  the item read, and an item's read set is bounded by its own turn bound.
+  the item read.

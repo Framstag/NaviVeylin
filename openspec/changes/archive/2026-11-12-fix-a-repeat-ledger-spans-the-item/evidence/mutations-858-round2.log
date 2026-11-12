@@ -1,0 +1,29 @@
+sha256 before:
+b0594df3a8f927400c51c532e3d537d49162e7f278a7d5084bcb2493da6b287e  tools/pi-trim-result.mjs
+cd62b3e44d7826c770cac9f59e87f0888e7e5a9016b0847c92e43cbeb5ac8c47  tools/pi-child-events.sh
+--- the run:
+loop-mutations: selected 6 of 349 records (labels: 858.1 858.2 858.3 858.4 858.5 858.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.6Uavft
+RED    858.1  repeat#anItemsLedgerSpansItsChildren   (the ledger the environment names for the item, so a second child of the item meets every earlier read as a first read and is handed text its worker already paid for (issue #858))
+       2026-11-12T21:56:49Z — the item's second child is handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE
+restore 858.1 repeat#anItemsLedgerSpansItsChildren green again
+RED    858.2  repeat#anItemsLedgerSpansItsChildren   (the session the one line names, so a repeat of an item reads as this child’s own read and a reader cannot tell which child was handed the text (issue #858))
+       2026-11-12T21:56:52Z — naming the session that read it, not the one reading it now: 'worker-prompt' not found in: [LOOP-ALREADY-READ: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.GeOyeH/cases/0/tree/case.FugeyU/section.md (622 characters
+restore 858.2 repeat#anItemsLedgerSpansItsChildren green again
+RED    858.3  adapter#theChildIsStartedWithTheItemsLedger   (the ledger named beside the item’s event stream, so every child of the item keeps a ledger of its own and the rule is one child deep again (issue #858))
+       2026-11-12T21:56:55Z — the child is handed the ledger beside the item's event stream, so its item's earlier reads are its own: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.V0bD2F/cases/0/tree/case.clWaG3/items/858/tool-result-l
+restore 858.3 adapter#theChildIsStartedWithTheItemsLedger green again
+RED    858.4  adapter#theChildIsStartedWithTheItemsLedger   (the session a child is named by, so a repeat of the item carries a line that cannot say which child read the path (issue #858))
+       2026-11-12T21:56:58Z — and it is named by the prompt it was handed, which is the session a repeat's line names: expected 'worker-gate-prompt', got ''
+restore 858.4 adapter#theChildIsStartedWithTheItemsLedger green again
+RED    858.5  repeat#theHookWritesTheItemsLedger   (the hook opening the item’s ledger, so the child that follows the worker meets every earlier read as a first read and is handed the text its worker already paid for (issue #858))
+       2026-11-12T21:57:01Z — the item's second child is handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE
+restore 858.5 repeat#theHookWritesTheItemsLedger green again
+RED    858.6  repeat#theHookWritesTheItemsLedger   (the hook writing back what the item read, so the ledger the adapter names stays empty and the child that follows meets every read as a first read (issue #858))
+       2026-11-12T21:57:05Z — the hook wrote no ledger of what the item read: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.s13ZDG/cases/0/tree/case.AFXJjP/tool-result-ledger.tsv holds nothing
+restore 858.6 repeat#theHookWritesTheItemsLedger green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0
+sha256 after:
+b0594df3a8f927400c51c532e3d537d49162e7f278a7d5084bcb2493da6b287e  tools/pi-trim-result.mjs
+cd62b3e44d7826c770cac9f59e87f0888e7e5a9016b0847c92e43cbeb5ac8c47  tools/pi-child-events.sh

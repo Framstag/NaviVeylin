@@ -1,0 +1,63 @@
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/12/tree/case.WgRVKU/repo/.pi/issue-loop/runs/2026-11-12T21:56:18Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/8/tree/case.ujTVaq/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (366e591d698c03cb → 069f857c893e8921); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/10/tree/case.5EI91n/repo/.pi/issue-loop/runs/2026-11-12T21:56:18Z.json
+PASS report#emptyRunSaysNone
+PASS report#anItemOverTheTokenBoundIsFlagged
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261112-215621')
+report#headerAndTableShape| HEAD ist jetzt bei 91933bb init
+report#headerAndTableShape| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS report#yieldIsCountedFromState
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#aVerdictAloneIsNoEscalation
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a48e277)
+PASS report#misdiagnosedIsCountedApart
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a693a72)
+report#headerAndTableShape| HEAD ist jetzt bei a693a72 review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a693a72).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS report#archivedStateIsReported
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| closed #21 (completed)
+report#headerAndTableShape|   landing #21 a693a72e77624ca183adbb78226bec749f3ce52c: unscored — the pipeline runs of this commit could not be read
+PASS report#impossibleBudgetNamesAnotherRun
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#aKilledRunIsNotALiveRun
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#wallTimeAndReasonInTheTable
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#theBoundRateIsNamed
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/15/tree/case.jpzkRd/repo/.pi/issue-loop/runs/2026-11-12T21:56:31Z.json
+PASS report#headerAndTableShape
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/1/tree/case.4xGrJc/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (319d5eb9d9558296 → 55ee68a5b32b5c94); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/4/tree/case.IaJndf/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (1969cff614853f1b → 2b6e72f3662e5158); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/4/tree/case.IaJndf/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (1969cff614853f1b → 2b6e72f3662e5158); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/1/tree/case.4xGrJc/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (319d5eb9d9558296 → dd9ff37cd5f94400); a field was edited outside this script
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/14/tree/case.4af4ZD/repo/.pi/issue-loop/runs/2026-11-12T21:56:31Z.json
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.KlSefO/cases/1/tree/case.4xGrJc/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (319d5eb9d9558296 → dd9ff37cd5f94400); a field was edited outside this script
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#aCallThatNamesTheGateIsNotAGateRun
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#aRolesTokensRecordTheModelThatAnswered
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+PASS report#aTurnNoSessionRecordReachesIsItsOwnBucket
+PASS report#thePhaseLineNamesTheClockItIsAShareOf
+PASS report#trendFiguresFromState
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#anItemRecordsItsRepeatReads
+PASS report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+PASS report#anActionNamesAnItemPathThatExists
+PASS report#aTruncatedStreamSaysSo
+PASS report#theSpendIsWorkNotWaiting
+PASS report#landingsAreTheStoredNumber
+loop-selftest: report 35 cases 237.87 s
+loop-selftest: all 35 cases passed (JDK 27, offline, no token, no sandbox) — 28.30 s, selection: --group report

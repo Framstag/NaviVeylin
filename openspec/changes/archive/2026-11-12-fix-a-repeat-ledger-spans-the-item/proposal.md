@@ -17,10 +17,9 @@ ledger at all (`tools/issues/core/Fingerprint.java` and `tools/loop-spend.py` us
 change is which path the run hands each child, not a second rule. The run's own numbers, from
 `.pi/issue-loop/runs/2026-11-11T11:37:08Z.json`:
 90 of 251 file reads were a second read of a path the session already had (36 %), 486 700 characters in the repeat
-results, **1 370 of them withheld by the repeat rule — 0.3 %** — and the two items that read most are the two that were
-split (#848 31 of 83 reads, #849 27 of 77). Over the six items that reached no bound the repeat reads carry 389 156
-characters (`metrics.dupChars`), which `tools/loop-spend.py`'s amplification prices at about 5.8 Mtok, 7.6 % of the
-run's spend.
+results, **1 370 of them withheld by the repeat rule — 0.3 %** — and the two items that read most are #848 (31 of 83
+reads) and #849 (27 of 77). Over the six items that reached no bound the repeat reads carry 389 156 characters
+(`metrics.dupChars`).
 
 **The red test.** `repeat#anItemsLedgerSpansItsChildren` drives the rule's own CLI twice with one ledger named by the
 environment, the first read as the worker and the second as the gate child, then once more after an edit of the path.
@@ -43,15 +42,15 @@ false: it now prints "N chars withheld by the repeat rule", and the requirement 
 one number's halves.
 
 **Owning capability and guideline.** Capability `agent-issue-loop` (`openspec/specs/agent-issue-loop/spec.md`) owns the
-rule's count and its record; the guideline section that owns the rule and the bound is `Backlog.recipes.md` section 7b "What
-an item costs, and the bounds on it" (`guidelines/Backlog.recipes.md:156-192`), which stated the bound and the record
-and said nothing of the ledger's scope. Both are edited.
+rule's count and its record; the guideline section that owns the rule and the bound is `Backlog.recipes.md` §7a "Running one
+item: the script, the child and the package" (`guidelines/Backlog.recipes.md:174-205`), which stated the bound and the
+record and said nothing of the ledger's scope. Both are edited.
 
 **Surface** (`tools/look.sh 'LOOP-ALREADY-READ|alreadyReadNotice|readLedger|writeLedger'`, and
 `tools/look.sh 'ledger' --path tools`): 1 rule file (`tools/pi-trim-result.mjs`), 1 adapter (`tools/pi-child-events.sh`),
-1 report clause (`tools/loop/report.sh`), 2 cases added and 1 rewritten in `tools/loop/tests/loop-cases.sh`, 4 mutation
+1 report clause (`tools/loop/report.sh`), 3 cases added and 1 rewritten in `tools/loop/tests/loop-cases.sh`, 6 mutation
 records added in `tools/loop/tests/loop-mutations.sh`, 1 guideline section, and the spec delta.
 
-surface: 2 cases added, 1 rewritten, 4 mutation records added, 1 report clause and 1 guideline section realigned —
+surface: 3 cases added, 1 rewritten, 6 mutation records added, 1 report clause and 1 guideline section realigned —
 `tools/look.sh 'ledger' --path tools` names the two files the rule lives in, `tools/look.sh 'LOOP-ALREADY-READ'` the two
-that assert it, and the suite's own `--list` counts the two cases.
+that assert it, and the suite's own `--list` counts the three cases.

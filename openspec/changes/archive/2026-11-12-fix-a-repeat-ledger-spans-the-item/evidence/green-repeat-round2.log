@@ -1,0 +1,9 @@
+PASS repeat#theHookWritesTheItemsLedger
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain
+PASS repeat#aRepeatAfterAnEditIsHandedOverWhole
+PASS repeat#theRecordedZeroKeepsTheRepeatRuleOff
+PASS repeat#aBrokenLedgerLeavesTheResultAsReturned
+PASS repeat#aRepeatIsRecordedAsWhatItWithheld
+PASS repeat#anItemsLedgerSpansItsChildren
+loop-selftest: repeat 7 cases 15.08 s
+loop-selftest: all 7 cases passed (JDK 27, offline, no token, no sandbox) — 5.08 s, selection: --group repeat

@@ -6,7 +6,10 @@ Reference: `proposal.md` for the root cause and the red run, `specs/agent-issue-
 The measure block this change was planned against (`./tools/loop/measure.sh --change fix-a-repeat-ledger-spans-the-item`,
 `evidence/measure-block.log`): `LOOP-MEASURE-SUITE cases=418 cmd=tools/loop/tests/loop-selftest.sh --list`,
 `LOOP-MEASURE-CHANGE fix-a-repeat-ledger-spans-the-item scenarios=4 cases=4 unnamed=0`, and its `LOOP-MEASURE-CHECK`
-lines are the gate's selection — this pass runs none of them but the plan's first line.
+lines are the gate's selection — this pass runs none of them but the plan's first line. The block this round measured
+(`evidence/measure-block-round2.log`, after the third case was added): `LOOP-MEASURE-SUITE cases=419
+cmd=tools/loop/tests/loop-selftest.sh --list`, `LOOP-MEASURE-CHANGE 2026-11-12-fix-a-repeat-ledger-spans-the-item
+scenarios=4 cases=4 unnamed=0`.
 
 ## 1. The red cases, before the fix
 
@@ -28,6 +31,9 @@ sessions repeated", its first scenario.
       handed the line, not text its worker already paid for: 'FIRST-LINE' should not appear in: FIRST-LINE …* — and 1.2
       FAILs — *expected '…/items/858/tool-result-ledger.tsv', got ''*. Both in `.pi/issue-loop/items/858/`
       (`red-on-head.log`, `red-on-head.xml`, 2026-11-12T21:20:56Z).
+- [x] 1.6 `repeat#theHookWritesTheItemsLedger` in `tools/loop/tests/loop-cases.sh`: the **extension** loaded — the path a
+      real child takes, not the CLI's — reads one path as the worker, writes the item's ledger, and is met by the next
+      child of the item with the one line naming the session that read the path.
 
 ## 2. The fix
 
@@ -42,8 +48,9 @@ Requirement: the same.
       named from the prompt the run handed the child.
 - [x] 2.3 `tools/loop/report.sh`: the trend's clause is `<w> chars withheld by the repeat rule`, and the block comment
       says why the item ledger makes that figure no share of `dupChars`.
-- [x] 2.4 The green run: `--group repeat` 6/6, `--group adapter` 10/10, `--group report` 35/35 — `evidence/green-*.log`
-      in this change, the item's copies in `.pi/issue-loop/items/858/`.
+- [x] 2.4 The green run: `--group repeat` 7/7, `--group adapter` 10/10, `--group report` 35/35 — `evidence/green-*.log`
+      in this change, the item's copies in `.pi/issue-loop/items/858/`; the round-2 runs are the `*-round2.log` beside
+      them (the first is the 7th case, the one that drives the extension).
 
 ## 3. The falsification
 
@@ -53,8 +60,10 @@ Requirement: the same.
       (*naming the session that read it …*), restore green.
 - [x] 3.3 `858.3` and `858.4` — the adapter's two exports removed → `RED adapter#theChildIsStartedWithTheItemsLedger`
       for the ledger and again for the session, restore green. `evidence/mutations-858.log`.
-- [x] 3.4 `bash tools/loop/tests/loop-mutations.sh --check` over the whole set: 347 records, every one applies to the
+- [x] 3.4 `bash tools/loop/tests/loop-mutations.sh --check` over the whole set: 349 records, every one applies to the
       file it names.
+- [x] 3.5 `858.5` and `858.6` — the hook's own two lines, the ledger it opens and the one it writes back, removed →
+      `RED repeat#theHookWritesTheItemsLedger` for the load and again for the write, restore green.
 
 ## 4. The prose the change makes false
 
@@ -62,7 +71,7 @@ Requirement: the same.
       repeated" takes the withheld clause as the rule's own item-wide figure (both its scenarios repeated), and the new
       requirement "The repeat rule's ledger is the item's, not the child's" carries the item ledger, the session the
       line names and the read after an edit.
-- [x] 4.2 `guidelines/Backlog.recipes.md` section 7b (the bound and the repeat rule): the ledger the item names, the session
+- [x] 4.2 `guidelines/Backlog.recipes.md` §7a (the bound and the repeat rule): the ledger the item names, the session
       the line names, the two figures that are no longer one number's halves, and the new cases and mutation records
       beside `96.1`–`96.3`.
 
@@ -72,5 +81,6 @@ Requirement: the same.
       driver#everyCaseDeclaresTheFilesItCanReach`, run before anything else — `evidence/structural-checks.log`.
 - [x] 5.2 `tools/check-portability.sh` and `tools/check-openspec-hygiene.sh` — the two the delta's own files owe
       (`evidence/structural-checks.log`); the rest of the selection is the gate's, cited from `LOOP-MEASURE-CHECK`.
-- [ ] 5.3 The gate child runs `./tools/loop/gate.sh --base 7e4415753c16023cabfce3fc041503dc0d45254e` over this diff and
-      records the tally; this pass runs no gate, because the run defers it to the child that follows the review round.
+- [ ] 5.3 The gate over this diff — `./tools/loop/gate.sh --base 7e4415753c16023cabfce3fc041503dc0d45254e`, so the
+      tree it names (`LOOP-GATE-TREE`) is the tree this round's diff names — and its record in `evidence/gate-round2.log`
+      and in `.pi/issue-loop/items/858/gate-round2.log`.

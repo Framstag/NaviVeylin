@@ -1,0 +1,5 @@
+run#aSkipPrintsTheReasonTheChildGave|   the note is the child's own sentence, not the constant the skip arm wrote: expected 'one item of 35 tasks, a new Gradle module and 20 case names would have to land together', got 'skipped by the worker'
+--- run#aSkipPrintsTheReasonTheChildGave[0] (exit 1)
+  the note is the child's own sentence, not the constant the skip arm wrote: expected 'one item of 35 tasks, a new Gradle module and 20 case names would have to land together', got 'skipped by the worker'
+FAIL run#aSkipPrintsTheReasonTheChildGave
+loop-selftest: 1 of 1 cases failed

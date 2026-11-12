@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one case this change adds, against the engine as HEAD (0e1ad308) has it:
+     `bash tools/loop/tests/loop-selftest.sh --case run#aSkipPrintsTheReasonTheChildGave` in this change's
+     worktree, 2026-11-12T13:40Z (the clock read as the run ended), transcript `red-on-head.log`. The case drives
+     one skip through the real run against the stub child — a `too-wide` skip whose answer carries the sentence
+     `one item of 35 tasks, a new Gradle module and 20 case names would have to land together` as
+     `LOOP-ROOT-CAUSE` — and asserts that sentence in the item's own note and on the report's `skipped:` line.
+     On HEAD the skip arm writes the constant `skipped by the worker` into the note while the sentence travels
+     beside it as `metrics.rootCause`, so the note assertion is the one that fails, and the second run the case
+     makes — a skip whose child gave no reason — is the shape the fix leaves alone. -->
+<testsuite name="loop-selftest --case run#aSkipPrintsTheReasonTheChildGave" tests="1" failures="1" errors="0" timestamp="2026-11-12T13:40:09Z">
+  <testcase name="run#aSkipPrintsTheReasonTheChildGave">
+    <failure>the note is the child's own sentence, not the constant the skip arm wrote: expected 'one item of 35 tasks, a new Gradle module and 20 case names would have to land together', got 'skipped by the worker'</failure>
+  </testcase>
+  <system-out>FAIL run#aSkipPrintsTheReasonTheChildGave — loop-selftest: 1 of 1 cases failed (evidence/red-on-head.log)</system-out>
+</testsuite>

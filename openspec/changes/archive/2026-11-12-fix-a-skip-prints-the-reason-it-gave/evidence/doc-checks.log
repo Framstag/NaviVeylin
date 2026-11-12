@@ -1,0 +1,10 @@
+== 2026-11-12T13:42:49Z — the structural checks of the documents this change edits
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+check-doc-routes: all 337 section references resolve, all 7 skill references resolve
+exit=0
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+Change 'fix-a-skip-prints-the-reason-it-gave' is valid
+exit=0

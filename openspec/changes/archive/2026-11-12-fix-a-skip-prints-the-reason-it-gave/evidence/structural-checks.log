@@ -1,0 +1,10 @@
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+decl-exit=0
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.kRelUQ
+loop-mutations: all 341 cases passed — every selected record applies to the file it names
+check-exit=
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+hygiene-exit=0
+Change 'fix-a-skip-prints-the-reason-it-gave' is valid
+validate-exit=0

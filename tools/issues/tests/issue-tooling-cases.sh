@@ -161,6 +161,8 @@ ISSUES_SHELL_CASES=(
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
   'prioritise#recordsOutgrowOneArgument'
+  'create#writesTheTypeItWasGiven'
+  'update#writesTheTypeItWasGiven'
 )
 
 issues_shell_cases() {
@@ -198,6 +200,8 @@ issues_run_shell_case() {
     'create#aCauseWhosePointerIsGoneIsRefused') case_create_aCauseWhosePointerIsGoneIsRefused ;;
     'create#aCauseWithoutACaseIsRefused') case_create_aCauseWithoutACaseIsRefused ;;
     'create#aNamedChangeThatDoesNotExistIsRefused') case_create_aNamedChangeThatDoesNotExistIsRefused ;;
+    'create#writesTheTypeItWasGiven') case_create_writesTheTypeItWasGiven ;;
+    'update#writesTheTypeItWasGiven') case_update_writesTheTypeItWasGiven ;;
     'create#aChangeThatIsNotReadyIsRefused') case_create_aChangeThatIsNotReadyIsRefused ;;
     'create#aTierBWithNoDecisionIsRefused') case_create_aTierBWithNoDecisionIsRefused ;;
     'create#anEmptyGatePathRefusesTierB') case_create_anEmptyGatePathRefusesTierB ;;
@@ -3422,4 +3426,75 @@ case_import_theImportedItemNamesItsExemption() {
   case "$line" in
     *"tier: "*) fail "an exempt finding carries a tier marker it has no claim to: $line" ;;
   esac
+}
+
+# ── the tracker's own classification (capability `issue-types`, `guidelines/Backlog.md` §3) ────────────────────
+#
+# An issue type and the container an item sits under are the tracker's fields, not labels: a type is account
+# scoped and a parent is an issue, so neither can travel through the vocabulary gate. The half this repository
+# owns is that the caller's value reaches `gh`'s own flag unchanged and that a malformed one is refused before
+# any write; a name the account does not declare is `gh`'s refusal (`type "X" not found; available types: …`),
+# and it creates nothing — so no case here needs a fixture for the account's type list.
+case_create_writesTheTypeItWasGiven() {
+  export GH_STUB_DIR="$ISSUES_FIXTURES"
+  local dir log finding line
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  finding=$(with_cause "$(jq -n '{sourceId: "141", title: "§141 a typed fixture finding", class: "improvement",
+                     category: "build-and-harness", claim: "A typed claim", anchor: "app/src/main/X.kt:Y",
+                     body: "the body, verbatim"}')")
+
+  printf '%s' "$finding" | run_tool create.sh --type Epic --parent 88 --json >/dev/null ||
+    fail "create.sh with a type and a parent failed"
+  line=$(grep 'issue create' "$log" | head -1)
+  [ -n "$line" ] || fail "no gh issue create invocation was recorded"
+  assert_contains "$line" "--type Epic" "the type reaches the tracker's own flag"
+  assert_contains "$line" "--parent 88" "the container reaches the tracker's own flag"
+
+  # An untyped filing writes none: the flags are opt-in, so every caller that names neither is unchanged.
+  : > "$log"
+  printf '%s' "$finding" | run_tool create.sh --allow-duplicate --json >/dev/null ||
+    fail "the untyped create failed"
+  line=$(grep 'issue create' "$log" | head -1)
+  [ -n "$line" ] || fail "no untyped create was recorded"
+  case "$line" in
+    *"--type"*) fail "an untyped filing must not carry --type: $line" ;;
+  esac
+
+  # A finding may state them in its own JSON, which is how a filing path built from a template states them.
+  : > "$log"
+  jq '.type = "Epic"' <<< "$finding" | run_tool create.sh --allow-duplicate --json >/dev/null ||
+    fail "a finding naming its own type failed"
+  line=$(grep 'issue create' "$log" | head -1)
+  assert_contains "$line" "--type Epic" "a type named in the finding reaches the same flag"
+
+  # A name with a space is refused before the write, so a malformed flag creates nothing.
+  : > "$log"
+  printf '%s' "$finding" | run_tool create.sh --type "Two Words" --json >/dev/null 2>&1 &&
+    fail "a two-word type name was accepted"
+  [ ! -s "$log" ] || fail "a refused type still called gh: $(cat "$log")"
+}
+
+case_update_writesTheTypeItWasGiven() {
+  export GH_STUB_DIR="$ISSUES_FIXTURES"
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+
+  # Retyping alone is a write: it is how an item a person decided to carry as a container becomes one, and a call
+  # that set no label and no body used to die as "nothing to change" before it could.
+  out=$(run_tool update.sh 11 --type Epic 2>&1); status=$?
+  assert_eq "0" "$status" "a type-only write succeeds: $out"
+  assert_contains "$(cat "$log")" "--type Epic" "the type reaches the tracker's own flag"
+
+  : > "$log"
+  out=$(run_tool update.sh 11 --parent 838 2>&1); status=$?
+  assert_eq "0" "$status" "a parent-only write succeeds: $out"
+  assert_contains "$(cat "$log")" "--parent 838" "the container reaches the tracker's own flag"
+
+  # A malformed parent is refused before the write.
+  : > "$log"
+  out=$(run_tool update.sh 11 --parent eight 2>&1); status=$?
+  assert_eq "2" "$status" "a non-numeric parent is a usage error"
+  [ ! -s "$log" ] || fail "a refused parent still called gh: $(cat "$log")"
 }

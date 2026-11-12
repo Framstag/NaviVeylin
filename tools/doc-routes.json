@@ -657,6 +657,7 @@
       "rules": [
         "Backlog.md §3 \"one item is one issue, and everything a reader selects on is a label.\"",
         "Backlog.md §3 \"priority is a stored fact with a recorded basis, not a number recomputed on every reading.\"",
+        "Backlog.md §3 \"the tracker's own classification is an axis of its own, and a container is never work.\"",
         "Backlog.md §4 \"an invariant is stated with the observation that would falsify it.\"",
         "Backlog.md §14 \"a reversal is recorded, not deleted.\"",
         "Backlog.md §5 \"an answer reaches the next worker's package.\"",

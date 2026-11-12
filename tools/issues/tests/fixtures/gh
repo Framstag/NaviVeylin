@@ -131,10 +131,10 @@ check_edit_field() {
   local arg
   for arg in "$@"; do
     case "$arg" in
-      --add-label|--remove-label|--body-file) return 0 ;;
+      --add-label|--remove-label|--body-file|--type|--parent) return 0 ;;
     esac
   done
-  printf 'stub gh: `gh issue edit` with no field to edit — the CLI refuses it (`field to edit flag required when not running interactively`); pass --add-label, --remove-label or --body-file\n' >&2
+  printf 'stub gh: `gh issue edit` with no field to edit — the CLI refuses it (`field to edit flag required when not running interactively`); pass --add-label, --remove-label, --body-file, --type or --parent\n' >&2
   exit 1
 }
 

@@ -1,0 +1,52 @@
+[
+  {
+    "number": 95,
+    "title": "A container: its children carry the work",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "issueType": {
+      "name": "Epic"
+    },
+    "labels": [
+      {
+        "name": "class/improvement"
+      },
+      {
+        "name": "category/build-and-harness"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 96,
+    "title": "An item of another type is work like any other",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "issueType": {
+      "name": "Feature"
+    },
+    "labels": [
+      {
+        "name": "class/improvement"
+      },
+      {
+        "name": "category/build-and-harness"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

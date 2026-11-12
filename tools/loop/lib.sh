@@ -648,7 +648,12 @@ loop_profile() {
 # asked for, and the fixture `gh` now does the same. The pre-screen asks for neither, so its per-candidate read
 # stays as small as it was.
 loop_issue_json() {
-  local fields="number,title,body,labels,author,state" errfile status
+  # `issueType` and `parent` are the tracker's own hierarchy — an item's classification and the container it
+  # sits under — and neither is a label, so a reader that decides something about an item has to ask for them
+  # here (capability `issue-types`, `guidelines/Backlog.md` §3). They sit before `author,state` on purpose: a
+  # case discriminates the comments read from the plain one by its trailing fields (`run#anUnreadable…` names
+  # `author,state,comments`), and that tail is what `--comments` appends to.
+  local fields="number,title,body,labels,issueType,parent,author,state" errfile status
   [ "${2:-}" = "--comments" ] && fields="$fields,comments"
   # The CLI's own words survive a failure. Swallowing them (`2>/dev/null`, which is what this function did) made
   # every failed read an anonymous exit status: the retry seam's `tracker-unreachable:` line, its retry lines and
@@ -712,7 +717,10 @@ LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories firstCat
 # profile written before either capability still starts a run instead of stopping on a key it never declared (the
 # rule "declare it empty, never omit it" is what the *required* keys keep, and `tools/check-portability.sh` reports
 # none of these three).
-LOOP_OPTIONAL_ROLE_KEYS="shapingAgent shapingVerdicts nextUpAgent"
+# `containerType` joins them: it names the tracker's issue type this project treats as a container, and a
+# profile that names none (or omits the key) reads as "no type is a container", so the pre-screen refuses
+# nothing on that axis and a tracker whose types are all work behaves exactly as before.
+LOOP_OPTIONAL_ROLE_KEYS="shapingAgent shapingVerdicts nextUpAgent containerType"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""

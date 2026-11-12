@@ -84,6 +84,20 @@ times it has recurred, and the basis its priority was computed over.
 selectable; the components and the basis explain it; the value is reused while the basis is unchanged, so
 ordering the whole backlog costs a query and a pass over a stable backlog interprets nothing.
 
+**Rule: the tracker's own classification is an axis of its own, and a container is never work.** An item may carry
+one of GitHub's issue types and may sit under a parent issue; neither is a label, so neither travels through the
+vocabulary gate — `tools/issues/create.sh --type/--parent` and `tools/issues/update.sh --type/--parent` write them,
+and a name the account does not declare is refused by the tracker itself (`type "X" not found; available types: …`),
+which creates and edits nothing (measured 2026-11-12: the account exposes the three defaults `Task`, `Bug`,
+`Feature`, and `gh issue create --type Bogus` names them and files no item). The value this project treats as a
+container is `roles.containerType` in `tools/tooling.json`, and `tools/loop/prescreen.sh` refuses such an item as
+work with the verdict `container` — its children carry that work and are selected on their own labels (case
+`prescreen#aContainerTypeIsNotWork`). An EMPTY value, or a profile that omits the key, declares that no type is a
+container, so the guard refuses nothing and every typed item is work as before. This axis is deliberately not the
+body's `tier:` record: `tier` says whether an item is worked as a cause or as a change (§6), the issue type says
+what the tracker calls it, and an item may be either tier under any type — an Epic is a container whatever the
+shape of its children.
+
 ## 4. The invariants
 
 **Rule: an invariant is stated with the observation that would falsify it.** These are the rules the mechanism must satisfy. Each names the mechanism that holds it and the observation

@@ -55,6 +55,11 @@ extra_labels=()
 extra_status=""
 sensor_id=""
 import_path=0
+# The tracker's own classification (`guidelines/Backlog.md` §3, capability `issue-types`): an issue type and the
+# container the item sits under. Neither is a label — a type is account-scoped and the parent is an issue — so they
+# travel as CLI flags of their own rather than through the vocabulary gate.
+type_name=""
+parent_number=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
@@ -65,6 +70,8 @@ while [ $# -gt 0 ]; do
     --import) import_path=1; shift ;;
     --allow-duplicate) allow_duplicate=1; shift ;;
     --json) json=1; shift ;;
+    --type) need_value "$@"; type_name="${2:-}"; shift 2 ;;
+    --parent) need_value "$@"; parent_number="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,50p' "$0"; exit 0 ;;
     *) issues_die "create: unknown argument $1" ;;
   esac
@@ -92,6 +99,18 @@ claim=$(jq -r '.claim // .title // empty' <<< "$finding")
 anchor=$(jq -r '.anchor // ""' <<< "$finding")
 body=$(jq -r '.body // ""' <<< "$finding")
 source_id=$(jq -r '.sourceId // ""' <<< "$finding")
+# The finding may name its type and its container in its own JSON as well as on the command line: a filing path that
+# builds a finding from a template states them where the rest of the finding is stated. The flag wins, and a
+# contradiction is not resolved silently.
+[ -n "$type_name" ] || type_name=$(jq -r '.type // ""' <<< "$finding")
+[ -n "$parent_number" ] || parent_number=$(jq -r '.parent // ""' <<< "$finding")
+case "${parent_number:-}" in
+  ''|*[!0-9]*) [ -z "$parent_number" ] || issues_die "create: --parent takes an issue number, not '$parent_number'" ;;
+esac
+case "${type_name:-}" in
+  '') ;;
+  *[[:space:]]*) issues_die "create: --type takes one type name, not '$type_name'" ;;
+esac
 
 [ -n "$title" ] || issues_die "create: the finding has no title"
 [ -n "$clazz" ] || issues_die "create: the finding has no class"
@@ -386,6 +405,11 @@ args=(issue create --title "$title" --body "$new_body")
 for label in "${create_labels[@]}"; do
   args+=(--label "$label")
 done
+# The type is the tracker's field, so the tracker is what refuses a name it does not declare: `gh` answers
+# `type "X" not found; available types: …` and creates nothing, which is why this path validates nothing itself
+# and cannot invent a vocabulary of type names.
+[ -z "$type_name" ] || args+=(--type "$type_name")
+[ -z "$parent_number" ] || args+=(--parent "$parent_number")
 
 url=$(gh "${args[@]}") || exit $?
 number="${url##*/}"

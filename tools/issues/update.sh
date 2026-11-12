@@ -61,6 +61,11 @@ displace_settled=0
 body_file=""
 comment=""
 comment_file=""
+# The tracker's own classification (`guidelines/Backlog.md` §3, capability `issue-types`): the issue type, and the
+# container the item sits under. Retyping an item is a write of its own — it is how an item a person decided to
+# carry as a container becomes one — so it must count as "something to change" below.
+type_name=""
+parent_number=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
@@ -71,6 +76,8 @@ while [ $# -gt 0 ]; do
     --body) need_value "$@"; body_file="${2:-}"; shift 2 ;;
     --comment) need_value "$@"; comment="${2:-}"; shift 2 ;;
     --comment-file) need_value "$@"; comment_file="${2:-}"; shift 2 ;;
+    --type) need_value "$@"; type_name="${2:-}"; shift 2 ;;
+    --parent) need_value "$@"; parent_number="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) issues_die "update: unknown argument $1" ;;
@@ -152,8 +159,18 @@ if [ -n "$comment_file" ]; then
   comment=$(cat "$comment_file")
 fi
 [ -n "$comment" ] || [ -n "$comment_file" ] || [ "${#labels[@]}" -gt 0 ] || \
-  [ "${#remove_labels[@]}" -gt 0 ] || [ -n "$body_file" ] ||
-  issues_die "update: nothing to change — pass --label, --remove-label, --status, --body or --comment"
+  [ "${#remove_labels[@]}" -gt 0 ] || [ -n "$body_file" ] || [ -n "$type_name" ] || [ -n "$parent_number" ] ||
+  issues_die "update: nothing to change — pass --label, --remove-label, --status, --body, --type, --parent or --comment"
+# A type name is one word and a parent is an issue number: the tracker refuses a name it does not declare
+# (`type "X" not found; available types: …`) and creates or edits nothing, so this path validates the shape and
+# not the vocabulary — a list of type names here would be a second copy of the account's configuration.
+case "${type_name:-}" in
+  '') ;;
+  *[[:space:]]*) issues_die "update: --type takes one type name, not '$type_name'" ;;
+esac
+case "${parent_number:-}" in
+  ''|*[!0-9]*) [ -z "$parent_number" ] || issues_die "update: --parent takes an issue number, not '$parent_number'" ;;
+esac
 
 if [ "${#labels[@]}" -gt 0 ]; then
   issues_check_labels "$profile" "${labels[@]}"
@@ -231,11 +248,14 @@ done
 if [ -n "$body_file" ]; then
   args+=(--body-file "$body_file")
 fi
+[ -z "$type_name" ] || args+=(--type "$type_name")
+[ -z "$parent_number" ] || args+=(--parent "$parent_number")
 # Nothing to write: a state write that finds the state already in place, with no other label and no body,
 # is a no-op reported as such, not an `edit` with no flag for `gh` to refuse.
 edit_needed=0
 if [ "${#add_labels[@]}" -gt 0 ] || [ "${#remove_labels[@]}" -gt 0 ] || \
-   [ "${#implied_removals[@]}" -gt 0 ] || [ -n "$body_file" ]; then
+   [ "${#implied_removals[@]}" -gt 0 ] || [ -n "$body_file" ] || \
+   [ -n "$type_name" ] || [ -n "$parent_number" ]; then
   edit_needed=1
 fi
 # The note explains a state, so only a call that named one can have it: `--status` that finds the value in

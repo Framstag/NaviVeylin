@@ -102,6 +102,11 @@ hold_status=$(loop_role holdStatus)
 # decided about, by this loop, and is its owner's until a person answers it (#183).
 decision_label="agent${separator}${decision_verdict}"
 settled_statuses="$(loop_role settledStatuses)"
+# The tracker's own classification, and the one value of it this project treats as a container (`guidelines/Backlog.md`
+# §3, capability `issue-types`). Empty is a tracker in which no type is a container: the guard below then never
+# fires, which is why the key is optional and why a project whose account has no such type behaves as before.
+container_type=$(loop_role containerType)
+container_verdict="container"
 is_refused_class() { [ -n "$refused_classes" ] && printf '%s\n' "$refused_classes" | grep -qxF "$1"; }
 is_settled_status() { [ -n "$settled_statuses" ] && printf '%s\n' "$settled_statuses" | grep -qxF "$1"; }
 allowed_authors=$(vocabulary allowedAuthors)
@@ -281,6 +286,10 @@ while [ "$i" -lt "$count" ]; do
     pinned=1
   fi
   gh_state=$(printf '%s' "$issue" | jq -r '.state // "OPEN"')
+  # The issue's type is the tracker's classification and it is orthogonal to the authorisation, the state and the
+  # tier: a container is a real item that is never *work*. `// ""` keeps a tracker without types, and a fixture
+  # written before this field, reading exactly as before.
+  issue_type=$(printf '%s' "$issue" | jq -r '.issueType.name // ""')
 
   verdict="$queued_verdict"
   reason=""
@@ -302,7 +311,14 @@ while [ "$i" -lt "$count" ]; do
     awaiting_decision=1
     awaiting_why="${awaiting_why:+$awaiting_why / }status${separator}${status}"
   fi
-  if ! printf '%s\n' "$allowed_authors" | grep -qxF "$author"; then
+  # A container is refused before any other judgement, because no label can make an Epic work: its children carry
+  # the work and are selected on their own labels. The verdict is the engine's own word — like `unreadable`, it is
+  # not a profile role, because it names no judgement about a value of the project's vocabulary but about the
+  # tracker's shape (`guidelines/Backlog.md` §3, capability `issue-types`).
+  if [ -n "$container_type" ] && [ "$issue_type" = "$container_type" ]; then
+    verdict="$container_verdict"
+    reason="the item's issue type is '$issue_type', which this project declares a container — its children carry the work, so nothing is worked here"
+  elif ! printf '%s\n' "$allowed_authors" | grep -qxF "$author"; then
     # The label alone would be self-served: the author term of the gate is the other half (change 1, D2).
     verdict="author-not-allowlisted"
     reason="author '$author' is not on the profile's allowlist"

@@ -80,6 +80,7 @@ LOOP_SHELL_CASES=(
   'prescreen#aPinnedItemLeadsTheQueue'
   'prescreen#aProfileWithNoPinPinsNothing'
   'prescreen#aRenamedLeadingCategoryLeads'
+  'prescreen#aContainerTypeIsNotWork'
   'prescreen#priorityCategoriesAreReadFromTheProfile'
   'prescreen#priorityDoesNotBypassTheGate'
   'prescreen#anUndeclaredRoleStopsTheScreen'
@@ -788,6 +789,7 @@ loop_run_shell_case() {
     'prescreen#aPinnedItemLeadsTheQueue') fn=case_prescreen_aPinnedItemLeadsTheQueue ;;
     'prescreen#aProfileWithNoPinPinsNothing') fn=case_prescreen_aProfileWithNoPinPinsNothing ;;
     'prescreen#aRenamedLeadingCategoryLeads') fn=case_prescreen_aRenamedLeadingCategoryLeads ;;
+    'prescreen#aContainerTypeIsNotWork') fn=case_prescreen_aContainerTypeIsNotWork ;;
     'prescreen#priorityCategoriesAreReadFromTheProfile') fn=case_prescreen_priorityCategoriesAreReadFromTheProfile ;;
     'prescreen#priorityDoesNotBypassTheGate') fn=case_prescreen_priorityDoesNotBypassTheGate ;;
     'prescreen#anUndeclaredRoleStopsTheScreen') fn=case_prescreen_anUndeclaredRoleStopsTheScreen ;;
@@ -17433,4 +17435,33 @@ case_gate_runsUnderTheWorktreeEnvironment() {
   rm -f "$d/canary"
   out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
   assert_eq "unset" "$(cat "$d/canary" 2>/dev/null)" "a tree without the file still gates ($out)"
+}
+
+# The tracker's own classification is an axis of its own (`guidelines/Backlog.md` §3, capability `issue-types`):
+# an item whose issue type the profile declares a container is a real, open, authorised item that is never *work*,
+# because its children carry the work and are selected on their own labels. The guard is the reader's half of the
+# pair whose writer is `create.sh --type` / `update.sh --type`; the type it compares against is
+# `roles.containerType`, so no engine spells a type name (D16) and a profile that names none refuses nothing.
+case_prescreen_aContainerTypeIsNotWork() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario container)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "a screen with work beside the container still selects"
+  assert_eq "container" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 95) | .verdict')" \
+    "an item whose type the profile declares a container is not worked"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 95) | .reason')" "container" \
+    "the reason names the type as the reason"
+  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "only one item reaches the queue"
+  assert_eq "96" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" \
+    "an item of another type is work like any other"
+  # The same tree with the role declared empty: the type is then no container, so the guard refuses nothing and
+  # both items are work. That is what tells a comparison against the profile's value from a literal in the engine.
+  jq '.roles.containerType = ""' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not empty the container role"
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || fail "the screen failed with no container role"
+  assert_eq "2" "$(jq -r '.queue | length' "$(state_file "$p")")" \
+    "with no container declared, every typed item is work"
 }

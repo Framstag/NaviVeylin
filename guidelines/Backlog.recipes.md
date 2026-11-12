@@ -518,7 +518,9 @@ reports, or a compaction's `tokensBefore`) but which nothing read while a child 
 calls the cheaper half of the bound below it (issue #856): the item's first worker is ended there, below the stop, and
 the run continues it from the work it left exactly as the continuation issue #851 landed for a child the stop ends —
 one child, the kept patch applied onto the branch's `HEAD`, recorded `worker-checkpoint` where the stop's is
-`worker-continuation`. `LOOP_ITEM_CONTEXT_MAX` still ends every child exactly as the turn bound does, its transcript
+`worker-continuation`. The split is taken only when the worker left work in the tree (the run reads
+`git status --porcelain` at the crossing): a worker that reaches the checkpoint with nothing to continue runs on to
+its recorded stop. `LOOP_ITEM_CONTEXT_MAX` still ends every child exactly as the turn bound does, its transcript
 carrying `LOOP-TIMEOUT: the child reached the recorded context bound of <n> tokens (LOOP_ITEM_CONTEXT_MAX) at <m>
 tokens`. Measured over the 300 item records of
 `.pi/issue-loop/run.json` and `runs/*.json` (2026-11-05): the largest context per item is p50 107 669, p75 143 124,

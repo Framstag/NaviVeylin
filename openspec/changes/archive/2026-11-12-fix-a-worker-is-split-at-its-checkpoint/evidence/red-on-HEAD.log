@@ -1,0 +1,64 @@
+=== red on the unmodified engine (base 7e441575), the cases this change adds — the checkpoint case is the red one, and the two guard cases are green on the base by construction ===
+taken 2026-11-12T18:44:36Z
+
+--- run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound ---
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound|   the run left the worker to the stop and started no continuation at the checkpoint: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 item-context-bounds=worker:200000,worker-gate:200000,worker-tail:200000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:200000 min-free-mib=1024 free-mib=5747 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/lock (owner 3479969)
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base 974b0c045c1a
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| state: bounds result 8000 · context warn 143124 · context max 200000
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| state: deadline 2026-11-12T20:14:37Z
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/prescreen.log
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261112-184438')
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| HEAD ist jetzt bei 974b0c0 init
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/worktrees/loop on branch loop-20261112-184438 from 974b0c045c1a (1 local.prop* copied)
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/worktrees/loop on loop-20261112-184438 from 974b0c045c1a
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: worktree · 1s · ready — loop on loop-20261112-184438 from 974b0c045c1a
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| stub gh: recorded `gh issue edit`
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| pick #21
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: item · 2s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/items/21/worker-report.md
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/items/21/worker-report.md)
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| LOOP-CONTEXT: the child's context reached 150000 tokens (LOOP_ITEM_CONTEXT_WARN records 143124) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: worker-prompt running 30s — log 0 B, worktree 2 changed file(s), 0 commit(s) since the base
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| loop: worker-prompt running 1m00s — log 0 B, worktree 2 changed file(s), 0 commit(s) since the base
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound| Beendet                    sleep "$poll"
+--- run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound[0] (exit 1)
+  the run left the worker to the stop and started no continuation at the checkpoint: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:200,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:110,reviewer-pre-gate:110 item-context-warn=143124 item-context-max=200000 item-context-bounds=worker:200000,worker-gate:200000,worker-tail:200000,worker-rework:250000,reviewer:250000,reviewer-pre-gate:200000 min-free-mib=1024 free-mib=5747 dry-run=0 reset-worktree=0 agent-roles=worker-gate,worker-tail,worker-rework,reviewer,reviewer-pre-gate quota=loop-quota.sh
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/lock (owner 3479969)
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base 974b0c045c1a
+state: bounds result 8000 · context warn 143124 · context max 200000
+state: deadline 2026-11-12T20:14:37Z
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/prescreen.log
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261112-184438')
+HEAD ist jetzt bei 974b0c0 init
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/worktrees/loop on branch loop-20261112-184438 from 974b0c045c1a (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/worktrees/loop on loop-20261112-184438 from 974b0c045c1a
+loop: worktree · 1s · ready — loop on loop-20261112-184438 from 974b0c045c1a
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+pick #21
+loop: item · 2s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/items/21/worker-report.md
+loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.pYqohc/cases/0/tree/case.2edQwA/repo/.pi/issue-loop/items/21/worker-report.md)
+LOOP-CONTEXT: the child's context reached 150000 tokens (LOOP_ITEM_CONTEXT_WARN records 143124) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound
+loop: worker-prompt running 30s — log 0 B, worktree 2 changed file(s), 0 commit(s) since the base
+loop: worker-prompt running 1m00s — log 0 B, worktree 2 changed file(s), 0 commit(s) since the base
+Beendet                    sleep "$poll"
+FAIL run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+--- run#aWorkerBelowItsCheckpointIsNotSplit ---
+PASS run#aWorkerBelowItsCheckpointIsNotSplit
+
+# note 2026-11-12T19:00:05Z — the third case, run#aWorkerAtTheCheckpointWithNoWorkRunsOn, is green on the base by construction:
+# the base ends no child at the checkpoint, so a child with nothing to continue is not ended there either. Its proof
+# against a split taken on the reading alone is mutation 278.3 (evidence/mutations-278.log), which removes the work
+# condition and makes it fail.

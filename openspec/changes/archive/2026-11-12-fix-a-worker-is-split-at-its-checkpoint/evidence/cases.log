@@ -1,0 +1,30 @@
+=== the three new cases on the applied tree, and the context cases they sit beside ===
+taken 2026-11-12T18:55:17Z
+
+--- run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound ---
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+
+--- run#aWorkerBelowItsCheckpointIsNotSplit ---
+PASS run#aWorkerBelowItsCheckpointIsNotSplit
+
+--- run#aWorkerAtTheCheckpointWithNoWorkRunsOn ---
+PASS run#aWorkerAtTheCheckpointWithNoWorkRunsOn
+
+--- run#childPastItsContextBoundIsCut ---
+PASS run#childPastItsContextBoundIsCut
+
+--- run#aContextCutWorkerIsContinuedByItsOwnRun ---
+PASS run#aContextCutWorkerIsContinuedByItsOwnRun
+
+--- run#aCutWhosePatchDoesNotApplyIsLeftCut ---
+PASS run#aCutWhosePatchDoesNotApplyIsLeftCut
+
+--- run#theRecordedZeroKeepsTheContextBoundOff ---
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+
+--- run#eachRoleIsBoundedByItsOwnContext ---
+PASS run#eachRoleIsBoundedByItsOwnContext
+
+--- after the once-only assertions ---
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+PASS run#aWorkerAtTheCheckpointWithNoWorkRunsOn

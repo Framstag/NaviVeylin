@@ -1,0 +1,13 @@
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  architecture-test-suite
+  package-structure
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 189
+classified: 194
+unclassified: 0
+delta spec ids: 15
+stale: 5
+car-only areas: 1
+highlights: 19

@@ -243,14 +243,14 @@ child_context_bound() { # child_context_bound <role> → the tokens that role's 
   printf '%s\n' "$value"
 }
 
-# Which bound ended a child, read back from the transcript the run wrote it into. Two of them end an item's worker and
-# only one of them is a phase a fresh session is the cheaper half of (issue #851): the context bound is what a *new*
-# session pays instead of the re-read of a grown one, while the turn bound and the wall clock measure what the child
-# spent failing to converge. `run_child` already names the bound it enforced and the key it is recorded in, so this is
-# one read of one line and not a second reading of the stream.
-child_ended_by_context_bound() { # <report> → 0 when that child's own LOOP-TIMEOUT line names the context bound
+# Which bound ended a child, read back from the transcript the run wrote it into. Three of them end an item's worker
+# and two of them are a phase a fresh session is the cheaper half of (issues #851, #856): the context bound and the
+# checkpoint above it are what a *new* session pays instead of the re-read of a grown one, while the turn bound and
+# the wall clock measure what the child spent failing to converge. `run_child` already names the bound it enforced and
+# the key it is recorded in, so this is one read of one line and not a second reading of the stream.
+child_ended_by_context_bound() { # <report> → 0 when that child's own LOOP-TIMEOUT line names a context split
   case "$(report_field "$1" LOOP-TIMEOUT 2>/dev/null)" in
-    *"the recorded context bound of"*) return 0 ;;
+    *"the recorded context bound of"*|*"the recorded context checkpoint of"*) return 0 ;;
   esac
   return 1
 }
@@ -1572,7 +1572,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_read ctx_new ctx_bound ctx_bound_key
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_bound ctx_bound_key
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -1752,10 +1752,10 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     fi
     # …and the bound priced in what a turn costs rather than in how many there are (issue #760), read from the same
     # stream and in the same whole second as the turn count, so the wait pays one `wc` and one `jq` over the *new*
-    # lines per second. The checkpoint costs one line and decides nothing: it names the reading so a session that
-    # could split at its gate knows it is worth more than the turns it saves. The recorded maximum ends the child,
-    # because past it every further turn costs several times the first and that is a decision, not a slower
-    # convergence. Both are off at `0`, which is why the whole block is skipped when neither key is recorded.
+    # lines per second. The checkpoint names the reading once for every phase and, below the stop, splits the item's
+    # worker into a continuation (issue #856, the check below). The recorded maximum ends the child, because past it
+    # every further turn costs several times the first and that is a decision, not a slower convergence. Both are off
+    # at `0`, which is why the whole block is skipped when neither key is recorded.
     if [ "$item_context_warn" -gt 0 ] || [ "$ctx_bound" -gt 0 ]; then
       ctx_read=$(child_context "${LOOP_CHILD_EVENTS:-}" "$ctx_lines")
       ctx_new=${ctx_read%% *}
@@ -1765,7 +1765,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       if [ "$ctx_new" -gt "$ctx_max" ]; then ctx_max=$ctx_new; fi
       if [ "$item_context_warn" -gt 0 ] && [ "$ctx_warned" -eq 0 ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
         ctx_warned=1
-        printf 'LOOP-CONTEXT: the child\047s context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound\n' \
+        printf 'LOOP-CONTEXT: the child\047s context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a fresh session at this reading is the cheaper half of the bound below\n' \
           "$ctx_max" "$item_context_warn"
       fi
       if [ "$ctx_bound" -gt 0 ] && [ "$ctx_max" -ge "$ctx_bound" ]; then
@@ -1775,6 +1775,28 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         sleep 1
         kill -KILL -"$child" 2>/dev/null || true
         break
+      fi
+      # …and the checkpoint above the stop is taken rather than only printed (issue #856): the item's first worker is
+      # the phase whose session the checkpoint can split, and the continuation #851 landed is the child it is handed
+      # to. It is taken only when that child has left work in the tree, because a continuation is the kept patch applied
+      # onto the branch's `HEAD` — with nothing to apply, the split would cut an item at 143 124 that the recorded stop
+      # of 200 000 would have let run on, which is the bound #836 refused to lower. The tree is read in the same whole
+      # second as the reading and not on every look (the wait looks twenty times a second), so a worker that writes its
+      # change after the crossing is split on its next reading rather than missed. The stop's check stands first, so a
+      # reading already past it is named by the stop.
+      # The phase test keeps the ceiling structural: a continuation, a rework round, a gate, a tail and a review round
+      # run on to their own bound, which is what keeps this from being a loop that never ends an item.
+      if [ "$item_context_warn" -gt 0 ] && [ "$phase" = worker-prompt ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
+        ctx_has_work=0
+        if [ -n "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null)" ]; then ctx_has_work=1; fi
+        if [ "$ctx_has_work" -eq 1 ]; then
+          ended_by=checkpoint
+          timed_out=1
+          kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+          sleep 1
+          kill -KILL -"$child" 2>/dev/null || true
+          break
+        fi
       fi
     fi
     # …and the one condition that is not a bound at all (issue #795): the record this wait ends on is written by
@@ -1828,6 +1850,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       # as its own timeout, so the reviewer-round and pre-gate paths that already read a cut transcript keep working.
       printf 'LOOP-TIMEOUT: the child reached the recorded context bound of %s tokens (%s) at %s tokens — the run ended it and everything it started\n' \
         "$ctx_bound" "$ctx_bound_key" "$ctx_max" >> "$2"
+    elif [ "$ended_by" = checkpoint ]; then
+      # The checkpoint a fresh session is the cheaper half of (issue #760) is the split this run takes (issue #856),
+      # and the line says so: the key, the recorded value and the reading, in the same shape the stop's line has, so
+      # the continuation block below reads which one ended the child from one line and no second reading of the stream.
+      printf 'LOOP-TIMEOUT: the child reached the recorded context checkpoint of %s tokens (%s) at %s tokens — the run ended it and everything it started\n' \
+        "$item_context_warn" LOOP_ITEM_CONTEXT_WARN "$ctx_max" >> "$2"
     elif [ "$ended_by" = writer ]; then
       # The event this wait ends on can only be written by a process that is running, so a writer that is gone is
       # the reason the wait ended — and the item's note must not read as a clock that fired (issue #795). The line
@@ -2381,7 +2409,16 @@ while true; do
       # note names it (the run's own record of the work, kept beside the tree as #754 leaves it — nothing is committed).
       continuation_patch="$leftover_patch"
       continuation_resume=0
-      bash "$LOOP_DIR/worktree.sh" continue-item "$issue" > "$item_dir/continuation-resume.log" 2>&1 || continuation_resume=$?
+      # Which reading ended the child decides the step a reader sees (issue #856): the stop's continuation is
+      # `worker-continuation` (issue #851) and the checkpoint's is `worker-checkpoint`, so the two splits are told apart
+      # in the ledger and the applier's sentence names the one that fired. The line read here is the one `run_child`
+      # wrote, not a second reading of the stream.
+      continuation_step=worker-continuation
+      continuation_reason=bound
+      case "$(report_field "$worker_report" LOOP-TIMEOUT 2>/dev/null)" in
+        *"the recorded context checkpoint of"*) continuation_step=worker-checkpoint; continuation_reason=checkpoint ;;
+      esac
+      bash "$LOOP_DIR/worktree.sh" continue-item "$issue" "$continuation_reason" > "$item_dir/continuation-resume.log" 2>&1 || continuation_resume=$?
       case "$continuation_resume" in
         0)
           # What the patch holds, in the child's own terms: the files and the hunks are counted from the record, so a
@@ -2403,7 +2440,7 @@ while true; do
           run_child "$item_dir/worker-prompt-continuation.md" "$item_dir/worker-continuation-report.md"
           worker_exit=$?
           worker_report="$item_dir/worker-continuation-report.md"
-          loop_state step A --name worker-continuation \
+          loop_state step A --name "$continuation_step" \
             --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
             --note "exit $worker_exit · from $continuation_patch, applied onto $(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null | cut -c1-12)" >/dev/null
           ;;

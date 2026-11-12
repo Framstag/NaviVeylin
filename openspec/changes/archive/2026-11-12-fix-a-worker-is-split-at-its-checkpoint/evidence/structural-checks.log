@@ -1,0 +1,18 @@
+=== the structural checks this delta owes (docs, spec, and the case declaration) ===
+taken 2026-11-12T18:54:40Z
+
+--- check-change-readiness ---
+LOOP-CHANGE-READY: ok
+
+--- driver#everyCaseDeclaresTheFilesItCanReach ---
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+
+--- check-doc-routes ---
+check-doc-routes: all 337 section references resolve, all 7 skill references resolve
+
+--- check-doc-values ---
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+
+--- check-openspec-hygiene ---
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.

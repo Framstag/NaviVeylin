@@ -1,0 +1,56 @@
+# gate — item #856, change `fix-a-worker-is-split-at-its-checkpoint` (archived `2026-11-12-…`)
+
+The gate was started **once**, exactly as the run configures it:
+
+    $ cd /home/tim/projects/NaviVeylin/.pi/worktrees/loop && ./tools/loop/gate.sh
+
+## What happened
+
+- `2026-11-12T19:05:11Z` — gate started. Tally lock written: `app/build/test-results/loop-gate/.gate.lock/owner`
+  = `3988926 2026-11-12T19:05:11Z`. Run record appended to
+  `.pi/issue-loop/items/856/events.jsonl.gate-runs`:
+  `01a1d124-8a03-7237-a0f6-5379dfa3c81e  gate.sh  head=ecdfbe88367a97e259410412ee4b6d3cc4c8f26a diff=891b02aa46d6279c`
+  (`LOOP_GATE_RUNS_MAX=2`; this session has spent 1 of 2).
+- The tool call that started it hit the harness ceiling first: `MCP error -32001: Request timed out`. The call's
+  stdout pipe closed; the gate's orchestrator (`bash ./tools/loop/gate.sh`, pid 3988926) and its wrapper were gone by
+  `19:07:24Z` — the death a signal no trap can catch gives (the `EXIT` trap that would release the lock and aggregate
+  the wave never ran).
+- Two in-flight step subshells were orphaned and ran their commands to completion. **No `LOOP-GATE:` verdict line was
+  ever printed**, and no orchestrator survived to run `finish_step`, so no per-suite tallies were derived for the
+  steps after slot 0: the only XML under `app/build/test-results/loop-gate/` is the slot-0 driver tally.
+- The stale `.gate.lock` names a dead pid; `gate.sh:381-395` is the engine's own takeover path for exactly this
+  ("a gate ended by a signal no trap can catch leaves its lock behind"), so the lock was left for the next run, not
+  edited.
+
+## The 5 steps that ran — all green (outputs and rc in `gate-steps/`)
+
+| slot | command | result |
+|---|---|---|
+| 0 | `tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` | `PASS driver#everyCaseDeclaresTheFilesItCanReach`, rc 0, tally XML present |
+| 1 | `bash tools/loop/tests/loop-selftest.sh --from-git 4a14574fc6b099a0c867f4c9759f2d8b74c6b01b` | `loop-selftest: all 419 cases passed (JDK 27, offline, no token, no sandbox) — 663.67 s`, rc 0 |
+| 2 | `bash tools/loop/tests/loop-mutations.sh --check` | `loop-mutations: all 346 cases passed — every selected record applies to the file it names`, rc 0 |
+| 3 | `tools/loop/tests/loop-mutations-selftest.sh` | `loop-mutations-selftest: all 34 cases passed`, rc 0 |
+| 4 | `bash tools/gen-feature-list.sh --check-classification` | rc 0 (`stale: 5` reported by the command itself) |
+
+## The 18 owed steps that never started
+
+From `./tools/loop/gate.sh --plan` (23 commands owed; the dead orchestrator never launched wave 2):
+`tools/check-doc-values.sh`, `tools/tests/check-doc-values-selftest.sh`, `tools/check-doc-routes.sh`,
+`tools/tests/check-doc-routes-selftest.sh`, `tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list`,
+`tools/check-todo-references.sh`, `tools/check-openspec-hygiene.sh`, `tools/tests/check-openspec-hygiene-selftest.sh`,
+`tools/check-portability.sh`, `tools/tests/check-portability-selftest.sh`, `tools/tests/mutate-selftest.sh`,
+`tools/mutate.sh --mutations tools/tests/portability-mutations.json --list`,
+`tools/issues/tests/issue-tooling-selftest.sh`, and the five `tools/mutate.sh --mutations tools/issues/tests/*.json --list`
+records (status/create/close/duplicates/decision-question).
+
+## Verdict
+
+The gate did not complete and printed no verdict. A second attempt was **not** taken: the run's rule is that a gate
+that does not complete is not the gate child's to report or to retry (`worker-gate-prompt.md` phase E step 3 — "a
+second attempt is not yours to make"), and this child has spent its measurement. The item's fate (record `blocked`,
+or a fresh child's gate) belongs to the run.
+
+Findings applied before the gate (all of `pre-gate-review.md`): the one `BLOCKING` (the work condition added to
+`guidelines/Backlog.recipes.md`:517), `tasks.md` 4.5's pointer, `worker-report.md`'s two moved `file:line` pointers,
+`design.md`'s duplicate `## D3` heading, and the three `§7b` pointers the mechanical check called dangling.
+Pointer check: `evidence-check: PASS` (`evidence/evidence-check.log`).

@@ -2,8 +2,9 @@
 
 You are the **second** process of one item, and the same role as the first: the item's worker. The run started the
 first one, it did the diagnosis, it applied part of the change — and the run **ended it** when its context reached
-`LOOP_ITEM_CONTEXT_MAX`: a session that has grown past the bound re-reads everything it carries on every further turn,
-so a fresh session on the same tree is the cheaper half of that bound, not a second item's budget.
+the split this profile records — `LOOP_ITEM_CONTEXT_WARN` before the stop, or `LOOP_ITEM_CONTEXT_MAX` at it: a session
+that has grown past that reading re-reads everything it carries on every further turn, so a fresh session on the same
+tree is the cheaper half of that bound, not a second item's budget.
 
 What the run did before starting you: it wrote the work that process left to the patch named below, put the tree back
 on the branch's HEAD, applied that patch onto it, and removed the child. So the tree you are handed **already holds

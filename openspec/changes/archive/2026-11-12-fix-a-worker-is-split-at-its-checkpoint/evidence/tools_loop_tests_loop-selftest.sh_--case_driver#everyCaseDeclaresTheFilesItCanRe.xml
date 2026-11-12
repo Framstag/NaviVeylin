@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach" tests="0" failures="0" errors="0" time="13" run="3988926">
+  <system-out>PASS driver#everyCaseDeclaresTheFilesItCanReach</system-out>
+</testsuite>

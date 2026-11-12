@@ -1,0 +1,21 @@
+=== the three records this change adds, and the whole set checked ===
+taken 2026-11-12T18:57:44Z
+
+--- 278.1 278.2 278.3 red-when-mutated, green after the restore ---
+loop-mutations: selected 3 of 346 records (labels: 278.1 278.2 278.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.InjVgo
+RED    278.1  run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound   (the checkpoint split itself, so the item keeps paying for the grown context until the stop cuts it and the work is handed to the next run (issue #856))
+       2026-11-12T18:58:49Z — the run left the worker to the stop and started no continuation at the checkpoint: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-out
+restore 278.1 run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound green again
+RED    278.2  run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound   (the step the checkpoint split records, so a checkpoint continuation is written as the worker-continuation of the stop and a reader cannot tell which reading ended the phase (issue #856))
+       2026-11-12T18:59:07Z — the state carries the checkpoint continuation as its own step, so a reader tells it from a stop's continuation: expected '1', got '0'
+restore 278.2 run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound green again
+RED    278.3  run#aWorkerAtTheCheckpointWithNoWorkRunsOn   (the work the tree must carry before the checkpoint ends the child, so a session that has only read is cut at 143 124 and the item loses the stop the profile records (issue #856))
+       2026-11-12T18:59:24Z — a child with nothing to continue is not ended at the checkpoint, so the recorded stop below it still stands: 'LOOP-TIMEOUT' should not appear in: LOOP-TIMEOUT: the child reached the recorded context checkpoint of 143124 tokens (LOOP_ITEM_CO
+restore 278.3 run#aWorkerAtTheCheckpointWithNoWorkRunsOn green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+
+--- --check over the whole set ---
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.ioeR8S
+loop-mutations: all 346 cases passed — every selected record applies to the file it names

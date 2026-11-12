@@ -1,0 +1,17 @@
+# evidence-check — gate child's pointer check, run from the change root before the archive
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-worker-is-split-at-its-checkpoint --root .
+    ok   C1 §references: 1 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 299 resolved and in range, 0 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+The first run reported three `FAIL C1 dangling §7` lines (proposal.md:50, proposal.md:56, tasks.md:46): each was a
+`§7b` guideline section anchor, which the check's pattern `§[0-9]+` reads as a migration `§ → issue` id (no row 7
+in `openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md`) — the same class
+`openspec/changes/archive/2026-11-06-loop-suite-cost-is-reported/evidence/evidence-check.txt` records. The three
+pointers were repointed at the same paragraph by line (`guidelines/Backlog.recipes.md`:517, the checkpoint
+paragraph under "What an item costs, and the bounds on it"), keeping every claim and figure; no other pointer moved.

@@ -22,7 +22,6 @@ import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.FailureReason
 import com.naviveylin.core.NavigationFailure
 import com.naviveylin.core.NavigationState
-import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.data.SettingsStorage
@@ -331,22 +330,12 @@ class NavigationEngine @Inject constructor(
     // ---------------------------------------------------------------------
 
     /**
-     * Token of the newest route calculation request. It is published in
-     * [com.naviveylin.core.RouteCalculation] and increases with every request, so a
-     * callback of a calculation that a newer request superseded can be told apart
-     * from the live one (spec: `route-calculation-feedback` — A superseded calculation
-     * never clears the live calculation's state).
+     * The route calculation in flight: the token a superseded callback is told apart by, the count of the
+     * progress reports it made and the measurement entry it is closed with (spec:
+     * `route-calculation-feedback` — A superseded calculation never clears the live calculation's state).
+     * The bookkeeping is [RouteCalculationTracker]'s; this holds it and calls it. Main-thread only.
      */
-    private var calculationToken = 0L
-
-    /** Progress values published for the live calculation (measurement, see [endCalculation]). */
-    private var calculationProgressCount = 0
-
-    /** Wall clock at which the live calculation started (measurement, see [endCalculation]). */
-    private var calculationStartedAtMillis = 0L
-
-    /** Coordinate-free identity of what asked for the live calculation (measurement). */
-    private var calculationTrigger = "acquisition"
+    private val calculationTracker = RouteCalculationTracker(_state, timeSource)
 
     /**
      * Start navigation on a route a surface acquired (phone route panel with its
@@ -538,7 +527,9 @@ class NavigationEngine @Inject constructor(
         // lease it took). Read here, on the thread every entry point runs on, so the decision
         // is taken before either failure handler can observe a changed navigation state.
         val ownsLease = !_state.value.isNavigating
-        val token = beginCalculation(destLat, destLon, if (fromReroute) "reroute" else "acquisition")
+        val token = calculationTracker.beginCalculation(
+            destLat, destLon, if (fromReroute) "reroute" else "acquisition"
+        )
         scope.launch(dispatchers.compute) {
             try {
                 // The profile every calculation uses: the calculation vehicle's own stored maximum speed
@@ -556,7 +547,7 @@ class NavigationEngine @Inject constructor(
                             // the dispatcher that owns navigation-state publication
                             // (guidelines/Design.md §4).
                             scope.launch(Dispatchers.Main) {
-                                publishCalculationProgress(token, percent)
+                                calculationTracker.publishCalculationProgress(token, percent)
                             }
                         }
 
@@ -568,7 +559,7 @@ class NavigationEngine @Inject constructor(
                                 // the newer destination last (spec: `route-calculation-feedback`
                                 // — A superseded calculation never clears the live
                                 // calculation's state).
-                                if (!endCalculation(token, CalculationOutcome.OK)) {
+                                if (!calculationTracker.endCalculation(token, CalculationOutcome.OK)) {
                                     Log.d(TAG, "acquire: superseded route result ignored")
                                     return@launch
                                 }
@@ -597,7 +588,9 @@ class NavigationEngine @Inject constructor(
                                     nearestRoadDistanceMeters = nearestRoadDistanceMeters
                                 )
                                 Log.e(TAG, "acquire: route calculation failed: reason=${failure.reason} detail=$detail")
-                                if (!endCalculation(token, CalculationOutcome.ERROR, failure)) return@launch
+                                if (!calculationTracker.endCalculation(token, CalculationOutcome.ERROR, failure)) {
+                                    return@launch
+                                }
                                 if (ownsLease) releaseNavLease()
                                 _state.update { it.withoutRerouteAttemptFlag().withFailure(failure) }
                             }
@@ -616,7 +609,7 @@ class NavigationEngine @Inject constructor(
                                 // A cancel this engine asked for has already cleared the
                                 // state; this path covers a cancellation by a newer native
                                 // request. Either way only the live token clears state.
-                                endCalculation(token, CalculationOutcome.CANCELLED)
+                                calculationTracker.endCalculation(token, CalculationOutcome.CANCELLED)
                             }
                         }
                     }
@@ -630,7 +623,9 @@ class NavigationEngine @Inject constructor(
                         reason = FailureReason.ENGINE_FAILURE,
                         detail = e.message
                     )
-                    if (!endCalculation(token, CalculationOutcome.ERROR, failure)) return@withContext
+                    if (!calculationTracker.endCalculation(token, CalculationOutcome.ERROR, failure)) {
+                        return@withContext
+                    }
                     if (ownsLease) releaseNavLease()
                     _state.update {
                         it.withoutRerouteAttemptFlag().withFailure(failure)
@@ -675,7 +670,7 @@ class NavigationEngine @Inject constructor(
      * native breaker is cooperative, so the aborted calculation may report much later
      * or never, and the surface that asked for the cancel must not keep waiting for it.
      * The token is gone by then, so a late callback cannot resurrect the state
-     * ([publishCalculationProgress], [endCalculation]).
+     * ([RouteCalculationTracker.publishCalculationProgress], [RouteCalculationTracker.endCalculation]).
      */
     override fun cancelAcquisition() {
         val calculation = _state.value.calculation ?: return
@@ -688,7 +683,7 @@ class NavigationEngine @Inject constructor(
                 Log.e(TAG, "cancelAcquisition: native cancel failed", e)
             }
         }
-        endCalculation(calculation.token, CalculationOutcome.CANCELLED)
+        calculationTracker.endCalculation(calculation.token, CalculationOutcome.CANCELLED)
         // A cancelled reroute attempt must stop claiming one is running (spec:
         // `rerouting-visual-feedback` — Cancelled reroute ends rerouting state); the
         // surface-less acquisition this path also serves never set the flag.
@@ -702,60 +697,6 @@ class NavigationEngine @Inject constructor(
         }
     }
 
-    /**
-     * Publish [destLat]/[destLon] as the calculation in flight and return its token.
-     * The destination is part of the state so a surface can name what is being
-     * calculated for (spec: `route-calculation-feedback` — In-flight route calculation
-     * is part of the shared navigation state). [trigger] is the coordinate-free identity
-     * of what asked for the calculation, for the measurement entry only
-     * (spec: `auto-diagnostics`). Main-thread only.
-     */
-    private fun beginCalculation(destLat: Double, destLon: Double, trigger: String): Long {
-        calculationToken += 1
-        calculationProgressCount = 0
-        calculationStartedAtMillis = timeSource.nowMillis()
-        calculationTrigger = trigger
-        _state.update { it.copy(
-            calculation = RouteCalculation(
-                token = calculationToken,
-                destLat = destLat,
-                destLon = destLon,
-                percent = null
-            )
-        ) }
-        return calculationToken
-    }
-
-    /**
-     * Publish a progress value of the live calculation, if [token] still owns it.
-     * Main-thread only; see the counting and dedupe rules inside
-     * (spec: `route-calculation-feedback` — Route calculation progress is exposed as a
-     * percentage).
-     */
-    private fun publishCalculationProgress(token: Long, percent: Int) {
-        val current = _state.value.calculation
-        if (current == null || current.token != token) return
-        // Every report the live calculation makes is counted — the measurement asks how
-        // much the routing thread paid (spec: `route-calculation-feedback` — Route
-        // calculation is measured without coordinates) — but only a changed value is
-        // written: the native side already rate-limits (`JavaRoutingProgress`), and a
-        // new value costs a recomposition on the phone and a host template push on the
-        // car.
-        calculationProgressCount += 1
-        val capped = percent.coerceIn(0, 99)
-        if (current.percent == capped) return
-        _state.update { it.copy(calculation = current.copy(percent = capped)) }
-    }
-
-    /**
-     * Clear the calculation [token] owns and record its measurement entry.
-     *
-     * Returns whether [token] was still the live one: a calculation a newer request
-     * superseded ends without touching the live state and without an entry — its start
-     * time is gone with the state, so a duration it could report would be a lie
-     * (spec: `route-calculation-feedback` — A superseded calculation never clears the
-     * live calculation's state). Main-thread only.
-     */
     /**
      * One coordinate-free line per roundabout manoeuvre, not one per position update: the engine is
      * fed on every fix, and the fields only change when the manoeuvre does (task 7.2). Main-thread only,
@@ -772,41 +713,12 @@ class NavigationEngine @Inject constructor(
     /** Last roundabout line logged, so an unchanged manoeuvre is not logged again per fix. */
     private var lastRoundaboutLine: String? = null
 
-    private fun endCalculation(token: Long,
-                               outcome: CalculationOutcome,
-                               failure: NavigationFailure? = null): Boolean {
-        val current = _state.value.calculation
-        if (current == null || current.token != token) return false
-        _state.update { it.copy(calculation = null) }
-        // Coordinate-free by construction (spec: `auto-diagnostics` — no coordinates in diagnostics); the
-        // line's own shape, and the reason it names, are asserted in NavigationEngineCalculationDiagnosticsTest.
-        DiagnosticsLog.log(
-            ROUTE_TAG,
-            routeCalculationDoneLine(
-                source = calculationTrigger,
-                durationMillis = timeSource.nowMillis() - calculationStartedAtMillis,
-                progressCount = calculationProgressCount,
-                outcome = outcome.entryValue,
-                reachedPercent = current.percent,
-                failure = failure
-            )
-        )
-        return true
-    }
-
-    /** How a route calculation ended — the measurement entry's outcome field. */
-    private enum class CalculationOutcome(val entryValue: String) {
-        OK("ok"),
-        ERROR("error"),
-        CANCELLED("cancelled")
-    }
-
     /**
      * The reroute flag belongs to the attempt that set it, so every terminal outcome ends the
      * claim that one is running — success clears it in [onRouteSteps], a failure and a
      * cancellation through this one rule (spec: `rerouting-visual-feedback` — Rerouting state is
      * exposed in navigation state). A superseded attempt never reaches a clear site: its
-     * `endCalculation` guard returns first.
+     * `RouteCalculationTracker.endCalculation` guard returns first.
      *
      * The flag is left alone for an attempt that never set it (a surface-less acquisition), and
      * `isOffRoute` is deliberately not touched: the vehicle is still off route after a failed

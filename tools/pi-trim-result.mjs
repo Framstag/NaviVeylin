@@ -32,8 +32,8 @@
 // The ledger is the **item's**, not the child's (issue #858). One child process is one session, so a `Map` that lives as
 // long as the hook is one child deep: an item split at its gate starts its gate child on an empty ledger, and every path
 // the worker read is a first read again — whole. Measured on the run of 2026-11-11T11:37:08Z, the rule withheld 1 370 of
-// the 486 700 characters the items' repeat results carried (0.3 %), and the two items that read most were the two that
-// were split (#848 31 of 83 reads, #849 27 of 77). So the adapter names one ledger file beside the item's event stream
+// the 486 700 characters the items' repeat results carried (0.3 %), and the two items that read most were #848 (31 of
+// 83 reads) and #849 (27 of 77). So the adapter names one ledger file beside the item's event stream
 // (`LOOP_TOOL_RESULT_LEDGER`), every child of the item opens it and writes back what it read, and the line a repeat is
 // replaced by names the **session** that read the path (`LOOP_CHILD_SESSION`): the child that follows is not that
 // session, and a line saying "this session" would be a false one.

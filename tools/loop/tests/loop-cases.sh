@@ -427,6 +427,7 @@ LOOP_SHELL_CASES=(
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'repeat#aRepeatIsRecordedAsWhatItWithheld'
   'repeat#anItemsLedgerSpansItsChildren'
+  'repeat#theHookWritesTheItemsLedger'
   'run#childPastItsTurnBoundIsCut'
   'prescreen#aReworkCutBranchIsWork'
   'prescreen#anAnsweredBranchIsWorkNotADecision'
@@ -1132,6 +1133,7 @@ loop_run_shell_case() {
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'repeat#aRepeatIsRecordedAsWhatItWithheld') fn=case_repeat_aRepeatIsRecordedAsWhatItWithheld ;;
     'repeat#anItemsLedgerSpansItsChildren') fn=case_repeat_anItemsLedgerSpansItsChildren ;;
+    'repeat#theHookWritesTheItemsLedger') fn=case_repeat_theHookWritesTheItemsLedger ;;
     'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
     'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
@@ -16392,8 +16394,8 @@ case_repeat_aRepeatIsRecordedAsWhatItWithheld() {
 # The repeat rule's ledger was one child process deep (issue #858): the hook keeps it in a `Map` that lives as long as
 # the process, so an item split at its gate starts its gate child on an empty ledger and every path the worker read is a
 # *first* read again — handed over whole. Measured on the run of 2026-11-11T11:37:08Z: 90 of 251 file reads repeated a
-# path at 486 700 characters, and the rule withheld 1 370 of them, 0.3 %; the two items that read most are the two that
-# were split (#848 31 of 83 reads, #849 27 of 77). So the ledger is the **item's**: the adapter names one file beside
+# path at 486 700 characters, and the rule withheld 1 370 of them, 0.3 %; the two items that read most are #848 (31 of 83
+# reads) and #849 (27 of 77). So the ledger is the **item's**: the adapter names one file beside
 # the item's event stream (`LOOP_TOOL_RESULT_LEDGER`, which `adapter#theChildIsStartedWithTheItemsLedger` proves), every
 # child of the item opens it and writes back what it read, and the line a repeat is replaced by names the session that
 # read the path — the child that follows is not that session, and a line claiming "this session" would be false.
@@ -16434,6 +16436,54 @@ case_repeat_anItemsLedgerSpansItsChildren() {
     "a path whose content changed comes back whole, whoever read it last"
   assert_not_contains "$(cat "$d/edited.txt")" 'LOOP-ALREADY-READ' \
     "and nothing says the item holds what it no longer does"
+  return 0
+}
+
+# …and the **hook** — the path a real child takes — is not the CLI's path: the hook opens the item's ledger when the
+# extension is loaded and writes it back after every read, while the CLI reads and writes its own. The case above
+# drives the CLI, so deleting the hook's own write left every case green while the item's ledger stood empty and every
+# child of the item met every earlier read as a first read (issue #858). This case loads the extension itself — the
+# file the adapter loads — and asserts that the ledger the environment named exists after the worker's read and that
+# the next child of the item is handed the one line naming the session that read the path.
+case_repeat_theHookWritesTheItemsLedger() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d file ledger harness
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what an item has read: tools/pi-trim-result.mjs is not in the tree (issue #858)"
+  d=$(scratch)
+  ledger="$d/tool-result-ledger.tsv"
+  file="$d/section.md"
+  harness="$d/hook.mjs"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'z'; printf '\nLAST-LINE\n'; } > "$file"
+  # The extension, driven the way a child drives it: one read, one hook, one ledger.
+  {
+    printf '%s\n' 'import { readFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, extension] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'const text = readFileSync(file, "utf8");'
+    printf '%s\n' 'await handlers.get("turn_start")();'
+    printf '%s\n' 'const out = await handlers.get("tool_result")({ toolName: "ctx_read", input: { path: file }, content: [{ type: "text", text }] });'
+    printf '%s\n' 'const blocks = out && out.content ? out.content : [{ type: "text", text }];'
+    printf '%s\n' 'process.stdout.write(blocks.map((b) => b.text).join(""));'
+  } > "$harness"
+  # The worker: the item's first read of that path — handed over whole, and written into the item's ledger.
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_LEDGER="$ledger" LOOP_CHILD_SESSION='worker-prompt' \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" > "$d/worker.txt" \
+    || fail "the extension exited non-zero on the item's first read: $(head -3 "$d/worker.txt")"
+  assert_contains "$(cat "$d/worker.txt")" 'FIRST-LINE' "the item's first read is handed over whole"
+  [ -s "$ledger" ] || fail "the hook wrote no ledger of what the item read: $ledger holds nothing"
+  assert_contains "$(cat "$ledger")" 'worker-prompt' "the ledger names the session that read the path"
+  # The gate child: another process, the same item, and the read its worker already paid for.
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_LEDGER="$ledger" LOOP_CHILD_SESSION='worker-gate-prompt' \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" > "$d/gate.txt" \
+    || fail "the extension exited non-zero on the item's second child: $(head -3 "$d/gate.txt")"
+  assert_not_contains "$(cat "$d/gate.txt")" 'FIRST-LINE' \
+    "the item's second child is handed the line, not text its worker already paid for"
+  assert_contains "$(cat "$d/gate.txt")" 'LOOP-ALREADY-READ' "and that line says the item already has the path"
+  assert_contains "$(cat "$d/gate.txt")" 'worker-prompt' "naming the session that read it, not the one reading it now"
   return 0
 }
 

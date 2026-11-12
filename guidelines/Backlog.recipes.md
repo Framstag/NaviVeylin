@@ -188,9 +188,10 @@ because since #685 that is a volume the child may never have seen. The repeat is
 because a reviewer reading what the worker read is a new conversation rather than a second read of a fact the item
 holds. What the item holds is a separate question, and one child process deep was the wrong answer (issue #858): the
 hook kept its ledger in a `Map` that lives as long as the process, so an item split at its gate started its gate child
-on an empty ledger and every path the worker read came back whole — over the run of 2026-11-11T11:37:08Z the rule
-withheld 1 370 of the 486 700 characters the items' repeat results carried, 0.3 %, and the two items that read most were
-the two that were split. So the ledger is the **item's**: the adapter names one file beside the item's event stream
+on an empty ledger and every path the worker read came back whole — over the run of 2026-11-11T11:37:08Z (the record
+`.pi/issue-loop/runs/2026-11-11T11:37:08Z.json`) the rule withheld 1 370 of the 486 700 characters the items' repeat
+results carried, 0.3 %; the two items that read most were #848 (31 of 83 reads) and #849 (27 of 77). So the ledger is the
+**item's**: the adapter names one file beside the item's event stream
 (`LOOP_TOOL_RESULT_LEDGER`), every child of the item reads it at its first read and writes back what it read, and the
 line a repeat is replaced by names the session that read the path — `LOOP_CHILD_SESSION`, the name of the prompt the
 run handed that child — because "this session" is false for every child after the first. A ledger line carries
@@ -201,8 +202,9 @@ gates it and no outcome reads it — and an item whose stream
 measured no read records `null`, which the row and the trend print as `-` with their own reasons (a record that
 predates the field is told apart from one that met a run of items which opened no file).
 `report#anItemRecordsItsRepeatReads` and `repeat#aRepeatIsRecordedAsWhatItWithheld` are the cases of the count and the
-record, `repeat#anItemsLedgerSpansItsChildren` and `adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger,
-and mutation records `96.1`–`96.3` and `858.1`–`858.4` are what prove they notice each half go.
+record, `repeat#anItemsLedgerSpansItsChildren`, `repeat#theHookWritesTheItemsLedger` and
+`adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger, and mutation records `96.1`–`96.3` and `858.1`–`858.6`
+are what prove they notice each half go.
 
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round

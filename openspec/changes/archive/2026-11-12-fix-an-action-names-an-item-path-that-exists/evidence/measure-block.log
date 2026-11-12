@@ -1,0 +1,91 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=4a14574fc6b099a0c867f4c9759f2d8b74c6b01b paths=61 insertions=2000 deletions=44
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/doc-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/bash_tools_loop_tests_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_check-doc-values.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_issues_tests_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_loop_tests_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_loop_tests_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanRe.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_loop_tests_loop-selftest.sh_--from-git_4a14574fc6b099a0c867f4c9759f2d8b74c.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_issues_tests_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_issues_tests_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_issues_tests_decision-question-mutations.json_.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_issues_tests_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_issues_tests_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_mutate.sh_--mutations_tools_tests_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_tests_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_tests_check-doc-values-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_tests_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_tests_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/gate-xml/tools_tests_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/green-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/measure-block.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/mutation-854.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-a-skip-prints-the-reason-it-gave/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/doc-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/driver-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/gate-849.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/green-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/measure-block.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/mutation-anchors.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/mutations-849.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/openspec-hygiene.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/readiness.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/evidence/run-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-12-fix-gate-evidence-is-the-items-own-tally/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop/lib.sh
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git 4a14574fc6b099a0c867f4c9759f2d8b74c6b01b
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=416 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-an-action-names-an-item-path-that-exists scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 0 fixtures realigned, 1 guideline paragraph and 1 spec requirement — the two
+LOOP-MEASURE-END

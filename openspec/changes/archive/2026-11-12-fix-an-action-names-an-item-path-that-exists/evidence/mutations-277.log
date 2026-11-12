@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 343 records (labels: 277.1 277.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.yiRvBW
+RED    277.1  report#anActionNamesAnItemPathThatExists   (the derivation of the item root from the loop root the state belongs to, so a report printed from an archived state names `.pi/issue-loop/runs/items/<n>`, a directory the tree does not hold (issue #855))
+       2026-11-12T14:56:41Z — the archived report names the item's transcript at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.lTXqug/cases/0/tree/case.bWHKD8/repo/.pi/issue-loop/runs/items/21, which does not exist
+restore 277.1 report#anActionNamesAnItemPathThatExists green again
+RED    277.2  report#anActionNamesAnItemPathThatExists   (the guard that keeps the sentence the record already carries about the kept patch off the resume line, so the line prints it twice and a caller reads one path as two (issue #855))
+       2026-11-12T14:56:46Z — the in-place report prints the sentence the item's own note already carries once, not twice:   2. resume #21 — the run ended a child of it at a bound, so no decision is owed — the child reached the recorded context bound of 200000 tokens at
+restore 277.2 report#anActionNamesAnItemPathThatExists green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

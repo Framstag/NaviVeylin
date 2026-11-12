@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one case this change adds, against `tools/loop/report.sh` as HEAD (ff3a402a) has it:
+     `bash tools/loop/tests/loop-selftest.sh --case report#anActionNamesAnItemPathThatExists` in this change's
+     worktree, 2026-11-12T14:55:38Z, transcript `red-on-HEAD.log`. The case's state holds the record of an item cut at
+     a bound with a kept patch whose note already carries the patch's own sentence (the shape #847 and #839 carry in
+     `.pi/issue-loop/runs/2026-11-11T11:37:08Z.json`) and the record of an item whose gate never completed, with both
+     item directories present beside the state in place; the report is printed from the state in place and from the
+     state a later `init` kept under `runs/`. It fails on the in-place report first — the resume line prints
+     `its work is kept at <patch>` twice, `expected '1', got '2'` — and its archived report names
+     `<loop>/runs/items/21`, a directory the tree does not hold. -->
+<testsuites tests="1" failures="1" errors="0" time="0.0">
+  <testsuite name="tools/loop/tests/loop-selftest.sh" tests="1" failures="1" errors="0" skipped="0" time="0.0">
+    <testcase name="report#anActionNamesAnItemPathThatExists" classname="report" time="0.0">
+      <failure message="the in-place report prints the sentence the item's own note already carries once, not twice">expected '1', got '2': resume #21 — … · its work is kept at &lt;patch&gt; · its work is kept at &lt;patch&gt; · transcript &lt;repo&gt;/.pi/issue-loop/items/21</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

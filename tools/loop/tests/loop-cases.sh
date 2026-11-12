@@ -364,6 +364,7 @@ LOOP_SHELL_CASES=(
   'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
   'report#aCallThatNamesTheGateIsNotAGateRun'
+  'report#aCheckTheGateWouldRunIsTheGateTime'
   'report#aStreamWithoutDurationsPrintsDash'
   'report#aRolesTokensRecordTheModelThatAnswered'
   'report#aSessionThatSwitchedModelRecordsBothTallies'
@@ -1071,6 +1072,7 @@ loop_run_shell_case() {
     'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
     'report#aCallThatNamesTheGateIsNotAGateRun') fn=case_report_aCallThatNamesTheGateIsNotAGateRun ;;
+    'report#aCheckTheGateWouldRunIsTheGateTime') fn=case_report_aCheckTheGateWouldRunIsTheGateTime ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
     'report#aRolesTokensRecordTheModelThatAnswered') fn=case_report_aRolesTokensRecordTheModelThatAnswered ;;
     'report#aSessionThatSwitchedModelRecordsBothTallies') fn=case_report_aSessionThatSwitchedModelRecordsBothTallies ;;
@@ -12926,6 +12928,80 @@ JSONL
   gate_line=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p" | grep '^  after the first gate:' || true)
   assert_contains "$gate_line" "75 % — 3 of 4 Mtok, from the first gate of 1 session" \
     "the share is over the session that ran the gate, with both numbers it is a share of"
+}
+
+# A check the gate would run is the gate's time, whoever started it (issue #857). The bucket counted only the call that
+# ran the gate program, so a child that ran the loop's own suites by hand paid the gate's work as ordinary tool time:
+# measured on item #849's streaming record (`.pi/issue-loop/items/849/events.jsonl`), one `./tools/loop/gate.sh` at
+# 823 s and four check calls a child ran by hand for 674 s — `loop-selftest.sh --group run` twice (304 s and 310 s),
+# one 21 s case and one 39 s mutation run — the four of them standing **before** the gate's own call, so the bucket
+# held 823 s of an item whose gate-adjacent time is 1 497 s. The map the profile declares (`LOOP_GATE_SUITES`,
+# `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) already names those checks. This case pins both halves: a check
+# the map names is the gate's bucket wherever it stands in the item, and the part of that bucket no gate run paid is
+# the figure the record now names, counted and priced.
+case_report_aCheckTheGateWouldRunIsTheGateTime() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/loop/tests/ tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend phases_line
+  d=$(scratch); p=$(new_project)
+  # The shape item #849's stream has: a case the worker iterates on, the gate, one of the loop's suites run by hand —
+  # chained behind a `date -u`, as the recipes in the prompts write it — a call that is no check, and the gate's own
+  # plan: 394 s of the item's clock in checks, of which the 389 s no gate run paid is the figure the record names.
+  cat > "$d/repeat.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"ctx_shell","arguments":{"command":"bash tools/loop/tests/loop-selftest.sh --case report#aCheckTheGateWouldRunIsTheGateTime"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_shell","durationMs":2000,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c2","name":"ctx_shell","arguments":{"command":"./tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"ctx_shell","durationMs":5000,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c3","name":"ctx_shell","arguments":{"command":"date -u +%Y-%m-%dT%H:%M:%SZ && bash tools/loop/tests/loop-mutations-selftest.sh"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c3","toolName":"ctx_shell","durationMs":387000,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c4","name":"ctx_shell","arguments":{"command":"git status --porcelain"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c4","toolName":"ctx_shell","durationMs":300,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c5","name":"ctx_shell","arguments":{"command":"./tools/loop/gate.sh --plan --base abc1234"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c5","toolName":"ctx_shell","durationMs":600,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 400 --events "$d/repeat.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "394000" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
+    "the case the child iterated on, the gate, and the suite it chained behind a 'date' are the gate bucket, whoever started them"
+  assert_eq "900" "$(jq -r '.items[0].metrics.phases.otherMs' "$f")" \
+    "and the call that is no check, and the plan, are the other tools they are"
+  assert_eq '{"calls":2,"ms":389000}' "$(jq -c '.items[0].metrics.gateRepeat' "$f")" \
+    "the two checks the child ran itself are recorded as the part of the gate no gate run paid, with their count and their clock"
+  assert_eq "5000000" "$(jq -r '.items[0].metrics.afterGate.tokens' "$f")" \
+    "the split after the first gate is still taken at the gate: 5 of the item's 6 Mtok stand from the gate on, not from the suite the child ran before it"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  phases_line=$(printf '%s\n' "$trend" | grep '^  phases:' || true)
+  [ -n "$phases_line" ] || fail "the trend printed no phases line"
+  assert_contains "$phases_line" "gate 394 s · other 0.9 s" \
+    "the trend's gate bucket holds what the checks the gate would run cost the item, wherever a child ran them"
+  assert_contains "$phases_line" "389 s of that gate was 2 checks a child ran itself" \
+    "and it names the part of the bucket no gate run paid, wherever the child's own checks stand"
+  # An item whose child ran the gate and no check by hand records nothing there: the field is `null`, never the zero a
+  # run of none would read as, and the line carries no clause about a check the child did not run.
+  cat > "$d/once.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/22/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"g1","name":"ctx_shell","arguments":{"command":"cd /w && timeout 300 bash ./tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"g1","toolName":"ctx_shell","durationMs":5000,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":22,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 40 --events "$d/once.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "5000" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" "the gate's own run is still the gate time"
+  assert_eq "null" "$(jq -r '.items[0].metrics.gateRepeat' "$f")" \
+    "an item whose child ran no check by hand records none, not a count of zero"
+  out=$(run_report "$p") || fail "the report failed for the state that repeated nothing"
+  phases_line=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p" | grep '^  phases:' || true)
+  assert_not_contains "$phases_line" "a child ran itself" \
+    "and the phases line adds no clause about a check the item did not run"
 }
 
 # A figure nobody measured prints `-` with its reason, never a zero that reads as a measurement — the rule the

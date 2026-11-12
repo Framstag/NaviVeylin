@@ -289,6 +289,7 @@ LOOP_SHELL_CASES=(
   'run#skipEscalationCarriesTheDecision'
   'run#workPackageCarriesTheRecordedDecision'
   'run#claimedGateWithoutEvidenceIsBlocked'
+  'run#theGateColumnNamesThisItemsGateResult'
   'run#citedEvidenceMustTravelWithTheChange'
   'run#needsDecisionIsEscalatedWithTheWork'
   'run#noGateStillRuns'
@@ -992,6 +993,7 @@ loop_run_shell_case() {
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
+    'run#theGateColumnNamesThisItemsGateResult') fn=case_run_theGateColumnNamesThisItemsGateResult ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
     'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
     'run#noGateStillRuns') fn=case_run_noGateStillRuns ;;
@@ -1339,9 +1341,9 @@ stub_write() { # stub_write <dir> <worker-report> <reviewer-report> [extra-actio
     printf '  worker*)\n'
     printf '    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence\n'
     printf '    printf "archived\\n" > openspec/changes/archive/2026-01-01-fix-demo/proposal.md\n'
-    printf '    mkdir -p app/build/test-results/test\n'
-    printf '    printf "<testsuite tests=\\"1\\" failures=\\"0\\"></testsuite>\\n" > app/build/test-results/test/TEST-demo.xml\n'
-    printf '    cp app/build/test-results/test/TEST-demo.xml openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml\n'
+    printf '    mkdir -p app/build/test-results/loop-gate\n'
+    printf '    printf "<testsuite tests=\\"1\\" failures=\\"0\\"></testsuite>\\n" > app/build/test-results/loop-gate/TEST-demo.xml\n'
+    printf '    cp app/build/test-results/loop-gate/TEST-demo.xml openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml\n'
     printf '    printf "the fix\\n" > demo-fix.txt\n'
     printf '    ;;\n'
     printf 'esac\n'
@@ -3914,10 +3916,10 @@ case_worktree_keepsSourcesNotBuildOutput() {
   cat > "$d/worker-action.sh" <<ACTION
 case "\$1" in
   worker*)
-    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence app/build/test-results/test
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence app/build/test-results/loop-gate
     printf 'archived\\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
     printf '<testsuite tests="1" failures="0"></testsuite>\\n' > openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
-    printf '<testsuite tests="1" failures="0"></testsuite>\\n' > app/build/test-results/test/TEST-demo.xml
+    printf '<testsuite tests="1" failures="0"></testsuite>\\n' > app/build/test-results/loop-gate/TEST-demo.xml
     head -c 102400 /dev/zero > app/build/blobs.bin
     mkdir -p core
     ln -s "$outside" core/build
@@ -7032,10 +7034,10 @@ case_run_aSlowChildIsNotMistakenForAVanishedWriter() {
     : > "$SLOW_FIFO.ready"
     read -r _ < "$SLOW_FIFO" || true
     change=openspec/changes/archive/2026-01-01-fix-demo
-    mkdir -p "$change/evidence" app/build/test-results/test
+    mkdir -p "$change/evidence" app/build/test-results/loop-gate
     printf "archived\n" > "$change/proposal.md"
-    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/test/TEST-demo.xml
-    cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/loop-gate/TEST-demo.xml
+    cp app/build/test-results/loop-gate/TEST-demo.xml "$change/evidence/TEST-demo.xml"
     printf "the fix\n" > demo-fix.txt
 '
   set -m
@@ -7898,9 +7900,9 @@ case "$1" in
       cp "$RETRY_DIR/worker-real-report.txt" "$PI_STUB_REPORT_WORKER"
       mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
       printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
-      mkdir -p app/build/test-results/test
-      printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/test/TEST-demo.xml
-      cp app/build/test-results/test/TEST-demo.xml openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+      mkdir -p app/build/test-results/loop-gate
+      printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/loop-gate/TEST-demo.xml
+      cp app/build/test-results/loop-gate/TEST-demo.xml openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
       printf 'the fix\n' > demo-fix.txt
     fi ;;
 esac
@@ -8539,7 +8541,7 @@ case_run_leftoverBranchIsRecordedNotDropped() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
-  # the first attempt archives a change but leaves no test-results XML, so the run blocks it — and the
+  # the first attempt archives a change but leaves no tally in the gate's directory, so the run blocks it — and the
   # branch it committed on stays behind (issue #170)
   cat > "$d/worker-action.sh" <<'ACTION'
 case "$1" in
@@ -8605,7 +8607,7 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
        change="openspec/changes/archive/2026-01-01-fix-$(printf %s "$current" | tr / _)"
        mkdir -p "$change/evidence"
        printf "archived\n" > "$change/proposal.md"
-       cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+       cp app/build/test-results/loop-gate/TEST-demo.xml "$change/evidence/TEST-demo.xml"
        case "$current" in
          fix/issue-21-*)
            git branch "fix/issue-22-${current#fix/issue-21-}" HEAD
@@ -9086,10 +9088,10 @@ case_run_theBaseAdvancesWithEveryMerge() {
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
   stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
     change="openspec/changes/archive/2026-01-01-fix-item$n"
-    mkdir -p "$change/evidence" app/build/test-results/test
+    mkdir -p "$change/evidence" app/build/test-results/loop-gate
     printf "archived\n" > "$change/proposal.md"
-    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/test/TEST-demo.xml
-    cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/loop-gate/TEST-demo.xml
+    cp app/build/test-results/loop-gate/TEST-demo.xml "$change/evidence/TEST-demo.xml"
     printf "the fix for item %s\n" "$n" > "item$n-fix.txt"
 '
   run_log="$d/run.txt"
@@ -9114,10 +9116,10 @@ case_run_theBaseAdvancesWithEveryMerge() {
 # A kept worktree carries the test results a build wrote, and a child the round cap ended leaves the half-written
 # state of its own gate behind (issue #253: item #116's killed Gradle left
 # `auto/build/test-results/testDebugUnitTest/binary/in-progress-results-generic.bin`, and the next gate failed with
-# `java.io.EOFException` on infrastructure instead of on a case). The run reads the gate's evidence out of the tree
-# after a worker, so a directory an earlier item wrote was counted as the next item's gate — and the "no
-# test-results XML exists in the tree" refusal could not fire against it. The first item here leaves a green XML in
-# the worktree; the second writes a change and claims a gate, but no XML of its own.
+# `java.io.EOFException` on infrastructure instead of on a case). Before the run read the gate's own tally directory
+# it read the gate's evidence out of the tree after a worker, so a directory an earlier item wrote was counted as the
+# next item's gate — and the refusal it owes could not fire against it. The first item here leaves a green tally in
+# the gate's directory; the second writes a change and claims a gate, but no tally of its own.
 case_run_staleTestResultsAreNotThisChildsGate() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p run_log
@@ -9129,9 +9131,9 @@ case_run_staleTestResultsAreNotThisChildsGate() {
     printf "archived\n" > "$change/proposal.md"
     printf "the fix for item %s\n" "$n" > "item$n-fix.txt"
     if [ "$n" -eq 1 ]; then
-      mkdir -p app/build/test-results/test
-      printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/test/TEST-demo.xml
-      cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+      mkdir -p app/build/test-results/loop-gate
+      printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/loop-gate/TEST-demo.xml
+      cp app/build/test-results/loop-gate/TEST-demo.xml "$change/evidence/TEST-demo.xml"
     fi
 '
   run_log="$d/run.txt"
@@ -9141,7 +9143,7 @@ case_run_staleTestResultsAreNotThisChildsGate() {
     "the first item closes on the gate its own worker ran"
   assert_eq "blocked" "$(jq -r '.items[1].verdict' "$(state_file "$p")")" \
     "the second item is not closed on a test result its own gate never wrote"
-  assert_contains "$(jq -r '.items[1].note' "$(state_file "$p")")" "no test-results XML exists in the tree" \
+  assert_contains "$(jq -r '.items[1].note' "$(state_file "$p")")" "the gate's tally directory holds no XML" \
     "the block names the gate result it could not find"
   assert_contains "$(cat "$run_log")" "app/build/test-results" \
     "and the run names the stale results it removed before that child"
@@ -9736,7 +9738,7 @@ case_run_claimedGateWithoutEvidenceIsBlocked() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
-  # the change is archived and complete, but the tree carries no test-results XML to look at
+  # the change is archived and complete, but the gate's tally directory holds no XML to look at
   cat > "$d/worker-action.sh" <<'ACTION'
 case "$1" in
   worker*)
@@ -9749,8 +9751,83 @@ esac
 ACTION
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a gate claim with no evidence is blocked"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "no test-results XML" "the reason names what the run looked for"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "the gate's tally directory holds no XML" "the reason names what the run looked for"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
+}
+
+# The run's gate column is the item's own gate result (issue #849). A reading that counts every XML under any
+# `test-results` path counts the *tree*, not a gate: this repository tracks 24 such files before any item runs — an
+# archived change's `evidence/module-test-results/` and the gate-timings fixtures — so `head -20` made the column the
+# constant 20 and the arm that refuses a gate claim carrying no evidence (`tools/loop/run.sh`, the no-evidence arm)
+# could not fire in this repository at all (measured 2026-11-11 in this change's own worktree: `find . -path
+# '*test-results*' -name '*.xml' | wc -l` = 24, of which `git ls-files` counts 24). The tally an item's gate wrote is
+# the one directory the profile names for it, `LOOP_GATE_TALLY_DIR`, which the worker's own start clears (issue #253)
+# and which the gate clears once more before it writes (issue #848) — so what that directory holds when the item's
+# children have ended is this item's gate and nothing else.
+#
+# An item that ran no gate is the pair this column has to keep apart (the owner's decision recorded on the item at
+# 2026-11-11T19:18:12Z): a report that *claims* a gate over a directory holding no XML is blocked by the no-evidence
+# arm (`run#claimedGateWithoutEvidenceIsBlocked`), while one that claims no gate at all records the absence as absent —
+# an empty field, not `0 xml` — and `tools/loop/report.sh` reads an empty field as the gate result it has to ask for,
+# so the item appears on the report's "re-run the gate for #N" line.
+case_run_theGateColumnNamesThisItemsGateResult() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p run_log out actions
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  # The evidence a checkout of this repository carries before the item ran: an archived change's own directory,
+  # tracked, whose path is a `*test-results*` match and which no child of the item wrote.
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-earlier/evidence/module-test-results"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-earlier/proposal.md"
+  printf '<?xml version="1.0"?>\n<testsuite name="earlier" tests="21" failures="21"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-earlier/evidence/module-test-results/TEST-earlier.xml"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.email=selftest@example.invalid -c user.name=selftest \
+    commit -qm 'the evidence an earlier item archived' >/dev/null 2>&1 ||
+    fail "could not commit the evidence an earlier item left"
+  stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    # The first item claims no gate and leaves no tally in that directory: the ungated shape a run records as an
+    # absence. The second one leaves its own tally there and claims a gate.
+    if [ "$n" -eq 1 ]; then
+      printf "LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: stale\nLOOP-ROOT-CAUSE: the claim no longer holds in the tree\nLOOP-RED-TEST: none — nothing was reached\nLOOP-DECISION: retire the item as stale, or re-diagnose it?\n" \
+        > "$PI_STUB_REPORT_WORKER"
+    else
+      # The gated item writes its own report back, because the child prints the file this action just read: an item
+      # that answers for itself, with a gate line beside its change.
+      printf "LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: tests=1 failures=0 (fixture)\n" \
+        > "$PI_STUB_REPORT_WORKER"
+      change="openspec/changes/archive/2026-01-01-fix-item$n"
+      mkdir -p "$change/evidence"
+      printf "archived\n" > "$change/proposal.md"
+      printf "the evidence the change cites\n" > "$change/evidence/TEST-demo.xml"
+      printf "the fix for item %s\n" "$n" > "item$n-fix.txt"
+      mkdir -p app/build/test-results/loop-gate
+      printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/loop-gate/TEST-demo.xml
+    fi
+  '
+  run_log="$d/run.txt"
+  run_loop "$p" --items 2 --minutes 90 --review on >"$run_log" 2>&1 ||
+    fail "the run itself failed: $(cat "$run_log")"
+  assert_contains "$(cat "$run_log")" "read — 0 XML in the gate's tally directory" \
+    "the column reads the tally directory, so an item that ran no gate reads none"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item that claimed no gate and left no tally is not blocked on a file that stood before it"
+  assert_eq "" "$(jq -r '.items[0].metrics.gate // ""' "$(state_file "$p")")" \
+    "and its record carries no gate result rather than the count of a file the item never wrote"
+  assert_contains "$(cat "$run_log")" "read — 1 XML in the gate's tally directory" \
+    "an item whose own gate wrote one tally reads one, over a tree that carries another"
+  assert_eq "closed" "$(jq -r '.items[1].verdict' "$(state_file "$p")")" \
+    "and that item closes on the tally its own gate wrote"
+  assert_contains "$(cat "$d/gh.log")" "app/build/test-results/loop-gate/TEST-demo.xml" \
+    "the closure names the tally its own gate wrote as its evidence"
+  # The empty field is what the report reads: the item the run recorded no gate result for is the work a caller asks
+  # for a gate of, and a constant the tree's own XMLs keep from ever being empty is what hid it (issue #827).
+  out=$(run_report "$p") || fail "the report failed"
+  actions=$(actions_block "$out")
+  assert_contains "$actions" "re-run the gate for #21" \
+    "the report names the item whose record carries no gate result"
+  assert_not_contains "$actions" "re-run the gate for #22" \
+    "and does not ask for a gate the second item's record carries"
 }
 
 case_run_citedEvidenceMustTravelWithTheChange() {
@@ -9759,14 +9836,14 @@ case_run_citedEvidenceMustTravelWithTheChange() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
-  # the gate ran and left its XML in the build directory, but the change carries no evidence of its own
+  # the gate ran and left its tally in the tally directory, but the change carries no evidence of its own
   cat > "$d/worker-action.sh" <<'ACTION'
 case "$1" in
   worker*)
     mkdir -p openspec/changes/archive/2026-01-01-fix-demo
     printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
-    mkdir -p app/build/test-results/test
-    printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/test/TEST-demo.xml
+    mkdir -p app/build/test-results/loop-gate
+    printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/loop-gate/TEST-demo.xml
     printf 'the fix\n' > demo-fix.txt
     ;;
 esac

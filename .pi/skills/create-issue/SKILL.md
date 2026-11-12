@@ -46,6 +46,24 @@ Fields: `title` (required), `class` (required: a value of the profile's `class/`
 (`path` or `path:Symbol`, **never** a line number), `labels`, `body`, and `sourceId` when the finding comes
 from an existing record (the `§N` of the prose backlog, say) — it becomes the `<!-- nvid: N -->` marker.
 
+**A finding must also carry one shape, or it is refused (`shape-missing`, exit 3).** A worker that may not ask
+can only be handed an item that leaves it nothing to decide, so the payload says which of the two ways the work
+arrives:
+
+```json
+"cause": {"file": "tools/loop/worktree.sh", "line": 649, "case": "run#dirtyBaseRefusesTheMergeAndNamesThePath"}
+```
+
+- **tier A — `cause`** for a fix that is proven: the file, the line, and **the case that exercises it** by the
+  name the suite knows it (`grep -n "'run#" tools/loop/tests/loop-cases.sh`). A cause with no case is refused
+  (`cause-without-case`) — it is a hypothesis, and the case is the only thing that tells the two apart.
+- **tier B — `change`** for work that needs a plan: the name of an OpenSpec change under `openspec/changes/`
+  that passes its readiness check, plus `questions` with the answers the change already settles.
+
+Both is a refusal too (`shape-ambiguous`), and `--import` / `--sensor` are the only exempt callers. Fields
+`title`, `claim`, `anchor` and `labels` are not where this check bites — the omission is always `cause` or
+`change`, and its absence reads as "this item has no shape" rather than as a broken payload.
+
 **One line of the body is read by the tooling, so write it on purpose.** An item whose fix has to be committed
 inside the submodule is not work the loop can deliver — it may neither commit nor push there, so the item is a
 person's patch followed by the gitlink bump. Such a body states that on a line of its own beginning:

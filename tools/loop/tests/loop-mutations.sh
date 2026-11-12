@@ -1163,6 +1163,15 @@ MUTATIONS=(
   # continuation is ended on its first reading by the number that ended the child before it.
   '276.1@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the block that continues an item its own context bound cut, so the work is handed to the next run as a patch whose base has moved (issue #851)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] && child_ended_by_context_bound "\$worker_report"; then$|  if false; then|'
   '276.2@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the baseline that makes the context bound the child'"'"'s own reading, so a fresh session inherits the number that ended the child before it and the continuation is cut on its first reading (issue #851)@s|^  if \[ -f "\${LOOP_CHILD_EVENTS:-}" \]; then ctx_lines=.*$|  ctx_lines=0|'
+  # 277.x — an action names the item path the tree holds (issue #855). `report.sh` built every item path from the
+  # directory the state file sits in, and that directory is the loop root only while the state is the one in place:
+  # `state.sh init` keeps the state it replaces under `runs/`, so the report of any finished run printed
+  # `<loop>/runs/items/<n>` — measured on the run of 2026-11-11T11:37:08Z, whose `resume #847` and `resume #839` lines
+  # named a directory the tree does not hold while `.pi/issue-loop/items/847/` had the item's 34 files. Two rules, one
+  # case each: the item root is the loop root's `items` (`277.1`), and the sentence the item's own note already carries
+  # is printed once (`277.2`).
+  '277.1@-@tools/loop/report.sh@report#anActionNamesAnItemPathThatExists@the derivation of the item root from the loop root the state belongs to, so a report printed from an archived state names `.pi/issue-loop/runs/items/<n>`, a directory the tree does not hold (issue #855)@s#^\[ -d "\$item_root" \] || item_root=.*$##'
+  '277.2@-@tools/loop/report.sh@report#anActionNamesAnItemPathThatExists@the guard that keeps the sentence the record already carries about the kept patch off the resume line, so the line prints it twice and a caller reads one path as two (issue #855)@s|^  if \[ -n "\$patch" \] && \[ "\${note#\*"\$patch"}" = "\$note" \]; then$|  if [ -n "$patch" ]; then|'
   # 854.x — a skip's reason is the line the report prints (issue #854). The skip arm passed the child's sentence as
   # `--root-cause` and the constant `skipped by the worker` as `--note`, and `report.sh` prints the note, so the run
   # of 2026-11-11T11:37:08Z printed `#838 too-wide (skipped by the worker)` and `#844 stale (skipped by the worker)`

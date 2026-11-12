@@ -628,7 +628,15 @@ decisions() {
     | @tsv' "$state_file"
 }
 
+# The item root is the loop root's `items` directory, and which directory that is depends on the shape of the state
+# the caller named (issue #855). The state in place sits in the loop root (`lib.sh:154`), so its own directory holds
+# `items`; the state a finished run is reported on is the copy `state.sh init` kept under `runs/` (`state.sh:183-199`,
+# whose `RUNS_DIR` defaults to `<state dir>/runs`, `state.sh:109`), and the item directories never move with that copy.
+# Both shapes are answered by the tree itself: the `items` directory beside the state, and where the state sits one
+# level down, the one beside its parent. A tree holding neither keeps this file's own answer, `$state_dir/items`.
 state_dir=$(dirname "$state_file")
+item_root="$state_dir/items"
+[ -d "$item_root" ] || item_root="$(dirname "$state_dir")/items"
 actions=()
 
 while IFS=$'\t' read -r kind issue verdict reason extra; do
@@ -684,7 +692,7 @@ done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
 # never owed, because the run ended its child first, and the block below names it as the item to take up again.
 while IFS=$'\t' read -r issue; do
   [ -n "${issue:-}" ] || continue
-  actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
+  actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $item_root/$issue/worker-report.md"
 done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select(.result != "cut") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
 # The item the run's own bound ended is work and not a question (issue #788): it carries no decision label, so this is
@@ -698,7 +706,15 @@ done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsif
 # listed — the second line saying the run's clock had ended them with 7 h 51 m of the run's budget still to go.
 while IFS=$'\t' read -r issue note patch; do
   [ -n "${issue:-}" ] || continue
-  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable}${patch:+ · its work is kept at $patch} · transcript $state_dir/items/$issue"
+  # The note the run wrote already ends with the patch's own sentence (`run.sh:3433`, `:3499`), so the line appends it
+  # only for a record whose note does not carry the path — a state written by hand, or by a tree older than #674. The
+  # transcript the line names is the item's own directory under the loop root the state belongs to (`item_root`, issue
+  # #855): the next run is handed the item and reads several files of it, so the directory is what its reader opens.
+  kept=""
+  if [ -n "$patch" ] && [ "${note#*"$patch"}" = "$note" ]; then
+    kept=" · its work is kept at $patch"
+  fi
+  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable}${kept} · transcript $item_root/$issue"
 done < <(jq -r '.items[] | select(.result == "cut") | [(.issue | tostring), (.note // ""), (.leftover // "")] | @tsv' "$state_file")
 
 # The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An item the

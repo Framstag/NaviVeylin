@@ -1418,7 +1418,13 @@ of a record that carries no bound cut (`recover #N`, the shape a tree wrote befo
 item is one line: the two arms are a partition by the result the record states, because the patch is the
 consequence of a cut and not its cause, and the guard that read the patch printed #847 and #839 twice in one
 run's action list — 2 of its 12 lines — the second time as work the run's clock ended with 7 h 51 m of its budget
-left (#850). A count is not
+left (#850). The item path a line names is the loop root's and not the state file's directory: the state in place
+sits in the loop root, and the state a finished run is reported on is the copy `state.sh init` kept one directory
+below it under `runs/`, so `items/` is read beside the state when it is there and one level above it when it is
+not — the report of an archived run names `.pi/issue-loop/items/<n>`, a directory the tree holds, and never
+`.pi/issue-loop/runs/items/<n>` (#855). A sentence the item's own note already carries is printed once: the note
+ends with the patch's own sentence the run wrote there, so the resume line appends it only for a record whose note
+lacks it (#855). A count is not
 an answer, so `none` is printed only when all seven sources were
 read and empty — it never hides a branch that carries work.
 

@@ -375,6 +375,7 @@ LOOP_SHELL_CASES=(
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
   'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt'
+  'report#anActionNamesAnItemPathThatExists'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#reportsAnAgedItemDirectory'
@@ -1081,6 +1082,7 @@ loop_run_shell_case() {
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
     'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt') fn=case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt ;;
+    'report#anActionNamesAnItemPathThatExists') fn=case_report_anActionNamesAnItemPathThatExists ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#reportsAnAgedItemDirectory') fn=case_clean_reportsAnAgedItemDirectory ;;
@@ -7563,6 +7565,76 @@ case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt() {
     "and it is not named as a cut item, because nothing recorded a bound that ended it"
   assert_contains "$(printf '%s\n' "$out" | grep 'recover #22' || true)" "$old_patch" \
     "the recovery line still names the patch the work is kept in"
+  return 0
+}
+
+# The item path an action names is the loop root's, from either shape of the state (issue #855). The two arms that
+# print one — the gate line's transcript and the resume line's item directory — built it as `$state_dir/items/$issue`
+# (`report.sh:631`, `:687`, `:701` as HEAD has them), and `state_dir` is the loop directory only while the state is
+# the one in place: `state.sh init` keeps the state it replaces under `runs/` (`state.sh:183-199`, `RUNS_DIR` defaulting
+# to `<state dir>/runs`, `state.sh:109`), so the report of any *finished* run printed its item paths as
+# `<loop>/runs/items/<n>` — a directory the tree does not hold, measured on the run of 2026-11-11T11:37:08Z, whose
+# `resume #847` and `resume #839` lines named `.pi/issue-loop/runs/items/847` and `…/839` while
+# `.pi/issue-loop/items/847/` held the item's 34 files. The same two lines printed `its work is kept at <patch>`
+# twice, because the note `run.sh:3433` wrote already carries the sentence the line appends. So the case prints both
+# shapes of the state and reads what each line names: the path is the one the tree holds, in both reports, and the
+# sentence the note carries is printed once.
+case_report_anActionNamesAnItemPathThatExists() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p patch archived started out block
+  d=$(scratch); p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' \
+    | run_state "$p" queue >/dev/null
+  # The item directories the two arms name, where the tree keeps them: beside the state in place, and never under the
+  # `runs/` directory the archive lives in.
+  mkdir -p "$p/.pi/issue-loop/items/21" "$p/.pi/issue-loop/items/22"
+  printf 'the item transcript\n' > "$p/.pi/issue-loop/items/21/worker-report.md"
+  printf 'the item transcript\n' > "$p/.pi/issue-loop/items/22/worker-report.md"
+  # #21 is the shape #847 and #839 carry: cut at a bound, with the work its child left kept as a patch, and a note the
+  # run already appended the patch's sentence to (`run.sh:3433`).
+  patch="$d/leftover-from-killed-run.patch"
+  printf 'half-applied\n' > "$patch"
+  run_state "$p" done 21 --result cut --verdict cut --stop-reason bound --leftover "$patch" \
+    --note "the child reached the recorded context bound of 200000 tokens at 200174 tokens · its work is kept at $patch" \
+    >/dev/null || fail "the state refused the record of a bound-cut item that kept a patch"
+  # #22 is the item whose gate never completed, which is the arm that names a file inside the item directory.
+  run_state "$p" done 22 --result blocked --verdict blocked >/dev/null || fail "the state refused a block with no gate"
+  started=$(run_state "$p" get run.startedAt)
+  # The report of the state in place, before a later run replaces it.
+  out=$(run_report "$p") || fail "the report failed"
+  local inplace="$out"
+  run_state "$p" stop "queue empty" >/dev/null || fail "stop failed"
+  archived="$p/.pi/issue-loop/runs/$started.json"
+
+  # A later run replaces the state in place and keeps the one above under `runs/` — the only shape a finished run's
+  # report can be printed from.
+  init_state "$p" 1 30
+  [ -f "$archived" ] || fail "the replaced state was not kept at $archived"
+
+  check_item_paths() { # <the state the report was read from> <its output>
+    local shape="$1" out="$2" line path gline gpath
+    block=$(actions_block "$out")
+    line=$(printf '%s\n' "$block" | grep 'resume #21' || true)
+    [ -n "$line" ] || fail "the $shape report names no resume line for #21: $block"
+    path=$(printf '%s\n' "$line" | sed -n 's/^.* · transcript \(.*\)$/\1/p')
+    [ -d "$path" ] || fail "the $shape report names the item's transcript at $path, which does not exist"
+    assert_eq "$p/.pi/issue-loop/items/21" "$path" \
+      "the $shape report names the item directory the loop root holds, and not one under runs/"
+    assert_eq "1" "$(printf '%s\n' "$line" | grep -o 'its work is kept at' | grep -c .)" \
+      "the $shape report prints the sentence the item's own note already carries once, not twice: $line"
+    assert_contains "$line" "$patch" "and names the path the work is kept at"
+    gline=$(printf '%s\n' "$block" | grep 're-run the gate for #22' || true)
+    [ -n "$gline" ] || fail "the $shape report names no gate line for #22: $block"
+    gpath=$(printf '%s\n' "$gline" | sed -n 's/^.* — transcript \(.*\)$/\1/p')
+    [ -f "$gpath" ] || fail "the $shape report names #22's transcript at $gpath, which does not exist"
+    assert_eq "$p/.pi/issue-loop/items/22/worker-report.md" "$gpath" \
+      "and its gate line names the transcript under the loop root's items directory"
+  }
+
+  out=$(run_report "$p" --state "$archived") || fail "the report from the archived state failed"
+  check_item_paths "in-place" "$inplace"
+  check_item_paths "archived" "$out"
   return 0
 }
 

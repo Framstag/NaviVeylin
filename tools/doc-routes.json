@@ -452,7 +452,8 @@
         "BuildEvidence.md §7"
       ],
       "rules": [
-        "BuildEvidence.md §7 \"the analysis is a consumer of the reports, and gates nothing.\""
+        "BuildEvidence.md §7 \"the analysis is a consumer of the reports, and gates nothing.\"",
+        "BuildEvidence.md §7 \"the scan publishes a findings record, and three sensor rows read it, and neither gates a merge.\""
       ]
     },
     {

@@ -13,7 +13,9 @@
 #   sonar-workflow#theScanStepIsNotContinueOnError    an error-swallowing scan step reddens the check
 #   sonar-workflow#theRecordIsPublishedOnEveryOutcome  a record its own run does not publish reddens the check
 #   sonar-workflow#theRecordPathIsTheUploadsOwn       a record the upload root cannot carry reddens the check
-#   sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag a Gradle test/report step without -PjvmTestsOnly reddens
+#   sonar-workflow#theFindingsRecordIsTheScanPipelinesOwn  a missing findings artifact, another path or an
+#                                                    `always()` upload reddens the check
+#   sonar-workflow#theFindingsRecordCarriesNoTrackerToken  a tracker credential in either findings step reddens
 #                                                    the check
 #
 # The fixtures are the repository's own three files (the workflow, the scan's properties and the checks'
@@ -52,6 +54,8 @@ cases=(
   'sonar-workflow#theRecordIsPublishedOnEveryOutcome'
   'sonar-workflow#theRecordPathIsTheUploadsOwn'
   'sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag'
+  'sonar-workflow#theFindingsRecordIsTheScanPipelinesOwn'
+  'sonar-workflow#theFindingsRecordCarriesNoTrackerToken'
 )
 
 if [ "$list" -eq 1 ]; then
@@ -195,6 +199,34 @@ run_case() {
       fresh
       plant "$wf_rel" 's/ :app:koverXmlReport//'
       check_passes "$1" ;;
+    'sonar-workflow#theFindingsRecordIsTheScanPipelinesOwn')
+      # A record the three analysis rows read has to be the scan pipeline's own artifact: one name, one path — the
+      # path the rows declare — and only for a successful scan.
+      fresh
+      check_passes "$1" || return 1
+      fresh
+      plant "$wf_rel" 's|^([[:space:]]*)name: sonar-findings$|\1name: findings|'
+      check_fails "$1" "$wf_rel" "no step publishes the findings record" || return 1
+      fresh
+      plant "$wf_rel" 's|^([[:space:]]*)path: sonar-findings\.json$|\1path: app/build/sonar-findings.json|'
+      check_fails "$1" "$wf_rel" "not the rows'" || return 1
+      fresh
+      plant "$wf_rel" 's|^([[:space:]]*)path: sonar-findings\.json$|\1path: sonar-findings.json\n\1path: scan-result.json|'
+      check_fails "$1" "$wf_rel" "not the rows'" || return 1
+      fresh
+      plant "$wf_rel" 's|^([[:space:]]*)if: success\(\)$|\1if: always()|'
+      check_fails "$1" "$wf_rel" "not 'if: success()'" ;;
+    'sonar-workflow#theFindingsRecordCarriesNoTrackerToken')
+      # The record is produced where the scanner credential is and reaches the checks' run as an artifact only: a
+      # tracker credential in either of its steps makes the scan pipeline a tracker writer.
+      fresh
+      check_passes "$1" || return 1
+      fresh
+      plant "$wf_rel" 's|^( *)SONAR_HOST_URL: https://sonarcloud\.io$|\1SONAR_HOST_URL: https://sonarcloud.io\n\1SENSORS_TOKEN: ${{ secrets.SENSORS_TOKEN }}|'
+      check_fails "$1" "$wf_rel" "carries the tracker credential" || return 1
+      fresh
+      plant "$wf_rel" 's|^( *)name: sonar-findings$|\1name: sonar-findings\n\1env:\n\1  GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}|'
+      check_fails "$1" "$wf_rel" "carries the tracker credential" ;;
     *) echo "check-sonar-workflow-selftest: unknown case '$1'" >&2; exit 2 ;;
   esac
   echo "ok: $1"

@@ -122,6 +122,23 @@ jobs:
               exit "$status"
             fi
           fi
+          # The scan's findings record — the analysis's own numbers, which the three `sonar-*` rows measure —
+          # comes from the scan pipeline's second artifact, on the same terms as its result record and reported
+          # apart from it: `findings-ready` is written only by this fetch, so a scan that has finished but whose
+          # dump has not is a tick that selects no analysis row, writes nothing and reports no failed check
+          # (spec `backlog-sensors`, "No record yet is not a failed check"). Exit 3 is "no record yet"; every
+          # other failure is this run's own.
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --workflow sonar.yml --artifact sonar-findings; then
+            echo "findings-ready=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "findings-ready=false" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
           # The previous Sensors run's start time: the lower bound this tick's interval reaches back to.
           # A tick GitHub skipped leaves its minutes in this interval, so the row whose cadence fell into
           # the gap is selected by the next tick that runs, whatever the gap (issue #256). With no previous
@@ -210,6 +227,20 @@ jobs:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
           SENSORS_SINCE: ${{ steps.record.outputs.since }}
         run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-scan "$SENSORS_MODE"
+
+      # The analysis rows: reliability, maintainability and duplication, all three reading the findings record the
+      # scan pipeline publishes (`sonar-findings.json`, `findings-ready` above). They are a third gate rather than
+      # a part of the scan's condition row because the second record is a second artifact with its own readiness:
+      # a scan whose result record exists but whose dump has not run yet selects no row here, and the three rows
+      # measure the analysis rather than the scan's verdict, so a red build does not stop them either. Unlike the
+      # result record's upload, the findings artifact is `if: success()`-only, so a red scan publishes none and
+      # these rows never read "no findings" from a scan that did not measure (`sonar.yml`, design D6).
+      - name: Run the analysis rows
+        if: steps.record.outputs.ready == 'true' && steps.record.outputs.findings-ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows sonar-reliability,sonar-maintainability,sonar-duplication "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

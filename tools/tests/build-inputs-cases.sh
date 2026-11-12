@@ -23,6 +23,7 @@ INPUTS_CASES=(
   'inputs#noRecordExitsThree'
   'inputs#theFetcherPublishesTheJobTimings'
   'inputs#theScanRecordIsTheScanPipelinesOwn'
+  'inputs#theFindingsRecordIsPairedNotWritten'
 )
 
 inputs_cases() {
@@ -45,6 +46,7 @@ inputs_run_case() {
     'inputs#noRecordExitsThree') case_inputs_noRecordExitsThree ;;
     'inputs#theFetcherPublishesTheJobTimings') case_inputs_theFetcherPublishesTheJobTimings ;;
     'inputs#theScanRecordIsTheScanPipelinesOwn') case_inputs_theScanRecordIsTheScanPipelinesOwn ;;
+    'inputs#theFindingsRecordIsPairedNotWritten') case_inputs_theFindingsRecordIsPairedNotWritten ;;
     *) printf 'no such case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -374,6 +376,27 @@ case_inputs_theScanRecordIsTheScanPipelinesOwn() {
     "$(jq -c . "$dir/scan-result.json")" "a green scan names no failing step"
 
   # The pairing the row relies on still holds over the shipped registry.
+  publisher --check >/dev/null 2>&1 || fail "--check refused the repository's own registry"
+}
+
+case_inputs_theFindingsRecordIsPairedNotWritten() {
+  # The scan's second record is published by the scan pipeline, so the build writes neither it nor a placeholder
+  # for it — and the registry may still declare it, because the publisher is the one place that knows every path
+  # a row declares (spec `backlog-sensors`, "The publisher pairs the path without writing it").
+  local dir out
+  out=$(publisher --manifest) || fail "the manifest could not be printed"
+  assert_contains "$out" "sonar-findings.json" "the manifest names the findings record"
+  # The publisher's path and the rows' declared input are one string: the three analysis rows read the file the
+  # scan publishes, and this file is where the two are paired.
+  assert_eq "sonar-findings.json" \
+    "$(jq -r '.rows[] | select(.id == "sonar-reliability") | .input' "$INPUTS_REPO_ROOT/tools/sensors/sensors.json")" \
+    "the analysis rows declare the path the manifest names"
+
+  dir=$(workspace)
+  module_reports "$dir"; timing_record "$dir"; package_apk "$dir"; test_results "$dir" clean
+  out=$(publisher --root "$dir" --write 2>&1) || fail "--write refused a workspace without the findings record: $out"
+  [ ! -e "$dir/sonar-findings.json" ] || fail "--write wrote the findings record, which only the scan produces"
+
   publisher --check >/dev/null 2>&1 || fail "--check refused the repository's own registry"
 }
 

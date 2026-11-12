@@ -98,6 +98,14 @@ SENSOR_CASES=(
   'sensors#theDocumentedCredentialCoversEveryDeclaredRow'
   'sensors#loopSpendRow'
   'sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing'
+  'sensors#oneRuleIsOneCondition'
+  'sensors#aShrinkingRuleKeepsItsItem'
+  'sensors#aClearedRuleClosesItsItem'
+  'sensors#severityIsNotTheIdentity'
+  'sensors#theAnalysisRowsDeclareNoFilingCap'
+  'sensors#aMultipliedKindSetIsListed'
+  'workflow#theFindingsRecordIsFetchedBeforeItsRowsRun'
+  'workflow#theFindingsReadinessIsReportedApart'
 )
 
 sensor_cases() {
@@ -191,6 +199,14 @@ sensor_run_case() {
     'sensors#theDocumentedCredentialCoversEveryDeclaredRow') case_sensors_theDocumentedCredentialCoversEveryDeclaredRow ;;
     'sensors#loopSpendRow') case_sensors_loopSpendRow ;;
     'sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing') case_sensors_loopSpendReportsItsAbsenceWithoutFilingOrClosing ;;
+    'sensors#oneRuleIsOneCondition') case_sensors_oneRuleIsOneCondition ;;
+    'sensors#aShrinkingRuleKeepsItsItem') case_sensors_aShrinkingRuleKeepsItsItem ;;
+    'sensors#aClearedRuleClosesItsItem') case_sensors_aClearedRuleClosesItsItem ;;
+    'sensors#severityIsNotTheIdentity') case_sensors_severityIsNotTheIdentity ;;
+    'sensors#theAnalysisRowsDeclareNoFilingCap') case_sensors_theAnalysisRowsDeclareNoFilingCap ;;
+    'sensors#aMultipliedKindSetIsListed') case_sensors_aMultipliedKindSetIsListed ;;
+    'workflow#theFindingsRecordIsFetchedBeforeItsRowsRun') case_workflow_theFindingsRecordIsFetchedBeforeItsRowsRun ;;
+    'workflow#theFindingsReadinessIsReportedApart') case_workflow_theFindingsReadinessIsReportedApart ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -2978,9 +2994,10 @@ case_workflow_onlyTwoTriggers() {
 case_workflow_theScanRecordIsFetchedBeforeItsRowRuns() {
   # A row reads a file, so the file has to be in the tree before the row is selected — and the scan's record
   # exists only once the scan of *this commit* has finished, which is minutes after the build's. The fetch
-  # step reports the two ready-nesses apart (`ready` for the build's record, `scan-ready` for the scan's), and
-  # the scan's row runs on the second alone: a tick that read too early selects no row and reports no failed
-  # check (spec `backlog-sensors`, "A pipeline outside the build publishes its own record").
+  # step reports the three ready-nesses apart (`ready` for the build's record, `scan-ready` for the scan's and
+  # `findings-ready` for the findings record beside it), and the scan's row runs on the second alone: a tick
+  # that read too early selects no row and reports no failed check (spec `backlog-sensors`, "A pipeline outside
+  # the build publishes its own record").
   local file sonar fetch_block scan_block input artifact
   file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
   sonar="$SENSORS_REPO_ROOT/.github/workflows/sonar.yml"
@@ -2991,11 +3008,13 @@ case_workflow_theScanRecordIsFetchedBeforeItsRowRuns() {
                      inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
   [ -n "$fetch_block" ] || fail "no step fetches this commit's record"
 
-  # The record is fetched from the scan workflow, under the artifact name the scan publishes — one name, so a
-  # rename on either side is a red case rather than a row that silently reads nothing.
+  # The records are fetched from the scan workflow, under the artifact names the scan publishes — two names, so
+  # a rename on either side is a red case rather than a row that silently reads nothing.
   assert_contains "$fetch_block" "--workflow sonar.yml" "the fetch does not ask the scan workflow"
   artifact=$(printf '%s\n' "$fetch_block" | grep -o -- '--artifact [A-Za-z0-9_.-]*' | awk '{ print $2 }')
-  assert_eq "scan-inputs" "$artifact" "the fetch asks for the artifact the scan publishes"
+  assert_contains "$artifact" "scan-inputs" "the fetch asks for the scan's result record"
+  assert_contains "$artifact" "sonar-findings" "the fetch asks for the scan's findings record"
+  assert_eq "2" "$(printf '%s\n' "$artifact" | grep -c .)" "the scan publishes two records and the fetch names both"
   assert_contains "$fetch_block" "scan-ready" "the fetch reports whether the scan's record exists yet"
   sonar_upload=$(awk '
     function flush() { if (body ~ /name: scan-inputs/) printf "%s", body; body = "" }
@@ -3090,26 +3109,31 @@ case_sensors_engineNamesNoProjectValue() {
 # coverage) are the record rows' inputs, and a build that did not succeed cannot produce them. This case
 # holds both halves — the pipeline's own gates, and what the pipeline's own commands then do.
 case_workflow_aRedRecordRunsNoRecordRow() {
-  local file steps record_step other_step record_rows other_rows declared selected
+  local file steps record_step scan_step findings_step other_step declared selected
+  local record_rows scan_rows findings_rows other_rows
   local dir out status hits
   file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
   [ -f "$file" ] || fail "the sensor pipeline has no file"
 
   # Each row step with the gate that stands above it: the record rows wait for a conclusion of `success`,
-  # the other rows do not (a red build is exactly what one of them reports).
+  # the other rows do not (a red build is exactly what one of them reports) — and the analysis rows wait for
+  # the findings record's own readiness, because that record is a second artifact of the scan's pipeline.
   steps=$(awk '
     /^ +- name: / { gate = "" }
     /^ +if: / { gate = $0 }
     /run: bash tools\/sensors\/run\.sh --due .*--rows / { printf "%s\t%s\n", gate, $0 }
   ' "$file")
-  assert_eq "3" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
+  assert_eq "4" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
 
   record_step=$(printf '%s\n' "$steps" | grep "conclusion == 'success'" || true)
   scan_step=$(printf '%s\n' "$steps" | grep 'scan-ready' || true)
-  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" | grep -v 'scan-ready' || true)
+  findings_step=$(printf '%s\n' "$steps" | grep 'findings-ready' || true)
+  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" | grep -v 'scan-ready' \
+    | grep -v 'findings-ready' || true)
   [ -n "$record_step" ] ||
     fail "the rows that read the build's own outputs are not gated on a record a successful build published"
   [ -n "$scan_step" ] || fail "no row step waits for the scan's own record (the scan is a pipeline of its own)"
+  [ -n "$findings_step" ] || fail "no row step waits for the findings record the scan publishes beside its own"
   [ -n "$other_step" ] || fail "no row step runs for a record the build did not complete successfully"
 
   # Every row step names the rows it selects, so what runs for a red record is a decision in the file
@@ -3121,13 +3145,16 @@ case_workflow_aRedRecordRunsNoRecordRow() {
   # exactly once — a row added to the registry and left out of every step would otherwise never run.
   record_rows=$(printf '%s' "$record_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   scan_rows=$(printf '%s' "$scan_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
+  findings_rows=$(printf '%s' "$findings_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   other_rows=$(printf '%s' "$other_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   [ -n "$record_rows" ] || fail "the record rows' step names no rows"
   [ -n "$scan_rows" ] || fail "the scan's row step names no rows"
+  [ -n "$findings_rows" ] || fail "the analysis rows' step names no rows"
   [ -n "$other_rows" ] || fail "the other rows' step names no rows"
   declared=$(jq -r '.rows[].id' "$SENSORS_ENGINE/sensors.json" | sort)
-  selected=$(printf '%s\n%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
+  selected=$(printf '%s\n%s\n%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
     "$(printf '%s' "$scan_rows" | tr ',' '\n')" \
+    "$(printf '%s' "$findings_rows" | tr ',' '\n')" \
     "$(printf '%s' "$other_rows" | tr ',' '\n')" | grep -v '^$' | sort)
   assert_eq "$declared" "$selected" "the steps select every declared row"
   assert_eq "$(printf '%s\n' "$selected" | sort -u)" "$selected" "no row is selected by two steps"
@@ -3328,4 +3355,225 @@ case_sensors_loopSpendReportsItsAbsenceWithoutFilingOrClosing() {
     bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>&1)
   assert_contains "$(printf '%s\n' "$findings" | grep '^{' || true)" '"measurement":"no-reads"' \
     "no read to divide by is a named absence, not a zero: $findings"
+}
+
+# --------------------------------------------------------------------------- the analysis's findings
+#
+# The fixture record is the analysis of 2026-11-04 that the change was decided by: 83 open findings over 11
+# rules — reliability 3 rules at MEDIUM or above, maintainability 8 at HIGH — and 2.3 % duplicated lines over
+# 42 853 ncloc (`design.md` D7). Every case measures against it, so the rows' contract is asserted on those
+# numbers rather than on invented ones.
+sonar_findings() { printf '%s\n' "$SENSORS_FIXTURES/sonar-findings.json"; }
+
+# One analysis row's findings, run the way `run.sh` runs it: the row's own environment, the fixture record as
+# the input. The record is the only thing a case varies.
+sonar_row() { # <reliability|maintainability|duplication> <threshold> [<input>] [<conditions>]
+  local metric="$1" threshold="$2" input="${3:-$(sonar_findings)}" conditions="${4:-[]}"
+  ( cd "$SENSORS_REPO_ROOT" && SENSORS_ID="sonar-$metric" SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_THRESHOLD="$threshold" SENSORS_INPUT="$input" SENSORS_CONDITIONS="$conditions" \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/sonar-$metric.sh" 2>&1 )
+}
+
+case_sensors_oneRuleIsOneCondition() {
+  local out findings
+  out=$(sonar_row reliability 0)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+
+  # One rule is one condition, not one per finding: the analysis's 9 reliability findings are 3 items.
+  assert_eq "3" "$(printf '%s\n' "$findings" | grep -c '"verdict":"violation"')" \
+    "three rules at the floor are three conditions, not nine findings: $out"
+  assert_contains "$findings" '"rule":"java:S2095"' "the resource-leak rule is a condition"
+  assert_contains "$findings" '"measurement":"6"' "its measurement is the six findings it holds"
+  assert_contains "$findings" '"rule":"java:S8786"' "the second blocker rule is its own condition"
+  assert_contains "$findings" '"measurement":"2"' "with its own count"
+  assert_contains "$findings" '"rule":"kotlin:S6218"' "the MEDIUM rule is at the floor, so it is a condition"
+  assert_contains "$findings" '"measurement":"1"' "and it measures one finding"
+  # The text names the files, so an item says where the rule is.
+  assert_contains "$findings" 'BasemapManager.java' "the condition's text names the files it holds"
+  # Severity is the filter: a rule below the floor is not a condition, whatever its count.
+  assert_not_contains "$findings" 'java:S1192' "a LOW finding is below the reliability floor: $out"
+  # The identity is the rule and only the rule — this is what an issue's anchor is derived from.
+  assert_contains "$findings" "\"fingerprint\":\"$(fingerprint_of rule java:S2095)\"" \
+    "the condition's identity is the rule"
+}
+
+case_sensors_aShrinkingRuleKeepsItsItem() {
+  local dir shrunken out findings fp
+  dir=$(scratch)
+  shrunken="$dir/shrunken.json"
+  # The same rule, after three findings were fixed: the record still carries it, with 3 instead of 49.
+  jq '.issues |= ([.[] | select(.rule != "kotlin:S3776")]
+                  + ([.[] | select(.rule == "kotlin:S3776")][:3]))' "$(sonar_findings)" > "$shrunken"
+
+  fp=$(fingerprint_of rule kotlin:S3776)
+  out=$(sonar_row maintainability 0 "$shrunken" \
+    '[{"state":"OPEN","condition":{"rule":"kotlin:S3776"}}]')
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+
+  assert_contains "$findings" "\"fingerprint\":\"$fp\"" \
+    "the shrunken rule is the same item: fingerprint $fp ($out)"
+  assert_contains "$findings" '"measurement":"3"' "the item records the smaller number"
+  assert_contains "$findings" '"verdict":"violation"' "a shrinking rule that is not gone is still a condition"
+  assert_eq "1" "$(printf '%s\n' "$findings" | grep -c "\"fingerprint\":\"$fp\"")" \
+    "one item, not a closed one and a refiled one"
+  assert_not_contains "$findings" "\"fingerprint\":\"$fp\"[^}]*\"verdict\":\"clear\"" "it is not closed"
+}
+
+case_sensors_aClearedRuleClosesItsItem() {
+  local dir cleared out findings fp
+  dir=$(scratch)
+  cleared="$dir/cleared.json"
+  jq '.issues |= [.[] | select(.rule != "java:S8786")]' "$(sonar_findings)" > "$cleared"
+
+  fp=$(fingerprint_of rule java:S8786)
+  out=$(sonar_row reliability 0 "$cleared" \
+    '[{"state":"OPEN","condition":{"rule":"java:S8786"}}]')
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+
+  # The reported condition is closed under the identity its own issue carries: no finding of the rule remains,
+  # so the row reports zero for that rule rather than falling through to the row-level clear.
+  assert_contains "$findings" "\"fingerprint\":\"$fp\"" "the cleared condition names the issue it owns ($out)"
+  assert_contains "$findings" '"measurement":"0"' "the clearing measurement is zero"
+  assert_contains "$findings" '"verdict":"clear"' "a rule with no finding left is a cleared condition"
+  assert_not_contains "$findings" '"rule":"none"' "a cleared condition is not the row-level clear"
+}
+
+case_sensors_severityIsNotTheIdentity() {
+  local dir raised out findings fp medium high
+  dir=$(scratch)
+  raised="$dir/raised.json"
+  # The same rule after a server-side profile change: its reliability impact is now HIGH.
+  jq '(.issues[] | select(.rule == "kotlin:S6218") | .severity) |= "HIGH"' "$(sonar_findings)" > "$raised"
+
+  fp=$(fingerprint_of rule kotlin:S6218)
+  medium=$(sonar_row reliability 0 | grep '^{' | grep 'kotlin:S6218' || true)
+  high=$(sonar_row reliability 0 "$raised" | grep '^{' | grep 'kotlin:S6218' || true)
+  assert_contains "$medium" "\"fingerprint\":\"$fp\"" "the MEDIUM rule's identity is the rule"
+  assert_contains "$high" "\"fingerprint\":\"$fp\"" "the HIGH rule is the same item, not a second one"
+  assert_contains "$high" 'HIGH' "the item's text carries the current severity"
+  assert_not_contains "$high" 'MEDIUM' "the text does not carry the old severities"
+  [ -n "$medium" ] && [ -n "$high" ] || fail "the rule is a condition at both severities: $medium$high"
+}
+
+case_sensors_theAnalysisRowsDeclareNoFilingCap() {
+  local registry rows default out findings
+  registry="$SENSORS_ENGINE/sensors.json"
+  rows=$(jq -c '[.rows[] | select(.id | test("^sonar-"))]' "$registry")
+  assert_eq "3" "$(jq 'length' <<< "$rows")" "the three analysis rows are declared"
+  # A cap below the number of kinds the analysis reports would relegate conditions instead of preventing them,
+  # and the registry's default is never reached: so no analysis row declares one (design D7).
+  assert_eq "0" "$(jq '[.[] | select(has("maxFilings"))] | length' <<< "$rows")" \
+    "no analysis row declares a filing cap of its own"
+  default=$(jq -r '.maxFilings' "$registry")
+  assert_eq "10" "$default" "the registry's default bound"
+  assert_eq "8" "$(sonar_row maintainability 0 | grep '^{' | grep -c '"verdict":"violation"')" \
+    "the kinds the analysis reports are below the default"
+
+  # Every registry fact the three rows were decided by, so a re-declared row is a red case rather than a
+  # silently different check.
+  assert_eq "bug improvement improvement" \
+    "$(jq -r '[.[].class] | join(" ")' <<< "$rows")" "the reliability row files a bug, the other two improvements"
+  assert_eq "1 2 2" "$(jq -r '[.[].consecutive] | join(" ")' <<< "$rows")" "the consecutive counts are 1/2/2"
+  assert_eq "0 0 2.5" "$(jq -r '[.[].threshold] | join(" ")' <<< "$rows")" "the bounds are 0/0/2.5"
+  assert_eq "rule rule project" "$(jq -r '[.[].fingerprint.fields | join("+")] | join(" ")' <<< "$rows")" \
+    "the two quality rows' identity is the rule, duplication's is the project"
+  assert_eq "code-quality code-quality code-quality" "$(jq -r '[.[].category] | join(" ")' <<< "$rows")" \
+    "all three carry the vocabulary's code-quality value"
+  assert_eq "sonar-findings.json sonar-findings.json sonar-findings.json" \
+    "$(jq -r '[.[].input] | join(" ")' <<< "$rows")" "all three read the scan's findings record"
+
+  # …and the registry's own row check accepts them, which is what the run's guard asks before any row runs.
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    for id in sonar-reliability sonar-maintainability sonar-duplication; do
+      sensors_row_problems "$(sensors_row "$id")"
+    done' 2>&1)
+  assert_empty "$out" "every analysis row is complete and its category is in the vocabulary: $out"
+}
+
+case_sensors_aMultipliedKindSetIsListed() {
+  local dir log multiplied out status summary
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  multiplied="$dir/multiplied.json"
+  # A server-side rule-set change: four maintainability rules the analysis did not report, so the row now
+  # carries 12 kinds where the registry's default files at most 10 in one run.
+  jq '.issues += [range(4) | {rule: "kotlin:SYNTH\(.)",
+                             path: "app/src/main/kotlin/com/naviveylin/synth/Synth\(.).kt",
+                             quality: "MAINTAINABILITY", severity: "HIGH", message: "synthetic"}]' \
+    "$(sonar_findings)" > "$multiplied"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only sonar-maintainability --apply --input "$multiplied" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_eq "10" "$(condition_creates "$log")" "the registry's default bound files ten conditions"
+  assert_eq "1" "$(summary_creates "$log")" "the two it did not file leave as one summary item"
+  assert_eq "11" "$(recorded "$log" 'issue create')" "one run writes the bound plus the summary"
+  assert_contains "$out" "not filed" "each condition the run did not file is reported"
+
+  summary=$(grep -- 'issue create' "$log" | tr -d '\\' | grep -F 'filing-summary' | tail -1)
+  assert_contains "$summary" "2 conditions not filed" "the summary names the count it left over"
+  assert_contains "$summary" "rule=" "the summary names each unfiled condition with its own measurement"
+}
+
+case_workflow_theFindingsRecordIsFetchedBeforeItsRowsRun() {
+  local file sonar fetch_block select_block artifact input
+  file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
+  sonar="$SENSORS_REPO_ROOT/.github/workflows/sonar.yml"
+  [ -f "$file" ] || fail "the sensor pipeline has no file"
+  [ -f "$sonar" ] || fail "the scan workflow has no file"
+
+  fetch_block=$(awk "/- name: Fetch this commit.s build record/ { inside = 1; next }
+                     inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
+  [ -n "$fetch_block" ] || fail "no step fetches this commit's record"
+  assert_contains "$fetch_block" "--workflow sonar.yml --artifact sonar-findings" \
+    "the findings record is fetched from the scan pipeline's own artifact"
+  assert_contains "$fetch_block" "findings-ready=true" "the fetch reports the findings record's readiness"
+
+  select_block=$(awk '/- name: Run the analysis rows/ { inside = 1; next }
+                       inside && /^[[:space:]]*- name:/ { inside = 0 } inside' "$file")
+  [ -n "$select_block" ] || fail "no step runs the analysis rows"
+  assert_contains "$select_block" "--rows sonar-reliability,sonar-maintainability,sonar-duplication" \
+    "the three rows run in one step"
+  assert_contains "$select_block" "findings-ready == 'true'" "gated on the findings record's readiness"
+
+  # The artifact carries the path the rows declare: one string, so a rename on either side is red here.
+  artifact=$(awk '/- name: Publish the findings record/ { inside = 1; next }
+                  inside && /^[[:space:]]*- name:/ { inside = 0 } inside' "$sonar" |
+    sed -n 's/^[[:space:]]*path:[[:space:]]*//p' | head -1)
+  input=$(jq -r '.rows[] | select(.id == "sonar-reliability") | .input' "$SENSORS_ENGINE/sensors.json")
+  assert_eq "$input" "$artifact" "the artifact carries the path the rows declare"
+}
+
+case_workflow_theFindingsReadinessIsReportedApart() {
+  local file fetch_block select_block other
+  file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
+  [ -f "$file" ] || fail "the sensor pipeline has no file"
+
+  fetch_block=$(awk "/- name: Fetch this commit.s build record/ { inside = 1; next }
+                     inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
+  # Both branches are written, and the not-ready one is exit 3 alone: a scan still running is not a failed
+  # check, and any other failure is this run's own.
+  assert_contains "$fetch_block" "findings-ready=true" "the fetch reports a findings record that is there"
+  assert_contains "$fetch_block" "findings-ready=false" "and one that is not, as not-ready"
+  assert_contains "$fetch_block" 'if [ "$status" -eq 3 ]' "exit 3 is the not-ready answer, not a failure"
+  # The two readinesses are two outputs of the same step, not one reused name.
+  assert_eq "2" "$(printf '%s\n' "$fetch_block" | grep -c 'scan-ready=')" \
+    "the scan's result record keeps its own readiness"
+  assert_eq "2" "$(printf '%s\n' "$fetch_block" | grep -c 'findings-ready=')" \
+    "the findings record has a readiness of its own"
+
+  select_block=$(awk '/- name: Run the analysis rows/ { inside = 1; next }
+                       inside && /^[[:space:]]*- name:/ { inside = 0 } inside' "$file")
+  [ -n "$select_block" ] || fail "no step runs the analysis rows"
+  assert_not_contains "$select_block" 'scan-ready' \
+    "the analysis rows do not ride the result record's readiness"
+
+  # Nothing selects an analysis row outside that one gated step: the row ids appear once in the file.
+  other=$(grep -n 'sonar-reliability' "$file" | grep -v 'Run the analysis rows' || true)
+  assert_eq "1" "$(grep -c 'sonar-reliability,sonar-maintainability,sonar-duplication' "$file")" \
+    "one step selects the three rows ($other)"
 }

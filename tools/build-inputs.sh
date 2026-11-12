@@ -83,6 +83,13 @@ package_apk="app/build/outputs/apk/mobile/debug/app-mobile-debug.apk"
 # root-level record is the path the upload root can carry, so writer, upload and row agree by construction
 # (issue #751, review round 1).
 scan_result="scan-result.json"
+# The scan's findings record, dumped by `tools/sonar-findings.sh` in the scan pipeline and read by the three
+# analysis rows (`sonar-reliability`, `sonar-maintainability`, `sonar-duplication`). It is the scan's second
+# record: `scan-result.json` carries the run's outcome, this one carries the analysis's findings for the commit.
+# It sits at the workspace root for the same reason the scan's result record does — a single explicit upload
+# path is carried under its basename — and it is in the manifest `--check` compares the registry against and in
+# no `--write` of the build's, exactly as the scan's result record is (design D1).
+sonar_findings="sonar-findings.json"
 # The job and step wall times the checks' fetcher writes (`--jobs-record`), read by the `build-duration` row.
 # The path sits under `build/` because the build pipeline's own outputs do, and the fetcher is handed it
 # explicitly, so the row and the producer are one string in one place.
@@ -120,7 +127,7 @@ produced_paths() {
 # one place the registry's inputs are paired with their producers, and they are written by nobody here: the
 # scan's workflow writes its record itself (`--scan-result`), and only while it scans.
 foreign_paths() {
-  printf '%s\n' "$scan_result" "$job_timings"
+  printf '%s\n' "$scan_result" "$sonar_findings" "$job_timings"
 }
 
 # What the build job of this pipeline must find in the tree when `--write` ends: exactly the paths this run

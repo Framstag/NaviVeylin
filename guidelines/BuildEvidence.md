@@ -276,6 +276,13 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   this repository owns, with the `libosmscout` native tree and the vendored client API excluded. The quality
   gate colours the badge and the project and fails no run (no gate-wait property is set), the same position
   as the first rule in this section; a scanner that could not complete still fails the run.
+- **Rule: the scan publishes a findings record, and three sensor rows read it, and neither gates a merge.**
+  Beside the result record the workflow dumps `sonar-findings.json` (`tools/sonar-findings.sh`, artifact
+  `sonar-findings`, written only when the scan succeeded) and names the commit the analysis carries, so a
+  finding that is gone closes instead of outliving its analysis; the checks' pipeline fetches that record
+  before its `sonar-reliability`, `sonar-maintainability` and `sonar-duplication` rows run. The quality gate
+  above still fails no run, and those rows file tracker items in `category: code-quality` — they report, and
+  neither a merge nor a run waits on them.
 
 (The baseline figures, the engine/agent timings, the deprecation baselines and the case histories are
 `guidelines/BuildEvidence.why.md` §7; the sample commands and tallies are `guidelines/Build.recipes.md` §7.)

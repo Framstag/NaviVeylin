@@ -84,6 +84,12 @@ times it has recurred, and the basis its priority was computed over.
 selectable; the components and the basis explain it; the value is reused while the basis is unchanged, so
 ordering the whole backlog costs a query and a pass over a stable backlog interprets nothing.
 
+**The analysis's three rows are one area, and one rule is one item.** `sonar-reliability`,
+`sonar-maintainability` and `sonar-duplication` declare `category/code-quality` with their own
+`lifecycle: file+close`, and their identity is the rule a finding breaks: every finding of that rule lands in
+one item instead of one item per finding, and the item closes when the rule's findings are gone
+(`BacklogTooling.md` §9).
+
 ## 4. The invariants
 
 **Rule: an invariant is stated with the observation that would falsify it.** These are the rules the mechanism must satisfy. Each names the mechanism that holds it and the observation

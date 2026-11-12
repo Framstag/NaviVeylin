@@ -285,6 +285,7 @@ LOOP_SHELL_CASES=(
   'run#aSkipClearsTheInProgressMark'
   'run#staleSkipAsksItsQuestion'
   'run#staleSkipKeepsTheWorkersQuestion'
+  'run#aSkipPrintsTheReasonTheChildGave'
   'run#stateNamesTheItemInProgress'
   'run#skipEscalationCarriesTheDecision'
   'run#workPackageCarriesTheRecordedDecision'
@@ -989,6 +990,7 @@ loop_run_shell_case() {
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#staleSkipAsksItsQuestion') fn=case_run_staleSkipAsksItsQuestion ;;
     'run#staleSkipKeepsTheWorkersQuestion') fn=case_run_staleSkipKeepsTheWorkersQuestion ;;
+    'run#aSkipPrintsTheReasonTheChildGave') fn=case_run_aSkipPrintsTheReasonTheChildGave ;;
     'run#stateNamesTheItemInProgress') fn=case_run_stateNamesTheItemInProgress ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
@@ -9689,6 +9691,40 @@ case_run_staleSkipKeepsTheWorkersQuestion() {
   assert_contains "$(cat "$d/gh.log")" "recommended: retire it" "the comment carries the worker's question"
   assert_not_contains "$(cat "$d/gh.log")" "retire the item as stale, or re-diagnose it —" \
     "and not the run's own question beside it"
+}
+
+# The report's `skipped:` line prints the item's note, and the skip arm wrote the constant `skipped by the worker`
+# into that note on every skip it took — so the one account a caller gets named no reason, while the child's own
+# sentence travelled in the same record's rootCause (issue #854). Measured on the run of 2026-11-11T11:37:08Z,
+# whose report read `#838 too-wide (skipped by the worker)` and `#844 stale (skipped by the worker)` over two
+# children that had written a paragraph each — #838's as `LOOP-ROOT-CAUSE`, which is the field this case reads, and
+# #844's inside `LOOP-DECISION` prose, which no field of the record holds — so 441 s and 5.2 Mtok of that run had to
+# be re-opened by hand to answer `decide #838` and `decide #844`.
+case_run_aSkipPrintsTheReasonTheChildGave() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out reason
+  # the shape the report printed with no reason at all
+  reason="one item of 35 tasks, a new Gradle module and 20 case names would have to land together"
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: too-wide\nLOOP-ROOT-CAUSE: %s\nLOOP-RED-TEST: none — nothing was reached' "$reason")" 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is still a skip"
+  assert_eq "$reason" "$(jq -r '.items[0].note' "$(state_file "$p")")" \
+    "the note is the child's own sentence, not the constant the skip arm wrote"
+  assert_contains "$out" "skipped: #21 too-wide ($reason)" "the report's skipped line prints it"
+  assert_not_contains "$out" "skipped by the worker" \
+    "and not the constant beside the same record's root cause"
+
+  # the shape this change leaves alone: a child that gave no reason
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: too-wide\nLOOP-RED-TEST: none — nothing was reached')" 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  assert_eq "skipped by the worker" "$(jq -r '.items[0].note' "$(state_file "$p")")" \
+    "a child that gives no reason leaves the note the base wrote"
+  assert_contains "$out" "skipped: #21 too-wide (skipped by the worker)" \
+    "so the line names the constant rather than an empty parenthesis"
 }
 
 # The state is the only thing a person can open after a run was killed, and it named neither the item nor the

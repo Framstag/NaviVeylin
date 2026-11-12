@@ -1422,6 +1422,15 @@ left (#850). A count is not
 an answer, so `none` is printed only when all seven sources were
 read and empty — it never hides a branch that carries work.
 
+A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and
+the skip arm wrote the constant `skipped by the worker` into that note on every skip it took, while the child's own
+sentence travelled beside it as `metrics.rootCause` — so the run of 2026-11-11T11:37:08Z printed `#838 too-wide
+(skipped by the worker)` and `#844 stale (skipped by the worker)` over two children that had written a paragraph
+each, and 441 s and 5.2 Mtok of that run had to be re-opened by hand to answer its two `decide` lines (#854). The
+note now carries the reason the child gave, and the constant is only the fallback for a child that gave none, so a
+`skipped:` line and the `decide` line built from the same record — which takes the note and falls back to the root
+cause — are one sentence.
+
 Every one of those figures is a comparison, and since #815 the bound it is read against travels with it: the state
 records the three numbers its children's numbers were measured against — the character bound a tool result is cut at
 (`run.toolResultMaxChars`) and the two context bounds an item's largest context is read against

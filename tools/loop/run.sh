@@ -3399,10 +3399,15 @@ $review_notes_text"
           --reason "${root_cause:-$skip_verdict}" \
           --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2 || true
       fi
+      # The note is what `report.sh` prints on its `skipped:` line, so it carries the child's own sentence rather
+      # than a constant beside it (issue #854): the run of 2026-11-11T11:37:08Z printed
+      # `#838 too-wide (skipped by the worker)` and `#844 stale (skipped by the worker)` over two children that had
+      # written a paragraph each, so 441 s and 5.2 Mtok of that run had to be re-opened by hand to answer the two
+      # `decide` lines. The constant stays as the fallback for a child that gave no reason.
       loop_state done "$issue" --result skipped --verdict "${skip_verdict:-unspecified}" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --gate "$gate_field" \
-        --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
+        --root-cause "$root_cause" --red-test "$red_test" --note "${root_cause:-skipped by the worker}" \
         --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" >/dev/null
       ;;
     cut)

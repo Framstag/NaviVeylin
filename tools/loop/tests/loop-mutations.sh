@@ -1163,6 +1163,12 @@ MUTATIONS=(
   # continuation is ended on its first reading by the number that ended the child before it.
   '276.1@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the block that continues an item its own context bound cut, so the work is handed to the next run as a patch whose base has moved (issue #851)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] && child_ended_by_context_bound "\$worker_report"; then$|  if false; then|'
   '276.2@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the baseline that makes the context bound the child'"'"'s own reading, so a fresh session inherits the number that ended the child before it and the continuation is cut on its first reading (issue #851)@s|^  if \[ -f "\${LOOP_CHILD_EVENTS:-}" \]; then ctx_lines=.*$|  ctx_lines=0|'
+  # 854.x — a skip's reason is the line the report prints (issue #854). The skip arm passed the child's sentence as
+  # `--root-cause` and the constant `skipped by the worker` as `--note`, and `report.sh` prints the note, so the run
+  # of 2026-11-11T11:37:08Z printed `#838 too-wide (skipped by the worker)` and `#844 stale (skipped by the worker)`
+  # over two children that had written a paragraph each. One rule, one case: the note carries the reason the child
+  # gave, and the constant is only the fallback for a child that gave none.
+  '854.1@-@tools/loop/run.sh@run#aSkipPrintsTheReasonTheChildGave@the note the skip arm records, so the report prints the constant for every skip while the same record carries the child sentence (issue #854)@s|--note "\${root_cause:-skipped by the worker}"|--note "skipped by the worker"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

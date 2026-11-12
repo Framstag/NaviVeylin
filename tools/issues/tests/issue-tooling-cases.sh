@@ -3431,24 +3431,25 @@ case_import_theImportedItemNamesItsExemption() {
 # ── the tracker's own classification (capability `issue-types`, `guidelines/Backlog.md` §3) ────────────────────
 #
 # An issue type and the container an item sits under are the tracker's fields, not labels: a type is account
-# scoped and a parent is an issue, so neither can travel through the vocabulary gate. The half this repository
-# owns is that the caller's value reaches `gh`'s own flag unchanged and that a malformed one is refused before
-# any write; a name the account does not declare is `gh`'s refusal (`type "X" not found; available types: …`),
-# and it creates nothing — so no case here needs a fixture for the account's type list.
+# scoped and a parent is an issue, so neither can travel through the vocabulary gate. Two halves are this
+# repository's: the caller's value reaches `gh`'s own flag unchanged, and a name the account does not declare is
+# refused before any write. The second half is a read the tracker answers (`issue-types.json` in the fixtures) and
+# not `gh`'s own refusal, because `gh --type` files the item and reports the allowed set afterwards (measured
+# 2026-11-12: issue #874 exists because of exactly that).
 case_create_writesTheTypeItWasGiven() {
   export GH_STUB_DIR="$ISSUES_FIXTURES"
-  local dir log finding line
+  local dir log finding line out status
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
   export GH_STUB_RECORD="$log"
   finding=$(with_cause "$(jq -n '{sourceId: "141", title: "§141 a typed fixture finding", class: "improvement",
                      category: "build-and-harness", claim: "A typed claim", anchor: "app/src/main/X.kt:Y",
                      body: "the body, verbatim"}')")
 
-  printf '%s' "$finding" | run_tool create.sh --type Epic --parent 88 --json >/dev/null ||
+  printf '%s' "$finding" | run_tool create.sh --type Feature --parent 88 --json >/dev/null ||
     fail "create.sh with a type and a parent failed"
   line=$(grep 'issue create' "$log" | head -1)
   [ -n "$line" ] || fail "no gh issue create invocation was recorded"
-  assert_contains "$line" "--type Epic" "the type reaches the tracker's own flag"
+  assert_contains "$line" "--type Feature" "the type reaches the tracker's own flag"
   assert_contains "$line" "--parent 88" "the container reaches the tracker's own flag"
 
   # An untyped filing writes none: the flags are opt-in, so every caller that names neither is unchanged.
@@ -3463,16 +3464,27 @@ case_create_writesTheTypeItWasGiven() {
 
   # A finding may state them in its own JSON, which is how a filing path built from a template states them.
   : > "$log"
-  jq '.type = "Epic"' <<< "$finding" | run_tool create.sh --allow-duplicate --json >/dev/null ||
+  jq '.type = "Feature"' <<< "$finding" | run_tool create.sh --allow-duplicate --json >/dev/null ||
     fail "a finding naming its own type failed"
   line=$(grep 'issue create' "$log" | head -1)
-  assert_contains "$line" "--type Epic" "a type named in the finding reaches the same flag"
+  assert_contains "$line" "--type Feature" "a type named in the finding reaches the same flag"
 
   # A name with a space is refused before the write, so a malformed flag creates nothing.
   : > "$log"
   printf '%s' "$finding" | run_tool create.sh --type "Two Words" --json >/dev/null 2>&1 &&
     fail "a two-word type name was accepted"
   [ ! -s "$log" ] || fail "a refused type still called gh: $(cat "$log")"
+
+  # A name the account does not declare is refused before the write, which is the half `gh --type` cannot do:
+  # measured 2026-11-12, `gh issue create --type Bogus` filed issue #874 and *then* printed the allowed set, so a
+  # typo leaves an untyped item behind. `Chore` is in the fixture's type list disabled, so this also holds the
+  # reader to the enabled ones.
+  : > "$log"
+  out=$(printf '%s' "$finding" | run_tool create.sh --type Chore --json 2>&1); status=$?
+  assert_eq "3" "$status" "an undeclared type name is refused"
+  assert_contains "$out" "type-opaque" "with the reason the vocabulary gate uses for an unknown value"
+  assert_contains "$out" "Task Bug Feature" "and names the set the account declares"
+  [ ! -s "$log" ] || fail "a refused type still created an item: $(cat "$log")"
 }
 
 case_update_writesTheTypeItWasGiven() {
@@ -3483,9 +3495,9 @@ case_update_writesTheTypeItWasGiven() {
 
   # Retyping alone is a write: it is how an item a person decided to carry as a container becomes one, and a call
   # that set no label and no body used to die as "nothing to change" before it could.
-  out=$(run_tool update.sh 11 --type Epic 2>&1); status=$?
+  out=$(run_tool update.sh 11 --type Feature 2>&1); status=$?
   assert_eq "0" "$status" "a type-only write succeeds: $out"
-  assert_contains "$(cat "$log")" "--type Epic" "the type reaches the tracker's own flag"
+  assert_contains "$(cat "$log")" "--type Feature" "the type reaches the tracker's own flag"
 
   : > "$log"
   out=$(run_tool update.sh 11 --parent 838 2>&1); status=$?
@@ -3497,4 +3509,12 @@ case_update_writesTheTypeItWasGiven() {
   out=$(run_tool update.sh 11 --parent eight 2>&1); status=$?
   assert_eq "2" "$status" "a non-numeric parent is a usage error"
   [ ! -s "$log" ] || fail "a refused parent still called gh: $(cat "$log")"
+
+  # A type name the account does not declare is refused before the edit, for the same reason the create path
+  # refuses it: the name is the account's configuration and the tracker is asked, not a copy kept here.
+  : > "$log"
+  out=$(run_tool update.sh 11 --type Chore 2>&1); status=$?
+  assert_eq "3" "$status" "an undeclared type name is refused"
+  assert_contains "$out" "type-opaque" "with the reason the vocabulary gate uses for an unknown value"
+  [ ! -s "$log" ] || fail "a refused type still called gh: $(cat "$log")"
 }

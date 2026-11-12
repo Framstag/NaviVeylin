@@ -176,6 +176,25 @@ issues_login() {
   return 0
 }
 
+# The issue types the account declares, one name per line, enabled ones only (`guidelines/Backlog.md` §3,
+# capability `issue-types`). This is **not** a vocabulary this repository may spell: a type is GitHub's,
+# account-scoped configuration, so the writer asks the tracker which names it may use instead of keeping a copy
+# that drifts. The read exists because `gh --type` is not safe on its own — measured 2026-11-12: `gh issue create
+# --type Bogus` filed issue #874 *and then* printed `type "Bogus" not found; available types: Task, Bug, Feature`,
+# so a typo leaves an untyped item behind. A read that cannot be made returns the seam's status rather than an
+# empty list, because "this account declares no types" and "the tracker did not answer" are different facts and
+# only the first may refuse a name (`Backlog.md` I17).
+issues_declared_types() {
+  local repo="${ISSUES_REPO:-}" owner name status=0
+  [ -n "$repo" ] || return 1
+  owner="${repo%%/*}"; name="${repo#*/}"
+  gh api graphql \
+    -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { issueTypes(first: 25) { nodes { name isEnabled } } } }' \
+    -f owner="$owner" -f name="$name" \
+    --jq '.data.repository.issueTypes.nodes[]? | select(.isEnabled) | .name' || status=$?
+  return "$status"
+}
+
 # Run one of the core's classes. The core is Java with no Gradle source set and no build system (design D1),
 # but it is **compiled once and then run from the class path**, never handed to the single-file source
 # launcher: `java core/Foo.java` resolves Foo's siblings only on some JDKs — JDK 27 finds them, JDK 21 does

@@ -171,6 +171,17 @@ esac
 case "${parent_number:-}" in
   ''|*[!0-9]*) [ -z "$parent_number" ] || issues_die "update: --parent takes an issue number, not '$parent_number'" ;;
 esac
+# A type name is checked against the account's declaration before the edit, for the same reason `create.sh` does:
+# the name is GitHub's configuration, not this repository's, so the tracker is asked instead of a copy kept here.
+# What `gh issue edit --type` does with an unknown name is unmeasured — the create path's answer is not the edit
+# path's — and this refuses before the question can arise, naming the set the account declares.
+if [ -n "$type_name" ]; then
+  declared_types=$(issues_declared_types) || exit $?
+  if ! printf '%s\n' "$declared_types" | grep -qxF "$type_name"; then
+    issues_refuse "type-opaque" \
+      "the tracker declares no issue type '$type_name' — it declares: $(printf '%s' "$declared_types" | tr '\n' ' ' | sed 's/ $//'); nothing was written"
+  fi
+fi
 
 if [ "${#labels[@]}" -gt 0 ]; then
   issues_check_labels "$profile" "${labels[@]}"

@@ -87,9 +87,10 @@ ordering the whole backlog costs a query and a pass over a stable backlog interp
 **Rule: the tracker's own classification is an axis of its own, and a container is never work.** An item may carry
 one of GitHub's issue types and may sit under a parent issue; neither is a label, so neither travels through the
 vocabulary gate — `tools/issues/create.sh --type/--parent` and `tools/issues/update.sh --type/--parent` write them,
-and a name the account does not declare is refused by the tracker itself (`type "X" not found; available types: …`),
-which creates and edits nothing (measured 2026-11-12: the account exposes the three defaults `Task`, `Bug`,
-`Feature`, and `gh issue create --type Bogus` names them and files no item). The value this project treats as a
+and a name the account does not declare is refused **before anything is filed**: both writers read the declared set
+from the tracker (`issues_declared_types`) and refuse an unknown name with `type-opaque` (measured 2026-11-12: the
+account exposes the three defaults `Task`, `Bug`, `Feature`, and `gh issue create --type Bogus` names them but
+files the item first — issue #874 is that half-write, closed as the probe it was). The value this project treats as a
 container is `roles.containerType` in `tools/tooling.json`, and `tools/loop/prescreen.sh` refuses such an item as
 work with the verdict `container` — its children carry that work and are selected on their own labels (case
 `prescreen#aContainerTypeIsNotWork`). An EMPTY value, or a profile that omits the key, declares that no type is a

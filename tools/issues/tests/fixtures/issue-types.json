@@ -1,0 +1,14 @@
+{
+  "data": {
+    "repository": {
+      "issueTypes": {
+        "nodes": [
+          { "name": "Task", "isEnabled": true },
+          { "name": "Bug", "isEnabled": true },
+          { "name": "Feature", "isEnabled": true },
+          { "name": "Chore", "isEnabled": false }
+        ]
+      }
+    }
+  }
+}

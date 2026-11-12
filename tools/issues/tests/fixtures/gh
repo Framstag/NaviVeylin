@@ -193,7 +193,22 @@ case "$group" in
           *) refuse "api graphql $*" ;;
         esac
       done
-      case "$query" in *totalCount*) ;; *) refuse "api graphql — the query names no totalCount" ;; esac
+      # The account's declared issue types (`issues_declared_types`, capability `issue-types`): the one graphql
+      # question here that is not a count. It is answered from its own fixture, so a writer is tested against a
+      # set it does not spell, and that fixture carries a disabled type because the reader selects the enabled ones.
+      case "$query" in
+        *issueTypes*)
+          need_file issue-types.json
+          if [ -n "$jq_filter" ]; then
+            jq -r "$jq_filter" "$(fixture_path issue-types.json)"
+          else
+            cat "$(fixture_path issue-types.json)"
+          fi
+          exit 0
+          ;;
+        *totalCount*) ;;
+        *) refuse "api graphql — the query names no totalCount and no issueTypes" ;;
+      esac
       [ -n "$label" ] || refuse "api graphql — the query carries no label to count"
       need_file repo.txt
       fixture_repo=$(tr -d '\n' < "$(fixture_path repo.txt)")

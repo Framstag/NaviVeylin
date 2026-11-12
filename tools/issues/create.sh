@@ -401,13 +401,26 @@ for label in "${labels[@]}"; do
   fi
 done
 
+# The type is checked against what the account declares, *before* anything is filed. `gh --type` validates the
+# name too and does it after the item exists — measured 2026-11-12: `gh issue create --type Bogus` filed issue
+# #874 and then printed `type "Bogus" not found; available types: Task, Bug, Feature`. A typo must not leave an
+# untyped item behind, so the refusal happens here and writes nothing. An unreadable tracker is not an empty list
+# of types (`Backlog.md` I17): the seam's own status is passed through rather than read as a refusal.
+if [ -n "$type_name" ]; then
+  declared_types=$(issues_declared_types) || exit $?
+  if ! printf '%s\n' "$declared_types" | grep -qxF "$type_name"; then
+    issues_refuse "type-opaque" \
+      "the tracker declares no issue type '$type_name' — it declares: $(printf '%s' "$declared_types" | tr '\n' ' ' | sed 's/ $//'); nothing was written"
+  fi
+fi
+
 args=(issue create --title "$title" --body "$new_body")
 for label in "${create_labels[@]}"; do
   args+=(--label "$label")
 done
-# The type is the tracker's field, so the tracker is what refuses a name it does not declare: `gh` answers
-# `type "X" not found; available types: …` and creates nothing, which is why this path validates nothing itself
-# and cannot invent a vocabulary of type names.
+# The type is the tracker's field, and the check above is what refuses a name the account does not declare: `gh`
+# answers `type "X" not found; available types: …` but only **after** it has filed the item (measured 2026-11-12,
+# issue #874), so `gh`'s own refusal cannot be the guard. What is written here is the name the reader checked.
 [ -z "$type_name" ] || args+=(--type "$type_name")
 [ -z "$parent_number" ] || args+=(--parent "$parent_number")
 

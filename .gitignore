@@ -76,5 +76,9 @@ NuGet.config
 openspec/changes/*/
 !openspec/changes/archive/
 
+# OpenSpec: the CLI-generated agent skills (`.agents/skills/`) are install artifacts,
+# rewritten by `openspec update` — packaging output, not project source.
+.agents/skills/
+
 # Misc runtime log accidentally committed
 ki_processing_failures.log

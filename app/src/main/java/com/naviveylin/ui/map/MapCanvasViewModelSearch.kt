@@ -10,6 +10,9 @@ import com.naviveylin.R
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.core.search.MergedSearchResult
+import com.naviveylin.core.search.POI_CANDIDATE_CAP
+import com.naviveylin.core.search.filterPoiEntries
+import com.naviveylin.core.search.foldForSearchMatch
 import com.naviveylin.core.search.RegionFixReference
 import com.naviveylin.core.search.RegionScopeDecision
 import com.naviveylin.core.search.SearchGateState
@@ -481,10 +484,14 @@ fun MapCanvasViewModel.setSearchMode(mode: SearchMode) {
             _uiState.value = s.copy(
                 searchMode = mode,
                 poiCategory = null,
+                poiCandidates = emptyList(),
                 poiResults = emptyList(),
+                poiFilter = "",
+                poiWidened = false,
                 isPoiSearching = false,
                 poiSearchError = null
             )
+            poiWidening = false
         }
         s.searchMode == SearchMode.POIS -> {
             restorePoiViewport()
@@ -504,6 +511,7 @@ internal fun MapCanvasViewModel.restorePoiViewport() {
     // The POI view is being left: its search is abandoned outright (spec: `poi-search` — a
     // POI search keeps its own slot and is abandoned when its view is left).
     poiSearchGate.abandon()
+    poiWidening = false
     val snapshot = poiViewportSnapshot
     poiViewportSnapshot = null
     mapRenderer?.clearSearchSelected()
@@ -526,12 +534,15 @@ internal fun MapCanvasViewModel.restorePoiViewport() {
 
 /** Select a POI category. Never triggers a search (spec: no preloaded results). */
 fun MapCanvasViewModel.onPoiCategorySelected(category: String?) {
-    _uiState.value = _uiState.value.copy(poiCategory = category)
+    // A category change needs the explicit search button, so the widen key of the previous
+    // (category, radius, centre) is cleared: the next filter on a narrow set widens again
+    // (spec: `poi-search` — The first non-empty filter widens the fetch once; design D3).
+    _uiState.value = _uiState.value.copy(poiCategory = category, poiWidened = false)
 }
 
 /** Change the POI search radius. Never triggers a search. */
 fun MapCanvasViewModel.onPoiRadiusChanged(radiusMeters: Double) {
-    _uiState.value = _uiState.value.copy(poiRadiusMeters = radiusMeters)
+    _uiState.value = _uiState.value.copy(poiRadiusMeters = radiusMeters, poiWidened = false)
 }
 
 /**
@@ -542,17 +553,59 @@ fun MapCanvasViewModel.onPoiRadiusChanged(radiusMeters: Double) {
 fun MapCanvasViewModel.performPoiSearch() {
     val s = _uiState.value
     val category = s.poiCategory ?: return
+    // The width is fixed at the request, not read back when the walk returns: a filter typed
+    // while the walk runs filters the arriving set, it does not re-key the request
+    // (spec: `poi-search` — A filtered search asks for a candidate set, not a page; design D3).
+    val filterInEffect = foldForSearchMatch(s.poiFilter).isNotEmpty()
+    poiFetchLimit = if (filterInEffect) POI_CANDIDATE_CAP else MapCanvasViewModel.MAX_POI_RESULTS
+    poiWidening = false
     _uiState.value = s.copy(
         isPoiSearching = true,
         poiSearchError = null,
         poiSearchCenterLat = s.viewport.centerLat,
         poiSearchCenterLon = s.viewport.centerLon,
         poiSelectedLat = Double.NaN,
-        poiSelectedLon = Double.NaN
+        poiSelectedLon = Double.NaN,
+        // A search that asked for the cap already holds a wide set, so a following keystroke
+        // derives locally instead of buying a second walk.
+        poiWidened = filterInEffect
     )
     // The gate supersedes this slot's previous request and owns its generation, so a second POI
     // search replaces the first and leaving the view can abandon it.
     poiSearchGate.request(category)
+}
+
+/**
+ * Narrow the POI list with a name filter (spec: `poi-search` — A name filter narrows a POI result
+ * list; design D3).
+ *
+ * The keystroke never reaches the search gate while the cached candidates can answer it: the
+ * displayed list is re-derived from [MapCanvasUiState.poiCandidates] only. The one walk it may
+ * buy is the widen a first non-empty filter runs on a candidate set that was cut at the display
+ * limit — once per (category, radius, centre). A widen is not a search: no spinner replaces the
+ * readable list, and a failed widen keeps the previous rows and reports the failure.
+ */
+fun MapCanvasViewModel.onPoiFilterChanged(term: String) {
+    val s = _uiState.value
+    val category = s.poiCategory
+    val foldedTerm = foldForSearchMatch(term)
+    val searchRan = !s.poiSearchCenterLat.isNaN() && !s.poiSearchCenterLon.isNaN()
+    val needsWiden = searchRan && foldedTerm.isNotEmpty() &&
+        !s.poiWidened && s.poiCandidates.size >= MapCanvasViewModel.MAX_POI_RESULTS
+
+    _uiState.value = s.copy(
+        poiFilter = term,
+        poiResults = filterPoiEntries(s.poiCandidates, term, MapCanvasViewModel.MAX_POI_RESULTS),
+        // Marked before the request: "one widen per (category, radius, centre)" counts the
+        // attempt, so a failing widen is reported once instead of retried on every keystroke.
+        poiWidened = s.poiWidened || needsWiden
+    )
+
+    if (category != null && needsWiden) {
+        poiWidening = true
+        poiFetchLimit = POI_CANDIDATE_CAP
+        poiSearchGate.request(category)
+    }
 }
 
 /**
@@ -573,7 +626,7 @@ internal suspend fun MapCanvasViewModel.searchPoisOnce(category: String, generat
                 emptyList()
             } else {
                 client.searchPOIsByTypes(
-                    typeNames, lat, lon, radiusMeters, MapCanvasViewModel.MAX_POI_RESULTS, generation
+                    typeNames, lat, lon, radiusMeters, poiFetchLimit, generation
                 )?.toList() ?: emptyList()
             }
         } catch (e: Exception) {
@@ -585,22 +638,40 @@ internal suspend fun MapCanvasViewModel.searchPoisOnce(category: String, generat
 
 /** Maps the POI gate's state onto the POI sheet's state. */
 internal fun MapCanvasViewModel.onPoiSearchStateChanged(state: SearchGateState<List<PoiEntry>?>) {
+    val s = _uiState.value
     when (state) {
         is SearchGateState.Idle -> Unit
         is SearchGateState.Searching ->
-            _uiState.value = _uiState.value.copy(isPoiSearching = true, poiSearchError = null)
-        is SearchGateState.Cleared ->
-            _uiState.value = _uiState.value.copy(isPoiSearching = false, poiResults = emptyList())
+            // A widen is a widen, not a search: the readable list keeps its surface and no
+            // spinner replaces it (design D3 guard 2).
+            if (!poiWidening) {
+                _uiState.value = s.copy(isPoiSearching = true, poiSearchError = null)
+            }
+        is SearchGateState.Cleared -> {
+            poiWidening = false
+            _uiState.value = s.copy(
+                isPoiSearching = false,
+                poiCandidates = emptyList(),
+                poiResults = emptyList(),
+                poiWidened = false
+            )
+        }
         is SearchGateState.Completed -> {
+            val widening = poiWidening
+            poiWidening = false
             val results = state.results
             _uiState.value = if (results != null) {
-                _uiState.value.copy(
+                s.copy(
                     isPoiSearching = false,
-                    poiResults = results,
+                    poiCandidates = results,
+                    poiResults = filterPoiEntries(results, s.poiFilter, MapCanvasViewModel.MAX_POI_RESULTS),
+                    poiWidened = if (widening) true else s.poiWidened,
                     poiSearchError = null
                 )
             } else {
-                _uiState.value.copy(
+                // A failed widen keeps the previous candidates and rows on screen and reports
+                // the failure; the sheet stays usable (design D3 guard 3/5).
+                s.copy(
                     isPoiSearching = false,
                     poiSearchError = context.getString(R.string.poi_search_failed)
                 )

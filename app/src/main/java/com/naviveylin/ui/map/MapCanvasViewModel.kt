@@ -253,6 +253,17 @@ class MapCanvasViewModel @Inject constructor(
         search = { category, generation -> searchPoisOnce(category, generation) }
     )
 
+    /**
+     * The width the POI request in flight asks the native walk for: the display limit for an
+     * unfiltered search, [com.naviveylin.core.search.POI_CANDIDATE_CAP] when a filter is in effect
+     * or a widen is running (spec: `poi-search` — A filtered search asks for a candidate set, not a
+     * page). Captured at request time, so a keystroke after the request cannot re-key it.
+     */
+    internal var poiFetchLimit: Int = MAX_POI_RESULTS
+
+    /** True while the in-flight POI request is the widen a first filter keystroke runs. */
+    internal var poiWidening: Boolean = false
+
     // Viewport snapshot taken when POI search opens; restored when the sheet closes
     internal var poiViewportSnapshot: ViewportState? = null
 

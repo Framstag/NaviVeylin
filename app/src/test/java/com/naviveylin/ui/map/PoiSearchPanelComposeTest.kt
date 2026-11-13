@@ -7,18 +7,21 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.PoiCategories
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.filterPoiEntries
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,6 +52,15 @@ class PoiSearchPanelComposeTest {
     private var clickedEntries = mutableListOf<PoiEntry>()
     private var searchCount = 0
 
+    /** The filter field's current text, as the dialog last reported it. */
+    private var filterText by mutableStateOf("")
+
+    /** The candidate set behind the displayed list; the filter narrows it locally. */
+    private var poiCandidates: List<PoiEntry> = emptyList()
+
+    /** The list the sheet shows: [poiCandidates] narrowed by [filterText]. */
+    private var displayedResults by mutableStateOf<List<PoiEntry>>(emptyList())
+
     private fun poiEntry(label: String, objectType: String, distance: Double): PoiEntry =
         PoiEntry().apply {
             this.label = label
@@ -77,6 +89,9 @@ class PoiSearchPanelComposeTest {
         error: String? = null
     ) {
         selectedCategory = category
+        filterText = ""
+        poiCandidates = results
+        displayedResults = results
         composeRule.setContent {
             SearchDialog(
                 searchMode = SearchMode.POIS,
@@ -97,7 +112,9 @@ class PoiSearchPanelComposeTest {
                 onHistoryEntrySelected = {},
                 poiCategory = selectedCategory,
                 poiRadiusMeters = 5000.0,
-                poiResults = results,
+                poiResults = displayedResults,
+                poiHasCandidates = poiCandidates.isNotEmpty(),
+                poiFilter = filterText,
                 isPoiSearching = isSearching,
                 poiError = error,
                 client = null,
@@ -107,7 +124,14 @@ class PoiSearchPanelComposeTest {
                 selectedPoi = null,
                 onPoiCategorySelected = { selectedCategory = it },
                 onPoiRadiusChanged = {},
-                onPoiSearch = { searchCount++ },
+                onPoiFilterChanged = { term ->
+                    filterText = term
+                    displayedResults = filterPoiEntries(poiCandidates, term, 100)
+                },
+                onPoiSearch = {
+                    searchCount++
+                    displayedResults = filterPoiEntries(poiCandidates, filterText, 100)
+                },
                 onPoiEntryClick = { clickedEntries.add(it) },
                 addressBookAvailable = false,
                 contactsQuery = "",
@@ -119,8 +143,8 @@ class PoiSearchPanelComposeTest {
         composeRule.waitForIdle()
     }
 
-    /** The category dropdown field (the only editable field in POIs mode). */
-    private fun categoryField() = composeRule.onNode(hasSetTextAction())
+    /** The category dropdown field (tagged, because POIs mode now carries two editable fields). */
+    private fun categoryField() = composeRule.onNodeWithTag("poiCategoryField")
 
     /** A category row inside the dropdown menu (not the field text). */
     private fun categoryItem(name: String) =
@@ -482,5 +506,89 @@ class PoiSearchPanelComposeTest {
         composeRule.onNodeWithText("POI search failed").assertIsDisplayed()
         // The dialog stays usable: the search trigger remains enabled.
         composeRule.onNodeWithText("Search").assertIsEnabled()
+    }
+
+    // --- The name filter (spec: `search-dialog` — POIs mode offers a name filter; spec:
+    // `poi-search` — A name filter narrows a POI result list; change `poi-name-filter`) ---
+
+    @Test
+    fun theFilterFieldIsOfferedInPoisMode() {
+        launchDialog(category = PoiCategories.GROCERY)
+
+        composeRule.onNodeWithTag("poiFilterField").assertIsDisplayed()
+        composeRule.onNodeWithText("Filter by name").assertIsDisplayed()
+    }
+
+    @Test
+    fun typingAFilterEnablesNothing() {
+        launchDialog()
+
+        composeRule.onNodeWithTag("poiFilterField").performTextInput("rewe")
+
+        composeRule.onNodeWithText("Search").assertIsNotEnabled()
+        assertEquals("typing ran no search", 0, searchCount)
+    }
+
+    @Test
+    fun aFilterTypedBeforeTheSearchAppliesToIt() {
+        val rewe = poiEntry("REWE Markt", "shop_supermarket", 500.0)
+        val kiosk = poiEntry("Kiosk", "shop_kiosk", 300.0)
+        launchDialog(category = PoiCategories.GROCERY, results = listOf(rewe, kiosk))
+
+        composeRule.onNodeWithTag("poiFilterField").performTextInput("rewe")
+        assertEquals("typing ran no search", 0, searchCount)
+
+        composeRule.onNodeWithText("Search").performClick()
+
+        assertEquals(1, searchCount)
+        composeRule.onNodeWithText("REWE Markt").assertIsDisplayed()
+        composeRule.onNodeWithText("Kiosk").assertDoesNotExist()
+    }
+
+    @Test
+    fun clearingTheFilterRestoresTheList() {
+        val rewe = poiEntry("REWE Markt", "shop_supermarket", 500.0)
+        val kiosk = poiEntry("Kiosk", "shop_kiosk", 300.0)
+        launchDialog(category = PoiCategories.GROCERY, results = listOf(rewe, kiosk))
+        composeRule.onNodeWithTag("poiFilterField").performTextInput("rewe")
+        composeRule.onNodeWithText("Kiosk").assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Clear search").performClick()
+
+        composeRule.onNodeWithTag("poiResultsList").performScrollToNode(hasText("Kiosk"))
+        composeRule.onNodeWithText("Kiosk").assertIsDisplayed()
+        assertEquals("clearing ran no search", 0, searchCount)
+    }
+
+    @Test
+    fun anEmptyFilterShowsEveryCandidate() {
+        val rewe = poiEntry("REWE Markt", "shop_supermarket", 500.0)
+        val kiosk = poiEntry("Kiosk", "shop_kiosk", 300.0)
+        launchDialog(category = PoiCategories.GROCERY, results = listOf(rewe, kiosk))
+
+        composeRule.onNodeWithText("REWE Markt").assertIsDisplayed()
+        composeRule.onNodeWithTag("poiResultsList").performScrollToNode(hasText("Kiosk"))
+        composeRule.onNodeWithText("Kiosk").assertIsDisplayed()
+    }
+
+    @Test
+    fun aFilterWithNoMatchSaysSo() {
+        val rewe = poiEntry("REWE Markt", "shop_supermarket", 500.0)
+        launchDialog(category = PoiCategories.GROCERY, results = listOf(rewe))
+
+        composeRule.onNodeWithTag("poiFilterField").performTextInput("aldi")
+
+        composeRule.onNodeWithText("No entry matches “aldi”").assertIsDisplayed()
+        composeRule.onNodeWithText("No POIs found").assertDoesNotExist()
+    }
+
+    @Test
+    fun noPoisInRangeReadsDifferentlyFromNoMatch() {
+        launchDialog(category = PoiCategories.GROCERY, results = emptyList())
+
+        composeRule.onNodeWithText("No POIs found").assertIsDisplayed()
+        composeRule.onNodeWithTag("poiFilterField").performTextInput("rewe")
+        composeRule.onNodeWithText("No POIs found").assertIsDisplayed()
+        composeRule.onNodeWithText("No entry matches “rewe”").assertDoesNotExist()
     }
 }

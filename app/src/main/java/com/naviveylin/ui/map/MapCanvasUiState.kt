@@ -89,6 +89,24 @@ data class MapCanvasUiState(
     val poiRadiusMeters: Double = MapCanvasViewModel.DEFAULT_POI_RADIUS_METERS,
     /** POI search results, empty until the user triggers a search. */
     val poiResults: List<PoiEntry> = emptyList(),
+    /**
+     * The candidate set the current POI search holds, in the walk's own order — the set
+     * [poiFilter] narrows into [poiResults] (spec: `poi-search` — A filtered search asks for a
+     * candidate set, not a page; change `poi-name-filter`, design D4). Empty until a search runs.
+     */
+    val poiCandidates: List<PoiEntry> = emptyList(),
+    /**
+     * The name filter narrowing the POI list. It lives in state and never travels inside a
+     * search request, so a keystroke that lands while a widen is in flight cannot be mis-keyed
+     * (spec: `poi-search` — A name filter narrows a POI result list; design D3).
+     */
+    val poiFilter: String = "",
+    /**
+     * Whether the current candidate set was fetched at the candidate cap for this (category,
+     * radius, centre). A clear flag means the next non-empty filter runs one widened fetch
+     * (spec: `poi-search` — The first non-empty filter widens the fetch once; design D3).
+     */
+    val poiWidened: Boolean = false,
     val isPoiSearching: Boolean = false,
     val poiSearchError: String? = null,
     /** Map center the POI search ran around; NaN until a search runs. */

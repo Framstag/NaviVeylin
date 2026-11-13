@@ -17,6 +17,7 @@ import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.NavigationViewModel
+import com.naviveylin.core.search.POI_CANDIDATE_CAP
 import dagger.hilt.EntryPoints
 import io.mockk.every
 import io.mockk.mockk
@@ -132,13 +133,29 @@ class PoiResultsScreenTest {
         row!!.onClickDelegate!!.sendClick(mockk(relaxed = true))
     }
 
-    private fun poi(label: String): PoiEntry = PoiEntry().apply {
-        this.label = label
-        objectType = "amenity_restaurant"
-        distance = 600.0
-        lat = 51.51
-        lon = 7.46
-    }
+    private fun poi(label: String, operator: String? = null, brand: String? = null): PoiEntry =
+        PoiEntry().apply {
+            this.label = label
+            this.operator = operator
+            this.brand = brand
+            objectType = "amenity_restaurant"
+            distance = 600.0
+            lat = 51.51
+            lon = 7.46
+        }
+
+    /** A screen carrying [term] from the start, as the filter screen hands it back (design D5). */
+    private fun filteredScreen(term: String): PoiResultsScreen = start(
+        PoiResultsScreen(
+            carContext,
+            navigationViewModel,
+            PoiCategories.RESTAURANTS,
+            "Restaurants",
+            initialFilter = term,
+            mainDispatcher = mainDispatcherRule.dispatcher,
+            ioDispatcher = mainDispatcherRule.dispatcher
+        )
+    )
 
     private fun poiResults(count: Int): Array<PoiEntry> = (1..count).map { poi("POI $it") }.toTypedArray()
 
@@ -159,8 +176,12 @@ class PoiResultsScreenTest {
         val screen = newScreen()
         advanceUntilIdle()
 
+        // The filter row is the list's first row and the results keep the host's capacity behind it: the
+        // filter is chrome of the screen, not a content row of the slice (spec: `auto-search` — The filter
+        // row sits above the results; spec: `car-list-row-limit` — The POI results list fits the host's
+        // capacity).
         assertEquals(
-            (1..8).map { "POI $it" } + more(8),
+            listOf(carContext.getString(R.string.poi_filter_label)) + (1..8).map { "POI $it" } + more(8),
             titles(screen.onGetTemplate() as ListTemplate)
         )
         assertEquals("one capacity query per screen start", 1, capacityQueries)
@@ -202,13 +223,104 @@ class PoiResultsScreenTest {
 
         assertEquals(
             "the page begins with the first row the previous page did not show",
-            (9..16).map { "POI $it" },
+            listOf(carContext.getString(R.string.poi_filter_label)) + (9..16).map { "POI $it" },
             titles(next.onGetTemplate() as ListTemplate)
         )
         assertEquals(
             "the page re-ran no native walk: it slices rows the first search already fetched",
             1,
             client.poiSearchGenerations.size
+        )
+    }
+
+    // --- The name filter on the car (spec: `auto-search` — A car POI result list can be narrowed by
+    // name; A car POI row names its operator or brand) ---
+
+    @Test
+    fun theFilterRowSitsAboveTheResults() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: "The filter row sits above the results" — first row, and the active term as its text.
+        client.nextPoiResults = arrayOf(poi("REWE Markt"))
+        val screen = newScreen()
+        advanceUntilIdle()
+        assertEquals(
+            listOf(carContext.getString(R.string.poi_filter_label), "REWE Markt"),
+            titles(screen.onGetTemplate() as ListTemplate)
+        )
+
+        client.nextPoiResults = arrayOf(poi("REWE Markt"))
+        val filtered = filteredScreen("rewe")
+        advanceUntilIdle()
+        assertEquals(
+            "an active term is the filter row's text",
+            "rewe",
+            rows(filtered.onGetTemplate() as ListTemplate).first().title.toString()
+        )
+    }
+
+    @Test
+    fun theHeaderCarriesTheActiveTerm() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: "The header carries the active term" — the category and the term, not the category alone.
+        client.nextPoiResults = arrayOf(poi("REWE Markt"))
+        val screen = filteredScreen("rewe")
+        advanceUntilIdle()
+
+        val template = screen.onGetTemplate() as ListTemplate
+        assertEquals("Restaurants · rewe", template.header!!.title.toString())
+    }
+
+    @Test
+    fun aFilteredWalkAsksForTheCandidateCap() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: "A filtered walk asks for the candidate cap" — under a term the walk is asked for the
+        // shared cap (design D2), so the filter narrows the radius rather than the nearest page of it.
+        hostCapacity = 8
+        client.nextPoiResults = arrayOf(poi("REWE Markt"))
+        filteredScreen("rewe")
+        advanceUntilIdle()
+
+        assertEquals(
+            "a filtered walk is asked for the candidate cap, not for twice the row capacity",
+            listOf(POI_CANDIDATE_CAP),
+            client.poiSearchCandidateCounts
+        )
+    }
+
+    @Test
+    fun aRowTitleCarriesTheOperator() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: "A row title carries the operator" — the shared composer, so the row shows what matched.
+        client.nextPoiResults = arrayOf(poi("Supermarkt", operator = "REWE"))
+        val screen = filteredScreen("rewe")
+        advanceUntilIdle()
+
+        assertEquals(
+            "Supermarkt (REWE)",
+            rows(screen.onGetTemplate() as ListTemplate)[1].title.toString()
+        )
+    }
+
+    @Test
+    fun anUnnamedRowShowsTheOperatorAlone() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: "An unnamed row shows the operator alone".
+        client.nextPoiResults = arrayOf(poi("", operator = "REWE Markt"))
+        val screen = filteredScreen("rewe")
+        advanceUntilIdle()
+
+        assertEquals(
+            "REWE Markt",
+            rows(screen.onGetTemplate() as ListTemplate)[1].title.toString()
+        )
+    }
+
+    @Test
+    fun theTextLineKeepsTypeAndDistance() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: "The text line keeps type and distance" — the title is the composer's, the text line keeps
+        // the two facts the row carried before the composer moved.
+        client.nextPoiResults = arrayOf(poi("REWE Markt"))
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        assertEquals(
+            "amenity_restaurant · 600 m away",
+            rows(screen.onGetTemplate() as ListTemplate)[1].texts.single().toString()
         )
     }
 }

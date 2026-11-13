@@ -13,6 +13,8 @@
     <string name="poi_search_radius">Suchbereich: %1$s</string>
     <string name="poi_search_button">Suchen</string>
     <string name="poi_search_empty">Keine POIs gefunden</string>
+    <string name="poi_filter_label">Nach Name filtern</string>
+    <string name="poi_search_no_match">Kein Eintrag passt zu „%1$s“</string>
     <string name="poi_search_category_placeholder">Tippen, um Kategorien zu filtern</string>
     <string name="poi_search_clear_category">Kategorieauswahl löschen</string>
     <string name="poi_search_no_category_match">Keine passenden Kategorien</string>

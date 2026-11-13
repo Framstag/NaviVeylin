@@ -122,6 +122,17 @@ Source: spec `search-dialog` (phone only).
   cancellation arriving after a newer request started is a no-op; `UICar.md` §6b states the car's side of the same rule,
   and the slots (`places`, `poi`, `route`, `car`) keep one surface's search from stopping another's.
 
+- **Rule: POIs mode offers a name filter beside category and radius.** (spec `search-dialog` — POIs mode
+  offers a name filter; spec `poi-search` — A name filter narrows a POI result list, change
+  `poi-name-filter`.) The term is matched against the entry's name, operator and brand under the
+  search's own folding (`:core` `PoiNameFilter`), so a filter can never disagree with the search that
+  produced the candidates. A keystroke narrows the cached candidates and never re-runs the search;
+  category and radius changes keep needing the explicit Search button. The first non-empty filter on a
+  set that was cut at the display limit buys one widened walk (the candidate cap) per
+  (category, radius, centre), and every later keystroke derives locally. "No POIs of this category in
+  range" and "no match for *term*" are different sentences, because they are different answers. The
+  car's side of the same rule is `UICar.md` §6b.
+
 - **Rule: a Compose dropdown popup is asserted by its field's text.** A popup does not appear in a
   `uiautomator` dump (§40.22) — assert the field's text instead of trying to tap it on a device run.
 

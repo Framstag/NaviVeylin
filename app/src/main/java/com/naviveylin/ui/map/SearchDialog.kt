@@ -72,6 +72,7 @@ import com.naviveylin.R
 import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.needsResolvedAddress
+import com.naviveylin.core.search.poiDisplayLabel
 import com.naviveylin.core.search.rowDetail
 import com.naviveylin.core.search.rowTitle
 import com.naviveylin.core.search.ResultMarking
@@ -124,6 +125,10 @@ fun SearchDialog(
     poiCategory: String?,
     poiRadiusMeters: Double,
     poiResults: List<PoiEntry>,
+    /** Whether the current search holds any candidate at all — tells "no POIs in range" from "no match". */
+    poiHasCandidates: Boolean = false,
+    /** The active name filter narrowing the POI list. */
+    poiFilter: String = "",
     isPoiSearching: Boolean,
     poiError: String?,
     client: OSMScoutClient?,
@@ -133,6 +138,7 @@ fun SearchDialog(
     selectedPoi: Pair<Double, Double>?,
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
+    onPoiFilterChanged: (String) -> Unit = {},
     onPoiSearch: () -> Unit,
     isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit,
@@ -224,6 +230,8 @@ fun SearchDialog(
                 poiCategory = poiCategory,
                 poiRadiusMeters = poiRadiusMeters,
                 poiResults = poiResults,
+                poiHasCandidates = poiHasCandidates,
+                poiFilter = poiFilter,
                 isPoiSearching = isPoiSearching,
                 poiError = poiError,
                 client = client,
@@ -235,6 +243,7 @@ fun SearchDialog(
                 onStyleLoadFailure = onStyleLoadFailure,
                 onPoiCategorySelected = onPoiCategorySelected,
                 onPoiRadiusChanged = onPoiRadiusChanged,
+                onPoiFilterChanged = onPoiFilterChanged,
                 onPoiSearch = onPoiSearch,
                 onPoiEntryClick = onPoiEntryClick
             )
@@ -555,6 +564,7 @@ private fun PoiCategoryDropdown(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag("poiCategoryField")
                 .menuAnchor(MenuAnchorType.PrimaryEditable)
         )
         ExposedDropdownMenu(
@@ -594,6 +604,8 @@ private fun PoiContent(
     poiCategory: String?,
     poiRadiusMeters: Double,
     poiResults: List<PoiEntry>,
+    poiHasCandidates: Boolean,
+    poiFilter: String,
     isPoiSearching: Boolean,
     poiError: String?,
     client: OSMScoutClient?,
@@ -603,6 +615,7 @@ private fun PoiContent(
     selectedPoi: Pair<Double, Double>?,
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
+    onPoiFilterChanged: (String) -> Unit,
     onPoiSearch: () -> Unit,
     isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit,
@@ -615,6 +628,32 @@ private fun PoiContent(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
+        // The name filter narrows the current candidates without running a search (spec:
+        // `search-dialog` — POIs mode offers a name filter beside category and radius; spec:
+        // `poi-search` — A name filter narrows a POI result list). Its label is the resource the
+        // car row carries, so both variants say the same words (design D7).
+        OutlinedTextField(
+            value = poiFilter,
+            onValueChange = onPoiFilterChanged,
+            label = { Text(stringResource(R.string.poi_filter_label)) },
+            singleLine = true,
+            trailingIcon = {
+                if (poiFilter.isNotEmpty()) {
+                    IconButton(onClick = { onPoiFilterChanged("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.clear_search)
+                        )
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("poiFilterField")
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
         // Radius slider over the shared radius steps
         Text(
             text = stringResource(R.string.poi_search_radius, formatDistanceKm(poiRadiusMeters)),
@@ -667,6 +706,17 @@ private fun PoiContent(
                 )
             }
 
+            poiResults.isEmpty() && poiHasCandidates -> {
+                // A filter with no match is a different answer from a radius with no POI
+                // (spec: `poi-search` — A filter that matches nothing says so).
+                Text(
+                    text = stringResource(R.string.poi_search_no_match, poiFilter),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
             poiResults.isEmpty() && poiCategory != null -> {
                 Text(
                     text = stringResource(R.string.poi_search_empty),
@@ -699,6 +749,7 @@ private fun PoiContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 320.dp)
+                        .testTag("poiResultsList")
                 ) {
                     items(poiResults) { entry ->
                         PoiResultItem(
@@ -904,31 +955,6 @@ private fun ResultList(
             )
             HorizontalDivider()
         }
-    }
-}
-
-/**
- * Primary text for a POI result row (spec: poi-search — POI results list):
- * the name with the brand (preferred) or operator in parentheses when it
- * differs; the brand or operator alone when there is no name; "(unnamed)"
- * only when name, operator, and brand are all absent.
- */
-private fun poiDisplayLabel(entry: PoiEntry): String {
-    val name = entry.label
-    val brand = entry.brand
-    val operator = entry.operator
-    return when {
-        name.isNotEmpty() -> {
-            val extra = when {
-                !brand.isNullOrEmpty() && brand != name -> brand
-                !operator.isNullOrEmpty() && operator != name -> operator
-                else -> null
-            }
-            if (extra != null) "$name ($extra)" else name
-        }
-        !brand.isNullOrEmpty() -> brand
-        !operator.isNullOrEmpty() -> operator
-        else -> "(unnamed)"
     }
 }
 

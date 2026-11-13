@@ -14,6 +14,8 @@
     <string name="poi_search_radius">Search area: %1$s</string>
     <string name="poi_search_button">Search</string>
     <string name="poi_search_empty">No POIs found</string>
+    <string name="poi_filter_label">Filter by name</string>
+    <string name="poi_search_no_match">No entry matches “%1$s”</string>
     <string name="poi_search_category_placeholder">Type to filter categories</string>
     <string name="poi_search_clear_category">Clear category selection</string>
     <string name="poi_search_no_category_match">No matching categories</string>

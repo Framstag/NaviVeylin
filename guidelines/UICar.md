@@ -324,4 +324,22 @@ Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-searc
   a query shorter than 2 characters runs nothing, and leaving the screen abandons the running search and
   cancels the screen's scope — so a stopped screen makes no host call for a result. `UIPhone.md` §6a holds
   the phone's side of the same rule.
+- **Rule: a car POI result list is narrowed from a filter row, not from a second results screen.** (spec
+  `auto-search` — A car POI result list can be narrowed by name, change `poi-name-filter`.) The results
+  screen carries a "Filter by name" row above its results whose text is the active term, and the row opens
+  a `SearchTemplate` prefilled with that term. Submitting applies the term to the same results screen and
+  pops through `guardedHostCall` (§3c), so one refinement costs no back-stack depth — BACK still leaves the
+  list instead of walking the history of refinements. Typing applies nothing and leaving without submitting
+  changes nothing; an empty submit clears the filter. The header carries the category and the term.
+- **Rule: a filtered POI walk asks for the shared candidate cap, not for the display page.** (spec
+  `auto-search` — A filtered walk asks for the candidate cap.) Under a term the walk is asked for
+  `max(POI_CANDIDATE_CAP, 2 × host row capacity)` — the cap in `:core`, so phone and car cannot disagree,
+  and never below the shipped "at least twice the capacity" floor — and the Kotlin filter narrows that set,
+  so the shown rows are the nearest matches of the radius rather than the filter applied to the nearest
+  page. The filter row is chrome of the screen like the page row: the result slice keeps the host's
+  capacity behind it.
+- **Rule: a car POI row's title is the shared composer.** (spec `poi-search` — POI results list.) The title
+  is `:core` `poiDisplayLabel` — the name with the brand (preferred) or operator in parentheses, the brand
+  or operator alone when there is no name — so a row that survived a name filter on its operator shows the
+  operator that matched. The single text line keeps the object type and the distance.
 

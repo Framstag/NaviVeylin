@@ -36,6 +36,21 @@ Ruled out: this change. Its paths are `LocationMarkerOverlay.kt`, `MapCanvasMapB
 `LocationMarkerEdgeCueTest.kt`, `guidelines/MapFollow.md`, `tools/doc-routes.json` and this change's own
 record — no file under `core/`, and the failing case measures `core/…/DiagnosticsLog`'s write path.
 
+## The same shape, a second time, on the landing tree
+
+The gate was run again on the merged tree (`head=3f2b587879d4`, `diff=a0ae11d7d98785fd`): red on the gradle
+step (566 s, `BUILD FAILED in 9m 23s`, the step's tally `errors="1"`), and **no** JUnit XML under
+`app/build/test-results` carried a `<failure>` or `<error>` afterwards. The same command on the same tree then
+passed (11m 20s, `BUILD SUCCESSFUL`), and the gate on that tree passed too (720 s, its tally `errors="0"`,
+`LOOP-GATE-TREE: head=3f2b587879d4 diff=a0ae11d7d98785fd`).
+
+This one could not be attributed to a case: the gate follows each step's output in a temporary file and keeps
+no log of it, so a red step whose tests all report zero failures names no victim. What it matches is the open
+bug **#860** — "The HUP case hangs the suite instead of failing it: a leaked stub child holds the suite" — which
+is the loop's rank-1 pinned item, and which is the reason this file says "a flake of unknown origin" rather
+than naming a case: three of this session's five gate runs on this step were red with no failing test in the
+tree, and every green rerun was on the same bytes.
+
 Not ruled out: the flake's own mechanism. `DiagnosticsLogWritePathTest` is a class the repository already
 records as flaky — `openspec/changes/archive/2026-10-18-fix-parked-state-race` was filed for another case in
 it, and `2026-10-09-fix-pinned-band-height/tasks.md:35` records the same command hitting it once on an

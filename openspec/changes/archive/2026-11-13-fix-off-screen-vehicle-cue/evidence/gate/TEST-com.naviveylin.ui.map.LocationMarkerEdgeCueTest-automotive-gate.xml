@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:06:37.294Z" hostname="dingens" time="11.055">
+<testsuite name="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-13T20:06:14.074Z" hostname="dingens" time="23.599">
   <properties/>
-  <testcase name="theCueClearsTheColumnInsetBounds" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="8.548"/>
-  <testcase name="theCueSitsOnTheEdgeTowardTheVehicle" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="0.188"/>
-  <testcase name="theOnScreenMarkerPlacesNoCue" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="0.153"/>
-  <testcase name="theOffScreenVehicleDrawsACueAtTheEdge" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="2.014"/>
+  <testcase name="theCueClearsTheColumnInsetBounds" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="19.097"/>
+  <testcase name="theCueSitsOnTheEdgeTowardTheVehicle" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="0.261"/>
+  <testcase name="theOnScreenMarkerPlacesNoCue" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="0.275"/>
+  <testcase name="theOffScreenVehicleDrawsACueAtTheEdge" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="3.539"/>
   <system-out><![CDATA[Frame raster=320x470 origin=(0,0) side=300
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>

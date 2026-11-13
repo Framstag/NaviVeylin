@@ -1214,6 +1214,13 @@ MUTATIONS=(
   # over two children that had written a paragraph each. One rule, one case: the note carries the reason the child
   # gave, and the constant is only the fallback for a child that gave none.
   '854.1@-@tools/loop/run.sh@run#aSkipPrintsTheReasonTheChildGave@the note the skip arm records, so the report prints the constant for every skip while the same record carries the child sentence (issue #854)@s|--note "\${root_cause:-skipped by the worker}"|--note "skipped by the worker"|'
+  # 853.x — which tree fails the case a red gate names (issue #853). The field is what makes a block readable, so each
+  # of its three halves is pinned by the case that reads it: the run's one attribution (`853.1`), the state's write
+  # beside the waiver fields (`853.2`), and the log `tools/loop/gate.sh` writes for it (`853.3`). Each mutation empties
+  # exactly one of them, so the case that fails is the one that half belongs to.
+  '853.1@-@tools/loop/run.sh@run#aRedGateIsAttributedToTheTreeThatFailsIt@the attribution a red tally is recorded with, so every red gate reads as one verdict and the case the delta wrote is asked of the base tree (issue #853)@s|^    gate_attribution=\$(attribute_red_gate "\$gate_field" "\$gate_tally_dir" "\$worktree" "\$base")$|    gate_attribution=""|'
+  '853.2@-@tools/loop/state.sh@run#aRedGateIsAttributedToTheTreeThatFailsIt@the field the record carries beside the tally and beside the waiver, so no run names which tree failed the case its gate named (issue #853)@s|^                           gateAttribution:(if \$ga == "" then null else \$ga end),$|                           gateAttribution:null,|'
+  '853.3@-@tools/loop/gate.sh@gate#aRedGateWritesTheLogItIsAttributedFrom@the log written beside the tallies, so the one source a red gate is attributed from does not exist and every red reads `unattributable` (issue #853)@s|^  gate_log="\$tally_root/gate.log"$|  gate_log=""|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

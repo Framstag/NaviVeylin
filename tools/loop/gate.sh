@@ -127,7 +127,15 @@ session_key_of() { # session_key_of <events file> → the id of the last `sessio
   printf '%s' "$line" | jq -r '.id // empty' 2>/dev/null
 }
 
-say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
+# The gate's own log, beside its tallies (issue #853). A red gate is attributed from what it printed — its step
+# blocks, its `FAIL <group>#<name>` lines and its verdict — and `tools/gate-attribute.sh` reads exactly that text, so
+# the gate writes it rather than leaving a reader to the child's console: the file is the one source of the failing
+# case and of the rerun command derived from the failing step's own line. It is written whether or not `--quiet`
+# suppressed the console, and it is named once, where the tally directory is claimed.
+gate_log=""
+log_line() { [ -z "$gate_log" ] || printf '%s\n' "$*" >> "$gate_log" 2>/dev/null || true; }
+
+say() { log_line "$*"; [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
 # A step's output is followed in its file, not carried on a pipe (issue #315). `$cmd 2>&1 | tee "$stream"` reads to EOF,
 # and EOF arrives only when *every* writer that inherited the write end has let go of it — so a suite that leaves a
@@ -404,7 +412,11 @@ gate_take_tally() { # → the directory is this run's, or this gate has refused 
   fi
   # Every carrier the directory still holds is an earlier run's — a run that crashed, or the one before this.
   rm -f "$tally_root"/*.xml 2>/dev/null || true
+  # …and the log this gate writes is this run's too, so a red gate is never read through the previous run's failures.
+  gate_log="$tally_root/gate.log"
+  : > "$gate_log" 2>/dev/null || gate_log=""
   say "LOOP-GATE-TALLY: $tally_root run=${tally_owner%% *}"
+  [ -z "$gate_log" ] || say "LOOP-GATE-LOG: $gate_log"
 }
 
 gate_tmp=$(mktemp -d "${TMPDIR:-/tmp}/loop-gate-steps.XXXXXX") \
@@ -521,7 +533,10 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
   # A step of a wave prints its block whole and header first, so its output is its own between its own header and its
   # own duration line — the shape `tools/gate-attribute.sh` reads a failure and its step from.
   if [ "${st_announced[slot]}" -eq 0 ]; then say "gate: $cmd"; fi
-  if [ "${st_followed[slot]}" -eq 0 ] && [ "$quiet" -eq 0 ] && [ -n "$out" ]; then printf '%s\n' "$out"; fi
+  if [ -n "$out" ]; then
+    log_line "$out"
+    if [ "${st_followed[slot]}" -eq 0 ] && [ "$quiet" -eq 0 ]; then printf '%s\n' "$out"; fi
+  fi
   if [ "${st_overran[slot]}" -eq 1 ]; then
     say "gate: $cmd — ${took}s — the step overran its bound of ${step_max}s and was ended"
   else
@@ -601,9 +616,15 @@ while [ "$slot_next" -lt "${#owed_cmd[@]}" ]; do
   slot_next=$((last + 1))
 done
 
+# The verdict is the last line of the log as well, so a reader that only has the file still gets the numbers the
+# console carried — and a `--quiet` gate writes no console at all but leaves a log a red run can be attributed from.
 if [ -n "$failed_suites" ]; then
-  printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s\n' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites"
+  verdict_line=$(printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites")
+  log_line "$verdict_line"
+  printf '%s\n' "$verdict_line"
   exit 1
 fi
-printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)\n' "$cases" "$failures" "$errors" "$ran_entries"
+verdict_line=$(printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)' "$cases" "$failures" "$errors" "$ran_entries")
+log_line "$verdict_line"
+printf '%s\n' "$verdict_line"
 exit 0

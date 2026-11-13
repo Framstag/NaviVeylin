@@ -606,7 +606,18 @@ trend=$(jq -r --argjson floor "$calls_floor" '
         then "- · this state records no gate waiver — it was written before the report counted one"
       else "0 of \($closedItems) closed items · no close was over a gate that did not pass"
       end ) as $waivedline
-  | "  review: \($review)\n  waived: \($waivedline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
+  # Which tree fails the case a red gate named (issue #853). The field is written beside the waiver fields, so the
+  # absence of the key is told apart from its null exactly as `gateWaived` is: a record written before the field
+  # existed carries no `gateAttribution` key at all, while one of this era whose gate passed carries it as `null`.
+  | ([.items[] | select(.metrics | has("gateAttribution"))] | length) as $attributableItems
+  | ([.items[] | select((.metrics.gateAttribution // "") != "") | .metrics.gateAttribution]) as $attribution
+  | ( if ($attribution | length) > 0 then
+        "\($attribution | length) of \($attributableItems) items recorded which tree fails the case their gate named (\($attribution | group_by(.) | map("\(.[0]) ×\(length)") | join(", "))) · the answer beside the block"
+      elif $attributableItems == 0
+        then "- · this state records no gate attribution — it was written before the report counted one"
+      else "0 of \($attributableItems) items recorded which tree fails the case their gate named · no red gate was attributed"
+      end ) as $attributionline
+  | "  review: \($review)\n  waived: \($waivedline)\n  attributed: \($attributionline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

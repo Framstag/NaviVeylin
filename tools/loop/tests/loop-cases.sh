@@ -239,6 +239,7 @@ LOOP_SHELL_CASES=(
   'run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase'
   'run#noProcessOfASignalledRunOutlivesIt'
   'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'
+  'run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
@@ -961,6 +962,7 @@ loop_run_shell_case() {
     'run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase') fn=case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase ;;
     'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
     'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem') fn=case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem ;;
+    'run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock') fn=case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
@@ -1243,6 +1245,26 @@ wait_for_stub_child() { # wait_for_stub_child <ready file> → 0 when it appeare
     sleep 0.1
   done
   return 1
+}
+
+# A case that waits on a process it started bounds that wait itself (issue #860). The suite's own case bound is
+# `LOOP_CASE_MAX_SECONDS` times the pool's width (`tools/loop/tests/loop-selftest.sh:196-198`), so a case whose run
+# never takes the signal it was sent holds its slot — and the suite, and the gate behind it — for hours rather than
+# for the fact it waits on. The tick is the one `wait_for_stub_child` above uses. The status the process ended with
+# is kept in `WAIT_PID_STATUS`, because `wait` has to run in the case's own shell: a subshell cannot reap its
+# parent's child, and a `$( … )` around the wait would answer the helper's status instead of the process's.
+CASE_WAIT_TICKS=300   # 30 s at 0.1 s per tick — thirty times the 1 s TERM→KILL grace a run's trap gives its child
+wait_for_pid_end() { # wait_for_pid_end <pid> [ticks] → 0 it ended (WAIT_PID_STATUS), 124 it outlived them
+  local pid="$1" ticks="${2:-$CASE_WAIT_TICKS}" i
+  WAIT_PID_STATUS=124
+  for i in $(seq 1 "$ticks"); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  kill -0 "$pid" 2>/dev/null && return 124
+  wait "$pid" 2>/dev/null
+  WAIT_PID_STATUS=$?
+  return 0
 }
 
 new_project() {
@@ -14564,7 +14586,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
 # `run.stop` is the reason a report read after this process is gone prints, and 50 of the 105 runs this repository has
 # archived record no stop, 18 of them having worked items (measured 2026-11-07).
 case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p block first status f owner child i alive
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -14583,19 +14605,37 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # gone (issue #259 — `labels#trapRemovesInProgressOnSignal` explains the hang that shape cured).
   exec 8<> "$block"
   wait_for_stub_child "$block.ready" || true
-  [ -f "$block.ready" ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the run never reached its child"; }
+  [ -f "$block.ready" ] || { printf 'go\n' >&8 2>/dev/null || true; wait_for_pid_end "$first" 100 || kill -9 "$first" 2>/dev/null; exec 8>&-; fail "the run never reached its child"; }
   f=$(state_file "$p"); owner=0
   for i in $(seq 1 100); do
     owner=$(jq -r '.run.ownerPid // 0' "$f" 2>/dev/null || printf 0)
     [ "$owner" != 0 ] && break
     sleep 0.1
   done
-  [ "$owner" != 0 ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the run never recorded the process that wrote its state"; }
+  [ "$owner" != 0 ] || { printf 'go\n' >&8 2>/dev/null || true; wait_for_pid_end "$first" 100 || kill -9 "$first" 2>/dev/null; exec 8>&-; fail "the run never recorded the process that wrote its state"; }
   child=""
   for i in $(seq 1 100); do [ -f "$d/child.pid" ] && { child=$(cat "$d/child.pid"); break; }; sleep 0.1; done
-  [ -n "$child" ] || { printf 'go\n' >&8 2>/dev/null || true; wait "$first"; exec 8>&-; fail "the child never named the process the run started"; }
+  [ -n "$child" ] || { printf 'go\n' >&8 2>/dev/null || true; wait_for_pid_end "$first" 100 || kill -9 "$first" 2>/dev/null; exec 8>&-; fail "the child never named the process the run started"; }
+  # The item has not answered, so the HUP is the only thing that can end the run (issue #860): a case that signals a
+  # run which already finished its item measures the gap between two reads and not the HUP path, which is the
+  # `expected '129', got '0'` the loop's gate recorded in a 16-case pool. `run.ownerPid` is written after the traps
+  # are installed (`tools/loop/run.sh:718-721`, `:728-730`) and the child writes its pid inside its own action, before
+  # it blocks on the fifo (`tools/loop/tests/fixtures/pi:106`, `:114-118`), so both facts read here are stages.
+  assert_eq "" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the item has not answered when the HUP is sent"
   kill -HUP "$owner"
-  wait "$first"; status=$?
+  # The case's own clock, not the suite's (issue #860): a run that does not take the signal leaves this case waiting
+  # on a child nothing releases, and the suite answers that only at `LOOP_CASE_MAX_SECONDS` times the pool's width —
+  # up to four hours in the pool this race was measured in. A run that outlives the ticks is named with what this
+  # case read, then released and ended, so nothing of it holds the case's stream when the case answers.
+  if ! wait_for_pid_end "$first"; then
+    status="${WAIT_PID_STATUS:-124}"
+    printf 'go\n' >&8 2>/dev/null || true
+    loop_end_pid "$owner"
+    wait_for_pid_end "$first" 50 || kill -9 "$first" 2>/dev/null
+    exec 8>&-
+    fail "a run that took HUP did not end inside $CASE_WAIT_TICKS ticks (status $status) — its stop was '$(jq -r '.run.stop.reason? // ""' "$f" 2>/dev/null)' and its item '$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)'"
+  fi
+  status=$WAIT_PID_STATUS
   assert_eq "129" "$status" "a run ended by HUP reports the signal it took"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$f")" "SIGHUP" \
     "the run records the signal that ended it as its own stop"
@@ -14615,6 +14655,66 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   [ "$alive" -eq 0 ] || fail "the run HUP ended but the child it started (pid $child) is still running — the trap must end it"
   [ ! -d "$p/.pi/issue-loop/lock" ] || fail "the lock was left behind by the run HUP ended"
 }
+
+# The measured red of issue #860, staged on purpose: the signal the case sends reaches no process, so the run goes on
+# and a case that waits on it with no clock of its own waits for the suite's bound (minutes times the pool's width).
+# A case that bounds its own wait answers here, naming what it read, and leaves nothing holding its stream.
+case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p block first status f owner gone ended stop_seen item_seen
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  block="$d/wait.fifo"; mkfifo "$block"
+  ( export PI_STUB_WAIT="$block"
+    run_loop "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
+  first=$!
+  exec 8<> "$block"
+  wait_for_stub_child "$block.ready" || true
+  [ -f "$block.ready" ] || { printf 'go\n' >&8 2>/dev/null || true; wait_for_pid_end "$first" 100 || kill -9 "$first" 2>/dev/null; exec 8>&-; fail "the run never reached its child"; }
+  f=$(state_file "$p")
+  owner=0
+  for i in $(seq 1 100); do
+    owner=$(jq -r '.run.ownerPid // 0' "$f" 2>/dev/null || printf 0)
+    [ "$owner" != 0 ] && break
+    sleep 0.1
+  done
+  [ "$owner" != 0 ] || { printf 'go\n' >&8 2>/dev/null || true; wait_for_pid_end "$first" 100 || kill -9 "$first" 2>/dev/null; exec 8>&-; fail "the run never recorded the process that wrote its state"; }
+  # A pid no signal can reach: the process is started and reaped first, so the HUP below is the signal the run never
+  # takes — the outcome the case's own wait has to answer instead of the suite's bound.
+  ( exit 0 ) & gone=$!
+  wait "$gone" 2>/dev/null
+  kill -HUP "$gone" 2>/dev/null || true
+  wait_for_pid_end "$first" 30 || true
+  status="${WAIT_PID_STATUS:-}"
+  # What the run recorded is read *before* anything this case does to it, so the failure below names the state the
+  # bound was taken on and not the state the case's own cleanup wrote.
+  stop_seen=$(jq -r '.run.stop.reason? // ""' "$f" 2>/dev/null)
+  item_seen=$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)
+  if [ "$status" != 124 ]; then
+    printf 'go\n' >&8 2>/dev/null || true
+    loop_end_pid "$owner"
+    wait_for_pid_end "$first" 50 || kill -9 "$first" 2>/dev/null
+    exec 8>&-
+    fail "the case's own wait answered '$status' for a run the HUP never reached (pid $first, stop '$stop_seen', item '$item_seen') — expected the bound's 124 inside its own ticks"
+  fi
+  assert_eq "124" "$status" "a run the HUP never reached outlives the case's own ticks"
+  # Nothing ended the run while the case waited, which is what makes this the run that never took the signal rather
+  # than one that took it and ended: the record the HUP case reads is still empty.
+  assert_eq "" "$stop_seen" "the run the case waited on took no signal"
+  # …and the case ends what it held: the child is released, the run is told to end, and its own wait reaps it — so no
+  # process of it is left holding the case's stream when the case answers.
+  printf 'go\n' >&8 2>/dev/null || true
+  loop_end_pid "$owner"
+  ended=0
+  wait_for_pid_end "$first" 100 && ended=1
+  exec 8>&-
+  [ "$ended" -eq 1 ] || { kill -9 "$first" 2>/dev/null; fail "the run did not end after its child was released and it was told to"; }
+  # …and it ended through its own trap, which is the path that ends the child it started (`run.sh`'s `on_exit`), so the
+  # process the case waited on is not the only one that ended.
+  assert_eq "blocked" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the run recorded the item its signal interrupted"
+}
+
 
 # A process still standing in a scratch tree is a leftover whatever its tree's state, and the kernel shows a
 # deleted tree with ` (deleted)` appended to the cwd it reports. That suffix is why the leftovers of a killed

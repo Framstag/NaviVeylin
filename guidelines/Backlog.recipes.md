@@ -748,6 +748,14 @@ file above the size bound. The tree is still kept exactly as the child left it: 
 never a replacement, and nothing is committed. The suite's slowest case is 9–15 s, and all 223 cases took 273 s on the
 same day.
 
+That bound is the suite's backstop and not the clock a case keeps for itself. A case that starts a process and waits
+for it (`tools/loop/tests/loop-cases.sh`'s `wait_for_pid_end`, `CASE_WAIT_TICKS` = 30 s) answers that wait at its own
+ticks and names the process and what it read when the process outlives them, because the suite's bound is minutes
+times the pool's width: measured 2026-11-11 in a 16-case pool, `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem` sent
+its `SIGHUP` into a run that had already ended (`expected '129', got '0'`) and, in a four-way pool of the whole
+413-case set, held its run, its stub child and the adapter above it for the ten minutes the suite was left running
+before it was ended by hand.
+
 Inside that bound the project's gate is what fills the log, and it streams: each suite's output is read from the
 file the suite writes as the suite writes it, and the summary, the tally and the failure text are read from that
 same file, so a suite that runs for a quarter of an hour shows its own lines instead of a two-line log. Measured

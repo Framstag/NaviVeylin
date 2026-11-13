@@ -10,6 +10,13 @@
 // `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`). The spend is the tail, so the bound is a rule about
 // the tail: a result above it is cut and named, a result under it is handed over byte for byte.
 //
+// One class of result is held above that bound: gate/evidence output keeps the 8 000 it shipped with, because
+// `guidelines/BuildEvidence.md` §4d's diagnosis reads a gate log and the suite XMLs whole — the failing case's
+// `file:line`, the JUnit `timestamp` order a failing set is bisected in, the failed step and the flake line — and
+// a cut there withholds the fact the next round needs to attribute the run with. So a result that *is* gate
+// evidence — a `LOOP-GATE` line or a `<testsuite` root in its text, a `gate.log` or `.xml` path beside it — is cut
+// at `GATE_EVIDENCE_BOUND` instead of the recorded bound, and the higher of the two applies, so the class never
+// tightens a bound a project raised above its own.
 // Prose does not do this job. The worker prompt has asked a child to read the section it needs rather than the
 // whole document, and to cite a file rather than read it again, since #246 — and the archive still records
 // `LOOP-SPEND-READS calls=4798 duplicate=2174`: 45 % of its reads are a second read of a path the child already
@@ -83,13 +90,36 @@ export function repeatRecordLine(tool, total, kept) {
   return `LOOP-TOOL-RESULT-REPEAT: ${tool} chars=${total} kept=${kept}\n`;
 }
 
+/** The bound gate/evidence output is held to instead of the recorded one (§4d): what a red run is attributed from. */
+export const GATE_EVIDENCE_BOUND = 8000;
+
+/**
+ * What makes a result gate/evidence: a gate log or suite XML by path, or their marks in the text — the `LOOP-GATE`
+ * line family a gate log and `tools/gate-attribute.sh` end with, and a `<testsuite` root. Both seams are the ones a
+ * caller can see: a read tool carries its path, every other tool carries only its text.
+ */
+export function isGateEvidence(text, path) {
+  if (typeof path === "string" && path) {
+    if (/\.xml$/.test(path)) return true; // a suite XML, read whole for its `timestamp` order (§4d)
+    if (/(?:^|\/)[^/]*gate[^/]*\.log$/.test(path)) return true; // the gate log §4d's diagnosis reads
+  }
+  if (typeof text === "string") {
+    if (/(?:^|\n)[ \t]*LOOP-GATE[-:]/.test(text)) return true;
+    if (/(?:^|\n)[ \t]*<testsuite[\s>]/.test(text)) return true;
+  }
+  return false;
+}
+
 /**
  * The rule: a result at or under the bound is returned untouched; one above it is cut to its first `bound`
  * characters — never in the middle of a surrogate pair — and carries one line naming the tool, the size and the
- * bound, and the trim is appended to `record` when a path names one.
+ * bound, and the trim is appended to `record` when a path names one. Gate/evidence output is held to the higher
+ * of `bound` and `GATE_EVIDENCE_BOUND` instead, so the exempt class is cut at 8 000 and never at a tighter bound.
  */
-export function trimResult(text, bound, tool, record) {
-  if (typeof text !== "string" || !(bound > 0) || text.length <= bound) return text;
+export function trimResult(text, bound, tool, record, path = "") {
+  if (typeof text !== "string" || !(bound > 0)) return text;
+  if (isGateEvidence(text, path)) bound = Math.max(bound, GATE_EVIDENCE_BOUND);
+  if (text.length <= bound) return text;
   const total = text.length;
   let cut = text.slice(0, bound);
   const last = cut.charCodeAt(cut.length - 1);
@@ -204,7 +234,8 @@ export function trimContent(content, bound, tool, record, read) {
   let changed = false;
   const out = (content || []).map((block) => {
     if (!block || block.type !== "text" || typeof block.text !== "string") return block;
-    const text = trimResult(repeatResult(block.text, read, bound, tool, record), bound, tool, record);
+    const text = trimResult(repeatResult(block.text, read, bound, tool, record), bound, tool, record,
+      read ? read.path : "");
     if (text !== block.text) changed = true;
     return text === block.text ? block : { ...block, text };
   });
@@ -296,7 +327,7 @@ function cli(argv) {
   const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();
   const text = readFileSync(0, "utf8");
   const read = { path: readPath(tool, { path }), ledger, turn, session };
-  process.stdout.write(trimResult(repeatResult(text, read, bound, tool, record), bound, tool, record));
+  process.stdout.write(trimResult(repeatResult(text, read, bound, tool, record), bound, tool, record, path));
   if (ledgerFile) writeLedger(ledgerFile, ledger);
   return 0;
 }

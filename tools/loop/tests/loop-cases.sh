@@ -327,6 +327,7 @@ LOOP_SHELL_CASES=(
   'adapter#modeFlagIsItsOwnArgument'
   'adapter#theChildIsStartedWithoutContextFiles'
   'adapter#theChildIsStartedWithTheResultBound'
+  'adapter#theResultBoundExemptsGateEvidence'
   'adapter#theChildIsStartedWithTheItemsLedger'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
@@ -1043,6 +1044,7 @@ loop_run_shell_case() {
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
+    'adapter#theResultBoundExemptsGateEvidence') fn=case_adapter_theResultBoundExemptsGateEvidence ;;
     'adapter#theChildIsStartedWithTheItemsLedger') fn=case_adapter_theChildIsStartedWithTheItemsLedger ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
@@ -11551,6 +11553,85 @@ case_adapter_theChildIsStartedWithTheResultBound() {
     fail "the adapter exited non-zero with an event stream: $(head -3 "$d/out-events")"
   assert_eq "$d/tool-result-trims.log" "$(cat "$d/events-argv.txt.record" 2>/dev/null || true)" \
     "the trim is recorded beside the child's own event stream, in the item's directory"
+  return 0
+}
+
+# The bound cuts every result but one class: `guidelines/BuildEvidence.md` §4d's diagnosis reads a gate log and the
+# suite XMLs whole — the failing case's `file:line`, the JUnit `timestamp` order a failing set is bisected in, the
+# failed step and the flake line — and a cut there withholds the fact the next round attributes the run with. So
+# the trimmer holds gate/evidence output to the 8 000 it shipped with instead of the bound, by content (`LOOP-GATE`
+# line, `<testsuite` root) or by path (`gate.log`, `.xml`), which are the two things a hook event carries. The
+# cases below drive the trimmer's own CLI, so the rules they prove are the hook's (issue #660).
+case_adapter_theResultBoundExemptsGateEvidence() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-trim-result.mjs
+  local d trim plain gate xml big out
+  trim="$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs"
+  [ -f "$trim" ] || fail "nothing bounds a tool result: $trim is not in the tree (issue #660)"
+  d=$(scratch)
+
+  # (a) a normal result over the bound arrives cut at it — 6 000 characters against a bound of 4 000.
+  plain="$d/plain.txt"
+  { head -c 5989 /dev/zero | tr '\0' 'a'; printf 'PLAIN-TAIL\n'; } > "$plain"
+  out="$d/plain.out"
+  node "$trim" --bound 4000 --tool ctx_shell < "$plain" > "$out" \
+    || fail "the bound exited non-zero: $(head -3 "$out")"
+  assert_eq "$(head -c 4000 "$plain")" "$(head -c 4000 "$out")" \
+    "a normal result above 4 000 arrives cut at its first 4 000 characters"
+  assert_contains "$(cat "$out")" 'the first 4000 are shown' "and the cut is named: $(cat "$out")"
+  assert_not_contains "$(cat "$out")" 'PLAIN-TAIL' "the tail past the bound is not handed over"
+
+  # (b) gate/evidence output above 4 000 is not cut at that bound: the LOOP-GATE verdict line §4d reads whole.
+  gate="$d/gate.txt"
+  {
+    printf 'LOOP-GATE: tests=558 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --from-git abc1234 240s)\n'
+    head -c 5800 /dev/zero | tr '\0' 'g'
+    printf 'GATE-TAIL\n'
+  } > "$gate"
+  out="$d/gate.out"
+  node "$trim" --bound 4000 --tool ctx_shell < "$gate" > "$out" \
+    || fail "the trimmer exited non-zero on gate output: $(head -3 "$out")"
+  assert_eq "$(wc -c < "$gate" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
+    "gate/evidence output above 4 000 is not cut at that bound"
+  assert_not_contains "$(cat "$out")" 'LOOP-TRIMMED' "and nothing says it was cut: $(cat "$out")"
+  assert_contains "$(cat "$out")" 'GATE-TAIL' "the tail §4d's diagnosis reads whole is still there"
+
+  # …the same by content for a suite XML, and by path for both, since a read tool is what carries a path.
+  xml="$d/suite.xml"
+  {
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="tools_loop_tests" tests="558" failures="0">\n'
+    head -c 5700 /dev/zero | tr '\0' 'x'
+    printf 'XML-TAIL\n</testsuite>\n'
+  } > "$xml"
+  out="$d/suite.out"
+  node "$trim" --bound 4000 --tool ctx_read < "$xml" > "$out" \
+    || fail "the trimmer exited non-zero on a suite XML: $(head -3 "$out")"
+  assert_eq "$(wc -c < "$xml" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
+    "a suite XML above 4 000 is not cut at that bound"
+  out="$d/gatepath.out"
+  node "$trim" --bound 4000 --tool ctx_read --path "items/816/gate.log" < "$plain" > "$out" \
+    || fail "the trimmer exited non-zero on a gate log path: $(head -3 "$out")"
+  assert_eq "$(wc -c < "$plain" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
+    "a plain result read from a gate log path is held as gate evidence"
+  out="$d/xmlpath.out"
+  node "$trim" --bound 4000 --tool ctx_read --path "build/test-results/test/TEST-tools.xml" < "$plain" > "$out" \
+    || fail "the trimmer exited non-zero on a suite XML path: $(head -3 "$out")"
+  assert_eq "$(wc -c < "$plain" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
+    "and a plain result read from a suite XML path the same"
+
+  # …and the exempt class keeps the 8 000 it shipped with: bounded, not exempt from every bound.
+  big="$d/gate-big.txt"
+  {
+    printf 'LOOP-GATE: tests=558 failures=0 errors=0\n'
+    head -c 8800 /dev/zero | tr '\0' 'g'
+    printf 'GATE-DEEP\n'
+  } > "$big"
+  out="$d/gate-big.out"
+  node "$trim" --bound 4000 --tool ctx_shell < "$big" > "$out" \
+    || fail "the trimmer exited non-zero on oversized gate output: $(head -3 "$out")"
+  assert_eq "$(head -c 8000 "$big")" "$(head -c 8000 "$out")" \
+    "gate/evidence output above 8 000 is cut at 8 000, never at 4 000"
+  assert_contains "$(cat "$out")" 'the first 8000 are shown' "and the cut names the bound it used: $(cat "$out")"
+  assert_not_contains "$(cat "$out")" 'GATE-DEEP' "the tail past 8 000 is still cut"
   return 0
 }
 

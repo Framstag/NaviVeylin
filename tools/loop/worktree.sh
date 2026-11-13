@@ -620,8 +620,8 @@ cmd_set_aside() { # <issue> <branch>
 # What the landing step is handed about the project's own tree (issue #862). The run's rule is that a difference it
 # can tie to no process of its own is recorded and decides nothing (#286, #274) — and the landing step is where the
 # run disagreed with it: both merges refused any `git status` output with no attribution clause, so an item that was
-# green, red-tested and reviewed was dropped for a path its own children never touched (5 of the 145 archived states
-# carry `stopReason: unmergeable`, #862). The reading the run took travels with the call: `--outside-write-decides
+# green, red-tested and reviewed was dropped for a path its own children never touched (#862's count: 5 of the 145
+# archived states carry `stopReason: unmergeable`). The reading the run took travels with the call: `--outside-write-decides
 # no` for a difference it placed in no process of its own, `yes` for one it did, or for a run that declared the tree
 # exclusive — and the note names the paths, because a record that names none is a sentence nobody can act on (#285).
 # A call that carries no reading still refuses: a difference the run never read is not one it can place, and the two

@@ -1182,8 +1182,8 @@ tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two 
 `fix/issue-201-…` and the base at the run's base, and a person fast-forwarded `main` 35 minutes later (#229).
 What the dirt *is* decides it (issue #862): the run hands the merge the readings its children took of that tree, so a
 difference one of them placed in a process of its own tree refuses the merge, and a difference it placed nowhere is
-recorded with the paths it changed and merged over — 5 of the 145 archived states carry `stopReason: unmergeable`
-for a path no child of the run was ever tied to, and one of them (#859) had already written
+recorded with the paths it changed and merged over — issue #862's count: 5 of the 145 archived states carry
+`stopReason: unmergeable` for a path no child of the run was ever tied to, and one of them (#859) had already written
 `attributed=none` into the transcript of the item it then dropped. The cases are
 `run#mergesOverADifferenceItCannotPlace`, `run#anAdoptionLandsOverADifferenceItCannotPlace` and
 `worktree#theLandingDecidesByTheReadingItIsHanded`; the mutation is `tools/loop/tests/loop-mutations.sh` 58.2.

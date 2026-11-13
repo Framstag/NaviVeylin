@@ -472,17 +472,19 @@ change.
 - **THEN** the run records one line naming what changed — the differing status entries and any process whose
   working directory is inside the project and outside the worktree — and none of that write is committed into
   the item's change, because the worktree is the only tree a phase may write
-- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`, `run#dirtyBaseRefusesTheMergeAndNamesThePath`
+- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`, `run#mergesOverADifferenceItCannotPlace`
 
 #### Scenario: A difference the run cannot attribute does not decide the item
 
 - **WHEN** a difference is recorded and the run was not started with `--strict-outside-write yes`
 - **THEN** the item keeps the outcome its own work earned, because the comparison measures a tree the run, a
-  peer session and every landing also write, and two readings of it are not evidence about one child — and a base
-  that is still not clean when the item lands is refused by the landing rule, with the path named; a difference
-  the run *can* place in the child's own tree does decide, and that placement is the attribution this requirement
-  states
-- **Case**: `run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem`, `run#dirtyBaseRefusesTheMergeAndNamesThePath`
+  peer session and every landing also write, and two readings of it are not evidence about one child — and the
+  landing step that merges the item's branch is handed that same recorded reading: a difference it can place
+  nowhere is recorded with the paths and merged over, while one the run placed in its own process tree is refused;
+  a difference the run *can* place in the child's own tree does decide, and that placement is the attribution this
+  requirement states
+- **Case**: `run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem`, `run#mergesOverADifferenceItCannotPlace`,
+  `worktree#theLandingDecidesByTheReadingItIsHanded`
 
 #### Scenario: A difference is attributed while the writer is alive
 
@@ -1501,7 +1503,11 @@ report.
 
 A run SHALL merge the branch it committed an item on onto the base it recorded before closing that item, and a
 merge it cannot take SHALL leave the item open: `status/fixed-by` and "the fix is in the tree" SHALL be one
-claim, so a closure the tree does not back is a blocked item with its branch named, never a settled one.
+claim, so a closure the tree does not back is a blocked item with its branch named, never a settled one. The tree
+the merge lands in is the project's own, and what the run does about uncommitted work there SHALL be what its own
+rule for that tree says: the reading its children took travels with the merge call, a difference that reading
+placed in no process of the run's own SHALL be recorded — with the paths — and merged over, and only a difference
+the run placed, or one no reading covers, SHALL refuse the merge (issues #286, #862).
 
 #### Scenario: The branch the run committed is merged before the item is closed
 
@@ -1511,14 +1517,33 @@ claim, so a closure the tree does not back is a blocked item with its branch nam
   to the merge, and the branch with its commits is named in the run's record and in the closure's evidence
 - **Case**: `run#mergesItsCommittedBranchBeforeClosing`
 
+#### Scenario: A difference the run placed nowhere does not stop the landing
+
+- **WHEN** an item passed its review and the run is about to close it, the project tree the base branch is checked
+  out in is not clean, and the readings the run took of that tree while its children ran placed the difference in
+  no process of its own — the shape of a person's edit, or of a write by a shell that never left the project
+- **THEN** the branch is merged, the base advances to it, and the difference is recorded under the item beside the
+  readings its children took — one line naming the paths it changed and the reading that placed nothing, printed
+  as the landing is taken — and the item is closed on the work its own tree now carries
+- **Case**: `run#mergesOverADifferenceItCannotPlace`
+
 #### Scenario: A merge over a project tree that is not clean is refused, and nothing is closed
 
-- **WHEN** an item passed its review and the run is about to close it, and the project tree the base branch is
-  checked out in is not clean
+- **WHEN** the merge is asked for over a project tree that is not clean, and the reading the run handed it placed
+  the difference in a process of its own tree, or no reading of that tree was taken at all
 - **THEN** the merge is refused with the reason it found and the base stays where it was: it does not merge over
-  work it would attribute to itself, the item is blocked with its branch named instead of closed, and the
-  closure that follows a merge is never reached
-- **Case**: `run#doesNotCloseOnAMergeTheBaseCannotTake`
+  work it would attribute to itself, no commit of the branch reaches the base, and the branch is left where it was,
+  nothing merged into the tree the base branch is checked out in
+- **Case**: `worktree#theLandingDecidesByTheReadingItIsHanded`, `worktree#refusesToMergeOverADirtyProjectTree`
+
+#### Scenario: The pre-screen's adoption lands over a difference this run placed nowhere
+
+- **WHEN** a previous attempt's branch carries an archived change and a green verification, and the project's own
+  tree carries a difference that arrived after the run's pre-flight read it clean — before any child of this run
+  existed — so no process of this run can have placed it
+- **THEN** the adoption merges the branch, closes the item naming the branch it merged, and records the difference
+  with its paths, exactly as the run's own landing does
+- **Case**: `run#anAdoptionLandsOverADifferenceItCannotPlace`
 
 #### Scenario: A branch the base does not descend from is not replayed
 

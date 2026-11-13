@@ -742,7 +742,7 @@ stop_run() { # <reason> — printed and recorded, then the caller breaks or exit
 # the result by three arms and omitted by the fifteen others, so `stopReason` was `null` on 108 of the archive's 127
 # blocked items and the report's `stop` column printed `-` for each of them: a reader could not tell a tree that
 # committed nothing from an escalation from a child that broke, and the count the report exists for — the items a bound
-# ended — read 6 of 123. The result, the class and the reason are therefore written in one place, so an arm cannot
+# ended — read 6 of 127. The result, the class and the reason are therefore written in one place, so an arm cannot
 # block without naming the class it stopped on and the class cannot drift from the result it belongs to.
 block() { # <class> <reason> — the item is blocked, with the class of the arm and the reason beside it
   outcome="blocked"

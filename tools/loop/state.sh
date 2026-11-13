@@ -664,7 +664,7 @@ cmd_done() {
   # spend a mechanism is totalled by is the same field on either result.
   # The rest of the vocabulary is one class per arm that blocks (issue #865): `stopReason` was `null` on 108 of the
   # archive's 127 blocked items, so the report's `stop` column printed `-` for 85 % of them and the count the report
-  # exists for — the items a bound ended — read 6 of 123. `refused` is a review round that refused the change (the
+  # exists for — the items a bound ended — read 6 of 127. `refused` is a review round that refused the change (the
   # pre-gate round, the last round at the cap, and a red gate a close records no waiver over); `child-blocked` is a
   # child whose own answer is `LOOP-VERDICT: blocked`; `child-failed` is a child of the item that exited non-zero
   # short of a bound, or a phase that answered nothing; `outside-write` is a child that changed the project's own

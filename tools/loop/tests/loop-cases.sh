@@ -6420,7 +6420,7 @@ case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
     "and the reason is the one the outcome block's arm already writes"
   # …and the block names the class of the arm that stopped it (issue #865): `stopReason` was `null` on 108 of the
   # archive's 127 blocked items and the table's `stop` column printed `-` for each, so "items blocked at a bound"
-  # counted 6 of 123 and a reader could not tell a tree that committed nothing from an escalation or a broken child.
+  # counted 6 of 127 and a reader could not tell a tree that committed nothing from an escalation or a broken child.
   assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$state")" \
     "the block names the class of the arm that stopped it, not a null mechanism"
   # …and it is stated as the item's block, not as the run's own stop: a child that answered the diff marker read the

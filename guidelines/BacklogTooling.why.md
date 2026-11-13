@@ -21,7 +21,9 @@ The rules of §9 and the rows it names were each a failure the repository had al
   the same root cause (issue #671).
 - `hotspot`'s bound sits above the largest file it watches because at the old 5 000 bound 358 paths were past it and
   one tick filed 337 items at one every six seconds (issue #665); the exclusion of the change tree exists because a
-  copy a change kept of the file it brought under the bound is not a condition (issue #670).
+  copy a change kept of the file it brought under the bound is not a condition (issue #670), and the bound was
+  refitted on 2026-11-13 because the tree outgrew it — the loop's own case file passed 1 000 000 — while the
+  evidence a run leaves, the largest blob the tree holds, was never the row's subject.
 - The read-cost rows exist because nothing measured the start-of-session cost (issue #197), and the routing-table
   figure is a comparison rather than a presence: a figure after a lettered reference must equal that section's cost
   (issue #712).

@@ -83,10 +83,18 @@ read of the item; that write, and a hand edit on the web UI, are why this row st
 
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
 a file nobody touches scores nothing however large it is — and because the score is a product, its bound sits
-**above the largest file the row watches** (1 000 000 against 535 814 bytes measured 2026-10-26), so crossing it
-takes at least a second change and *existing is not heat*: at the old 5 000 bound 358 paths of this tree were past
-it, and one tick filed 337 items at one every six seconds (issue #665). The bound is the row's, so refitting it is
-one edit in `sensors.json`, and a tree that grows a larger file than the bound reddens the suite that asserts it.
+**above the largest file the row watches** (1 300 000 against `tools/loop/tests/loop-cases.sh` at 1 210 821
+bytes, measured 2026-11-13), so crossing it takes at least a second change and *existing is not heat*: at the
+old 5 000 bound 358 paths of this tree were past it, and one tick filed 337 items at one every six seconds
+(issue #665). The row watches the tracked tree outside the change tree, the scope `source-size` carries and
+for the same reason (issue #670): `openspec/changes/**` holds a change's prose and the evidence a run left —
+a full device log, gate logs, screenshots — which no build compiles and no session reads, and the largest
+blob this tree holds is such a log, so a row that watched it would have its bound fitted to a pile rather
+than to the tree. The bound is the row's, so refitting it is one edit in `sensors.json`, and a tree that grows
+a larger file than the bound reddens the suite that asserts it. What the refit leaves under the bound is a
+file whose *single* change is no longer a condition, and heat is size × change count: at 1 300 000
+`tools/loop/loop.conf` (89 237 bytes, 12 changes today) is inside the bound and takes 15 changes to be a
+condition again.
 `source-size` measures **lines per tracked file**
 over `*.kt` and `*.java`, tests included, the native sources out and the change tree out — `openspec/changes/**`
 holds a change's prose and the frozen copies it keeps as evidence, which no build compiles, so a copy a change

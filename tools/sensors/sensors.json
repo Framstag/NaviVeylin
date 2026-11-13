@@ -47,13 +47,14 @@
       "id": "hotspot",
       "cmd": "tools/sensors/hotspot-report.sh",
       "cron": "0 5 * * 1",
-      "threshold": 1000000,
+      "threshold": 1300000,
       "comparison": "greater-than",
       "consecutive": 2,
       "class": "improvement",
       "category": "build-and-harness",
       "lifecycle": "file+close",
-      "fingerprint": { "fields": ["path"] }
+      "fingerprint": { "fields": ["path"] },
+      "comment": "The hotspot row watches the tracked tree outside the change tree: `openspec/changes/**` holds a change's prose and the evidence a run left, which no build compiles and no session reads, so a run's own record is not a source whose size is heat (issue #670's distinction, the scope the `source-size` row carries). The bound sits above the largest file that remains — 1 300 000 against 1 210 821 bytes, `tools/loop/tests/loop-cases.sh`, measured 2026-11-13 — so one change of a watched file is not a condition, and crossing the bound takes at least a second change."
     },
     {
       "id": "coverage",

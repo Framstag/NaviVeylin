@@ -69,6 +69,7 @@ SENSOR_CASES=(
   'sensors#buildDurationCoversThePipeline'
   'hotspot#ranksBySizeTimesChanges'
   'hotspot#theBoundIsAboveOneChangedFile'
+  'hotspot#theChangeTreeIsNotAWatchPath'
   'sensors#packageSizeConsumesAnArtifact'
   'sensors#coverageRow'
   'sensors#sourceSizeRow'
@@ -170,6 +171,7 @@ sensor_run_case() {
     'sensors#buildDurationCoversThePipeline') case_sensors_buildDurationCoversThePipeline ;;
     'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
     'hotspot#theBoundIsAboveOneChangedFile') case_hotspot_theBoundIsAboveOneChangedFile ;;
+    'hotspot#theChangeTreeIsNotAWatchPath') case_hotspot_theChangeTreeIsNotAWatchPath ;;
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
     'sensors#coverageRow') case_sensors_coverageRow ;;
     'sensors#sourceSizeRow') case_sensors_sourceSizeRow ;;
@@ -2037,13 +2039,72 @@ case_hotspot_theBoundIsAboveOneChangedFile() {
   assert_contains "$out" '"path":"churned.txt"' "a path changed seven times is past the bound"
   assert_not_contains "$out" '"path":"once.txt"' "a path changed once is not a hotspot, whatever its size"
 
-  # The same property over the tree the row actually watches: the bound is above the largest tracked file, so
-  # no single change of a file this tree holds can cross it — crossing it takes a second change.
-  largest=$(cd "$SENSORS_REPO_ROOT" && LC_ALL=C git ls-files -z | LC_ALL=C xargs -0 -r wc -c 2>/dev/null |
+  # The same property over the tree the row actually watches: the bound is above the largest file in that
+  # tree, so no single change of a file it watches can cross it — crossing it takes a second change. That tree
+  # is the tracked one minus the change tree, whose exclusion the row carries and the case below asserts;
+  # measuring every tracked blob would instead assert the property about a run's evidence log, which the row
+  # does not watch.
+  largest=$(cd "$SENSORS_REPO_ROOT" && LC_ALL=C git ls-files -z ':(exclude)openspec/changes/' |
+    LC_ALL=C xargs -0 -r wc -c 2>/dev/null |
     awk '$NF != "total" && $1 + 0 > m { m = $1 + 0 } END { print m + 0 }')
   [ "$largest" -gt 0 ] || fail "no tracked file could be measured"
   [ "$threshold" -gt "$largest" ] ||
     fail "the row's bound ($threshold) is not above the largest file it watches ($largest bytes), so one change of that file is a hotspot"
+}
+
+# The change tree is not the source tree, and the hotspot row carries the distinction the size row does:
+# `openspec/changes/**` holds a change's prose and the evidence a run left — a full device log, gate logs,
+# screenshots — which no build compiles and no session reads. Measured 2026-11-13: the largest blob this tree
+# holds is the 4 349 247-byte device log of an archived change, so a row that watched it would have its bound
+# fitted to a pile rather than to the tree, and one touch of that log would be a condition. The scope is the
+# measurement's, so the filter is the measurement's line and this case is what holds it there.
+case_hotspot_theChangeTreeIsNotAWatchPath() {
+  local dir threshold out findings
+
+  threshold=$(jq -r '.rows[] | select(.id == "hotspot") | .threshold' "$SENSORS_ENGINE/sensors.json")
+
+  # Three files of the same size, each past the row's own bound by one byte: a live source file, an archived
+  # change's evidence log and an open change's. Only the first is a path this row watches, and the bound is
+  # read from the row so the arithmetic stays the fixture's, not a second copy of the row's number.
+  dir=$(scratch)
+  mkdir -p "$dir/app/src/main/java" "$dir/openspec/changes/archive/a-change/evidence" \
+    "$dir/openspec/changes/an-open-change/evidence"
+  head -c $((threshold + 1)) /dev/zero | tr '\0' x > "$dir/app/src/main/java/Big.kt"
+  head -c $((threshold + 1)) /dev/zero | tr '\0' y \
+    > "$dir/openspec/changes/archive/a-change/evidence/device-logcat-full.log"
+  head -c $((threshold + 1)) /dev/zero | tr '\0' z > "$dir/openspec/changes/an-open-change/evidence/gate.log"
+  git -C "$dir" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$dir" one
+
+  out=$(cd "$dir" && SENSORS_ID=hotspot SENSORS_ROOT="$dir" SENSORS_THRESHOLD="$threshold" \
+    SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/hotspot-report.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"app/src/main/java/Big.kt"' \
+    "a source file past the bound is still its own condition: $out"
+  # …and it carries its own size, not the zero a scope that swallowed the count would leak into it.
+  assert_contains "$findings" "\"measurement\":\"$((threshold + 1))\"" \
+    "the source file still reports its own size: $out"
+  assert_not_contains "$findings" 'device-logcat-full.log' \
+    "a device log a past run left as evidence is not a watched path: $findings"
+  assert_not_contains "$findings" 'gate.log' \
+    "a change that is still open is not a source tree either: $findings"
+  # The ranking is what a person reads, so it names the change tree no more than the findings do.
+  assert_not_contains "$out" 'openspec/changes/' \
+    "no path under the change tree reaches the ranking: $out"
+
+  # A condition recorded on such a path clears on its own identity, with no score invented for a file the row
+  # does not watch — the half that lets an item filed before the scope landed close.
+  out=$(cd "$dir" && SENSORS_ID=hotspot SENSORS_ROOT="$dir" SENSORS_THRESHOLD="$threshold" \
+    SENSORS_CONDITIONS='[{"state":"OPEN","condition":{"path":"openspec/changes/archive/a-change/evidence/device-logcat-full.log"}}]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/hotspot-report.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"openspec/changes/archive/a-change/evidence/device-logcat-full.log"' \
+    "a recorded condition on an evidence log clears under its own path: $out"
+  assert_contains "$findings" '"verdict":"clear"' "the evidence log's condition is a clear: $out"
+  assert_contains "$findings" '"measurement":"outside-scope"' \
+    "the clear carries no score for a path the row does not watch: $out"
 }
 
 # The size row: one condition per tracked source file, in the unit and scope the item's recorded decision

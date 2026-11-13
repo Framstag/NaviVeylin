@@ -7,6 +7,12 @@
 # `sensors.json` (design D9, D10). The ranking is printed, so "which paths are hot" is answerable without
 # the sensor filing anything, and one path is one condition — the fingerprint is the path.
 #
+# The watched set is the tracked tree outside the change tree: `openspec/changes/**` holds a change's prose
+# and the evidence a run left — a full device log, gate logs, screenshots — which no build compiles and no
+# session reads, so a run's own record is not a source whose size is heat. A device log committed as
+# evidence outsizes every source this tree holds, so watching it would fit the row's bound to a pile rather
+# than to the tree (issue #670's distinction, the scope the `source-size` row carries).
+#
 # Inputs (set by `run.sh`): SENSORS_THRESHOLD, SENSORS_CONDITIONS, SENSORS_WINDOW (commits of history,
 # default 200).
 set -uo pipefail
@@ -32,6 +38,7 @@ scores=$(
   ' "$history" |
     while IFS=$'\t' read -r changes path; do
       [ -f "$path" ] || continue
+      case "$path" in openspec/changes/*) continue ;; esac
       size=$(wc -c < "$path" | tr -d ' ')
       case "$size" in ''|*[!0-9]*) continue ;; esac
       printf '%s\t%s\t%s\t%s\n' "$((size * changes))" "$path" "$size" "$changes"
@@ -63,6 +70,18 @@ done
 # issue's own body record, so the clearing finding names the identity the issue carries (design D4).
 while IFS= read -r path; do
   [ -n "$path" ] || continue
+  # A condition recorded on a path the row no longer watches — one filed before the change tree left the
+  # scope — clears on its own identity and carries no score, because a number nobody measured is worse than
+  # none: the same half the `source-size` row carries (issue #670).
+  case "$path" in
+    openspec/changes/*)
+      fields=$(jq -nc --arg path "$path" '{path: $path}')
+      fingerprint=$(sensors_fingerprint "$fields" "path")
+      sensors_emit "$fingerprint" "outside-scope" clear "$fields" "" \
+        "the path is inside the hotspot bound" \
+        "$path is inside the change tree, which this row does not watch, so it carries no score and no condition"
+      continue ;;
+  esac
   current=$(printf '%s\n' "$scores" | awk -v p="$path" -F'\t' '$2 == p { print $1; exit }')
   [ -n "$current" ] || current=0
   sensors_compare "$current" "$threshold" greater-than && continue

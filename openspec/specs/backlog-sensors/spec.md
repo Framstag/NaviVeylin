@@ -635,6 +635,16 @@ rule is that one change is not heat.
   it watches, so no single change of a file that tree holds can cross it
 - **Case**: `hotspot#theBoundIsAboveOneChangedFile`
 
+#### Scenario: The change tree is not a watch path
+
+- **WHEN** a path under the change tree — a change's prose or the evidence a run left, a device log past the
+  row's bound — is committed beside a source file that is past the bound too
+- **THEN** the path under the change tree is not a condition and reaches neither the findings nor the ranking, the
+  source file is still a condition carrying its own score, and a recorded condition naming such a path clears
+  under its own identity with no score invented for it — so the row watches the tree a change grows, and a run's
+  own record cannot fit its bound to a pile
+- **Case**: `hotspot#theChangeTreeIsNotAWatchPath`
+
 ### Requirement: A pipeline outside the build publishes its own record, and its row waits for it
 
 A workflow the build does not run SHALL be monitored by one row and SHALL publish the record that row reads:

@@ -99,8 +99,8 @@ Provider-aware inside `LocationService` only:
   off-screen margin (`MARGIN_PX`), draws no marker and ONE cue, clamped to the viewport edge in the
   vehicle's direction and kept inside the inset bounds the map band reserves for its chrome
   (`LocationMarkerOverlay.edgeCuePlacement`) — never under the action or widget column of a phone or
-  foldable-width frame. Inside that margin the marker branch still runs and the arrow is the cue, so the
-  band between the viewport edge and the margin draws neither glyph visibly. The cue is the phone's:
+  foldable-width frame. Inside that margin the marker branch still runs, and there the arrow is drawn
+  off-frame while the cue is not yet placed, so that band shows neither glyph. The cue is the phone's:
   the car marker is drawn by `AutoMapRenderer` on the host surface, so a car-side cue is a native change
   of its own.
 - **Rule: Position updates on every fix** the VM calls `updateMarkerState` (renderer snapshot + direct

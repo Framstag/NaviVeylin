@@ -32,6 +32,11 @@ One derived value and one draw, on the branch that today draws nothing:
     glyphs are mutually exclusive by construction;
   - `pointingDegrees = degrees(atan2(dx, -dy))`, the same 0°-is-up screen convention the marker arrow
     uses (`ProjectionUtils.screenBearing` / `rotate(degrees = bearingDegrees, pivot = Offset.Zero)`).
+  - The ray's origin is the centre of the inset bounds, not the seam the recorded decision named
+    (`MapCanvasViewModel.browseCenterOffsetPx`, read by `refreshBrowseReCenter`): that offset answers "how
+    far is the vehicle from the map centre", while the cue needs a ray from the *usable* area's centre, and
+    the two coincide only when no column is reserved. The user-visible result — one cue on the edge toward
+    the vehicle — is the decision's; only its named seam differs, and this bullet is that departure's record.
 - `drawEdgeCue(cue, dark)` — a small filled chevron (`CUE_RADIUS_DP = 12.dp`) rotated to
   `pointingDegrees`, painted in the vehicle marker's own palette values
   (`VehicleMarkerGeometry` casing + light/dark gradient top), so the cue reads as the same element

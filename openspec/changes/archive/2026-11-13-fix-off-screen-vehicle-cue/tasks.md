@@ -96,10 +96,12 @@ section. No native, JNI, `:auto`, Gradle, manifest or resource change.
       Parent: `gps-location-marker` (regression of the projection, rotation and palette cases).
 - [x] 5.2 `./tools/loop/measure.sh` re-run after the delta moved, and its `LOOP-MEASURE` block quoted
       in the change's evidence and in the worker's report.
-      Verification: `evidence/measure.txt`, re-run on the round-2 correction's tree —
-      `LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=38 insertions=1145 deletions=8`,
-      `LOOP-MEASURE-GATE seconds=454 suites=15`, and
-      `LOOP-MEASURE-CHANGE 2026-11-13-fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0`.
+      Verification: `evidence/measure.txt`, re-run on the round-2 correction's tree — its
+      `LOOP-MEASURE base=`/`paths=`/`insertions=` line is the tree this file was written on (the file is
+      re-read, never a number copied here), `LOOP-MEASURE-GATE seconds=454 suites=15`, and
+      `LOOP-MEASURE-CHANGE 2026-11-13-fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0` — the
+      counter counts `**Case**:` lines, and three of the nine declare none (`**Case**: none — pre-existing
+      scenario`), so six names an asserting case.
 - [x] 5.3 Grade the diff before handing it over: every `THEN` clause of the delta points at a case line,
       every tree claim in this change is made true by a hunk, and every artifact it cites exists.
       Verification: this file and `evidence/` read back after the diff.

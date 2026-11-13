@@ -1,5 +1,5 @@
 LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/manual/725/tools/loop/loop.conf
-LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=38 insertions=1145 deletions=8
+LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=40 insertions=1205 deletions=8
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
 LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationMarkerEdgeCueTest.kt
@@ -33,6 +33,8 @@ LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-failed-round-2.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-round-1-requested.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-round-3-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-round-3-requested.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/proposal.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/specs/gps-location-marker/spec.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/tasks.md

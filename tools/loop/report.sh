@@ -671,6 +671,50 @@ while IFS=$'\t' read -r kind issue verdict reason extra; do
   actions[${#actions[@]}]="$line"
 done < <(decisions)
 
+# An item a merge refused is the one block whose work is finished and whose landing is a command (issue #863): the
+# run writes `stopReason: unmergeable` when the branch it committed could not be merged onto the base, and the
+# item's decision line then quoted the refusal and nothing a caller could run. Measured on the run of
+# 2026-11-11T20:36:10Z, action 1 for #859: a green gate (`tests=245 failures=0 errors=0`), review round 1 PASS, five
+# commits on the branch and 9.8 M tokens spent, and the line told a person to decide. Everything the repair needs is
+# already read here — the branch the refusal names, the count the branch arm below takes by patch identity, and the
+# paths the refusal itself lists — so no state field is added and nothing in the engine moves. The landing is one
+# line: the branch this arm names is skipped by the branch arm below, because a branch printed twice is the defect
+# #850 fixed, and a refused landing is not two landings. The item's `decide` line stays where the run escalated it,
+# because a decision the run wrote is a question beside the repair and not a second landing.
+unmergeable_branches=" "
+while IFS= read -r issue; do
+  [ -n "${issue:-}" ] || continue
+  note=$(jq -r --argjson i "$issue" '[.items[] | select(.issue == $i)][0].note // ""' "$state_file")
+  # The refusal names the branch, and it is the only source that does: a state record carries `merged.branch` empty
+  # for an item whose merge was refused, and the branch may have been swept since — the run of 2026-11-11T20:36:10Z
+  # no longer holds #859's. A state whose note does not carry the sentence falls back to the branch git still has.
+  branch=$(printf '%s' "$note" | sed -n 's#.*the branch \([^ ]*\) could not be merged onto the base.*#\1#p')
+  if [ -z "$branch" ]; then
+    branch=$(printf '%s\n' "$branch_table" | awk -F'\t' -v i="$issue" 'index($1, "fix/issue-" i "-") == 1 { print $1; exit }')
+  fi
+  [ -n "$branch" ] || continue
+  unmergeable_branches="$unmergeable_branches$branch "
+  ahead=$(printf '%s\n' "$branch_table" | awk -F'\t' -v b="$branch" '$1 == b { print $2; exit }')
+  case "${ahead:-}" in
+    ''|*[!0-9]*) carried="the branch is not in this tree" ;;
+    0) carried="nothing — the base already carries its patches" ;;
+    *) carried="$ahead commit(s) the base does not have" ;;
+  esac
+  # The paths the refusal named, as the refusal wrote them — `worktree.sh` prints `git status --porcelain` after its
+  # `onto the base:` and the run carries it into the note, so the caller sees which dirt refused the landing without
+  # running anything first. The state holds those newlines as newlines, a line that went through `@tsv` holds them as
+  # `\n`, and both are read by converting the escapes before the lines are taken.
+  named=$(printf '%s\n' "$note" | sed 's#\\n#\n#g' | awk 'f { print } /onto the base:/ { f = 1 }' | sed '/^[[:space:]]*$/d')
+  paths=$(printf '%s\n' "$named" | awk 'NR > 1 { printf ", " } { printf "%s", $0 }')
+  path_count=$(printf '%s\n' "$named" | grep -c . || true)
+  repair=""
+  case "$path_count" in
+    ''|0) ;;
+    *) repair=" — after the $path_count path(s) its refusal named are cleared ($paths) — git -C $LOOP_ROOT status --porcelain lists them" ;;
+  esac
+  actions[${#actions[@]}]="land $branch onto the base — $carried — item #$issue — git -C $LOOP_ROOT merge --ff-only $branch$repair"
+done < <(jq -r '.items[] | select((.stopReason // "") == "unmergeable") | .issue' "$state_file")
+
 # The branches are read from git, and a branch is an action because of what it *carries*, not because it
 # exists: `none` must never hide commits. What it carries was asked above, by patch identity — the loop
 # lands work as `fix: … (#N)`, so a branch whose work is already on the base is not an ancestor of it, and
@@ -679,6 +723,8 @@ done < <(decisions)
 while IFS=$'\t' read -r branch ahead; do
   [ -n "$branch" ] || continue
   [ "$ahead" -gt 0 ] || continue
+  # A branch a refused landing already names is that item's one line, and the arm above owns it (issue #863).
+  case "$unmergeable_branches" in *" $branch "*) continue ;; esac
   owner=$(printf '%s' "$branch" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
   if [ -z "$owner" ]; then
     owner=$(jq -r --arg b "$branch" '[.items[] | select((.merged.branch // "") == $b) | .issue] | (.[0] // "")' "$state_file")
@@ -748,8 +794,8 @@ fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the seven sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no item ended at a bound, no leftover patch, no label write the tracker refused\n'
+  # Empty only when every one of the eight sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no item ended at a bound, no leftover patch, no label write the tracker refused, no landing a merge refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

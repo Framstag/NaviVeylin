@@ -1439,9 +1439,15 @@ where the state does not hold it, where it is), a branch that carries a patch th
 item that owns it, the kept worktree, an item whose gate never completed with its transcript, a label write
 the tracker refused with the item it left stale, an item the run's own bound ended (`resume #N`, carrying the
 phase it was cut in and the patch its child left: a `cut` is the one result every bound the run enforces leaves,
-the run's own deadline included, and the item's note names which bound that was — #788, #850), and the kept work
-of a record that carries no bound cut (`recover #N`, the shape a tree wrote before `cut` existed — #674). An
-item is one line: the two arms are a partition by the result the record states, because the patch is the
+the run's own deadline included, and the item's note names which bound that was — #788, #850), the kept work
+of a record that carries no bound cut (`recover #N`, the shape a tree wrote before `cut` existed — #674), and an
+item the **landing itself** refused (`stopReason: unmergeable`) with the branch its refusal names, what that branch
+carries by patch identity, the command `git -C <root> merge --ff-only <branch>`, and — where the refusal listed the
+tree's dirt path by path — those paths beside the `git -C <root> status --porcelain` that lists them now: a refused
+landing is a repair the caller can run, printed once — the branch arm does not name that branch again — while an item
+the run escalated keeps the `decide` line it wrote, because that line is the question and not a second landing, and
+the run of 2026-11-11T20:36:10Z left #859's whole item payable only by a person who worked the command out by hand
+(#863). An item is one line: the two arms are a partition by the result the record states, because the patch is the
 consequence of a cut and not its cause, and the guard that read the patch printed #847 and #839 twice in one
 run's action list — 2 of its 12 lines — the second time as work the run's clock ended with 7 h 51 m of its budget
 left (#850). The item path a line names is the loop root's and not the state file's directory: the state in place
@@ -1451,7 +1457,7 @@ not — the report of an archived run names `.pi/issue-loop/items/<n>`, a direct
 `.pi/issue-loop/runs/items/<n>` (#855). A sentence the item's own note already carries is printed once: the note
 ends with the patch's own sentence the run wrote there, so the resume line appends it only for a record whose note
 lacks it (#855). A count is not
-an answer, so `none` is printed only when all seven sources were
+an answer, so `none` is printed only when all eight sources were
 read and empty — it never hides a branch that carries work.
 
 A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and

@@ -1373,7 +1373,8 @@ says the item is converging.
 A **block** the run's own bound caused was the same fact one result over (issue #786), and is now that fact: the
 item's tree was left mid-phase, its work is kept exactly as the child left it and its patch is named in the
 record — but its result is `cut`, like every other phase the run's own bound ended (issue #790), and the mechanism
-`bound` rides beside it as the third value of the vocabulary beside `refused` and `unmergeable`. That one word is
+`bound` rides beside it as one class of the vocabulary, beside `refused`, `unmergeable` and the eight classes the
+run's other arms record (issue #865). That one word is
 what a state's own table and a mechanism's spend are read from, and it is never the word a reader needs to tell
 work from a refusal: no decision label is written (so the cut spends none of the decision ceiling), the note says
 the attempt waits for the next run, and `state.sh next` never reads a cut as a refusal, because a refusal predicts
@@ -1422,9 +1423,12 @@ item #260 blocked with no decision label while nothing was ever posted on it (is
 
 The report a run prints at its end is the run's product, and it answers three questions without the caller
 opening the tracker (#208): **which** items were handled and how each ended — the per-item table, with the
-item's own recorded reason when the result is not a closure, and, when a block stopped on one of the loop's two
-known mechanisms, which one (`refused`: the last review round refused the change; `unmergeable`: the base would
-not take the branch), so the spend beside it is totalled by mechanism from the table instead of from the note's
+item's own recorded reason when the result is not a closure, and, when a block stopped on one of the loop's known
+mechanisms, which one (`refused`: the last review round refused the change; `unmergeable`: the base would
+not take the branch; `bound`: the run ended a child at a bound it enforces; and one class per arm for every other
+block, `child-blocked`, `child-failed`, `outside-write`, `reviewer-wrote`, `unanswered`, `uncommitted`, `unverified`
+and `contradicted` — issue #865, where `stopReason` was measured null on 108 of the archive's 127 blocked items), so
+the spend beside it is totalled by mechanism from the table instead of from the note's
 prose (issue #280 — 198.8 M of refusing rounds against 22.9 M of merge refusals over the archive, both recorded
 as `blocked`); **what each one cost** — the wall time
 `done --wall` records, and beside it the spend read from the child's own event stream: the tools it called with

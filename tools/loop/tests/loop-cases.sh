@@ -2349,7 +2349,8 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   before=$(cat "$f")
   out=$(run_state "$p" done 23 --result blocked --verdict blocked --stop-reason abandoned 2>&1); status=$?
   assert_eq "2" "$status" "a mechanism outside the vocabulary is a usage error"
-  assert_contains "$out" "refused, unmergeable or bound" "and the refusal names the three the record accepts"
+  assert_contains "$out" "child-blocked, child-failed, outside-write, uncommitted, unverified, unanswered, reviewer-wrote or contradicted" \
+    "and the refusal names the vocabulary the record accepts, the classes the run's own arms name included (issue #865)"
   assert_eq "$before" "$(cat "$f")" "and the state is not written, so the field cannot become prose"
   out=$(run_state "$p" done 23 --result done --verdict closed --stop-reason refused 2>&1); status=$?
   assert_eq "2" "$status" "a stop reason belongs to a block, not to a closure"
@@ -6417,6 +6418,11 @@ case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
   assert_contains "$(jq -r '.items[0].note' "$state")" \
     "reported success but the tree is still at the base commit — nothing was committed" \
     "and the reason is the one the outcome block's arm already writes"
+  # …and the block names the class of the arm that stopped it (issue #865): `stopReason` was `null` on 108 of the
+  # archive's 127 blocked items and the table's `stop` column printed `-` for each, so "items blocked at a bound"
+  # counted 6 of 123 and a reader could not tell a tree that committed nothing from an escalation or a broken child.
+  assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "the block names the class of the arm that stopped it, not a null mechanism"
   # …and it is stated as the item's block, not as the run's own stop: a child that answered the diff marker read the
   # item, so nothing here is "no part of it was read".
   assert_not_contains "$out" "could not start" "the answer is not read as a child that never started"

@@ -219,6 +219,26 @@ class MapCanvasViewModelRouteFitTest {
     }
 
     /**
+     * Let the renderer run the queued job and hand the frame it emitted to the production
+     * consumer ([MapCanvasViewModel.applyRenderedFrame]); returns its magnification.
+     */
+    private suspend fun TestScope.landFrame(): Double {
+        val previous = viewModel.uiState.value.renderViewport?.mag
+        // Past the renderer's debounce window (a request that is not a walked step goes through it),
+        // then idle: both hops run on this test's scheduler, so no real time passes.
+        mainDispatcherRule.dispatcher.scheduler.advanceTimeBy(1_000)
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        val frame = viewModel.mapRenderer!!.frameFlow.value
+        assertNotEquals(
+            "the renderer must emit a NEW frame at the requested magnification",
+            previous,
+            frame.viewport.mag
+        )
+        viewModel.applyRenderedFrame(frame)
+        return frame.viewport.mag
+    }
+
+    /**
      * The walk's pin must not outlive the walk (spec `smooth-zoom` — "The render pin lives
      * only as long as the walk"): a route overview fit committed while no walk is pending
      * is the magnification the render pipeline uses. Measured on the phone before the fix:
@@ -227,13 +247,17 @@ class MapCanvasViewModelRouteFitTest {
     @Test
     fun fitAfterALandedWalkIsRenderedAtTheFitMagnification() = runTest(mainDispatcherRule.dispatcher) {
         wireRendererAndPanel()
-        // Frame in hand at 13.0, then a commit that walks to 15.0 and lands through injected
-        // frames (the same path the frame collector uses, no native pipeline needed).
-        viewModel.publishRenderedFrameForTest(13.0)
+        // Frame in hand at 13.0, then a commit that walks to 15.0 and lands through the frames the
+        // real renderer emits (the production consumer, so the walked step IS what was rendered).
+        viewModel.commitMagnification(13.0, walk = false)
+        viewModel.renderMap()
+        assertEquals("the frame in hand is the one requested", 13.0, landFrame(), 1e-9)
         viewModel.updateMagnification(15.0)
+        viewModel.renderMap()
         var walkedFrames = 0
         while (!viewModel.uiState.value.zoomWalkStepMag.isNaN() && walkedFrames++ < 40) {
-            viewModel.publishRenderedFrameForTest(viewModel.uiState.value.zoomWalkStepMag)
+            val step = viewModel.uiState.value.zoomWalkStepMag
+            assertEquals("the rendered frame carries the walked step", step, landFrame(), 1e-9)
         }
         assertTrue("the walk must land inside the frame guard", walkedFrames < 40)
         assertEquals(

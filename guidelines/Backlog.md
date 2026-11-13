@@ -226,12 +226,25 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 decision label is read by `.pi/skills/answer-decision`, which takes its URL, its number or a pre-migration `§N` — or,
 with nothing named, lists `tools/issues/decisions.sh` and asks which item — and then lays the fork out in the order a
 decider asks for it: what the item states, every option with at least one worked example, and a pro/contra in two
-views kept apart, the short-term one priced in this tree's own numbers (files touched, gate minutes, decisions still
-parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items hitting the same
-mechanism would do to it). The recommendation then states which view decided, because an average of the two is exactly
-the judgement this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through
-`answer.sh` — the same writer every other answer leaves through, so a skill that wrote its own comment would be a
-second writer.
+views kept apart, the short-term one priced in this tree's own numbers (files touched, gate minutes, the loop's rounds,
+decisions still parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items
+hitting the same mechanism would do to it). The recommendation then states which view decided, because an average of
+the two is exactly the judgement this split exists to prevent. It writes nothing before the owner chooses, and the
+answer leaves through `answer.sh` — the same writer every other answer leaves through, so a skill that wrote its own
+comment would be a second writer.
+
+**Two of the answer's lines carry no code, and they are the ones a product owner decides from.** The contents state
+what the user sees (today → after, and who is affected) and what is already settled and not to be reopened beside the
+observed, evidenced, why-it-matters and asked lines — because a decider signs the outcome, not the mechanism, and a
+line left out is a decider translating for the reader. Three consequences are part of the shape rather than of a
+reviewer's memory: the escalation's option list is a **starting** list, re-priced and completed by whoever reads the
+tree, since a run may pre-reject an option on a checkable ground or miss one the tree offers (#725); each figure is
+marked measured or claimed, because a number the run wrote is not a number the tree produced; and the cheap calls are
+named — `tools/issues/decisions.sh --count` for a number rather than the 13 kB listing, and the item's own reviewer
+report's findings block rather than the whole report. `tools/issues/tests/issue-tooling-cases.sh` holds a case for
+each of the two: `decisions#theAnswerShapeIsPinnedInTheReader` for the shape, and
+`decisions#theCountIsReportedWithoutReadingTheSet` for the count. A shape stated in prose only drifts silently — that
+is why the two lines arrived late and why a case now reads them.
 
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Three of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `unspecifiable`, `too-wide` and

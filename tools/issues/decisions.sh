@@ -17,13 +17,19 @@
 # Read-only: no token beyond the tracker read, no write, no preflight. It answers two questions a person asks
 # before answering anything — which items are waiting, and what each one asks.
 #
+# `--count` answers only the first of them, and it stops before the list: the tracker's own count, one line, and the
+# statement that no item was read. It exists because a count is asked for in places that never wanted the listing
+# (the cap a run measures, "how many decisions are waiting") and the listing answers with every question beside it —
+# a 14 kB answer to a one-integer question. It is not the queue with its coverage claim removed: it makes no coverage
+# claim at all, and says so, so no reader mistakes the count for a set that was read.
+#
 # It lists the decision label and nothing else: an item a run handed back to be reshaped carries the shaping
 # label instead, awaits no question, and is listed by `tools/issues/shaping.sh` (capability `shaping-inbox`).
 #
 # Exit: 0 ok (an empty queue is not a failure), 2 usage, 3 the profile declares no decision role, or the set the
 # queue had to read could not be covered.
 #
-# Usage: decisions.sh [--json] [--profile <path>]
+# Usage: decisions.sh [--json|--count] [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -32,10 +38,12 @@ source "$here/lib.sh"
 
 profile_arg=""
 json=0
+count_only=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
+    --count) count_only=1; shift ;;
     -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) issues_die "decisions: unknown argument $1" ;;
   esac
@@ -68,6 +76,14 @@ case "$decision_set" in
   ''|*[!0-9]*)
     issues_die "decisions: the tracker did not answer how many items carry $decision_label (got '$decision_set')" ;;
 esac
+
+# The count is the whole answer in `--count`: the set the tracker reports, and that nothing was read. No list, so no
+# coverage claim — which is why the line says what it is rather than borrowing the queue's.
+if [ "$count_only" -eq 1 ]; then
+  printf '%s item(s) carry %s\n' "$decision_set" "$decision_label"
+  printf 'counted, not read — tools/issues/decisions.sh lists the set and the question each item carries\n'
+  exit "$ISSUES_EXIT_OK"
+fi
 
 window=$((decision_set + 1))
 # The list is scoped by the same label the count was taken over, so the window it is asked for is the counted set's

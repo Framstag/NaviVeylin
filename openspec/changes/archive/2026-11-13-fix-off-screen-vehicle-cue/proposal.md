@@ -36,9 +36,10 @@ the land colour and the case fails:
   (`evidence/red/TEST-LocationMarkerEdgeCueTest-red-head.xml`).
 
 **The single fix** (the recorded decision on issue #725, 2026-11-08T16:19:33Z, option A): when the
-vehicle projects outside the viewport, the overlay draws one cue clamped to the viewport edge in the
-vehicle's direction, inside the inset bounds the map band reserves for its chrome — a Compose overlay
-element on top of the marker layer, reusing the projection the overlay already performs. The spec
+vehicle projects outside the viewport, past the marker's own off-screen margin (`MARGIN_PX`), the
+overlay draws one cue clamped to the viewport edge in the vehicle's direction, inside the inset bounds
+the map band reserves for its chrome — a Compose overlay element on top of the marker layer, reusing
+the projection the overlay already performs. The spec
 delta comes first: a `MODIFIED` requirement on `gps-location-marker` whose off-screen scenario states
 the cue instead of forbidding it, with a new scenario for the cue's presence and one for its edge
 placement.
@@ -72,8 +73,14 @@ it. `guidelines/UI.md` itself states the rule and needs no edit.
 - **`app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt`** — the `LocationMarkerOverlay` call
   site (`:667`) passes the view model's `overlayInset*Px` values, which the band's map framing already
   respects (`MapCanvasViewModelFollow.kt:55-58`).
-- **`guidelines/MapFollow.md` §8** — one rule: an off-viewport position draws no marker and one cue at
-  the viewport edge, inside the inset bounds the band reserves.
+- **`guidelines/MapFollow.md` §8** — one rule: an off-viewport position, past the marker's own margin,
+  draws no marker and one cue at the viewport edge, inside the inset bounds the band reserves.
+- **`tools/doc-routes.json`** — four rows: two name `MapFollow.md` §8 "Off-screen cue" (the rule this
+  change adds, reached from both of the section's route lists); two repair a pre-existing repo-wide red
+  for `Backlog.md` §5 rules that exist verbatim at `guidelines/Backlog.md:184` and `:195` and that no
+  route reached before this change. The second pair is outside the item's scope and is in this diff
+  because the gate's owed check cannot pass without it. `tools/check-rule-routes.sh` reads that map and
+  is the check this change's gate owes for the path.
 - **Not in scope:** the car/native cue (a separate item, per the recorded decision), the re-center
   button's own rules (`map-modes` — Browse re-center, untouched), the marker's culling margin
   (`MARGIN_PX` stays `100`; the cue is what fills the off-screen state), and the accuracy circle.

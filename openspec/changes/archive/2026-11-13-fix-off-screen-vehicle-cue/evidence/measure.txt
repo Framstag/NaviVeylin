@@ -1,26 +1,96 @@
-LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=4 insertions=165 deletions=6
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/manual/725/tools/loop/loop.conf
+LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=38 insertions=1145 deletions=8
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
 LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationMarkerEdgeCueTest.kt
 LOOP-MEASURE-PATH guidelines/MapFollow.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/flake-DiagnosticsLogWritePathTest.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/TEST-com.naviveylin.ui.map.LocationMarkerEdgeCueTest-automotive-gate.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/TEST-com.naviveylin.ui.map.LocationMarkerEdgeCueTest-mobile-gate.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-doc-values.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-rule-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_mutate.sh_--mutations_tools_tests_check-rule-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-doc-values-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-rule-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-green.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-revert-green.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayPaletteTest-green.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayTest-green.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/red/TEST-LocationMarkerEdgeCueTest-red-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/red/TEST-LocationMarkerEdgeCueTest-revert-red.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-failed-round-2.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/specs/gps-location-marker/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/tasks.md
+LOOP-MEASURE-PATH openspec/specs/gps-location-marker/spec.md
+LOOP-MEASURE-PATH tools/doc-routes.json
 LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
 LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
 LOOP-MEASURE-CHECK tools/tests/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
 LOOP-MEASURE-CHECK tools/check-doc-values.sh
 LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
 LOOP-MEASURE-CHECK tools/check-doc-routes.sh
 LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
 LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
 LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-rule-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-rule-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-rule-routes-mutations.json --list
 LOOP-MEASURE-SUITE cases=424 cmd=tools/loop/tests/loop-selftest.sh --list
-LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-LOOP-MEASURE-CHANGE fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0
-LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-green.xml tests=4 failures=0
-LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-revert-green.xml tests=4 failures=0
-LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayPaletteTest-green.xml tests=4 failures=0
-LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayTest-green.xml tests=9 failures=0
-LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/red/TEST-LocationMarkerEdgeCueTest-red-head.xml tests=1 failures=1
-LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/red/TEST-LocationMarkerEdgeCueTest-revert-red.xml tests=4 failures=1
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=428s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-values.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-rule-routes.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_tests_check-rule-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=9s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_check-doc-values-selftest.sh.xml tests=5 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_check-rule-routes-selftest.sh.xml tests=13 failures=0 time=2s
+LOOP-MEASURE-GATE seconds=454 suites=15
+LOOP-MEASURE-CHANGE 2026-11-13-fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=428s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/TEST-com.naviveylin.ui.map.LocationMarkerEdgeCueTest-automotive-gate.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/TEST-com.naviveylin.ui.map.LocationMarkerEdgeCueTest-mobile-gate.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-doc-values.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-rule-routes.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_mutate.sh_--mutations_tools_tests_check-rule-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=9s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-doc-values-selftest.sh.xml tests=5 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/gate/tools_tests_check-rule-routes-selftest.sh.xml tests=13 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-green.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-revert-green.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayPaletteTest-green.xml tests=4 failures=0
+LOOP-MEASURE-TALLY-MORE 3 of 23 tally files not shown — at most 20 per directory (openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/evidence)
 LOOP-MEASURE-SURFACE surface: 4 cases added (1 red, 3 green), 0 cases rewritten, 2 production files changed, 1 spec scenario
 LOOP-MEASURE-END

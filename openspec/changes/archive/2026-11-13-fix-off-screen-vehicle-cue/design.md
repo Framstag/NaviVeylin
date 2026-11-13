@@ -97,8 +97,11 @@ values the composable already receives, so nothing has to be remembered between 
 - On-device: a stationary emulator cannot put the vehicle outside the viewport in BROWSE, so the
   pixel measurement is the Robolectric raster named above rather than a screenshot; the diagnostics
   log gains nothing (a cue position is a pixel, and no new line is added).
-- Structural checks: `tools/check-change-readiness.sh openspec/changes/fix-off-screen-vehicle-cue` and
-  `tools/check-doc-routes.sh` after the `MapFollow.md` §8 edit.
+- Structural checks: `tools/check-change-readiness.sh
+  openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue`, `tools/check-doc-routes.sh` after the
+  `MapFollow.md` §8 edit, and `tools/check-rule-routes.sh` — the rule this change adds to
+  `MapFollow.md` §8 is reached only through the four `tools/doc-routes.json` rows the same diff carries, and
+  that check is what the gate owes for the path.
 
 ## Rollback
 

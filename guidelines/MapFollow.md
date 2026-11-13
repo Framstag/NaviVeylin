@@ -95,11 +95,14 @@ Provider-aware inside `LocationService` only:
   or the front buffer — those hold only static map content. A marker-only move/hide triggers no
   native render, no epoch bump, and no tile invalidation. The reversal this rule exists for, and why, is
   recorded in `guidelines/Design.why.md` §13.
-- **Rule: Off-screen cue** a position that projects outside the viewport draws no marker and ONE cue,
-  clamped to the viewport edge in the vehicle's direction and kept inside the inset bounds the map band
-  reserves for its chrome (`LocationMarkerOverlay.edgeCuePlacement`) — never under the action or widget
-  column of a phone or foldable-width frame. The cue is the phone's: the car marker is drawn by
-  `AutoMapRenderer` on the host surface, so a car-side cue is a native change of its own.
+- **Rule: Off-screen cue** a position that projects outside the viewport, past the marker's own
+  off-screen margin (`MARGIN_PX`), draws no marker and ONE cue, clamped to the viewport edge in the
+  vehicle's direction and kept inside the inset bounds the map band reserves for its chrome
+  (`LocationMarkerOverlay.edgeCuePlacement`) — never under the action or widget column of a phone or
+  foldable-width frame. Inside that margin the marker branch still runs and the arrow is the cue, so the
+  band between the viewport edge and the margin draws neither glyph visibly. The cue is the phone's:
+  the car marker is drawn by `AutoMapRenderer` on the host surface, so a car-side cue is a native change
+  of its own.
 - **Rule: Position updates on every fix** the VM calls `updateMarkerState` (renderer snapshot + direct
   `uiState.gpsMarker*` update) on every distinct fix — the overlay shows the latest fix
   immediately, independent of the render cadence. The frame collector does NOT overwrite the

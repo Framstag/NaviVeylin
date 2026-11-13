@@ -18,15 +18,16 @@ section. No native, JNI, `:auto`, Gradle, manifest or resource change.
 
 ## 2. The spec delta (the contract first)
 
-- [x] 2.1 `openspec/changes/fix-off-screen-vehicle-cue/specs/gps-location-marker/spec.md` — `MODIFIED`
+- [x] 2.1 `openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue/specs/gps-location-marker/spec.md` — `MODIFIED`
       requirement "Marker position tracks map viewport", carried as the whole block: the two
       description paragraphs verbatim plus the cue paragraph, the five surviving scenarios verbatim
       (only the mandated `**Case**:` line added), the off-screen scenario rewritten to the cue, and two
       scenarios added (cue presence/direction, foldable inset clearance) plus the on-screen negative.
       Parent: `gps-location-marker`.
-      Verification: `./tools/check-change-readiness.sh openspec/changes/fix-off-screen-vehicle-cue`
-      reports every scenario carrying a case, and `python3 tools/sync-specs.py --change
-      fix-off-screen-vehicle-cue --dry-run` plans one `modified requirement`.
+      Verification: `./tools/check-change-readiness.sh
+      openspec/changes/archive/2026-11-13-fix-off-screen-vehicle-cue` reports every scenario carrying a
+      case, and `python3 tools/sync-specs.py --change fix-off-screen-vehicle-cue --dry-run` plans one
+      `modified requirement`.
 - [x] 2.2 The requirement the item's recorded decision names is the one modified — the "no off-screen
       indicators" clause at `openspec/specs/gps-location-marker/spec.md:120-123` — and no other
       requirement is rewritten.
@@ -73,6 +74,14 @@ section. No native, JNI, `:auto`, Gradle, manifest or resource change.
       Parent: `gps-location-marker` (the requirement this change modifies).
       Verification: `./tools/check-doc-routes.sh` reports every section reference resolving and
       `tools/look.sh 'Off-screen cue' --path guidelines/MapFollow.md` finds the rule.
+- [x] 4.2 `tools/doc-routes.json` — four rows: two naming `MapFollow.md` §8 "Off-screen cue" (the rule
+      4.1 adds, reached from both of the section's route lists), two repairing a pre-existing repo-wide
+      red for `Backlog.md` §5 rules that exist verbatim at `guidelines/Backlog.md:184` and `:195` and no
+      route reached before this change. The second pair is outside the item's scope and is recorded here
+      rather than in the proposal's scope, because the diff cannot land green without it.
+      Parent: `gps-location-marker` (the requirement this change modifies).
+      Verification: `./tools/check-rule-routes.sh` — "every glob matches the tree and all 606 named
+      rule(s) are reached" (the count after this change's rule).
 
 ## 5. Verification of the whole delta
 
@@ -87,9 +96,16 @@ section. No native, JNI, `:auto`, Gradle, manifest or resource change.
       Parent: `gps-location-marker` (regression of the projection, rotation and palette cases).
 - [x] 5.2 `./tools/loop/measure.sh` re-run after the delta moved, and its `LOOP-MEASURE` block quoted
       in the change's evidence and in the worker's report.
-      Verification: `evidence/measure.txt` — `paths=4 insertions=165 deletions=6`, the six
-      `LOOP-MEASURE-TALLY` lines it reads, and
-      `LOOP-MEASURE-CHANGE fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0`.
+      Verification: `evidence/measure.txt`, re-run on the round-2 correction's tree —
+      `LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=38 insertions=1145 deletions=8`,
+      `LOOP-MEASURE-GATE seconds=454 suites=15`, and
+      `LOOP-MEASURE-CHANGE 2026-11-13-fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0`.
 - [x] 5.3 Grade the diff before handing it over: every `THEN` clause of the delta points at a case line,
       every tree claim in this change is made true by a hunk, and every artifact it cites exists.
       Verification: this file and `evidence/` read back after the diff.
+- [x] 5.4 The round-2 correction's gate, run twice: the first run reported an error on
+      `:core` `DiagnosticsLogWritePathTest > loggingDoesNotWriteOnTheCallingThread` (a case this change
+      does not touch, `errors="1"` in the gate's gradle tally), which passes alone (11 s) and green in
+      the rerun (gradle step 428 s, its tally `errors="0"`).
+      Verification: `evidence/flake-DiagnosticsLogWritePathTest.md` carries both runs, the failing
+      assertion and the mechanism the rerun ruled out.

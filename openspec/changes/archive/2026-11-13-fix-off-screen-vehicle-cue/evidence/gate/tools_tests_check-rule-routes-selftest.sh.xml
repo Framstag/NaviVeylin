@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/tests/check-rule-routes-selftest.sh" tests="13" failures="0" errors="0" time="1" run="1575168">
+<testsuite name="tools/tests/check-rule-routes-selftest.sh" tests="13" failures="0" errors="0" time="2" run="3192497">
   <system-out>PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a document a route split had left with no glob derives its own entries, not nothing (exit 0) PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and so does the document that shares the backlog concern with a sibling of its own (exit 0) check-rule-routes-selftest: all 13 cases passed (throwaway fixtures, no Gradle, no device, no network)</system-out>
 </testsuite>

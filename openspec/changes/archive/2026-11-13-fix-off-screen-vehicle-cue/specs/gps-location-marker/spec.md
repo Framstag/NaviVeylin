@@ -58,7 +58,7 @@ When the projected position falls outside the viewport — past the marker's own
 
 #### Scenario: Off-screen vehicle draws one edge cue
 
-- **WHEN** the GPS position projects outside the viewport and the overlay draws the frame
+- **WHEN** the GPS position projects outside the viewport, past the marker's off-screen margin, and the overlay draws the frame
 - **THEN** the frame SHALL carry exactly one cue, on the edge the vehicle lies beyond
 - **AND** no marker arrow SHALL be drawn for that position
 - **Case**: `app: LocationMarkerEdgeCueTest` "theOffScreenVehicleDrawsACueAtTheEdge",

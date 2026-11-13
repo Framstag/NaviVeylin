@@ -260,9 +260,10 @@ the second one listed none of the nine pids the first had listed 1.1 s earlier, 
 writer is gone when the transcript is written, so a reading taken afterwards attributes nothing: measured
 2026-10-23 while adding it, the exit-time sweep found no process for a child's one-shot write and the case built on
 it failed with `expected 'blocked', got 'done'`.
-What is not relaxed is the landing rule — a base that is still not clean when the item lands
-refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
-not about who wrote it.
+The landing rule is the same rule, not an exception to it (issue #862): the reading the run took travels with the
+merge call, a difference it placed in no process of its own is recorded with its paths and merged over, and the two
+merges refuse only a difference the run placed, or one no reading covers — the guard is about which tree may be
+merged onto, and a difference nobody can place is not evidence about the item's work.
 
 A placement is **recorded where it is read**: the step is recorded beside the reading that took it, in the branch
 that runs before the gate, and no pre-gate reviewer, gate child or tail is started for it, because a gate result
@@ -1179,6 +1180,13 @@ base branch is checked out in is not clean, or the branch does not descend from 
 item with its branch as the evidence rather than closing it, because `status/fixed-by` and "the fix is in the
 tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two commits still on
 `fix/issue-201-…` and the base at the run's base, and a person fast-forwarded `main` 35 minutes later (#229).
+What the dirt *is* decides it (issue #862): the run hands the merge the readings its children took of that tree, so a
+difference one of them placed in a process of its own tree refuses the merge, and a difference it placed nowhere is
+recorded with the paths it changed and merged over — 5 of the 145 archived states carry `stopReason: unmergeable`
+for a path no child of the run was ever tied to, and one of them (#859) had already written
+`attributed=none` into the transcript of the item it then dropped. The cases are
+`run#mergesOverADifferenceItCannotPlace`, `run#anAdoptionLandsOverADifferenceItCannotPlace` and
+`worktree#theLandingDecidesByTheReadingItIsHanded`; the mutation is `tools/loop/tests/loop-mutations.sh` 58.2.
 The merge lands in the project's **own** tree, and what a merge there moves is the branch that tree holds — so
 the landing step reads the checkout instead of assuming it, and refuses a tree switched off the base branch
 while the run is open, naming both branches (the start's own guard covers only the tree a run is *opened* on,

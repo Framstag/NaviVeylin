@@ -419,7 +419,16 @@ escalate_prescreen_decisions() {
 adoption_refusal=""
 adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not adoptable (the reason printed)
   local issue="$1" branch="$2" out merged_branch merged_commits merged_change merged_evidence
-  out=$(bash "$LOOP_DIR/worktree.sh" adopt-item "$issue" "$branch" 2>&1) || {
+  # The tree this adoption merges into, as the run's own reading of it stands (#862). The pre-flight refused a project
+  # tree that was not clean (#798) and no child of this run can have started before the pre-screen, so a difference
+  # the adoption meets here arrived after the run began and this run can tie it to no child of its own — the run's
+  # rule for such a difference is that it is recorded and decides nothing (#286), and `worktree.sh` names the paths it
+  # reads beside it, because a record that names none is a sentence nobody can act on (#285). `--strict-outside-write
+  # yes` is the run that asked for that tree to be judged, so there the difference still refuses the merge.
+  local land_args=()
+  land_args+=(--outside-write-decides "$(if [ "$strict_outside_write" = yes ]; then printf yes; else printf no; fi)")
+  land_args+=(--outside-write-note "read before the pre-screen: this run's pre-flight found the project tree clean and no child of this run has started since (#798), so the difference is one this run can tie to nothing of its own")
+  out=$(bash "$LOOP_DIR/worktree.sh" adopt-item "$issue" "$branch" ${land_args[@]+"${land_args[@]}"} 2>&1) || {
     # Kept for the caller that records the refusal, exactly as `merge_refusal` is kept for the run's own merge
     # (#794): the text `adopt-item` printed is the item's record, not a line for the terminal alone.
     adoption_refusal="$out"
@@ -474,14 +483,39 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   # `base` is deliberately not in this list: the merge moves the run's own base, and every later item is cut from
   # it. Declared here, the assignment below wrote a copy — the state file advanced and the run kept the commit it
   # read once at its start, so the next item was handed a base several merges old (issue #252).
-  local issue="$1" branch="$2" out
+  local issue="$1" branch="$2" out landing_line landing_write_note landing_write_decides
+  # What the landing hands `merge-item` about the project's own tree (#862): the item's own readings, as its children
+  # took them — the first one that recorded a difference names the paths, and whether the difference decides is what
+  # those readings said about it, never a second judgement taken here.
+  local land_args=()
+  landing_write_note=""
+  [ -z "${worker_write_note:-}" ] || landing_write_note="$worker_write_note"
+  if [ -z "$landing_write_note" ] && [ -n "${gate_write_note:-}" ]; then landing_write_note="$gate_write_note"; fi
+  if [ -z "$landing_write_note" ] && [ -n "${outside_write_note:-}" ]; then landing_write_note="$outside_write_note"; fi
+  landing_write_decides=""
+  if [ "${worker_write_decides:-0}" = 1 ] || [ "${gate_write_decides:-0}" = 1 ]; then landing_write_decides=yes; fi
+  if [ -z "$landing_write_decides" ] && [ -n "$landing_write_note" ]; then
+    if outside_write_decides; then landing_write_decides=yes; else landing_write_decides=no; fi
+  fi
+  # The run that declared the tree exclusive made every difference a verdict, and that verdict is the landing's too.
+  [ "$strict_outside_write" != yes ] || landing_write_decides=yes
+  [ -z "$landing_write_decides" ] || land_args+=(--outside-write-decides "$landing_write_decides")
+  [ -z "$landing_write_note" ] || land_args+=(--outside-write-note "$landing_write_note")
   merge_refusal=""
-  out=$(bash "$LOOP_DIR/worktree.sh" merge-item "$issue" "$branch" 2>&1) || {
+  out=$(bash "$LOOP_DIR/worktree.sh" merge-item "$issue" "$branch" ${land_args[@]+"${land_args[@]}"} 2>&1) || {
     merge_refusal="$out"
     printf '%s\n' "$out" >&2
     return "$LOOP_REFUSE"
   }
   printf '%s\n' "$out"
+  # The difference the landing merged over is the item's record of it (#862): a run that lands over work it could not
+  # place says so where a reader looks for a reading, beside the ones its children took — `outside-write` for the
+  # worker's, `outside-write-gate`, `outside-write-tail` and `outside-write-review-<round>` for the later ones.
+  landing_line=$(printf '%s\n' "$out" | sed -n 's/^LOOP-OUTSIDE-WRITE: //p' | head -1)
+  if [ -n "$landing_line" ]; then
+    loop_state step A --name outside-write-landing --status ok --note "$landing_line" >/dev/null 2>&1 || true
+    progress note "$landing_line"
+  fi
   # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
   # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
   base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)") || base=""

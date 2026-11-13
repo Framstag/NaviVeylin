@@ -553,6 +553,11 @@ MUTATIONS=(
   # column going missing, and nothing mutated the `-` a row with no mechanism prints (issue #280, round 1).
   '58.1@-@tools/loop/run.sh@run#reviewRoundsCapAtTwo@the refusing last round named as the mechanism that stopped the item (issue #280)@s|^      block refused "the change failed its last review round|      block "" "the change failed its last review round|'
   '58.2@-@tools/loop/run.sh@run#doesNotCloseOnAMergeTheBaseCannotTake@a base that would not take the branch named as the other mechanism (issue #280)@s|^      block unmergeable "|      block "" "|'
+  # 862.1 — the landing is handed the reading the run already took (issue #862): `cmd_merge_item` re-judged the
+  # project tree with a stricter rule than `outside_write_decides`, so a difference the run had placed in nothing
+  # dropped a finished item. The record removes the reading, so the landing refuses a difference it cannot place
+  # again — the arm that decides by what it was handed is the whole invariant.
+  '862.1@-@tools/loop/worktree.sh@worktree#theLandingDecidesByTheReadingItIsHanded@the reading the landing is handed left out, so a difference the run placed in nothing refuses the merge again (issue #862)@s|^  if \[ "\$landing_decides" = "no" \]; then$|  if false; then|'
   '58.3@-@tools/loop/state.sh@state#aBlockedItemNamesTheMechanismThatStoppedIt@the mechanism written into the item record (issue #280)@s|^                  stopReason:(if \$sr == "" then null else \$sr end),$|                  stopReason:null,|'
   '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \. == "" then "-" else \. end|if true then "-" else . end|'
   '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \. == "" then "-" else \. end|if false then "-" else . end|'
@@ -860,7 +865,7 @@ MUTATIONS=(
   # failed because the project tree was not clean, and the run escalated the item with the pre-screen's reason —
   # 12 h after its owner had answered the only question it had. The mutation drops the record the exclusion loop
   # writes, so the refusal is back to a line on the terminal and the item is back to a spent decision slot.
-  '86.1@-@tools/loop/run.sh@run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
+  '86.1@-@tools/loop/run.sh@run#anAdoptionLandsOverADifferenceItCannotPlace@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
   # 87.x — a child has a search tool that runs (issue #796). Measured 2026-11-06 by `evidence/ctx-grep-census.py` over
   # this run archive: 282 of 482 `ctx_grep` calls answered `zsh:1: command not found: rg` (125 of 252 item directories),
   # while the binary sits in the agent's own bin directory — and the recipe every phase prompt and every guideline

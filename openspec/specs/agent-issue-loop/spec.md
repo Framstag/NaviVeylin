@@ -2518,7 +2518,7 @@ own bound into a question its owner owes an answer.
 
 - **WHEN** the run cannot merge the item's branch onto the base and the item is recorded blocked
 - **THEN** the item's record carries `unmergeable`, beside the note that names the branch
-- **Case**: `run#doesNotCloseOnAMergeTheBaseCannotTake`
+- **Case**: `state#aBlockedItemNamesTheMechanismThatStoppedIt`
 
 #### Scenario: The tree's refusal of an adoption is named on the exclusion
 
@@ -3744,7 +3744,7 @@ that runs again during the same run SHALL NOT erase it from the entry it rewrite
   report's decision list names none, while the run's own record carries the adoption's refusal with `unmergeable`
   as the excluded item's mechanism and the branch as its evidence — the item the next run retries, not a question
   only its owner can answer
-- **Case**: `run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable`
+- **Case**: `run#anAdoptionLandsOverADifferenceItCannotPlace`
 
 #### Scenario: The refusal is recorded on the exclusion and on no other record
 

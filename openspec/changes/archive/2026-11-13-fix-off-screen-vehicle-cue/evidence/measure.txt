@@ -1,0 +1,26 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=c5336234d386ada4988943cbadc0132ebebb0891 paths=4 insertions=165 deletions=6
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationMarkerEdgeCueTest.kt
+LOOP-MEASURE-PATH guidelines/MapFollow.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/tests/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-SUITE cases=424 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-off-screen-vehicle-cue scenarios=9 cases=9 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-green.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerEdgeCueTest-revert-green.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayPaletteTest-green.xml tests=4 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/green/TEST-LocationMarkerOverlayTest-green.xml tests=9 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/red/TEST-LocationMarkerEdgeCueTest-red-head.xml tests=1 failures=1
+LOOP-MEASURE-TALLY openspec/changes/fix-off-screen-vehicle-cue/evidence/red/TEST-LocationMarkerEdgeCueTest-revert-red.xml tests=4 failures=1
+LOOP-MEASURE-SURFACE surface: 4 cases added (1 red, 3 green), 0 cases rewritten, 2 production files changed, 1 spec scenario
+LOOP-MEASURE-END

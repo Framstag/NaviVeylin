@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-13T07:09:59.096Z" hostname="dingens" time="8.728">
+  <properties/>
+  <testcase name="theCueClearsTheColumnInsetBounds" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="6.983"/>
+  <testcase name="theCueSitsOnTheEdgeTowardTheVehicle" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="0.108"/>
+  <testcase name="theOnScreenMarkerPlacesNoCue" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="0.094"/>
+  <testcase name="theOffScreenVehicleDrawsACueAtTheEdge" classname="com.naviveylin.ui.map.LocationMarkerEdgeCueTest" time="1.48"/>
+  <system-out><![CDATA[Frame raster=320x470 origin=(0,0) side=300
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

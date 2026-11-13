@@ -69,9 +69,31 @@ adb -s emulator-5556 shell input keyevent KEYCODE_HOME       # background the ca
 Start the bare URI form without `-n` only if you want the system chooser; with several
 `geo:` handlers it opens the resolver dialog instead of the app.
 
-**Four device prerequisites that each cost a round** (measured 2026-10-30, `fix-car-rail-widget-tap`
-tasks 4.2/4.3, AAOS `emulator-5556` and phone `emulator-5554`):
+**Seven device prerequisites that each cost a round** (four measured 2026-10-30, `fix-car-rail-widget-tap`
+tasks 4.2/4.3, AAOS `emulator-5556` and phone `emulator-5554`; the first two measured 2026-11-13 on the same
+AAOS AVD and on a fresh full-AAOS API 35 AVD):
 
+- **Location is a per-user setting, and a cold deep link reads no position.** An automotive AVD booted with
+  `location_mode=0` answers `E NavigationEngine: acquire: no GPS position available` even after
+  `adb emu geo fix`, and `settings put secure location_mode 3` alone is not enough either: the session has to
+  hold its location lease first (`Diag/LocationService: location lease acquire: car-session (held=1)`), so
+  start the car session, wait for it, and then re-deliver the deep link (which arrives as
+  `Diag/SESSION: onNewIntent action=android.intent.action.VIEW scheme=geo`). The same cold start also answers
+  `reason=DATABASE_NOT_LOADED` until the map databases are opened — retry after that line, not before.
+- **App data is user-scoped and cannot be seeded from the host.** `run-as` resolves the package's data
+  directory for **user 0** whatever `am get-current-user` says, and on an AAOS unit the car session runs as
+  the **driver user** (10): a map database copied with
+  `cat maps.tar | adb shell "run-as <pkg> tar -xf - -C ."` therefore lands under `/data/user/0/` while the app
+  logs `Diag/WARMUP: No maps dir at /data/user/10/<pkg>/files/maps`, and `/data/user/10/…` is denied to shell
+  (`adb root` → `adbd cannot run as root in production builds`). Plan for a unit that carries map data already,
+  or download it through the app's own map manager — which is phone-UI only, and an automotive device never
+  shows it (`AutomotiveDevice.isAutomotive` routes `MainActivity` to `CarAppActivity`).
+- **A fresh full-AAOS AVD runs a third-party car app only for the driver user, and only once its host is
+  current.** On the API 35 `android-automotive-playstore` image the car session ran our app as user 10 and the
+  host `com.google.android.apps.automotive.templates.host` answered normally; the same app as user 0 was
+  refused with `System requires update` / `Check for updates`, whose button opens the Play Store sign-in page
+  (`com.android.vending/…UnauthenticatedMainActivity`) — an AVD without a Google account (`dumpsys account` →
+  `Accounts: 0`) cannot get past that.
 - **The notification permission is granted per user.** A plain `pm grant com.framstag.naviveylin
   android.permission.POST_NOTIFICATIONS` grants user 0 while the driving user on the automotive AVD is
   10; the app then enqueues and is refused — `AggregatedStats key='com.framstag.naviveylin'

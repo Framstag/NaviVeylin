@@ -37,7 +37,9 @@ need() { [ $# -ge 2 ] && [ -n "${2:-}" ] || die "$1 needs a value"; }
 # reader.
 cmd_select() {
   local pid live=no list path n start stop reason last=""
-  pid=$(tr -cd '0-9' < "$root/lock/owner" 2>/dev/null) || pid=""
+  pid=""
+  # the lock directory is removed when a run ends, so its absence is the ordinary case, not an error
+  if [ -r "$root/lock/owner" ]; then pid=$(tr -cd '0-9' < "$root/lock/owner" 2>/dev/null) || pid=""; fi
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null \
      && [ -z "$(jq -r '.run.stop.reason // ""' "$root/run.json" 2>/dev/null)" ]; then live=yes; fi
   printf 'live=%s  root=%s\n' "$live" "$root"

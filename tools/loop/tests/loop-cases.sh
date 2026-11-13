@@ -8575,8 +8575,8 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
 
 # The landing step is where the run disagreed with its own rule (issue #862): a worker's write that the reading
 # could not place is recorded and decides nothing (#704), so the merge onto the project's own tree has to record it
-# too and land anyway. Measured over this loop's archive: 5 of 145 states carry `stopReason: unmergeable`, the
-# oldest of them #229's, and what each refused was a path no child of the run had been tied to.
+# too and land anyway. Issue #862's count over this loop's archive: 5 of 145 states carry `stopReason: unmergeable`,
+# the oldest of them #229's, and what each refused was a path no child of the run had been tied to.
 case_run_mergesOverADifferenceItCannotPlace() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local d p out base branch note
@@ -9367,7 +9367,7 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
 # clean (#798), and no child of this run exists before the pre-screen, so a difference the adoption meets there is
 # one this run can tie to nothing of its own. It is recorded and merged over, exactly as it decides nothing anywhere
 # else — the item's work finished, was verified and was reviewed, and it is not dropped for a path its own attempt
-# never wrote (5 of the 145 archived states carry `unmergeable`).
+# never wrote (issue #862's count: 5 of the 145 archived states carry `unmergeable`).
 case_run_anAdoptionLandsOverADifferenceItCannotPlace() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/issues/tests/fixtures/gh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status branch base tip log

@@ -51,7 +51,7 @@ can only be handed an item that leaves it nothing to decide, so the payload says
 arrives:
 
 ```json
-"cause": {"file": "tools/loop/worktree.sh", "line": 649, "case": "run#dirtyBaseRefusesTheMergeAndNamesThePath"}
+"cause": {"file": "tools/loop/worktree.sh", "line": 653, "case": "run#mergesOverADifferenceItCannotPlace"}
 ```
 
 - **tier A — `cause`** for a fix that is proven: the file, the line, and **the case that exercises it** by the

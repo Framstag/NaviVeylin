@@ -685,7 +685,14 @@ internal fun BoxScope.MapCanvasMapBandContent(
                     },
                     zoomScale = zoomAnimScaleState.value,
                     zoomAnchor = zoomAnchorState.value,
-                    dark = state.isDarkPresentation
+                    dark = state.isDarkPresentation,
+                    // The cue the off-screen branch draws must clear the columns the band reserves
+                    // for its chrome — the same insets the framing resolves against (spec:
+                    // gps-location-marker — The cue clears the inset columns).
+                    insetLeftPx = viewModel.overlayInsetLeftPx,
+                    insetTopPx = viewModel.overlayInsetTopPx,
+                    insetRightPx = viewModel.overlayInsetRightPx,
+                    insetBottomPx = viewModel.overlayInsetBottomPx
                 )
             }
         }

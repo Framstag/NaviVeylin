@@ -26,6 +26,7 @@ import com.naviveylin.core.GpsMarkerPalette
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleMarkerGeometry
 import android.graphics.Paint as AndroidPaint
+import kotlin.math.atan2
 
 /**
  * Compose overlay that renders the GPS location marker on top of the map.
@@ -52,7 +53,11 @@ fun LocationMarkerOverlay(
     modifier: Modifier = Modifier,
     zoomScale: Float = 1f,
     zoomAnchor: Offset = Offset.Zero,
-    dark: Boolean = false
+    dark: Boolean = false,
+    insetLeftPx: Int = 0,
+    insetTopPx: Int = 0,
+    insetRightPx: Int = 0,
+    insetBottomPx: Int = 0
 ) {
     if (lat.isNaN() || lon.isNaN() || viewport == null) return
     if (dpi <= 0.0) return
@@ -64,7 +69,26 @@ fun LocationMarkerOverlay(
         val screenWidthPx = size.width.toDouble()
         val screenHeightPx = size.height.toDouble()
         val projected = projectMarker(lat, lon, viewport, screenWidthPx, screenHeightPx, dpi)
-        if (projected == null) return@Canvas
+        if (projected == null) {
+            // Off-screen: no marker, one cue on the edge the vehicle lies beyond (spec:
+            // gps-location-marker — Marker hidden when off-screen). The raw projection is needed
+            // because projectMarker culls past MARGIN_PX; the cue is what this state shows, clamped
+            // inside the columns the map band reserves for its chrome.
+            val raw = projectMarkerRaw(lat, lon, viewport, screenWidthPx, screenHeightPx, dpi)
+                ?: return@Canvas
+            val cue = edgeCuePlacement(
+                pos = applyZoomAnchorScale(raw, zoomScale, zoomAnchor),
+                screenWidthPx = screenWidthPx,
+                screenHeightPx = screenHeightPx,
+                insetLeftPx = insetLeftPx,
+                insetTopPx = insetTopPx,
+                insetRightPx = insetRightPx,
+                insetBottomPx = insetBottomPx,
+                radiusPx = CUE_RADIUS_DP.toPx().toDouble()
+            ) ?: return@Canvas
+            drawEdgeCue(cue, dark)
+            return@Canvas
+        }
         val center = applyZoomAnchorScale(projected, zoomScale, zoomAnchor)
 
         // Meters per pixel at the rendered magnification for the accuracy circle.
@@ -118,16 +142,103 @@ internal fun projectMarker(
     screenHeightPx: Double,
     dpi: Double
 ): Offset? {
+    val pos = projectMarkerRaw(lat, lon, viewport, screenWidthPx, screenHeightPx, dpi) ?: return null
+    if (pos.x.toDouble() < -MARGIN_PX || pos.x.toDouble() > screenWidthPx + MARGIN_PX ||
+        pos.y.toDouble() < -MARGIN_PX || pos.y.toDouble() > screenHeightPx + MARGIN_PX
+    ) return null
+    return pos
+}
+
+/**
+ * The projection before the off-screen margin cull: null only when the fix cannot be projected at
+ * all (a NaN input or a NaN result). What the off-screen cue needs, because a position the marker
+ * is culled for is exactly the position the cue is placed for.
+ */
+internal fun projectMarkerRaw(
+    lat: Double,
+    lon: Double,
+    viewport: MapRenderer.RenderViewport,
+    screenWidthPx: Double,
+    screenHeightPx: Double,
+    dpi: Double
+): Offset? {
     val projected = ProjectionUtils.viewport(
         viewport.lat, viewport.lon, viewport.mag,
         screenWidthPx.toInt(), screenHeightPx.toInt(), dpi, viewport.angle
     )
     val (sx, sy) = projected.geoToScreenRotated(lat, lon)
     if (sx.isNaN() || sy.isNaN()) return null
-    if (sx < -MARGIN_PX || sx > screenWidthPx + MARGIN_PX ||
-        sy < -MARGIN_PX || sy > screenHeightPx + MARGIN_PX
-    ) return null
     return Offset(sx.toFloat(), sy.toFloat())
+}
+
+/**
+ * Where the off-screen cue is drawn and which way it points (spec: gps-location-marker — Marker
+ * hidden when off-screen). [center] is in screen pixels, [pointingDegrees] uses the marker arrow's
+ * convention: 0° points up the screen.
+ */
+internal data class EdgeCue(val center: Offset, val pointingDegrees: Float)
+
+/**
+ * The cue's placement for a projected position: null while the position is inside the frame (the
+ * marker itself is drawn then), otherwise the edge point where the ray from the usable area's centre
+ * through the position leaves the inset bounds, and the angle of that ray.
+ *
+ * The bounds are the frame shrunk by the columns the map band reserves for its chrome
+ * ([insetLeftPx] … [insetBottomPx]) and by the cue's own [radiusPx], so the whole glyph stays inside
+ * the usable area and never sits under an action or widget column. A degenerate inset pair collapses
+ * the bounds to their midpoint rather than producing a NaN position. Extracted pure for unit testing.
+ */
+internal fun edgeCuePlacement(
+    pos: Offset,
+    screenWidthPx: Double,
+    screenHeightPx: Double,
+    insetLeftPx: Int = 0,
+    insetTopPx: Int = 0,
+    insetRightPx: Int = 0,
+    insetBottomPx: Int = 0,
+    radiusPx: Double = 0.0
+): EdgeCue? {
+    val px = pos.x.toDouble()
+    val py = pos.y.toDouble()
+    if (px >= 0.0 && px <= screenWidthPx && py >= 0.0 && py <= screenHeightPx) return null
+
+    var left = insetLeftPx + radiusPx
+    var top = insetTopPx + radiusPx
+    var right = screenWidthPx - insetRightPx - radiusPx
+    var bottom = screenHeightPx - insetBottomPx - radiusPx
+    if (right < left) {
+        val mid = (left + right) / 2.0
+        left = mid
+        right = mid
+    }
+    if (bottom < top) {
+        val mid = (top + bottom) / 2.0
+        top = mid
+        bottom = mid
+    }
+
+    val centerX = (left + right) / 2.0
+    val centerY = (top + bottom) / 2.0
+    val dx = px - centerX
+    val dy = py - centerY
+    if (dx == 0.0 && dy == 0.0) return null
+
+    val tX = when {
+        dx > 0.0 -> (right - centerX) / dx
+        dx < 0.0 -> (left - centerX) / dx
+        else -> Double.MAX_VALUE
+    }
+    val tY = when {
+        dy > 0.0 -> (bottom - centerY) / dy
+        dy < 0.0 -> (top - centerY) / dy
+        else -> Double.MAX_VALUE
+    }
+    val t = minOf(tX, tY)
+    val x = (centerX + t * dx).coerceIn(left, right)
+    val y = (centerY + t * dy).coerceIn(top, bottom)
+
+    val pointingDegrees = Math.toDegrees(atan2(dx, -dy)).toFloat()
+    return EdgeCue(Offset(x.toFloat(), y.toFloat()), pointingDegrees)
 }
 
 /*
@@ -250,6 +361,42 @@ private fun DrawScope.drawBlurredPath(path: Path, blurPx: Float, color: Color) {
     }
 }
 
+/**
+ * The off-screen cue: a small chevron pointing along the edge toward the vehicle, in the vehicle
+ * marker's own palette branch so the two read as one element family in either presentation.
+ */
+private fun DrawScope.drawEdgeCue(cue: EdgeCue, dark: Boolean) {
+    val radiusPx = CUE_RADIUS_DP.toPx()
+    val casing = Color(
+        if (dark) VehicleMarkerGeometry.COLOR_CASING_DARK else VehicleMarkerGeometry.COLOR_CASING
+    )
+    val core = Color(VehicleMarkerGeometry.gradientColors(dark).first)
+    translate(left = cue.center.x, top = cue.center.y) {
+        rotate(degrees = cue.pointingDegrees, pivot = Offset.Zero) {
+            val chevron = Path().apply {
+                moveTo(0f, -radiusPx)
+                lineTo(radiusPx * 0.85f, radiusPx * 0.30f)
+                lineTo(0f, -radiusPx * 0.10f)
+                lineTo(-radiusPx * 0.85f, radiusPx * 0.30f)
+                close()
+            }
+            drawPath(chevron, casing)
+            val inner = Path().apply {
+                moveTo(0f, -radiusPx * 0.62f)
+                lineTo(radiusPx * 0.52f, radiusPx * 0.16f)
+                lineTo(0f, -radiusPx * 0.06f)
+                lineTo(-radiusPx * 0.52f, radiusPx * 0.16f)
+                close()
+            }
+            drawPath(inner, core)
+        }
+    }
+}
+
 private val MIN_RADIUS_DP: Dp = 4.dp
+
+/** The off-screen cue's own radius: its drawn extent is 2× this, kept inside the edge it sits on. */
+private val CUE_RADIUS_DP: Dp = 12.dp
+
 internal const val MARGIN_PX = 100
 private const val POOR_ACCURACY_THRESHOLD_PX = 20f

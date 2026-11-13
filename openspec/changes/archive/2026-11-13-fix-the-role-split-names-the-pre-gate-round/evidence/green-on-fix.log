@@ -1,0 +1,6 @@
+command: bash tools/loop/tests/loop-selftest.sh --case report#thePreGateRoundIsChargedToItsOwnRole
+tree: state.sh fixed (role map names the pre-gate round)
+taken: 2026-11-13T15:14:15Z
+
+PASS report#thePreGateRoundIsChargedToItsOwnRole
+exit: 0

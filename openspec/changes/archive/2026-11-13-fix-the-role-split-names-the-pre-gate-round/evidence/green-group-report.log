@@ -1,0 +1,71 @@
+command: bash tools/loop/tests/loop-selftest.sh --group report
+tree: the change as it is handed over (state.sh arms, report.sh header comment, guideline paragraphs)
+taken: 2026-11-13T15:17:30Z
+
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/12/tree/case.geupqc/repo/.pi/issue-loop/runs/2026-11-13T15:17:30Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/8/tree/case.KIed8W/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (70c14f6a4f6c66d7 → ce9ff72a4dfec800); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/10/tree/case.sRU7jz/repo/.pi/issue-loop/runs/2026-11-13T15:17:30Z.json
+PASS report#emptyRunSaysNone
+PASS report#yieldIsCountedFromState
+PASS report#aVerdictAloneIsNoEscalation
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261113-151733')
+report#headerAndTableShape| HEAD ist jetzt bei 9414db9 init
+report#headerAndTableShape| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS report#misdiagnosedIsCountedApart
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#archivedStateIsReported
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f89850d)
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2057e9e)
+PASS report#impossibleBudgetNamesAnotherRun
+report#headerAndTableShape| HEAD ist jetzt bei 2057e9e review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2057e9e).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#aKilledRunIsNotALiveRun
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| closed #21 (completed)
+report#headerAndTableShape|   landing #21 2057e9eaa802ea4aaf6d456c4f89eeb71a1fd8cf: unscored — the pipeline runs of this commit could not be read
+PASS report#wallTimeAndReasonInTheTable
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#zeroUsagePrintsDashNotZero
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#anUnmergeableItemNamesItsLanding
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#anItemOverTheTokenBoundIsFlagged
+PASS report#headerAndTableShape
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/5/tree/case.fJ3ioT/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (58c93de66565881d → c07ce8eeed4d769c); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/6/tree/case.Br7Pjf/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (dfd390e1332d1b59 → 0af87f010634deea); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/6/tree/case.Br7Pjf/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (dfd390e1332d1b59 → 0af87f010634deea); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/5/tree/case.fJ3ioT/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (58c93de66565881d → e0b3376849fdf2d1); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/5/tree/case.fJ3ioT/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (58c93de66565881d → e0b3376849fdf2d1); a field was edited outside this script
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#anItemRecordsItsRepeatReads
+PASS report#aTruncatedStreamSaysSo
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#thePreGateRoundIsChargedToItsOwnRole
+PASS report#aCallThatNamesTheGateIsNotAGateRun
+PASS report#aCheckTheGateWouldRunIsTheGateTime
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#aRolesTokensRecordTheModelThatAnswered
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+PASS report#theBoundRateIsNamed
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/4/tree/case.j2IrKF/repo/.pi/issue-loop/runs/2026-11-13T15:17:56Z.json
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.X4HaMC/cases/3/tree/case.hVdRpz/repo/.pi/issue-loop/runs/2026-11-13T15:17:56Z.json
+PASS report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+PASS report#anActionNamesAnItemPathThatExists
+PASS report#theSpendIsWorkNotWaiting
+PASS report#aTurnNoSessionRecordReachesIsItsOwnBucket
+PASS report#thePhaseLineNamesTheClockItIsAShareOf
+PASS report#trendFiguresFromState
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#landingsAreTheStoredNumber
+loop-selftest: report 38 cases 298.22 s
+loop-selftest: all 38 cases passed (JDK 27, offline, no token, no sandbox) — 33.23 s, selection: --group report
+exit: 0

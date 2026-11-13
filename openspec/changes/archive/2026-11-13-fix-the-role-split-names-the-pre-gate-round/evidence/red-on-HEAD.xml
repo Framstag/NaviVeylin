@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red case's tally on the base: the case is this change's own, the tree is base commit
+     5d73096844fc04437d0d184549ba824b89a11ed0 with only the case applied, and the run was taken at
+     2026-11-13T15:13:38Z. `tools/loop/tests/loop-selftest.sh` prints its verdict, not a JUnit file, so this
+     file carries the tally the run recorded (1 of 1 cases failed, exit 1) as a testsuite; the verbatim output
+     of that run is evidence/red-on-HEAD.log beside this file. Derived from that log, not a re-run. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case report#thePreGateRoundIsChargedToItsOwnRole" tests="1" failures="1" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-13T15:13:38Z"/>
+    <property name="base" value="5d73096844fc04437d0d184549ba824b89a11ed0"/>
+  </properties>
+  <testcase classname="report" name="report#thePreGateRoundIsChargedToItsOwnRole">
+    <failure message="the round before the gate is a bucket of its own, not part of the reviewer's: expected '4000000', got 'null'"/>
+  </testcase>
+</testsuite>

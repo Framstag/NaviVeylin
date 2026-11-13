@@ -4092,6 +4092,13 @@ reads it.
 An item's record SHALL carry the gate tally the run read for it and the verdict of the review round the run read its
 diff in, whichever arm the item ended on — not the arm that closed it alone — and the report SHALL NOT name a gate to
 re-run for an item whose record carries a tally, and SHALL NOT count an item whose diff was read as never reviewed.
+When that tally is red, the record SHALL also carry which tree fails the case the gate named: `metrics.gateAttribution`,
+one of `delta | base | unattributable` — `delta` the case the item's own `LOOP-RED-TEST` line already names, `base` a
+case that also fails at the run's base commit and so is a pre-existing red rather than a finding about the delta,
+`unattributable` a red the gate's own log cannot answer. The field SHALL be read from the gate log `tools/loop/gate.sh`
+writes beside its tallies, SHALL NOT pay a base tree for a case the item's own red test already names, and SHALL NOT be
+carried for a tally that passed or an item whose gate never ran — a green gate has nothing to attribute, and the state
+refuses the field beside it. The tally's prose SHALL NOT be rewritten by the field.
 
 #### Scenario: A blocked item records the gate it ran, and no gate is re-run for it
 
@@ -4107,6 +4114,37 @@ re-run for an item whose record carries a tally, and SHALL NOT count an item who
 - **THEN** the record carries `metrics.reviewVerdict: PASS` and `metrics.reviewRounds: 1`, and the report's review line
   counts it as a first round that passed rather than as an item never reviewed
 - **Case**: `run#aBlockedItemRecordsTheRoundThatReadIt`
+
+#### Scenario: The case the item's own red test names is the delta's
+
+- **WHEN** the gate's tally is red, its log names one failing case, and that case is a `<group>#<name>` token of the
+  item's own `LOOP-RED-TEST` line
+- **THEN** the item's record carries `metrics.gateAttribution: delta`, no detached tree at the run's base is created,
+  and the item takes the blocked path a red gate took before
+- **Case**: `run#aRedGateIsAttributedToTheTreeThatFailsIt`
+
+#### Scenario: A case that also fails at the base commit is recorded as a pre-existing red
+
+- **WHEN** the gate's tally is red, its log names a case the item's red test does not name, and the rerun command
+  `tools/gate-attribute.sh` derived from the failing step fails in a detached tree at the run's base commit
+- **THEN** the item's record carries `metrics.gateAttribution: base`, the detached tree is removed, and the item is
+  still recorded `blocked` — the answer is readability, not a verdict on a gate that did not pass
+- **Case**: `run#aRedGateIsAttributedToTheTreeThatFailsIt`
+
+#### Scenario: A red gate with no readable log is recorded unattributable
+
+- **WHEN** the gate's tally is red and the tree holds no gate log at the profile's tally directory, or the log's case
+  cannot be selected at the base
+- **THEN** the item's record carries `metrics.gateAttribution: unattributable`, the item blocks exactly as it did
+  before, and the report counts the three answers instead of printing the field silently
+- **Case**: `run#aRedGateIsAttributedToTheTreeThatFailsIt`
+
+#### Scenario: A gate that passed records no attribution
+
+- **WHEN** a record is written beside a gate tally that passed, or beside no tally at all
+- **THEN** the record carries no `metrics.gateAttribution`, the state refuses the flag with `there is nothing to
+  attribute` rather than recording an answer the gate never produced, and the report counts no attribution for it
+- **Case**: `state#aCloseOverARedGateWithoutAWaiverIsRefused`
 
 ### Requirement: A close over a gate that did not pass records its waiver
 

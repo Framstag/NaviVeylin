@@ -110,6 +110,7 @@ LOOP_SHELL_CASES=(
   'worktree#refusesABranchWhoseReviewFailed'
   'worktree#refusesABranchWhoseReviewRoundNeverAnswered'
   'worktree#refusesToMergeOverADirtyProjectTree'
+  'worktree#theLandingDecidesByTheReadingItIsHanded'
   'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom'
   'worktree#refusesToMergeIntoATreeOffTheBaseBranch'
   'worktree#theNamedChangeIsCopiedIntoTheItem'
@@ -253,14 +254,14 @@ LOOP_SHELL_CASES=(
   'run#aChildIsGivenOneScratchDirectory'
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
   'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced'
-  'run#dirtyBaseRefusesTheMergeAndNamesThePath'
+  'run#mergesOverADifferenceItCannotPlace'
   'run#strictOutsideWriteBlocksTheItem'
   'run#strictOutsideWriteDiscardsTheReviewRound'
   'run#leftoverBranchIsRecordedNotDropped'
   'run#branchThatAppearsWhileTheRunIsOpenIsSetAside'
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
-  'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable'
+  'run#anAdoptionLandsOverADifferenceItCannotPlace'
   'run#mergesItsCommittedBranchBeforeClosing'
   'run#aMergedBranchIsRemoved'
   'run#theEndSweepsTheLandedBranchesItMade'
@@ -268,7 +269,6 @@ LOOP_SHELL_CASES=(
   'run#theSweepComparesAgainstTheFetchedBase'
   'run#theBaseAdvancesWithEveryMerge'
   'run#staleTestResultsAreNotThisChildsGate'
-  'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#recordsAFailedReviewOnTheBranch'
   'run#announcesAndRecordsTheReviewRound'
   'run#thePreGateReviewRunsBeforeTheGate'
@@ -827,6 +827,7 @@ loop_run_shell_case() {
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'worktree#refusesABranchWhoseReviewRoundNeverAnswered') fn=case_worktree_refusesABranchWhoseReviewRoundNeverAnswered ;;
     'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
+    'worktree#theLandingDecidesByTheReadingItIsHanded') fn=case_worktree_theLandingDecidesByTheReadingItIsHanded ;;
     'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom') fn=case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom ;;
     'worktree#refusesToMergeIntoATreeOffTheBaseBranch') fn=case_worktree_refusesToMergeIntoATreeOffTheBaseBranch ;;
     'worktree#theNamedChangeIsCopiedIntoTheItem') fn=case_worktree_theNamedChangeIsCopiedIntoTheItem ;;
@@ -970,14 +971,14 @@ loop_run_shell_case() {
     'run#aChildIsGivenOneScratchDirectory') fn=case_run_aChildIsGivenOneScratchDirectory ;;
     'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
     'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced') fn=case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced ;;
-    'run#dirtyBaseRefusesTheMergeAndNamesThePath') fn=case_run_dirtyBaseRefusesTheMergeAndNamesThePath ;;
+    'run#mergesOverADifferenceItCannotPlace') fn=case_run_mergesOverADifferenceItCannotPlace ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
     'run#branchThatAppearsWhileTheRunIsOpenIsSetAside') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
-    'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable') fn=case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable ;;
+    'run#anAdoptionLandsOverADifferenceItCannotPlace') fn=case_run_anAdoptionLandsOverADifferenceItCannotPlace ;;
     'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
     'run#aMergedBranchIsRemoved') fn=case_run_aMergedBranchIsRemoved ;;
     'run#theEndSweepsTheLandedBranchesItMade') fn=case_run_theEndSweepsTheLandedBranchesItMade ;;
@@ -985,7 +986,6 @@ loop_run_shell_case() {
     'run#theSweepComparesAgainstTheFetchedBase') fn=case_run_theSweepComparesAgainstTheFetchedBase ;;
     'run#theBaseAdvancesWithEveryMerge') fn=case_run_theBaseAdvancesWithEveryMerge ;;
     'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
-    'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#thePreGateReviewRunsBeforeTheGate') fn=case_run_thePreGateReviewRunsBeforeTheGate ;;
@@ -8573,25 +8573,47 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
   assert_eq "1" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is closed"
 }
 
-case_run_dirtyBaseRefusesTheMergeAndNamesThePath() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p note
+# The landing step is where the run disagreed with its own rule (issue #862): a worker's write that the reading
+# could not place is recorded and decides nothing (#704), so the merge onto the project's own tree has to record it
+# too and land anyway. Measured over this loop's archive: 5 of 145 states carry `stopReason: unmergeable`, the
+# oldest of them #229's, and what each refused was a path no child of the run had been tied to.
+case_run_mergesOverADifferenceItCannotPlace() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out base branch note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  # The difference that is still there when the item lands. The run does not invent a verdict about the child for
-  # it: the merge declines a base that is not clean — its own safety rule, unchanged by this change — and the
-  # reason it records names the path, which is what makes the escalation answerable (#285's naming, folded here).
+  base=$(git -C "$p" rev-parse main)
+  # The difference is still in the project's own tree when the item lands. The worker's own shell wrote it and never
+  # `cd`s out of the project, so no ancestor of the writer worked in the worktree: the reading that runs while the
+  # child is alive finds the path and places no process (`attributed=none`, #704). What this case measures is the
+  # landing step's half of the same rule — recorded, and merged over — because dropping the item there is what the
+  # tracker entry reports: green, red-tested and reviewed, and left on a branch for a person.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
-  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "a base that is still dirty cannot be merged onto"
-  note=$(jq -r '.items[0].note' "$(state_file "$p")")
-  assert_contains "$note" "is not clean" "the reason is the landing rule, which is the run's own"
-  assert_contains "$note" "demo-owned.txt" "and it names the path, so the owner can act on it"
-  case "$note" in *"wrote outside the worktree"*)
-    fail "the reason still blames the child for a difference the run cannot attribute: $note" ;; esac
-  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a difference the run placed in nothing of its own does not end the item at its landing"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the item closes on its own work"
+  branch=$(jq -r '.items[0].merged.branch' "$(state_file "$p")")
+  case "$branch" in
+    fix/issue-21-*) ;;
+    *) fail "the item is closed without a recorded merge: $branch" ;;
+  esac
+  [ -f "$p/demo-fix.txt" ] || fail "the fix the run committed did not reach the base"
+  [ "$base" != "$(git -C "$p" rev-parse main)" ] || fail "the base did not advance to the item's merge"
+  # The difference the landing merged over is the item's record of it, under the name a later reader looks a reading
+  # up by, and on the run's own console while it happens — not only in a transcript nobody opens.
+  note=$(jq -r '[.steps[] | select(.name == "outside-write-landing") | .note] | join(" | ")' "$(state_file "$p")")
+  assert_contains "$note" "merges over a difference no process of this run was tied to" \
+    "the landing records the difference it merged over"
+  assert_contains "$note" "demo-owned.txt" "and it names the path it read, so the owner can act on it"
+  assert_contains "$out" "LOOP-OUTSIDE-WRITE: the landing merges over a difference no process of this run was tied to" \
+    "the record is printed as the landing is taken"
+  # Nothing was attributed to the merge: the path is still the person's, uncommitted, in the tree it was written in.
+  assert_eq "?? demo-owned.txt" "$(git -C "$p" status --porcelain -- demo-owned.txt)" \
+    "the difference stays in the tree the owner left it in, and is in no commit of the merge"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "merged $branch" \
+    "the closure's evidence names the merge, so the tracker's fixed-by claim carries what backs it"
 }
 
 case_run_strictOutsideWriteBlocksTheItem() {
@@ -8954,7 +8976,8 @@ case_run_mergesAFinishedAttemptAndClosesTheItem() {
 # so it is refused when that tree is not clean — merging over uncommitted work would attribute it to the item —
 # and when the branch does not descend from the base the run recorded. A refusal moves nothing, and a run that
 # read the refusal as a closure would say `status/fixed-by` about a fix only a branch has; the same command on a
-# clean tree is the merge the run's own success path takes (issue #229).
+# clean tree is the merge the run's own success path takes (issue #229). What the dirt *is* is the reading the case
+# beside this one hands in (issue #862).
 case_worktree_refusesToMergeOverADirtyProjectTree() {
   # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out status branch tip
@@ -8982,6 +9005,49 @@ case_worktree_refusesToMergeOverADirtyProjectTree() {
   assert_contains "$out" "merged: branch $branch" "the merge names the branch it landed"
   assert_contains "$out" "· commits " "and the commits it carried"
   assert_eq "$tip" "$(git -C "$p" rev-parse main)" "the base is the branch, fast-forwarded"
+}
+
+# A landing is handed the run's own reading of the project's tree (issue #862): both merges used to refuse any
+# `git status` output with no attribution clause, while the run's rule for that same tree is that a difference it can
+# tie to no process of its own is recorded and decides nothing (#286, #274). So a difference one of its readings *did*
+# place still refuses — the arm that keeps a merge from swallowing work a child is writing there — and one it placed
+# in nothing of its own is recorded, with the paths, and merged over.
+case_worktree_theLandingDecidesByTheReadingItIsHanded() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p w base out status branch tip
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  tip=$(git -C "$p" rev-parse "$branch")
+  printf 'the work left behind\n' > "$p/stray.txt"
+
+  # A difference the run placed in its own child's tree decides the landing, as it decides every other reading.
+  out=$(run_worktree "$p" merge-item 21 "$branch" --outside-write-decides yes \
+    --outside-write-note "the project tree changed while this process ran: ?? stray.txt — attributed=4242" 2>&1); status=$?
+  assert_eq "5" "$status" "a difference the run can place refuses the merge"
+  assert_contains "$out" "not clean" "with the landing's own reason"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "and the base did not move"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached the base although the merge was refused"
+
+  # …and the same difference, placed in nothing of the run's own tree, is recorded and merged over: the item's work is
+  # on the base, and the path nobody can place is named where a later reader looks for the readings.
+  out=$(run_worktree "$p" merge-item 21 "$branch" --outside-write-decides no \
+    --outside-write-note "the project tree changed while this process ran: ?? stray.txt — attributed=none" 2>&1); status=$?
+  assert_eq "0" "$status" "a difference the run placed in nothing does not stop the landing"
+  assert_contains "$out" "LOOP-OUTSIDE-WRITE: the landing merges over a difference no process of this run was tied to" \
+    "the landing records the difference it merged over"
+  assert_contains "$out" "stray.txt" "and the paths it read"
+  assert_contains "$out" "merged: branch $branch" "then lands the branch it was handed"
+  assert_eq "$tip" "$(git -C "$p" rev-parse main)" "the base is the branch, fast-forwarded"
+  assert_eq "?? stray.txt" "$(git -C "$p" status --porcelain -- stray.txt)" \
+    "and the difference stays in the tree, in no commit of the merge"
 }
 
 # The refusal's other arm: a branch whose commits are not on top of the base the run recorded is a tree nobody
@@ -9245,45 +9311,6 @@ case_run_staleTestResultsAreNotThisChildsGate() {
     "and the run names the stale results it removed before that child"
 }
 
-# The merge lands in the project's own tree, where the base branch is checked out, so a tree that is not clean at
-# the moment of the closure refuses it. A run that read that refusal as a closure would write `status/fixed-by`
-# about a fix only the branch has — the defect #229 reported, with the run's own child as the cause of the dirt.
-# The dirt is the child's and arrives while the run is live (a tree dirty at start is refused by the start-time
-# pre-flight, #798), so what this case measures is the landing step's refusal and that no closure is written over
-# it — the item stays open with its branch named (issue #229).
-case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p base branch log
-  d=$(scratch); p=$(new_project)
-  base=$(git -C "$p" rev-parse main)
-  # The tree the merge lands in is dirtied while the run is *live*, by the item's own child: a tree that is already
-  # dirty when the run starts is refused by the start-time pre-flight, before any item (#798), so what this case
-  # measures is the landing step's own refusal of that same tree.
-  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
-    "printf 'work in progress\\n' > '$p/uncommitted.txt'"
-  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
-  assert_eq "blocked" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
-    "a closure whose merge the base cannot take is blocked, not settled"
-  assert_eq "unmergeable" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
-    "and the record names the base's refusal as the mechanism that stopped it (issue #280)"
-  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
-  [ -n "$branch" ] || fail "the run left no item branch"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not clean" \
-    "the reason names the tree the merge would have landed in"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "$branch" \
-    "and the branch it could not merge"
-  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
-  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached the base although the merge was refused"
-  assert_eq "" "$(jq -r '.items[0].merged.branch // ""' "$(state_file "$p")")" \
-    "no merge is recorded for an item whose merge was refused"
-  log=$(cat "$GH_STUB_RECORD")
-  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" \
-    "the item is not closed on a fix the base does not have"
-  assert_contains "$log" "agent/needs-decision" "it is escalated instead"
-  assert_contains "$log" "$branch" "and the escalation names the branch a person must merge"
-}
-
 # The merge is only taken on a verification that is green: a branch whose archived change carries no passing
 # verification record — a blocked attempt carries only the red-on-HEAD XML — keeps its refusal, its escalation
 # and the person who owns the decision, and nothing is merged (issue #176).
@@ -9334,9 +9361,16 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
 # at 06:28Z for a branch `branch-state` read `adoptable` the whole time, whose adoption had failed on a project
 # tree that was not clean — 12 h after the owner had answered the item's only real question, and one of the ten
 # decision slots of that run.
-case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/issues/tests/fixtures/gh tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out status branch base log
+# The same rule at the pre-screen's adoption (issue #862). `adopt-item` merged a previous attempt's finished branch
+# onto the base only over a tree `git status` found clean, and the tree it lands in is the project's own — the one a
+# person edits while a run is open. The run has read that tree once already: its pre-flight refuses one that is not
+# clean (#798), and no child of this run exists before the pre-screen, so a difference the adoption meets there is
+# one this run can tie to nothing of its own. It is recorded and merged over, exactly as it decides nothing anywhere
+# else — the item's work finished, was verified and was reviewed, and it is not dropped for a path its own attempt
+# never wrote (5 of the 145 archived states carry `unmergeable`).
+case_run_anAdoptionLandsOverADifferenceItCannotPlace() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/issues/tests/fixtures/gh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status branch base tip log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
@@ -9356,10 +9390,11 @@ case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable() {
     fail "could not commit the previous attempt"
   git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
   base=$(git -C "$p" rev-parse main)
+  tip=$(git -C "$p" rev-parse "$branch")
   # The tree the merge lands in is dirtied while the run is *live*: a tree that is already dirty when the run starts
   # is refused by the start-time pre-flight, before any adoption (#798). The dirt arrives with the run's first tracker
-  # read — the one the decision cap makes, before the pre-screen — which is the window a person's edit occupies, so
-  # `adopt-item`'s own refusal, the cheapest one it has, stays the reading this case is about.
+  # read — the one the decision cap makes, before the pre-screen — which is the window a person's edit occupies, and
+  # it is a difference no process of this run wrote.
   mkdir -p "$d/bin"
   printf '#!/usr/bin/env bash\ncase "$*" in *"issue list"*) printf "work nobody committed\\n" > "%s" ;; esac\nexec %s "$@"\n' \
     "$p/uncommitted.txt" "$LOOP_ISSUE_FIXTURES/gh" > "$d/bin/gh"
@@ -9368,28 +9403,68 @@ case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable() {
   export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
 
   out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
-  assert_eq "0" "$status" "an adoption the tree refuses is an explicit non-error"
-  assert_contains "$out" "not clean" "the refusal is printed and names the tree the merge would land in"
-  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
-  [ ! -f "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md" ] ||
-    fail "the change was merged although the tree was not clean"
-  [ -n "$(git -C "$p" branch --list "$branch")" ] || fail "the branch the adoption refused was removed"
-  # the item's record names the adoption's own refusal, beside the pre-screen's reading of the same branch
-  assert_eq "unmergeable" "$(jq -r '.excluded[] | select(.issue == 21) | .mechanism' "$(state_file "$p")")" \
-    "the refusal is recorded as the item's mechanism"
-  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .adoptionRefusal' "$(state_file "$p")")" "not clean" \
-    "and the record quotes what refused the merge, not the pre-screen's reason"
-  assert_eq "$branch" "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$(state_file "$p")")" \
-    "the branch stays the evidence"
-  # …and the item is work, not a question: no block, no decision slot, no close
-  assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "nothing is recorded as worked"
+  assert_eq "0" "$status" "an adoption that lands is an explicit non-error"
+  assert_contains "$out" "adopted: branch $branch" "the branch the previous attempt finished is adopted"
+  # The landing's own reading travels on the console, and names the paths the difference carries: a record that names
+  # none is a sentence the owner cannot act on (#285).
+  assert_contains "$out" "LOOP-OUTSIDE-WRITE: the landing merges over a difference no process of this run was tied to" \
+    "the adoption records the difference it merged over"
+  assert_contains "$out" "uncommitted.txt" "and names the path it read"
+  assert_eq "$tip" "$(git -C "$p" rev-parse main)" "the base is the previous attempt's commit"
+  [ -f "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md" ] ||
+    fail "the change the previous attempt archived did not reach the base"
+  [ "$base" != "$tip" ] || fail "this case's two commits are the same, so it cannot tell a merge from no merge"
+  # the item the adoption finished is closed, and its record carries what the landing merged over
+  assert_eq "closed" "$(jq -r '.items | map(select(.issue == 21)) | last | .verdict' "$(state_file "$p")")" \
+    "the item the adoption finished is closed"
+  assert_contains "$(jq -r '.items | map(select(.issue == 21)) | last | .note' "$(state_file "$p")")" "uncommitted.txt" \
+    "and its record carries the difference the landing merged over"
+  assert_eq "$branch" "$(jq -r '.items | map(select(.issue == 21)) | last | .merged.branch' "$(state_file "$p")")" \
+    "and the closure names the branch it merged, so the fixed-by claim carries what backs it"
   log=$(cat "$GH_STUB_RECORD")
-  assert_eq "0" "$(printf '%s\n' "$log" | grep -c 'agent/needs-decision' || true)" \
-    "no decision label is written for an adoption the tree refused"
-  assert_eq "0" "$(printf '%s\n' "$log" | grep -c 'issue close' || true)" "and nothing is closed"
-  assert_contains "$out" "decisions the owner owes: none" "the report names no decision the owner owes"
-  assert_contains "$out" "excluded before any work: #21 needs-decision (unmergeable)" \
-    "while the exclusion it printed names the adoption's mechanism"
+  assert_eq "1" "$(printf '%s\n' "$log" | grep -c 'issue close' || true)" \
+    "the item is closed on the tracker, because the base carries its fix"
+  assert_eq "?? uncommitted.txt" "$(git -C "$p" status --porcelain -- uncommitted.txt)" \
+    "the person's file is still theirs, and in no commit of the merge"
+  assert_contains "$out" "decisions the owner owes: none" \
+    "the report names no decision the owner owes for an adoption that landed"
+
+  # …and the same difference, placed by the run's own rule, refuses the adoption: the run that asked for the tree to be
+  # judged (`--strict-outside-write yes`) is not handed a landing over a difference it did not take, and the refusal is
+  # recorded beside the exclusion with its mechanism instead of being escalated as a question only its owner can answer
+  # (issues #794, #862).
+  local p2 d2 base2 tip2 out2
+  p2=$(new_project); d2=$(scratch)
+  git -C "$p2" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the previous attempt's branch again"
+  mkdir -p "$p2/openspec/changes/archive/2026-01-01-fix-adopted/evidence"
+  printf 'archived\n' > "$p2/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md"
+  printf '<testsuite tests="2" failures="1" errors="0"></testsuite>\n' \
+    > "$p2/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted-red-on-HEAD.xml"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p2/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted.xml"
+  printf 'the previous attempt\n' > "$p2/adopted-fix.txt"
+  git -C "$p2" add -A >/dev/null 2>&1
+  git -C "$p2" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt again"
+  git -C "$p2" switch main >/dev/null 2>&1 || fail "could not return to the base"
+  base2=$(git -C "$p2" rev-parse main)
+  tip2=$(git -C "$p2" rev-parse "$branch")
+  [ "$base2" != "$tip2" ] || fail "the second attempt's branch is empty, so it cannot tell a merge from no merge"
+  mkdir -p "$d2/bin"
+  printf '#!/usr/bin/env bash\ncase "$*" in *"issue list"*) printf "work nobody committed\\n" > "%s" ;; esac\nexec %s "$@"\n' \
+    "$p2/uncommitted.txt" "$LOOP_ISSUE_FIXTURES/gh" > "$d2/bin/gh"
+  chmod +x "$d2/bin/gh"
+  export PATH="$d2/bin:$PATH"
+  : > "$GH_STUB_RECORD"
+  out2=$(run_loop "$p2" --items 1 --minutes 90 --review on --strict-outside-write yes 2>&1)
+  assert_not_contains "$out2" "adopted: branch $branch" \
+    "a run that asked the tree to be judged does not adopt over a difference it placed"
+  assert_eq "$base2" "$(git -C "$p2" rev-parse main)" "and the base did not move"
+  assert_eq "unmergeable" "$(jq -r '.excluded[] | select(.issue == 21) | .mechanism' "$(state_file "$p2")")" \
+    "the refusal is recorded beside the exclusion as the mechanism that stopped it"
+  assert_contains "$out2" "excluded: #21 needs-decision (unmergeable)" \
+    "the report prints the mechanism beside the exclusion"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and nothing is closed on it"
 }
 
 # The kept worktree is deliberate (the next run inherits its warm checkout) and refusing a previous run's

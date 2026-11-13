@@ -20,10 +20,10 @@
 #   worktree.sh start-item <issue> <slug> [--change <name>]
 #   worktree.sh continue-item <issue> [checkpoint|bound]
 #   worktree.sh end-item <issue> <slug>
-#   worktree.sh adopt-item <issue> <branch>
+#   worktree.sh adopt-item <issue> <branch> [--outside-write-decides yes|no] [--outside-write-note <note>]
 #   worktree.sh branch-state <issue> <branch>
 #   worktree.sh set-aside <issue> <branch>
-#   worktree.sh merge-item <issue> <branch>
+#   worktree.sh merge-item <issue> <branch> [--outside-write-decides yes|no] [--outside-write-note <note>]
 #   worktree.sh release-branch <branch>
 #   worktree.sh prune-landed [--apply]
 #   worktree.sh record-review-round <issue> <change> <round> requested|passed|cut|rework-cut
@@ -617,6 +617,55 @@ cmd_set_aside() { # <issue> <branch>
   printf '%s\n' "$name"
 }
 
+# What the landing step is handed about the project's own tree (issue #862). The run's rule is that a difference it
+# can tie to no process of its own is recorded and decides nothing (#286, #274) — and the landing step is where the
+# run disagreed with it: both merges refused any `git status` output with no attribution clause, so an item that was
+# green, red-tested and reviewed was dropped for a path its own children never touched (5 of the 145 archived states
+# carry `stopReason: unmergeable`, #862). The reading the run took travels with the call: `--outside-write-decides
+# no` for a difference it placed in no process of its own, `yes` for one it did, or for a run that declared the tree
+# exclusive — and the note names the paths, because a record that names none is a sentence nobody can act on (#285).
+# A call that carries no reading still refuses: a difference the run never read is not one it can place, and the two
+# merges' own safety rule is unchanged.
+landing_args() { # <option>… → sets `landing_decides` and `landing_note`
+  landing_decides=""
+  landing_note=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --outside-write-decides)
+        [ $# -ge 2 ] || loop_die "landing: --outside-write-decides needs a value (yes|no)"
+        landing_decides="$2"; shift 2 ;;
+      --outside-write-note)
+        [ $# -ge 2 ] || loop_die "landing: --outside-write-note needs a value"
+        landing_note="$2"; shift 2 ;;
+      *) loop_die "landing: unknown option '$1' — the landing takes --outside-write-decides and --outside-write-note" ;;
+    esac
+  done
+  case "$landing_decides" in
+    yes|no|'') ;;
+    *) loop_die "landing: --outside-write-decides takes yes or no, not '$landing_decides'" ;;
+  esac
+}
+
+# The dirt the merge would land over, decided by the reading the run handed it (issue #862): recorded and merged
+# over where the run placed the difference in nothing of its own, refused where it did or where nothing was read.
+landing_refuses_the_dirt() { # <dirty> → prints the record or exits 5 with the refusal
+  local clause
+  if [ "$landing_decides" = "no" ]; then
+    # The paths are the ones this step read, bounded as every note the run prints is (`run.sh`'s
+    # `outside_write_clause`): a damaged tree carries thousands of `git status` lines and a note is a sentence a
+    # person reads on the tracker. The reading the run handed in follows it, so a reader has both what changed and
+    # what the run made of it.
+    clause=$(printf '%s\n' "$1" | cut -c1-120 |
+      awk -v cap=10 'NF { n++; if (n <= cap) printf "%s%s", (n > 1 ? "; " : ""), $0 }
+                     END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }')
+    printf 'LOOP-OUTSIDE-WRITE: the landing merges over a difference no process of this run was tied to: %s%s\n' \
+      "$clause" "${landing_note:+ — $landing_note}" >&2
+    return 0
+  fi
+  loop_refuse "the project tree is not clean — refusing to merge onto the base:
+$1"
+}
+
 # The branch of a finished attempt is merged onto the run's base and the item is closed by the run's own
 # closure path (run.sh calls this, then `labels.sh close`) — no loop path merged one before, so an item whose
 # earlier attempt finished but was never merged was permanently ineligible (issue #176). The merge is one
@@ -626,6 +675,8 @@ cmd_adopt_item() {
   local issue="${1:-}" branch="${2:-}"
   case "$issue" in ''|*[!0-9]*) loop_die "adopt-item: usage: worktree.sh adopt-item <issue> <branch>" ;; esac
   [ -n "$branch" ] || loop_die "adopt-item: usage: worktree.sh adopt-item <issue> <branch>"
+  shift 2 2>/dev/null || true
+  landing_args "$@"
   # The merge lands in the project's own tree, where the base branch is checked out — the pre-screen's
   # adoption happens before the run's worktree exists, so the worktree is not required here.
   check_base
@@ -652,10 +703,11 @@ cmd_adopt_item() {
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
   # The merge lands in the project tree, where the base branch is checked out: over uncommitted work it would
-  # attribute that work to the merge, which is the rule `create` already refuses for.
+  # attribute that work to the merge, which is the rule `create` already refuses for. What that dirt *is* decides it
+  # (#862): a difference the run placed in no process of its own is recorded and merged over, exactly as it decides
+  # nothing anywhere else (#286).
   dirty=$(gitr status --porcelain)
-  [ -z "$dirty" ] || loop_refuse "the project tree is not clean — refusing to merge $branch onto the base:
-$dirty"
+  [ -z "$dirty" ] || landing_refuses_the_dirt "$dirty"
   if gitr merge-base --is-ancestor "$base" "$branch"; then
     gitr merge --ff-only "$branch" >&2 || loop_die "adopt-item: the fast-forward failed"
   else
@@ -681,6 +733,8 @@ cmd_merge_item() { # <issue> <branch>
   local issue="${1:-}" branch="${2:-}" base commits dirty
   case "$issue" in ''|*[!0-9]*) loop_die "merge-item: usage: worktree.sh merge-item <issue> <branch>" ;; esac
   [ -n "$branch" ] || loop_die "merge-item: usage: worktree.sh merge-item <issue> <branch>"
+  shift 2 2>/dev/null || true
+  landing_args "$@"
   # The merge lands in the project's own tree, where the base branch is checked out, and that is verified: over a
   # checkout off the base branch the merge has no tree to land in (issue #302).
   check_base
@@ -692,10 +746,11 @@ cmd_merge_item() { # <issue> <branch>
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
   gitr merge-base --is-ancestor "$base" "$branch" ||
     loop_refuse "branch $branch does not descend from the base ${base:0:12} — refusing to replay it onto a tree nobody reviewed"
-  # Over uncommitted work the merge would attribute that work to itself, which `create` already refuses for.
+  # Over uncommitted work the merge would attribute that work to itself, which `create` already refuses for — and a
+  # difference the run tied to no process of its own is recorded and merged over instead of ending the item (#862),
+  # which is what `run.sh`'s own `outside_write_decides` says about that same reading (#286).
   dirty=$(gitr status --porcelain)
-  [ -z "$dirty" ] || loop_refuse "the project tree is not clean — refusing to merge $branch onto the base:
-$dirty"
+  [ -z "$dirty" ] || landing_refuses_the_dirt "$dirty"
   gitr merge --ff-only "$branch" >&2 || loop_die "merge-item: the fast-forward failed"
   printf 'merged: branch %s -> %s · commits %s\n' \
     "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')"

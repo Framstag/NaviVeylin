@@ -9,7 +9,7 @@ package com.naviveylin.core.port
  *
  * [key] is a string table entry name — the name the platform's table gives the entry, not an id and not a
  * translated value — so the same text is reachable from every surface without one of them owning the
- * vocabulary. The platform side implements this interface over that table.
+ * vocabulary. The platform side will implement this interface over that table.
  */
 fun interface Resources {
 

@@ -384,25 +384,6 @@ internal fun MapCanvasViewModel.setMapRendererForTest(renderer: MapRenderer?) {
 }
 
 /**
- * Test hook: publish a landed frame at [mag] exactly as the frame collector does
- * (render viewport + walk advance), so the bounded magnification walk can be
- * exercised deterministically without the native render pipeline.
- */
-@VisibleForTesting
-internal fun MapCanvasViewModel.publishRenderedFrameForTest(mag: Double) {
-    val vp = _uiState.value.viewport
-    val previous = _uiState.value.renderViewport
-    _uiState.value = _uiState.value.copy(
-        renderViewport = if (previous != null) {
-            previous.copy(mag = mag)
-        } else {
-            MapRenderer.RenderViewport(vp.centerLat, vp.centerLon, mag, vp.angle)
-        }
-    )
-    advanceZoomWalk(mag)
-}
-
-/**
  * Invalidates the cached tiles when the basemap data changes while the app runs.
  */
 internal fun MapCanvasViewModel.wireBasemapReload() {

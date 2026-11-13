@@ -14,7 +14,7 @@ Every sub-section states one family of constraints; read the one your case falls
 the classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions
 and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion
 measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub
-for unit tests".
+for unit tests", §6i "A frame from the render pipeline".
 
 ## 6a. The JNI stub and the classloader sandbox
 
@@ -180,3 +180,31 @@ for unit tests".
 
 (The exact stub names, the `java.library.path` wiring and the fake classes are `guidelines/Build.recipes.md`
 §6h.)
+
+## 6i. A frame from the render pipeline
+
+- **Rule: a case that needs a landed map frame drives the production path, and no test-only setter publishes
+  one.** The chain is `initMap` (it builds the renderer off the main thread) → `setScreenSize` (it gives the
+  renderer a surface, and its first call is what asks for a frame) → `rendererDispatcher` (the renderer's own
+  scope, which owns the queue and the debounce) → the collector that consumes `MapRenderer.frameFlow` and
+  routes each frame to `applyRenderedFrame`. Assign `viewModel.defaultDispatcher` and `viewModel.rendererDispatcher`
+  from `MainDispatcherRule` and run the case in `runTest(mainDispatcherRule.dispatcher)`, so every hop runs on
+  one scheduler. `MapCanvasViewModelFrameHarnessTest` is the entry point; the walk and route-fit cases read their
+  frames from it instead of from an injected magnification.
+- **Rule: a case that renders without reporting a surface size asserts nothing lands, and why.**
+  `MapRenderer.enqueueRenderJob` returns before queueing while the screen is zero-sized (it logs
+  `enqueueRenderJob skipped: screen 0x0`), so the frame never reaches the collector. Measured: dropping the size
+  report from the harness case fails it with `exactly one frame for one size-triggered render expected:<1> but
+  was:<0>`, and no native render is asked for.
+- **Rule: drive the scheduler past the renderer's debounce window.** A request that is not a walked step is
+  debounced (`zoomDebounceMs` 200 ms, `panDebounceMs`/`rotateDebounceMs` 50 ms), so a case advances the test
+  scheduler by more than that and only then idles: `advanceTimeBy(1_000)` then `advanceUntilIdle()`. Idling alone
+  leaves the job unsubmitted — measured as `renders=0` with the state already at the requested magnification.
+  A walked step takes the immediate path and needs no window.
+- **Rule: the pixels are the fake client's, and the bitmap is the renderer's overrun buffer.**
+  `FakeOSMScoutClient.render*` returns `createTestPixels(width, height)`, so a case asserts the dimensions the
+  pipeline produced (`MapRenderer.DEFAULT_CANVAS_OVERRUN` times the reported surface), not the surface's own —
+  a 120×200 surface yields a 144×240 frame. No JNI call and no device is involved (§6a still applies: default
+  Robolectric sandbox, because the fake loads the stub client).
+
+(The finding that produced this rule is issue #887; the on-device walk it was read from is recorded there.)

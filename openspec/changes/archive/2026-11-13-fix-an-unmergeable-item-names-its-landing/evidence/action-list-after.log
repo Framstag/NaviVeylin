@@ -1,0 +1,14 @@
+actions the caller owes:
+  1. decide #859 — the run escalated it (blocked): the branch fix/issue-859-the-answer-s-shape-has-a-second-home-and could not be merged onto the base, so the item is not closed on a fix the tree does not have — loop: the project tree is not clean — refusing to merge fix/issue-859-the-answer-s-shape-has-a-second-home-and onto the base:\n M tools/loop/loop.conf\n?? docs/2026-11-11-thinking-level-model-analysis.md\n?? tools/bench/thinking_probe.py · the comment itself: gh issue view 859
+  2. decide #835 — the pre-screen refused it (needs-decision): the item awaits a decision (agent/needs-decision / status/on-hold) — left to its owner until a person answers it · the comment itself: gh issue view 835
+  3. land fix/issue-859-the-answer-s-shape-has-a-second-home-and onto the base — the branch is not in this tree — item #859 — git -C /home/tim/projects/NaviVeylin/.pi/worktrees/loop merge --ff-only fix/issue-859-the-answer-s-shape-has-a-second-home-and — after the 3 path(s) its refusal named are cleared ( M tools/loop/loop.conf, ?? docs/2026-11-11-thinking-level-model-analysis.md, ?? tools/bench/thinking_probe.py) — git -C /home/tim/projects/NaviVeylin/.pi/worktrees/loop status --porcelain lists them
+  4. land fix/issue-706-the-follow-and-pan-overlay-paths-carry-o — 43 commit(s) the base does not have — item #706
+  5. land fix/issue-725-an-off-screen-vehicle-shows-no-cue-but-t — 51 commit(s) the base does not have — item #725
+  6. land fix/issue-791-the-scan-s-findings-reach-the-badge-and — 33 commit(s) the base does not have — item #791
+  7. land fix/issue-853-a-red-gate-names-the-failing-case-but-no — 51 commit(s) the base does not have — item #853
+  8. land fix/issue-860-the-hup-case-hangs-the-suite-instead-of — 43 commit(s) the base does not have — item #860
+  9. land fix/issue-861-a-red-case-that-flaked-once-is-recorded — 49 commit(s) the base does not have — item #861
+  10. land fix/issue-862-the-landing-step-refuses-a-finished-item — 43 commit(s) the base does not have — item #862
+  11. land fix/issue-863-an-item-blocked-at-landing-tells-the-cal — 49 commit(s) the base does not have — item #863
+  12. land fix/issue-875-a-poi-search-cannot-be-narrowed-by-name — 50 commit(s) the base does not have — item #875
+  13. land loop-20261113-054741 — 43 commit(s) the base does not have — no item of this run owns it

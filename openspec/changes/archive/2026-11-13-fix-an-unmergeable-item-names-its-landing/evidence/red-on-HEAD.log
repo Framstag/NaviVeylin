@@ -1,0 +1,9 @@
+# red-on-HEAD: the case as this change leaves it, run against the base engine 647b289a
+# taken 2026-11-13T13:33:40Z from the base engine staged under items/863/scratch/base-engine (tools/ copied, tools/loop/report.sh
+# replaced with 647b289a:tools/loop/report.sh — the only file this change alters that the case reaches)
+# command: bash tools/loop/tests/loop-selftest.sh --case report#anUnmergeableItemNamesItsLanding
+report#anUnmergeableItemNamesItsLanding|   and the one command that lands it: 'git -C /home/tim/projects/NaviVeylin/.pi/issue-loop/items/863/scratch/base-engine/.pi/tmp/loop-selftest.kpXXGB/cases/0/tree/case.tmzrt4/repo merge --ff-only fix/issue-21-two-mechanisms' not found in:   4. land fix/issue-21-two-mechanisms — 1 commit(s) the base does not have — item #21
+--- report#anUnmergeableItemNamesItsLanding[0] (exit 1)
+  and the one command that lands it: 'git -C /home/tim/projects/NaviVeylin/.pi/issue-loop/items/863/scratch/base-engine/.pi/tmp/loop-selftest.kpXXGB/cases/0/tree/case.tmzrt4/repo merge --ff-only fix/issue-21-two-mechanisms' not found in:   4. land fix/issue-21-two-mechanisms — 1 commit(s) the base does not have — item #21
+FAIL report#anUnmergeableItemNamesItsLanding
+loop-selftest: 1 of 1 cases failed

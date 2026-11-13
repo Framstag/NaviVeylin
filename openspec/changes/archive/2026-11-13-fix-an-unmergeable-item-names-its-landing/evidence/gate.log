@@ -1,0 +1,94 @@
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-TREE: head=16356c30047b2bb5eb1fd2c7ab983bc987fe0081 diff=34d249febd875226
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=1514942
+[1853 lines omitted, 80 safety-relevant lines preserved]
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#projectKeysAreReadFromLoopConf| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (04ab098)
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei 04ab098 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#keepsByDefaultAndRemovesOnRequest| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (dcb0487)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a9dc2d4)
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei dcb0487 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei a9dc2d4 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#keepsByDefaultAndRemovesOnRequest| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS worktree#refusesABranchWhoseReviewFailed
+prompt#aTierAItemSaysSo| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+labels#writesOnlyBetweenChildren| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#aTierAItemSaysSo| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (14cc57c)
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5dc0959)
+prompt#aTierAItemSaysSo| HEAD ist jetzt bei 14cc57c review: 2026-01-01-fix-demo round 1 passed (#21)
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei 5dc0959 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerGradesItsOwnDiffBeforeItReports| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerCarriesTheEightItems| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesTheDecisionField| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerCarriesTheFeaturePath| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesEveryPhaseAndSkill| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerTreatsARecordedDecisionAsSettled| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerIsBoundedToReading| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#workerCarriesTheFeaturePath| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#workerNamesTheDecisionField| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#workerNamesEveryPhaseAndSkill| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#workerGradesItsOwnDiffBeforeItReports| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#workerTreatsARecordedDecisionAsSettled| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#reviewerIsBoundedToReading| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (90b2274)
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerCarriesTheFeaturePath| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesTheDecisionField| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesEveryPhaseAndSkill| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerTreatsARecordedDecisionAsSettled| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerGradesItsOwnDiffBeforeItReports| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerIsBoundedToReading| HEAD ist jetzt bei 90b2274 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#packageIsAFileAndNotInlined| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#thePhasePromptNamesWhatItsShellRefuses| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#packageIsAFileAndNotInlined| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5688ae7)
+prompt#thePhasePromptNamesWhatItsShellRefuses| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5688ae7)
+prompt#packageIsAFileAndNotInlined| HEAD ist jetzt bei 5688ae7 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#thePhasePromptNamesWhatItsShellRefuses| HEAD ist jetzt bei 5688ae7 review: 2026-01-01-fix-demo round 1 passed (#21)
+PASS run#aFailedPreScreenRecordsItsStopReason
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+PASS gate#aFailingSuitesTallyIsUnchangedByItsNeighbours
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerIsHandedTheMeasureBlock| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a1f9b97)
+prompt#workerIsHandedTheMeasureBlock| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a1f9b97)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3f25cf5)
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| HEAD ist jetzt bei a1f9b97 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerIsHandedTheMeasureBlock| HEAD ist jetzt bei a1f9b97 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 3f25cf5 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#oneItemOrderIsFixed| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#childStartsInTheProjectRoot| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1062 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 12s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 330s, tools/loop/tests/loop-selftest.sh --from-git c5336234d386ada4988943cbadc0132ebebb0891 706s, bash tools/loop/tests/loop-mutations.sh --check 10s, tools/loop/tests/loop-mutations-selftest.sh 760s, bash tools/gen-feature-list.sh --check-classification 11s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 28s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 99s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s)
+GATE-EXIT=0
+─── 43.8k → 3,636 tok (↓~90%) ───
+[lean-ctx: full output -> /home/tim/.config/lean-ctx/tee/cd__home_tim_projects_NaviVeylin__pi_wor_bd1cf498.log (redacted, 24h TTL)]
+

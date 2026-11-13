@@ -486,9 +486,9 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   | ([.items[] | select(.metrics.phases != null) | .metrics.wallSeconds | select(. != null)] | add) as $phsWall
   | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
   # How much of that gate a child paid outside `gate.sh` (issue #857). The bucket holds every call that ran a check the
-  # map names — whoever started it — so the line names the part of it that no gate run paid: 674 s of the 1 497 s of
-  # gate-adjacent time item #849 holds, in four calls a child ran by hand. The field is `null` where no child ran one,
-  # so a run of none adds no clause rather than `0 s`.
+  # map names — whoever started it — so the line names the part of it that no gate run paid; on item #849 the four
+  # largest such calls are 674 s, all four standing before its `gate.sh` call. The field is `null` where no child ran
+  # one, so a run of none adds no clause rather than `0 s`.
   | ([.items[] | .metrics.gateRepeat | select(. != null)]) as $rep
   | ([$rep[].ms] | add // 0) as $repMs
   | ([$rep[].calls] | add // 0) as $repCalls

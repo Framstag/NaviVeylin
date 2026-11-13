@@ -144,10 +144,10 @@ trap 'rm -f "$answer_file"' EXIT
 # holds — `run.sh`'s `child_turns` does, which is what keeps a child's turn bound counting from zero after a rotation.
 #
 # Why the deltas go first (issue #840): the oldest half of a stream is where the records live, and the records are
-# what `state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `roles` and `afterGate` from — so a
-# cut decided by line position made a rotated item's spend a lower bound printed as a measurement. Measured on the run
-# started 2026-11-09T21:42:41Z, nine of fifteen item streams rotated and dropped 1 697 `turn_end` records against the
-# 1 372 turns the state recorded. What fills a stream is not records but streamed deltas: in
+# what `state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `gateRepeat`, `roles` and `afterGate`
+# from — so a cut decided by line position made a rotated item's spend a lower bound printed as a measurement. Measured
+# on the run started 2026-11-09T21:42:41Z, nine of fifteen item streams rotated and dropped 1 697 `turn_end` records
+# against the 1 372 turns the state recorded. What fills a stream is not records but streamed deltas: in
 # `items/833/events.jsonl` 16 662 of the ~17 400 surviving lines are `message_update` (4 741 310 of 8 565 562 bytes,
 # 55 %), `tool_execution_update` another 255 184 B (3 %), so the deltas alone are most of what a bound has to trim.
 #

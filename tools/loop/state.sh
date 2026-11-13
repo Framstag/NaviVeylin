@@ -904,12 +904,15 @@ num_or_null() {
 # 2026-11-03: 89.6 h, model 30.1 h, the project's gate 35.1 h, the loop's own self-tests 11.6 h; 1 581 of 2 591 Mtok
 # spent after the item's first gate, reviewer 402 Mtok against the worker's 2 168).
 #
-#   * **`phases`** — the model time is the sum of the turns' own `durationMs`, the gate the sum of the
-#     `tool_execution_end` durations of the calls whose command runs the gate, and every other tool's durations are
-#     the third bucket. Which command is the gate is the project's declaration (`LOOP_GATE_CMD`), read as its
-#     program's name — never a name this engine carries (`run#engineNamesNoProjectFact`). The three are disjoint: a
-#     turn's duration is the model response, the tool's duration the execution that follows it, so they add up to
-#     the clock the item's children spent working;
+#   * **`phases`** (`{modelMs, gateMs, otherMs}`) — the model time is the sum of the turns' own `durationMs`, the gate
+#     the sum of the `tool_execution_end` durations of the calls whose command runs the gate or one of the checks the
+#     profile's map names (issue #857), and every other tool's durations are the third bucket. Which command is the gate
+#     is the project's declaration (`LOOP_GATE_CMD`), read as its program's name — never a name this engine carries
+#     (`run#engineNamesNoProjectFact`). The three are disjoint: a turn's duration is the model response, the tool's
+#     duration the execution that follows it, so they add up to the clock the item's children spent working;
+#   * **`gateRepeat`** (`{calls, ms}`) — the part of that gate bucket no `gate.sh` call paid: the check calls a child
+#     ran by hand, counted and priced (issue #857). `null` where no child ran one, never the zero a run of none would
+#     read as;
 #   * **`roles`** — each `session` record opens one child's stream and its first `user` message is the prompt file
 #     the run handed it, which is the only thing in the stream that names the role. The path does: `worker-tail` is
 #     the tail, `reviewer` the reviewer, everything else a worker. Read from the prompt's *words* (the rule
@@ -962,9 +965,10 @@ repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
 # (`LOOP_GATE_COMPILED_CMD`) — and it is the map `gate.sh --plan` reads, so nothing here names a project path (D16).
 # A child that runs one of those commands by hand pays the gate's work outside `gate.sh`, and the bucket that prices
 # the gate cannot leave it in ordinary tool time: measured on item #849's own stream, one `./tools/loop/gate.sh` at
-# 823 s and four checks a child ran by hand for 674 s, so the `gate 1607.8 s` line the run printed is one bucket over
-# an item whose gate-adjacent time is 1 497 s. A map entry is `<glob>|<command>`, and each command reduces to a program
-# the way the gate's own program is read: its first word that names a path, or its first word when none does.
+# 823 s and four check calls a child ran by hand for 674 s — 304 s, 310 s, 39 s and 21 s — all four standing before
+# that `gate.sh` call, so a bucket that took only the gate call named its 823 s and left those 674 s as ordinary tool
+# time. A map entry is `<glob>|<command>`, and each command reduces to a program the way the gate's own program is
+# read: its first word that names a path, or its first word when none does.
 gate_check_programs() { # → the programs the gate's checks start, one per line
   local line word prog
   {

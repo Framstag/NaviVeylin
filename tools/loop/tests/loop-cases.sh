@@ -12942,11 +12942,11 @@ JSONL
 # ran the gate program, so a child that ran the loop's own suites by hand paid the gate's work as ordinary tool time:
 # measured on item #849's streaming record (`.pi/issue-loop/items/849/events.jsonl`), one `./tools/loop/gate.sh` at
 # 823 s and four check calls a child ran by hand for 674 s — `loop-selftest.sh --group run` twice (304 s and 310 s),
-# one 21 s case and one 39 s mutation run — the four of them standing **before** the gate's own call, so the bucket
-# held 823 s of an item whose gate-adjacent time is 1 497 s. The map the profile declares (`LOOP_GATE_SUITES`,
-# `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) already names those checks. This case pins both halves: a check
-# the map names is the gate's bucket wherever it stands in the item, and the part of that bucket no gate run paid is
-# the figure the record now names, counted and priced.
+# one 21 s case and one 39 s mutation run — the four of them standing **before** the gate's own call, so a bucket
+# that took only the gate's call held its 823 s and left those 674 s as ordinary tool time. The map the profile
+# declares (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) already names those checks. This
+# case pins both halves: a check the map names is the gate's bucket wherever it stands in the item, and the part of
+# that bucket no gate run paid is the figure the record now names, counted and priced.
 case_report_aCheckTheGateWouldRunIsTheGateTime() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/loop/tests/ tools/pi-child-events.sh tools/tooling.json
   local d p f out trend phases_line

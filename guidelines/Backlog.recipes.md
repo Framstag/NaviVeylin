@@ -439,11 +439,11 @@ streams held **3 483 MiB**, p50 11.84 MiB, p90 29.88 MiB, one 63.47 MiB, and a 1
 the median item's whole history, so an ordinary item is not rotated at all.
 
 What a rotation drops is the deltas, not the oldest lines (issue #840). Dropping by line position took the records
-`state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `roles` and `afterGate` from: in the run
-started 2026-11-09T21:42:41Z nine of fifteen item streams rotated and dropped **1 697 `turn_end` records against the
-1 372 turns the state recorded**, so an item's cost was a lower bound printed as a measurement. The bulk of a stream
-is streamed deltas — in `items/833/events.jsonl` 16 662 of ~17 400 surviving lines are `message_update` (4 741 310 of
-8 565 562 bytes, 55 %), `tool_execution_update` another 255 184 B — so the pass drops `message_update` and
+`state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `gateRepeat`, `roles` and `afterGate` from:
+in the run started 2026-11-09T21:42:41Z nine of fifteen item streams rotated and dropped **1 697 `turn_end` records
+against the 1 372 turns the state recorded**, so an item's cost was a lower bound printed as a measurement. The bulk
+of a stream is streamed deltas — in `items/833/events.jsonl` 16 662 of ~17 400 surviving lines are `message_update`
+(4 741 310 of 8 565 562 bytes, 55 %), `tool_execution_update` another 255 184 B — so the pass drops `message_update` and
 `tool_execution_update`, keeps every record line, and the oldest-half cut runs only on a stream still over the bound
 afterwards. `message_update` is dropped only when every `turn_end` of that stream carries `message.usage`, the object
 its last update ended on (747 of 747 turns over six archived streams, 746 byte-identical to the last update and the
@@ -654,8 +654,8 @@ read from the stream `state.sh done` already opens: `metrics.phases` (the turns'
 the checks the profile's own map names (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) as the
 gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
 and a tool's the execution after it), `metrics.gateRepeat` beside it (the part of that gate no `gate.sh` call paid —
-the checks a child ran itself, counted and timed, `null` where a child ran none, issue #857: 674 s of item #849's
-1 497 s of gate-adjacent time, in four calls whose stream order puts the two largest *before* its gate),
+the checks a child ran by hand, counted and timed, `null` where a child ran none, issue #857: 674 s in the four
+largest check calls of item #849's stream, whose order puts the two largest *before* its gate),
 `metrics.roles` (each session's tokens keyed by the role its prompt **path**
 names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), with
 `metrics.roleModels` beside it (those turns' tokens keyed by the model each `turn_end` message named — `responseModel`

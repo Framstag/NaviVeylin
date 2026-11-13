@@ -1156,9 +1156,9 @@ MUTATIONS=(
   '272.3@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830)@s#(($w | run_word) as \$prog#(($w | .[-1]) as $prog#'
   # 855.x — a check the gate would run is the gate time, whoever started it (issue #857). Measured on item #849 stream:
   # one `gate.sh` at 823 s and four check calls a child ran by hand for 674 s, all four standing before that gate call,
-  # so the `gate 1607.8 s` line reported 674 s of an item whose gate-adjacent time is 1 497 s as ordinary tool time and
-  # the part no gate run paid was in no field at all. One record per invariant the case pins: the map read as the
-  # programs the gate's checks start, the count of the checks a child ran by hand, and the clause that prices them.
+  # so a bucket that took only the `gate.sh` call held its 823 s and those 674 s were ordinary tool time, and the part
+  # no gate run paid was in no field at all. One record per invariant the case pins: the map read as the programs
+  # the gate's checks start, the count of the checks a child ran by hand, and the clause that prices them.
   '855.1@-@tools/loop/state.sh@report#aCheckTheGateWouldRunIsTheGateTime@the profile map read as the programs the gate-s own checks start, so a suite a child runs by hand is ordinary tool time again and the gate bucket holds only the gate (issue #857)@s#^      def is_check: (($checks | length) > 0)$#      def is_check: (($checks | length) < 0)#'
   '855.2@-@tools/loop/report.sh@report#aCheckTheGateWouldRunIsTheGateTime@the clause that prices the part of the gate no gate run paid, so that part is in the bucket and named nowhere (issue #857)@s#if \$repMs > 0#if $repMs > 999999999#'
   '855.3@-@tools/loop/state.sh@report#aCheckTheGateWouldRunIsTheGateTime@the count of the checks a child ran by hand, so the part of the bucket no gate run paid is priced at zero and an item that did pay the gate work itself records none (issue #857)@s#then (.calls += 1 | .ms += ($e.durationMs? // 0))#then .#'

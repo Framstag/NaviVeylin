@@ -2,9 +2,10 @@
 # Columns, tab-separated, on every line below that does not start with #: module, package, kind, feature, may_import.
 # kind is one of concept, port, feature, platform, shell. feature is the business name a feature or platform row carries, - when the package serves several or none.
 # may_import is the permission the kind's rules give, not a census of the imports the code has today: - is "nothing of ours", "any" is shell only.
-# Measured 2026-11-11: 320 main sources over 25 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (320); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (25).
+# Measured 2026-11-13: 332 main sources over 27 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (332); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (27).
 # One row per package as the tree stands today, no file moved: a package the pilot or a later migration splits keeps its row until the files move.
 # Added 2026-11-11 by change domain-vocabulary-is-declared: com.naviveylin.concept holds the skeleton types the glossary emits for a concept row no file declared, so the row set stays 1:1 with the tree.
+# Added 2026-11-13 by change package-structure-as-five-kinds (task 7.1): com.naviveylin.core.port holds the pilot's port interfaces; the port files are new, no file moved, and every earlier row stands unchanged.
 app	com.naviveylin	shell	-	any
 app	com.naviveylin.concept	concept	-	-
 app	com.naviveylin.data	platform	-	concept,port
@@ -30,4 +31,5 @@ core	com.naviveylin.core	concept	-	-
 core	com.naviveylin.core.addressbook	port	-	concept
 core	com.naviveylin.core.details	feature	details	concept,port
 core	com.naviveylin.core.mapsource	feature	mapsource	concept,port
+core	com.naviveylin.core.port	port	-	concept
 core	com.naviveylin.core.search	feature	search	concept,port

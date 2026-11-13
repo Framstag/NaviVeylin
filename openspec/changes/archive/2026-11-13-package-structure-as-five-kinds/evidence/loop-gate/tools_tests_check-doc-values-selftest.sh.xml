@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/tests/check-doc-values-selftest.sh" tests="5" failures="0" errors="0" time="1">
-  <system-out>PASS  values#aRowTheProfileDoesNotRecord — a stated bound the profile records no key for is reported, so the section cannot promise a value nothing enforces PASS  values#aProfileWithoutTheKeysIsRefused — a profile with no turn-bound key is refused instead of read as a tree with nothing to compare check-doc-values-selftest: all 5 cases passed (throwaway fixtures and this tree, no Gradle, no device,</system-out>
-</testsuite>

@@ -1,7 +1,0 @@
-LOOK: 3 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/core/src/main/java/com/naviveylin/core/port for '^import '
-LOOK-FILE: core/src/main/java/com/naviveylin/core/port/FavouritesStore.kt 3
-core/src/main/java/com/naviveylin/core/port/FavouritesStore.kt:3:import com.framstag.libosmscout.client.FavoriteLocation
-core/src/main/java/com/naviveylin/core/port/FavouritesStore.kt:4:import com.framstag.libosmscout.client.StarredFavoriteLocation
-core/src/main/java/com/naviveylin/core/port/FavouritesStore.kt:5:import kotlinx.coroutines.flow.StateFlow
-LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/core/src/main/java/com/naviveylin/core/port for '^(import )?(android|androidx)\.'
-LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/core/src/main/java/com/naviveylin/core/port for '^import com\.naviveylin\.'

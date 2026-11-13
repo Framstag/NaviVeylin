@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/tests/check-doc-routes-selftest.sh" tests="34" failures="0" errors="0" time="8">
-  <system-out>PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gra</system-out>
-</testsuite>

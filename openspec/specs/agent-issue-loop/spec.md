@@ -3240,16 +3240,16 @@ The report printed what an item cost and nothing about the shape it spent it in,
 ### Requirement: The report says which phase and which role spent the run's clock
 
 A run's spend SHALL be split where it was spent: the clock by the phase that spent it — the model time, the gate,
-and the other tools the children ran — and the tokens by the role that spent them (worker, reviewer, tail) and by the
-model that answered them, both read from what an item's own event stream records when its record is written, never
-from a stream the report would have to find again. The tokens of a turn no `session` record reaches SHALL be a bucket
-of their own, so the buckets the split holds are exactly the tokens the item's total holds. The phase line SHALL name
-the item clock its three buckets are a share of, and what the buckets leave outside themselves, wherever the item's
-record holds that clock. It SHALL also state the share of the tokens the run spent after an item's first gate. Each
-figure SHALL print `-` with its reason where nothing was measured, never a zero that reads as a measurement, and a
-role whose turns named no model SHALL keep its totals and name no model. A call SHALL count as the gate only where
-its command starts the gate's program, past the assignments and wrappers a child writes, and a command whose argument
-is the gate's own path, and a `--plan` call, SHALL be neither.
+and the other tools the children ran — and the tokens by the role that spent them (worker, reviewer, the round before
+the gate, and the tail) and by the model that answered them, both read from what an item's own event stream records
+when its record is written, never from a stream the report would have to find again. The tokens of a turn no `session`
+record reaches SHALL be a bucket of their own, so the buckets the split holds are exactly the tokens the item's total
+holds. The phase line SHALL name the item clock its three buckets are a share of, and what the buckets leave outside
+themselves, wherever the item's record holds that clock. It SHALL also state the share of the tokens the run spent
+after an item's first gate. Each figure SHALL print `-` with its reason where nothing was measured, never a zero that
+reads as a measurement, and a role whose turns named no model SHALL keep its totals and name no model. A call SHALL
+count as the gate only where its command starts the gate's program, past the assignments and wrappers a child writes,
+and a command whose argument is the gate's own path, and a `--plan` call, SHALL be neither.
 
 #### Scenario: The clock and the tokens are split where they were spent
 
@@ -3339,6 +3339,14 @@ is the gate's own path, and a `--plan` call, SHALL be neither.
 - **THEN** each of the three lines prints `-` with its reason — no duration measured, no gate to split at, or a
   state written before the report read the figure — rather than a zero that reads as a measurement that was made
 - **Case**: `report#aStreamWithoutDurationsPrintsDash`
+
+#### Scenario: The round before the gate is a bucket of its own
+
+- **WHEN** an item's stream records a worker session, a reviewer session and a session started from a
+  `reviewer-pre-gate-prompt.md` path
+- **THEN** the state records the pre-gate session's tokens under `reviewer-pre-gate`, the `reviewer` and `worker`
+  entries carry only their own sessions' tokens, and the trend prints that bucket beside the three it already prints
+- **Case**: `report#thePreGateRoundIsChargedToItsOwnRole`
 
 ### Requirement: The diff is read before the gate, and a fresh child runs the one gate
 

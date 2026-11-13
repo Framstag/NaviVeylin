@@ -1214,6 +1214,18 @@ MUTATIONS=(
   # over two children that had written a paragraph each. One rule, one case: the note carries the reason the child
   # gave, and the constant is only the fallback for a child that gave none.
   '854.1@-@tools/loop/run.sh@run#aSkipPrintsTheReasonTheChildGave@the note the skip arm records, so the report prints the constant for every skip while the same record carries the child sentence (issue #854)@s|--note "\${root_cause:-skipped by the worker}"|--note "skipped by the worker"|'
+  # 863.1 — an item a merge refused is an action of its own (issue #863). The record carries `stopReason:
+  # unmergeable` and its refusal, and the report printed the item's decision line and no branch, no count and no
+  # command, so the caller was handed a question where the run had recorded a repair. One arm, one case: the arm
+  # reads the items a merge refused and nothing else does.
+  '863.1@-@tools/loop/report.sh@report#anUnmergeableItemNamesItsLanding@the arm that reads an item a merge refused, so the refused landing is back behind a decision line and neither its branch nor the command that lands it is named (issue #863)@s|select((.stopReason // "") == "unmergeable")|select(false)|'
+  # 864.1 — the round before the gate is a role of its own in the recorded split (issue #864). The state keyed a
+  # session by the prompt file it was handed and the role map matched the word `reviewer` alone, so
+  # `reviewer-pre-gate-prompt.md` was charged to `reviewer`: item #859 of the run of 2026-11-11T20:36:10Z recorded
+  # `reviewer: 5576103` of the run's 9 840 445 tokens (56.7 %) with two reviewers inside the one figure, while
+  # `tools/loop-spend.py` already read the two apart. One arm, one case: the pre-gate arm of the role map, without
+  # which the phase that spent the money is back on the reviewer's account.
+  '864.1@-@tools/loop/state.sh@report#thePreGateRoundIsChargedToItsOwnRole@the arm that charges the round before the gate to its own bucket, so the reviewer figure holds two reviewers again and the item cannot say which phase spent its review tokens (issue #864)@s|elif test("pre-gate") then "reviewer-pre-gate"|elif false then "reviewer-pre-gate"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

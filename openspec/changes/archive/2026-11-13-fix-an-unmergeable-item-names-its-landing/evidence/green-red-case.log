@@ -1,0 +1,4 @@
+# green: the case as this change leaves it, against this tree
+# taken 2026-11-13T13:34:32Z
+# command: bash tools/loop/tests/loop-selftest.sh --case report#anUnmergeableItemNamesItsLanding
+PASS report#anUnmergeableItemNamesItsLanding

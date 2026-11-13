@@ -30,10 +30,24 @@ adb logcat -s NaviVeylin
 ```
 
 - A stylesheet load reports the type names the installed database cannot resolve as one line per parsed
-  style file per load. The complete per-name list needs `osmscout::log.Debug(true)`. One such line per
-  style file per load is the expected output on an install whose map data predates the stylesheet — a
-  startup loads the set more than once, so compare per file; a per-occurrence warning wall means the
-  condensation regressed.
+  style file per load. The complete per-name list needs `osmscout::log.Debug(true)`. What a load reports
+  depends on the **installed data**, so read the count per file and not the raw total:
+
+  | install | names per load | example line |
+  |---|---|---|
+  | map data older than the shipped stylesheet | 196 over 8 files | `include/amenity.oss: 103 (amenity_animal_boarding, …, 95 more)` |
+  | database downloaded from the map source | 2 | `include/natural.oss: 1 (natural_waterfall)` |
+
+  Measured 2026-11-13 on `emulator-5554`, same APK and stylesheets, only the data swapped: a stale
+  `andorra` + format-26 basemap against a fresh `europe/germany/nordrhein-westfalen` v27 + basemap v27 from
+  `http://truenas.home.framstag.com:30123`, the latter installed through the app's own repository source.
+  The two names a current set still reports are by design: `natural_waterfall` (`map.ost` "deliberately NOT
+  defined as a regular import type") and `basemap_boundary_country` (declared in `basemap.ost`, reached by
+  the main parse).
+
+  The first shape's remedy is a re-download from the source, not a code change; a startup loads the set
+  more than once (5 loads measured 2026-11-13), so compare per file; a per-occurrence warning wall means
+  the condensation regressed.
 - The search request line is written once per request at `Info`, so
   `adb logcat -s NaviVeylin` reads it without enabling native debug.
 - The bridge links `osmscout_client_java`.

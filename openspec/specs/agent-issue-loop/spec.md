@@ -3240,16 +3240,16 @@ The report printed what an item cost and nothing about the shape it spent it in,
 ### Requirement: The report says which phase and which role spent the run's clock
 
 A run's spend SHALL be split where it was spent: the clock by the phase that spent it — the model time, the gate,
-and the other tools the children ran — and the tokens by the role that spent them (worker, reviewer, tail) and by the
-model that answered them, both read from what an item's own event stream records when its record is written, never
-from a stream the report would have to find again. The tokens of a turn no `session` record reaches SHALL be a bucket
-of their own, so the buckets the split holds are exactly the tokens the item's total holds. The phase line SHALL name
-the item clock its three buckets are a share of, and what the buckets leave outside themselves, wherever the item's
-record holds that clock. It SHALL also state the share of the tokens the run spent after an item's first gate. Each
-figure SHALL print `-` with its reason where nothing was measured, never a zero that reads as a measurement, and a
-role whose turns named no model SHALL keep its totals and name no model. A call SHALL count as the gate only where
-its command starts the gate's program, past the assignments and wrappers a child writes, and a command whose argument
-is the gate's own path, and a `--plan` call, SHALL be neither.
+and the other tools the children ran — and the tokens by the role that spent them (worker, reviewer, the round before
+the gate, and the tail) and by the model that answered them, both read from what an item's own event stream records
+when its record is written, never from a stream the report would have to find again. The tokens of a turn no `session`
+record reaches SHALL be a bucket of their own, so the buckets the split holds are exactly the tokens the item's total
+holds. The phase line SHALL name the item clock its three buckets are a share of, and what the buckets leave outside
+themselves, wherever the item's record holds that clock. It SHALL also state the share of the tokens the run spent
+after an item's first gate. Each figure SHALL print `-` with its reason where nothing was measured, never a zero that
+reads as a measurement, and a role whose turns named no model SHALL keep its totals and name no model. A call SHALL
+count as the gate only where its command starts the gate's program, past the assignments and wrappers a child writes,
+and a command whose argument is the gate's own path, and a `--plan` call, SHALL be neither.
 
 #### Scenario: The clock and the tokens are split where they were spent
 
@@ -3339,6 +3339,14 @@ is the gate's own path, and a `--plan` call, SHALL be neither.
 - **THEN** each of the three lines prints `-` with its reason — no duration measured, no gate to split at, or a
   state written before the report read the figure — rather than a zero that reads as a measurement that was made
 - **Case**: `report#aStreamWithoutDurationsPrintsDash`
+
+#### Scenario: The round before the gate is a bucket of its own
+
+- **WHEN** an item's stream records a worker session, a reviewer session and a session started from a
+  `reviewer-pre-gate-prompt.md` path
+- **THEN** the state records the pre-gate session's tokens under `reviewer-pre-gate`, the `reviewer` and `worker`
+  entries carry only their own sessions' tokens, and the trend prints that bucket beside the three it already prints
+- **Case**: `report#thePreGateRoundIsChargedToItsOwnRole`
 
 ### Requirement: The diff is read before the gate, and a fresh child runs the one gate
 
@@ -4705,3 +4713,24 @@ A child given no ledger SHALL keep the ledger of its own process.
 - **THEN** the child is handed the item's ledger file beside that stream and is named by that prompt, so the one line a
   repeat is replaced by can name the session that read the path
 - **Case**: `adapter#theChildIsStartedWithTheItemsLedger`
+
+### Requirement: An item a merge refused names its landing
+
+The run records `stopReason: unmergeable` when the branch it committed for an item could not be merged onto the
+base, and the work is then finished and a landing rather than a question. The report's action list SHALL name that
+item's landing as its own action: the branch the refusal wrote, what that branch carries, and the command that lands
+it — `git -C <root> merge --ff-only <branch>` — and, where the refusal listed the paths that refused it, those paths
+and the `git -C <root> status --porcelain` that lists them now. The landing SHALL be printed once: the branch that
+landing line names SHALL NOT be printed again by the branch arm, and an item the run escalated keeps the decision
+line it wrote, because a decision is a question beside the repair and not a second landing.
+
+#### Scenario: A refused landing is an action and not only a decision
+
+- **WHEN** a run ends holding an item recorded `result: blocked` with `stopReason: unmergeable`, whose note carries
+  the branch the merge refused and, for a tree that was not clean, the paths `git status --porcelain` printed
+- **THEN** the action list prints one line for that item naming the branch, what it carries (`<n> commit(s) the base
+  does not have`, and that the branch is not in this tree when the tree no longer holds it — never a count of zero),
+  and the command `git -C <root> merge --ff-only <branch>`, with the paths the refusal named and the
+  `git -C <root> status --porcelain` that lists them when the refusal listed any, and that branch is not printed a
+  second time by the branch arm
+- **Case**: `report#anUnmergeableItemNamesItsLanding`

@@ -1,0 +1,10 @@
+command: bash tools/loop/tests/loop-selftest.sh --case report#thePreGateRoundIsChargedToItsOwnRole
+base: 5d73096844fc04437d0d184549ba824b89a11ed0 (state.sh unfixed, case added)
+taken: 2026-11-13T15:13:38Z
+
+report#thePreGateRoundIsChargedToItsOwnRole|   the round before the gate is a bucket of its own, not part of the reviewer's: expected '4000000', got 'null'
+--- report#thePreGateRoundIsChargedToItsOwnRole[0] (exit 1)
+  the round before the gate is a bucket of its own, not part of the reviewer's: expected '4000000', got 'null'
+FAIL report#thePreGateRoundIsChargedToItsOwnRole
+loop-selftest: 1 of 1 cases failed
+exit: 1

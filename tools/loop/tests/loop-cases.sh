@@ -356,6 +356,7 @@ LOOP_SHELL_CASES=(
   'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
   'report#landedBranchIsNoAction'
+  'report#anUnmergeableItemNamesItsLanding'
   'report#landedBranchesAreNamedAsRemovable'
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
@@ -365,6 +366,7 @@ LOOP_SHELL_CASES=(
   'report#anItemRecordsItsRepeatReads'
   'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
+  'report#thePreGateRoundIsChargedToItsOwnRole'
   'report#aCallThatNamesTheGateIsNotAGateRun'
   'report#aCheckTheGateWouldRunIsTheGateTime'
   'report#aStreamWithoutDurationsPrintsDash'
@@ -1073,6 +1075,7 @@ loop_run_shell_case() {
     'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
     'report#landedBranchIsNoAction') fn=case_report_landedBranchIsNoAction ;;
+    'report#anUnmergeableItemNamesItsLanding') fn=case_report_anUnmergeableItemNamesItsLanding ;;
     'report#landedBranchesAreNamedAsRemovable') fn=case_report_landedBranchesAreNamedAsRemovable ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
@@ -1080,6 +1083,7 @@ loop_run_shell_case() {
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
     'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
+    'report#thePreGateRoundIsChargedToItsOwnRole') fn=case_report_thePreGateRoundIsChargedToItsOwnRole ;;
     'report#aCallThatNamesTheGateIsNotAGateRun') fn=case_report_aCallThatNamesTheGateIsNotAGateRun ;;
     'report#aCheckTheGateWouldRunIsTheGateTime') fn=case_report_aCheckTheGateWouldRunIsTheGateTime ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
@@ -12305,6 +12309,77 @@ case_report_landedBranchIsNoAction() {
   assert_contains "$block" "none — no decision" "the action list says none, because there is nothing to land"
 }
 
+# An item a merge refused is the one block whose work is finished and whose landing is a command (issue #863): the
+# run recorded `stopReason: unmergeable` and its refusal beside it, and the report printed the item's `decide` line
+# — the refusal quoted verbatim — so the caller was handed a decision and neither the branch, nor what it carries,
+# nor the command that lands it, nor the paths the refusal named. Measured on the run of 2026-11-11T20:36:10Z,
+# action 1 for #859: 5 commits on `fix/issue-859-the-answer-s-shape-has-a-second-home-and`, a green gate and a
+# `PASS` review, and no line a person could run.
+case_report_anUnmergeableItemNamesItsLanding() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out block line21 line22 line23
+  p=$(new_project)
+  init_state "$p" 3 90
+  # A branch of the run's own shape, one commit ahead of the state's base, whose merge the tree refused over a
+  # dirty tree — the shape #859's own note carries, the refusal naming each path it saw.
+  printf 'demo work\n' > "$p/demo.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "demo work" >/dev/null 2>&1 || fail "could not commit in the throwaway repository"
+  git -C "$p" branch fix/issue-21-two-mechanisms >/dev/null 2>&1 || fail "could not create the attempt branch"
+  # A branch that carries nothing the base does not already have, because the only count a caller may read is one
+  # that was measured: a `0` here would read as work nobody owes.
+  git -C "$p" branch fix/issue-23-already-on-the-base HEAD~1 >/dev/null 2>&1 ||
+    fail "could not create the branch the base already carries"
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked --stop-reason unmergeable \
+    --gate "tests=245 failures=0 errors=0" \
+    --note "the branch fix/issue-21-two-mechanisms could not be merged onto the base, so the item is not closed on a fix the tree does not have — the project tree is not clean — refusing to merge fix/issue-21-two-mechanisms onto the base:\n M demo.txt\n?? docs/left-behind.md" \
+    --decision-label agent/needs-decision >/dev/null
+  # The other shape the record carries: the refusal named a branch the tree no longer holds, so there is no count
+  # to print and a zero would read as work nobody owes.
+  run_state "$p" done 22 --result blocked --verdict blocked --stop-reason unmergeable \
+    --gate "tests=245 failures=0 errors=0" \
+    --note "the branch fix/issue-22-gone could not be merged onto the base, so the item is not closed on a fix the tree does not have — there is no branch fix/issue-22-gone to merge" \
+    --decision-label agent/needs-decision >/dev/null
+  # The third record: its branch is in this tree and carries nothing the base does not have, and its refusal named
+  # no path — the counting arm's zero and the path clause's absence in one line.
+  run_state "$p" done 23 --result blocked --verdict blocked --stop-reason unmergeable \
+    --gate "tests=245 failures=0 errors=0" \
+    --note "the branch fix/issue-23-already-on-the-base could not be merged onto the base, so the item is not closed on a fix the tree does not have" \
+    --decision-label agent/needs-decision >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  line21=$(printf '%s\n' "$block" | grep 'land fix/issue-21-two-mechanisms' || true)
+  line22=$(printf '%s\n' "$block" | grep 'land fix/issue-22-gone' || true)
+  line23=$(printf '%s\n' "$block" | grep 'land fix/issue-23-already-on-the-base' || true)
+  [ -n "$line21" ] || fail "no landing line for the item a merge refused: $block"
+  assert_contains "$line21" "1 commit(s) the base does not have" "the refused landing names what its branch carries"
+  assert_contains "$line21" "git -C $p merge --ff-only fix/issue-21-two-mechanisms" \
+    "and the one command that lands it"
+  assert_contains "$line21" " M demo.txt" "the paths the refusal named are printed"
+  assert_contains "$line21" "?? docs/left-behind.md" "every one of them, not the first"
+  assert_contains "$line21" "git -C $p status --porcelain" "beside the command that lists them now"
+  assert_contains "$line21" "item #21" "and the item the branch belongs to"
+  assert_eq "1" "$(printf '%s\n' "$block" | grep -c 'land fix/issue-21-two-mechanisms')" \
+    "the item is one line, not a second land line beside the branch arm"
+  [ -n "$line22" ] || fail "the refusal that named a branch the tree no longer holds is no action of its own"
+  assert_contains "$line22" "git -C $p merge --ff-only fix/issue-22-gone" \
+    "a branch the tree no longer holds is still named with the command a caller tries"
+  assert_contains "$line22" "the branch is not in this tree" "and says so, rather than printing a count of zero"
+  assert_not_contains "$line22" "0 commit(s)" "a count nobody measured is not printed as one"
+  assert_not_contains "$line22" "status --porcelain" \
+    "a refusal that named no path owes no path listing"
+  assert_contains "$block" "decide #21" \
+    "the escalation the run wrote is the question beside the repair, not a second landing"
+  [ -n "$line23" ] || fail "a branch the base already carries is a landing line too: $block"
+  assert_contains "$line23" "nothing — the base already carries its patches" \
+    "the branch that carries nothing says so"
+  assert_contains "$line23" "git -C $p merge --ff-only fix/issue-23-already-on-the-base" \
+    "and still names the command a caller tries"
+  assert_not_contains "$line23" "status --porcelain" "a refusal that named no path owes no path listing"
+}
+
 # An action list is empty only when the state and git say so — and it says it, rather than leaving the
 # question unanswered by omission.
 case_report_emptyRunSaysNone() {
@@ -12882,6 +12957,47 @@ JSONL
   [ -n "$gate_line" ] || fail "the trend printed no after-the-gate line"
   assert_contains "$gate_line" "83 % — 5 of 6 Mtok, from the first gate of 1 session" \
     "and the share of the item's tokens spent after its first gate, with the two numbers it is a share of"
+}
+
+# One reviewer figure held two reviewers (issue #864): a session is keyed by the prompt file it was handed, and the
+# role map matched the word `reviewer` alone, so `reviewer-pre-gate-prompt.md` — the round that reads the diff before
+# the gate — was charged to `reviewer`. Measured on the run of 2026-11-11T20:36:10Z, item #859: `roles: {worker:
+# 4132852, reviewer: 5576103, tail: 131490}`, so review read as 56.7 % of the run's 9 840 445 tokens, more than the
+# worker that wrote the change, with two reviewers inside the one figure — and the split that says whether the
+# pre-gate round earned its price was the one the record could not answer. `tools/loop-spend.py` already charges the
+# two apart (its `byRole` read `reviewer-pre-gate` 12 sessions / 17 557 461 tokens beside `reviewer` 13 / 71 202 907
+# over the same window), so the engine measured the distinction and the frozen state lost it. The stream below is one
+# item: a worker, a reviewer and the round before the gate, 1 + 2 + 4 Mtok.
+case_report_thePreGateRoundIsChargedToItsOwnRole() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/pre-gate.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-prompt-1.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s3"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-pre-gate-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":4000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --events "$d/pre-gate.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "4000000" "$(jq -r '.items[0].metrics.roles["reviewer-pre-gate"]' "$f")" \
+    "the round before the gate is a bucket of its own, not part of the reviewer's"
+  assert_eq "2000000" "$(jq -r '.items[0].metrics.roles.reviewer' "$f")" \
+    "and the reviewer's figure holds only its own session's tokens"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "nor does it reach the worker's"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  [ -n "$roles_line" ] || fail "the trend printed no roles line"
+  assert_contains "$roles_line" "worker 1 Mtok · reviewer 2 Mtok · reviewer-pre-gate 4 Mtok · 7 Mtok over 1 item" \
+    "and the trend names the phase that spent the money beside the reviewer it used to be folded into"
 }
 
 # A command that names the gate's path is not a call that runs it (issue #830). The split above is taken at the first

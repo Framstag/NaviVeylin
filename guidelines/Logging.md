@@ -47,10 +47,16 @@ one bridge) plus a route here.
 - Inspect with: `adb logcat -s NaviVeylin`
 - **Rule: a stylesheet load reports unknown types once per parsed style file.** A stylesheet load reports
   the type names the installed database cannot resolve as **one line per parsed style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the
-  complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). One such line
-  per style file **per load** is the expected output on an install whose map data predates the stylesheet
-  (`TODO.md` §91/§99) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines,
-  `TODO.md` §120), so compare per file; a per-occurrence warning wall means the condensation regressed
+  complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). The count is a
+  property of the **installed data**, not of the app: a database whose type configuration predates the
+  shipped stylesheet reports many names per file (measured 2026-11-13 on `emulator-5554` with a stale
+  `andorra` + a format-26 basemap: 196 names per load over 8 style files, `amenity.oss` 103 of them),
+  while a database downloaded from the map source reports **at most two** by-design names
+  (`natural_waterfall` — `map.ost` "deliberately NOT defined as a regular import type";
+  `basemap_boundary_country` — declared in `basemap.ost` and reached by the main parse). The remedy for
+  the first shape is a re-download from the source, never a code change. A startup loads the set more than
+  once (5 loads measured 2026-11-13; 13 in the 2026-10-02 measurement = 104 lines, `TODO.md` §120), so
+  compare per file and not the raw total; a per-occurrence warning wall means the condensation regressed
   (`guidelines/Build.md` §10)
 - **Rule: the search request line is written once per request at `Info`.** The **search request line** —
   `search: slot=<name> gen=<n> aborted=<bool> nativeMs=<ms>` — is written once

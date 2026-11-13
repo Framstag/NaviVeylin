@@ -93,6 +93,8 @@ ISSUES_SHELL_CASES=(
   'decisions#emptyQueueIsNotAnError'
   'decisions#theOldestQueuedItemIsListed'
   'decisions#aReadThatCannotCoverTheSetIsRefused'
+  'decisions#theCountIsReportedWithoutReadingTheSet'
+  'decisions#theAnswerShapeIsPinnedInTheReader'
   'shaping#theQueuePrintsTheVerdictAndClause'
   'shaping#anItemWithNoStatementIsNamed'
   'shaping#anEmptyQueueExitsZero'
@@ -255,6 +257,8 @@ issues_run_shell_case() {
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
     'decisions#theOldestQueuedItemIsListed') case_decisions_theOldestQueuedItemIsListed ;;
     'decisions#aReadThatCannotCoverTheSetIsRefused') case_decisions_aReadThatCannotCoverTheSetIsRefused ;;
+    'decisions#theCountIsReportedWithoutReadingTheSet') case_decisions_theCountIsReportedWithoutReadingTheSet ;;
+    'decisions#theAnswerShapeIsPinnedInTheReader') case_decisions_theAnswerShapeIsPinnedInTheReader ;;
     'shaping#theQueuePrintsTheVerdictAndClause') case_shaping_theQueuePrintsTheVerdictAndClause ;;
     'shaping#anItemWithNoStatementIsNamed') case_shaping_anItemWithNoStatementIsNamed ;;
     'shaping#anEmptyQueueExitsZero') case_shaping_anEmptyQueueExitsZero ;;
@@ -1220,6 +1224,41 @@ case_decisions_aReadThatCannotCoverTheSetIsRefused() {
   assert_contains "$out" "came back full at 2" "and the read it got instead"
   assert_eq "0" "$(printf '%s\n' "$out" | grep -c 'await a decision' || true)" \
     "no count is printed over a set it did not cover"
+}
+
+# A count is asked for in places that never wanted the listing — the cap a run measures, "how many are waiting" —
+# and the listing answers with every question beside it (14 kB for a one-integer question). `--count` stops before the
+# list, so it makes no coverage claim and says so; the tracker's count is still the authority it prints.
+case_decisions_theCountIsReportedWithoutReadingTheSet() {
+  local d out status
+  d=$(scratch); decision_tracker "$d" 405 1 405
+  export GH_STUB_DIR="$d"
+  out=$(run_tool decisions.sh --count 2>&1); status=$?
+  assert_eq "0" "$status" "a count is a read, not a failure: $out"
+  assert_contains "$out" "2 item(s) carry $(decision_label)" "the set the tracker counts is the answer"
+  assert_contains "$out" "counted, not read" "and the line says no item was read, so no coverage is claimed"
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -c 'await a decision' || true)" \
+    "the listing's own count line is absent — the answer is one line, not the queue"
+  assert_eq "2" "$(printf '%s\n' "$out" | grep -c .)" \
+    "two lines in total: a count that fell through to the listing would print three lines per item"
+}
+
+# The answer's shape is stated in the reader skill, and this case is the only thing that can fail when it drifts: the
+# four labelled lines, the two views and the loop's own unit are prose in a guideline and a skill, which no check reads.
+# A dropped line is silent otherwise — and the two lines a product owner decides from (what the user sees, what is
+# already settled) were added for exactly that reason.
+case_decisions_theAnswerShapeIsPinnedInTheReader() {
+  local skill text
+  skill="$ISSUES_REPO_ROOT/.pi/skills/answer-decision/SKILL.md"
+  [ -f "$skill" ] || fail "the queue's reader is not at .pi/skills/answer-decision/SKILL.md"
+  text=$(cat "$skill")
+  assert_contains "$text" "**What the user sees** (today" "the product line is part of the answer's shape"
+  assert_contains "$text" "**Settled, not to reopen** (the" \
+    "and the line that keeps a settled decision from being re-argued"
+  assert_contains "$text" "**Short term**" "the short-term view"
+  assert_contains "$text" "**Strategic**" "the strategic view, kept apart from it"
+  assert_contains "$text" "rounds to land" "the loop's own unit sits beside gate minutes"
+  assert_contains "$text" "decisions.sh --count" "the cheap count route is named, not re-derived"
 }
 
 # --- the shaping inbox: what a run handed back to a person, and the queue that shows it -----------------------

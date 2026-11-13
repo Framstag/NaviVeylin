@@ -1,0 +1,9 @@
+# the mutation this change's case is falsified with, taken 2026-11-13T13:34:00Z
+# command: bash tools/loop/tests/loop-mutations.sh --only 863.1
+loop-mutations: selected 1 of 356 records (labels: 863.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.IjTeY7
+RED    863.1  report#anUnmergeableItemNamesItsLanding   (the arm that reads an item a merge refused, so the refused landing is back behind a decision line and neither its branch nor the command that lands it is named (issue #863))
+       2026-11-13T13:34:02Z — and the one command that lands it: 'git -C /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.okNMo8/cases/0/tree/case.se183d/repo merge --ff-only fix/issue-21-two-mechanisms' not found in:   4. land fix/issue-21-two-mec
+restore 863.1 report#anUnmergeableItemNamesItsLanding green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

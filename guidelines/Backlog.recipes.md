@@ -662,7 +662,10 @@ and a tool's the execution after it), `metrics.gateRepeat` beside it (the part o
 the checks a child ran by hand, counted and timed, `null` where a child ran none, issue #857: 674 s in the four
 largest check calls of item #849's stream, whose order puts the two largest *before* its gate),
 `metrics.roles` (each session's tokens keyed by the role its prompt **path**
-names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), with
+names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker, and
+`reviewer-pre-gate` is the round the gate follows, which that same word folded into the reviewer's figure until issue
+#864 gave it a bucket of its own: item #859 of the run of 2026-11-11T20:36:10Z recorded `reviewer: 5576103` of that
+run's 9 840 445 tokens, 56.7 %, with two reviewers inside the one number), with
 `metrics.roleModels` beside it (those turns' tokens keyed by the model each `turn_end` message named — `responseModel`
 when the provider reported one, else `model` — so a role that answered on two models is two tallies rather than one row
 priced at whichever came first, and the report reads `role (model) tokens` while a role no model explained keeps a row
@@ -685,8 +688,8 @@ stream keeps its one `session` record at line 14 254 of 21 310, with **34** `tur
 usage sums to 2 311 165 — `evidence/real-stream-738.log`, and `evidence/measure-stream-timestamps.log` for the line
 counts — while the 138 turns that same rotation dropped are absent from the stream altogether, so no reader counts
 them and no bucket holds them), and a harness can write the record late. Those turns are now
-the bucket `metrics.roles.unattributed`, beside the three, and the trend prints every bucket the record holds rather
-than the three it was written with — so the buckets add up to the tokens the line is over, including a turn the stream
+the bucket `metrics.roles.unattributed`, beside the roles' own, and the trend prints every bucket the record holds
+rather than the fixed list it was written with — so the buckets add up to the tokens the line is over, including a turn the stream
 ends **inside**: a child the run ended at a bound leaves a last `message_update` whose `turn_end` never arrives, and
 that usage is a turn of the region it stands in, not a remainder (measured: 200 800 tokens of item 819's 6 489 672). The clock cannot be split
 that way: the stream carries a `timestamp` on 3 of item 808's 22 125 events, all of them `session` records (the same
@@ -1439,9 +1442,15 @@ where the state does not hold it, where it is), a branch that carries a patch th
 item that owns it, the kept worktree, an item whose gate never completed with its transcript, a label write
 the tracker refused with the item it left stale, an item the run's own bound ended (`resume #N`, carrying the
 phase it was cut in and the patch its child left: a `cut` is the one result every bound the run enforces leaves,
-the run's own deadline included, and the item's note names which bound that was — #788, #850), and the kept work
-of a record that carries no bound cut (`recover #N`, the shape a tree wrote before `cut` existed — #674). An
-item is one line: the two arms are a partition by the result the record states, because the patch is the
+the run's own deadline included, and the item's note names which bound that was — #788, #850), the kept work
+of a record that carries no bound cut (`recover #N`, the shape a tree wrote before `cut` existed — #674), and an
+item the **landing itself** refused (`stopReason: unmergeable`) with the branch its refusal names, what that branch
+carries by patch identity, the command `git -C <root> merge --ff-only <branch>`, and — where the refusal listed the
+tree's dirt path by path — those paths beside the `git -C <root> status --porcelain` that lists them now: a refused
+landing is a repair the caller can run, printed once — the branch arm does not name that branch again — while an item
+the run escalated keeps the `decide` line it wrote, because that line is the question and not a second landing, and
+the run of 2026-11-11T20:36:10Z left #859's whole item payable only by a person who worked the command out by hand
+(#863). An item is one line: the two arms are a partition by the result the record states, because the patch is the
 consequence of a cut and not its cause, and the guard that read the patch printed #847 and #839 twice in one
 run's action list — 2 of its 12 lines — the second time as work the run's clock ended with 7 h 51 m of its budget
 left (#850). The item path a line names is the loop root's and not the state file's directory: the state in place
@@ -1451,7 +1460,7 @@ not — the report of an archived run names `.pi/issue-loop/items/<n>`, a direct
 `.pi/issue-loop/runs/items/<n>` (#855). A sentence the item's own note already carries is printed once: the note
 ends with the patch's own sentence the run wrote there, so the resume line appends it only for a record whose note
 lacks it (#855). A count is not
-an answer, so `none` is printed only when all seven sources were
+an answer, so `none` is printed only when all eight sources were
 read and empty — it never hides a branch that carries work.
 
 A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and
@@ -1478,8 +1487,9 @@ faster and more often right (#247): the review round-1 pass rate, the item wall 
 run's tool calls per turn beside the items below its recorded floor (#757), and — since #814 — the reads the run's
 sessions repeated beside the characters the repeat results hold, the characters the repeat rule withheld of them
 (#831) and the item that repeated most, and — since #759 — where the spend went,
-the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
-share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
+the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, the round
+before the gate, tail) and the share of the tokens spent after an item's first gate, all totalled from the state the
+report already reads, each
 with `-` and its reason where nobody measured one — and, since #841, which of those figures are a **lower bound**: a
 stream a child outgrew is rotated, the rotation's record states the turns and the bytes it took, `state.sh done`
 records them as `metrics.streamRotation` (`null`, never zero, for a stream that was never rotated, and no key at all in

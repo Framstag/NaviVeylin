@@ -915,8 +915,14 @@ num_or_null() {
 #     read as;
 #   * **`roles`** — each `session` record opens one child's stream and its first `user` message is the prompt file
 #     the run handed it, which is the only thing in the stream that names the role. The path does: `worker-tail` is
-#     the tail, `reviewer` the reviewer, everything else a worker. Read from the prompt's *words* (the rule
-#     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`.
+#     the tail, `reviewer-pre-gate` the round that reads the diff before the gate, `reviewer` the reviewer, everything
+#     else a worker. Read from the prompt's *words* (the rule `tools/loop-spend.py` uses) the tail folds into the
+#     worker, because its prompt is `worker-tail-prompt.md`. The round before the gate folded into the reviewer the
+#     same way — its prompt carries the word `reviewer` — and that is the one figure of a run that held two reviewers:
+#     measured on the run of 2026-11-11T20:36:10Z, item #859 recorded `reviewer: 5576103` of the run's 9 840 445
+#     tokens, 56.7 %, with the pre-gate round charged inside it, while `tools/loop-spend.py` already read
+#     `reviewer-pre-gate` 12 sessions / 17 557 461 tokens beside `reviewer` 13 / 71 202 907 over the same window
+#     (issue #864).
 #     A turn can also stand **before** the stream's first `session` record — the record a rotation took off the head,
 #     or one a harness writes late — and those turns are tokens the item spent all the same: they are collected in a
 #     bucket of their own (`unattributed`), because the `session` record that opens a region is what names the role,
@@ -1143,10 +1149,11 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       # it, the rule every figure of this function keeps.
       | (reduce ($ses[] | {role: (if .orphan then "unattributed" else ((.prompt // "") | ascii_downcase
                                   | if test("worker-tail") then "tail"
+                                    elif test("pre-gate") then "reviewer-pre-gate"
                                     elif test("reviewer") then "reviewer"
                                     else "worker" end) end),
                            tok: ([.turns[] | .usage | tok] | add // 0)}) as $s
-           ({worker:null, reviewer:null, tail:null, unattributed:null};
+           ({worker:null, reviewer:null, "reviewer-pre-gate":null, tail:null, unattributed:null};
              .[$s.role] = (if $s.tok > 0 then (((.[$s.role]) // 0) + $s.tok) else .[$s.role] end))) as $roles
       # …and the model each of those turns named, beside the role total (issue #823). The model is read off the same
       # `turn_end` message the tokens are, so a role that answered on two models is two tallies rather than one row
@@ -1156,13 +1163,14 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       # left them under `worker` would print those tokens twice — once as the workers model row and once as the bucket.
       | (reduce ($ses[] | {role: (if .orphan then "unattributed" else ((.prompt // "") | ascii_downcase
                                   | if test("worker-tail") then "tail"
+                                    elif test("pre-gate") then "reviewer-pre-gate"
                                     elif test("reviewer") then "reviewer"
                                     else "worker" end) end),
                            models: ([.turns[]
                                      | select((.model // null) != null)
                                      | {m: .model, t: (.usage | tok)}]
                                     | group_by(.m) | map({key: .[0].m, value: ([.[].t] | add)}) | from_entries)}) as $s
-           ({worker:null, reviewer:null, tail:null, unattributed:null};
+           ({worker:null, reviewer:null, "reviewer-pre-gate":null, tail:null, unattributed:null};
             .[$s.role] = (if ($s.models | length) > 0
                           then (reduce ($s.models | to_entries[]) as $e (.[$s.role] // {};
                                   .[$e.key] = ((.[$e.key] // 0) + $e.value)))

@@ -54,9 +54,14 @@ the decision.
 ## 2. Nothing named — list the queue, then ask one question
 
 ```bash
-tools/issues/decisions.sh          # count first, then each item with its recorded question
+tools/issues/decisions.sh --count  # the number alone: one line, no item read — the cap, or "how many wait"
+tools/issues/decisions.sh          # each item with its recorded question
 tools/issues/decisions.sh --json   # the same set as a document, when the list is long
 ```
+
+A count alone is `--count` — one line, ~135 bytes. Never the full listing or `--json` (13–14 kB) to learn a number:
+that is the same answer wrapped in every question in the queue, and the queue of a 400-item tracker is paid for once
+per call.
 
 The queue counts the labelled set before it reads it and refuses one it could not cover (exit 3). An empty queue
 is not a failure: say so and stop. A refusal is the owner's to know about — carry it, never trim it into a partial
@@ -78,13 +83,32 @@ Every claim the item makes is re-read in this tree, and the ones you cannot reso
 - when the item is about the cap: the same population `tools/loop/run.sh` counts — `tools/issues/list.sh --json
   --limit 400 --eligible-only`, filtered by the decision label. Quote that number; do not re-derive one.
 
+**Cheap pointers, so verification does not cost more than the answer.** The item's own evidence directory
+(`.pi/issue-loop/items/<n>/`) is the small source and the branch is the large one:
+
+```bash
+sed -n '/^\*\*Findings/,$p' .pi/issue-loop/items/<n>/reviewer-report-<last>.md   # 5 kB of a 22 kB report
+sed -n '/LOOP-DECISION:/,$p' .pi/issue-loop/items/<n>/reviewer-report-<last>.md  # the run's own fork
+git show <branch>:<path> | sed -n '<a>,<b>p'                                    # one hunk, not a worktree
+tail -5 .pi/issue-loop/items/<n>/events.jsonl                                     # what the run last did
+```
+
+Read the whole reviewer report or the whole diff only when the findings block does not name the claim you must check.
+
 ## 4. Answer the owner's three questions — in this order, and never merged
 
-### 4a. Contents — four labelled lines, no prose
+### 4a. Contents — six labelled lines, no prose
 
-**Observed** (what the item says is wrong), **Evidence** (the measurements it rests on, with their dates),
-**Why it matters** (the cost of leaving it), **The decision actually being asked** — separating the recorded
+**Observed** (what the item says is wrong), **Evidence** (the measurements it rests on, with their dates, each
+marked measured or claimed — a number the run wrote is not a number this tree produced), **Why it matters** (the
+cost of leaving it), **What the user sees** (today → after, in product language, and who is affected: which screen,
+flow, or car surface — a fork whose two sides read the same to a user says so), **Settled, not to reopen** (the
+decision of record, its date, and what it rejected), **The decision actually being asked** — separating the recorded
 escalation question from the design fork, and naming which options the item already rejects and on what ground.
+
+A decider signs the outcome, not the mechanism, so the two lines without code in them (**What the user sees**,
+**Settled**) are the ones a product owner decides from; the other four are the architect's. Write all six — a line
+left out is a decider translating for you.
 
 ### 4b. Options — each with at least one worked example
 
@@ -95,21 +119,26 @@ to reason rather than measure, write "unmeasured" beside it. An option you canno
 
 Name any option the tree suggests but the item does not list, and mark it as added.
 
+The options the escalation already carries are a **starting list, not the list**: it is the run's own reading of the
+fork and it may have pre-rejected an option on a ground you can check, or missed one the tree offers. Re-price every
+option it names, keep its rejections only where their clause survives, and add the one it missed.
+
 ### 4c. Pro/contra — two views, two tables, never one score
 
 No cell without a basis: each names the measurement or the pointer it rests on, or says "unmeasured".
 
-**Short term** — what the next run, or this week, actually sees.
+**Short term** — what the next run, or this week, actually sees. Priced in this tree's own units: gate minutes for
+the architect, the loop's rounds for the person deciding whether to spend a cycle on it.
 
-| option | gains | costs | what breaks if it is wrong |
-|---|---|---|---|
-| | | files touched, gate minutes, refusals added, decisions still parked | |
+| option | gains | costs | rounds to land | what breaks if it is wrong |
+|---|---|---|---|---|
+| | | files touched, gate minutes, refusals added, decisions still parked | worker pass + review rounds + gate, as the last comparable item measured them | |
 
 **Strategic** — what recurs, and what the item becomes once it is taken.
 
 | option | removes the cause, or re-counts it? | survives the next items that hit the same mechanism? | effect on the invariants (`guidelines/Backlog.md` §5) |
 |---|---|---|---|
-| | | how many of the queue's items read the same way; whether the option invents a number that the next item raises again | |
+| | | the count is measured, not guessed: `decisions.sh --json` filtered over the items' bodies and labels for the paths and mechanism the option touches — an unfilled cell says "unmeasured", never a claim | | |
 
 The two views read different evidence and are kept apart on purpose: the short-term view is priced in this
 tree's own numbers (gate minutes, queue count, run items), the strategic view in what returns.

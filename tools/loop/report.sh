@@ -19,10 +19,10 @@
 # rather than fetched, because the report reads the state and git and never the tracker.
 #
 # Since issue #759 it also says where the spend went: the clock split by the phase that spent it (the model time,
-# the project's gate, every other tool), the tokens split by the role that spent them (worker, reviewer, tail), and
-# the share of the tokens spent after an item's first gate. All three are read from the state, which records them
-# when the item's stream is read — a run that paid two thirds of its clock inside the gate and one that paid it
-# reading printed the same shapes before these lines existed.
+# the project's gate, every other tool), the tokens split by the role that spent them (worker, reviewer, the round
+# before the gate, tail), and the share of the tokens spent after an item's first gate. All three are read from the
+# state, which records them when the item's stream is read — a run that paid two thirds of its clock inside the gate
+# and one that paid it reading printed the same shapes before these lines existed.
 #
 # Since issue #811 it counts the closes that were waived: an item may close over a gate that did not pass, and the
 # state records the clause and the suite beside the tally (`state.sh done --gate-waived`). The `waived:` line prints

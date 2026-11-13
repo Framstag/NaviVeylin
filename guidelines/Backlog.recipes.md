@@ -662,7 +662,10 @@ and a tool's the execution after it), `metrics.gateRepeat` beside it (the part o
 the checks a child ran by hand, counted and timed, `null` where a child ran none, issue #857: 674 s in the four
 largest check calls of item #849's stream, whose order puts the two largest *before* its gate),
 `metrics.roles` (each session's tokens keyed by the role its prompt **path**
-names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), with
+names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker, and
+`reviewer-pre-gate` is the round the gate follows, which that same word folded into the reviewer's figure until issue
+#864 gave it a bucket of its own: item #859 of the run of 2026-11-11T20:36:10Z recorded `reviewer: 5576103` of that
+run's 9 840 445 tokens, 56.7 %, with two reviewers inside the one number), with
 `metrics.roleModels` beside it (those turns' tokens keyed by the model each `turn_end` message named — `responseModel`
 when the provider reported one, else `model` — so a role that answered on two models is two tallies rather than one row
 priced at whichever came first, and the report reads `role (model) tokens` while a role no model explained keeps a row
@@ -685,8 +688,8 @@ stream keeps its one `session` record at line 14 254 of 21 310, with **34** `tur
 usage sums to 2 311 165 — `evidence/real-stream-738.log`, and `evidence/measure-stream-timestamps.log` for the line
 counts — while the 138 turns that same rotation dropped are absent from the stream altogether, so no reader counts
 them and no bucket holds them), and a harness can write the record late. Those turns are now
-the bucket `metrics.roles.unattributed`, beside the three, and the trend prints every bucket the record holds rather
-than the three it was written with — so the buckets add up to the tokens the line is over, including a turn the stream
+the bucket `metrics.roles.unattributed`, beside the roles' own, and the trend prints every bucket the record holds
+rather than the fixed list it was written with — so the buckets add up to the tokens the line is over, including a turn the stream
 ends **inside**: a child the run ended at a bound leaves a last `message_update` whose `turn_end` never arrives, and
 that usage is a turn of the region it stands in, not a remainder (measured: 200 800 tokens of item 819's 6 489 672). The clock cannot be split
 that way: the stream carries a `timestamp` on 3 of item 808's 22 125 events, all of them `session` records (the same
@@ -1484,8 +1487,9 @@ faster and more often right (#247): the review round-1 pass rate, the item wall 
 run's tool calls per turn beside the items below its recorded floor (#757), and — since #814 — the reads the run's
 sessions repeated beside the characters the repeat results hold, the characters the repeat rule withheld of them
 (#831) and the item that repeated most, and — since #759 — where the spend went,
-the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
-share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
+the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, the round
+before the gate, tail) and the share of the tokens spent after an item's first gate, all totalled from the state the
+report already reads, each
 with `-` and its reason where nobody measured one — and, since #841, which of those figures are a **lower bound**: a
 stream a child outgrew is rotated, the rotation's record states the turns and the bytes it took, `state.sh done`
 records them as `metrics.streamRotation` (`null`, never zero, for a stream that was never rotated, and no key at all in

@@ -366,6 +366,7 @@ LOOP_SHELL_CASES=(
   'report#anItemRecordsItsRepeatReads'
   'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
+  'report#thePreGateRoundIsChargedToItsOwnRole'
   'report#aCallThatNamesTheGateIsNotAGateRun'
   'report#aCheckTheGateWouldRunIsTheGateTime'
   'report#aStreamWithoutDurationsPrintsDash'
@@ -1082,6 +1083,7 @@ loop_run_shell_case() {
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
     'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
+    'report#thePreGateRoundIsChargedToItsOwnRole') fn=case_report_thePreGateRoundIsChargedToItsOwnRole ;;
     'report#aCallThatNamesTheGateIsNotAGateRun') fn=case_report_aCallThatNamesTheGateIsNotAGateRun ;;
     'report#aCheckTheGateWouldRunIsTheGateTime') fn=case_report_aCheckTheGateWouldRunIsTheGateTime ;;
     'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
@@ -12955,6 +12957,47 @@ JSONL
   [ -n "$gate_line" ] || fail "the trend printed no after-the-gate line"
   assert_contains "$gate_line" "83 % — 5 of 6 Mtok, from the first gate of 1 session" \
     "and the share of the item's tokens spent after its first gate, with the two numbers it is a share of"
+}
+
+# One reviewer figure held two reviewers (issue #864): a session is keyed by the prompt file it was handed, and the
+# role map matched the word `reviewer` alone, so `reviewer-pre-gate-prompt.md` — the round that reads the diff before
+# the gate — was charged to `reviewer`. Measured on the run of 2026-11-11T20:36:10Z, item #859: `roles: {worker:
+# 4132852, reviewer: 5576103, tail: 131490}`, so review read as 56.7 % of the run's 9 840 445 tokens, more than the
+# worker that wrote the change, with two reviewers inside the one figure — and the split that says whether the
+# pre-gate round earned its price was the one the record could not answer. `tools/loop-spend.py` already charges the
+# two apart (its `byRole` read `reviewer-pre-gate` 12 sessions / 17 557 461 tokens beside `reviewer` 13 / 71 202 907
+# over the same window), so the engine measured the distinction and the frozen state lost it. The stream below is one
+# item: a worker, a reviewer and the round before the gate, 1 + 2 + 4 Mtok.
+case_report_thePreGateRoundIsChargedToItsOwnRole() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend roles_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/pre-gate.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-prompt-1.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s3"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-pre-gate-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":4000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --events "$d/pre-gate.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "4000000" "$(jq -r '.items[0].metrics.roles["reviewer-pre-gate"]' "$f")" \
+    "the round before the gate is a bucket of its own, not part of the reviewer's"
+  assert_eq "2000000" "$(jq -r '.items[0].metrics.roles.reviewer' "$f")" \
+    "and the reviewer's figure holds only its own session's tokens"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" "nor does it reach the worker's"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  [ -n "$roles_line" ] || fail "the trend printed no roles line"
+  assert_contains "$roles_line" "worker 1 Mtok · reviewer 2 Mtok · reviewer-pre-gate 4 Mtok · 7 Mtok over 1 item" \
+    "and the trend names the phase that spent the money beside the reviewer it used to be folded into"
 }
 
 # A command that names the gate's path is not a call that runs it (issue #830). The split above is taken at the first

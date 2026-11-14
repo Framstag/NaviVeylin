@@ -1262,6 +1262,14 @@ MUTATIONS=(
   # (`882.2`) — a call that only names the gate's own file is read and starts nothing.
   '882.1@-@tools/loop/run.sh@run#childPastItsCheckBoundIsCut@the arm that ends a child past the recorded check bound, so the checks a child starts by hand are counted in the report and never acted on, and the gate-s work is paid outside the gate (issue #882)@s|^      if \[ "\$checks_seen" -ge "\$checks_max" \]; then$|      if false; then|'
   '882.2@-@tools/loop/lib.sh@run#childPastItsCheckBoundIsCut@the clause that reads the program a call runs, so a call that only names the path of a program the gate-s checks start is counted as one that ran it and the transcript names four checks where the child ran two (issue #882)@s#select(($prog == $c) or ($prog | endswith("/" + $c)))#select(true)#'
+  # 882.x — the two defects the run of 2026-11-14 left behind. The gate's base was the remote's memory of the base
+  # branch, and a tree that only lands never fetches: `origin/main` stood 7 commits behind local `main`, every gate
+  # measured `HEAD..<stale sha>` and the self-test leg selected all 427 of its cases — 841 s a gate, 56 % of the item's
+  # wall clock (`882.1`). And an answer of 0 bytes was evidence of nothing once the tree was not at the base, so a
+  # continuation child that wrote an empty report exited 0, the retry budget was never spent and the item was recorded
+  # blocked (`882.2`). The first record removes the branch's tip beating the run's record, the second the retry the
+  # empty answer earns.
+  '888.1@-@tools/loop/gate.sh@gate#theBaseIsReadFromTheRunNotFromTheRemote@the base branch tip read before the run record, so the base is a commit that cannot move and the gate measures the landings the branch already carries (issue #882)@s|^  if gate_base_ok "$recorded_base" && gate_base_ok "$branch_base" &&$|  if false \&\& gate_base_ok "$branch_base" \&\&|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

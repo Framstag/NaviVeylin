@@ -419,6 +419,7 @@ LOOP_SHELL_CASES=(
   'driver#aSecondSuiteInOneRepositoryIsRefused'
   'driver#noFixtureFifoIsOpenedWriteOnly'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
+  'gate#theBaseIsReadFromTheRunNotFromTheRemote'
   'gate#theDeclarationCaseIsOwedFirst'
   'gate#aGreenLogNamesNoFailingCase'
   'gate#aFailingCaseCarriesItsFactsAndItsRerun'
@@ -1136,6 +1137,7 @@ loop_run_shell_case() {
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'driver#noFixtureFifoIsOpenedWriteOnly') fn=case_driver_noFixtureFifoIsOpenedWriteOnly ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
+    'gate#theBaseIsReadFromTheRunNotFromTheRemote') fn=case_gate_theBaseIsReadFromTheRunNotFromTheRemote ;;
     'gate#theDeclarationCaseIsOwedFirst') fn=case_gate_theDeclarationCaseIsOwedFirst ;;
     'gate#aGreenLogNamesNoFailingCase') fn=case_gate_aGreenLogNamesNoFailingCase ;;
     'gate#aFailingCaseCarriesItsFactsAndItsRerun') fn=case_gate_aFailingCaseCarriesItsFactsAndItsRerun ;;
@@ -15757,6 +15759,68 @@ case_gate_theDeltaHandsASuiteTheBaseItMeasured() {
     "the suite is handed the base the gate resolved: $plan"
   assert_not_contains "$plan" "{base}" "and no token reaches a shell: $plan"
   assert_not_contains "$plan" "notes-check" "a suite the delta does not owe is not handed it: $plan"
+  return 0
+}
+
+# `origin/main` is a remote a landings-only tree leaves behind: measured 2026-11-14, on the run that
+# worked #882, `origin/main` stood 7 commits behind local `main`, so every gate measured `HEAD..<stale sha>` and the
+# self-test leg ran `--from-git <stale sha>` — 427 of 427 cases selected, 841 s a gate, 56 % of the item's wall clock.
+# The fixture is that shape and nothing else: a remote ref frozen at the first commit, a run record at the second, the
+# base branch fast-forwarded to the third. The branch's tip is the base, the record answers when the branch cannot,
+# and no source in the line is the stale remote.
+case_gate_theBaseIsReadFromTheRunNotFromTheRemote() {
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/state.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf stale record tip out
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  # A suite that measures nothing and names its summary, so a gate that owes it says so in its own line.
+  printf 'printf "notes: all 1 cases passed\\n"\n' > "$d/suite.sh"
+  stale=$(git -C "$p" rev-parse HEAD)
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  record=$(git -C "$p" rev-parse HEAD)
+  printf 'a second note\n' > "$p/notes/b.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a landing' >/dev/null 2>&1 \
+    || fail "could not commit the landing in the throwaway repository"
+  tip=$(git -C "$p" rev-parse HEAD)
+  git -C "$p" update-ref refs/remotes/origin/main "$stale" \
+    || fail "could not park the remote ref where the measurement found it"
+  LOOP_CONF="$conf" run_state "$p" init --items 1 --minutes 90 --base "$record" >/dev/null \
+    || fail "could not record the run's base"
+
+  # Both the record and the branch answer, and the branch has moved since the record was written: its tip is the base,
+  # so the delta is the working tree and nothing is owed — the whole of what the stale remote cost.
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" 2>&1 ) || fail "the gate failed: $out"
+  assert_contains "$out" "LOOP-GATE-BASE: $tip (from the base branch main)" \
+    "the base is the base branch's tip, and the line names that source: $out"
+  assert_not_contains "$out" "gate: bash $d/suite.sh" \
+    "the suite a stale base would have owed is not run over work the branch already carries: $out"
+  assert_not_contains "$out" "$stale" "the remote's stale commit is not the base this gate measured: $out"
+
+  # The argument is the first source, and it is handed back as such.
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$record" 2>&1 ) \
+    || fail "the gate failed with an explicit base: $out"
+  assert_contains "$out" "LOOP-GATE-BASE: $record (from --base)" \
+    "a --base the tree knows and HEAD carries is the base, named as its source: $out"
+  assert_contains "$out" "gate: bash $d/suite.sh" "and the delta since it owes the suite: $out"
+
+  # Nor is the remote the record's substitute: with no base branch to take a merge-base against, the run's own record
+  # answers before `origin/main` does.
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_BASE_REF=no-such-base-branch bash "$LOOP_ENGINE/gate.sh" 2>&1 ) \
+    || fail "the gate failed with no base branch: $out"
+  assert_contains "$out" "LOOP-GATE-BASE: $record (from the run's record)" \
+    "the recorded base answers when the base branch does not, and the line names that source: $out"
+  assert_not_contains "$out" "(from origin/main)" "the stale remote is the last source, never the first: $out"
   return 0
 }
 

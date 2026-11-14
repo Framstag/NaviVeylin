@@ -202,11 +202,53 @@ fi
 # replaced by this base before the command runs, so the self-test of `tools/loop/**` owes the cases the delta's own
 # files declare instead of the whole set (issue #276 — a two-file delta paid 723 s). The token is the engine's, not a
 # project fact: `gate.sh` does not know which suite narrows itself, only that a suite may ask for the base it measured.
+# The base comes from the run, not from the remote's memory of the base branch. Measured 2026-11-14 on
+# the run that worked #882: `origin/main` was 7 commits behind local `main`, so every gate of that run measured
+# `HEAD..<stale sha>`, the self-test leg ran `--from-git <stale sha>` and selected all 427 of its cases (841 s per
+# gate, 56 % of the item's wall clock). A tree that only lands never fetches, so the remote is the one ref that stops
+# moving. The base is the first of these sources that is a commit this tree knows **and** an ancestor of HEAD: the
+# `--base` argument, the base the run recorded, `git merge-base HEAD refs/heads/<the run's base branch>`, the same
+# against `origin/main`, and `HEAD~1`. The base branch's own tip is read before the record when both answer, because
+# a landing fast-forwards that branch and a recorded commit cannot move.
+gate_base_ok() { # <sha> → 0 git knows the commit and HEAD carries it
+  local sha="${1:-}"
+  [ -n "$sha" ] && [ "$sha" != null ] || return 1
+  git rev-parse --verify --quiet "$sha^{commit}" >/dev/null 2>&1 || return 1
+  git merge-base --is-ancestor "$sha" HEAD 2>/dev/null
+}
+base_source=""
+if [ -n "$base" ]; then
+  if gate_base_ok "$base"; then
+    base_source="--base"
+  else
+    say "gate: '$base' from --base is not a commit this tree knows on HEAD — reading the base from the run instead"
+    base=""
+  fi
+fi
 if [ -z "$base" ]; then
-  base=$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse --verify --quiet 'HEAD~1' 2>/dev/null || true)
+  recorded_base=$(loop_state get run.base 2>/dev/null || true)
+  branch_base=$(git merge-base HEAD "refs/heads/$(loop_base_ref)" 2>/dev/null || true)
+  if gate_base_ok "$recorded_base" && gate_base_ok "$branch_base" &&
+    git merge-base --is-ancestor "$recorded_base" "$branch_base" 2>/dev/null; then
+    base="$branch_base"; base_source="the base branch $(loop_base_ref)"
+  elif gate_base_ok "$recorded_base"; then
+    base="$recorded_base"; base_source="the run's record"
+  elif gate_base_ok "$branch_base"; then
+    base="$branch_base"; base_source="the base branch $(loop_base_ref)"
+  else
+    base=$(git merge-base HEAD origin/main 2>/dev/null || true)
+    if gate_base_ok "$base"; then
+      base_source="origin/main"
+    else
+      base=$(git rev-parse --verify --quiet 'HEAD~1^{commit}' 2>/dev/null || true)
+      if gate_base_ok "$base"; then base_source="HEAD~1"; else base=""; fi
+    fi
+  fi
 fi
 [ -n "$base" ] || loop_die "gate: cannot resolve a base to compare against — pass --base <sha>"
-git rev-parse --verify --quiet "$base" >/dev/null || loop_die "gate: '$base' is not a commit this tree knows"
+# Which of the five sources answered is on the console of a measuring gate, so a log that ends without a verdict still
+# says which commit the delta was measured from and a stale one is visible in the line rather than in the seconds.
+[ "$plan" -eq 1 ] || say "LOOP-GATE-BASE: $base (from $base_source)"
 paths=$( { git diff --name-only "$base" 2>/dev/null; git status --porcelain 2>/dev/null | sed 's/^...//'; } | sort -u)
 # The tree this run measures, named before the first step and written into the run's own record (issue #819): the
 # commit it was taken on and a digest of the change itself, so a tree corrected after the gate is a record a reader

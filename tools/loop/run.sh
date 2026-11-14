@@ -2503,6 +2503,7 @@ while true; do
   # bound and continued the item itself (issue #851). Everything after this line reads `$worker_report`/`$worker_exit`,
   # never the path, so the continuation needs no arm of its own below.
   worker_report="$item_dir/worker-report.md"
+  worker_prompt="$item_dir/worker-prompt.md"
   run_child "$item_dir/worker-prompt.md" "$worker_report"
   worker_exit=$?
   loop_state step A --name worker --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
@@ -2563,6 +2564,7 @@ while true; do
           run_child "$item_dir/worker-prompt-continuation.md" "$item_dir/worker-continuation-report.md"
           worker_exit=$?
           worker_report="$item_dir/worker-continuation-report.md"
+          worker_prompt="$item_dir/worker-prompt-continuation.md"
           loop_state step A --name "$continuation_step" \
             --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
             --note "exit $worker_exit · from $continuation_patch, applied onto $(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null | cut -c1-12)" >/dev/null
@@ -2613,6 +2615,7 @@ while true; do
   # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
   # deferred the gate to a child of its own below (issue #758).
   gate_report="$worker_report"
+  gate_prompt="$worker_prompt"
   gate_child="worker"
   gate_exit="$worker_exit"
   gate_write_note="$worker_write_note"

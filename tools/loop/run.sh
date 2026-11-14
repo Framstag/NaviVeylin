@@ -1231,6 +1231,23 @@ change_answered() { # change_answered <change report> → 0 when the report carr
     [ -n "$(report_field "$1" LOOP-TIMEOUT)" ] || [ -n "$(report_field "$1" LOOP-DEADLINE)" ]
 }
 
+# A case that fails in the gate and passes when it is run once more is a flake, and one rerun in the base tree cannot
+# tell it from the delta's own red (issue #861). Measured 2026-11-11: #849's gate recorded
+# `worktree#keepsSourcesNotBuildOutput` as its single failure, that case passed at HEAD (two runs) and at #849's own gate
+# head, and the item blocked for 2 714 s on a red that reproduced at neither. The second look is the item's own
+# worktree — the tree the gate itself ran in, which already carries the build artifacts a fresh tree does not — so the
+# probe costs one case and not one build. `0` is the whole of it: a case that fails again, a tree that cannot run it and
+# a bound all answer `delta`, so a probe that could not be taken fails the item exactly as it did before (the item's own
+# direction: "re-run the failing case once ... `delta` when it fails again").
+flake_probe() { # <tree> <rerun> <bound> → flaked|delta
+  local root="${1:-}" rerun="${2:-}" bound="${3:-}" status=1
+  [ -n "$root" ] && [ -n "$rerun" ] || { printf 'delta\n'; return 0; }
+  case "$bound" in ''|*[!0-9]*) bound=900 ;; esac
+  ( cd "$root" && timeout "$bound" bash -c "$rerun" ) >/dev/null 2>&1
+  status=$?
+  case "$status" in 0) printf 'flaked\n' ;; *) printf 'delta\n' ;; esac
+}
+
 # Which tree fails the case a red gate names (issue #853). The record a red tally left said what the gate reported —
 # the failing case's name — and nothing about the tree that made it fail, so a pre-existing red and the delta's own red
 # were the same verdict. `guidelines/BuildEvidence.md` §4d is the project's rule for the question, and both halves of
@@ -1244,7 +1261,7 @@ change_answered() { # change_answered <change report> → 0 when the report carr
 # only a rerun that ran and failed answers `base`. A tree that cannot be made, a case the base cannot select (exit 2),
 # a bound (124/137) and a log naming no case or no rerun command all answer `unattributable` — a red gate that cannot
 # be attributed must not fail the item a second time.
-attribute_red_gate() { # <tally> <tally dir> <change root> <base> → delta|base|unattributable, nothing when not red
+attribute_red_gate() { # <tally> <tally dir> <change root> <base> → delta|flaked|base|unattributable, nothing when not red
   local tally="${1:-}" tally_dir="${2:-}" root="${3:-}" base="${4:-}"
   local log block case_name rerun tmp bound status
   [ "$(gate_tally_state "$tally")" = red ] || return 0
@@ -1256,14 +1273,17 @@ attribute_red_gate() { # <tally> <tally dir> <change root> <base> → delta|base
   case "$case_name" in ''|*'#'*) ;; *) case_name="" ;; esac
   case "$rerun" in ''|'not derivable from this log') rerun="" ;; esac
   [ -n "$case_name" ] && [ -n "$rerun" ] || { printf 'unattributable\n'; return 0; }
-  # The item's own red test is the free text `state.sh done` keeps in `metrics.redTest`; its case names are
-  # `<group>#<name>` tokens of it, so the token is matched whole and never as a prefix of a longer name.
-  if printf '%s' "${red_test:-}" | tr ' \t\n' '\n\n\n' | grep -qxF -- "$case_name"; then
-    printf 'delta\n'
-    return 0
-  fi
+  # The bound is the profile's per-case bound, read once for both reruns this function can take: the one the item's own
+  # worktree pays and the one a detached base tree pays.
   bound=$(loop_conf_value LOOP_CASE_MAX_SECONDS)
   case "$bound" in ''|*[!0-9]*) bound=900 ;; esac
+  # The item's own red test is the free text `state.sh done` keeps in `metrics.redTest`; its case names are
+  # `<group>#<name>` tokens of it, so the token is matched whole and never as a prefix of a longer name. Such a case pays
+  # no base tree, and since issue #861 it is run once more in the item's own worktree before it is called the delta's.
+  if printf '%s' "${red_test:-}" | tr ' \t\n' '\n\n\n' | grep -qxF -- "$case_name"; then
+    flake_probe "$root" "$rerun" "$bound"
+    return 0
+  fi
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/loop-attribute.XXXXXX") || { printf 'unattributable\n'; return 0; }
   # `mktemp` made the directory and `git worktree add` wants to create its own.
   rmdir "$tmp" 2>/dev/null || true
@@ -1277,7 +1297,7 @@ attribute_red_gate() { # <tally> <tally dir> <change root> <base> → delta|base
   # The tree goes whatever the rerun answered: a base tree left behind is a worktree the next run reads as its own.
   git -C "$root" worktree remove --force "$tmp" >/dev/null 2>&1 || rm -rf "$tmp" 2>/dev/null || true
   case "$status" in
-    0) printf 'delta\n' ;;
+    0) flake_probe "$root" "$rerun" "$bound" ;;
     2|124|137) printf 'unattributable\n' ;;
     *) printf 'base\n' ;;
   esac
@@ -3233,7 +3253,20 @@ while true; do
   # rather than the close, which would fail the write that records it after the tracker was already told the item
   # closed. `state.sh done` keeps the same refusal as its own backstop for a caller that is not this script, so the
   # clause is refused, never defaulted, in both places.
-  if [ "$outcome" = "closed" ] && [ "$(gate_tally_state "$gate_field")" = red ] && [ -z "$gate_waived" ]; then
+  # Which tree fails the case the red tally names (issue #853) is taken here, where both halves are in hand, and since
+  # issue #861 it is taken **before** the waiver refusal below: `flaked` is the one answer that stands in the waiver's
+  # place, so the refusal is the line that has to read it. For `delta`, `base` and `unattributable` it changes no
+  # outcome — the answer is what makes the block readable, not a verdict on a gate that did not pass (§4d).
+  gate_attribution=""
+  [ "$(gate_tally_state "$gate_field")" = red ] &&
+    gate_attribution=$(attribute_red_gate "$gate_field" "$gate_tally_dir" "$worktree" "$base")
+  attribution_args=()
+  [ -z "$gate_attribution" ] || attribution_args+=(--gate-attribution "$gate_attribution")
+  # …and the refusal itself reads that answer (issue #861): a case that passes when it is run once more in the item's
+  # own worktree is not the delta's red, so it is not the item's block either — the record keeps the tally and the
+  # `flaked` answer that stands where a waiver clause would, and the item closes with no clause to name.
+  if [ "$outcome" = "closed" ] && [ "$(gate_tally_state "$gate_field")" = red ] && [ -z "$gate_waived" ] \
+    && [ "$gate_attribution" != "flaked" ]; then
     block refused "the gate did not pass ($gate_field) and the close records no waiver — LOOP-GATE-WAIVED is the one clause the item closed over, and a close without it is a judgement nobody can read"
   fi
   # The same refusal has a reverse side, and it landed in the same place (issue #811): `state.sh done` refuses a
@@ -3246,14 +3279,7 @@ while true; do
     gate_waived_suite=""
   fi
   if [ -n "$gate_waived_suite" ] && [ -z "$gate_waived" ]; then gate_waived_suite=""; fi
-  # Which tree fails the case the red tally names (issue #853) is taken here, where the waiver fields are settled and
-  # both halves are in hand, and it changes no outcome: the answer is what makes the block readable, not a verdict on
-  # a gate that did not pass (§4d).
-  gate_attribution=""
-  [ "$(gate_tally_state "$gate_field")" = red ] &&
-    gate_attribution=$(attribute_red_gate "$gate_field" "$gate_tally_dir" "$worktree" "$base")
-  attribution_args=()
-  [ -z "$gate_attribution" ] || attribution_args+=(--gate-attribution "$gate_attribution")
+  # The attribution the waiver refusal reads is taken above, before that refusal (issue #861).
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"

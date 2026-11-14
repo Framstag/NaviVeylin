@@ -1276,6 +1276,14 @@ MUTATIONS=(
   # empty answer earns.
   '888.1@-@tools/loop/gate.sh@gate#theBaseIsReadFromTheRunNotFromTheRemote@the base branch tip read before the run record, so the base is a commit that cannot move and the gate measures the landings the branch already carries (issue #888)@s|^  if gate_base_ok "$recorded_base" && gate_base_ok "$branch_base" &&$|  if false \&\& gate_base_ok "$branch_base" \&\&|'
   '889.1@-@tools/loop/run.sh@run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop@the guard that asks the 0-byte answer wherever the tree stands, so an empty report over a tree the item already moved is evidence of nothing again and the item is blocked with the budget unspent (issue #889)@s|\&\& \[ "$head_now" != "$base" \]; then|\&\& [ "$head_now" = "$base" ]; then|'
+  # 861.x — a red case that flaked once is not the delta's (issue #861). The attribution #853 landed decides a red
+  # tally from one base run, so a case that flaked once and a case the delta broke record the same answer and both
+  # block: #849 blocked for 2 714 s on `worktree#keepsSourcesNotBuildOutput`, a red that reproduced at neither head.
+  # The probe re-runs the one case the tally named in the item's own worktree (`861.1`), the refusal it stands in
+  # front of (`861.2`), and the state backstop a caller that is not `run.sh` meets (`861.3`) — three halves of one rule.
+  '861.1@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
+  '861.2@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861)@s|^    && \[ "\$gate_attribution" != "flaked" \]; then$|    && true; then|'
+  '861.3@-@tools/loop/state.sh@run#aFlakedCaseIsOffTheBlockedPath@the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861)@s|^  elif \[ "\$result" = done \] && \[ "\$(gate_tally_state "\$gate")" = red \] && \[ "\$gate_attribution" != flaked \]; then$|  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

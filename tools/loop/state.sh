@@ -704,6 +704,20 @@ cmd_done() {
     ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
     *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
   esac
+  # Which tree fails the case the tally named is the other half of a red gate's record (issue #853): `delta` a case that
+  # fails again when it is run once more, `flaked` one that passes on that second look (issue #861), `base` a case that
+  # also fails at the base commit, `unattributable` a red the run could not answer. It is a closed vocabulary rather
+  # than a second place to write prose, and it belongs to a tally that did not pass — a green one has nothing to
+  # attribute. It is settled here, before the two checks below that read it.
+  case "$gate_attribution" in
+    ""|delta|flaked|base|unattributable) ;;
+    *) loop_die "done: --gate-attribution must be delta|flaked|base|unattributable" ;;
+  esac
+  if [ -n "$gate_attribution" ]; then
+    [ -n "$gate" ] || loop_die "done: --gate-attribution is an answer about a tally, and no --gate was given"
+    [ "$(gate_tally_state "$gate")" != green ] ||
+      loop_die "done: --gate-attribution was given for a gate that passed ($gate) — there is nothing to attribute"
+  fi
   # A close over a red gate is a judgement, and this is where it is recorded (issue #811). Measured 2026-11-06: 3 of
   # the 7 items that run closed carry `errors=1` / `failures=1` beside `verdict: closed`, each waived in prose inside
   # its closing child's transcript — "file untouched by this diff", "green in the automotive run" — so the same flake
@@ -719,21 +733,10 @@ cmd_done() {
     [ -n "$gate" ] || loop_die "done: --gate-waived is a judgement about a tally, and no --gate was given"
     [ "$(gate_tally_state "$gate")" != green ] ||
       loop_die "done: --gate-waived was given for a gate that passed ($gate) — there is nothing to waive"
-  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then
-    loop_die "done: the gate is red ($gate) and the close records no waiver — --gate-waived names the one clause it closed over"
-  fi
-  # Which tree fails the case the tally named is the other half of a red gate's record (issue #853): `delta` the
-  # change's own case, `base` a case that also fails at the base commit, `unattributable` a red the run could not
-  # answer. It is a closed vocabulary rather than a second place to write prose, and it belongs to a tally that did
-  # not pass — a green one has nothing to attribute.
-  case "$gate_attribution" in
-    ""|delta|base|unattributable) ;;
-    *) loop_die "done: --gate-attribution must be delta|base|unattributable" ;;
-  esac
-  if [ -n "$gate_attribution" ]; then
-    [ -n "$gate" ] || loop_die "done: --gate-attribution is an answer about a tally, and no --gate was given"
-    [ "$(gate_tally_state "$gate")" != green ] ||
-      loop_die "done: --gate-attribution was given for a gate that passed ($gate) — there is nothing to attribute"
+  # …and the one answer that needs no waiver (issue #861): a case that passes when it is run once more in the item's
+  # own worktree is not the delta's red, so `flaked` stands where a clause would and the close carries no clause.
+  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ] && [ "$gate_attribution" != flaked ]; then
+    loop_die "done: the gate is red ($gate) and the close records no waiver — --gate-waived names the one clause it closed over, or --gate-attribution flaked names the red the second look did not reproduce"
   fi
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; elif [ "$result" = cut ]; then printf 'cut'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading

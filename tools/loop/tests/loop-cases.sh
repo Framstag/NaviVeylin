@@ -17442,7 +17442,7 @@ EOF
 # at 2. A tree that counts nothing waits on that child for ever; a tree that counts every call names more than the two
 # checks it counted in the line it writes.
 case_run_childPastItsCheckBoundIsCut() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/loop/tests/fixtures/pi tools/loop/tests/loop-mutations.sh tools/loop/tests/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo fixture action pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)

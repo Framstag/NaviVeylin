@@ -230,6 +230,7 @@
     <string name="basemap_repository_version">Basiskarte Version %1$d in diesem Repository</string>
     <string name="basemap_outdated_format">Installiertes Datenformat %1$d, diese Version liest %2$d — Basiskarte löschen und erneut herunterladen</string>
     <string name="installed_from_source">von %1$s</string>
+    <string name="installed_types_outdated">Daten älter als das Stylesheet dieser App: %1$d Kartentypen fehlen — Karte erneut herunterladen</string>
     <string name="source_repository_label">Repository</string>
     <string name="repository_url_label">Repository-URL</string>
     <string name="repository_url_format_hint">http://host oder https://host:port</string>

@@ -271,6 +271,7 @@ fun MapManagerScreen(
                         downloadState = { null },
                         progress = { 0 },
                         installedSourceName = { entry -> viewModel.installedMapSourceName(entry.name) },
+                        typeShortfall = { entry -> uiState.installedTypeShortfalls[viewModel.getMapPath(entry.name)] },
                         onToggleDir = { dirKey ->
                             expandedDirs = if (dirKey in expandedDirs) {
                                 expandedDirs - dirKey
@@ -278,7 +279,7 @@ fun MapManagerScreen(
                                 expandedDirs + dirKey
                             }
                         },
-                        onDownload = { },
+                        onDownload = { entry -> viewModel.downloadMap(entry) },
                         onCancel = { },
                         onDelete = { viewModel.deleteMap(it.name) },
                         onMapSelected = { entry ->
@@ -938,6 +939,12 @@ private fun TreeItemRow(
     onToggleDir: (String) -> Unit,
     onDownload: (AvailableMapEntry) -> Unit,
     installedSourceName: (AvailableMapEntry) -> String = { "" },
+    /**
+     * How many declared map types an installed map's data lacks, or null when it carries every one
+     * (or could not be judged). Non-null means the data predates the app's stylesheet, so the row
+     * names the shortfall and offers the download that replaces it (spec `map-updates`).
+     */
+    typeShortfall: (AvailableMapEntry) -> Int? = { null },
     leafState: (AvailableMapEntry) -> LeafMetadataState? = { null },
     /** Called when a repository leaf is tapped to read its metadata (spec `map-repository-source`). */
     onLeafProbe: (AvailableMapEntry) -> Unit = {},
@@ -973,6 +980,7 @@ private fun TreeItemRow(
         val installed = isInstalled(entry)
         val downloading = isDownloading(entry)
         val dlState = downloadState(entry)
+        val shortfall = if (installed) typeShortfall(entry) else null
 
         Row(
             modifier = Modifier
@@ -1037,6 +1045,18 @@ private fun TreeItemRow(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (shortfall != null) {
+                        // The data predates the app's stylesheet: the download that replaces it is
+                        // the remedy, and the count is the shortfall itself (spec `map-updates` —
+                        // "An installed database that predates the shipped stylesheet is reported").
+                        Text(
+                            text = stringResource(R.string.installed_types_outdated, shortfall),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 } else {
                     leafStatusText(entry, leafState(entry))?.let { status ->
                         Text(
@@ -1065,6 +1085,14 @@ private fun TreeItemRow(
                     }
                 }
                 installed -> {
+                    if (shortfall != null) {
+                        Button(
+                            onClick = { runWithNotificationPermission { onDownload(entry) } },
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text(stringResource(R.string.download))
+                        }
+                    }
                     OutlinedButton(onClick = { onDelete(entry) }) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
                         Text(stringResource(R.string.delete))

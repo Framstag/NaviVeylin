@@ -1,0 +1,15 @@
+OST
+
+/*
+  A stylesheet fixture for the stale-install detector: the first three declarations are names the
+  golden `types.dat` carries, the last two are not, so the shortfall is exactly two.
+*/
+
+TYPES
+
+  TYPE highway_motorway
+  TYPE natural_peak
+  TYPE place_city
+
+  TYPE amenity_theatre
+  TYPE shop_bakery

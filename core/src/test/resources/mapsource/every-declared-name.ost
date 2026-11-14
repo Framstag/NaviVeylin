@@ -1,0 +1,12 @@
+OST
+
+/*
+  A stylesheet fixture whose declarations the golden `types.dat` all carries: this database is
+  current, and no notice follows from it.
+*/
+
+TYPES
+
+  TYPE highway_motorway
+  TYPE natural_peak
+  TYPE place_city

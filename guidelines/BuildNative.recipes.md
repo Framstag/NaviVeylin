@@ -338,6 +338,14 @@ Phone parity is checked with the same query and a fix on the phone
 (`resolveAdminRegion -> handle=…` in `adb logcat -s MapCanvasVM`): both surfaces must
 show the same matches for the same position.
 
+The user-visible half of the same finding is in the map manager: since change
+`report-a-stale-map-install` an installed map's row names a data set that predates the stylesheet
+(wording `installed_types_outdated`, carrying the number of declared types the database lacks) and
+offers the download that replaces it. The answer is computed by comparing the database's `types.dat`
+type names with the names the shipped `map.ost` declares (spec `map-updates` — "An installed database
+that predates the shipped stylesheet is reported"), so this recipe's log line stays the developer
+signal for the same condition and no longer the only one.
+
 ## §10g Start-map selection on the phone (`fix-start-map-selection`)
 
 The phone opens the map resolved by `StartMapResolver`: the last opened database, else the

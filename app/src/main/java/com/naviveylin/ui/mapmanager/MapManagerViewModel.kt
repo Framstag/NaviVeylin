@@ -14,8 +14,10 @@ import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.mapsource.DatabaseMetadata
 import com.naviveylin.core.mapsource.DatabaseMetadataResult
 import com.naviveylin.core.mapsource.DatabaseMetadataParser
+import com.naviveylin.core.mapsource.DeclaredTypes
 import com.naviveylin.core.mapsource.DownloadOutcome
 import com.naviveylin.core.mapsource.IndexRegion
+import com.naviveylin.core.mapsource.InstalledTypeVerdict
 import com.naviveylin.core.mapsource.MapSource
 import com.naviveylin.core.mapsource.MapSourceKind
 import com.naviveylin.core.mapsource.MapSourceMarker
@@ -27,6 +29,8 @@ import com.naviveylin.core.mapsource.RegionIndexResult
 import com.naviveylin.core.mapsource.RepositoryFailure
 import com.naviveylin.core.mapsource.RepositoryDownloadPlanResult
 import com.naviveylin.core.mapsource.RepositoryUrlPlanner
+import com.naviveylin.core.mapsource.StaleInstallCheck
+import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.BasemapRegistrar
 import com.naviveylin.data.MapDataRegistrar
 import com.naviveylin.data.MapSourceRegistry
@@ -113,6 +117,14 @@ data class MapManagerUiState(
      * their source").
      */
     val installedSources: Map<String, MapSourceRecord> = emptyMap(),
+    /**
+     * How many declared map types each installed map's data lacks, keyed by directory path.
+     *
+     * A directory the map does not name carries every declared name, or could not be judged — an
+     * unreadable `types.dat` and a foreign format version are never a shortfall (spec `map-updates`
+     * — "An installed database that predates the shipped stylesheet is reported").
+     */
+    val installedTypeShortfalls: Map<String, Int> = emptyMap(),
     /** The sources the selector offers, the built-in provider first. */
     val sources: List<MapSource> = emptyList(),
     /** The active source. */
@@ -206,7 +218,8 @@ class MapManagerViewModel @Inject constructor(
     private val basemapRegistrar: BasemapRegistrar,
     private val basemapManager: BasemapManager,
     private val mapUpdates: MapUpdates,
-    private val mapDataRegistrar: MapDataRegistrar
+    private val mapDataRegistrar: MapDataRegistrar,
+    private val assetCopier: AssetCopier
 ) : ViewModel() {
 
     /** Plans and performs a source switch (spec `map-source-selection`). */
@@ -499,6 +512,24 @@ class MapManagerViewModel @Inject constructor(
                 val dirs = MapTreeDiscovery.installedOnly(downloadManager.installedMaps)
                 val pathSet = dirs.toSet()
 
+                // The declared type set the app ships, compared with what each installation carries:
+                // a database short of declared names predates the stylesheet, whatever its metadata
+                // says (spec `map-updates`). Both reads are file reads on this dispatcher, and the
+                // answer is computed here rather than stored (design D2 of
+                // `report-a-stale-map-install`).
+                val declaredTypes = DeclaredTypes.readDeclaredNames(
+                    assetCopier.stylesheetsDirectory().toPath()
+                        .resolve(DeclaredTypes.DECLARED_FILE_NAME)
+                )
+                val typeShortfalls = dirs.mapNotNull { dir ->
+                    val verdict = StaleInstallCheck.of(
+                        Paths.get(dir),
+                        declaredTypes,
+                        MapDownloadManager.DATABASE_FORMAT_VERSION
+                    )
+                    (verdict as? InstalledTypeVerdict.Missing)?.let { missing -> dir to missing.count }
+                }.toMap()
+
                 // Build synthetic entries for installed maps, preferring existing entry names for proper casing
                 val currentEntries = _uiState.value.availableEntries
                 val currentByName = currentEntries.groupBy { it.name.lowercase() }
@@ -530,6 +561,7 @@ class MapManagerViewModel @Inject constructor(
                         installedSources = dirs.associateWith { dir ->
                             provenanceOf(dir)
                         },
+                        installedTypeShortfalls = typeShortfalls,
                         availableEntries = merged
                     )
                 }

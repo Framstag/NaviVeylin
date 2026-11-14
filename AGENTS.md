@@ -26,7 +26,7 @@ give.
 | how the map is drawn — the pipeline, bitmaps, throttling, epochs | `MapRendering.md` §1 (the index) — §1a 6.0 kB, §1b 3.1 kB, §1c 1.3 kB, §1d 10.3 kB, §1e 2.3 kB; also §2, §4, §5 |
 | a frame's delivery — front-buffer emission, the overrun display window, the rotation-gesture handoff | `MapFrames.md` §12, §13, §14 |
 | follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapFollow.md` §3, §6, §7, §8, §9, §10, §11 |
-| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapStyling.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.5 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-11-04) |
+| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapStyling.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.5 kB, §16a 2.4 kB, §16b 1.2 kB (measured 2026-11-14) |
 | label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapStyling.md` §20 "Label wrapping" |
 | the phone map — modes, overlays, layering, the route-planning card | `UIPhoneMap.md` §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11 — sub-sections §7a 3.4 kB, §7b 8.0 kB, §8a 1.9 kB, §8b 3.3 kB, §8c 3.5 kB (measured 2026-10-31) |
 | phone surfaces — the details dialog, search, favourites | `UIPhone.md` §5, §6a, §12, §13, §14, §15, §16, §17, §18, §19 — sub-section §6a 6.1 kB (measured 2026-10-31) |

@@ -188,6 +188,10 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
 - `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size + SHA-256
   compare, deleting stale files), so an existing install picks up new styles after an update without clearing
   its data. A stylesheet failure at load time is §15a's contract, not this one.
+- That on-device copy is also what the stale-install detector reads: `AssetCopier.stylesheetsDirectory()`
+  exposes it, and `DeclaredTypes` takes the `TYPE <name>` lines of its `map.ost` as the type set the app ships
+  (spec `map-updates` — "An installed database that predates the shipped stylesheet is reported"). The copy
+  itself is unchanged: the detector adds no file and edits none.
 
 ---
 ## 17. Native tile-data cache — capacity, retention and its release

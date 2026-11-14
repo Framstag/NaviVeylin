@@ -10,6 +10,7 @@ import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.mapsource.RepositoryFailure
 import com.naviveylin.core.mapsource.RepositoryFetcher
 import com.naviveylin.core.mapsource.TextFetch
+import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.BasemapRegistrar
 import com.naviveylin.data.MapDataRegistrar
 import com.naviveylin.data.MapSourceRegistry
@@ -38,7 +39,8 @@ internal fun mapManagerViewModelForTest(
     reloadNotifier: BasemapReloadNotifier = BasemapReloadNotifier(),
     basemapRegistrar: BasemapRegistrar = BasemapRegistrar(FakeOSMScoutClient(), reloadNotifier),
     updates: MapUpdates = mapUpdatesForTest(settings, registry, storageManager),
-    client: FakeOSMScoutClient = FakeOSMScoutClient()
+    client: FakeOSMScoutClient = FakeOSMScoutClient(),
+    assetCopier: AssetCopier = AssetCopier(application)
 ): MapManagerViewModel = MapManagerViewModel(
     application = application,
     downloadManager = downloadManager,
@@ -50,7 +52,8 @@ internal fun mapManagerViewModelForTest(
     basemapRegistrar = basemapRegistrar,
     basemapManager = BasemapManager(provider, storageManager.mapsRootDir),
     mapUpdates = updates,
-    mapDataRegistrar = MapDataRegistrar(client, storageManager, reloadNotifier)
+    mapDataRegistrar = MapDataRegistrar(client, storageManager, reloadNotifier),
+    assetCopier = assetCopier
 )
 
 /** The update check with an unreachable repository, for the tests that do not exercise it. */

@@ -81,6 +81,17 @@ is a driver surface, so the list stays on phone/tablet and the car screen keeps
 its identity + ODbL attribution. This is a deliberate parity deviation, not an
 omission (spec: `about-dialog` — "License list is not surfaced in the car app").
 
+### Why the stale-map notice is phone-only
+
+An installed database whose type set is older than the shipped stylesheet leaves its POI types
+unimported, and nothing user-visible said so (issue #880; spec `map-updates` — "An installed database
+that predates the shipped stylesheet is reported"). The notice is a state of the **installed map's
+row** in the map manager (`MapManagerScreen`, wording `installed_types_outdated` carrying the
+shortfall's count), and the download that replaces the data is the row's own `[Download]` action. The
+car has no map manager at all (the "Map updates" row above), so the notice has no car counterpart: a
+car session keeps rendering whatever data is installed, and the phone is where the re-download is
+performed.
+
 ### Superseded and rejected parity alternatives
 
 Where a decision was reversed, the reversal and the alternative it eliminated are recorded with

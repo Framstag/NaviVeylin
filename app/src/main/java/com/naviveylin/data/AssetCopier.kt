@@ -31,11 +31,17 @@ class AssetCopier @Inject constructor(
     private val stylesheetsAssetRoot = "stylesheets"
 
     /**
+     * The on-device stylesheet tree, as [ensureStylesheets] leaves it: the copy the app reads the
+     * declared map types from (spec `map-updates`, change `report-a-stale-map-install`).
+     */
+    fun stylesheetsDirectory(): File = File(context.filesDir, stylesheetsAssetRoot)
+
+    /**
      * Ensure stylesheets are available on disk, refreshed from the bundled assets.
      * Returns the stylesheets directory path.
      */
     fun ensureStylesheets(): String =
-        ensureAssetTree(stylesheetsAssetRoot, File(context.filesDir, stylesheetsAssetRoot)).absolutePath
+        ensureAssetTree(stylesheetsAssetRoot, stylesheetsDirectory()).absolutePath
 
     /**
      * Ensure the raster POI icon set is available on disk, refreshed from the bundled assets.

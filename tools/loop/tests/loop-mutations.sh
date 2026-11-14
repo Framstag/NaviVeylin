@@ -959,6 +959,11 @@ MUTATIONS=(
   # agreed with the reads it saw, and the report that prints the volume alone leaves the figure it sits beside reading
   # as waste and the withheld volume as a number nothing accounts for.
   '96.4@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the withheld volume as a share of the repeat results, so the trend prints two volumes three clauses apart and a rule that withheld almost nothing reads the same as one that met nothing to withhold (issue #866)@s|% of the repeat results|of the repeat results|'
+  # …and the share is no bound on itself: the ledger counts what the item's children withheld and `dupChars` counts a
+  # repeat within one session, so the gate child re-reading a path its worker read is withheld and is no repeat result.
+  # The share above 100 % is what that fact prints as; a clamp to 100 % reads like the sane thing to print and says the
+  # rule withheld no more than the repeats it met, which every share of 66.7 % lets pass.
+  '96.5@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the share cut at 100 %, so a withheld volume larger than the repeat results it is a share of prints as one that fit inside them and the requirement that it may read above 100 % is asserted by nothing (issue #866)@s#(($ws [*] 1000) / $tc) | round#(if ((($ws * 1000) / $tc) | round) > 1000 then 1000 else (($ws * 1000) / $tc) | round end)#'
 
   # 858.x — the repeat rule's ledger is the item's, not the child's (issue #858). The hook kept it in a `Map` that lives
   # as long as one child process, so an item split at its gate handed its gate child, whole, every path its worker had

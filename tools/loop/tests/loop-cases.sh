@@ -13003,6 +13003,20 @@ JSONL
     "60 chars withheld by the repeat rule · the repeat results hold no characters, so the withheld volume is no share of them · worst #21 2 of 5" \
     "a repeat volume of no characters prints its reason instead of a share of it"
   cp "$f.bak" "$f" && rm -f "$f.bak"
+  # …and the share is no bound on itself: the withheld volume is the item ledger's and `dupChars` counts a repeat
+  # within one session alone, so a path the worker read and the gate child read again is withheld and is no repeat
+  # result — a withheld volume larger than the repeat results it is a share of prints the share it is, and a clamp to
+  # 100 %, which reads like the sane thing to print, would say the rule withheld no more than the repeats it met
+  # (issue #866's requirement; issue #858 is why the ledger spans the children). The fixture states it as a
+  # number: #21's repeats are set to 25 characters and #22's to 20, so 45 repeat results sit against the 60 the
+  # rule withheld and the share reads 133.3 %.
+  cp "$f" "$f.above" && jq '(.items[] | select(.issue == 21) | .metrics.dupChars) = 25
+    | (.items[] | select(.issue == 22) | .metrics.dupChars) = 20' "$f.above" > "$f"
+  out=$(run_report "$p") || fail "the report failed for a share that reads above 100 %"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "3 of 7 file reads were a second read of a path the session already had (43 %) · 45 chars in the repeat results · 60 chars withheld by the repeat rule (133.3 % of the repeat results) · worst #21 2 of 5" \
+    "a withheld volume larger than the repeat results it is a share of prints the share it is, not one cut at 100 %"
+  cp "$f.above" "$f" && rm -f "$f.above"
   # A state written by the run that counted the repeats and before this one holds the count and not the withheld
   # volume: the dash and its reason, never a zero the run did not measure.
   jq 'del(.items[].metrics.withheld)' "$f" > "$f.old" && mv "$f.old" "$f"

@@ -76,7 +76,7 @@
 
 ## 6. The gate and what it does and does not say
 
-- [x] 6.1 The gate ran once, `run=2374424`, `24 suites tests=1034 failures=2 errors=0` — **RED**; no umbrella XML for that tally was retained. The failing suite is
+- [x] 6.1 The gate ran once, `run=2374424`, `24 suites tests=1034 failures=2 errors=0` — **RED**; that tally's umbrella XML is not retained. The failing suite is
   the wide selection `tools/loop/tests/loop-selftest.sh --from-git fcbe328dd1ed75c0863bc43ad7de0f8a734f638e`,
   `2 of 428 cases failed — 752.69 s` (`evidence/gate-loop-selftest-from-git.xml`). One of the two is the pre-existing
   `phase#aResultOverTheBoundIsCutAndNamed`, which that selection reddens on the tree this change was branched from.

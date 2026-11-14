@@ -27,9 +27,9 @@ tool result any other way.
   session holds, though together they are that file read once and each carries material the session did not have. The
   state records no range at all, so nothing in the record can tell a window from a second read of the same text.
 - Nothing states either fact: the one live sentence that refuses the share is `tools/loop/report.sh:443`
-  (`tools/look.sh 'a share of the repeat'` → 1 match in `tools/loop/report.sh`, 1 in this change's own case, 3 in this
-  change's own proposal), and `tools/look.sh 'in windows'` → no match in `tools/loop/**`, `guidelines/**` or
-  `openspec/specs/**`, so no line names a windowed read as the count's own limit.
+  (`git grep -c 'a share of the repeat' d25972c1` → 1 match, in `tools/loop/report.sh` alone), and
+  `git grep -c 'in windows' d25972c1 -- tools/loop guidelines openspec/specs` → no match, so no line of the base names a
+  windowed read as the count's own limit. Both commands and their outputs are in `evidence/look-counts.log`.
 
 **Root cause, in one sentence:** the trend prints the repeat rule's withheld volume as a figure of its own, never as a
 share of the repeat volume beside it, so the line cannot say how much of that volume the rule agreed with — and nothing
@@ -65,11 +65,9 @@ states the same clause at `:183`–`:186` and the reason the share was refused a
 numbers: this change's own two edits push section 7e down four lines and lengthen section 7a's paragraph, so the sections are named by
 their titles as well as their lines.
 
-surface: 1 report clause and its comment rewritten, 1 case rewritten with 1 phase added, 1 mutation record added, 2 guideline
-statements realigned, 1 requirement modified — `tools/look.sh 'chars withheld by the repeat rule'` → 5 matches in 5
-files (3 in the archived change `2026-11-12-fix-a-repeat-ledger-spans-the-item`, frozen), `tools/look.sh 'withheld'` →
-161 matches in 44 files whose live reach is `tools/loop/report.sh` 6, `tools/loop/tests/loop-cases.sh` 28,
-`tools/loop/tests/loop-mutations.sh` 6 records, `guidelines/Backlog.recipes.md` 6 statements, and
-`openspec/specs/agent-issue-loop/spec.md` 7. Both counts were taken before the plan was fixed, and the archive the
-third line of the first count names is frozen history: `tools/look.sh 'chars withheld by the repeat rule'` counts it
-and this change edits neither.
+surface: 1 report clause and its comment rewritten, 1 case rewritten with 1 phase added, 1 mutation record added, 2 guideline statements realigned, 1 requirement modified — `tools/look.sh 'withheld' --path tools/loop` → 62 matches in 5 files (`tools/loop/measure.sh` 6, `tools/loop/report.sh` 7, `tools/loop/state.sh` 13, `tools/loop/tests/loop-cases.sh` 28, `tools/loop/tests/loop-mutations.sh` 8), `tools/look.sh 'withheld' --path guidelines` → 6 matches in 1 file (`guidelines/Backlog.recipes.md` 6), `tools/look.sh 'withheld' --path openspec/specs` → 10 matches in 2 files (`openspec/specs/auto/navigation-view/spec.md` 1, `openspec/specs/agent-issue-loop/spec.md` 9), and `tools/look.sh 'chars withheld by the repeat rule' --path tools/loop` → 3 matches in 2 files (`tools/loop/report.sh` 1, `tools/loop/tests/loop-cases.sh` 2) — the per-file counts are in `evidence/look-counts.log`
+
+Every count above is scoped to a path outside `openspec/changes`, so the change's own evidence directory does not move them,
+and the frozen archive `2026-11-12-fix-a-repeat-ledger-spans-the-item` — which carries the same phrase and which this
+change edits neither of — is outside the scopes that quote it. The counts were taken on this tree after the archive, on
+2026-11-14.

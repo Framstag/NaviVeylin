@@ -7,7 +7,10 @@ The measure block this change was planned against (`./tools/loop/measure.sh --ch
 fix-a-withheld-volume-prints-its-share`, `evidence/measure-block.log`): `LOOP-MEASURE-SUITE cases=427
 cmd=tools/loop/tests/loop-selftest.sh --list`, `LOOP-MEASURE-CHANGE fix-a-withheld-volume-prints-its-share scenarios=2
 cases=2 unnamed=0`, and `LOOP-MEASURE-SURFACE surface: 1 report clause and its comment rewritten, 1 case rewritten with
-1 phase added, 1 mutation record added, 2 guideline statements realigned, 1 requirement modified`. Its
+1 phase added, 1 mutation record added, 2 guideline statements realigned, 1 requirement modified`. The block read over the
+run's base after the archive (`./tools/loop/measure.sh --base d25972c1 --change fix-a-withheld-volume-prints-its-share`,
+`evidence/measure-block-round2.log`) carries that surface line whole — one line, as `measure.sh` reads it — and names the
+change as `2026-11-14-fix-a-withheld-volume-prints-its-share`. Its
 `LOOP-MEASURE-CHECK` lines are the gate's selection and this pass runs none of them as a gate: the case it rewrites,
 the two mutation records it keeps and adds, and the structural checks a delta that compiles nothing owes.
 
@@ -47,14 +50,16 @@ Requirement: the same.
       the window's reading of a low share.
 - [x] 3.2 `guidelines/Backlog.recipes.md` section 7e: the list of figures the report prints names the withheld volume as a
       percentage share of the repeat results, with issue #866.
-- [x] 3.3 `openspec/changes/fix-a-withheld-volume-prints-its-share/specs/agent-issue-loop/spec.md`: the requirement
+- [x] 3.3 this change's own `specs/agent-issue-loop/spec.md` (worked under `openspec/changes/fix-a-withheld-volume-prints-its-share/`,
+      archived as `openspec/changes/archive/2026-11-14-fix-a-withheld-volume-prints-its-share/`): the requirement
       gains the share, the above-100 % reading and the empty-denominator clause, and the first scenario's `THEN` and one
       `AND` carry them; the case that names it is the case of 1.1.
 
 ## 4. Verification
 
 - [x] 4.1 The case green after the fix: `bash tools/loop/tests/loop-selftest.sh --case
-      report#anItemRecordsItsRepeatReads` → `PASS`, 2026-11-14T04:20:38Z (`evidence/green-report.log`).
+      report#anItemRecordsItsRepeatReads` → `PASS`, 2026-11-14T04:22:25Z (`evidence/green-report.log`), and green again
+      in this round's own run (`evidence/green-report-round2.log`).
 - [x] 4.2 The two mutation records: `--only 96.4` → `RED 96.4 report#anItemRecordsItsRepeatReads`, restore green;
       `--only 96.2` → `RED 96.2`, restore green (`evidence/mutations-96.log`).
 - [x] 4.3 A delta that compiles nothing owes the structural checks of the files it edits, and no gate:
@@ -62,7 +67,9 @@ Requirement: the same.
       `tools/check-openspec-hygiene.sh` OK (23 open changes), `openspec validate --strict` → *Change
       'fix-a-withheld-volume-prints-its-share' is valid*, and `tools/loop/tests/loop-mutations.sh --check` → *all 39
       cases passed* over the three files this change touches (`evidence/structural-checks.log`).
-- [x] 4.4 The gate is not this child's: `./tools/loop/measure.sh` was read and the gate was not run
-      (`LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time`). The change is left
-      unarchived for the gate child, which completes it — its pointers, its delta and its archive — before the one gate
-      run reads the tree.
+- [x] 4.4 The gate is this child's: the change is archived at
+      `openspec/changes/archive/2026-11-14-fix-a-withheld-volume-prints-its-share/`, so the archive stands before the one
+      gate run and the tree the gate names is the tree the round reads. The gate runs over the run's base
+      (`--base d25972c1`), so its identity is derived over the paths the round's diff carries
+      (`guidelines/Backlog.recipes.md` §7c) — the comparison the reviewer's third item makes. The measure block over that
+      base is `evidence/measure-block-round2.log`.

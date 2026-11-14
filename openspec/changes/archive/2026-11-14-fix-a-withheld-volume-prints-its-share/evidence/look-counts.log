@@ -1,0 +1,86 @@
+# the counts the archived proposal and tasks cite — taken on this tree after the archive, 2026-11-14
+# each command is scoped to a path outside openspec/changes, so the change's own evidence directory does not move them
+
+$ tools/look.sh 'withheld' --path tools/loop
+LOOK: 62 matches in 5 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop for 'withheld'
+LOOK-FILE: tools/loop/measure.sh 6
+LOOK-FILE: tools/loop/report.sh 7
+LOOK-FILE: tools/loop/state.sh 13
+LOOK-FILE: tools/loop/tests/loop-cases.sh 28
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 8
+tools/loop/measure.sh:125:# A directory of tallies, capped — and the count it withheld, because a block that stopped silently would read as
+tools/loop/measure.sh:130:  local dir="$1" sum="$2" all total shown withheld f n s
+tools/loop/measure.sh:136:  withheld=0
+tools/loop/measure.sh:149:      withheld=$((withheld + 1))
+tools/loop/measure.sh:152:  [ "$withheld" -eq 0 ] ||
+tools/loop/measure.sh:153:    item TALLY-MORE "$withheld of $total tally files not shown — at most $tally_limit per directory ($dir)"
+tools/loop/report.sh:436:  # of, the characters the repeats hold in their own results, how many of those the repeat rule withheld from the
+tools/loop/report.sh:441:  # withheld volume prints as the share of the repeat results it is the withheld part of: apart, the first figure read as
+tools/loop/report.sh:444:  # ledger: a path the worker read and the gate child read again is withheld and is not in `dupChars`, which counts a
+tools/loop/report.sh:458:         w: (.metrics.withheld.chars // null)}]) as $dups
+tools/loop/report.sh:471:                  then "the withheld share of the repeat rule is unrecorded — this state predates the figure"
+tools/loop/report.sh:473:                    | "\($ws) chars withheld by the repeat rule"
+tools/loop/report.sh:476:                            else " · the repeat results hold no characters, so the withheld volume is no share of them"
+tools/loop/state.sh:775:                           withheld:$usage.withheld,
+tools/loop/state.sh:935:#   * **`withheld`** — the repeats the rule replaced, read from the record the rule writes beside this stream
+tools/loop/state.sh:952:repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
+tools/loop/state.sh:963:      if (chars > kept) withheld += chars - kept
+tools/loop/state.sh:965:    END { printf "{\"reads\":%d,\"chars\":%d}\n", n, withheld }
+tools/loop/state.sh:998:child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,streamRotation}
+tools/loop/state.sh:999:  local events="${1:-}" blob="" gate_cmd gate_prog="" word withheld_json checks_json
+tools/loop/state.sh:1012:    # What the repeat rule withheld, from its own record beside the stream (issue #831). The stream records the tool's
+tools/loop/state.sh:1016:    withheld_json=$(repeat_withheld "$(dirname "$events")/tool-result-trims.log")
+tools/loop/state.sh:1017:    case "$withheld_json" in '{'*) ;; *) withheld_json=null ;; esac
+tools/loop/state.sh:1018:    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" '
+tools/loop/state.sh:1258:         withheld: $withheld,
+tools/loop/state.sh:1274:    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"gateRepeat":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"streamRotation":null}' ;;
+tools/loop/tests/loop-cases.sh:6195:# says how many it withheld is what makes the cap a fact rather than a truncation.
+tools/loop/tests/loop-cases.sh:6216:  assert_contains "$out" "LOOP-MEASURE-TALLY-MORE" "and says that it withheld some: $out"
+tools/loop/tests/loop-cases.sh:6217:  assert_contains "$out" "5 of 25" "with the number withheld against the number it found: $out"
+tools/loop/tests/loop-cases.sh:12741:# rule writes what it withheld beside the stream (issue #831), the state reads that record into `metrics.withheld`
+tools/loop/tests/loop-cases.sh:12743:# rule withheld. The 
+[LOOK-BOUND: cut at 4000 characters — narrow the pattern, or ask for --files]
+exit=0
+
+$ tools/look.sh 'withheld' --path guidelines
+LOOK: 6 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines for 'withheld'
+LOOK-FILE: guidelines/Backlog.recipes.md 6
+guidelines/Backlog.recipes.md:179:**withheld**, and the stream cannot: it records the tool's answer, not the one line the context was handed. So
+guidelines/Backlog.recipes.md:181:child's stream, and the state reads that file into `metrics.withheld` (`{reads, chars}`, each repeat's own size less the
+guidelines/Backlog.recipes.md:184:run's rate with the characters in the repeat results, the characters the rule withheld — the record's own figure, which
+guidelines/Backlog.recipes.md:196:`.pi/issue-loop/runs/2026-11-11T11:37:08Z.json`) the rule withheld 1 370 of the 486 700 characters the items' repeat
+guidelines/Backlog.recipes.md:204:a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop** — no key
+guidelines/Backlog.recipes.md:1492:sessions repeated beside the characters the repeat results hold, the characters the repeat rule withheld of them
+exit=0
+
+$ tools/look.sh 'withheld' --path openspec/specs
+LOOK: 10 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/specs for 'withheld'
+LOOK-FILE: openspec/specs/auto/navigation-view/spec.md 1
+LOOK-FILE: openspec/specs/agent-issue-loop/spec.md 9
+openspec/specs/auto/navigation-view/spec.md:568:- **AND** neither identification SHALL be withheld on the assumption that the host draws the other
+openspec/specs/agent-issue-loop/spec.md:1672:block stops at that limit, the number it withheld — the project's declared case count with the command that
+openspec/specs/agent-issue-loop/spec.md:1708:#### Scenario: A capped tally list says what it withheld
+openspec/specs/agent-issue-loop/spec.md:1711:- **THEN** the block prints its limit's worth of tallies and one further line carrying the number it withheld
+openspec/specs/agent-issue-loop/spec.md:4063:characters of those repeats' own results, the characters the repeat rule withheld — each repeat's size less the one line
+openspec/specs/agent-issue-loop/spec.md:4067:SHALL NOT call the raw repeat volume re-injected. The withheld volume SHALL be printed as a percentage share of the
+openspec/specs/agent-issue-loop/spec.md:4083:  characters in the repeat results, the characters the repeat rule withheld — the record's own figure, which the item's
+openspec/specs/agent-issue-loop/spec.md:4088:- **AND** the record carries `metrics.withheld` — the repeat lines of the record the rule writes beside the stream
+openspec/specs/agent-issue-loop/spec.md:4091:- **AND** a state whose repeat results hold no characters prints the withheld volume with the reason it is no share of
+openspec/specs/agent-issue-loop/spec.md:4095:#### Scenario: A repeat whose text was withheld is recorded as the rule's own figure
+exit=0
+
+$ tools/look.sh 'chars withheld by the repeat rule' --path tools/loop
+LOOK: 3 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop for 'chars withheld by the repeat rule'
+LOOK-FILE: tools/loop/report.sh 1
+LOOK-FILE: tools/loop/tests/loop-cases.sh 2
+tools/loop/report.sh:473:                    | "\($ws) chars withheld by the repeat rule"
+tools/loop/tests/loop-cases.sh:12846:    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars withheld by the repeat rule (66.7 % of the repeat results) · worst #21 2 of 5" \
+tools/loop/tests/loop-cases.sh:12857:    "60 chars withheld by the repeat rule · the repeat results hold no characters, so the withheld volume is no share of them · worst #21 2 of 5" \
+exit=0
+
+$ git grep -c 'a share of the repeat' d25972c1 -- .
+d25972c1:tools/loop/report.sh:1
+exit=0
+
+$ git grep -c 'in windows' d25972c1 -- tools/loop guidelines openspec/specs
+exit=1 (1 = no match)

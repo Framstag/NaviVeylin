@@ -20,8 +20,8 @@ a repeat is keyed `(($x.s | tostring) + "|" + $x.p)` (`tools/loop/state.sh:1221`
 so a 786-line diff read as `lines:1-200`, `96-300`, `200-400`, `310-520`, `410-620`, `515-786` is five repeats of one path
 whose windows carry text the session did not have. The state records no range (`:1210`–`:1219` keeps the path and the
 result's length), so the record cannot tell the two apart and the report cannot either — which is exactly why the line
-needs to say what it is counting, and why the lever it invites (a lower `LOOP_TOOL_RESULT_MAX_CHARS`, worth 27.5 % of the
-last measured window in `tools/loop-spend.py`'s `capSaving`) is the wrong one.
+needs to say what it is counting, and why the lever it invites (a lower `LOOP_TOOL_RESULT_MAX_CHARS`, which the item's own
+body quotes as worth 27.5 % of the window in `tools/loop-spend.py`'s `capSaving`) is the wrong one.
 
 ## The single fix
 

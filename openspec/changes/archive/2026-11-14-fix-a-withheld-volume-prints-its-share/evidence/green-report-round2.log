@@ -1,0 +1,7 @@
+run at 2026-11-14T05:16:21Z
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DplNTQ/cases/0/tree/case.0mb6B2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e6d1261acadbff47 → bad3ae5a8404e79b); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DplNTQ/cases/0/tree/case.0mb6B2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e6d1261acadbff47 → c0998bfb2264ec35); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DplNTQ/cases/0/tree/case.0mb6B2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e6d1261acadbff47 → ba3807981d7239a1); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DplNTQ/cases/0/tree/case.0mb6B2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e6d1261acadbff47 → ba3807981d7239a1); a field was edited outside this script
+PASS report#anItemRecordsItsRepeatReads
+exit=0

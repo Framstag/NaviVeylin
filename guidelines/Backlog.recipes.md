@@ -1052,6 +1052,18 @@ within 4 minutes of starting, and 3 on `gh could not read #N`; the first attempt
 ended blocked", #740 and #739 both blocked). The cases are `run#aChildThatNeverStartedIsRetriedBeforeTheRunStops` and
 `run#theRetryCapIsSpentAndTheRunStops`, and `tools/loop/tests/loop-mutations.sh` 264.1 and 264.2 the records that keep them.
 
+The budget has a second class: an answer of 0 bytes (issue #882). Measured 2026-11-14, a continuation child exited 0
+with a 0-byte report over a tree that already carried the item's work, no arm read it — the child-that-never-started
+arm asks its question only while HEAD is still the base — and the item was recorded `blocked` with 14.5 Mtok of its
+work left behind. The empty answer is now read wherever the tree stands: a final report that exists, is 0 bytes and
+carries no verdict, `LOOP-TIMEOUT` or `LOOP-DEADLINE` spends one entry of the same `LOOP_RETRY_MAX` and re-runs the
+**same** child with the **same** prompt in place, because a re-pick from the queue would read the branch's work as an
+unfinished attempt instead of asking the question again; the class is named `answer-empty` in the line the run prints
+and in the step the item's record carries, and a second empty answer is the run's stop with both attempts and their
+byte counts in the note. A report that carries a verdict of its own is never re-run, and a run whose budget is off
+keeps the outcome its evidence earns. The case is `run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop` and
+`tools/loop/tests/loop-mutations.sh` 882.2 the record that keeps it.
+
 What it does with a phase that answers nothing: a phase's report is that phase's **answer**, not optional text
 beside it, and the reading is taken where the phase ends. The gate child is a phase of its own (#758), and a child
 that exits 0 and leaves a report with no closing line (`LOOP-GATE`, or the `LOOP-VERDICT` an older-shaped report

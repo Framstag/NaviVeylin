@@ -1,0 +1,138 @@
+2026-11-14T07:32:33Z
+
+4.1 — the changed cases of the compiled delta, taken by name (change `poi-name-filter`).
+The whole gate was not run: the three modules below are the delta's only compiled surface.
+`-PjvmTestsOnly` is the tree's own switch for a JVM-only run (change
+`fix-jvm-test-run-needs-no-native-tree`); `-PforceTests --no-build-cache` makes the run an
+execution rather than a restored cache entry (spec `build-test-gate` — a gate run proves that
+its tests executed). Worktree: `.pi/worktrees/archive-875`, branch `archive/poi-name-filter`.
+
+── :core ──
+command: ./gradlew :core:testDebugUnitTest --tests '*PoiNameFilterTest*' --tests '*PoiRowTextTest*' -PforceTests --no-build-cache --console=plain
+exit code: 0
+BUILD SUCCESSFUL in 3s
+
+com.naviveylin.core.search.PoiNameFilterTest: tests=7 skipped=0 failures=0 errors=0
+PASS com.naviveylin.core.search.PoiNameFilterTest#theNearestMatchesOfTheFilteredSetAreDisplayed
+PASS com.naviveylin.core.search.PoiNameFilterTest#anEmptyTermShowsEveryCandidate
+PASS com.naviveylin.core.search.PoiNameFilterTest#aTermMatchesTheName
+PASS com.naviveylin.core.search.PoiNameFilterTest#aTermMatchesTheBrand
+PASS com.naviveylin.core.search.PoiNameFilterTest#aTermThatMatchesNothingNarrowsToNothing
+PASS com.naviveylin.core.search.PoiNameFilterTest#aTermMatchesTheOperator
+PASS com.naviveylin.core.search.PoiNameFilterTest#foldingMakesAQueryMatchADiacriticSpelling
+
+com.naviveylin.core.search.PoiRowTextTest: tests=4 skipped=0 failures=0 errors=0
+PASS com.naviveylin.core.search.PoiRowTextTest#anEntryWithNothingToShowReadsUnnamed
+PASS com.naviveylin.core.search.PoiRowTextTest#aNameThatIsTheAttributeIsNotRepeated
+PASS com.naviveylin.core.search.PoiRowTextTest#theBrandIsPreferredOverTheOperator
+PASS com.naviveylin.core.search.PoiRowTextTest#bothVariantsComposeTheSameTitle
+
+executed in :core: 11 case(s), 0 failure(s), 0 error(s)
+tail (case-core.log):
+  > Task :core:testDebugUnitTest
+  BUILD SUCCESSFUL in 3s
+  32 actionable tasks: 3 executed, 29 up-to-date
+  Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
+
+── :app ──
+command: ./gradlew :app:testMobileDebugUnitTest --tests '*PoiSearchPanelComposeTest*' --tests '*PoiSearchViewModelTest*' -PjvmTestsOnly -PforceTests --no-build-cache --console=plain
+exit code: 0
+BUILD SUCCESSFUL in 32s
+
+com.naviveylin.ui.map.PoiSearchPanelComposeTest: tests=29 skipped=0 failures=0 errors=0
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#searchDisabledUntilCategoryChosen
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsUnnamedWhenNothingAvailable
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#singleClickOpensDetails
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#theFilterFieldIsOfferedInPoisMode
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#clearingTheFilterRestoresTheList
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#noCategoryPreselected
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsDifferingBrandWhenNameEqualsOperator
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsBrandAloneWhenUnnamed
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelPrefersBrandOverOperator
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#routeActionClosesBothSheets
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#typingAFilterEnablesNothing
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsOperatorAloneWhenUnnamedAndNoBrand
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#reselectingCategoryClearsSelection
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#searchFailureShowsErrorAndKeepsDialogUsable
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsNameAndOperatorWithoutBrand
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#emptyStateShownWhenNoResults
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultRowShowsTypeAndDistance
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#showActionClosesDetailsAndKeepsDialogClosed
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#noPoisInRangeReadsDifferentlyFromNoMatch
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#aFilterTypedBeforeTheSearchAppliesToIt
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#aFilterWithNoMatchSaysSo
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelDoesNotDuplicateNameEqualToBrand
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelDoesNotDuplicateNameEqualToOperator
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#typingFilterNarrowsCategories
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsDifferingOperatorWhenNameEqualsBrand
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#anEmptyFilterShowsEveryCandidate
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#emptyResultsShowsEmptyState
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#resultLabelShowsNameAndBrand
+PASS com.naviveylin.ui.map.PoiSearchPanelComposeTest#filterNoMatchShowsNoCategories
+
+com.naviveylin.ui.map.PoiSearchViewModelTest: tests=25 skipped=0 failures=0 errors=0
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#closePoiSearchClearsSelectionHighlight
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#clickOpensDetailsCentersMapAndClosesPoiSheet
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aNewSearchNarrowsTheFetchAgain
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#poiRadiusStepsReach100Km
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#anUnfilteredSearchAsksForTheDisplayLimit
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#showActionCentersMapAndKeepsPoiSheetClosed
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#theFirstNonEmptyFilterWidensTheFetchOnce
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#searchCapturesCenterAndClickSetsSelectionHighlight
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#closePoiSearchRestoresViewportSnapshot
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aMatchPastTheDisplayLimitIsFound
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#laterFilterKeystrokesAskTheBackendForNothing
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#plainDismissReopensPoiSheetWithResults
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#performPoiSearchFailureSetsError
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#routeActionKeepsPoiSheetClosed
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#theDisplayedListIsTheNearestMatches
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aFilterWithoutACategoryRunsNothing
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aCategoryChangeStillNeedsTheSearchButton
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aFailedWidenKeepsTheRowsOnScreen
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#fitZoomShowsCurrentLocationAndPoi
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#changingCategoryDoesNotRerunSearchOrClearResults
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#performPoiSearchWithoutCategoryDoesNothing
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aFilteredSearchAsksForTheCandidateCap
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#openPoiSearchHasNoCategoryAndNoResults
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#aFilterChangeRunsNoSearch
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#performPoiSearchPopulatesResults
+
+executed in :app: 54 case(s), 0 failure(s), 0 error(s)
+tail (case-app.log):
+  > Task :app:testMobileDebugUnitTest
+  BUILD SUCCESSFUL in 32s
+  99 actionable tasks: 14 executed, 85 up-to-date
+  Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
+
+── :auto ──
+command: ./gradlew :auto:testDebugUnitTest --tests '*PoiFilterScreenTest*' --tests '*PoiResultsScreenTest*' -PjvmTestsOnly -PforceTests --no-build-cache --console=plain
+exit code: 0
+BUILD SUCCESSFUL in 24s
+
+com.naviveylin.auto.PoiFilterScreenTest: tests=5 skipped=0 failures=0 errors=0
+PASS com.naviveylin.auto.PoiFilterScreenTest#thePopGoesThroughTheGuardedHostCall
+PASS com.naviveylin.auto.PoiFilterScreenTest#anEmptySubmitClearsTheFilter
+PASS com.naviveylin.auto.PoiFilterScreenTest#leavingWithoutSubmittingChangesNothing
+PASS com.naviveylin.auto.PoiFilterScreenTest#submittingAppliesTheTermAndPops
+PASS com.naviveylin.auto.PoiFilterScreenTest#theScreenOpensWithTheCurrentTerm
+
+com.naviveylin.auto.PoiResultsScreenTest: tests=11 skipped=0 failures=0 errors=0
+PASS com.naviveylin.auto.PoiResultsScreenTest#thePageRowCarriesTheAlreadyFetchedRows
+PASS com.naviveylin.auto.PoiResultsScreenTest#aSubmittedTermRunsTheWalkAgainUnderIt
+PASS com.naviveylin.auto.PoiResultsScreenTest#anUnnamedRowShowsTheOperatorAlone
+PASS com.naviveylin.auto.PoiResultsScreenTest#thePoiResultsListFitsTheHostsCapacity
+PASS com.naviveylin.auto.PoiResultsScreenTest#thePoiSearchAsksForTwiceTheHostsCapacity
+PASS com.naviveylin.auto.PoiResultsScreenTest#theFilterRowSitsAboveTheResults
+PASS com.naviveylin.auto.PoiResultsScreenTest#aRowTitleCarriesTheOperator
+PASS com.naviveylin.auto.PoiResultsScreenTest#theTextLineKeepsTypeAndDistance
+PASS com.naviveylin.auto.PoiResultsScreenTest#aTermInEffectNarrowsTheList
+PASS com.naviveylin.auto.PoiResultsScreenTest#aFilteredWalkAsksForTheCandidateCap
+PASS com.naviveylin.auto.PoiResultsScreenTest#theHeaderCarriesTheActiveTerm
+
+executed in :auto: 16 case(s), 0 failure(s), 0 error(s)
+tail (case-auto.log):
+  > Task :auto:testDebugUnitTest
+  BUILD SUCCESSFUL in 24s
+  61 actionable tasks: 6 executed, 55 up-to-date
+  Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
+

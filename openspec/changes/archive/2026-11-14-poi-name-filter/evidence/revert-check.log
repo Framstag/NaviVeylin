@@ -1,0 +1,57 @@
+2026-11-14T07:35Z
+
+4.2 — `revert-check` on the widened-fetch rule (change `poi-name-filter`, design D3; spec
+`poi-search` — A filtered search asks for a candidate set, not a page). Taken by hand in
+`.pi/worktrees/archive-875`, branch `archive/poi-name-filter`, on the tree whose cases 4.1
+records green.
+
+The rule under mutation: the POI walk is asked for `POI_CANDIDATE_CAP` (2000) exactly when a
+name filter is in effect, and for the display limit (`MapCanvasViewModel.MAX_POI_RESULTS`,
+100) otherwise. Mutated to fetch the display limit under the filter as well — the fetch width
+at the client call, so the walk is still *recorded* as the widened one and the case fails on
+its assertion rather than on a state that never arrives.
+
+Mutation (single site, `app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSearch.kt`,
+`MapCanvasViewModel.searchPoisOnce`, the width handed to the native walk):
+
+    -                    typeNames, lat, lon, radiusMeters, poiRequestWidth, generation
+    +                    typeNames, lat, lon, radiusMeters,
+    +                    minOf(poiRequestWidth, MapCanvasViewModel.MAX_POI_RESULTS), generation
+
+Red run:
+command: ./gradlew :app:testMobileDebugUnitTest --tests '*PoiSearchViewModelTest.theFirstNonEmptyFilterWidensTheFetchOnce' -PjvmTestsOnly --console=plain -i
+exit code: 1
+> Task :app:testMobileDebugUnitTest
+> Task :app:testMobileDebugUnitTest FAILED
+PoiSearchViewModelTest > theFirstNonEmptyFilterWidensTheFetchOnce FAILED
+    java.lang.AssertionError: the first non-blank term asks once for the candidate cap expected:<[100, 2000]> but was:<[100, 100]>
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.failNotEquals(Assert.java:835)
+        at org.junit.Assert.assertEquals(Assert.java:120)
+        at com.naviveylin.ui.map.PoiSearchViewModelTest$theFirstNonEmptyFilterWidensTheFetchOnce$1.invokeSuspend(PoiSearchViewModelTest.kt:478)
+BUILD FAILED in 24s
+
+The failing case is the one that names the widened walk, and the difference is the rule: the
+second walk was asked for 100 (the display limit) instead of 2000 (the cap).
+
+Restore, byte for byte:
+command: git checkout -- app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSearch.kt
+md5 before the mutation: b74d32afdd6b59f1dfad2f729e3e550b
+md5 after the restore:   b74d32afdd6b59f1dfad2f729e3e550b
+`git diff -- …/MapCanvasViewModelSearch.kt` empty.
+
+Forced green:
+command: ./gradlew :app:testMobileDebugUnitTest --tests '*PoiSearchViewModelTest.theFirstNonEmptyFilterWidensTheFetchOnce' -PjvmTestsOnly -PforceTests --no-build-cache --console=plain
+exit code: 0
+PASS com.naviveylin.ui.map.PoiSearchViewModelTest#theFirstNonEmptyFilterWidensTheFetchOnce
+  (app/build/test-results/testMobileDebugUnitTest/TEST-com.naviveylin.ui.map.PoiSearchViewModelTest.xml:
+   tests="1" skipped="0" failures="0" errors="0", the one `theFirstNonEmptyFilterWidensTheFetchOnce`)
+> Task :app:testMobileDebugUnitTest
+BUILD SUCCESSFUL in 10s
+
+Note on the mutation site. The rule has two expressions: `poiRequestWidthFor(filter)` (the
+search button's width) and the widen path's own `poiRequestWidth = POI_CANDIDATE_CAP`. Mutating
+either of those alone leaves the case's `poiWidened` wait unsatisfied under a different
+mechanism — mutating the widen path's assignment makes the case hang until `runTest`'s
+one-minute timeout instead of asserting — so the mutation is placed where the width actually
+reaches the walk. One rule, one mutation, one red case.

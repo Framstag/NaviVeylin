@@ -1,0 +1,46 @@
+2026-11-14T07:41Z — archived from `.pi/worktrees/archive-875`, branch `archive/poi-name-filter`.
+
+Command 1 (refused):
+  openspec archive poi-name-filter --yes
+  exit code: 1
+
+  Proposal warnings in proposal.md (non-blocking):
+    ⚠ Why section should not exceed 1000 characters
+  Task status: 13/15 tasks
+  Warning: 2 incomplete task(s) found. Continuing due to --yes flag.
+
+  Specs to update:
+    auto-search: update
+    poi-search: update
+    search-dialog: update
+  auto-search ADDED failed for header "### Requirement: A car POI result list can be narrowed by name" - already exists
+  Aborted. No files were changed.
+
+Why it refused: the five requirements this change adds were hand-applied to `openspec/specs/` on
+`main` at `62d3ac73` (the phone surface and the car search surface) and `34f01c8d` (the no-fix
+filter-row scenario of `auto-search`) — the fix did not wait for the archive. Checked block by
+block against the shipped specs:
+
+  poi-search     — both requirements byte-identical to this change's delta
+  search-dialog  — the requirement byte-identical to this change's delta
+  auto-search    — the shipped requirement is a superset: it carries the scenario `34f01c8d`
+                   added (a row that reaches the display limit still appears, with the filter in
+                   effect), which this change's delta predates
+
+So the merge is both refused and unnecessary: re-running it could only replace the shipped
+`auto-search` text with the older, shorter one.
+
+Command 2 (taken):
+  openspec archive poi-name-filter --yes --skip-specs
+  exit code: 0
+
+  Warning: 2 incomplete task(s) found. Continuing due to --yes flag.
+  Skipping spec updates (--skip-specs flag provided).
+  Change 'poi-name-filter' archived as '2026-11-14-poi-name-filter'.
+
+The two deliberately unchecked tasks travel with the archive: 2.3 (guard G2, "no spinner over a
+readable list", has no case — see the note under it) and 4.3 (the on-device walk, not taken here).
+Result: `openspec/changes/archive/2026-11-14-poi-name-filter/` carrying
+`proposal.md`, `design.md`, `tasks.md`, `.openspec.yaml`, `specs/{auto-search,poi-search,search-dialog}/spec.md`
+and this `evidence/` directory. `openspec/specs/` is untouched (`git status --short openspec/specs`
+empty).

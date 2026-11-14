@@ -12986,12 +12986,23 @@ JSONL
   trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
   reads_line=$(printf '%s\n' "$trend" | grep '^  reads:' || true)
   [ -n "$reads_line" ] || fail "the trend printed no repeat-reads line"
+  # The two figures in one clause (issue #866): the withheld volume is a share of the repeat results it sits beside,
+  # because three clauses apart a reader took the second for waste and could not see whether the rule agreed with it.
   assert_contains "$reads_line" \
-    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars withheld by the repeat rule · worst #21 2 of 5" \
-    "the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld (which the item's ledger counts across its children, so they are no share of the results above) and the worst item"
+    "3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars withheld by the repeat rule (66.7 % of the repeat results) · worst #21 2 of 5" \
+    "the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld as a share of those characters (the item's ledger counts across its children, so the share reads how much of the volume the rule agreed with and is no bound on it) and the worst item"
   # …and the raw volume is never called re-injected again: it is either withheld or handed over, and the line says which.
   assert_not_contains "$reads_line" "re-injected" \
     "the trend does not label the repeat results' characters as re-injected, which the rule may have replaced"
+  # The share's denominator is the run's own repeat volume, and a state can hold repeats whose results were empty: the
+  # clause then says why it carries no share rather than dividing by zero, which would fail the whole report.
+  cp "$f" "$f.bak"
+  jq '(.items[].metrics.dupChars) = 0' "$f.bak" > "$f"
+  out=$(run_report "$p") || fail "the report failed for a state whose repeat results hold no characters"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "60 chars withheld by the repeat rule · the repeat results hold no characters, so the withheld volume is no share of them · worst #21 2 of 5" \
+    "a repeat volume of no characters prints its reason instead of a share of it"
+  cp "$f.bak" "$f" && rm -f "$f.bak"
   # A state written by the run that counted the repeats and before this one holds the count and not the withheld
   # volume: the dash and its reason, never a zero the run did not measure.
   jq 'del(.items[].metrics.withheld)' "$f" > "$f.old" && mv "$f.old" "$f"

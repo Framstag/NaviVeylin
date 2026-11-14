@@ -955,6 +955,10 @@ MUTATIONS=(
   # only place the volume is known at all.
   '96.2@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the characters the repeat rule withheld of the run repeats, so the trend calls the raw repeat volume re-injected again and a figure the child never saw reads as one it did (issue #831)@s| withheld by the repeat rule| re-injected|'
   '96.3@-@../pi-trim-result.mjs@repeat#aRepeatIsRecordedAsWhatItWithheld@the line that records what the repeat rule withheld, so an item that repeats a path leaves no record of the volume the child was not handed and the report calls the raw result re-injected (issue #831)@s|appendFileSync(record, repeatRecordLine(tool, text.length, notice.length));|void 0;|'
+  # …and since #866 the volume carries its denominator: the share of the repeat results is what says whether the rule
+  # agreed with the reads it saw, and the report that prints the volume alone leaves the figure it sits beside reading
+  # as waste and the withheld volume as a number nothing accounts for.
+  '96.4@-@tools/loop/report.sh@report#anItemRecordsItsRepeatReads@the withheld volume as a share of the repeat results, so the trend prints two volumes three clauses apart and a rule that withheld almost nothing reads the same as one that met nothing to withhold (issue #866)@s|% of the repeat results|of the repeat results|'
 
   # 858.x — the repeat rule's ledger is the item's, not the child's (issue #858). The hook kept it in a `Map` that lives
   # as long as one child process, so an item split at its gate handed its gate child, whole, every path its worker had

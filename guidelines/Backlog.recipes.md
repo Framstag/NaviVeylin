@@ -182,11 +182,15 @@ child's stream, and the state reads that file into `metrics.withheld` (`{reads, 
 line that replaced it, floored at zero; `null`, never a zero, for a directory that holds no repeat record). The report
 prints all of it: the row's column after the calls-per-turn one as `repeat/total`, the trend's `reads:` line as the
 run's rate with the characters in the repeat results, the characters the rule withheld — the record's own figure, which
-may exceed those characters, because since #858 the ledger the rule measures a read against is the item's — and the item
+may exceed those characters, because since #858 the ledger the rule measures a read against is the item's — printed
+since #866 as a percentage share of those characters, one decimal, in the same clause, so the two halves of one question
+read together and not three clauses apart — and the item
 that repeated most, beside the `calls:` line the paragraph below owns — and it does not call the raw volume re-injected,
 because since #685 that is a volume the child may never have seen. The repeat is counted per session and not per item,
 because a reviewer reading what the worker read is a new conversation rather than a second read of a fact the item
-holds. What the item holds is a separate question, and one child process deep was the wrong answer (issue #858): the
+holds, and per path and not per range: the windows a long file is read in are repeats of a path the session already
+holds, so that count is what the rule saw and not volume it saved, and a share near zero says there was nothing to
+withhold rather than that the rule missed (issue #866). What the item holds is a separate question, and one child process deep was the wrong answer (issue #858): the
 hook kept its ledger in a `Map` that lives as long as the process, so an item split at its gate started its gate child
 on an empty ledger and every path the worker read came back whole — over the run of 2026-11-11T11:37:08Z (the record
 `.pi/issue-loop/runs/2026-11-11T11:37:08Z.json`) the rule withheld 1 370 of the 486 700 characters the items' repeat
@@ -1490,7 +1494,7 @@ Beside those three, and about the loop rather than about one run, the report say
 faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, the
 run's tool calls per turn beside the items below its recorded floor (#757), and — since #814 — the reads the run's
 sessions repeated beside the characters the repeat results hold, the characters the repeat rule withheld of them
-(#831) and the item that repeated most, and — since #759 — where the spend went,
+(#831) as a percentage share of those characters (#866) and the item that repeated most, and — since #759 — where the spend went,
 the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, the round
 before the gate, tail) and the share of the tokens spent after an item's first gate, all totalled from the state the
 report already reads, each

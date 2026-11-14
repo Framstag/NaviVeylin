@@ -434,13 +434,21 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # offline (`LOOP-SPEND-READS calls= duplicate=`), and until the state recorded it the report could not say whether
   # an item followed the rule or ignored it. The line prints the run repeats with the file reads they are a share
   # of, the characters the repeats hold in their own results, how many of those the repeat rule withheld from the
-  # the child (issue #831), and the item that repeated most — the same three-part shape the calls line prints. The two
-  # halves are kept apart because since #685 they are different numbers: the rule replaces a repeat with one line, so the
-  # characters a repeat result holds are either material the child never saw or material it did, and the single figure
-  # called `re-injected` said the second about both. Since #858 the two are not halves of one figure in either
-  # direction: the ledger the rule measures a read against is the item ledger, so a path the worker read and the gate
-  # child read again is withheld and is not in `dupChars`, which counts a repeat within one session alone — which is why
-  # the line says the characters the rule withheld and does not call them a share of the repeat results. A **warning,
+  # the child (issue #831) as a share of those characters (issue #866), and the item that repeated most — the same
+  # three-part shape the calls line prints. The two halves are kept apart because since #685 they are different numbers:
+  # the rule replaces a repeat with one line, so the characters a repeat result holds are either material the child
+  # never saw or material it did, and the single figure called `re-injected` said the second about both. Since #866 the
+  # withheld volume prints as the share of the repeat results it is the withheld part of: apart, the first figure read as
+  # waste and the second as a number nothing was a share of, and neither said whether the rule agreed with the reads it
+  # saw. The share may read above 100 % since #858, because the ledger the rule measures a read against is the item
+  # ledger: a path the worker read and the gate child read again is withheld and is not in `dupChars`, which counts a
+  # repeat within one session alone.
+  # The repeat count is no waste either: a repeat is keyed by the session and the path and its arguments name no range,
+  # so a 786-line diff read as `lines:1-200`, `96-300`, `200-400` … is five repeats of a path the session holds, though
+  # together they are that file read once and every window carries text the session did not have. Reading the share keeps
+  # the figure in its place: a low share says the rule had nothing to withhold, not that it failed, and a high repeat
+  # count is no saving to buy with a lower result bound — halving that bound roughly doubles the window count the same
+  # lever means to cut. A **warning,
   # never a stop**: no key gates it, no item outcome reads it. The field absence is told apart from its null: a record
   # written before the figure existed has no `dupReads` key at all, while one of this era that met an item which opened
   # no file has it as `null` — and the two dashes say which of the two it is.
@@ -461,7 +469,13 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else ([$dups[] | select(.w != null) | .w]) as $w
             | ( if ($w | length) == 0
                   then "the withheld share of the repeat rule is unrecorded — this state predates the figure"
-                  else "\($w | add) chars withheld by the repeat rule" end ) as $wline
+                  else ($w | add) as $ws
+                    | "\($ws) chars withheld by the repeat rule"
+                      + ( if $tc > 0
+                            then " (\(((($ws * 1000) / $tc) | round) / 10) % of the repeat results)"
+                            else " · the repeat results hold no characters, so the withheld volume is no share of them"
+                          end )
+                  end ) as $wline
             | "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars in the repeat results · \($wline) · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
           end
       end ) as $readsline

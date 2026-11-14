@@ -1,0 +1,14 @@
+# evidence-check — final (after the round-2 gate log and its tallies were copied in), item #866, 2026-11-14
+
+$ bash tools/loop/evidence-check.sh /home/tim/projects/worktrees/NaviVeylin/pi-worktree-94d66e03-1904-4567-a724-533b17646092-s0-0/openspec/changes/archive/2026-11-14-fix-a-withheld-volume-prints-its-share --root .
+
+note archived change: C1/C2 are report-only (archived artifacts keep their historical §-citations and a later run may have overwritten their XML); C3/C4/C5 stay strict
+ok   C1 §references: 2 checked, 2 exempted as archived pointers
+DRIFT C2 tests=1068 failures=1 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 1 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 247 resolved and in range, 142 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0

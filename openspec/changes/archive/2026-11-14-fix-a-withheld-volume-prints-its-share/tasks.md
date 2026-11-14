@@ -73,3 +73,17 @@ Requirement: the same.
       (`--base d25972c1`), so its identity is derived over the paths the round's diff carries
       (`guidelines/Backlog.recipes.md` §7c) — the comparison the reviewer's third item makes. The measure block over that
       base is `evidence/measure-block-round2.log`.
+      That gate is in the tree as `evidence/gate-run-round2.log`: its `LOOP-GATE-TREE` line records
+      `head=3fbec6ee… diff=cb188f93…` — the round's `diff=` field for field — its `LOOP-GATE-TALLY` line records
+      `run=919045`, and its failing step is `tools/loop/tests/loop-selftest.sh --from-git d25972c1…`, the base this
+      round reads. `evidence/gate-run.log` is the earlier gate, which ran over the stale `fcbe328d` (`--from-git fcbe328d`,
+      `run=2360277`); round 1's identity mismatch came from it and nothing else. The two runs' per-step tallies are kept
+      apart by directory, each XML under the `run=` value it was written with and never edited: `evidence/gate-xml/` is
+      run `2360277` and `evidence/gate-xml-round2/` is run `919045` — the second under a name that does not collide with
+      the first, because `app/build/test-results/loop-gate` is one directory every gate run reuses and the round's copy
+      had already replaced run 2360277's there.
+- [x] 4.5 `tools/loop/evidence-check.sh` over the archive after those copies (`evidence/evidence-check-final.txt`): the
+      round-2 tallies are now carried by `evidence/gate-xml-round2/`'s XMLs, and the one pair it still reports is the
+      gate's total (1 068 tests, 1 failure), which is the sum over the gate's steps and so is carried by no single XML
+      under either directory — both directories' XMLs sum to it, and that figure is unchanged by this round's gate.
+      `evidence/evidence-check-round2.txt` is the run before the copies and records the same one figure as `C2 DRIFT`.

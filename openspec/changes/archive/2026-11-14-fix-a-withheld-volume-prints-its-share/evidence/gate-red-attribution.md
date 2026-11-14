@@ -48,3 +48,38 @@ The same leg was already waived once at item #880 with the same case named
 
 Waived clause: `LOOP-GATE-WAIVED`, suite: `LOOP-GATE-WAIVED-SUITE` — both in
 `.pi/issue-loop/items/866/worker-tail-report.md`.
+
+## The round's own gate — run=919045, and the tallies of the two runs
+
+The gate this section above attributes is the run's **first**, which resolved its base from the stale
+`origin/main` (`fcbe328d`) and so measured a tree that was not the round's. Round 2's rework ran a second gate with the
+base named, and that one is in this archive as `evidence/gate-run-round2.log`:
+
+- its `LOOP-GATE-TREE` line records `head=3fbec6ee… diff=cb188f9396ef51ef`, and that `diff=` is the figure
+  `review-2.diff.identity` records for the tree the round reads — equal field for field, which is the comparison
+  `guidelines/Backlog.recipes.md` §7c makes and round 1 refused for;
+- its `LOOP-GATE-TALLY` line records `run=919045`;
+- its failing step is `tools/loop/tests/loop-selftest.sh --from-git d25972c1d85a990eb8405108c70bbe419c930eb7` — the
+  run's own base, not the stale `fcbe328d` — and its **single** failure is the same case, `FAIL
+  phase#aResultOverTheBoundIsCutAndNamed`. The red attribution above therefore stands unchanged: the same case, the same
+  `PKG-LINE-001` assertion, on the tree this round reads.
+
+The per-step tallies of the two runs are archived apart, because they are two runs and an XML names its own run in its
+`run=` attribute, which is not edited here:
+
+| directory | run | leg | note |
+|---|---|---|---|
+| `evidence/gate-xml/` | `2360277` | `--from-git fcbe328d` | the first gate's, the one quoted above |
+| `evidence/gate-xml-round2/` | `919045` | `--from-git d25972c1` | round 2's, 23 per-step tallies, copied after this round |
+
+The second copy needed its own name because `app/build/test-results/loop-gate` is **one** directory that every gate run
+reuses: round 2's run had already written over run 2360277's files there, so copies under the names the first ones
+carry would have replaced one run's tallies with the other's. Neither the archiving nor this note moves the round's
+identity — `LOOP_REVIEW_EXCLUDE_PATHSPEC` leaves `**/evidence/**` out of it.
+
+One figure the directories carry only as a sum: the **total** quoted at the top of this file is the gate's own sum over
+its steps, and no single XML under either directory carries it — each directory's XMLs add up to it, and both runs' do,
+because the round's gate met the same suite. So `tools/loop/evidence-check.sh` reports that one pair as `C2 DRIFT`
+(the check looks for one XML carrying the pair) and confirms every per-step pair; that is what
+`evidence/evidence-check-final.txt` records, after the copies, and it is a limitation of the check's carrier rule and
+not a tally the archive lacks.

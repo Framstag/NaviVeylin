@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner output. The tree is the run's base
+     (869a92fc6349892dbc9d9de8ef902f61cec1a07e, the commit this item was handed) with the change's case added and no
+     production change, so this is the reading the delta is red on. -->
+<testsuite name="tools/loop-selftest.sh --case run#aFlakedCaseIsOffTheBlockedPath"
+           tests="1" failures="1" errors="0">
+  <testcase classname="run" name="aFlakedCaseIsOffTheBlockedPath">
+    <failure message="a case that passes when it is run once more in the item's own worktree is recorded as a flake: expected 'flaked', got 'delta'"/>
+  </testcase>
+</testsuite>

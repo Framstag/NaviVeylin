@@ -1,0 +1,5 @@
+run#aFlakedCaseIsOffTheBlockedPath|   a case that passes when it is run once more in the item's own worktree is recorded as a flake: expected 'flaked', got 'delta'
+--- run#aFlakedCaseIsOffTheBlockedPath[0] (exit 1)
+  a case that passes when it is run once more in the item's own worktree is recorded as a flake: expected 'flaked', got 'delta'
+FAIL run#aFlakedCaseIsOffTheBlockedPath
+loop-selftest: 1 of 1 cases failed

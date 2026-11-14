@@ -803,13 +803,23 @@ behind `LOOP_MIN_FREE_MIB` in the profile) — a budget raised from the last run
 one, and a hung step has no baseline at all. The bound answers the step that never returns, which is the state the
 item was filed about.
 
-A suite's numbers are only ever the suite's own: a suite that fails without writing a summary contributes an
-**error**, never a case. Its tally carries `tests="0"` with `errors="1"`, and the gate's own line carries the
-error count beside the case and failure counts, so a reader can tell "no case ran and it failed" from "one case
-failed". Measured 2026-10-23 (issue #268): a hand-run gate's compiled step died at configuration
-(`Could not create task ':app:mergeNativeSbom'`, `BUILD FAILED in 21s`, no test task reached its action) and its
-tally read `tests="1" failures="1"` — a number the suite never reported, in the record the run's own check
-reads for a green claim.
+A suite's numbers are only ever the suite's own: a suite that fails without writing a summary and without naming a
+failing case of its own contributes an **error**, never a case. Its tally carries `tests="0"` with `errors="1"`,
+and the gate's own line carries the error count beside the case and failure counts, so a reader can tell "no case
+ran and it failed" from "one case failed". Measured 2026-10-23 (issue #268): a hand-run gate's compiled step died
+at configuration (`Could not create task ':app:mergeNativeSbom'`, `BUILD FAILED in 21s`, no test task reached its
+action) and its tally read `tests="1" failures="1"` — a number the suite never reported, in the record the run's
+own check reads for a green claim.
+
+A **case the suite named itself is a failure**, and the shape that names one is not the summary this tree's own
+suites print: a JVM test task writes its `<task> FAILED`, one `<class> > <case> FAILED` per failing case and the
+error under it, and no `M of N cases failed` line at all. Measured 2026-11-14 (issue #916): that shape — one task,
+two `FAILED` lines, no summary — was tallied `tests=0 failures=0 errors=1`, so two broken tests read as one
+environment error and the run could not tell "my change broke a test" from "the JVM fell over". `finish_step`
+reads those per-test lines as the step's failures (the task's own line begins with `>`, which is what keeps its
+header from being read as a case), and an `AssertionError` with no per-test line above it is one case that failed;
+a step the bound ended, and a step that named no case, keep the error above. The case is
+`gate#aTestFailureIsAFailureNotAnError`, and `tools/loop/tests/loop-mutations.sh` 916.1 the record that keeps it.
 
 A tally's name is the command that wrote it, and it is never a dotfile: the profile's compiled command runs as
 `./gradlew`, and the `./` is dropped before the name is built, so `ls` and a `*.xml` glob find the one tally that

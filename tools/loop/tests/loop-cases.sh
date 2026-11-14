@@ -179,6 +179,7 @@ LOOP_SHELL_CASES=(
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
+  'gate#aTestFailureIsAFailureNotAnError'
   'gate#aRedGateWritesTheLogItIsAttributedFrom'
   'gate#theSummaryNamesWhatEachSuiteCost'
   'gate#independentStepsRunTogether'
@@ -911,6 +912,7 @@ loop_run_shell_case() {
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
+    'gate#aTestFailureIsAFailureNotAnError') fn=case_gate_aTestFailureIsAFailureNotAnError ;;
     'gate#aRedGateWritesTheLogItIsAttributedFrom') fn=case_gate_aRedGateWritesTheLogItIsAttributedFrom ;;
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
@@ -5899,6 +5901,55 @@ GRADLEW
   for f in "$d"/tally/*.xml; do [ -f "$f" ] && globbed="$globbed$(basename "$f") "; done
   assert_eq "gradlew_test.xml " "$globbed" \
     "a *.xml glob finds the tally of a ./ command, named after the command without its ./ prefix (the directory holds: $(ls -A "$d/tally" 2>/dev/null | tr '\n' ' '))"
+  return 0
+}
+
+# A step that names its failing tests reports a failure, not an environment fault (issue #916). `finish_step` read a
+# suite's numbers out of the summary shape this tree's own shell suites print (`<name>: M of N cases failed`) and
+# counted everything else as an error, so a compiled step reported `failures=0 errors=1` however many of its tests
+# had failed — the shape a JVM test task writes is `<task> FAILED`, one `<class> > <case> FAILED` per failing test
+# and the error that ended it, and no summary at all. Measured 2026-11-14 (issue #916): a gate over two broken
+# tests recorded `tests=46 failures=0 errors=2`, and the run read "my change broke a test" as "the JVM fell over".
+# The step's own named cases are its failures; a step that named none stays the error #268 made it.
+case_gate_aTestFailureIsAFailureNotAnError() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # One test task of a JVM build whose two cases failed, in the shape the task prints: the task line, the two
+  # per-test lines, the error under each — and no `M of N cases failed` summary anywhere in the stream.
+  cat > "$d/suite.sh" <<'SUITE'
+printf '> Task :app:testMobileDebugUnitTest FAILED\n'
+printf 'com.example.SpecTest > theFirstCase FAILED\n'
+printf '    java.lang.AssertionError: expected:<14.0> but was:<7.0>\n'
+printf '        at com.example.SpecTest.theFirstCase(SpecTest.java:42)\n'
+printf 'com.example.SpecTest > theSecondCase FAILED\n'
+printf '    java.lang.AssertionError at SpecTest.java:57\n'
+exit 1
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a step whose own tests failed still fails the gate: $out"
+  assert_contains "$out" "LOOP-GATE: tests=0 failures=2 errors=0" \
+    "the two cases the step named are its failures, and it is not also an error: $out"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="0" failures="2" errors="0"' \
+    "the tally the run's own check reads carries the same three numbers, no case invented: $(cat "$d"/tally/*.xml 2>/dev/null)"
+  assert_contains "$out" "com.example.SpecTest > theFirstCase FAILED" \
+    "the failing case's own line is on the console, which is where an operator reads the failure"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'com.example.SpecTest > theSecondCase FAILED' \
+    "and the tally keeps the failing cases' own lines as its failure text"
   return 0
 }
 

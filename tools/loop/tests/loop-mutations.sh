@@ -1284,6 +1284,12 @@ MUTATIONS=(
   '861.1@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
   '861.2@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861)@s|^    && \[ "\$gate_attribution" != "flaked" \]; then$|    && true; then|'
   '861.3@-@tools/loop/state.sh@run#aFlakedCaseIsOffTheBlockedPath@the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861)@s|^  elif \[ "\$result" = done \] && \[ "\$(gate_tally_state "\$gate")" = red \] && \[ "\$gate_attribution" != flaked \]; then$|  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then|'
+  # 916.1 — a step that names its failing tests reports a failure, not an environment fault (issue #916). The gate
+  # read a suite's numbers out of the summary shape this tree's own shell suites print, so a JVM test task — which
+  # prints `<class> > <case> FAILED` per failing case and no summary at all — was tallied as one error whatever it
+  # had broken. The record removes the reading of those lines, so the two cases the step named are none again and the
+  # case's own numbers are the only thing that can notice it.
+  '916.1@-@tools/loop/gate.sh@gate#aTestFailureIsAFailureNotAnError@the failing cases a step names, read as its failures where it printed no summary, so a change that broke a test reads as an error again@s|^  if \[ "\$rc" -ne 0 \] && \[ "\$f" -eq 0 \] && .*; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

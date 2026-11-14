@@ -22,8 +22,8 @@
 # beside them: the summary line names each suite's seconds, and the tally carries the same number as its `time`
 # attribute, so the gate reports what an iteration cost instead of leaving it to a stopwatch and a `ps`.
 # Each writes a JUnit-shaped tally under the tally directory, so the run's own check — "a green claim has a test
-# result in the tree" — reads what actually executed. The tally is derived from the suite's summary, never
-# invented.
+# result in the tree" — reads what actually executed. The tally is derived from the suite's summary and, where a
+# suite prints none, from the failing cases the suite itself named (`finish_step`), never invented.
 #
 # Exit: 0 everything that ran passed (or nothing was owed); 1 something failed, and the line names which; 2 usage
 # or a base this tree cannot resolve; 3 this child has already spent the full runs the profile records, so this one
@@ -595,6 +595,19 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
   f=0
   [ "$rc" -eq 0 ] || f=$(printf '%s\n' "$out" | sed -n 's/.*: \([0-9][0-9]*\) of [0-9][0-9]* cases failed.*/\1/p' | tail -1)
+  case "$f" in ''|*[!0-9]*) f=0 ;; esac
+  # A step that names its failing tests reports them, and no summary shape carries that count for it (issue #916).
+  # A JVM test task prints its `<task> FAILED`, one `<class> > <case> FAILED` per failing test and the
+  # `AssertionError` that ended it, and never the `<name>: M of N cases failed` line this tree's own shell suites
+  # print — so a change that broke two tests was tallied `failures=0 errors=2`, and the run read "my change broke a
+  # test" as "the JVM fell over". The per-test line is a case the task named (the task's own line begins with `>`,
+  # which is what keeps that header from being read as one), and an `AssertionError` with no per-test line above it
+  # is still one case that failed. A step the bound ended, and a step that named no case at all, keep #268's error:
+  # `n` stays the case count the suite reported, which is none of them here.
+  if [ "$rc" -ne 0 ] && [ "$f" -eq 0 ] && [ "${st_overran[slot]}" -eq 0 ]; then
+    f=$(printf '%s\n' "$out" | grep -c '^[^[:space:]>][^>]* > .* FAILED[[:space:]]*$')
+    [ "$f" -gt 0 ] || f=$(printf '%s\n' "$out" | grep -c '^[[:space:]]*\(java\.lang\.\)\?AssertionError\(:\|[[:space:]]\)')
+  fi
   case "$f" in ''|*[!0-9]*) f=0 ;; esac
   # A failed suite's *absence of a summary* is not a failing case: `n` and `f` stay the suite's own numbers, and the
   # failure is kept apart as an error. Measured 2026-10-23 (issue #268): a compiled step that died at configuration

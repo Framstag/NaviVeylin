@@ -32,13 +32,6 @@ The system SHALL include a "Download Maps" entry in the overflow menu that navig
 - **WHEN** user taps "Download Maps" in the overflow menu
 - **THEN** the app navigates to the MapManagerScreen route
 
-### Requirement: Menu extensible for future settings
-The system SHALL support adding future menu entries without structural changes.
-
-#### Scenario: Placeholder entry exists
-- **WHEN** overflow menu is open
-- **THEN** a disabled or placeholder entry for "Settings" is visible (or the menu structure supports easy addition)
-
 ### Requirement: Top-right overlay column
 
 The system SHALL split the portrait overlay controls into two columns: a left action column and a right view column. The left action column SHALL be positioned at the top-left below the status bar and SHALL contain, in order from top to bottom: menu button, search button, favorites button. The right view column SHALL be positioned at the bottom-right above the navigation bar and SHALL contain, in order from top to bottom: compass button, speed widget, location options button, and zoom controls — with the zoom controls at the bottom below all other controls. The re-center (MyLocation) button SHALL be positioned at the bottom-left when visible.
@@ -114,13 +107,14 @@ The map canvas screen SHALL respond to the system back gesture/button by dismiss
 
 ### Requirement: Navigation right column includes location options
 
-During NAVIGATION, the right-side widget column SHALL include the location options button in addition to the compass, speed widget, and zoom controls, so the options bottom sheet is reachable mid-route.
+During NAVIGATION, the right-side widget column SHALL include the location options button in addition to the compass, speed widget, and zoom controls, so the quick settings sheet is reachable mid-route.
 
 #### Scenario: Location options button in navigation column
 
 - **WHEN** the map state is NAVIGATION
 - **THEN** the right-side widget column SHALL show the location options button
-- **AND** tapping it SHALL open the options bottom sheet
+- **AND** tapping it SHALL open the quick settings sheet
+- **Case**: none — the entry-point rows' cases are written in tasks.md group 2
 
 ### Requirement: The phone map canvas is suspended while a car session is active
 

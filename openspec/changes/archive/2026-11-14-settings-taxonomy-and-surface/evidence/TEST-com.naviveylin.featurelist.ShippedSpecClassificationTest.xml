@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.featurelist.ShippedSpecClassificationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-14T17:44:34.845Z" hostname="dingens" time="0.196">
+  <properties/>
+  <testcase name="every shipped spec id is classified" classname="com.naviveylin.featurelist.ShippedSpecClassificationTest" time="0.194"/>
+  <system-out><![CDATA[shipped=189 classified=197 unclassified=[]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

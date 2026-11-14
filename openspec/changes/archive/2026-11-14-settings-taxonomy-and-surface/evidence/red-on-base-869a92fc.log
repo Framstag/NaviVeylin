@@ -1,0 +1,95 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileVendoredJava UP-TO-DATE
+> Task :osmscout-client-java:processVendoredResources NO-SOURCE
+> Task :osmscout-client-java:vendoredClasses UP-TO-DATE
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :core:compileDebugKotlin UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig UP-TO-DATE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
+
+> Task :app:kspMobileDebugKotlin
+e: [ksp] InjectProcessingStep was unable to process 'MapCanvasViewModel(java.util.stream.SliceOps$1@42429f3b, ...)' because 'SettingsController' could not be resolved.
+
+Dependency trace:
+    => element (CLASS): com.naviveylin.ui.map.MapCanvasViewModel
+    => element (CONSTRUCTOR): MapCanvasViewModel(java.util.stream.SliceOps$1@429135ef, ...)
+    => type (EXECUTABLE constructor): (com.naviveylin.data.ViewportStorage,SettingsController,com.naviveylin.data.AssetCopier,com.framstag.libosmscout.client.OSMScoutClient,com.naviveylin.data.FavoriteRepository,com.naviveylin.data.SearchHistoryRepository,com.naviveylin.location.LocationService,com.naviveylin.data.DarkModeController,com.naviveylin.share.SharedLocationHandler,com.naviveylin.core.BasemapReloadNotifier,com.naviveylin.core.DrivingModeProvider,com.naviveylin.core.FreeDrivingStatusProvider,com.naviveylin.core.CarSessionPresence,com.naviveylin.core.EngineTimeSource,android.content.Context)void
+    => type (ERROR parameter type): SettingsController
+
+If type 'SettingsController' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'SettingsController' is on your classpath.
+
+> Task :app:kspMobileDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kspMobileDebugKotlin' (registered by plugin 'com.android.internal.application').
+> A failure occurred while executing com.google.devtools.ksp.gradle.KspAAWorkerAction
+   > KSP failed with exit code: PROCESSING_ERROR
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 9s
+47 actionable tasks: 14 executed, 33 up-to-date

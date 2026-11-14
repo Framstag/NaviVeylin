@@ -410,6 +410,14 @@ LOOP_SHELL_CASES=(
   'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt'
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
+  'driver#everyEngineScriptIsInTheTable'
+  'driver#noEngineFileExceedsItsBound'
+  'driver#aFileWithoutABoundIsRefused'
+  'driver#aNameAssignedTwiceIsRefused'
+  'driver#anUndeclaredReadIsRefused'
+  'driver#theSharedNamesAreDeclared'
+  'driver#theSourceOrderIsDeclared'
+  'driver#aCallToALaterFilesFunctionFails'
   'driver#theSuiteRunsItsCasesInAPool'
   'driver#theCaseBoundScalesWithThePool'
   'driver#aCaseThatBlocksIsEndedByItsOwnBound'
@@ -1130,6 +1138,14 @@ loop_run_shell_case() {
     'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt') fn=case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
+    'driver#everyEngineScriptIsInTheTable') fn=case_driver_everyEngineScriptIsInTheTable ;;
+    'driver#noEngineFileExceedsItsBound') fn=case_driver_noEngineFileExceedsItsBound ;;
+    'driver#aFileWithoutABoundIsRefused') fn=case_driver_aFileWithoutABoundIsRefused ;;
+    'driver#aNameAssignedTwiceIsRefused') fn=case_driver_aNameAssignedTwiceIsRefused ;;
+    'driver#anUndeclaredReadIsRefused') fn=case_driver_anUndeclaredReadIsRefused ;;
+    'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
+    'driver#theSourceOrderIsDeclared') fn=case_driver_theSourceOrderIsDeclared ;;
+    'driver#aCallToALaterFilesFunctionFails') fn=case_driver_aCallToALaterFilesFunctionFails ;;
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
     'driver#theCaseBoundScalesWithThePool') fn=case_driver_theCaseBoundScalesWithThePool ;;
     'driver#aCaseThatBlocksIsEndedByItsOwnBound') fn=case_driver_aCaseThatBlocksIsEndedByItsOwnBound ;;
@@ -15825,6 +15841,499 @@ case_driver_everyCaseDeclaresTheFilesItCanReach() {
   return 0
 }
 
+
+# ------------------------------------- cases: the engine's size bound, its order and the names it shares
+#
+# An engine file had no number to grow past, so the suite could not say what the growth cost (issue #890): `run.sh` was
+# 410 lines on 2026-10-17 and 3793 four weeks later, with nothing in the tree to refuse the next spurt. These helpers
+# are the static readers the cases below compare the two tables with. None of them starts a script, compiles anything
+# or asks the network, and each is handed the directory it reads, so a case points the same rule at a fixture of three
+# lines and at the engine itself.
+#
+# The words the refusals rest on are stated once, here, because a table is worth nothing if the rule behind it lives
+# only inside a case body:
+#   assigned   a line at column 0 defines the name — `NAME=…`, `export NAME=…`, `readonly NAME=…`, or `name() {`. A
+#              `local`, and an assignment inside a body, is not state a second file can read, so it needs no row.
+#   read       the file's code uses the name as what the definition says it is: a variable as `$name` or `${name…}`, a
+#              function at a command position (`; name`, `| name`, `$(name`, `if name`). A comment is cut before the
+#              test, and so is text a shell never scans — a single-quoted string, and a double-quoted one with no
+#              command substitution in it — so a word in prose, a flag that spells the name and a jq field are not reads.
+#   shared     exactly one file assigns the name and a different file reads it.
+#
+# The approximation is deliberate and it is the same reader on both sides of every comparison: a name it reads as shared
+# that is not costs a row, while a read it misses reddens the commit that adds it, because the declaration then no
+# longer equals the scripts.
+
+layout_rows() { # <engine dir> → the table's rows, its comment lines dropped
+  awk -F'\t' '$0 !~ /^#/ && $1 != ""' "$1/layout.tsv"
+}
+
+layout_shared_awk() { # <engine dir> <rows|doubles> → the names the scripts share, read statically, one row each
+  local dir=$1 mode=$2 prog out
+  prog=$(mktemp)
+  cat > "$prog" <<'SHARED_AWK'
+# Every file is read twice inside one invocation — the assignments have to be known before a mention can be called a
+# read — by appending the same argument list to ARGV, so one call answers without a temporary file.
+BEGIN {
+  count = ARGC - 1
+  for (i = 1; i <= count; i++) ARGV[ARGC++] = ARGV[i]
+}
+FNR == 1 { pass++ }
+
+# What a shell scans for a name: the line without its comment, without its single-quoted text, and — for a function —
+# without the part of a double-quoted run that holds no command substitution.
+function scanned(line, unquoted,   out, head, tail, quote, pos) {
+  sub(/[ \t]#.*/, "", line)
+  gsub(/'[^']*'/, "''", line)
+  if (!unquoted) return line
+  out = ""
+  while ((head = index(line, "\"")) > 0) {
+    out = out substr(line, 1, head - 1)
+    line = substr(line, head + 1)
+    tail = index(line, "\"")
+    if (tail == 0) { out = out line; line = ""; break }
+    quote = substr(line, 1, tail - 1)
+    pos = index(quote, "$(")
+    out = out (pos ? substr(quote, pos) : "")
+    line = substr(line, tail + 1)
+  }
+  return out line
+}
+
+# A call is the name as the first word of a simple command: the separators read as the whitespace they are, and the word
+# after one of them starts a command. A command substitution is such a boundary too, so `$(` is stood in for by a word
+# that opens a command — the `$` is the only thing left of it once the variable references are gone.
+function is_call(line, name,   n, w, i, prev) {
+  gsub(/\$\{[^}]*\}/, " ", line)
+  gsub(/\$[A-Za-z_][A-Za-z0-9_]*/, " ", line)
+  gsub(/\$\(/, " CMDSUB ", line)
+  gsub(/[;|&(){}[\]\t"']/, " ", line)
+  n = split(line, w, / +/)
+  for (i = 1; i <= n; i++) {
+    if (w[i] != name) continue
+    if (i == 1) return 1
+    prev = w[i - 1]
+    # Indentation is an empty first field and not a word before the command.
+    if (prev == "") return 1
+    if (prev ~ /^(CMDSUB|if|then|elif|else|while|until|do|time|!)$/) return 1
+    if (prev ~ /[=$]$/) return 1
+  }
+  return 0
+}
+
+pass <= count { # the assignment pass
+  line = $0
+  if (match(line, /^export[ \t]+[A-Za-z_][A-Za-z0-9_]*=/)) {
+    s = substr(line, 8, RLENGTH - 8); sub(/=.*/, "", s); kind[s] = "var"
+  } else if (match(line, /^readonly[ \t]+[A-Za-z_][A-Za-z0-9_]*=/)) {
+    s = substr(line, 10, RLENGTH - 10); sub(/=.*/, "", s); kind[s] = "var"
+  } else if (match(line, /^[A-Za-z_][A-Za-z0-9_]*=/)) {
+    s = substr(line, 1, RLENGTH - 1); kind[s] = "var"
+  } else if (match(line, /^[A-Za-z_][A-Za-z0-9_]*\(\)/)) {
+    s = substr(line, 1, RLENGTH - 2); kind[s] = "fn"
+  } else {
+    next
+  }
+  f = FILENAME; sub(/^.*\//, "", f)
+  if (!((s, f) in assigned)) { assigned[s, f] = 1; files[s] = files[s] " " f; nfiles[s]++ }
+  next
+}
+
+{ # the mention pass
+  if ($0 ~ /^[ \t]*#/) next
+  line = $0
+  for (name in kind) {
+    # `index` is the cheap guard the regex would otherwise pay for on every line: a name this line does not spell is
+    # not a read of it, so the engine is read in about a second instead of in twenty.
+    if (kind[name] == "var") {
+      if (!index(line, "$" name) && !index(line, "${" name)) continue
+      if (!(scanned(line, 0) ~ ("\\$(\\{)?" name "([^A-Za-z0-9_]|$)"))) continue
+    } else {
+      if (!index(line, name)) continue
+      if (!is_call(scanned(line, 1), name)) continue
+    }
+    f = FILENAME; sub(/^.*\//, "", f)
+    seen[name, f] = 1
+  }
+}
+
+END {
+  for (name in nfiles) {
+    a = files[name]; sub(/^ /, "", a)
+    n = split(a, fl, " ")
+    if (n == 1) {
+      readers = ""
+      for (k in seen) {
+        split(k, p, SUBSEP)
+        if (p[1] == name && p[2] != fl[1]) readers = readers " " p[2]
+      }
+      if (readers == "") continue
+      m = split(substr(readers, 2), rs, " ")
+      for (i = 2; i <= m; i++) for (j = i; j <= m; j++) if (rs[j] < rs[i]) { t = rs[i]; rs[i] = rs[j]; rs[j] = t }
+      out = ""
+      for (i = 1; i <= m; i++) out = out (i > 1 ? " " : "") rs[i]
+      if (mode == "rows") print name "\t" fl[1] "\t" out
+    } else if (mode == "doubles") {
+      third = ""
+      for (k in seen) {
+        split(k, p, SUBSEP)
+        if (p[1] != name) continue
+        found = 0
+        for (i = 1; i <= n; i++) if (fl[i] == p[2]) found = 1
+        if (!found) third = p[2]
+      }
+      if (third != "") print name " is assigned by " fl[1] " and by " fl[2] ", and " third " reads it"
+    }
+  }
+}
+SHARED_AWK
+  out=$(awk -v mode="$mode" -f "$prog" "$dir"/*.sh)
+  rm -f "$prog"
+  printf '%s\n' "$out"
+}
+
+layout_shared_refusals() { # <engine dir> → one line per name the declaration and the scripts disagree about
+  local dir=$1 declared computed name by readers
+  if [ ! -f "$dir/shared.tsv" ]; then
+    printf 'shared.tsv: the engine has no declaration (%s)\n' "$dir/shared.tsv"
+    return 0
+  fi
+  declared=$(awk -F'\t' '$0 !~ /^#/ && $1 != "" { print $1 "\t" $2 "\t" $3 }' "$dir/shared.tsv" | sort)
+  computed=$(layout_shared_awk "$dir" rows | sort)
+  while IFS=$'\t' read -r name by readers; do
+    [ -n "$name" ] || continue
+    printf 'shared.tsv: %s is read by %s and no row declares it\n' "$name" "${readers// /, }"
+  done < <(comm -13 <(printf '%s\n' "$declared") <(printf '%s\n' "$computed"))
+  while IFS=$'\t' read -r name by readers; do
+    [ -n "$name" ] || continue
+    printf 'shared.tsv: %s is declared and no file a second one reads assigns it\n' "$name"
+  done < <(comm -23 <(printf '%s\n' "$declared") <(printf '%s\n' "$computed"))
+}
+
+engine_sources() { # <script> → the engine files it sources, one per line, in the order it sources them
+  grep -oE 'source "\$here/[^"]+\.sh"' "$1" | sed -e 's/^source "\$here\///' -e 's/"$//'
+}
+
+layout_order_refusals() { # <engine dir> → one line per defect in the source order the table declares
+  local dir=$1 table declared entry want f target order prev
+  table="$dir/layout.tsv"
+  if [ ! -f "$table" ]; then
+    printf 'layout.tsv: the engine has no layout table (%s)\n' "$table"
+    return 0
+  fi
+  declared=$(layout_rows "$dir" | awk -F'\t' '$3 ~ /^[0-9]+$/ { print $3 "\t" $1 }' | sort -n)
+  # One position per file: two rows claiming the same one is not an order.
+  prev=$(printf '%s\n' "$declared" | cut -f1 | uniq -d | tr '\n' ' ')
+  for order in $prev; do printf 'layout.tsv: two files claim order %s\n' "$order"; done
+  # The entry sources the declared order, and nothing else.
+  entry=$(engine_sources "$dir/run.sh" | tr '\n' ' ')
+  want=$(printf '%s\n' "$declared" | cut -f2 | tr '\n' ' ')
+  entry=${entry% }
+  want=${want% }
+  [ "$entry" = "$want" ] \
+    || printf 'layout.tsv: run.sh sources "%s" and the table declares "%s"\n' "$entry" "$want"
+  # Every other script sources a declared file, and in the declared order.
+  for f in "$dir"/*.sh; do
+    [ -e "$f" ] || continue
+    case "${f##*/}" in run.sh) continue ;; esac
+    prev=0
+    for target in $(engine_sources "$f"); do
+      order=$(printf '%s\n' "$declared" | awk -F'\t' -v t="$target" '$2 == t { print $1 }')
+      if [ -z "$order" ]; then
+        printf 'layout.tsv: %s sources %s, which the table gives no order\n' "${f##*/}" "$target"
+        continue
+      fi
+      [ "$order" -gt "$prev" ] \
+        || printf 'layout.tsv: %s sources %s (order %s) after order %s\n' "${f##*/}" "$target" "$order" "$prev"
+      prev=$order
+    done
+  done
+}
+
+layout_call_refusals() { # <engine dir> → one line per call to a function of the chain the caller has not sourced yet
+  local dir=$1 ordered prog out
+  ordered=$(layout_rows "$dir" | awk -F'\t' '$3 ~ /^[0-9]+$/ { print $1 }' | tr '\n' ' ')
+  prog=$(mktemp)
+  cat > "$prog" <<'CALLS_AWK'
+# Only a function a file of the chain defines is read this way. A script that is an entry of its own defines words its
+# process never shares, so a word in its text that happens to spell another entry's function is not a call of it; the
+# table says which files the chain holds, and `ordered` is that list.
+BEGIN {
+  count = ARGC - 1
+  for (i = 1; i <= count; i++) ARGV[ARGC++] = ARGV[i]
+  nordered = split(ordered, o, " ")
+  for (i = 1; i <= nordered; i++) in_order[o[i]] = 1
+}
+FNR == 1 { pass++ }
+
+function scanned(line,   out, head, tail, quote, pos) {
+  sub(/[ \t]#.*/, "", line)
+  gsub(/'[^']*'/, "''", line)
+  out = ""
+  while ((head = index(line, "\"")) > 0) {
+    out = out substr(line, 1, head - 1)
+    line = substr(line, head + 1)
+    tail = index(line, "\"")
+    if (tail == 0) { out = out line; line = ""; break }
+    quote = substr(line, 1, tail - 1)
+    pos = index(quote, "$(")
+    out = out (pos ? substr(quote, pos) : "")
+    line = substr(line, tail + 1)
+  }
+  return out line
+}
+
+function is_call(line, name,   n, w, i, prev) {
+  gsub(/\$\{[^}]*\}/, " ", line)
+  gsub(/\$[A-Za-z_][A-Za-z0-9_]*/, " ", line)
+  gsub(/\$\(/, " CMDSUB ", line)
+  gsub(/[;|&(){}[\]\t"']/, " ", line)
+  n = split(line, w, / +/)
+  for (i = 1; i <= n; i++) {
+    if (w[i] != name) continue
+    if (i == 1) return 1
+    prev = w[i - 1]
+    # Indentation is an empty first field and not a word before the command.
+    if (prev == "") return 1
+    if (prev ~ /^(CMDSUB|if|then|elif|else|while|until|do|time|!)$/) return 1
+    if (prev ~ /[=$]$/) return 1
+  }
+  return 0
+}
+
+pass <= count { # the definitions and the source lines
+  line = $0
+  if (match(line, /^[A-Za-z_][A-Za-z0-9_]*\(\)/)) {
+    s = substr(line, 1, RLENGTH - 2)
+    f = FILENAME; sub(/^.*\//, "", f)
+    if (!(f in in_order)) next
+    if (!((s, f) in def)) { def[s, f] = 1; where[s] = where[s] " " f; ndef[s]++ }
+    next
+  }
+  if (match(line, /^[ \t]*source[ \t]+"\$here\/[^"]+"/)) {
+    t = substr(line, RSTART, RLENGTH)
+    sub(/^[ \t]*source[ \t]+"\$here\//, "", t); sub(/"$/, "", t)
+    f = FILENAME; sub(/^.*\//, "", f)
+    if (!((f, t) in src)) src[f, t] = FNR
+  }
+  next
+}
+
+{
+  if ($0 ~ /^[ \t]*#/) next
+  f = FILENAME; sub(/^.*\//, "", f)
+  line = $0
+  for (name in ndef) {
+    if (ndef[name] != 1) continue
+    d = where[name]; sub(/^ /, "", d)
+    if (d == f) continue
+    if (!index(line, name)) continue
+    if (!is_call(scanned(line), name)) continue
+    if (!((f, d) in src)) { print f " calls " name " at line " FNR ", which " d " defines and it never sources"; continue }
+    if (src[f, d] > FNR) print f " calls " name " at line " FNR ", which " d " defines and it only sources at line " src[f, d]
+  }
+}
+CALLS_AWK
+  out=$(awk -v ordered="$ordered" -f "$prog" "$dir"/*.sh)
+  rm -f "$prog"
+  printf '%s\n' "$out"
+}
+
+layout_table_refusals() { # <engine dir> → one line per row without a script, and per script without a row
+  local dir=$1 table f
+  table="$dir/layout.tsv"
+  if [ ! -f "$table" ]; then
+    printf 'layout.tsv: the engine has no layout table (%s)\n' "$table"
+    return 0
+  fi
+  layout_rows "$dir" | cut -f1 | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    [ -f "$dir/$f" ] || printf 'layout.tsv: the row %s names a file the engine does not have\n' "$f"
+  done
+  for f in "$dir"/*.sh; do
+    [ -e "$f" ] || continue
+    layout_rows "$dir" | cut -f1 | grep -qxF -- "${f##*/}" \
+      || printf 'layout.tsv: %s is an engine script with no row\n' "${f##*/}"
+  done
+}
+
+layout_bound_refusals() { # <engine dir> → one line per row whose bound is unusable, or already passed
+  local dir=$1 table f bound rest row n
+  table="$dir/layout.tsv"
+  if [ ! -f "$table" ]; then
+    printf 'layout.tsv: the engine has no layout table (%s)\n' "$table"
+    return 0
+  fi
+  layout_rows "$dir" | while IFS= read -r row; do
+    # The fields are cut by tab here and not by `read`: a tab is IFS whitespace, so two of them in a row are one
+    # delimiter and `a.sh<TAB><TAB>-` would arrive as a bound of `-` instead of as no bound at all.
+    case "$row" in
+      *$'\t'*) f=${row%%$'\t'*}; rest=${row#*$'\t'}; bound=${rest%%$'\t'*} ;;
+      *) f=$row; bound="" ;;
+    esac
+    [ -n "$f" ] || continue
+    case "$bound" in
+      ''|*[!0-9]*) printf 'layout.tsv: %s carries no usable bound (%s)\n' "$f" "${bound:-none}"; continue ;;
+    esac
+    if [ "$bound" -le 0 ]; then printf 'layout.tsv: %s carries no usable bound (%s)\n' "$f" "$bound"; continue; fi
+    if [ ! -f "$dir/$f" ]; then printf 'layout.tsv: the row %s names a file the engine does not have\n' "$f"; continue; fi
+    n=$(wc -l < "$dir/$f"); n=${n// /}
+    [ "$n" -le "$bound" ] || printf 'layout.tsv: %s is %s lines, past its bound of %s\n' "$f" "$n" "$bound"
+  done
+}
+
+case_driver_everyEngineScriptIsInTheTable() {
+  # files: tools/loop/ tools/loop/layout.tsv
+  local out d
+  out=$(layout_table_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "the table and the engine's scripts agree in both directions"
+
+  # …and the rule it just passed is not vacuous: a script the table does not carry is named, and so is a row the engine
+  # has no file for. Two lines of fixture are what turns "the suite is green" into "the suite can say no".
+  d=$(scratch)
+  printf ':\n' > "$d/a.sh"
+  printf ':\n' > "$d/b.sh"
+  printf 'a.sh\t10\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_table_refusals "$d")
+  assert_contains "$out" "b.sh is an engine script with no row" "a script with no row is refused, by name: $out"
+  printf 'a.sh\t10\t-\t-\nb.sh\t10\t-\t-\ngone.sh\t10\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_table_refusals "$d")
+  assert_contains "$out" "gone.sh names a file the engine does not have" \
+    "a row without a script is refused, by name: $out"
+  return 0
+}
+
+case_driver_noEngineFileExceedsItsBound() {
+  # files: tools/loop/ tools/loop/layout.tsv
+  local out d
+  out=$(layout_bound_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "every engine file is inside the bound its row records"
+
+  d=$(scratch)
+  printf 'one\ntwo\nthree\n' > "$d/a.sh"
+  printf 'a.sh\t2\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_bound_refusals "$d")
+  assert_contains "$out" "a.sh is 3 lines, past its bound of 2" \
+    "a file past its bound is refused with its count and its bound: $out"
+  # A file inside its bound is not refused, so the case is about the number and not about the fixture.
+  printf 'a.sh\t3\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_bound_refusals "$d")
+  assert_eq "" "$out" "a file exactly at its bound is inside it"
+  return 0
+}
+
+case_driver_aFileWithoutABoundIsRefused() {
+  # files: tools/loop/ tools/loop/layout.tsv
+  local out d
+  d=$(scratch)
+  printf 'one\ntwo\n' > "$d/a.sh"
+
+  printf 'a.sh\t\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_bound_refusals "$d")
+  assert_contains "$out" "a.sh carries no usable bound (none)" "a row with no bound is refused: $out"
+  assert_not_contains "$out" "is 2 lines" "and the file is not read as unbounded: $out"
+
+  printf 'a.sh\t0\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_bound_refusals "$d")
+  assert_contains "$out" "a.sh carries no usable bound (0)" "a bound of zero is refused: $out"
+
+  printf 'a.sh\tx\t-\t-\n' > "$d/layout.tsv"
+  out=$(layout_bound_refusals "$d")
+  assert_contains "$out" "a.sh carries no usable bound (x)" "a bound that is not a number is refused: $out"
+  return 0
+}
+
+case_driver_aNameAssignedTwiceIsRefused() {
+  # files: tools/loop/ tools/loop/shared.tsv
+  local out d
+  d=$(scratch)
+  printf 'shared_thing=1\n' > "$d/a.sh"
+  printf 'shared_thing=2\n' > "$d/b.sh"
+  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/c.sh"
+  out=$(layout_shared_awk "$d" doubles)
+  assert_contains "$out" "shared_thing is assigned by a.sh and by b.sh, and c.sh reads it" \
+    "a name two files assign while a third reads it is refused, naming the name and both files: $out"
+  # One assigner is the ordinary shape and is not refused: `shared.tsv` is what declares it.
+  printf 'other_thing=1\n' > "$d/a.sh"
+  printf 'printf "%%s\\n" "$other_thing"\n' > "$d/c.sh"
+  out=$(layout_shared_awk "$d" doubles)
+  assert_eq "" "$out" "a name one file assigns is not the ambiguity this refusal is about"
+  return 0
+}
+
+case_driver_anUndeclaredReadIsRefused() {
+  # files: tools/loop/ tools/loop/shared.tsv
+  local out d
+  d=$(scratch)
+  printf 'shared_thing=1\n' > "$d/a.sh"
+  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/b.sh"
+
+  printf '# name\tassigned by\tread by\n' > "$d/shared.tsv"
+  out=$(layout_shared_refusals "$d")
+  assert_contains "$out" "shared_thing is read by b.sh and no row declares it" \
+    "a read the declaration does not list is refused, naming the name and the file: $out"
+
+  # …and a row the files no longer share is the same refusal from the other side.
+  printf 'gone\tb.sh\tc.sh\n' > "$d/shared.tsv"
+  out=$(layout_shared_refusals "$d")
+  assert_contains "$out" "gone is declared and no file a second one reads assigns it" \
+    "a stale row is refused, by name: $out"
+  return 0
+}
+
+case_driver_theSharedNamesAreDeclared() {
+  # files: tools/loop/ tools/loop/layout.tsv tools/loop/shared.tsv
+  local out
+  out=$(layout_shared_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "the declaration equals the names the engine's files share, in both directions"
+  return 0
+}
+
+case_driver_theSourceOrderIsDeclared() {
+  # files: tools/loop/ tools/loop/layout.tsv
+  local out d
+  out=$(layout_order_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "every engine script sources the declared order"
+
+  d=$(scratch)
+  printf 'a_fn() { :; }\n' > "$d/a.sh"
+  printf 'b_fn() { :; }\n' > "$d/b.sh"
+  printf 'run.sh\t10\t-\t-\na.sh\t10\t1\t-\nb.sh\t10\t2\t-\n' > "$d/layout.tsv"
+  printf 'source "$here/a.sh"\nsource "$here/b.sh"\n' > "$d/run.sh"
+  out=$(layout_order_refusals "$d")
+  assert_eq "" "$out" "an entry that sources the declared order is accepted"
+  printf 'source "$here/b.sh"\nsource "$here/a.sh"\n' > "$d/run.sh"
+  out=$(layout_order_refusals "$d")
+  assert_contains "$out" 'run.sh sources "b.sh a.sh" and the table declares "a.sh b.sh"' \
+    "an entry that sources them in another order is refused: $out"
+  return 0
+}
+
+case_driver_aCallToALaterFilesFunctionFails() {
+  # files: tools/loop/ tools/loop/layout.tsv
+  local out d
+  out=$(layout_call_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "no engine script calls a function of a file it has not sourced yet"
+
+  d=$(scratch)
+  printf 'later_fn() { :; }\n' > "$d/later.sh"
+  printf 'run.sh\t10\t-\t-\nlater.sh\t10\t1\t-\ncaller.sh\t10\t2\t-\n' > "$d/layout.tsv"
+  printf 'source "$here/later.sh"\n' > "$d/run.sh"
+  printf 'source "$here/later.sh"\ncaller_fn() {\n  later_fn\n}\n' > "$d/caller.sh"
+  out=$(layout_call_refusals "$d")
+  assert_eq "" "$out" "a call after the line that sources the defining file is accepted"
+
+  printf 'caller_fn() {\n  later_fn\n}\nsource "$here/later.sh"\n' > "$d/caller.sh"
+  out=$(layout_call_refusals "$d")
+  assert_contains "$out" "caller.sh calls later_fn at line 2, which later.sh defines and it only sources at line 4" \
+    "a call to a file sourced later is refused, naming the caller, the function and the file: $out"
+
+  printf 'caller_fn() {\n  later_fn\n}\n' > "$d/caller.sh"
+  out=$(layout_call_refusals "$d")
+  assert_contains "$out" "caller.sh calls later_fn at line 2, which later.sh defines and it never sources" \
+    "a call to a file the caller never sources is refused: $out"
+  return 0
+}
 # ------------------------------------------------------- cases: one suite per repository
 
 # Two suites in one repository redden a different set of cases each run — measured 2026-10-24, a run of 210 cases

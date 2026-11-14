@@ -1,0 +1,27 @@
+# The engine's layout: one row per script under `tools/loop/`, the bound the suite compares its length against, and the
+# position the entry sources it at. Nothing is moved by this table — it describes the engine as it stands, so growth
+# against a number someone argued for is a red case instead of a fact nobody measures (issue #890).
+#
+# `driver#everyEngineScriptIsInTheTable` reads the file column against the scripts themselves in both directions,
+# `driver#noEngineFileExceedsItsBound` reads the bound, and `driver#theSourceOrderIsDeclared` reads the order.
+#
+# bound  the file's length when this table was written plus a quarter, rounded up: it records today's size and refuses
+#        growth only, so raising one is a one-line diff with a reason beside it rather than a refactor.
+# order  the position the entry sources the file at, or `-` when the entry does not source it. Every engine script
+#        sources `lib.sh`, which is the whole of the order today.
+# note   the order the move will use. `run-sh-is-split-along-the-stream` splits `run.sh` into owner files and adds
+#        their rows beneath `lib.sh`, taking orders 2..n; this table is the one place that changes when it does.
+#
+# file	bound	order	note
+evidence-check.sh	368	-	-
+gate.sh	840	-	-
+labels.sh	297	-	-
+lib.sh	1130	1	the split's files follow this row, at orders 2..n
+loop-clean.sh	482	-	-
+measure.sh	268	-	-
+phase.sh	265	-	-
+prescreen.sh	860	-	-
+report.sh	1038	-	-
+run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
+state.sh	1788	-	-
+worktree.sh	1414	-	-

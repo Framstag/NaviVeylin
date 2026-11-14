@@ -341,6 +341,13 @@ the refusals it records and the leftovers it reports — is `guidelines/Backlog.
 anchor below. Each anchor names a section number this document carries, so a citation of `§7` still resolves and a
 reader lands on the phase they need. A tier-B item's prepared change reaches the child as its `ITEM_CHANGE` block (§7a).
 
+Two files describe the engine before a person edits it, and both are declarations the loop's suite reads:
+`tools/loop/layout.tsv` carries one row per script under `tools/loop/` — its line bound and the order the entry sources
+it at — and `tools/loop/shared.tsv` carries one row per name one engine file assigns and another reads. A change that
+lengthens an engine script past its row's bound, shares a name across two files, or alters the source order reddens
+`tools/loop/tests/loop-selftest.sh` and needs the row corrected in the same change, with a reason beside the number
+it moves.
+
 ## 7a. Running one item: the script, the child and the package
 
 The run's script, the child's prompt and the result bound are `guidelines/Backlog.recipes.md` §7a.

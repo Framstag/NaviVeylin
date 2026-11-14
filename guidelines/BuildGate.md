@@ -51,7 +51,8 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
 
 - **Rule: a delta owes the verification its file roster names, and no more.** Which verification a delta
   owes follows its file roster, not the habit of running everything:
-  - **No compiled file changed** (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `tools/**`): run **no
+  - **No compiled file changed** (`*.md`, `openspec/**`, `.pi/**`, `guidelines/**`, `tools/**` other than the
+    engine's scripts under `tools/loop/**`, which the next-but-one bullet owns): run **no
     build and no suite**. Say in the task that the delta compiles nothing, and name the check you ran
     instead — for a docs/spec/skill/backlog delta that is the structural check of the files it edits, the
     ones CI already runs for it (`.github/workflows/build.yml`, the steps `Check OpenSpec artifact hygiene`
@@ -63,6 +64,13 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
     can affect, and the both-flavor gate before the change is called complete (§3, §4b).
   - **Name every exclusion**: any test or task a run skipped, and why. A green run that quietly dropped a
     suite reads as a gate it was not.
+  - **A `tools/loop/**` delta reads its two tables before it iterates.** The engine is not a text-only `tools/**`
+    delta: `run.sh`, `lib.sh` and their siblings are code, so the loop's own suite is its gate
+    (`tools/loop/gate.sh`), and the room a change has inside an engine script is a number the tree already
+    carries — the file's row in `tools/loop/layout.tsv` holds its bound beside today's length, and
+    `tools/loop/shared.tsv` holds every name two engine files share. Read the row before the first edit: a
+    delta whose cost the table already shows is estimated before it is iterated, not measured by the suite it
+    spends.
 - **Rule: look, then measure, before changing code.** A symptom that lives in pixels cannot be settled by
   reading projection, fit or layout code. Look at the artifact, add a coordinate-free diagnostics line
   (numbers — indices, pixels, band, verdict — never a position, spec `auto-diagnostics`), read it on the

@@ -1,0 +1,34 @@
+# red-on-HEAD: the base commit is 2d2af2af and carries neither table; the cases below are
+# this change's own, run in this tree with the two files moved aside.
+
+## without layout.tsv and shared.tsv — the base's tree
+tools/loop/ holds no layout.tsv and no shared.tsv: 0 of them
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyEngineScriptIsInTheTable
+driver#everyEngineScriptIsInTheTable|   the table and the engine's scripts agree in both directions: expected '', got 'layout.tsv: the engine has no layout table (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/layout.tsv)'
+--- driver#everyEngineScriptIsInTheTable[0] (exit 1)
+  the table and the engine's scripts agree in both directions: expected '', got 'layout.tsv: the engine has no layout table (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/layout.tsv)'
+FAIL driver#everyEngineScriptIsInTheTable
+loop-selftest: 1 of 1 cases failed
+exit=1
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSharedNamesAreDeclared
+driver#theSharedNamesAreDeclared|   the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: the engine has no declaration (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/shared.tsv)'
+--- driver#theSharedNamesAreDeclared[0] (exit 1)
+  the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: the engine has no declaration (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/shared.tsv)'
+FAIL driver#theSharedNamesAreDeclared
+loop-selftest: 1 of 1 cases failed
+exit=1
+
+## with them back — the change's tree
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyEngineScriptIsInTheTable
+PASS driver#everyEngineScriptIsInTheTable
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSharedNamesAreDeclared
+PASS driver#theSharedNamesAreDeclared
+exit=0
+
+## the files the log leaves, against the ones it moved
+layout.tsv and shared.tsv are back: 2 of 2 present

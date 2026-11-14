@@ -1,0 +1,82 @@
+# The four revert-checks tasks.md §4.2–§4.5 name. Each mutation is restored with cp from the copy taken before
+# the first one, and the case is run again after the restore so every red below is followed by the green it
+# is measured against.
+
+## 4.2 the bound: run.sh's row one line below the file's actual length (3793 lines)
+run.sh	3792	-	the entry: it sources the order above and is sourced by nothing
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#noEngineFileExceedsItsBound
+driver#noEngineFileExceedsItsBound|   every engine file is inside the bound its row records: expected '', got 'layout.tsv: run.sh is 3793 lines, past its bound of 3792'
+--- driver#noEngineFileExceedsItsBound[0] (exit 1)
+  every engine file is inside the bound its row records: expected '', got 'layout.tsv: run.sh is 3793 lines, past its bound of 3792'
+FAIL driver#noEngineFileExceedsItsBound
+loop-selftest: 1 of 1 cases failed
+exit=1
+restored:
+run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#noEngineFileExceedsItsBound
+PASS driver#noEngineFileExceedsItsBound
+exit=0
+
+## 4.3 the table's completeness: the row for gate.sh deleted
+evidence-check.sh	368	-	-
+labels.sh	297	-	-
+lib.sh	1130	1	the split's files follow this row, at orders 2..n
+loop-clean.sh	482	-	-
+measure.sh	268	-	-
+phase.sh	265	-	-
+prescreen.sh	860	-	-
+report.sh	1038	-	-
+run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
+state.sh	1788	-	-
+worktree.sh	1414	-	-
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyEngineScriptIsInTheTable
+driver#everyEngineScriptIsInTheTable|   the table and the engine's scripts agree in both directions: expected '', got 'layout.tsv: gate.sh is an engine script with no row'
+--- driver#everyEngineScriptIsInTheTable[0] (exit 1)
+  the table and the engine's scripts agree in both directions: expected '', got 'layout.tsv: gate.sh is an engine script with no row'
+FAIL driver#everyEngineScriptIsInTheTable
+loop-selftest: 1 of 1 cases failed
+exit=1
+restored:
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyEngineScriptIsInTheTable
+PASS driver#everyEngineScriptIsInTheTable
+exit=0
+
+## 4.4 the shared-name rule: the row for loop_die deleted
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSharedNamesAreDeclared
+driver#theSharedNamesAreDeclared|   the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: loop_die is read by prescreen.sh, gate.sh, labels.sh, run.sh, state.sh, worktree.sh and no row declares it'
+--- driver#theSharedNamesAreDeclared[0] (exit 1)
+  the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: loop_die is read by prescreen.sh, gate.sh, labels.sh, run.sh, state.sh, worktree.sh and no row declares it'
+FAIL driver#theSharedNamesAreDeclared
+loop-selftest: 1 of 1 cases failed
+exit=1
+restored:
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSharedNamesAreDeclared
+PASS driver#theSharedNamesAreDeclared
+exit=0
+
+## 4.5 the order rule: two rows' positions swapped, so the declared order is not the order run.sh sources
+gate.sh	840	1	-
+lib.sh	1130	2	the split's files follow this row, at orders 2..n
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSourceOrderIsDeclared
+driver#theSourceOrderIsDeclared|   every engine script sources the declared order: expected '', got 'layout.tsv: run.sh sources "lib.sh" and the table declares "gate.sh lib.sh"'
+--- driver#theSourceOrderIsDeclared[0] (exit 1)
+  every engine script sources the declared order: expected '', got 'layout.tsv: run.sh sources "lib.sh" and the table declares "gate.sh lib.sh"'
+FAIL driver#theSourceOrderIsDeclared
+loop-selftest: 1 of 1 cases failed
+exit=1
+restored:
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSourceOrderIsDeclared
+PASS driver#theSourceOrderIsDeclared
+exit=0
+
+## the files as they were handed back, compared with the copies taken before the first mutation
+layout.tsv: identical to the copy taken before the mutation (cmp -s)
+shared.tsv: identical to the copy taken before the mutation (cmp -s)

@@ -1,0 +1,124 @@
+# wc -l for every script under tools/loop/ (task 1.1)
+   294 tools/loop/evidence-check.sh
+   672 tools/loop/gate.sh
+   237 tools/loop/labels.sh
+   904 tools/loop/lib.sh
+   385 tools/loop/loop-clean.sh
+   214 tools/loop/measure.sh
+   212 tools/loop/phase.sh
+   688 tools/loop/prescreen.sh
+   830 tools/loop/report.sh
+  3793 tools/loop/run.sh
+  1430 tools/loop/state.sh
+  1131 tools/loop/worktree.sh
+ 10790 insgesamt
+
+# the layout table as committed, header and rows (tasks 1.1 and 1.3)
+# file	bound	order	note
+evidence-check.sh	368	-	-
+gate.sh	840	-	-
+labels.sh	297	-	-
+lib.sh	1130	1	the split's files follow this row, at orders 2..n
+loop-clean.sh	482	-	-
+measure.sh	268	-	-
+phase.sh	265	-	-
+prescreen.sh	860	-	-
+report.sh	1038	-	-
+run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
+state.sh	1788	-	-
+worktree.sh	1414	-	-
+
+# shared.tsv: the number of rows it declares (task 1.2)
+90
+
+# the rows themselves
+apply	loop-clean.sh	worktree.sh lib.sh
+body	phase.sh	prescreen.sh
+bound	phase.sh	lib.sh run.sh
+branch	run.sh	report.sh lib.sh loop-clean.sh phase.sh prescreen.sh state.sh worktree.sh
+bytes	loop-clean.sh	worktree.sh lib.sh state.sh
+cases	gate.sh	measure.sh
+child_check_calls	lib.sh	run.sh
+closed	report.sh	state.sh
+count	prescreen.sh	worktree.sh gate.sh
+deadline_at	report.sh	run.sh
+deadline_epoch	report.sh	run.sh
+errors	gate.sh	lib.sh phase.sh
+evidence	labels.sh	evidence-check.sh prescreen.sh worktree.sh
+failures	gate.sh	phase.sh lib.sh
+fmt_elapsed	lib.sh	run.sh
+gate_check_programs	lib.sh	state.sh
+gate_command_jq	lib.sh	state.sh
+gate_program	lib.sh	state.sh
+gate_tally_state	lib.sh	state.sh run.sh
+i	prescreen.sh	run.sh gate.sh state.sh
+issue	labels.sh	prescreen.sh phase.sh report.sh run.sh state.sh worktree.sh
+item	measure.sh	report.sh
+kept	loop-clean.sh	state.sh worktree.sh
+LOOP_AUTHORISATION_LABEL	lib.sh	prescreen.sh
+loop_base_ref	lib.sh	loop-clean.sh gate.sh labels.sh run.sh state.sh worktree.sh
+loop_bound_under_ceiling	lib.sh	gate.sh
+loop_bytes_of	lib.sh	worktree.sh loop-clean.sh
+loop_change_archive_dir	lib.sh	run.sh
+loop_change_identity	lib.sh	gate.sh run.sh
+loop_change_restore	lib.sh	run.sh
+LOOP_CHILD_TIMEOUT	lib.sh	run.sh
+loop_commit_identity	lib.sh	worktree.sh
+loop_compat_profile_value	lib.sh	labels.sh prescreen.sh run.sh
+LOOP_CONF_PATH	lib.sh	run.sh gate.sh measure.sh state.sh
+loop_conf_value	lib.sh	state.sh gate.sh loop-clean.sh measure.sh phase.sh prescreen.sh report.sh run.sh worktree.sh
+loop_die	lib.sh	prescreen.sh gate.sh labels.sh run.sh state.sh worktree.sh
+LOOP_DIR	lib.sh	run.sh prescreen.sh report.sh worktree.sh
+loop_end_group	lib.sh	gate.sh run.sh
+loop_end_pid	lib.sh	gate.sh loop-clean.sh run.sh
+loop_end_pids_under	lib.sh	run.sh
+LOOP_HOLD	lib.sh	run.sh state.sh
+LOOP_HOLD_READ	lib.sh	state.sh
+loop_issue_json	lib.sh	run.sh prescreen.sh
+loop_issue_tool	lib.sh	labels.sh prescreen.sh run.sh
+loop_labels	lib.sh	prescreen.sh run.sh
+loop_landed_on_base	lib.sh	labels.sh
+loop_leftover_patch_of	lib.sh	worktree.sh run.sh
+loop_note	lib.sh	worktree.sh run.sh state.sh
+LOOP_OK	lib.sh	run.sh prescreen.sh report.sh
+loop_open_pull_request_heads	lib.sh	worktree.sh
+loop_own_branches	lib.sh	loop-clean.sh worktree.sh
+loop_pids_under	lib.sh	run.sh
+loop_profile	lib.sh	run.sh prescreen.sh
+LOOP_REFUSE	lib.sh	run.sh state.sh worktree.sh
+loop_refuse	lib.sh	state.sh worktree.sh
+loop_remote_branches	lib.sh	worktree.sh
+loop_render	lib.sh	run.sh
+loop_resolve	lib.sh	prescreen.sh gate.sh labels.sh loop-clean.sh measure.sh phase.sh report.sh run.sh state.sh worktree.sh
+loop_role	lib.sh	prescreen.sh labels.sh report.sh run.sh state.sh
+loop_roles_load	lib.sh	report.sh labels.sh prescreen.sh run.sh state.sh
+LOOP_ROOT	lib.sh	prescreen.sh gate.sh loop-clean.sh report.sh run.sh state.sh worktree.sh
+loop_same_dir	lib.sh	loop-clean.sh
+LOOP_SCRATCH_LINE	lib.sh	worktree.sh loop-clean.sh
+loop_scratch_paths	lib.sh	loop-clean.sh worktree.sh
+loop_scratch_remove	lib.sh	worktree.sh loop-clean.sh run.sh
+LOOP_SELFTEST_PREFIX	lib.sh	loop-clean.sh
+loop_state	lib.sh	prescreen.sh gate.sh run.sh
+LOOP_STOP	lib.sh	state.sh prescreen.sh run.sh
+loop_tmp_dir_for	lib.sh	loop-clean.sh
+LOOP_TMP_DIR	lib.sh	loop-clean.sh
+loop_unlanded_commits	lib.sh	prescreen.sh loop-clean.sh report.sh worktree.sh
+LOOP_USAGE	lib.sh	phase.sh state.sh
+loop_worktree_branches	lib.sh	worktree.sh loop-clean.sh
+LOOP_WORKTREE	lib.sh	run.sh loop-clean.sh phase.sh report.sh worktree.sh
+max_decisions	run.sh	state.sh
+max_review_rounds	run.sh	state.sh
+owner_pid	report.sh	state.sh
+path_count	measure.sh	report.sh
+phase	phase.sh	lib.sh run.sh state.sh
+progress	lib.sh	run.sh
+prompt	phase.sh	run.sh
+push	run.sh	state.sh
+read_err	prescreen.sh	run.sh
+reason	labels.sh	prescreen.sh report.sh state.sh worktree.sh
+record_dir	run.sh	worktree.sh
+review	run.sh	state.sh report.sh
+size	phase.sh	loop-clean.sh gate.sh run.sh
+stop_reason	report.sh	run.sh state.sh
+tree	loop-clean.sh	gate.sh lib.sh
+verdict	labels.sh	lib.sh phase.sh prescreen.sh state.sh

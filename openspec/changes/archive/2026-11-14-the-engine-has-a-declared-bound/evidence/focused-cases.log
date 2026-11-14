@@ -1,0 +1,18 @@
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+== driver#everyCaseDeclaresTheFilesItCanReach exit=0
+PASS driver#everyEngineScriptIsInTheTable
+== driver#everyEngineScriptIsInTheTable exit=0
+PASS driver#noEngineFileExceedsItsBound
+== driver#noEngineFileExceedsItsBound exit=0
+PASS driver#aFileWithoutABoundIsRefused
+== driver#aFileWithoutABoundIsRefused exit=0
+PASS driver#aNameAssignedTwiceIsRefused
+== driver#aNameAssignedTwiceIsRefused exit=0
+PASS driver#anUndeclaredReadIsRefused
+== driver#anUndeclaredReadIsRefused exit=0
+PASS driver#theSharedNamesAreDeclared
+== driver#theSharedNamesAreDeclared exit=0
+PASS driver#theSourceOrderIsDeclared
+== driver#theSourceOrderIsDeclared exit=0
+PASS driver#aCallToALaterFilesFunctionFails
+== driver#aCallToALaterFilesFunctionFails exit=0

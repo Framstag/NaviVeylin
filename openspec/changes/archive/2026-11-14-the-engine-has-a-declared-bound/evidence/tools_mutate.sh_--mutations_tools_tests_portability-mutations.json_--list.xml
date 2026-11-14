@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/tests/portability-mutations.json --list" tests="0" failures="0" errors="0" time="0" run="586962">
+  <system-out>7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290) 7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project's base branch is its own configuration value, not the engine's default (issue #303) 4.1	portability#testsDirectoryIsNotScanned	the engine set skips the tooling's test code</system-out>
+</testsuite>

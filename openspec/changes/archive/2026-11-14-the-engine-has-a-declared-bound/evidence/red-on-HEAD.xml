@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner output. The tree is the run's base
+     (2d2af2af, the branch HEAD this item was handed) with this change's two declaration files moved aside, which
+     is the reading HEAD gives: the delta's own cases exist and the tables they assert do not.
+     Taken 2026-11-14T12:35Z.
+<testsuite name="tools/loop-selftest.sh --case driver#… (red-on-HEAD, 2026-11-14T12:29Z)"
+           tests="2" failures="2" errors="0">
+  <testcase classname="driver" name="everyEngineScriptIsInTheTable">
+    <failure message="the table and the engine's scripts agree in both directions: expected '', got 'layout.tsv: the engine has no layout table (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/layout.tsv)'"/>
+  </testcase>
+  <testcase classname="driver" name="theSharedNamesAreDeclared">
+    <failure message="the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: the engine has no declaration (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/shared.tsv)'"/>
+  </testcase>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.MapManagerStaleNoticeComposeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-14T01:35:26.647Z" hostname="dingens" time="14.293">
+  <properties/>
+  <testcase name="theInstalledRowNamesTheShortfallAndItsCount" classname="com.naviveylin.ui.mapmanager.MapManagerStaleNoticeComposeTest" time="13.341"/>
+  <testcase name="aCurrentInstallationRowCarriesNoNotice" classname="com.naviveylin.ui.mapmanager.MapManagerStaleNoticeComposeTest" time="0.302"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[[BasemapManager] Error probing basemap at http://127.0.0.1:1/basemap/: Verbindungsaufbau abgelehnt
+[BasemapManager] Error probing basemap at http://127.0.0.1:1/basemap/: Verbindungsaufbau abgelehnt
+[BasemapManager] Error probing basemap at http://127.0.0.1:1/basemap/: Verbindungsaufbau abgelehnt
+[BasemapManager] Error probing basemap at http://127.0.0.1:1/basemap/: Verbindungsaufbau abgelehnt
+]]></system-err>
+</testsuite>

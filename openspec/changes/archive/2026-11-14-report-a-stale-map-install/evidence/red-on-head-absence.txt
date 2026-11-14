@@ -1,0 +1,9 @@
+red-on-HEAD absence proof (base 0848c35dee76123bc3ec8d7221c16bcf7fa0bf2c), taken 2026-11-14T01:37:19Z
+absent: core/src/main/java/com/naviveylin/core/mapsource/StaleInstallCheck.kt
+absent: core/src/main/java/com/naviveylin/core/mapsource/TypeConfigNames.kt
+absent: core/src/main/java/com/naviveylin/core/mapsource/DeclaredTypes.kt
+absent: core/src/test/java/com/naviveylin/core/mapsource/StaleInstallTest.kt
+absent: core/src/test/resources/mapsource/golden-types.dat
+base MapManagerViewModel.kt installedTypeShortfalls declarations: 0
+base strings.xml installed_types_outdated keys: 0
+base MapManagerScreen.kt typeShortfall mentions: 0

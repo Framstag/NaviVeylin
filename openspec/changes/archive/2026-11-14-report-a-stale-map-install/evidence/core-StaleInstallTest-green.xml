@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.mapsource.StaleInstallTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-14T01:26:40.341Z" hostname="dingens" time="0.394">
+  <properties/>
+  <testcase name="aDatabaseShortOfTheDeclaredTypesIsReported" classname="com.naviveylin.core.mapsource.StaleInstallTest" time="0.369"/>
+  <testcase name="aDatabaseCarryingEveryDeclaredNameIsNotReported" classname="com.naviveylin.core.mapsource.StaleInstallTest" time="0.005"/>
+  <testcase name="theGoldenTypesDataFileYieldsItsNameSet" classname="com.naviveylin.core.mapsource.StaleInstallTest" time="0.004"/>
+  <testcase name="aForeignFormatVersionIsNotJudged" classname="com.naviveylin.core.mapsource.StaleInstallTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

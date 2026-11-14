@@ -59,7 +59,8 @@
 #     only in a child's transcript and no report can count it.
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
-#                         [--stop-reason refused|unmergeable|bound]
+#                         [--stop-reason refused|unmergeable|bound|child-blocked|child-failed|outside-write|
+#                                        uncommitted|unverified|unanswered|reviewer-wrote|contradicted]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
 #   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
@@ -662,9 +663,21 @@ cmd_done() {
   # child's role's turns, the child clock or the run's own deadline — which is work the next run resumes and not a
   # finding about the item. Such an item is recorded `cut`, so `bound` is the one mechanism a cut carries, and the
   # spend a mechanism is totalled by is the same field on either result.
+  # The rest of the vocabulary is one class per arm that blocks (issue #865): `stopReason` was `null` on 108 of the
+  # archive's 127 blocked items, so the report's `stop` column printed `-` for 85 % of them and the count the report
+  # exists for — the items a bound ended — read 6 of 127. `refused` is a review round that refused the change (the
+  # pre-gate round, the last round at the cap, and a red gate a close records no waiver over); `child-blocked` is a
+  # child whose own answer is `LOOP-VERDICT: blocked`; `child-failed` is a child of the item that exited non-zero
+  # short of a bound, or a phase that answered nothing; `outside-write` is a child that changed the project's own
+  # tree; `reviewer-wrote` is a round discarded because the item's own tree changed under its reviewer; `unanswered`
+  # is a round whose answer never arrived twice; `uncommitted` is a report whose claim the tree does not show — no
+  # commit, no archived change; `unverified` is a gate result the report claims and the tally does not hold, or a
+  # cited result with no evidence carried; and `contradicted` is a falsification whose unchanged tree had moved by
+  # the end of its review. An empty value stays accepted: a state a tree wrote before the field existed, and a
+  # caller that is not the run, are records this writer does not rewrite.
   case "$stop_reason" in
-    ""|refused|unmergeable|bound) ;;
-    *) loop_die "done: --stop-reason must be refused, unmergeable or bound" ;;
+    ""|refused|unmergeable|bound|child-blocked|child-failed|outside-write|uncommitted|unverified|unanswered|reviewer-wrote|contradicted) ;;
+    *) loop_die "done: --stop-reason must name a block's class — refused, unmergeable, bound, child-blocked, child-failed, outside-write, uncommitted, unverified, unanswered, reviewer-wrote or contradicted" ;;
   esac
   # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too —
   # except `bound` on a `cut`, which is the same fact one result over (issue #790).

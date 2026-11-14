@@ -551,8 +551,8 @@ MUTATIONS=(
   # stopped; each is noticed by the case that names its mechanism. The last two were rewritten in review round 1:
   # `58.4` mutated the whole interpolation, which produced an invalid jq escape so the report died instead of the
   # column going missing, and nothing mutated the `-` a row with no mechanism prints (issue #280, round 1).
-  '58.1@-@tools/loop/run.sh@run#reviewRoundsCapAtTwo@the refusing last round named as the mechanism that stopped the item (issue #280)@s|^      stop_reason="refused"$|      stop_reason=""|'
-  '58.2@-@tools/loop/run.sh@run#doesNotCloseOnAMergeTheBaseCannotTake@a base that would not take the branch named as the other mechanism (issue #280)@s|^      stop_reason="unmergeable"$|      stop_reason=""|'
+  '58.1@-@tools/loop/run.sh@run#reviewRoundsCapAtTwo@the refusing last round named as the mechanism that stopped the item (issue #280)@s|^      block refused "the change failed its last review round|      block "" "the change failed its last review round|'
+  '58.2@-@tools/loop/run.sh@run#doesNotCloseOnAMergeTheBaseCannotTake@a base that would not take the branch named as the other mechanism (issue #280)@s|^      block unmergeable "|      block "" "|'
   '58.3@-@tools/loop/state.sh@state#aBlockedItemNamesTheMechanismThatStoppedIt@the mechanism written into the item record (issue #280)@s|^                  stopReason:(if \$sr == "" then null else \$sr end),$|                  stopReason:null,|'
   '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \. == "" then "-" else \. end|if true then "-" else . end|'
   '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \. == "" then "-" else \. end|if false then "-" else . end|'
@@ -1236,6 +1236,12 @@ MUTATIONS=(
   # `tools/loop-spend.py` already read the two apart. One arm, one case: the pre-gate arm of the role map, without
   # which the phase that spent the money is back on the reviewer's account.
   '864.1@-@tools/loop/state.sh@report#thePreGateRoundIsChargedToItsOwnRole@the arm that charges the round before the gate to its own bucket, so the reviewer figure holds two reviewers again and the item cannot say which phase spent its review tokens (issue #864)@s|elif test("pre-gate") then "reviewer-pre-gate"|elif false then "reviewer-pre-gate"|'
+  # 865.1 — a block names the class of the arm that stopped it (issue #865). `stopReason` was an optional field three
+  # arms wrote and fifteen left null, so it was null on 108 of the archive's 127 blocked items and the report's `stop`
+  # column printed `-` for 85 % of them. Every arm now writes its class through one helper, and this record empties
+  # the field at that one place: the arm that reads the class out is the whole invariant, so the case's assertion on
+  # the recorded class is the one that has to fail.
+  '865.1@-@tools/loop/run.sh@run#anEmptyTreeIsRefusedBeforeTheGateChild@the class written beside a block by the arm that stopped it, so a blocked item reaches the record with a null mechanism and the report table prints `-` in its stop column for it (issue #865)@s|^  stop_reason="\$1"$|  stop_reason=""|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

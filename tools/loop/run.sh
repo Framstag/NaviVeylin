@@ -738,6 +738,18 @@ stop_run() { # <reason> — printed and recorded, then the caller breaks or exit
   loop_state stop "$1" >/dev/null 2>&1 || true
 }
 
+# A block names the class of the arm that stopped it (issue #865). The mechanism was an optional field written beside
+# the result by three arms and omitted by the fifteen others, so `stopReason` was `null` on 108 of the archive's 127
+# blocked items and the report's `stop` column printed `-` for each of them: a reader could not tell a tree that
+# committed nothing from an escalation from a child that broke, and the count the report exists for — the items a bound
+# ended — read 6 of 127. The result, the class and the reason are therefore written in one place, so an arm cannot
+# block without naming the class it stopped on and the class cannot drift from the result it belongs to.
+block() { # <class> <reason> — the item is blocked, with the class of the arm and the reason beside it
+  outcome="blocked"
+  stop_reason="$1"
+  blocked_reason="$2"
+}
+
 # 4. the checkout. The landing step merges into the project's **own tree**, where the base branch is checked out:
 #    `worktree.sh`'s `merge-item` and `adopt-item` both `git merge` there and neither verifies it, and `adopt-item`
 #    runs from the pre-screen, before the run's worktree exists. So a tree on any other branch — or on a detached
@@ -2991,17 +3003,25 @@ while true; do
   fi
   outcome="closed"
   blocked_reason=""
-  # Which of the two mechanisms stopped the item, when one did: `refused` for the last review round, `unmergeable`
-  # for a base that would not take the branch. Both reach the record as `blocked`, and the record has no other
-  # place to keep them apart (issue #280; measured 2026-10-23: 198.8 M of refusing rounds against 22.9 M of merge
-  # refusals over the archive, distinguishable then only by reading the note). Every other block leaves it empty.
+  # Which class of arm stopped the item: `refused` for a review round that refused the change, `unmergeable` for a
+  # base that would not take the branch, `bound` for a child the run's own bound ended, and one class per remaining arm
+  # (issue #865). Every block reaches the record through `block` above, so the class and the result are written
+  # together and the vocabulary `state.sh done --stop-reason` holds is the whole of it.
   stop_reason=""
   # The pre-gate round comes first because it stopped the item before any gate ran (issue #758): its reason names the
   # round, and an item it ended has no gate result for the arms below to read.
   if [ -n "$pre_gate_refusal" ]; then
-    outcome="blocked"; blocked_reason="$pre_gate_refusal"
+    # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and the class
+    # stays off it — the spec names `bound` on the worker's, the gate child's, the tail's and the rework worker's
+    # results, not on a review round's. Writing a class here would refuse the cut's own state write and leave the item
+    # at whatever it was last written as (issue #865).
+    if [ "$pre_gate_cut" -eq 1 ]; then
+      outcome="blocked"; blocked_reason="$pre_gate_refusal"
+    else
+      block refused "$pre_gate_refusal"
+    fi
   elif [ "$last_exit" -ne 0 ]; then
-    outcome="blocked"; blocked_reason="the $last_child process exited $last_exit"
+    block child-failed "the $last_child process exited $last_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
@@ -3011,7 +3031,7 @@ while true; do
     # own escalation below reads to write no decision label.
     if [ "$last_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$timeout_claim" ]; then stop_reason="bound"; fi
   elif outside_write_decides; then
-    outcome="blocked"; blocked_reason="the $last_child wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
+    block outside-write "the $last_child wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
     && [ -n "$falsified_mechanism" ] && [ -n "$falsified_measurement" ] && [ "$head_now" = "$base" ]; then
     # Measured 2026-10-20: three of the first four items of one run (#89, #99, #137) were items whose premise the
@@ -3024,22 +3044,21 @@ while true; do
     # The verdict a tail writes when the gate did not pass (issue #744): it archived nothing, so the archived-change
     # arm below would record the opposite of what it reported — "reported success but no archived change" for a child
     # that said the gate failed — and the gate's own numbers would be dropped from the reason a person reads.
-    outcome="blocked"
-    blocked_reason="${root_cause:+$root_cause — }the item's verdict is blocked${gate_claim:+ — the gate reported $gate_claim}"
+    block child-blocked "${root_cause:+$root_cause — }the item's verdict is blocked${gate_claim:+ — the gate reported $gate_claim}"
   elif [ -n "$phase_failure" ]; then
     # A phase that answered nothing is that phase's failure (issue #810). The arms below read a report the phase never
     # wrote — its empty verdict is neither `skipped` nor `blocked`, and its empty change claim fails beside a commit
     # the change child did make — so the reading taken in the phase decides here, and the reason names the phase a
     # person has to look at instead of the item's tree.
-    outcome="blocked"; blocked_reason="$phase_failure"
+    block child-failed "$phase_failure"
   elif [ "$head_now" = "$base" ]; then
-    outcome="blocked"; blocked_reason="reported success but the tree is still at the base commit — nothing was committed"
+    block uncommitted "reported success but the tree is still at the base commit — nothing was committed"
   elif [ -z "$change" ]; then
-    outcome="blocked"; blocked_reason="reported success but no archived change appears in the run's diff"
+    block uncommitted "reported success but no archived change appears in the run's diff"
   elif [ -n "$LOOP_GATE_CMD" ] && [ -n "$gate_claim" ] && [ "$gate_found" -eq 0 ]; then
-    outcome="blocked"; blocked_reason="the report claims a gate result but the gate's tally directory holds no XML (${gate_tally:-no LOOP_GATE_TALLY_DIR is named})"
+    block unverified "the report claims a gate result but the gate's tally directory holds no XML (${gate_tally:-no LOOP_GATE_TALLY_DIR is named})"
   elif [ "$cited_evidence" -eq 1 ] && [ "$carried" -eq 0 ]; then
-    outcome="blocked"; blocked_reason="the change cites a test result but carries no evidence in its own evidence/ directory"
+    block unverified "the change cites a test result but carries no evidence in its own evidence/ directory"
   fi
   # …and a phase the run's own bound ended is not a block at all (issues #785, #790): a review round the run cut
   # leaves an item whose work finished — its change archived, its gate answered and its branch carrying the commits
@@ -3057,9 +3076,7 @@ while true; do
   # closed. `state.sh done` keeps the same refusal as its own backstop for a caller that is not this script, so the
   # clause is refused, never defaulted, in both places.
   if [ "$outcome" = "closed" ] && [ "$(gate_tally_state "$gate_field")" = red ] && [ -z "$gate_waived" ]; then
-    outcome="blocked"
-    stop_reason="refused"
-    blocked_reason="the gate did not pass ($gate_field) and the close records no waiver — LOOP-GATE-WAIVED is the one clause the item closed over, and a close without it is a judgement nobody can read"
+    block refused "the gate did not pass ($gate_field) and the close records no waiver — LOOP-GATE-WAIVED is the one clause the item closed over, and a close without it is a judgement nobody can read"
   fi
   # The same refusal has a reverse side, and it landed in the same place (issue #811): `state.sh done` refuses a
   # clause written beside a tally that *passed*, and a suite written with no clause to name, and both of those fields
@@ -3150,8 +3167,7 @@ while true; do
           # instead of naming a refusal no reviewer made, and it records no failed review on the branch — a
           # later run must not be told the reviewer refused this change.
           review_verdict="cut-short"
-          outcome="blocked"
-          blocked_reason="the reviewer's report was cut short twice — the round $round answer never arrived, so no reviewer refused this change"
+          block unanswered "the reviewer's report was cut short twice — the round $round answer never arrived, so no reviewer refused this change"
           break
         fi
       fi
@@ -3160,7 +3176,7 @@ while true; do
       if [ "$read_only" = "on" ] && [ "$before" != "$after" ]; then
         # The reviewer wrote in the tree it reads, so it cannot have been the reviewer: the round is discarded (D3).
         review_verdict="reviewer-wrote"
-        outcome="blocked"; blocked_reason="the review round was discarded: the working tree changed while the reviewer ran"
+        block reviewer-wrote "the review round was discarded: the working tree changed while the reviewer ran"
         break
       fi
       # The project's own tree is read as well, by the child's own run (the in-time reading), and it is not the
@@ -3169,7 +3185,7 @@ while true; do
       # discards the round; anything else is recorded and the round stands.
       if outside_write_decides; then
         review_verdict="reviewer-wrote"
-        outcome="blocked"; blocked_reason="the review round was discarded: the project's own tree changed while the reviewer ran — $outside_write_note${outside_write_attributed:+ (attributed to this round: $outside_write_attributed)}"
+        block outside-write "the review round was discarded: the project's own tree changed while the reviewer ran — $outside_write_note${outside_write_attributed:+ (attributed to this round: $outside_write_attributed)}"
         break
       elif [ -n "$outside_write_note" ]; then
         loop_state step A --name outside-write-review-$round --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
@@ -3297,15 +3313,13 @@ while true; do
       if [ "$round2_write_decides" -eq 1 ] && [ "$round2_tail_started" -eq 0 ]; then
         # The round-2 worker's own reading, which decided the item before its tail could have run.
         review_verdict="outside-write"
-        outcome="blocked"
-        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran: $round2_write_note"
+        block outside-write "the round-2 worker wrote outside the worktree — the project's own tree changed while it ran: $round2_write_note"
         break
       fi
       if outside_write_decides; then
         # Named for what it is: a write outside the worktree, not a second failed review round.
         review_verdict="outside-write"
-        outcome="blocked"
-        blocked_reason="the round-2 tail worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
+        block outside-write "the round-2 tail worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
         break
       elif [ -n "$round2_write_note" ]; then
         # Recorded and not acted on, for the reason the worker's own difference is (#274, #276, #285, #286).
@@ -3347,9 +3361,7 @@ while true; do
       round=$((round + 1))
     done
     if [ "$review_verdict" = "FAIL" ]; then
-      outcome="blocked"
-      stop_reason="refused"
-      blocked_reason="the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt"
+      block refused "the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt"
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
       # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185). A
       # falsification has no change to record the verdict against — its tree did not move — so the branch keeps
@@ -3369,8 +3381,7 @@ while true; do
   if [ "$outcome" = "falsified" ]; then
     head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
     if [ "$head_now" != "$base" ]; then
-      outcome="blocked"
-      blocked_reason="the falsification claimed an unchanged tree, but the tree moved during its review — a change exists, so the item is not mis-diagnosed"
+      block contradicted "the falsification claimed an unchanged tree, but the tree moved during its review — a change exists, so the item is not mis-diagnosed"
     fi
   fi
 
@@ -3382,9 +3393,7 @@ while true; do
   merged_sha=""
   if [ "$outcome" = "closed" ]; then
     merge_committed_branch "$issue" "fix/issue-$issue-$slug" || {
-      outcome="blocked"
-      stop_reason="unmergeable"
-      blocked_reason="the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
+      block unmergeable "the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
     }
     # The branch the run committed for this item is done with once the run merged it: the work is in the
     # base, and the branch is the run's own leftover. The release frees the worktree from it and the

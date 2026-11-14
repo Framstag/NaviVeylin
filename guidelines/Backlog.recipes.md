@@ -817,8 +817,8 @@ error under it, and no `M of N cases failed` line at all. Measured 2026-11-14 (i
 two `FAILED` lines, no summary — was tallied `tests=0 failures=0 errors=1`, so two broken tests read as one
 environment error and the run could not tell "my change broke a test" from "the JVM fell over". `finish_step`
 reads those per-test lines as the step's failures (the task's own line begins with `>`, which is what keeps its
-header from being read as a case), and an `AssertionError` with no per-test line above it is one case that failed;
-a step the bound ended, and a step that named no case, keep the error above. The case is
+header from being read as a case); a step the bound ended, and a step that named no case, keep the error above.
+The case is
 `gate#aTestFailureIsAFailureNotAnError`, and `tools/loop/tests/loop-mutations.sh` 916.1 the record that keeps it.
 
 A tally's name is the command that wrote it, and it is never a dotfile: the profile's compiled command runs as

@@ -1,0 +1,31 @@
+2026-11-13T23:25:24Z
+the three cases against tools/loop/run.sh and tools/loop/worktree.sh taken from the base commit 0848c35dee76123bc3ec8d7221c16bcf7fa0bf2c (git show HEAD:<path>), the three cases as this change leaves them; each case is the tail of its own run
+===== run#mergesOverADifferenceItCannotPlace =====
+run#mergesOverADifferenceItCannotPlace|   a difference the run placed in nothing of its own does not end the item at its landing: expected 'done', got 'blocked'
+--- run#mergesOverADifferenceItCannotPlace[0] (exit 1)
+  a difference the run placed in nothing of its own does not end the item at its landing: expected 'done', got 'blocked'
+FAIL run#mergesOverADifferenceItCannotPlace
+loop-selftest: 1 of 1 cases failed
+===== run#anAdoptionLandsOverADifferenceItCannotPlace =====
+  truncated: - · no item had its stream rotated
+  landings: - · no item of this run landed
+
+actions the caller owes:
+  1. land fix/issue-21-previous-attempt — 1 commit(s) the base does not have — item #21
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+kept fix/issue-21-previous-attempt — carries work the base does not have
+worktree: 0 landed branch(es) removed · 1 kept (carries work the base does not) · 0 kept (checked out) · 0 kept (the reviewer refused it)
+FAIL run#anAdoptionLandsOverADifferenceItCannotPlace
+loop-selftest: 1 of 1 cases failed
+===== worktree#theLandingDecidesByTheReadingItIsHanded =====
+worktree#theLandingDecidesByTheReadingItIsHanded| HEAD ist jetzt bei 4e11bef init
+worktree#theLandingDecidesByTheReadingItIsHanded| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theLandingDecidesByTheReadingItIsHanded|   a difference the run placed in nothing does not stop the landing: expected '0', got '5'
+--- worktree#theLandingDecidesByTheReadingItIsHanded[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 4e11bef init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  a difference the run placed in nothing does not stop the landing: expected '0', got '5'
+FAIL worktree#theLandingDecidesByTheReadingItIsHanded
+loop-selftest: 1 of 1 cases failed
+the two engine files are the applied ones again for evidence/cases.log

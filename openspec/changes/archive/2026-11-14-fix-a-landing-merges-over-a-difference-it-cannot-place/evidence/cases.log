@@ -1,0 +1,13 @@
+2026-11-13T23:25:44Z
+the three cases this change carries, the neighbours they sit beside, and the cases the delta reaches — the applied tree:
+PASS run#mergesOverADifferenceItCannotPlace
+PASS run#anAdoptionLandsOverADifferenceItCannotPlace
+PASS worktree#theLandingDecidesByTheReadingItIsHanded
+PASS worktree#refusesToMergeOverADirtyProjectTree
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#mergesItsCommittedBranchBeforeClosing
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#theBaseAdvancesWithEveryMerge
+PASS run#aMergedBranchIsRemoved
+PASS run#strictOutsideWriteBlocksTheItem
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion

@@ -1,0 +1,23 @@
+2026-11-13T23:27:52Z
+
+== readiness: the change the run hands an item ==
+LOOP-CHANGE-READY: ok
+
+== every scenario names a case the suite carries ==
+the readiness checker above reads the delta and refuses a scenario that names no case in tools/loop/tests/loop-cases.sh, so its ok is that check.
+
+== the case-declaration driver ==
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+
+== the files this change edits parse ==
+bash -n tools/loop/worktree.sh: exit 0
+bash -n tools/loop/run.sh: exit 0
+bash -n tools/loop/tests/loop-cases.sh: exit 0
+bash -n tools/loop/tests/loop-mutations.sh: exit 0
+
+== what is NOT run here, and why ==
+the checks the gate owes for these paths (portability and its selftest, mutate-selftest, the portability mutation
+list, loop-mutations --check, doc routes, doc values, todo references, openspec hygiene) are named in
+evidence/measure.log as LOOP-MEASURE-CHECK lines and belong to the gate child own selection: a check run here
+would be that selection paid twice. The full mutation set is owed the same way (this change owns tools/loop/**);
+what is run here are the two records this change re-points, in evidence/mutation-58.2.log and evidence/mutation-86.1.log.

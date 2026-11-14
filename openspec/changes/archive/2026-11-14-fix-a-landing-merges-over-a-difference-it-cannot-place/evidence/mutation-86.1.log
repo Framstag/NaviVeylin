@@ -1,0 +1,8 @@
+2026-11-13T23:27:30Z
+loop-mutations: selected 1 of 357 records (labels: 86.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.abpwgB
+RED    86.1  run#anAdoptionLandsOverADifferenceItCannotPlace   (the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794))
+       2026-11-13T23:27:40Z — the refusal is recorded beside the exclusion as the mechanism that stopped it: expected 'unmergeable', got 'null'
+restore 86.1 run#anAdoptionLandsOverADifferenceItCannotPlace green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

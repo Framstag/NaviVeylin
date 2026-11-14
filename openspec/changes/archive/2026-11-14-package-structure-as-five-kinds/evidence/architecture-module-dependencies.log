@@ -1,0 +1,76 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :architecture:dependencies
+
+------------------------------------------------------------
+Project ':architecture'
+------------------------------------------------------------
+
+testRuntimeClasspath - Runtime classpath of 'test'.
++--- org.jetbrains.kotlin:kotlin-stdlib:2.2.10
+|    +--- org.jetbrains:annotations:13.0 -> 23.0.0
+|    +--- org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0 -> 2.0.21 (c)
+|    \--- org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0 -> 2.0.21 (c)
++--- com.lemonappdev:konsist:0.17.3
+|    +--- org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21
+|    |    +--- org.jetbrains.kotlin:kotlin-stdlib:2.0.21 -> 2.2.10 (*)
+|    |    \--- org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21
+|    |         \--- org.jetbrains.kotlin:kotlin-stdlib:2.0.21 -> 2.2.10 (*)
+|    +--- org.jetbrains.kotlin:kotlin-compiler-embeddable:2.0.21
+|    |    +--- org.jetbrains.kotlin:kotlin-stdlib:2.0.21 -> 2.2.10 (*)
+|    |    +--- org.jetbrains.kotlin:kotlin-script-runtime:2.0.21
+|    |    +--- org.jetbrains.kotlin:kotlin-reflect:1.6.10
+|    |    +--- org.jetbrains.kotlin:kotlin-daemon-embeddable:2.0.21
+|    |    +--- org.jetbrains.intellij.deps:trove4j:1.0.20200330
+|    |    \--- org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4 -> 1.9.0
+|    |         +--- org.jetbrains:annotations:23.0.0
+|    |         +--- org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.9.0
+|    |         |    +--- org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0 (c)
+|    |         |    \--- org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0 (c)
+|    |         \--- org.jetbrains.kotlin:kotlin-stdlib:2.0.0 -> 2.2.10 (*)
+|    \--- org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0
+|         \--- org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.9.0 (*)
+\--- junit:junit:4.13.2
+     \--- org.hamcrest:hamcrest-core:1.3
+
+(c) - A dependency constraint, not a dependency. The dependency affected by the constraint occurs elsewhere in the tree.
+(*) - Indicates repeated occurrences of a transitive dependency subtree. Gradle expands transitive dependency subtrees only once per project; repeat occurrences only display the root of the subtree, followed by this annotation.
+
+A web-based, searchable dependency report is available by adding the --scan option.
+
+BUILD SUCCESSFUL in 567ms
+4 actionable tasks: 1 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :architecture:compileKotlin NO-SOURCE
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar UP-TO-DATE
+> Task :architecture:compileTestKotlin UP-TO-DATE
+
+BUILD SUCCESSFUL in 591ms
+5 actionable tasks: 5 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

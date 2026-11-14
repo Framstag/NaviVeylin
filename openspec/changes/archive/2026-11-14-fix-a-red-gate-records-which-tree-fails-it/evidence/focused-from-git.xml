@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in
+     focused-from-git.log (started 2026-11-13T12:28:36Z, finished 612.29 s later), transcribed from that run's own
+     closing line — `loop-selftest: all 426 cases passed (JDK 27, offline, no token, no sandbox)`. It is not the
+     runner output, and the case it counts are the ones `--from-git 647b289a53e9cf17064c5f341ef8621ee3c3de02`
+     selected: every case that declares a path this change touches. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --from-git 647b289a53e9cf17064c5f341ef8621ee3c3de02"
+           tests="426" failures="0" errors="0" skipped="0">
+  <properties>
+    <property name="selection" value="--from-git 647b289a53e9cf17064c5f341ef8621ee3c3de02"/>
+    <property name="finished" value="2026-11-13T12:38:48Z"/>
+    <property name="wall" value="612.29 s"/>
+  </properties>
+  <system-out>loop-selftest: all 426 cases passed (JDK 27, offline, no token, no sandbox) — 612.29 s</system-out>
+</testsuite>

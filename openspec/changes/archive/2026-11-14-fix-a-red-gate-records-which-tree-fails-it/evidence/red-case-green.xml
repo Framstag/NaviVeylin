@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-case-green.log
+     (2026-11-13T12:15:15Z), transcribed from that run's own `PASS` line. The same case is red on the base in
+     red-on-HEAD.log / red-on-HEAD.xml, so this is the green the change is measured by. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case run#aRedGateIsAttributedToTheTreeThatFailsIt"
+           tests="1" failures="0" errors="0">
+  <testcase classname="run" name="aRedGateIsAttributedToTheTreeThatFailsIt" time="unknown"/>
+  <system-out>PASS run#aRedGateIsAttributedToTheTreeThatFailsIt</system-out>
+</testsuite>

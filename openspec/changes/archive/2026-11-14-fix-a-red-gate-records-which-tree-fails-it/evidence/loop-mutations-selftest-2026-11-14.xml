@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The mutation harness's self-test writes no JUnit XML of its own: this is the tally of the run recorded in
+     loop-mutations-selftest-2026-11-14.log, transcribed from that run's own line (`loop-mutations-selftest: all 36
+     cases passed …`), and it is not the runner output. The gate's own tally of the same step on the tree before this
+     repair read `tests="34" failures="2"` (`evidence/gate-tallies/tools_loop_tests_loop-mutations-selftest.sh.xml`). -->
+<testsuite name="tools/loop/tests/loop-mutations-selftest.sh"
+           tests="36" failures="0" errors="0">
+  <properties>
+    <property name="guards" value="a file set runs the records its file owns; a git diff names the records its file owns; a copy with no sibling gate-log reader exits 2"/>
+  </properties>
+</testsuite>

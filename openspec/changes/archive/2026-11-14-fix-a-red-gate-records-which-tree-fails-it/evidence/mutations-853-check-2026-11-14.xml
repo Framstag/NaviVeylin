@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The mutation harness writes no JUnit XML of its own: this is the tally of the run recorded in
+     mutations-853-check-2026-11-14.log, transcribed from that run's own line (`loop-mutations: all 360 cases passed —
+     every selected record applies to the file it names`), and it is not the runner output. It is the structural
+     check the gate owes for a path under `tools/loop/**`. -->
+<testsuite name="tools/loop/tests/loop-mutations.sh --check"
+           tests="360" failures="0" errors="0">
+  <testcase classname="loop-mutations" name="everySelectedRecordApplies"/>
+</testsuite>

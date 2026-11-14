@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the second selection in
+     focused-red-gate-2026-11-14.log, transcribed from that run's own line (`PASS
+     gate#aCompiledStepsTallyIsNotHidden`), and it is not the runner output. The case's count narrowed to the tallies a
+     `*.xml` glob finds, because the gate's own log now stands in that directory too (issue #853). -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case gate#aCompiledStepsTallyIsNotHidden"
+           tests="1" failures="0" errors="0" time="5">
+  <testcase classname="gate" name="aCompiledStepsTallyIsNotHidden"/>
+</testsuite>

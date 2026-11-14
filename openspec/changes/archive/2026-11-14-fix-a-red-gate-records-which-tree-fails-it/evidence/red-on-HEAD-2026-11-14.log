@@ -1,0 +1,5 @@
+run#aRedGateIsAttributedToTheTreeThatFailsIt|   the case the item's own red test names is the delta's, measured from the gate's log: expected 'delta', got 'null'
+--- run#aRedGateIsAttributedToTheTreeThatFailsIt[0] (exit 1)
+  the case the item's own red test names is the delta's, measured from the gate's log: expected 'delta', got 'null'
+FAIL run#aRedGateIsAttributedToTheTreeThatFailsIt
+loop-selftest: 1 of 1 cases failed

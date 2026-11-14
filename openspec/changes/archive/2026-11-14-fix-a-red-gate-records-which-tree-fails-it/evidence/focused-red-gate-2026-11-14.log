@@ -1,0 +1,14 @@
+PASS gate#aRedGateRestoresTheChangeToItsUnarchivedName
+PASS state#aCloseOverARedGateRecordsWhyItWasWaived
+PASS state#aCloseOverARedGateWithoutAWaiverIsRefused
+PASS gate#aRedGateWritesTheLogItIsAttributedFrom
+PASS run#aRedGateIsBlockedByTheTail
+PASS run#aRedGateIsAttributedToTheTreeThatFailsIt
+PASS run#aCloseOverARedGateIsWaivedOrBlocked
+loop-selftest: state 2 cases 4.90 s
+loop-selftest: gate 2 cases 5.17 s
+loop-selftest: run 3 cases 69.35 s
+loop-selftest: all 7 cases passed (JDK 27, offline, no token, no sandbox) — 32.63 s, selection: --case *RedGate*
+status=0
+PASS gate#aCompiledStepsTallyIsNotHidden
+status=0

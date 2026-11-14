@@ -1,0 +1,14 @@
+# 2026-11-13T12:27:40Z
+loop-mutations: selected 3 of 358 records (labels: 853.1 853.2 853.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.dIG24A
+RED    853.1  run#aRedGateIsAttributedToTheTreeThatFailsIt   (the attribution a red tally is recorded with, so every red gate reads as one verdict and the case the delta wrote is asked of the base tree (issue #853))
+       2026-11-13T12:27:46Z — the case the item's own red test names is the delta's, measured from the gate's log: expected 'delta', got 'null'
+restore 853.1 run#aRedGateIsAttributedToTheTreeThatFailsIt green again
+RED    853.2  run#aRedGateIsAttributedToTheTreeThatFailsIt   (the field the record carries beside the tally and beside the waiver, so no run names which tree failed the case its gate named (issue #853))
+       2026-11-13T12:28:12Z — the case the item's own red test names is the delta's, measured from the gate's log: expected 'delta', got 'null'
+restore 853.2 run#aRedGateIsAttributedToTheTreeThatFailsIt green again
+RED    853.3  gate#aRedGateWritesTheLogItIsAttributedFrom   (the log written beside the tallies, so the one source a red gate is attributed from does not exist and every red reads `unattributable` (issue #853))
+       2026-11-13T12:28:32Z — the gate names the log it writes beside its tallies: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.ElakNx/cases/0/tree/case.yH1TAA/gate.conf — pinned; not the profile beside this engine (/home/tim
+restore 853.3 gate#aRedGateWritesTheLogItIsAttributedFrom green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

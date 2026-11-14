@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-mutations-selftest.sh" tests="34" failures="2" errors="0" time="795" run="2877777">
+  <system-out>ok   and it says the same selection the file set named ok   and the copy is byte-identical to the pristine one again loop-mutations-selftest: 2 of 34 cases failed — the mutation harness does not hold its own guards</system-out>
+</testsuite>

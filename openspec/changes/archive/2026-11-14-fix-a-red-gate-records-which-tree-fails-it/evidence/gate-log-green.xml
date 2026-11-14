@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in gate-log-green.log
+     (2026-11-13T12:15:32Z), transcribed from that run's own `PASS` line. The case runs `tools/loop/gate.sh` in a
+     throwaway project and asserts the log it writes beside its tallies — the file `attribute_red_gate` reads a red
+     gate's case out of — so the gate's own half of this change is measured by it. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case gate#aRedGateWritesTheLogItIsAttributedFrom"
+           tests="1" failures="0" errors="0">
+  <testcase classname="gate" name="aRedGateWritesTheLogItIsAttributedFrom" time="unknown"/>
+  <system-out>PASS gate#aRedGateWritesTheLogItIsAttributedFrom</system-out>
+</testsuite>

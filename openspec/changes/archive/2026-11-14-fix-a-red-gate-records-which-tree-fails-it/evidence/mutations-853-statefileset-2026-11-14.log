@@ -1,0 +1,112 @@
+loop-mutations: selected 36 of 360 records (files: tools/loop/state.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.Uw0jsS
+RED    9.1  state#secondRunRefusesWithExit5   (the lock that keeps one run per repository)
+       2026-11-14T02:49:24Z — the refusal names the lock: 'another run holds' not found in: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max
+restore 9.1 state#secondRunRefusesWithExit5 green again
+RED    13.6  state#secondRunRefusesWithExit5   (the refusal of a live owner's lock)
+       2026-11-14T02:49:41Z — the refused run wrote no label: expected 'gh issue edit 21 --add-label agent/in-progress', got 'gh issue edit 21 --add-label agent/in-progress
+restore 13.6 state#secondRunRefusesWithExit5 green again
+RED    41.2  state#aDeadOwnersLockIsTakenOver   (the liveness of the lock's owner)
+       2026-11-14T02:49:52Z — a lock whose owner is gone is taken over: expected '0', got '5'
+restore 41.2 state#aDeadOwnersLockIsTakenOver green again
+RED    56.1  state#recordsTheBaseBranchNotTheCheckout   (the base recorded from the base branch instead of the commit the checkout has)
+       2026-11-14T02:49:56Z — the base is the base branch's commit, not the checkout's: expected 'acffefc7dbed413d00a58f28d49567c9d34da95f', got '9f9c5318f54b367ce93df07c7ef908ec9cd70403'
+restore 56.1 state#recordsTheBaseBranchNotTheCheckout green again
+RED    57.2  state#setBaseRefusesACommitTheBaseBranchDoesNotCarry   (the ancestry of a recorded base against the base branch)
+       2026-11-14T02:49:59Z — a commit the base branch does not carry is refused: expected '5', got '0'
+restore 57.2 state#setBaseRefusesACommitTheBaseBranchDoesNotCarry green again
+RED    58.3  state#aBlockedItemNamesTheMechanismThatStoppedIt   (the mechanism written into the item record (issue #280))
+       2026-11-14T02:50:03Z — a block the run's own bound caused records the mechanism of its own (issue #786): expected 'bound', got 'null'
+restore 58.3 state#aBlockedItemNamesTheMechanismThatStoppedIt green again
+RED    58.4  report#wallTimeAndReasonInTheTable   (the mechanism printed in a column of its own, beside the spend (issue #280))
+       2026-11-14T02:50:08Z — the mechanism that stopped the block is in a column of its own: expected 'refused', got '-'
+restore 58.4 report#wallTimeAndReasonInTheTable green again
+RED    58.5  report#wallTimeAndReasonInTheTable   (`-` in the stop column of a row no mechanism stopped (issue #280))
+       2026-11-14T02:50:13Z — while a closure's stop column prints -: expected '-', got ''
+restore 58.5 report#wallTimeAndReasonInTheTable green again
+RED    65.2  report#anItemOverTheTokenBoundIsFlagged   (the table column that says how far above the band an item is (issue #662))
+       2026-11-14T02:50:17Z — the row above the bound says how far above it is, in a column of its own: expected '2.5x', got '-'
+restore 65.2 report#anItemOverTheTokenBoundIsFlagged green again
+RED    68.1  state#floorIsDerivedFromTheFinishedItemsWallTimes   (the floor following the cheapest measured item rather than the most expensive one (issue #674))
+       2026-11-14T02:50:24Z — state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+restore 68.1 state#floorIsDerivedFromTheFinishedItemsWallTimes green again
+RED    68.3  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch path the item's record carries, so the report can name the work an ended child left (issue #674))
+       2026-11-14T02:50:38Z — the item's state record names the patch the ended child's work is kept in: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.zmuzwF/cases/0/tree/case.5Z5k3y/repo/.pi/issue-loop/items/21/leftover-from-killed-ru
+restore 68.3 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    78.2  report#anItemBelowTheCallsPerTurnFloorIsNamed   (the table column that prints the per-item calls per turn (issue #757))
+       2026-11-14T02:50:50Z — the row carries the item's own calls per turn: expected '3', got '-'
+restore 78.2 report#anItemBelowTheCallsPerTurnFloorIsNamed green again
+RED    78.3  report#anItemBelowTheCallsPerTurnFloorIsNamed   (the calls an item event stream records, so the ratio has nothing to be derived from (issue #757))
+       2026-11-14T02:50:56Z — the item's tool calls are counted from its event stream: expected '6', got 'null'
+restore 78.3 report#anItemBelowTheCallsPerTurnFloorIsNamed green again
+RED    81.2  state#aBlockAtTheRunsBoundIsNoRefusal   (the streak read from refusals only, so two bound blocks stop a run whose queue and clock are untouched (issue #786))
+       2026-11-14T02:51:02Z — state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+restore 81.2 state#aBlockAtTheRunsBoundIsNoRefusal green again
+RED    256.1  report#theSpendIsSplitByPhaseRoleAndGate   (the phase split the stream records, so no phase the trend totals has a duration (issue #759))
+       2026-11-14T02:51:07Z — the model time is the sum of the children's own turn durations: expected '7500', got '0'
+restore 256.1 report#theSpendIsSplitByPhaseRoleAndGate green again
+RED    95.1  state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst   (the character bound the run recorded for every tool result it cut, so a run at another bound is a record a reader can tell apart (issue #815))
+       2026-11-14T02:51:11Z — the record names the character bound its items' results were cut at: expected '4000', got '0'
+restore 95.1 state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst green again
+RED    96.1  report#anItemRecordsItsRepeatReads   (the count of reads a session repeated, so an item that reopens a path it already read is a record a report can show (issue #814))
+       2026-11-14T02:51:16Z — and a path the session already read is counted as a repeat — the third read of a and the fourth, not the first: expected '2', got 'null'
+restore 96.1 report#anItemRecordsItsRepeatReads green again
+RED    98.1  state#aCloseOverARedGateWithoutAWaiverIsRefused   (the refusal of a close over a red tally that records no waiver, so the judgement lives in a transcript and the item reads `closed` with `errors=1` (issue #811))
+       2026-11-14T02:51:21Z — a close over a red tally that records no waiver is a usage error: expected '2', got '0'
+restore 98.1 state#aCloseOverARedGateWithoutAWaiverIsRefused green again
+RED    98.2  state#aCloseOverARedGateRecordsWhyItWasWaived   (the clause a close over a red gate was waived with, so a report can count the waiver instead of trusting prose (issue #811))
+       2026-11-14T02:51:25Z — and the clause the item closed over is the record's own field, not only prose in a transcript: expected 'the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path', got 'null'
+restore 98.2 state#aCloseOverARedGateRecordsWhyItWasWaived green again
+RED    265.2  state#aCutRecordsTheFilesItsPatchCarries   (the count of files the kept patch carries, so what a bound ended is named and never priced (issue #809))
+       2026-11-14T02:51:29Z — and the number of files that patch carries: expected '3', got 'null'
+restore 265.2 state#aCutRecordsTheFilesItsPatchCarries green again
+RED    quota-hold.1  state#aQuotaWindowIsAHoldNotAStop   (the hold a reader returns becoming the run paused status, not one of its stops)
+       2026-11-14T02:51:33Z — a window the reader holds on is a wait, not a stop: expected '6', got '3'
+restore quota-hold.1 state#aQuotaWindowIsAHoldNotAStop green again
+RED    quota-hold.2  state#aQuotaCheckThatCannotBeMadeIsNotARefusal   (the reading that could not be made staying no refusal)
+       2026-11-14T02:51:37Z — a reader that failed for its own reasons does not hold the run: expected '0', got '6'
+restore quota-hold.2 state#aQuotaCheckThatCannotBeMadeIsNotARefusal green again
+RED    quota-hold.3  state#noQuotaCommandAsksNothing   (an empty key meaning no question at all)
+       2026-11-14T02:51:41Z — an empty key asks nothing: expected '0', got '6'
+restore quota-hold.3 state#noQuotaCommandAsksNothing green again
+RED    quota-hold.4  state#aHoldMovesTheDeadlineWithIt   (the wait moving the deadline with it, so a pause is not spent budget)
+       2026-11-14T02:51:44Z — the deadline moves by exactly the seconds the wait takes: expected '1794625303', got '1794624703'
+restore quota-hold.4 state#aHoldMovesTheDeadlineWithIt green again
+RED    role-model.1  report#aRolesTokensRecordTheModelThatAnswered   (the model a turn answered with, so a role total names no model and every archived item is a price without its subject (issue #823))
+       2026-11-14T02:51:48Z — the reviewer's tokens are recorded under the model that answered them: expected '1000000', got 'null'
+restore role-model.1 report#aRolesTokensRecordTheModelThatAnswered green again
+RED    832.1  report#aTurnNoSessionRecordReachesIsItsOwnBucket   (the bucket the turns no session record reaches are counted in, so the spend is in the item total and in no bucket of the split (issue #832))
+       2026-11-14T02:51:52Z — the turns no session record reaches are a bucket of their own: expected '2000000', got 'null'
+restore 832.1 report#aTurnNoSessionRecordReachesIsItsOwnBucket green again
+RED    832.3  report#aTurnNoSessionRecordReachesIsItsOwnBucket   (the turn the stream ends inside is a turn of its region, so the buckets the split holds are exactly the tokens the total holds (issue #832))
+       2026-11-14T02:51:56Z — beside the role the session names: expected '1237384', got '1000000'
+restore 832.3 report#aTurnNoSessionRecordReachesIsItsOwnBucket green again
+RED    266.3  run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase   (the reading that puts the resume the start found into the item note, so the record is written and no reader of the item finds it (issue #754))
+       2026-11-14T02:52:09Z — the item's note records the non-apply instead of discarding it unrecorded: 'does not apply to this base' not found in: the worker process exited 124 — the child exceeded 2 s — the run ended it and everything it started · the run ended this 
+restore 266.3 run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase green again
+RED    267.2  state#theSpendSurvivesTheLossOfItsDeltaLines   (the usage a turn falls back to when a rotation has taken the update it ended on, so a rotated item records no tokens at all and its cost is a lower bound under a name that reads as a measurement (issue #840))
+       2026-11-14T02:52:21Z — and the input tokens of the turns whose updates are gone: expected '600', got 'null'
+restore 267.2 state#theSpendSurvivesTheLossOfItsDeltaLines green again
+RED    272.1  report#aCallThatNamesTheGateIsNotAGateRun   (the exclusion of a plan call, so the call that asks what a delta owes reads as the gate that decided the item and everything after it is spent after the gate (issue #830))
+       2026-11-14T02:52:25Z — a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at: expected 'null', got '{
+restore 272.1 report#aCallThatNamesTheGateIsNotAGateRun green again
+RED    272.2  report#aCallThatNamesTheGateIsNotAGateRun   (the cd prefix the program sits behind, so the gate a child runs from another directory reads as no gate at all and the item has no split (issue #830))
+       2026-11-14T02:52:30Z — the call that starts the gate behind a cd and a timeout is the gate, so its duration is the gate time: expected '5000', got '0'
+restore 272.2 report#aCallThatNamesTheGateIsNotAGateRun green again
+RED    272.3  report#aCallThatNamesTheGateIsNotAGateRun   (the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830))
+       2026-11-14T02:52:35Z — a session whose only gate.sh words read the file and ask for a plan ran no gate, so there is no turn to split at: expected 'null', got '{
+restore 272.3 report#aCallThatNamesTheGateIsNotAGateRun green again
+RED    855.1  report#aCheckTheGateWouldRunIsTheGateTime   (the profile map read as the programs the gate-s own checks start, so a suite a child runs by hand is ordinary tool time again and the gate bucket holds only the gate (issue #857))
+       2026-11-14T02:52:39Z — the case the child iterated on, the gate, and the suite it chained behind a 'date' are the gate bucket, whoever started them: expected '394000', got '5000'
+restore 855.1 report#aCheckTheGateWouldRunIsTheGateTime green again
+RED    855.3  report#aCheckTheGateWouldRunIsTheGateTime   (the count of the checks a child ran by hand, so the part of the bucket no gate run paid is priced at zero and an item that did pay the gate work itself records none (issue #857))
+       2026-11-14T02:52:44Z — the two checks the child ran itself are recorded as the part of the gate no gate run paid, with their count and their clock: expected '{"calls":2,"ms":389000}', got 'null'
+restore 855.3 report#aCheckTheGateWouldRunIsTheGateTime green again
+RED    853.2  run#aRedGateIsAttributedToTheTreeThatFailsIt   (the field the record carries beside the tally and beside the waiver, so no run names which tree failed the case its gate named (issue #853))
+       2026-11-14T02:52:55Z — the case the item's own red test names is the delta's, measured from the gate's log: expected 'delta', got 'null'
+restore 853.2 run#aRedGateIsAttributedToTheTreeThatFailsIt green again
+RED    864.1  report#thePreGateRoundIsChargedToItsOwnRole   (the arm that charges the round before the gate to its own bucket, so the reviewer figure holds two reviewers again and the item cannot say which phase spent its review tokens (issue #864))
+       2026-11-14T02:53:17Z — the round before the gate is a bucket of its own, not part of the reviewer's: expected '4000000', got 'null'
+restore 864.1 report#thePreGateRoundIsChargedToItsOwnRole green again
+
+red-when-mutated: 36 · not-noticed: 0 · restore-failures: 0

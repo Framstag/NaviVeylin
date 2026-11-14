@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/tests/check-rule-routes-mutations.json --list" tests="0" failures="0" errors="0" time="0" run="2877777">
+  <system-out>document-is-named	routes#aDocumentNoGlobNamesIsReported	every normative document under guidelines/ is matched against the map's globs, so a document no glob names is reported instead of deriving nothing for its own edits while its rules stay reached through another path's route guideline-route-names-its-document	routes#aGuidelineRouteCarryingAnotherDocumentIsReported	a route whose glob sits under </system-out>
+</testsuite>

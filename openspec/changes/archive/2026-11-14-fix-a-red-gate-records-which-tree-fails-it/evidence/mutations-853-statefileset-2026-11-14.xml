@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The mutation harness writes no JUnit XML of its own: this is the tally of the run recorded in
+     mutations-853-statefileset-2026-11-14.log, transcribed from that run's own lines (`selected 36 of 360 records
+     (files: tools/loop/state.sh)` … `red-when-mutated: 36 · not-noticed: 0 · restore-failures: 0`), and it is not
+     the runner output. The engine is a **copy** of `tools/loop` with `tools/issues` and `tools/gate-attribute.sh`
+     beside it — the layout `--engine` requires — which is the shape the run of 2026-11-13 measured a restore-failure
+     on (`853.2`), and `853.2`'s restore is green here. -->
+<testsuite name="tools/loop/tests/loop-mutations.sh --files tools/loop/state.sh --engine &lt;copy&gt;"
+           tests="36" failures="0" errors="0">
+  <properties>
+    <property name="selected" value="36 of 360"/>
+    <property name="not-noticed" value="0"/>
+    <property name="restore-failures" value="0"/>
+    <property name="record" value="853.2 run#aRedGateIsAttributedToTheTreeThatFailsIt — RED then restore … green again"/>
+  </properties>
+</testsuite>

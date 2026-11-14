@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run own lines, and it is not the runner output. The case is the change own and its
+     field is absent from the tree, so this is the reading the delta is red on. -->
+<testsuite name="tools/loop-selftest.sh --case run#aRedGateIsAttributedToTheTreeThatFailsIt"
+           tests="1" failures="1" errors="0">
+  <testcase classname="run" name="aRedGateIsAttributedToTheTreeThatFailsIt">
+    <failure message="the case the item red test names is the delta own, measured from the gate log: expected 'delta', got 'null'"/>
+  </testcase>
+</testsuite>

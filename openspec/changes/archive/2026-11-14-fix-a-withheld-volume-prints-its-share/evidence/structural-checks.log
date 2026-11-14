@@ -1,0 +1,22 @@
+=== mutations --only 96.2
+       2026-11-14T04:21:09Z — the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld as a share of those characters (the item's ledger counts across its children, so the share reads h
+restore 96.2 report#anItemRecordsItsRepeatReads green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+=== mutations --check (this change's files)
+loop-mutations: unknown argument tools/loop/tests/loop-cases.sh
+=== selftest driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+=== tools/check-portability.sh
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 60 engines and 8 templates name no project value (126 value(s) read from the project)
+=== tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 23 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+=== openspec validate --strict
+Change 'fix-a-withheld-volume-prints-its-share' is valid
+=== mutations --check (this change's files)
+loop-mutations: selected 39 of 358 records (files: tools/loop/report.sh tools/loop/tests/loop-cases.sh tools/loop/tests/loop-mutations.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.8mtWVl
+loop-mutations: all 39 cases passed — every selected record applies to the file it names

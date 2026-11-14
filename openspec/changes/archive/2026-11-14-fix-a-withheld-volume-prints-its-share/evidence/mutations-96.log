@@ -1,0 +1,17 @@
+=== mutations 96.2 (the volume, kept)
+loop-mutations: selected 1 of 358 records (labels: 96.2) (files: tools/loop/report.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.yrtmYm
+RED    96.2  report#anItemRecordsItsRepeatReads   (the characters the repeat rule withheld of the run repeats, so the trend calls the raw repeat volume re-injected again and a figure the child never saw reads as one it did (issue #831))
+       2026-11-14T04:21:49Z — the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld as a share of those characters (the item's ledger counts across its children, so the share reads h
+restore 96.2 report#anItemRecordsItsRepeatReads green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+=== mutations 96.4 (the share, added)
+loop-mutations: selected 1 of 358 records (labels: 96.4) (files: tools/loop/report.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.pW2M7Y
+RED    96.4  report#anItemRecordsItsRepeatReads   (the withheld volume as a share of the repeat results, so the trend prints two volumes three clauses apart and a rule that withheld almost nothing reads the same as one that met nothing to withhold (issue #866))
+       2026-11-14T04:21:56Z — the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld as a share of those characters (the item's ledger counts across its children, so the share reads h
+restore 96.4 report#anItemRecordsItsRepeatReads green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

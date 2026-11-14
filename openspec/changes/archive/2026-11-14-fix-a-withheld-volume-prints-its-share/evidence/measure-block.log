@@ -1,0 +1,78 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=fcbe328dd1ed75c0863bc43ad7de0f8a734f638e paths=43 insertions=3444 deletions=25
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/data/AssetCopier.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/mapmanager/MapManagerScreen.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/mapmanager/MapManagerViewModel.kt
+LOOP-MEASURE-PATH app/src/main/res/values-de/strings.xml
+LOOP-MEASURE-PATH app/src/main/res/values/strings.xml
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerStaleNoticeComposeTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerStaleRowTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerViewModelTestFactory.kt
+LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/mapsource/DeclaredTypes.kt
+LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/mapsource/StaleInstallCheck.kt
+LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/mapsource/TypeConfigNames.kt
+LOOP-MEASURE-PATH core/src/test/java/com/naviveylin/core/mapsource/StaleInstallTest.kt
+LOOP-MEASURE-PATH core/src/test/resources/mapsource/every-declared-name.ost
+LOOP-MEASURE-PATH core/src/test/resources/mapsource/golden-types.dat
+LOOP-MEASURE-PATH core/src/test/resources/mapsource/short-of-types.ost
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH guidelines/BuildNative.recipes.md
+LOOP-MEASURE-PATH guidelines/MapStyling.md
+LOOP-MEASURE-PATH guidelines/UI.why.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/core-StaleInstallTest-green.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/gate-red-attribution.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/gate-red-before-item-862-gate-run.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/gate-step-gradlew-jvm-tests.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/gate-step-loop-selftest-from-git.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/red-on-head-absence.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/TEST-com.naviveylin.ui.mapmanager.MapManagerStaleNoticeComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/TEST-com.naviveylin.ui.mapmanager.MapManagerStaleRowTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/TEST-StaleInstallTest-continuation.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/evidence/TEST-StaleInstallTest-revert-check-mutation.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/specs/map-updates/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-report-a-stale-map-install/tasks.md
+LOOP-MEASURE-PATH openspec/specs/map-updates/spec.md
+LOOP-MEASURE-PATH tools/issues/citations.json
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-PATH tools/pi-trim-result.mjs
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git fcbe328dd1ed75c0863bc43ad7de0f8a734f638e
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/tests/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/tests/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=427 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-withheld-volume-prints-its-share scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 report clause and its comment rewritten, 1 case rewritten with 1 phase added, 1 mutation record added, 2 guideline
+LOOP-MEASURE-END

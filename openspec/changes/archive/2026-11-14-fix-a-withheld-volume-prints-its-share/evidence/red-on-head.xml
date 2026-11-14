@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one case this change rewrites, against the engine as HEAD (d25972c1) has it:
+     `bash tools/loop/tests/loop-selftest.sh --case report#anItemRecordsItsRepeatReads` in this change's worktree,
+     2026-11-14T04:19:42Z (read as the run started), transcript `red-on-head.log`. The shell runner writes no JUnit XML
+     of its own, so this tally is transcribed from that transcript, the shape `fix-a-role-tally-records-its-model`'s
+     evidence uses. The case's only edit is the two lines that read the trend's `reads:` clause: it now expects the
+     withheld volume as a share of the repeat results, and on HEAD the clause ends at the volume, which is the failure
+     below. Its later phases — the state that predates the withheld figure, the run that opened no file — assert text
+     this change does not move, and the empty-denominator phase it adds is unread on HEAD. -->
+<testsuite name="loop-selftest --case report#anItemRecordsItsRepeatReads" tests="1" failures="1" errors="0" timestamp="2026-11-14T04:19:42Z">
+  <testcase name="report#anItemRecordsItsRepeatReads">
+    <failure>the trend prints the run's repeats with the two counts they came from, the characters in the repeat results, the characters the rule withheld as a share of those characters (the item's ledger counts across its children, so the share reads how much of the volume the rule agreed with and is no bound on it) and the worst item: '3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars withheld by the repeat rule (66.7 % of the repeat results) · worst #21 2 of 5' not found in:   reads:  3 of 7 file reads were a second read of a path the session already had (43 %) · 90 chars in the repeat results · 60 chars withheld by the repeat rule · worst #21 2 of 5</failure>
+  </testcase>
+  <system-out>FAIL report#anItemRecordsItsRepeatReads — loop-selftest: 1 of 1 cases failed (red-on-head.log)</system-out>
+</testsuite>

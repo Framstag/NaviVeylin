@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-values.sh" tests="0" failures="0" errors="0" time="0" run="2360277">
+  <system-out>LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config</system-out>
+</testsuite>

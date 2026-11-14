@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 fun MapCanvasViewModel.onToggleKeepScreenOn(enabled: Boolean) {
     _uiState.value = _uiState.value.copy(keepScreenOn = enabled)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(keepScreenOn = enabled) }
+        settingsController.update { it.copy(keepScreenOn = enabled) }
     }
 }
 
@@ -30,7 +30,7 @@ fun MapCanvasViewModel.onToggleKeepScreenOn(enabled: Boolean) {
 fun MapCanvasViewModel.onToggleLaneHints(enabled: Boolean) {
     _uiState.value = _uiState.value.copy(laneHintsEnabled = enabled)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(laneHintsEnabled = enabled) }
+        settingsController.update { it.copy(laneHintsEnabled = enabled) }
     }
 }
 
@@ -41,7 +41,7 @@ fun MapCanvasViewModel.onToggleLaneHints(enabled: Boolean) {
 fun MapCanvasViewModel.onToggleVoiceGuidance(enabled: Boolean) {
     _uiState.value = _uiState.value.copy(voiceGuidanceEnabled = enabled)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(voiceGuidanceEnabled = enabled) }
+        settingsController.update { it.copy(voiceGuidanceEnabled = enabled) }
     }
 }
 
@@ -52,7 +52,7 @@ fun MapCanvasViewModel.onToggleVoiceGuidance(enabled: Boolean) {
 fun MapCanvasViewModel.onToggleAnnounceGpsState(enabled: Boolean) {
     _uiState.value = _uiState.value.copy(announceGpsState = enabled)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(announceGpsState = enabled) }
+        settingsController.update { it.copy(announceGpsState = enabled) }
     }
 }
 
@@ -65,7 +65,7 @@ fun MapCanvasViewModel.onToggleAnnounceGpsState(enabled: Boolean) {
 fun MapCanvasViewModel.onSetOverspeedWarningDelta(deltaKmh: Int) {
     _uiState.value = _uiState.value.copy(overspeedWarningDeltaKmh = deltaKmh)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(overspeedWarningDeltaKmh = deltaKmh) }
+        settingsController.update { it.copy(overspeedWarningDeltaKmh = deltaKmh) }
     }
 }
 
@@ -80,7 +80,7 @@ fun MapCanvasViewModel.onSetLongPressTimeoutMs(timeoutMs: Int) {
     val clamped = clampLongPressTimeoutMs(timeoutMs)
     _uiState.value = _uiState.value.copy(longPressTimeoutMs = clamped)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(longPressTimeoutMs = clamped) }
+        settingsController.update { it.copy(longPressTimeoutMs = clamped) }
     }
 }
 
@@ -92,7 +92,7 @@ fun MapCanvasViewModel.onSetLongPressTimeoutMs(timeoutMs: Int) {
 fun MapCanvasViewModel.onSetCarMaxSpeed(kmh: Int) {
     _uiState.value = _uiState.value.copy(carMaxSpeedKmh = kmh)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(carMaxSpeedKmh = kmh) }
+        settingsController.update { it.copy(carMaxSpeedKmh = kmh) }
     }
 }
 
@@ -100,7 +100,7 @@ fun MapCanvasViewModel.onSetCarMaxSpeed(kmh: Int) {
 fun MapCanvasViewModel.onSetBicycleMaxSpeed(kmh: Int) {
     _uiState.value = _uiState.value.copy(bicycleMaxSpeedKmh = kmh)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(bicycleMaxSpeedKmh = kmh) }
+        settingsController.update { it.copy(bicycleMaxSpeedKmh = kmh) }
     }
 }
 
@@ -108,7 +108,7 @@ fun MapCanvasViewModel.onSetBicycleMaxSpeed(kmh: Int) {
 fun MapCanvasViewModel.onSetFootMaxSpeed(kmh: Int) {
     _uiState.value = _uiState.value.copy(footMaxSpeedKmh = kmh)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(footMaxSpeedKmh = kmh) }
+        settingsController.update { it.copy(footMaxSpeedKmh = kmh) }
     }
 }
 
@@ -120,7 +120,7 @@ fun MapCanvasViewModel.onSetFootMaxSpeed(kmh: Int) {
 fun MapCanvasViewModel.onSetAvoidTolls(avoid: Boolean) {
     _uiState.value = _uiState.value.copy(avoidTolls = avoid)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(avoidTolls = avoid) }
+        settingsController.update { it.copy(avoidTolls = avoid) }
     }
 }
 
@@ -128,7 +128,7 @@ fun MapCanvasViewModel.onSetAvoidTolls(avoid: Boolean) {
 fun MapCanvasViewModel.onSetAvoidFerries(avoid: Boolean) {
     _uiState.value = _uiState.value.copy(avoidFerries = avoid)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(avoidFerries = avoid) }
+        settingsController.update { it.copy(avoidFerries = avoid) }
     }
 }
 
@@ -136,7 +136,7 @@ fun MapCanvasViewModel.onSetAvoidFerries(avoid: Boolean) {
 fun MapCanvasViewModel.onSetAvoidUnpaved(avoid: Boolean) {
     _uiState.value = _uiState.value.copy(avoidUnpaved = avoid)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(avoidUnpaved = avoid) }
+        settingsController.update { it.copy(avoidUnpaved = avoid) }
     }
 }
 
@@ -148,7 +148,7 @@ fun MapCanvasViewModel.onSetAvoidUnpaved(avoid: Boolean) {
 fun MapCanvasViewModel.onSetRenderMode(mode: RenderMode) {
     _uiState.value = _uiState.value.copy(renderMode = mode)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(renderMode = mode) }
+        settingsController.update { it.copy(renderMode = mode) }
     }
     mapRenderer?.renderMode = mode
     mapRenderer?.invalidateStyle()
@@ -392,7 +392,7 @@ fun MapCanvasViewModel.onSetPreferSymbolPoiIcons(preferSymbolIcons: Boolean) {
     preferSymbolSetByUser = true
     _uiState.value = _uiState.value.copy(preferSymbolPoiIcons = preferSymbolIcons)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(preferSymbolPoiIcons = preferSymbolIcons) }
+        settingsController.update { it.copy(preferSymbolPoiIcons = preferSymbolIcons) }
     }
     applyPreferSymbolIcons(preferSymbolIcons, invalidate = true)
 }
@@ -401,7 +401,7 @@ fun MapCanvasViewModel.onSetPreferSymbolPoiIcons(preferSymbolIcons: Boolean) {
 fun MapCanvasViewModel.onStyleSheetSelected(name: String) {
     _uiState.value = _uiState.value.copy(styleSheet = name)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(styleSheet = name) }
+        settingsController.update { it.copy(styleSheet = name) }
     }
     viewModelScope.launch {
         ensureMapStyle(name, resolvedDaylight(), MapStyleApplyReason.STYLE_SWITCH)
@@ -412,7 +412,7 @@ fun MapCanvasViewModel.onStyleSheetSelected(name: String) {
 fun MapCanvasViewModel.onToggleAutoZoom(enabled: Boolean) {
     _uiState.value = _uiState.value.copy(autoZoomEnabled = enabled)
     viewModelScope.launch {
-        settingsStorage.update { it.copy(autoZoomEnabled = enabled) }
+        settingsController.update { it.copy(autoZoomEnabled = enabled) }
     }
     if (enabled) {
         // Reset suspension state so zoom adjusts immediately
@@ -445,7 +445,7 @@ internal fun MapCanvasViewModel.wireDarkPresentation() {
 internal fun MapCanvasViewModel.wirePersistedSettings() {
     // Load persisted settings
     viewModelScope.launch {
-        val settings = settingsStorage.load()
+        val settings = settingsController.load()
         // A user change that landed while this read was in flight wins: the read is a suspension
         // point, so the persisted value it returns may already be the one the user replaced
         // (spec: `dark-mode` — A user change outranks an in-flight settings read).

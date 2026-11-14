@@ -1032,7 +1032,7 @@ fun MapCanvasViewModel.onAddressBookResultSelected(entry: LocationEntry) {
     viewModelScope.launch {
         if (_uiState.value.followMode) {
             _uiState.value = _uiState.value.copy(followMode = false)
-            settingsStorage.update { it.copy(followMode = false) }
+            settingsController.update { it.copy(followMode = false) }
         }
         _uiState.value = _uiState.value.copy(
             searchOpen = false,

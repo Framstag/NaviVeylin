@@ -17,6 +17,7 @@ import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
+import com.naviveylin.ui.settings.SettingsController
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
@@ -78,7 +79,7 @@ class MapCanvasViewModelVehicleAnchorTest {
         settingsStorage.ioDispatcher = mainDispatcherRule.dispatcher
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = settingsStorage,
+            settingsController = SettingsController(settingsStorage),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
@@ -120,7 +121,7 @@ class MapCanvasViewModelVehicleAnchorTest {
         // Reload the view model so the persisted settings are picked up.
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = settingsStorage,
+            settingsController = SettingsController(settingsStorage),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
@@ -189,7 +190,7 @@ class MapCanvasViewModelVehicleAnchorTest {
         settingsStorage.save(current.copy(routingAnchorId = "", freeDrivingAnchorId = ""))
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = settingsStorage,
+            settingsController = SettingsController(settingsStorage),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
@@ -215,7 +216,7 @@ class MapCanvasViewModelVehicleAnchorTest {
     private fun recreateViewModel() {
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = settingsStorage,
+            settingsController = SettingsController(settingsStorage),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),

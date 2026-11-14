@@ -10,6 +10,7 @@ import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
+import com.naviveylin.ui.settings.SettingsController
 import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
@@ -83,7 +84,7 @@ class MapCanvasViewModelInitThreadingTest {
     private fun createViewModel(): MapCanvasViewModel {
         val vm = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = settingsStorage,
+            settingsController = SettingsController(settingsStorage),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),

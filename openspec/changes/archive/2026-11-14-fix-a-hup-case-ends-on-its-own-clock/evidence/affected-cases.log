@@ -1,0 +1,6 @@
+2026-11-13T22:53:12Z
+bash -n tools/loop/tests/loop-cases.sh: ok
+PASS run#noProcessOfASignalledRunOutlivesIt
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#theCaseBoundScalesWithThePool
+2026-11-13T22:53:41Z

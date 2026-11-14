@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally `bash tools/loop/tests/loop-selftest.sh --case 'run#aHupThe*'` printed on the base tree (HEAD 0848c35d,
+     with the new case present and the fix absent, which is the tree the red case has to fail on): the shell runner
+     writes no JUnit XML, so this file carries the number the change quotes (tests=1 failures=1), kept beside
+     evidence/red-on-HEAD.log so the claim has both halves. -->
+<testsuite name="bash tools/loop/tests/loop-selftest.sh --case run#aHupThe* (HEAD 0848c35d)" tests="1" failures="1" errors="0" time="4">
+  <testcase name="run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock" classname="loop-selftest">
+    <failure message="the case's own wait answered '' for a run the HUP never reached — expected the bound's 124 inside its own ticks">wait_for_pid_end: Kommando nicht gefunden</failure>
+  </testcase>
+  <system-out>2026-11-13T22:52:39Z FAIL run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock loop-selftest: 1 of 1 cases failed 2026-11-13T22:52:45Z</system-out>
+</testsuite>

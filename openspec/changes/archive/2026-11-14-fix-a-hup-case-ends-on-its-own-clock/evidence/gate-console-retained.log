@@ -1,0 +1,224 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+matches() { # <space-separated globs> <path>
+# A pair list is read one `<glob>|<command>` pair at a time, in the order the profile wrote it, so the order of the
+owe_pairs() { # <kind> <";"-separated `<glob>|<command>` pairs> → every command this delta owes, appended in order
+    earlier=$(awk -F'\t' -v k="$session_key" '$1 == k { print $2 "\t" $3 }' "$runs_record" 2>/dev/null) || true
+    printf '%s\t%s\t%s\n' "$session_key" "$gate_argv" "${tree_identity:-head=unknown diff=unknown}" >> "$runs_record" 2>/dev/null || true
+# `out=$($cmd 2>&1)` held the whole output until the command exited, so a gate that ran a suite for eleven minutes
+  [ "$(cat "$tally_lock/owner" 2>/dev/null)" = "$tally_owner" ] && rm -rf "$tally_lock" 2>/dev/null
+  mkdir -p "$tally_root" 2>/dev/null || true
+  if ! mkdir "$tally_lock" 2>/dev/null; then
+      holder=$(cat "$tally_lock/owner" 2>/dev/null || printf '')
+    if [ "$holder_pid" -gt 0 ] && kill -0 "$holder_pid" 2>/dev/null; then
+    if [ "$(cat "$tally_lock/owner" 2>/dev/null)" != "$holder" ]; then
+    rm -rf "$tally_lock" 2>/dev/null || true
+    mkdir "$tally_lock" 2>/dev/null || {
+  if ! printf '%s\n' "$tally_owner" > "$tally_lock/owner" 2>/dev/null; then
+    rm -rf "$tally_lock" 2>/dev/null || true
+  rm -f "$tally_root"/*.xml 2>/dev/null || true
+start_step() { # <slot> <command> → the step is running, its own files written and its own clock started
+  ( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 &
+wave_wait() { # <slot> … → every step has ended, or was ended at its own bound
+  # `gate: <cmd>` … `— <n>s` block is what a reader, and `tools/gate-attribute.sh`, attribute a failure from. Those
+    : > "$follow_stop"
+    wait "$follow" 2>/dev/null
+finish_step() { # <slot> → the step's block on the console and its numbers in the gate's totals
+tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
+st_cmd=(); st_pid=(); st_stream=(); st_status=(); st_started=(); st_ended=(); st_overran=(); st_announced=(); st_followed=()
+  stream="$gate_tmp/step-$i.out"
+  status_file="$gate_tmp/step-$i.status"
+    stream=${st_stream[slot]}
+  stream=${st_stream[slot]}
+  status_file=${st_status[slot]}
+gate_tmp=$(mktemp -d "${TMPDIR:-/tmp}/loop-gate-steps.XXXXXX") \
+[pi-permission-system] Denied by policy: 'external_directory' for tool 'ctx_ls' for path '/tmp' (rule '*'): outside working directory '/home/tim/projects/NaviVeylin'.
+(no output)
+finish_step() { # <slot> → the step's block on the console and its numbers in the gate's totals
+  local slot=$1 cmd stream status_file out n m f err rc took t0 name
+  cmd=${st_cmd[slot]}
+  stream=${st_stream[slot]}
+  status_file=${st_status[slot]}
+  # A step the bound answered names itself, in the stream the tally and the console are both read from (issue #311):
+  # "the gate never returned" cannot say which suite overran, and the tally's last lines are where a reader looks.
+  if [ "${st_overran[slot]}" -eq 1 ]; then
+    printf 'LOOP-GATE-STEP: %s exceeded %s s — the gate ended it and everything it started\n' "$cmd" "$step_max" >> "$stream"
+  fi
+  # Nothing is left to a bare `wait`, the same rule the run's own cap follows: a step still standing after its own
+  # record, or after the bound ended its group, is ended by pid.
+  if kill -0 "${st_pid[slot]}" 2>/dev/null; then loop_end_pid "${st_pid[slot]}"; fi
+  if [ "${st_overran[slot]}" -eq 1 ]; then
+    rc=124
+  else
+    rc=$(cat "$status_file" 2>/dev/null || printf '1')
+    case "$rc" in ''|*[!0-9]*) rc=1 ;; esac
+  fi
+  out=$(cat "$stream")
+  t0=${st_started[slot]}
+  took=$((st_ended[slot] - t0))
+  [ "$took" -ge 0 ] || took=0
+  # A step of a wave prints its block whole and header first, so its output is its own between its own header and its
+  # own duration line — the shape `tools/gate-attribute.sh` reads a failure and its step from.
+  if [ "${st_announced[slot]}" -eq 0 ]; then say "gate: $cmd"; fi
+  if [ "${st_followed[slot]}" -eq 0 ] && [ "$quiet" -eq 0 ] && [ -n "$out" ]; then printf '%s\n' "$out"; fi
+  if [ "${st_overran[slot]}" -eq 1 ]; then
+    say "gate: $cmd — ${took}s — the step overran its bound of ${step_max}s and was ended"
+  else
+    say "gate: $cmd — ${took}s"
+  fi
+  ran_entries="${ran_entries}${ran_entries:+, }$cmd ${took}s"
+  [ "$rc" -eq 0 ] || failed_suites="$failed_suites $cmd"
+  # The suite's own summary line: `<name>: all N cases passed` or `<name>: M of N cases failed`.
+  n=$(printf '%s\n' "$out" | sed -n 's/.*all \([0-9][0-9]*\) cases passed.*/\1/p' | tail -1)
+  if [ -z "$n" ]; then
+    m=$(printf '%s\n' "$out" | sed -n 's/.*: \([0-9][0-9]*\) of \([0-9][0-9]*\) cases failed.*/\2/p' | tail -1)
+    n="${m:-}"
+  fi
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  f=0
+  [ "$rc" -eq 0 ] || f=$(printf '%s\n' "$out" | sed -n 's/.*: \([0-9][0-9]*\) of [0-9][0-9]* cases failed.*/\1/p' | tail -1)
+  case "$f" in ''|*[!0-9]*) f=0 ;; esac
+  # A failed suite's *absence of a summary* is not a failing case: `n` and `f` stay the suite's own numbers, and the
+  # failure is kept apart as an error. Measured 2026-10-23 (issue #268): a compiled step that died at configuration
+  # (`BUILD FAILED in 21s`, no test task reached its action) was tallied `tests="1" failures="1"`, because the
+  # former `n=1`/`f=1` fallbacks stated a case and a failure the suite never reported — a tally meant to prove what
+  # ran became evidence that something did.
+  err=0
+  [ "$rc" -eq 0 ] || [ "$f" -gt 0 ] || err=1
+  cases=$((cases + n))
+  failures=$((failures + f))
+  errors=$((errors + err))
+  # One tally per suite, under the directory the profile names (`*test-results*`, so the run's own check finds
+  # it) and only when it names one: the engine may hold no project path, and the portability check is what says so.
+  if [ -n "$tally_root" ]; then
+    mkdir -p "$tally_root" 2>/dev/null || true
+    # The name is the command, and a tally's name is never a dotfile: the profile's compiled command is the `./`-form
+    # a program in the project root needs, and that leading `.` survived sanitising into `._<name>.xml`, so a plain
+LOOK: 658 matches in 546 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'LOOP-GATE: tests='
+LOOK-FILE: tools/loop/phase.sh 1
+LOOK-FILE: tools/loop/prompts/worker-gate.md 1
+LOOK-FILE: tools/loop/prompts/worker.md 1
+LOOK-FILE: tools/loop/loop.conf 1
+LOOK-FILE: tools/loop/gate.sh 3
+LOOK-FILE: tools/loop/tests/loop-cases.sh 35
+LOOK-FILE: tools/gate-attribute.sh 1
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+LOOK-FILE: openspec/changes/package-structure-as-five-kinds/evidence/structural-checks-round2.log 1
+LOOK-FILE: openspec/changes/package-structure-as-five-kinds/evidence/gate-output-round2.txt 1
+LOOK-FILE: openspec/changes/package-structure-as-five-kinds/evidence/gate-output-873.log 1
+LOOK-FILE: openspec/changes/archive/2026-10-25-fix-metadata-drift-check-never-runs/evidence/evidence.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-25-fix-metadata-drift-check-never-runs/evidence/gate.log 1
+LOOK-FILE: openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/corrections-round-2.txt 1
+LOOK-FILE: openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate.log 1
+LOOK-FILE: openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate-round-2.log 1
+LOOK-FILE: openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-29-fix-unbounded-agent-context/evidence/round-2.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-29-fix-unbounded-agent-context/evidence/merge-gate.log 1
+failed_suites=""
+  [ "$rc" -eq 0 ] || failed_suites="$failed_suites $cmd"
+if [ -n "$failed_suites" ]; then
+  printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s\n' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites"
+-rw-r--r-- 1 tim tim 5032 14. Nov 00:09 tool-result-ledger.tsv
+-rw-r--r-- 1 tim tim 4395 14. Nov 00:14 tool-result-trims.log
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=10379 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=16593 kept=8000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=15291 kept=8000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=13382 kept=8000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=9719 kept=8000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=16535 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=10791 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=6120 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=4897 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=4141 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=4920 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=5125 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=6974 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=6376 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=9324 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=7364 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=7455 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=8678 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=5173 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=10509 kept=8000
+LOOP-TOOL-RESULT-TRIM: ctx_grep chars=4001 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=7204 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=6564 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=9457 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=6469 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=6254 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=5052 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=6709 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_grep chars=4642 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=6209 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=4229 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=8434 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=5423 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=9996 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=11334 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_shell chars=6536 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=8184 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=16543 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=15228 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=10428 kept=4000
+LOOP-TOOL-RESULT-TRIM: ctx_read chars=11300 kept=4000
+tally_lock=""
+  tally_lock=""
+  tally_lock="$tally_root/.gate.lock"
+      tally_lock=""
+      tally_lock=""
+      tally_lock=""
+    tally_lock=""
+.
+..
+loop-gate
+.
+..
+bash_tools_gen-feature-list.sh_--check-classification.xml
+bash_tools_loop_tests_loop-mutations.sh_--check.xml
+tools_check-doc-routes.sh.xml
+LOOP_GATE_STEP_MAX_SECONDS=1800
+# `LOOP_GATE_STEP_MAX_SECONDS` above and the caller's ceiling (issue #692) bound the wave, not the step count.
+LOOP_GATE_POOL_JOBS=4
+# project root exactly as `LOOP_GATE_CMD` is (the run starts every child there). The adapter is outside the
+LOOP_GATE_CMD="./tools/loop/gate.sh"
+LOOP_GATE_RUNS_MAX=2
+# step runs is a value of `LOOP_GATE_SUITES`, and every path a step's tools read is a glob that owes that step's
+LOOP_GATE_TALLY_DIR="app/build/test-results/loop-gate"
+LOOP_GATE_COMPILED_CMD="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache"
+LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+LOOP_GATE_PIPELINE=".github/workflows/build.yml"
+LOOP_GATE_SUITES="tools/loop/*|tools/loop/tests/loop-selftest.sh --from-git {base};tools/loop/*|bash tools/loop/tests/loop-mutations.sh --check;tools/loop/tests/loop-cases.sh|tools/loop/tests/loop-selftest.sh --from-git {base};tools/loop/tests/loop-mutations.sh|tools/loop/tests/loop-mutations-selftest.sh;tools/loop/tests/loop-mutations.sh|bash tools/loop/tests/loop-mutations.sh --check;tools/loop/tests/loop-mutations-selftest.sh|tools/loop/tests/loop-mutations-selftest.sh;tools/loop/tests/loop-selftest.sh|tools/loop/tests/loop-selftest.sh --from-git {base};tools/loop/tests/loop-selftest.sh|bash tools/loop/tests/loop-mutations.sh --check;tools/mutate*|tools/tests/mutate-selftest.sh;tools/issues/*|tools/issues/tests/issue-tooling-selftest.sh;tools/issues/*|tools/issues/check-metadata.sh;tools/issues/*|tools/issues/tests/metadata-mutations.sh --list;tools/tooling.json|tools/issues/tests/issue-tooling-selftest.sh;tools/issues/tests/issue-tooling-cases.sh|tools/issues/tests/issue-tooling-selftest.sh;tools/issues/tests/status-mutations.json|tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list;tools/issues/tests/create-mutations.json|tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list;tools/issues/tests/close-mutations.json|tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list;tools/issues/tests/duplicates-mutations.json|tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list;tools/issues/tests/decision-question-mutations.json|tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list;tools/sensors/*|tools/sensors/tests/sensor-selftest.sh;tools/sensor-*.sh|tools/sensors/tests/sensor-selftest.sh;tools/sensor*|tools/sensors/tests/sensor-mutations.sh --list;.github/workflows/sensors.yml|tools/sensors/tests/sensor-selftest.sh;.github/workflows/sensors.yml|tools/sensors/tests/sensor-mutations.sh --list;tools/build-inputs*|tools/build-inputs.sh --check;tools/build-inputs*|tools/tests/build-inputs-selftest.sh;tools/build-inputs*|tools/tests/build-inputs-mutations.sh --list;tools/sonar-findings*|tools/tests/sonar-findings-selftest.sh;tools/sonar-findings*|bash tools/tests/build-inputs-mutations.sh --list;tools/tests/sonar-findings*|tools/tests/sonar-findings-selftest.sh;tools/tests/fixtures/sonar-findings/*|tools/tests/sonar-findings-selftest.sh;.github/workflows/sonar.yml|tools/check-sonar-workflow.sh;.github/workflows/sonar.yml|tools/tests/check-sonar-workflow-selftest.sh;.github/workflows/sonar.yml|tools/tests/sonar-findings-selftest.sh;.github/workflows/sonar.yml|bash tools/tests/build-inputs-mutations.sh --list;tools/check-portability*|tools/check-portability.sh;tools/check-portability*|tools/tests/check-portability-selftest.sh;tools/check-portability*|tools/mutate.sh --mutations tools/tests/portability-mutations.json --list;tools/portability-*|tools/check-portability.sh;tools/portability-*|tools/tests/check-portability-selftest.sh;tools/portability-*|tools/mutate.sh --mutations tools/tests/portability-mutations.json --list;tools/tests/fixtures/foreign-project/*|tools/tests/check-portability-selftest.sh;PORTING.md|tools/tests/check-portability-selftest.sh;tools/resolve-stale*|tools/issues/tests/resolve-stal
+[LOOP-TRIMMED: ctx_shell returned 12358 characters; the first 4000 are shown — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]
+
+44abcf11164bcad0d19d96bb141da275	1	6000	worker-gate-prompt	build/test-results/test/TEST-tools.xml
+b5832d214af5d9403a3c79610229d5b8	9	3034	worker-prompt	/home/tim/projects/NaviVeylin/.pi/issue-loop/items/860/worker-prompt.md
+79e1e6dea0d446f41debe899e5b709af	8	1593	reviewer-pre-gate-prompt	/home/tim/projects/NaviVeylin/.pi/issue-loop/items/860/work-package.md
+985885a41203a8f493e48c5b1ed2d90d	14	761	reviewer-pre-gate-prompt	/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-selftest.sh
+24 suites  tests=1034 failures=2 errors=0
+affected-cases.log
+gate-loop-selftest-from-git.xml
+green-on-change.log
+red-on-HEAD.log
+red-on-HEAD.xml
+
+# the gate child's own closing answer
+Phase E done. Summary:
+
+**1. Findings** — reviewer found none; nothing applied.
+
+**2. Change completed (pre-gate)**
+- Evidence copied to item dir: `green-on-change.log`, `red-on-HEAD.log`, `affected-cases.log` (plus pre-existing `red-on-HEAD.xml`)
+- `evidence-check.sh` → `PASS` (C5: 247 resolved, 37 report-only)
+- Archived: `openspec/changes/archive/2026-11-14-fix-a-hup-case-ends-on-its-own-clock/` ✓; capability spec carries `#### Scenario: A case's own wait ends on the case's own clock` (`spec.md:2640`, Case `run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock`) ✓
+
+**3. Gate — run once, completed** (`LOOP-GATE-TALLY: run=2374424`, lock released)
+- 24 suites tallied: **tests=1034 failures=2 errors=0** — gate RED
+- Failing suite: `tools/loop/tests/loop-selftest.sh --from-git fcbe328dd1ed75c0863bc43ad7de0f8a734f638e` — `2 of 428 cases failed — 752.69 s` (from its tally XML, copied to change `evidence/gate-loop-selftest-from-git.xml` + item dir). Per-case FAIL names lived in the gate's `/tmp` step stream, unreadable from this sandbox; console tail was cut by the result trim.
+- No compiled build owed (no `*/src/*`/gradle path in delta): shell suites + doc/mutation/portability/issue-tooling checks ran.
+- Not repairing — no tree writes after gate beyond `evidence/` copies.
+
+```
+LOOP-CHANGE: fix-a-hup-case-ends-on-its-own-clock
+LOOP-ROOT-CAUSE: the HUP case signals the run and then waits for it with no clock of its own and without requiring the item to have answered, so a signal the run never takes is answered only by the suite's bound (LOOP_CASE_MAX_SECONDS × pool width) while the case keeps its run, its child and its stream
+LOOP-RED-TEST: run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock fails on HEAD — XML tests=1 failures=1 (2026-11-13T22:52:39Z)
+LOOP-GATE: tests=1034 failures=2 errors=0 (shell suites: loop-selftest --from-git, loop-mutations --check, issue-tooling/metadata/mutation lists, doc-routes/doc-values/openspec-hygiene/portability checks — no compiled build owed) — failing: tools/loop/tests/loop-selftest.sh --from-git fcbe328dd1ed75c0863bc43ad7de0f8a734f638e (2 of 428 cases failed)
+```

@@ -434,6 +434,7 @@ LOOP_SHELL_CASES=(
   'repeat#anItemsLedgerSpansItsChildren'
   'repeat#theHookWritesTheItemsLedger'
   'run#childPastItsTurnBoundIsCut'
+  'run#childPastItsCheckBoundIsCut'
   'prescreen#aReworkCutBranchIsWork'
   'prescreen#anAnsweredBranchIsWorkNotADecision'
   'prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch'
@@ -1148,6 +1149,7 @@ loop_run_shell_case() {
     'repeat#anItemsLedgerSpansItsChildren') fn=case_repeat_anItemsLedgerSpansItsChildren ;;
     'repeat#theHookWritesTheItemsLedger') fn=case_repeat_theHookWritesTheItemsLedger ;;
     'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
+    'run#childPastItsCheckBoundIsCut') fn=case_run_childPastItsCheckBoundIsCut ;;
     'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
@@ -16967,6 +16969,86 @@ EOF
   assert_contains "$out" "blocked 0 · cut 1" "the report counts the item as a cut and not as a block"
   assert_contains "$out" "cut short by the run's own bound: #21" \
     "and names it on the line the run's own bound owns"
+  return 0
+}
+
+# The checks a child runs by hand are the gate's own work, and nothing bounded them (issue #882): `LOOP_GATE_RUNS_MAX`
+# refuses a second full run through `tools/loop/gate.sh`, while the same work started outside it was priced only after
+# the child had ended, as `metrics.gateRepeat` (issue #857) — 226 such calls held 1.3 h of the 3.1 h gate bucket of the
+# run started 2026-11-13T05:47:11Z. The bound is the recorded `LOOP_CHILD_CHECKS_MAX`, counted while the child runs from
+# the lines its stream gains, by the rule the report already classifies with: a call that **runs** one of the programs
+# the gate's own checks start, less the gate's own run. The child here appends four `turn_end` lines and then blocks —
+# two that name the gate's file and run nothing, two that start programs the gate's map names — with the recorded value
+# at 2. A tree that counts nothing waits on that child for ever; a tree that counts every call names more than the two
+# checks it counted in the line it writes.
+case_run_childPastItsCheckBoundIsCut() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # The wall clock and the worker's turn bound keep their recorded defaults, so the only bound this case can reach is
+  # the check one: a case that shortened them too would pass on a tree that ended the child for time or for turns.
+  sed -e 's/^LOOP_CHILD_CHECKS_MAX=.*/LOOP_CHILD_CHECKS_MAX=2/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record a small check bound"
+  grep -qx 'LOOP_CHILD_CHECKS_MAX=2' "$conf" ||
+    fail "this case could not shorten the child's check bound in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The calls, in the shape the adapter keeps them: a `toolCall` block inside the turn it was made in, with the command
+  # it ran. `sed -n 1,60p tools/loop/gate.sh` and `git show HEAD:tools/loop/gate.sh` read the gate's file and start
+  # nothing; the two after them start programs the gate's own map names.
+  fixture="$d/events.jsonl"
+  printf '%s\n' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"m1","name":"bash","arguments":{"command":"sed -n 1,60p tools/loop/gate.sh"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"m2","name":"bash","arguments":{"command":"git show HEAD:tools/loop/gate.sh"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c1","name":"bash","arguments":{"command":"tools/loop/tests/loop-selftest.sh --case run#childStartsInTheProjectRoot"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c2","name":"bash","arguments":{"command":"bash tools/loop/tests/loop-mutations.sh --check"}}]}}' \
+    > "$fixture"
+  action="$d/check-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  # The child blocks on the fifo and is never released: without the check bound the run is still waiting on it long
+  # after the case's own bound, which is what makes this case red on the tree before the fix.
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  # The case holds the fifo's writer side for its whole life, so a child that is released never blocks and never finds
+  # a writer behind it. 60 s is the case's own margin on a host that need not be free (issue #308).
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child that had run 2 checks past a recorded bound of 2"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_contains "$out" "child-checks-max=2" "the run's header names the check bound it enforces"
+  assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the cut"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the check bound ended"
+  assert_contains "$(cat "$report")" "check bound of 2 checks (LOOP_CHILD_CHECKS_MAX)" \
+    "the transcript names the bound that ended it"
+  assert_contains "$(cat "$report")" "after 2 check(s)" \
+    "and counts the two checks the child ran, not the two calls that only read the gate's file"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child crossed the bound is recorded cut, not blocked (issue #790)"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
+    "and the bound that ended it is kept beside the result"
   return 0
 }
 

@@ -199,6 +199,15 @@ for role in worker worker-gate worker-tail worker-rework reviewer reviewer-pre-g
   child_turn_bounds="${child_turn_bounds:+$child_turn_bounds,}$role:$(child_turn_bound "$role")"
 done
 
+# How many of the gate's own checks one child may start by hand (issue #882). `LOOP_GATE_RUNS_MAX` bounds the gate's
+# own full runs, but the same work a child starts outside `gate.sh` met no bound at all: it was counted after the
+# child had ended, as `metrics.gateRepeat` (issue #857), and no arm acted on it. Measured on run
+# 2026-11-13T05:47:11Z — 226 hand-run checks holding 1.3 h of its 3.1 h gate bucket, and the walls of #853, #865 and
+# #864 80 %, 60.4 % and 58.8 % gate — so the count is read while the child runs, from the stream it appends to,
+# exactly as its turns are. Unrecorded or `0` is no bound, the rule every other bound in the profile follows (D16).
+child_checks_bound=$(loop_conf_value LOOP_CHILD_CHECKS_MAX)
+case "$child_checks_bound" in ''|*[!0-9]*) child_checks_bound=0 ;; esac
+
 # A bound priced in what a turn costs, not in how many turns there are (issue #760). The turn bound above counts
 # turns, and a turn is a unit of shape rather than of cost: every turn re-reads the whole conversation, so the same
 # turn count costs 40 k or 240 k depending on how far the context has grown — over this project's archive (227 items,
@@ -349,9 +358,9 @@ if [ -n "${LOOP_QUOTA_CMD:-}" ]; then
   quota_reader="${LOOP_QUOTA_CMD##* }"
   quota_reader="${quota_reader##*/}"
 fi
-printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s item-context-bounds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s child-checks-max=%s item-context-warn=%s item-context-max=%s item-context-bounds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s\n' \
   "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$child_context_bounds" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles" "$quota_reader"
+  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$child_checks_bound" "$item_context_warn" "$item_context_max" "$child_context_bounds" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles" "$quota_reader"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -1572,7 +1581,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_bound ctx_bound_key
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_bound ctx_bound_key checks_max checks_seen=0 checks_done=0 chk_new chk_read chk_done
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -1595,6 +1604,9 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   if [ -n "$(printf '%s' "$role_cmd" | tr -d '[:space:]')" ]; then child_cmd="$role_cmd"; fi
   # …and the turns this role may spend, read from its own key rather than from one count the whole item shares (#784).
   turns_max=$(child_turn_bound "$role")
+  # …and the checks of the gate's own work this child may start by hand (issue #882). One bound for every role: what
+  # a child iterates on is the case its own diagnosis named, and that count is the same work in every phase.
+  checks_max=$child_checks_bound
   # …and the context this role's child may reach, read from its own key where the profile records one and from the
   # item's where it does not. The key is kept beside the value because the transcript a person reads must name the
   # bound that fired, exactly as the turn bound's line names its own key.
@@ -1613,6 +1625,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   ctx_lines=0
   if [ -f "${LOOP_CHILD_EVENTS:-}" ]; then ctx_lines=$(wc -l < "$LOOP_CHILD_EVENTS" 2>/dev/null || printf 0); fi
   case "$ctx_lines" in ''|*[!0-9]*) ctx_lines=0 ;; esac
+  # …and the checks it runs by hand are a difference for the same reason (issue #882): the stream carries the checks
+  # the children before this one ran, and what this child is bounded by is the count it adds. `checks_seen` holds it,
+  # `checks_done` the lines already read.
+  checks_seen=0
+  checks_done=0
+  if [ -f "${LOOP_CHILD_EVENTS:-}" ]; then checks_done=$(wc -l < "$LOOP_CHILD_EVENTS" 2>/dev/null || printf 0); fi
+  case "$checks_done" in ''|*[!0-9]*) checks_done=0 ;; esac
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
   # carries no other child's test results (issue #253). The **tail** child is the exception and is why this line is
   # not a `worker*` glob (issue #744): it is started *after* the gate wrote those results because the archive it
@@ -1750,6 +1769,30 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         break
       fi
     fi
+    # …and the bound on the checks the gate itself would run (issue #882). `LOOP_GATE_RUNS_MAX` bounds the gate's own
+    # full runs, and the same work a child starts outside `gate.sh` met no bound: it was counted after that child had
+    # ended, so nothing acted on it. The count is taken here, in the same whole second as the turns, from the lines the
+    # stream has gained and by the rules the report already classifies with (`lib.sh`'s `child_check_calls` counts a
+    # call that **runs** one of the programs the gate's checks start, less the gate's own run). A check the gate would
+    # not re-run — the focused case an item's diagnosis owes — is not counted, so the iteration
+    # `guidelines/BuildGate.md` §2a gives a child keeps its room.
+    if [ "$checks_max" -gt 0 ]; then
+      chk_read=$(child_check_calls "${LOOP_CHILD_EVENTS:-}" "$checks_done")
+      chk_new=${chk_read%% *}
+      chk_done=${chk_read##* }
+      case "$chk_new" in ''|*[!0-9]*) chk_new=0 ;; esac
+      case "$chk_done" in ''|*[!0-9]*) chk_done=$checks_done ;; esac
+      checks_done=$chk_done
+      checks_seen=$(( checks_seen + chk_new ))
+      if [ "$checks_seen" -ge "$checks_max" ]; then
+        ended_by=checks
+        timed_out=1
+        kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+        sleep 1
+        kill -KILL -"$child" 2>/dev/null || true
+        break
+      fi
+    fi
     # …and the bound priced in what a turn costs rather than in how many there are (issue #760), read from the same
     # stream and in the same whole second as the turn count, so the wait pays one `wc` and one `jq` over the *new*
     # lines per second. The checkpoint names the reading once for every phase and, below the stop, splits the item's
@@ -1843,6 +1886,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (%s for the %s role) after %s turn(s) — the run ended it and everything it started\n' \
         "$turns_max" "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')" "$role" \
         "$(( $(child_turns "${LOOP_CHILD_EVENTS:-}") - turns_base ))" >> "$2"
+    elif [ "$ended_by" = checks ]; then
+      # The refusal `gate.sh` gives a second full run, made of the same reading (issue #882): the checks a child runs
+      # by hand are the gate's own work, and past the recorded number a further one is not a measurement. The line
+      # names the bound, its key and the count that reached it, as the turn bound's line does — the calls themselves
+      # are in this transcript's stream, which is where the gate's own refusal cannot point.
+      printf 'LOOP-TIMEOUT: the child reached the recorded check bound of %s checks (LOOP_CHILD_CHECKS_MAX) after %s check(s) — the run ended it and everything it started; those checks are the gate\047s own work and the gate runs them once\n' \
+        "$checks_max" "$checks_seen" >> "$2"
     elif [ "$ended_by" = context ]; then
       # The reading the bound took, in the transcript the item is blocked on (issue #760), for the reason the turn
       # bound's line carries its count: a person reading the blocked item must not have to re-derive from an exit

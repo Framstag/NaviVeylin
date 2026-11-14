@@ -966,46 +966,13 @@ repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
   ' "$file"
 }
 
-# The programs the gate's **own** checks start (issue #857). The profile's map names them — the suites and structural
-# checks a delta owes (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`) and the build's own gate
-# (`LOOP_GATE_COMPILED_CMD`) — and it is the map `gate.sh --plan` reads, so nothing here names a project path (D16).
-# A child that runs one of those commands by hand pays the gate's work outside `gate.sh`, and the bucket that prices
-# the gate cannot leave it in ordinary tool time: measured on item #849's own stream, one `./tools/loop/gate.sh` at
-# 823 s and four check calls a child ran by hand for 674 s — 304 s, 310 s, 39 s and 21 s — all four standing before
-# that `gate.sh` call, so a bucket that took only the gate call named its 823 s and left those 674 s as ordinary tool
-# time. A map entry is `<glob>|<command>`, and each command reduces to a program the way the gate's own program is
-# read: its first word that names a path, or its first word when none does.
-gate_check_programs() { # → the programs the gate's checks start, one per line
-  local line word prog
-  {
-    loop_conf_value LOOP_GATE_CMD
-    loop_conf_value LOOP_GATE_COMPILED_CMD
-    loop_conf_value LOOP_GATE_SUITES | tr ';' '\n' | sed -e 's/^[^|]*|//'
-    loop_conf_value LOOP_GATE_FIRST_STEPS | tr ';' '\n' | sed -e 's/^[^|]*|//'
-  } | while IFS= read -r line; do
-        set -f # the map is hand-kept data: a command's words are read here, never expanded as globs
-        prog=""
-        for word in $line; do
-          case "$word" in -*) continue ;; esac
-          case "$word" in */*) prog="${word##*/}"; break ;; esac
-          [ -n "$prog" ] || prog="$word"
-        done
-        [ -n "$prog" ] || continue
-        printf '%s\n' "$prog"
-      done
-}
-
 child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,streamRotation}
-  local events="${1:-}" blob="" gate_cmd gate_prog="" word withheld_json checks_json
-  # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
-  # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
-  # `bash tools/loop/gate.sh` and a bare command all reduce to the program a child's tool call names.
-  gate_cmd=$(loop_conf_value LOOP_GATE_CMD)
-  for word in $gate_cmd; do
-    case "$word" in -*) continue ;; esac
-    case "$word" in */*) gate_prog="${word##*/}"; break ;; esac
-    [ -n "$gate_prog" ] || gate_prog="$word"
-  done
+  local events="${1:-}" blob="" gate_prog="" withheld_json checks_json
+  # The gate is the project's declaration, not a name this engine may carry: `lib.sh`'s `gate_program` reduces
+  # `LOOP_GATE_CMD` to the program a child's tool call names, and `lib.sh`'s `gate_check_programs` names the
+  # programs the gate's own checks start (issue #857) — one enumeration, which the run's live count of those calls
+  # reads too (issue #882).
+  gate_prog=$(gate_program)
   checks_json=$(gate_check_programs | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))' 2>/dev/null)
   case "$checks_json" in '['*) ;; *) checks_json='[]' ;; esac
   if [ -n "$events" ] && [ -f "$events" ]; then
@@ -1015,7 +982,11 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
     # repeat line says `0`, which is a measurement, and the two must not print the same.
     withheld_json=$(repeat_withheld "$(dirname "$events")/tool-result-trims.log")
     case "$withheld_json" in '{'*) ;; *) withheld_json=null ;; esac
-    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" '
+    # The two rules that say which call **runs** the gate and which runs one of the checks it would run are
+    # `lib.sh`'s (`gate_command_jq`, issues #830 and #857), shared with the run's own live count of those calls
+    # (issue #882): one set of definitions, so this report and the bound that ends a child cannot disagree about
+    # which calls the gate would have re-run.
+    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" "$(gate_command_jq)"'
       # A turn is read from the usage its last `message_update` carried, or from the one its own `turn_end` record
       # carries when no update survives — the same rule `sessions` keeps per turn below (one place per fact), so a
       # rotation that took the updates changes no figure this function prints (issue #840).
@@ -1033,46 +1004,6 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       # by, because `tool_execution_end` names its call and carries no command of its own.
       def tok: if . == null then 0
                else ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0)) end;
-      # …and the gate is the call that **runs** it, not every call that names it (issue #830). The words before the
-      # program may be a `cd …` prefix, leading `VAR=value` assignments and a `bash`/`sh`/`exec`/`timeout <n>`
-      # wrapper, so `cd /w && timeout 300 ./tools/loop/gate.sh` runs the gate while a command whose argument is the
-      # path of the gate — a `sed -n 1,60p tools/loop/gate.sh`, a `git show HEAD:tools/loop/gate.sh`, a `grep` over
-      # it — reads that file and runs nothing. A `--plan` call runs no step either: it is the list of commands a
-      # delta owes, which `measure.sh` reads, and the rule the gate already applies to its own runs. Measured
-      # 2026-11-10 over the five items the item was filed from (`.pi/issue-loop/items/{719,738,808,810,819}/
-      # events.jsonl`): every session the split was taken at had been split at one of those three shapes, so the
-      # share the trend printed as "after the first gate" was the own derivation of the item.
-      def words: [((. // "") | tostring) | splits("[ \\t;|&]+")] | map(select(length > 0));
-      def assignment: test("^[A-Za-z_][A-Za-z0-9_]*=");
-      def wrapper: . as $w | (["bash", "sh", "exec", "command", "timeout", "env", "nohup"] | index($w)) != null;
-      def run_word:
-        (if .[0] == "cd" then .[2:] else . end)
-        | until((length == 0) or (((.[0] | assignment) or (.[0] | wrapper)) | not);
-            (if (.[0] | assignment) then .[1:]
-             elif (.[0] == "timeout" and ((.[1] // "") | test("^[0-9]"))) then .[2:]
-             else .[1:] end))
-        | .[0] // "";
-      def is_gate: (($gate | length) > 0)
-                   and ((words) as $w
-                        | (($w | run_word) as $prog
-                           | (($prog == $gate) or ($prog | endswith("/" + $gate))))
-                          and ([$w[] | select(. == "--plan")] | length == 0));
-      # …and a call that runs a **check** the gate itself would run (issue #857). The map in the profile names the
-      # programs (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`), so a child that runs one of
-      # them by hand is paying the gate-work outside `gate.sh`, and a bucket called the gate cannot call that ordinary
-      # tool time. The wrappers, the assignments, the `cd …` prefix and the `--plan` rule are the ones above, read by
-      # the same two definitions; the difference is that **every** command of a call is read and not its first — a
-      # child chains a check behind a `date -u` or a `cd …` (two calls of 304 s and 310 s in item #849 stream are
-      # `date -u … && bash tools/loop/tests/loop-selftest.sh --group run`), and a call whose chain runs a check is that
-      # check time whoever started it. What it costs: a call that runs something else before its check charges that
-      # something else to the gate too — the call is the unit the stream times, and the alternative is a bucket that
-      # says a 310 s suite run cost nothing.
-      def is_check: (($checks | length) > 0)
-                    and (([((. // "") | tostring) | splits("[;&|]+") | words
-                           | (run_word) as $prog
-                           | select([$checks[] as $c | select(($prog == $c) or ($prog | endswith("/" + $c)))] | length > 0)]
-                          | length) > 0)
-                    and ([words[] | select(. == "--plan")] | length == 0);
       def calls_of: [((. // [])[] | select(.type == "toolCall")
                       | {id: (.id // ""), gate: (((.arguments?.command? // "") | tostring) | is_gate)})];
       # Every turn is collected in the region it stands in (issue #832). The reducer opens with a region of its own —

@@ -118,4 +118,40 @@ class StructureDeclarationTest {
             StructureCheck(StructureDeclaration.parse(claimed)).violations(treeFiles + newPackage),
         )
     }
+
+    /** Task 1.11, first half: a declaration the reader cannot open is a failure, never an empty rule set. */
+    @Test
+    fun missingDeclarationFails() {
+        val missing = "architecture/no-such-structure.tsv"
+        val refusal = runCatching { ProjectRoot.declarationText(missing) }.exceptionOrNull()
+
+        assertTrue(
+            "a missing declaration must be refused as a declaration error, and the tree's own must read: " +
+                "$refusal",
+            refusal is DeclarationParseError,
+        )
+        assertTrue(
+            "the refusal names the file a reader has to restore: ${refusal?.message}",
+            refusal?.message?.contains(missing) == true,
+        )
+    }
+
+    /** Task 1.11, second half: a kind no rule resolves is refused, not carried along as an exemption. */
+    @Test
+    fun unknownKindFails() {
+        val withUnknownKind = declarationText.trimEnd('\n') +
+            "\ncore\tcom.naviveylin.core.probe\twidget\t-\t-\n"
+
+        val refusal = runCatching { StructureDeclaration.parse(withUnknownKind) }.exceptionOrNull()
+
+        assertTrue(
+            "a row whose kind is not one of the five must be refused at its line, not parsed",
+            refusal is DeclarationParseError,
+        )
+        assertTrue(
+            "the refusal names the kind and the row: ${refusal?.message}",
+            refusal?.message?.contains("widget") == true &&
+                refusal?.message?.contains("${DECLARATION_PATH}:") == true,
+        )
+    }
 }

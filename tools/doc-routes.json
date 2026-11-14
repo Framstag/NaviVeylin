@@ -720,6 +720,7 @@
         "BuildEvidence.md §4b \"a cached run is not a run\"",
         "BuildEvidence.md §4b \"to force it, use `-PforceTests --no-build-cache`\"",
         "BuildEvidence.md §4b \"`-PjvmTestsOnly` joins it\"",
+        "BuildEvidence.md §4b \"the structure check is a suite of the gate and a prerequisite of every module test task\"",
         "BuildEvidence.md §4c \"a JVM-only change needs no native build\"",
         "BuildEvidence.md §4c \"when a run needs native artifacts for one device or emulator, build that ABI only\"",
         "BuildEvidence.md §4c \"before a change is called complete, every shipped ABI must be built\"",

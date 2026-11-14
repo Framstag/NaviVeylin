@@ -7,6 +7,13 @@ package com.naviveylin.architecture
  */
 const val DECLARATION_PATH: String = "architecture/structure.tsv"
 
+/**
+ * The five kinds a row may carry. A kind outside this set is refused rather than carried along: the rules
+ * resolve a file's kind through this column, so an unknown one silently exempts every file of that package
+ * from every rule (change `package-structure-as-five-kinds`, task 1.11).
+ */
+val STRUCTURE_KINDS: Set<String> = setOf("concept", "port", "feature", "platform", "shell")
+
 /** One row of the declaration, with the line number a report can quote. */
 data class DeclarationRow(
     val line: Int,
@@ -52,6 +59,12 @@ data class StructureDeclaration(val rows: List<DeclarationRow>) {
                         "$DECLARATION_PATH:$line carries ${columns.size} tab-separated columns, 5 are declared"
                     )
                 }
+                if (columns[2] !in STRUCTURE_KINDS) {
+                    throw DeclarationParseError(
+                        "$DECLARATION_PATH:$line declares kind '${columns[2]}', which is not one of " +
+                            STRUCTURE_KINDS.sorted().joinToString(", ") + " — a kind no rule can resolve is refused"
+                    )
+                }
                 rows += DeclarationRow(
                     line = line,
                     module = columns[0],
@@ -59,6 +72,12 @@ data class StructureDeclaration(val rows: List<DeclarationRow>) {
                     kind = columns[2],
                     feature = columns[3],
                     mayImport = columns[4].split(',').map { it.trim() }.filter { it.isNotEmpty() && it != "-" },
+                )
+            }
+            if (rows.isEmpty()) {
+                throw DeclarationParseError(
+                    "$DECLARATION_PATH carries no row — a declaration the reader cannot read is a red run and " +
+                        "never an empty rule set"
                 )
             }
             return StructureDeclaration(rows)

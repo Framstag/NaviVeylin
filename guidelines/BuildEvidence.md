@@ -63,6 +63,18 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   the second stage. A shared working tree inflates `touched` and `mention` with other changes' dirty files, so
   the change's own file list is the honest `--diff` input. **A pre-gate run is not gate evidence** and the
   completion rule is unchanged.
+- **Rule: the structure check is a suite of the gate and a prerequisite of every module test task** (change
+  `package-structure-as-five-kinds`, spec `architecture-test-suite` — "The check is part of a gate run" and
+  "Running a module's tests runs the structure check"). `:architecture:test` reads the declaration and the
+  three modules' sources as text — no Android plugin, no device, no app build — so it starts beside the build
+  instead of after it. The root `test` task the documented gate, `loop.conf`'s `LOOP_GATE_COMPILED_CMD` and the
+  CI unit-test step run reaches it because `settings.gradle.kts` includes the module; every `Test` task of
+  `:app`, `:auto` and `:core` depends on it, so `./gradlew :app:testMobileDebugUnitTest --tests "…"` fails at
+  the structure check before the named class reports a pass. Its tallies are
+  `architecture/build/test-results/test/*.xml`, and the CI suite report counts them. A run can still name the
+  skip itself — `-x :architecture:test` or `--exclude-task` — and a local invocation can never be forced past
+  that; the hole is closed by the required status check on `main`, an owner's repository setting (the parent
+  change's task 5.2), not by this rule.
 - **Rule: report tallies, not vibes** — quote `tests/failures/errors` per module from the XML
   (`app/build/test-results/testMobileDebugUnitTest/*.xml` etc.). A bare `BUILD SUCCESSFUL` says nothing about
   what ran.

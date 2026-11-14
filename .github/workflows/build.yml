@@ -303,6 +303,7 @@ jobs:
         run: |
           for d in app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest \
                    auto/build/test-results/testDebugUnitTest core/build/test-results/testDebugUnitTest \
+                   architecture/build/test-results/test \
                    osmscout-client-java/build/test-results/test; do
             echo -n "$d: "
             awk -F'"' '/testsuite /{t+=$4;f+=$8;e+=$10;c++} END{printf "%d classes, %d tests, %d failures, %d errors\n", c, t, f, e}' "$d"/TEST-*.xml 2>/dev/null || echo "no result XML"

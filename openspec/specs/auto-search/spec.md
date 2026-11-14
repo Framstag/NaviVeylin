@@ -241,6 +241,13 @@ The car POI results screen SHALL offer a filter row above its results that opens
 - **AND** tapping that row SHALL open the filter screen
 - **Case**: `auto: PoiResultsScreenTest.theFilterRowSitsAboveTheResults`
 
+#### Scenario: The filter row is shown without a fix
+
+- **WHEN** the car POI results screen has no GPS fix
+- **THEN** the "Filter by name" row SHALL still be shown
+- **AND** the screen SHALL state that a GPS signal is required instead of running the search
+- **Case**: `auto: PoiResultsScreenSearchLifecycleTest.withoutAFixTheScreenExplainsInsteadOfSearching`
+
 #### Scenario: The filter screen opens with the current term
 
 - **WHEN** the driver taps the filter row while a term is active

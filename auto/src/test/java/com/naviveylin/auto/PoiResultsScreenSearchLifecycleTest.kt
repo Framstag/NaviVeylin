@@ -109,7 +109,10 @@ class PoiResultsScreenSearchLifecycleTest {
         )
     }
 
-    /** The screen's own path is unchanged when no fix exists: a sentence instead of a search. */
+    /**
+     * The screen's own path is unchanged when no fix exists: the filter row, which needs no position,
+     * and a sentence instead of a search.
+     */
     @Test
     fun withoutAFixTheScreenExplainsInsteadOfSearching() = runTest(mainDispatcherRule.dispatcher) {
         every { locationProvider.position() } returns MutableStateFlow(null)
@@ -121,6 +124,7 @@ class PoiResultsScreenSearchLifecycleTest {
         assertTrue("no native POI search runs without a position", client.poiSearchGenerations.isEmpty())
         assertEquals(
             listOf(
+                carContext.getString(com.naviveylin.core.R.string.poi_filter_label),
                 carContext.getString(
                     com.naviveylin.core.R.string.navigation_failure_gps_signal_missing
                 )

@@ -1265,11 +1265,12 @@ MUTATIONS=(
   # 882.x — the two defects the run of 2026-11-14 left behind. The gate's base was the remote's memory of the base
   # branch, and a tree that only lands never fetches: `origin/main` stood 7 commits behind local `main`, every gate
   # measured `HEAD..<stale sha>` and the self-test leg selected all 427 of its cases — 841 s a gate, 56 % of the item's
-  # wall clock (`882.1`). And an answer of 0 bytes was evidence of nothing once the tree was not at the base, so a
+  # wall clock (`888.1`). And an answer of 0 bytes was evidence of nothing once the tree was not at the base, so a
   # continuation child that wrote an empty report exited 0, the retry budget was never spent and the item was recorded
-  # blocked (`882.2`). The first record removes the branch's tip beating the run's record, the second the retry the
+  # blocked (`889.1`). The first record removes the branch's tip beating the run's record, the second the retry the
   # empty answer earns.
-  '888.1@-@tools/loop/gate.sh@gate#theBaseIsReadFromTheRunNotFromTheRemote@the base branch tip read before the run record, so the base is a commit that cannot move and the gate measures the landings the branch already carries (issue #882)@s|^  if gate_base_ok "$recorded_base" && gate_base_ok "$branch_base" &&$|  if false \&\& gate_base_ok "$branch_base" \&\&|'
+  '888.1@-@tools/loop/gate.sh@gate#theBaseIsReadFromTheRunNotFromTheRemote@the base branch tip read before the run record, so the base is a commit that cannot move and the gate measures the landings the branch already carries (issue #888)@s|^  if gate_base_ok "$recorded_base" && gate_base_ok "$branch_base" &&$|  if false \&\& gate_base_ok "$branch_base" \&\&|'
+  '889.1@-@tools/loop/run.sh@run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop@the guard that asks the 0-byte answer wherever the tree stands, so an empty report over a tree the item already moved is evidence of nothing again and the item is blocked with the budget unspent (issue #889)@s|\&\& \[ "$head_now" != "$base" \]; then|\&\& [ "$head_now" = "$base" ]; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

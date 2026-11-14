@@ -2191,6 +2191,15 @@ retry_delays=$(loop_conf_value LOOP_RETRY_DELAYS)
 # one class spend another's budget.
 retry_spent_child_start=0
 retry_log_child_start=""
+# The second class is the answer that is not an answer (issue #882): a final report of 0 bytes over a tree the item
+# already moved. It spends the **same** recorded budget — one entry of `LOOP_RETRY_MAX`, the same delays read by
+# position — and its own flag beside the counter bounds the class to one retry, so a second empty answer is the item's
+# stop instead of a third child. It re-runs the *same* child with the *same* prompt in place, not the item from the
+# queue: the branch carries the work the attempt kept, so a second pick would read that work as an unfinished attempt
+# instead of asking it the question again. Measured 2026-11-14: a continuation child exited 0 with a 0-byte report,
+# nothing spent the budget, the item was recorded `blocked` and 14.5 Mtok were lost.
+retry_spent_answer_empty=0
+retry_log_answer_empty=""
 retry_delay_at() { # retry_delay_at <n> <delays> → the n-th delay, or the last one when there are fewer
   printf '%s\n' "$2" | awk -v n="$1" '{ v=$NF; for (i=1; i<=NF; i++) if (i==n) { v=$i; break } print v }'
 }
@@ -2784,6 +2793,7 @@ while true; do
         run_child "$item_dir/worker-gate-prompt.md" "$item_dir/worker-gate-report.md"
         gate_exit=$?
         gate_child="gate worker"
+        gate_prompt="$item_dir/worker-gate-prompt.md"
         gate_report="$item_dir/worker-gate-report.md"
         # A phase's report is the phase's **answer**, not optional text beside it (issue #810). Measured 2026-11-06 on
         # item #755: the gate child exited 0 and left a 0-byte report, `tail_after_gate` found no gate line and started
@@ -2797,9 +2807,10 @@ while true; do
           printf 'run: the gate answer is not an answer (%s) — retrying the phase once\n' \
             "$(last_line "$gate_report")" >&2
           gate_report="$item_dir/worker-gate-report-retry.md"
-          render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt-retry.md" \
+          gate_prompt="$item_dir/worker-gate-prompt-retry.md"
+          render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$gate_prompt" \
             "${gate_prompt_values[@]}"
-          run_child "$item_dir/worker-gate-prompt-retry.md" "$gate_report"
+          run_child "$gate_prompt" "$gate_report"
           gate_exit=$?
           gate_note="exit $gate_exit"
           if [ "$gate_exit" -eq 0 ] && ! gate_answered "$gate_report"; then
@@ -2841,10 +2852,12 @@ while true; do
   # the gate child's otherwise. Both are recorded, so a reader of the item reads the gate's numbers in the first
   # transcript and the archive's in the second.
   final_report="$gate_report"
+  final_prompt="$gate_prompt"
   last_child="$gate_child"
   last_exit="$gate_exit"
   if [ "$tail_started" -eq 1 ]; then
     final_report="$tail_report"
+    final_prompt="$item_dir/worker-tail-prompt.md"
     last_child="tail worker"
     last_exit="$tail_exit"
   fi
@@ -2873,6 +2886,64 @@ while true; do
   # (openspec change `falsified-items-close-in-the-loop`).
   falsified_mechanism=$(report_field "$final_report" LOOP-FALSIFIED 2>/dev/null || true)
   falsified_measurement=$(report_field "$final_report" LOOP-MEASURED 2>/dev/null || true)
+
+  # An answer of 0 bytes is no answer wherever the tree stands (issue #882). The arm below — the child that never
+  # started — asks that question only while HEAD is still the base, and measured 2026-11-14 showed what that leaves: a
+  # continuation child exited 0 with a 0-byte report over a tree that already carried work, no arm read the empty
+  # answer, the item was recorded `blocked` and 14.5 Mtok were lost.
+  #
+  # The empty answer spends one retry of the same budget — the same counter, the same delays read by position — and it
+  # is spent **in place**: the same child, the same prompt, the same report path, read again. The item is not re-picked
+  # from the queue, because the branch carries what the attempt kept and a second pick would read that work as an
+  # unfinished attempt instead of asking the question again. The class is named `answer-empty` in the line the run
+  # prints and in the step the item's record carries. A second empty answer is the run's stop, with both attempts and
+  # their byte counts in the note. A report that carries a verdict of its own is never re-run here, and neither is one
+  # the child's timeout or the run's deadline ended, nor a phase the gate arm above already asked twice and named as
+  # the item's failure (#810): that reading is the phase's verdict, not this class's. With nothing left to spend the
+  # arm stays out of the way, so a run whose budget is off keeps the outcome the item's own evidence earns.
+  head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+  if [ -e "$final_report" ] && [ ! -s "$final_report" ] && [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] &&
+    [ -z "$deadline_claim" ] && [ -z "$phase_failure" ] && [ "$head_now" != "$base" ]; then
+    if [ "$retry_spent_answer_empty" -eq 0 ] && [ "$retry_spent_child_start" -lt "$retry_max" ]; then
+      retry_spent_answer_empty=1
+      retry_spent_child_start=$((retry_spent_child_start + 1))
+      retry_delay=$(retry_delay_at "$retry_spent_child_start" "$retry_delays")
+      loop_state step A --name answer-empty --status ok \
+        --note "the $last_child wrote a 0-byte report over HEAD ${head_now:0:12} (base ${base:0:12}) — asked the same question again, retry $retry_spent_child_start of $retry_max after ${retry_delay} s" >/dev/null 2>&1 || true
+      printf 'run: the %s answered nothing (answer-empty, retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before asking the same question again\n' \
+        "$last_child" "$retry_spent_child_start" "$retry_max" "$retry_delay" "$retry_max" "$retry_delays" >&2
+      [ "$retry_delay" -eq 0 ] 2>/dev/null || sleep "$retry_delay"
+      run_child "$final_prompt" "$final_report"
+      last_exit=$?
+      answer_bytes=$(wc -c < "$final_report" 2>/dev/null || printf 0)
+      retry_log_answer_empty="attempt 1 wrote 0 B, attempt 2 (exit $last_exit) wrote $answer_bytes B"
+      printf 'run: the answer-empty retry of the %s ended with exit %s and %s B\n' "$last_child" "$last_exit" "$answer_bytes" >&2
+      verdict_claim=$(report_field "$final_report" LOOP-VERDICT)
+      skip_verdict=$(report_field "$final_report" LOOP-SKIP-VERDICT)
+      change_claim=$(report_field "$final_report" LOOP-CHANGE)
+      root_cause=$(report_field "$final_report" LOOP-ROOT-CAUSE)
+      worker_decision=$(report_field "$final_report" LOOP-DECISION 2>/dev/null || true)
+      red_test=$(report_field "$final_report" LOOP-RED-TEST)
+      gate_claim=$(report_field "$final_report" LOOP-GATE)
+      gate_waived=$(report_field "$final_report" LOOP-GATE-WAIVED)
+      gate_waived_suite=$(report_field "$final_report" LOOP-GATE-WAIVED-SUITE)
+      outside_write=$(report_field "$final_report" LOOP-OUTSIDE-WRITE)
+      timeout_claim=$(report_field "$final_report" LOOP-TIMEOUT)
+      deadline_claim=$(report_field "$final_report" LOOP-DEADLINE 2>/dev/null || true)
+      falsified_mechanism=$(report_field "$final_report" LOOP-FALSIFIED 2>/dev/null || true)
+      falsified_measurement=$(report_field "$final_report" LOOP-MEASURED 2>/dev/null || true)
+    fi
+    if [ "$retry_spent_answer_empty" -eq 1 ] && [ ! -s "$final_report" ] && [ -z "$verdict_claim" ] &&
+      [ -z "$timeout_claim" ] && [ -z "$deadline_claim" ]; then
+      answer_bytes=$(wc -c < "$final_report" 2>/dev/null || printf 0)
+      # The in-progress mark comes off before the run stops, for the reason the arm below gives: an item the run
+      # asked twice and could not read must be as eligible afterwards as it was before the run picked it.
+      loop_labels unpick "$issue" >&2 || true
+      in_progress=""
+      stop_run "the child answered nothing twice — the $last_child left a 0-byte report over HEAD ${head_now:0:12} (base ${base:0:12}), and the answer-empty retry left $answer_bytes B, neither with a verdict line; the retry spent $retry_spent_child_start of $retry_max (LOOP_RETRY_MAX=$retry_max, LOOP_RETRY_DELAYS=$retry_delays) — ${retry_log_answer_empty:-the retry ran before this run}"
+      break
+    fi
+  fi
 
   # A red gate is not a landing (issue #837, the owner's decision recorded on the item at 2026-11-11T06:04:18Z): the
   # change is completed — its pointers checked, its delta merged and the directory archived — **before** the gate

@@ -245,6 +245,7 @@ LOOP_SHELL_CASES=(
   'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops'
   'run#theRetryCapIsSpentAndTheRunStops'
   'run#aPhaseThatAnswersNothingIsThatPhasesFailure'
+  'run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
@@ -966,6 +967,7 @@ loop_run_shell_case() {
     'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops') fn=case_run_aChildThatNeverStartedIsRetriedBeforeTheRunStops ;;
     'run#theRetryCapIsSpentAndTheRunStops') fn=case_run_theRetryCapIsSpentAndTheRunStops ;;
     'run#aPhaseThatAnswersNothingIsThatPhasesFailure') fn=case_run_aPhaseThatAnswersNothingIsThatPhasesFailure ;;
+    'run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop') fn=case_run_anEmptyAnswerOverWorkIsRetriedBeforeTheStop ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
@@ -8298,6 +8300,54 @@ case_run_aPhaseThatAnswersNothingIsThatPhasesFailure() {
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
   out=$(cat "$GH_STUB_RECORD")
   assert_contains "$out" "--remove-label agent/in-progress" "and the in-progress mark comes off again"
+}
+
+# An answer of 0 bytes is no answer wherever the tree stands (issue #882). Measured 2026-11-14: a continuation child
+# exited 0 and wrote a 0-byte report over a tree that carried work, the run's only reading of an empty answer asked
+# it while HEAD was still the base, so the retry budget was never spent — the item was recorded `blocked` and 14.5
+# Mtok were lost. The empty answer now spends one retry of the same budget, and the item's record names the class
+# `answer-empty` beside the step that spent it.
+case_run_anEmptyAnswerOverWorkIsRetriedBeforeTheStop() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out conf
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The retry's delay is the case's cost and not its subject: the budget stays the project's own and the delay is
+  # zero, so the retry is read at once.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_DELAYS=.*/LOOP_RETRY_DELAYS=0/' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  grep -qx 'LOOP_RETRY_DELAYS=0' "$conf" || printf 'LOOP_RETRY_DELAYS=0\n' >> "$conf"
+  export LOOP_CONF="$conf"
+  # The change child stops at the diff, the gate child runs the gate, and the tail child — the one whose report the
+  # item is decided from — answers nothing the first time and writes the item's verdict the second.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS'
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-answer.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  cat >> "$d/worker-action.sh" <<ACTION
+case "\$1" in
+  worker-tail*)
+    if [ -e "$d/answered-once" ]; then cp "$d/tail-answer.txt" "\$PI_STUB_REPORT_TAIL"
+    else : > "\$PI_STUB_REPORT_TAIL"; : > "$d/answered-once"; fi
+    ;;
+esac
+ACTION
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  # The empty answer is retried once, and the run says which class spent the retry and what it was spent on.
+  assert_contains "$out" "answered nothing (answer-empty, retry 1 of 3" \
+    "the empty answer spends one retry of the recorded budget"
+  assert_eq "2" "$(grep -c '^prompt: worker-tail-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the child that answered nothing is asked the same question again"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "answer-empty")] | length' "$f")" \
+    "the item's record names the retry"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "answer-empty") | .note] | join(" | ")' "$f")" \
+    "0-byte report" "and says what the retry was spent on"
+  # The answer that arrived decides the item: the first silence blocks nothing and asks nobody a question.
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "the item is decided by the retried answer"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$f")" "and the verdict is the one the tail wrote"
+  assert_not_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" \
+    "no decision is asked for a silence the retry answered"
 }
 
 # ── the host the run works on (issue #209) ──────────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnit()
-    // A failing run reports each failure's own message (guidelines/Build.md §6), like the three Android
+    // A failing run reports each failure's own message (guidelines/BuildTests.md §6f), like the three Android
     // modules' unit-test tasks.
     testLogging {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

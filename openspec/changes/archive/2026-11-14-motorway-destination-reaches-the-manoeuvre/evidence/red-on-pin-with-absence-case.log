@@ -1,0 +1,28 @@
+== cases and failure tally on the submodule pin, with the third (absence) case in the tree ==
+stamp 2026-11-14T17:17:03Z
+ M Tests/src/RouteStepModelTest.cpp
+== pin production sources restored (901127b84^), the test file kept as committed ==
+ M Tests/src/RouteStepModelTest.cpp
+M  libosmscout/include/osmscout/routing/RoutePostprocessor.h
+M  libosmscout/src/osmscout/routing/RoutePostprocessor.cpp
+[9/11] Creating library symlink libosmscout-client/libosmscout_clientd.so.1 libosmscout-client/libosmscout_clientd.so
+[10/11] Linking CXX executable Tests/RouteStepModelTest-1.1.1
+[11/11] Creating executable symlink Tests/RouteStepModelTest
+stamp 2026-11-14T17:17:18Z
+73:   REQUIRE( change->destination.has_value() )
+73: test cases:  17 |  16 passed | 1 failed
+73: assertions: 148 | 147 passed | 1 failed
+1/1 Test #73: RouteStepModelTest ...............***Failed    0.03 sec
+0% tests passed, 1 tests failed out of 1
+stamp 2026-11-14T17:17:18Z
+== restored to the patched production sources ==
+ M Tests/src/RouteStepModelTest.cpp
+[9/11] Creating library symlink libosmscout-client/libosmscout_clientd.so.1 libosmscout-client/libosmscout_clientd.so
+[10/11] Linking CXX executable Tests/RouteStepModelTest-1.1.1
+[11/11] Creating executable symlink Tests/RouteStepModelTest
+stamp 2026-11-14T17:17:33Z
+73: All tests passed (149 assertions in 17 test cases)
+1/1 Test #73: RouteStepModelTest ...............   Passed    0.02 sec
+The following tests passed:
+100% tests passed out of 1
+stamp 2026-11-14T17:17:33Z

@@ -1,0 +1,65 @@
+Device census — Pixel 8 emulator (x86_64, Android 16 / SDK 37), package com.framstag.naviveylin,
+map data europe-germany-nordrhein-westfalen, `avoidTolls=true avoidUnpaved=true`, vehicle Car.
+The device clock is the logcat clock; the build each line belongs to is identified by the sha256 of
+`lib/x86_64/libosmscoutd.so` in the installed APK.
+
+- PATCHED (gitlink 901127b84; lib sha256 abbfbd21fd4fd5422d8c1e531410b79912fc7876261a23018da888892f3fb43f)
+- PIN, pre-patch (sources at RoutePostprocessor's ef02e7b02 state; lib sha256
+  7a5870a42b30d07c70f916a0d208e9840b4a5032ad58b94a3eee9723da21cfc4)
+
+The start point of every route is the device fix, set with `adb emu geo fix 7.46489 51.57246`
+(Dortmund, the issue's own start); the destination is typed into the search field as a coordinate
+pair, which the surface offers as an "Exact match" row, then `Calculate route` -> `Calculate`.
+Read with `adb logcat -d | grep 'route census:'` (guidelines/BuildNative.md §10k).
+
+## Route A — Dortmund 51.57246, 7.46489 -> Essen 51.45343, 6.99432 (the issue's route)
+
+pre-patch, 12:21:15.662:
+route census: steps=1052 rows=21 turn=13 straightOn=0 nameChange=5 roundabout=0 motorway=4 info=1028 motorway_dest=3 dest_empty=0 start=1 target=1 dist_km turn=0.3 straightOn=0.0 nameChange=0.1 info=43.2 leg_m median=33 p90=78 under20=313 so_runs=0 so_len_median=0 so_len_max=0 nc_total=5 nc_restated=5 nc_runs2plus=0 nc_blank=0 nc_short=3 nc_leg_median=17 info_name_only=0 info_poi=31 info_via=0
+
+patched, 12:16:54.179:
+route census: steps=1052 rows=21 turn=13 straightOn=0 nameChange=5 roundabout=0 motorway=4 info=1028 motorway_dest=3 dest_empty=0 start=1 target=1 dist_km turn=0.3 straightOn=0.0 nameChange=0.1 info=43.2 leg_m median=33 p90=78 under20=313 so_runs=0 so_len_median=0 so_len_max=0 nc_total=5 nc_restated=5 nc_runs2plus=0 nc_blank=0 nc_short=3 nc_leg_median=17 info_name_only=0 info_poi=31 info_via=0
+
+The A 45 -> A 40 change on this route, read row by row from the panel's step navigator, words the
+record on **both** builds:
+
+  7 / 21  Keep slightly right onto A 45 towards Frankfurt am Main   600 m · 34 s
+  8 / 21  Turn slightly right                                        2.3 km · 1 min
+  9 / 21  Continue on A 45                                            50 m · 2 s
+ 10 / 21  Keep slightly right onto A 40 towards Essen                200 m · 13 s
+ 11 / 21  Turn slightly right                                       28.0 km · 16 min
+ 12 / 21  Leave motorway                                             1.2 km · 1 min
+
+## Route B — Dortmund 51.57246, 7.46489 -> Duisburg 51.43440, 6.76230 (found by probing)
+
+pre-patch, 12:26:11.171:
+route census: steps=930 rows=21 turn=8 straightOn=0 nameChange=7 roundabout=2 motorway=5 info=906 motorway_dest=3 dest_empty=1 start=1 target=1 dist_km turn=0.3 straightOn=0.0 nameChange=0.3 info=67.3 leg_m median=54 p90=139 under20=158 so_runs=0 so_len_median=0 so_len_max=0 nc_total=7 nc_restated=7 nc_runs2plus=0 nc_blank=0 nc_short=3 nc_leg_median=25 info_name_only=0 info_poi=11 info_via=0
+
+patched, 12:35:51.464:
+route census: steps=930 rows=21 turn=8 straightOn=0 nameChange=7 roundabout=2 motorway=5 info=906 motorway_dest=3 dest_empty=1 start=1 target=1 dist_km turn=0.3 straightOn=0.0 nameChange=0.3 info=67.3 leg_m median=54 p90=139 under20=158 so_runs=0 so_len_median=0 so_len_max=0 nc_total=7 nc_restated=7 nc_runs2plus=0 nc_blank=0 nc_short=3 nc_leg_median=25 info_name_only=0 info_poi=11 info_via=0
+
+Both builds list the same 21 rows; the steps that carry a record and the one that does not are the
+same on both:
+
+  7 / 21  Keep slightly right onto A 2 towards Hannover   300 m · 16 s
+  8 / 21  Turn slightly right                             49.1 km · 27 min
+  9 / 21  Continue on A 2                                       26 m
+ 10 / 21  Keep straight onto A 3                          5.0 km · 2 min     <-- dest_empty's one
+ 11 / 21  Keep slightly right onto A 42 towards Dortmund   250 m · 15 s
+ 12 / 21  Turn right                                       3.1 km · 2 min
+ 13 / 21  Continue on A 42                                     100 m · 3 s
+ 14 / 21  Keep slightly right onto A 59 towards Duisburg   5.2 km · 4 min
+ 15 / 21  Continue on A 59                                      50 m · 2 s
+ 16 / 21  Leave motorway                                   650 m · 38 s
+
+## What the two lines say
+
+`motorway_dest` is unchanged between the builds on both routes, and so is every row's wording. The
+one `dest_empty` (route B, step 10) is an A 2 -> A 3 change whose way carries no destination tag in
+this extract: the wording has no destination clause on the **patched** build either, so the count is
+a legitimate absence, not the loss the fix repairs — `dest_empty` cannot tell the two apart, because
+both are "no record on the step".
+
+The loss the fix repairs (a record on the decided-at node, the manoeuvre on the link node) was
+therefore not reproduced by real data on either route, on either build. What stands behind the
+change is the case in `RouteStepModelTest`, which is red on the pin and green on the commit.

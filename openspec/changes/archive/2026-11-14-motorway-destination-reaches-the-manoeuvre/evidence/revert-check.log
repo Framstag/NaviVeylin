@@ -1,0 +1,41 @@
+== mutation: the own-record guard is dropped (attach unconditionally) ==
+    // The record of the node the manoeuvre is placed on belongs to the way the manoeuvre leads
+    // onto and always wins.
+    if (false) {
+      return;
+    }
+ libosmscout/src/osmscout/routing/RoutePostprocessor.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+stamp 2026-11-14T11:45:20Z
+[10/11] Linking CXX executable Tests/RouteStepModelTest-1.1.1
+[11/11] Creating executable symlink Tests/RouteStepModelTest
+  ==
+  "Wuppertal"
+
+===============================================================================
+test cases:  16 |  15 passed | 1 failed
+assertions: 146 | 145 passed | 1 failed
+
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.04 sec
+
+The following tests FAILED:
+	 73 - RouteStepModelTest (Failed)
+Errors while running CTest
+stamp 2026-11-14T11:45:28Z
+== restored ==
+    // The record of the node the manoeuvre is placed on belongs to the way the manoeuvre leads
+    // onto and always wins.
+    if (node.HasDescription<RouteDescription::DestinationDescription>()) {
+      return;
+    }
+[8/9] Linking CXX executable Tests/RouteStepModelTest-1.1.1
+[9/9] Creating executable symlink Tests/RouteStepModelTest
+
+100% tests passed out of 1
+
+Total Test time (real) =   0.03 sec
+stamp 2026-11-14T11:45:36Z

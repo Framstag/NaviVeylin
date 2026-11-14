@@ -1,0 +1,4 @@
+PASS phase#aResultOverTheBoundIsCutAndNamed
+PASS phase#oneCallPrintsThePhaseState
+loop-selftest: phase 2 cases 2.06 s
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — 2.31 s, selection: --group phase

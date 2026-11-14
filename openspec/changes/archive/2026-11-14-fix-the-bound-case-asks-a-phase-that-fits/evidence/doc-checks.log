@@ -1,0 +1,4 @@
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+doc-values exit=0
+check-doc-routes: all 341 section references resolve, all 7 skill references resolve
+doc-routes exit=0

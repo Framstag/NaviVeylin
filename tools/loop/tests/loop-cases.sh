@@ -317,6 +317,7 @@ LOOP_SHELL_CASES=(
   'run#aBlockedItemRecordsTheRoundThatReadIt'
   'run#aCloseOverARedGateIsWaivedOrBlocked'
   'run#aRedGateIsAttributedToTheTreeThatFailsIt'
+  'run#aFlakedCaseIsOffTheBlockedPath'
   'run#plainTextChildStillReports'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
@@ -1048,6 +1049,7 @@ loop_run_shell_case() {
     'run#aBlockedItemRecordsTheRoundThatReadIt') fn=case_run_aBlockedItemRecordsTheRoundThatReadIt ;;
     'run#aCloseOverARedGateIsWaivedOrBlocked') fn=case_run_aCloseOverARedGateIsWaivedOrBlocked ;;
     'run#aRedGateIsAttributedToTheTreeThatFailsIt') fn=case_run_aRedGateIsAttributedToTheTreeThatFailsIt ;;
+    'run#aFlakedCaseIsOffTheBlockedPath') fn=case_run_aFlakedCaseIsOffTheBlockedPath ;;
     'run#plainTextChildStillReports') fn=case_run_plainTextChildStillReports ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
@@ -2666,11 +2668,16 @@ case_state_aCloseOverARedGateWithoutAWaiverIsRefused() {
   assert_eq "2" "$status" "a waiver beside a gate that passed is refused"
   assert_contains "$out" "there is nothing to waive" "and says why"
   # The attribution of a red gate is a closed vocabulary of its own (issue #853), and it answers about a tally that did
-  # not pass: prose is refused, a green tally has nothing to attribute, and a value with no tally is refused.
+  # not pass: prose is refused, a green tally has nothing to attribute, and a value with no tally is refused. `flaked`
+  # joined it with issue #861, and the refusal names the whole vocabulary so a caller reads every answer there is.
   out=$(run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused \
     --gate 'tests=1 failures=2 errors=0 (mobile)' --gate-attribution sideways 2>&1); status=$?
-  assert_eq "2" "$status" "an attribution outside delta|base|unattributable is refused"
-  assert_contains "$out" "--gate-attribution must be delta|base|unattributable" "and the refusal names the vocabulary"
+  assert_eq "2" "$status" "an attribution outside delta|flaked|base|unattributable is refused"
+  assert_contains "$out" "--gate-attribution must be delta|flaked|base|unattributable" "and the refusal names the vocabulary"
+  out=$(run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --gate 'tests=1 failures=2 errors=0 (mobile)' --gate-attribution flaked 2>&1); status=$?
+  assert_eq "0" "$status" "a flaked answer closes over a red tally with no clause to name"
+  assert_eq "flaked" "$(jq -r '.items[0].metrics.gateAttribution' "$sf")" "and the record carries the answer"
   out=$(run_state "$p" done 21 --result done --verdict closed --change fix-demo \
     --gate 'tests=4 failures=0 errors=0' --gate-attribution delta 2>&1); status=$?
   assert_eq "2" "$status" "an attribution beside a gate that passed is refused"
@@ -10897,9 +10904,11 @@ gate: tools/demo-selftest.sh — 7s
 LOOP-GATE: tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s) — failing: tools/demo-selftest.sh'
   # ── the delta's own red: the item's red test names the case, so no base tree is paid for it ──────────────────
   d=$(scratch); p=$(new_project)
-  marker="$d/base-tree-ran"
+  marker="$d/second-look"
   # The base commit carries the case the log names, so a base tree *could* answer — the run is asserted not to ask.
-  printf '#!/usr/bin/env bash\nfor a in "$@"; do\n  case "$a" in *fails-at-base) : > %s; exit 1 ;; esac\ndone\nexit 0\n' \
+  # The case records the tree it ran in, because since issue #861 it is run a second time in the item's own worktree:
+  # what the assertion below holds is that no *detached* tree was paid for it.
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do\n  case "$a" in *fails-at-base) printf "%%s\\n" "$PWD" >> %s; exit 1 ;; esac\ndone\nexit 0\n' \
     "$marker" > "$p/tools/demo-selftest.sh"
   chmod +x "$p/tools/demo-selftest.sh"
   git -C "$p" add tools/demo-selftest.sh >/dev/null 2>&1 \
@@ -10918,7 +10927,11 @@ LOOP-GATE: tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s) — failing: 
     "the case the item's own red test names is the delta's, measured from the gate's log"
   assert_eq "$tally" "$(jq -r '.items[0].metrics.gate' "$f")" "and the tally's own prose is not rewritten by the field"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "a red gate still blocks the item"
-  [ ! -e "$marker" ] || fail "a base tree was paid for a case the item's own red test already names"
+  [ -e "$marker" ] || fail "the case the item's own red test names was never run a second time in the item's own worktree"
+  assert_contains "$(sed -n '$p' "$marker")" "/.pi/worktrees/loop" \
+    "the second look is in the tree the item's work already warmed"
+  assert_eq "0" "$(git -C "$p" worktree list | grep -c 'loop-attribute' || true)" \
+    "and no base tree was paid for a case the item's own red test already names"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and nothing is closed on the tracker"
   out=$(run_report "$p") || fail "the report failed"
   assert_contains "$out" "attributed: 1 of 1 items recorded which tree fails the case their gate named (delta ×1)" \
@@ -10960,6 +10973,82 @@ LOOP-GATE: tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s) — failing: 
   assert_eq "unattributable" "$(jq -r '.items[0].metrics.gateAttribution' "$f3")" \
     "a red gate whose log the run cannot read says so rather than failing the item twice"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$f3")" "and that item blocks exactly as it did before"
+}
+
+# A red gate is attributed by one rerun, and one rerun cannot tell a case the delta broke from a case that flaked once
+# (issue #861). The state "passes on both sides, at another time" had no field: the run of 2026-11-11T11:37:08Z recorded
+# `worktree#keepsSourcesNotBuildOutput` as #849's single failure, blocked the item on it, and the case passed at HEAD and
+# at #849's own gate head. The second look is the item's own worktree — the tree its work already warmed, which a fresh
+# detached tree is not — and the two halves here are the two answers it can give.
+case_run_aFlakedCaseIsOffTheBlockedPath() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/gate-attribute.sh tools/tooling.json tools/pi-child-events.sh
+  local d p f out d2 p2 f2 marker marker2 tally
+  tally='tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s)'
+  # The gate log `tools/gate-attribute.sh` derives the case and the rerun command from: one failing case, which the
+  # item's own `LOOP-RED-TEST` line does not name, so the run pays a detached tree at its base for it.
+  log='gate: tools/demo-selftest.sh
+Demo#aCaseTheChangeWrites| the case failed
+FAIL Demo#aCaseTheChangeWrites
+gate: tools/demo-selftest.sh — 7s
+LOOP-GATE: tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s) — failing: tools/demo-selftest.sh'
+  report_open='LOOP-VERDICT: closed
+LOOP-CHANGE: fix-demo
+LOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWritesTheDeltaDoesNotWrite fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n'
+  # ── the case passes on the second look in the item's own worktree: a flake, and the item is not blocked ───────
+  d=$(scratch); p=$(new_project)
+  marker="$d/second-look"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do\n  case "$a" in *aCaseTheChangeWrites) printf "%%s\\n" "$PWD" >> %s; exit 0 ;; esac\ndone\nexit 0\n' \
+    "$marker" > "$p/tools/demo-selftest.sh"
+  chmod +x "$p/tools/demo-selftest.sh"
+  git -C "$p" add tools/demo-selftest.sh >/dev/null 2>&1 \
+    && git -C "$p" commit -qm 'the case the gate log names' >/dev/null 2>&1 \
+    || fail "could not commit the base's case"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    "printf '%s\\n' 'gate: tools/demo-selftest.sh' 'Demo#aCaseTheChangeWrites| the case failed' 'FAIL Demo#aCaseTheChangeWrites' 'gate: tools/demo-selftest.sh — 7s' 'LOOP-GATE: $tally — failing: tools/demo-selftest.sh' > app/build/test-results/loop-gate/gate.log"
+  printf "$report_open" "$tally" > "$d/worker-report.txt"
+  printf 'LOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWritesTheDeltaDoesNotWrite fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d/gate-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  assert_eq "flaked" "$(jq -r '.items[0].metrics.gateAttribution' "$f")" \
+    "a case that passes when it is run once more in the item's own worktree is recorded as a flake"
+  assert_contains "$(sed -n '$p' "$marker")" "/.pi/worktrees/loop" \
+    "and the second look is that worktree, not a fresh tree the item's work never warmed"
+  assert_eq "$tally" "$(jq -r '.items[0].metrics.gate' "$f")" "the tally's own prose is not rewritten by the field"
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" \
+    "so the item is off the blocked path a single base run put it on: the red reproduced nowhere"
+  assert_eq "null" "$(jq -r '.items[0].metrics.gateWaived' "$f")" \
+    "and the answer stands in the waiver's place, so no clause is written beside it"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "attributed: 1 of 1 items recorded which tree fails the case their gate named (flaked ×1)" \
+    "and the report counts the answer the record carries"
+  # ── the same red, whose case fails again on that second look: the delta's, and the item blocks ────────────────
+  d2=$(scratch); p2=$(new_project)
+  marker2="$d2/second-look"
+  # The change's own file is what the item's work put in the warm tree, and the detached base tree has none of it, so
+  # one case fails in the tree the gate ran in and passes at the base — the shape a single base run reads as the
+  # delta's and the second look tells apart from a flake.
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do\n  case "$a" in *aCaseTheChangeWrites) printf "%%s\\n" "$PWD" >> %s; [ -e demo-fix.txt ] && exit 1; exit 0 ;; esac\ndone\nexit 0\n' \
+    "$marker2" > "$p2/tools/demo-selftest.sh"
+  chmod +x "$p2/tools/demo-selftest.sh"
+  git -C "$p2" add tools/demo-selftest.sh >/dev/null 2>&1 \
+    && git -C "$p2" commit -qm 'the case the gate log names' >/dev/null 2>&1 \
+    || fail "could not commit the base's case"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d2" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    "printf '%s\\n' 'gate: tools/demo-selftest.sh' 'Demo#aCaseTheChangeWrites| the case failed' 'FAIL Demo#aCaseTheChangeWrites' 'gate: tools/demo-selftest.sh — 7s' 'LOOP-GATE: $tally — failing: tools/demo-selftest.sh' > app/build/test-results/loop-gate/gate.log"
+  printf "$report_open" "$tally" > "$d2/worker-report.txt"
+  printf 'LOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWritesTheDeltaDoesNotWrite fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d2/gate-report.txt"
+  out=$(run_loop "$p2" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f2=$(state_file "$p2")
+  assert_eq "delta" "$(jq -r '.items[0].metrics.gateAttribution' "$f2")" \
+    "a case that fails again when it is run once more is the delta's"
+  assert_contains "$(sed -n '$p' "$marker2")" "/.pi/worktrees/loop" \
+    "and that second look was taken in the item's own worktree too"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f2")" "so that item takes the blocked path a red gate took before"
+  assert_eq "0" "$(git -C "$p2" worktree list | grep -c 'loop-attribute' || true)" "the base tree is removed again"
 }
 
 # The round that reads the diff before the gate is a round the run read and paid for, and the item's record says so

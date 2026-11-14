@@ -1,0 +1,16 @@
+date=2026-11-14T03:43:42Z
+$ bash -n tools/loop/run.sh
+OK
+$ bash -n tools/loop/state.sh
+OK
+$ bash -n tools/loop/tests/loop-cases.sh
+OK
+$ bash -n tools/loop/tests/loop-mutations.sh
+OK
+$ bash tools/check-change-readiness.sh openspec/changes/fix-a-block-names-its-stop-class
+LOOP-CHANGE-READY: ok
+exit=0
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 23 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0

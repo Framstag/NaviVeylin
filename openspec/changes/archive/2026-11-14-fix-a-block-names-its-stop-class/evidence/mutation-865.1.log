@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 358 records (labels: 865.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.iVbtWv
+RED    865.1  run#anEmptyTreeIsRefusedBeforeTheGateChild   (the class written beside a block by the arm that stopped it, so a blocked item reaches the record with a null mechanism and the report table prints `-` in its stop column for it (issue #865))
+       2026-11-13T16:24:24Z — the block names the class of the arm that stopped it, not a null mechanism: expected 'uncommitted', got ''
+restore 865.1 run#anEmptyTreeIsRefusedBeforeTheGateChild green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

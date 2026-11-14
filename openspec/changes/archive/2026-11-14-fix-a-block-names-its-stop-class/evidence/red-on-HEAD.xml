@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner's output. The engine is this change's base
+     17ea5ef8 — the tree before any of this change's production hunks, with only its case assertion in place — and
+     the case is the one this change leaves, so this is the reading the delta is red on. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case run#anEmptyTreeIsRefusedBeforeTheGateChild" tests="1" failures="1" errors="0" timestamp="2026-11-13T16:23:16Z">
+  <testcase name="run#anEmptyTreeIsRefusedBeforeTheGateChild" classname="run" time="0">
+    <failure message="the block names the class of the arm that stopped it, not a null mechanism: expected 'uncommitted', got ''">the empty-tree arm wrote the item's result and its reason and left `stopReason` null — the reading 108 of the archive's 127 blocked items carry, and the reason the report's stop column prints `-` for them.</failure>
+  </testcase>
+</testsuite>

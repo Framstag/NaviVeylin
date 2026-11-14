@@ -1,0 +1,5 @@
+run#anEmptyTreeIsRefusedBeforeTheGateChild|   the block names the class of the arm that stopped it, not a null mechanism: expected 'uncommitted', got ''
+--- run#anEmptyTreeIsRefusedBeforeTheGateChild[0] (exit 1)
+  the block names the class of the arm that stopped it, not a null mechanism: expected 'uncommitted', got ''
+FAIL run#anEmptyTreeIsRefusedBeforeTheGateChild
+loop-selftest: 1 of 1 cases failed

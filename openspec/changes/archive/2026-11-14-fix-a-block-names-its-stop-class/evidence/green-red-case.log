@@ -1,0 +1,17 @@
+PASS run#anEmptyTreeIsRefusedBeforeTheGateChild
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS run#blockedItemIsEscalatedWithItsReason
+PASS run#aFailedEscalationWriteIsNamed
+PASS run#reviewRoundsCapAtTwo
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#childPastItsTurnBoundIsCut
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS state#aBlockAtTheRunsBoundIsNoRefusal
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+PASS run#aPhaseThatAnswersNothingIsThatPhasesFailure
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+2026-11-13T16:26:36Z
+PASS report#wallTimeAndReasonInTheTable

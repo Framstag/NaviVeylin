@@ -1,0 +1,32 @@
+date=2026-11-14T03:42:27Z
+$ bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.TmWA4m
+loop-mutations: all 358 cases passed — every selected record applies to the file it names
+exit=0
+$ bash tools/loop/tests/loop-mutations.sh --only 58.1
+loop-mutations: selected 1 of 358 records (labels: 58.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.OxwteZ
+RED    58.1  run#reviewRoundsCapAtTwo   (the refusing last round named as the mechanism that stopped the item (issue #280))
+       2026-11-14T03:42:38Z — and the record names the refusing round as the mechanism that stopped it (issue #280): expected 'refused', got 'null'
+restore 58.1 run#reviewRoundsCapAtTwo green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit=0
+$ bash tools/loop/tests/loop-mutations.sh --only 58.2
+loop-mutations: selected 1 of 358 records (labels: 58.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.bBleIx
+RED    58.2  run#doesNotCloseOnAMergeTheBaseCannotTake   (a base that would not take the branch named as the other mechanism (issue #280))
+       2026-11-14T03:42:59Z — and the record names the base's refusal as the mechanism that stopped it (issue #280): expected 'unmergeable', got 'null'
+restore 58.2 run#doesNotCloseOnAMergeTheBaseCannotTake green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit=0
+$ bash tools/loop/tests/loop-mutations.sh --only 865.1
+loop-mutations: selected 1 of 358 records (labels: 865.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.1lPwoq
+RED    865.1  run#anEmptyTreeIsRefusedBeforeTheGateChild   (the class written beside a block by the arm that stopped it, so a blocked item reaches the record with a null mechanism and the report table prints `-` in its stop column for it (issue #865))
+       2026-11-14T03:43:19Z — the block names the class of the arm that stopped it, not a null mechanism: expected 'uncommitted', got ''
+restore 865.1 run#anEmptyTreeIsRefusedBeforeTheGateChild green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit=0

@@ -1,0 +1,16 @@
+PASS run#anEmptyTreeIsRefusedBeforeTheGateChild
+exit=0 run#anEmptyTreeIsRefusedBeforeTheGateChild
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+exit=0 state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS run#reviewRoundsCapAtTwo
+exit=0 run#reviewRoundsCapAtTwo
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+exit=0 run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#childPastItsTurnBoundIsCut
+exit=0 run#childPastItsTurnBoundIsCut
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+exit=0 run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+exit=0 run#aPreGateReviewEndedAtItsBoundNamesIt
+PASS mutation#everyDeclaredRecordApplies
+exit=0 mutation#everyDeclaredRecordApplies

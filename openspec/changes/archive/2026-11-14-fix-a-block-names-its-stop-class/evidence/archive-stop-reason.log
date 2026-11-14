@@ -1,0 +1,12 @@
+{
+  "states": 148,
+  "items": 476,
+  "done": 165,
+  "blocked": 127,
+  "by_stop": {
+    "bound": 6,
+    "null": 108,
+    "refused": 8,
+    "unmergeable": 5
+  }
+}

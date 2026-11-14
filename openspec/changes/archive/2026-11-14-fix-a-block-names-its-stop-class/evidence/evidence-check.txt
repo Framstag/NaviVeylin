@@ -1,0 +1,41 @@
+# evidence-check — phase E pointer run, 2026-11-13, gate child of item #865
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-block-names-its-stop-class --root .
+
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 396 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+
+## First run (before this one) and what it reported
+
+    FAIL C1 dangling §7 (×5) … no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md
+    ok   C2 test tallies: 2 pairs confirmed … ok C3 … ok C4 … ok C5 file:line: 396 resolved and in range, 0 unresolved
+    evidence-check: FAIL (5)
+
+C2-C5 were green then as well. The five were **guideline section** citations `guidelines/Backlog.recipes.md` §7e
+(proposal.md ×3, design.md ×1, tasks.md ×1), not backlog `§`-issue citations: the check's pattern `§[0-9]+`
+(`tools/loop/evidence-check.sh:68`) reads the `§7` inside `§7e`, where the migration's table has no row 7 — the same
+two-namespace false positive `openspec/changes/archive/2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded/evidence/evidence-check.txt`
+and `…/2026-11-07-fix-a-repeat-read-is-a-counted-number/evidence/evidence-check.txt` corrected the same way.
+
+## The correction
+
+The five citations were repointed at the same section by line, dropping the `§` the check misreads:
+`guidelines/Backlog.recipes.md`:1287 (section 7e), its heading "Leftovers, the report and the queue". No claim, figure
+or observation changed — only the form of the five pointers. The run above is the check after the correction.
+
+## Final run, after the two delta scenario headings were retitled back to the base names, before archive
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-block-names-its-stop-class --root .
+
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 396 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS

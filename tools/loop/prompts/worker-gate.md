@@ -110,7 +110,12 @@ with: each is what the process you are started in refuses, before any rule of th
    inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them. The
    gate counts its own runs: a full one beyond `LOOP_GATE_RUNS_MAX` in this child is refused with exit `3` and hands
    you the command the delta owes instead, and that refusal is not a red gate — it is the engine saying this child has
-   spent its measurements.
+   spent its measurements. The run counts the same work outside the gate too: a call that **runs** one of the programs
+   the gate's own checks start is counted as soon as it lands in this child's stream, and past `LOOP_CHILD_CHECKS_MAX`
+   of them the run ends this child and everything it started (`LOOP-TIMEOUT: … the recorded check bound …`), leaving
+   the item `blocked` with that line in its transcript. That bound is the gate's, not a licence to iterate: the
+   focused case the change's own diagnosis owes is bounded by it as well, so apply, read the result you have, and
+   leave the measurements to the gate.
 3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
    result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy. The
    change's own `evidence/` directory is generated output the round's diff leaves out, so a copy there is not a

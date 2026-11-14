@@ -220,6 +220,124 @@ loop_conf_value() { # print one configuration key's value by name
   eval "printf '%s' \"\${$key:-}\""
 }
 
+# The gate's own program, as a child's tool call names it (issue #830): the first word of `LOOP_GATE_CMD` that names
+# a path, or its first word when none does — `tools/loop/gate.sh`, `bash tools/loop/gate.sh` and a bare command all
+# reduce to the program a call starts. `state.sh` reads it for the report and `run.sh` for the count of the checks a
+# child runs by hand (issue #882), so the definition is here and beside neither reader.
+gate_program() { # → the program the gate's command starts
+  local gate_cmd word prog=""
+  gate_cmd=$(loop_conf_value LOOP_GATE_CMD)
+  for word in $gate_cmd; do
+    case "$word" in -*) continue ;; esac
+    case "$word" in */*) prog="${word##*/}"; break ;; esac
+    [ -n "$prog" ] || prog="$word"
+  done
+  printf '%s' "$prog"
+}
+
+# The programs the gate's **own** checks start (issue #857). The profile's map names them — the suites and structural
+# checks a delta owes (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`) and the build's own gate
+# (`LOOP_GATE_COMPILED_CMD`) — and it is the map `gate.sh --plan` reads, so nothing here names a project path (D16).
+# A child that runs one of those commands by hand pays the gate's work outside `gate.sh`, and the bucket that prices
+# the gate cannot leave it in ordinary tool time: measured on item #849's own stream, one `./tools/loop/gate.sh` at
+# 823 s and four check calls a child ran by hand for 674 s — 304 s, 310 s, 39 s and 21 s — all four standing before
+# that `gate.sh` call, so a bucket that took only the gate call named its 823 s and left those 674 s as ordinary tool
+# time. A map entry is `<glob>|<command>`, and each command reduces to a program the way the gate's own program is
+# read: its first word that names a path, or its first word when none does. `run.sh` bounds the same calls live
+# (issue #882), so the two readers share this enumeration and the definitions below.
+gate_check_programs() { # → the programs the gate's checks start, one per line
+  local line word prog
+  # `loop_conf_value` prints no newline of its own, so each value is closed here: without it the gate's own program
+  # glued itself to the build's and the map's last entry — the one `while … read` needs a newline after to see — was
+  # dropped, so the enumeration the bound counts against was short by two programs (issue #882).
+  {
+    loop_conf_value LOOP_GATE_CMD; printf '\n'
+    loop_conf_value LOOP_GATE_COMPILED_CMD; printf '\n'
+    loop_conf_value LOOP_GATE_SUITES | tr ';' '\n' | sed -e 's/^[^|]*|//'
+    loop_conf_value LOOP_GATE_FIRST_STEPS | tr ';' '\n' | sed -e 's/^[^|]*|//'
+    printf '\n'
+  } | while IFS= read -r line; do
+        set -f # the map is hand-kept data: a command's words are read here, never expanded as globs
+        prog=""
+        for word in $line; do
+          case "$word" in -*) continue ;; esac
+          case "$word" in */*) prog="${word##*/}"; break ;; esac
+          [ -n "$prog" ] || prog="$word"
+        done
+        [ -n "$prog" ] || continue
+        printf '%s\n' "$prog"
+      done
+}
+
+# Which command a child's tool call **runs**, as jq definitions, and whether it is the gate's own run or one of the
+# checks the gate would run (issues #830, #857, #882). One set of definitions, because two readers ask it: the
+# report's classification (`state.sh`'s `child_usage_json`) and the run's live count of the checks a child runs by
+# hand, which ends that child at the profile's bound. A second copy is a second rule, and the two would then
+# disagree about which calls the gate would have re-run. The words before the program may be a `cd …` prefix,
+# leading `VAR=value` assignments and a `bash`/`sh`/`exec`/`timeout <n>` wrapper, so `cd /w && timeout 300
+# ./tools/loop/gate.sh` runs the gate while a command whose argument is the path of the gate — a `sed -n 1,60p
+# tools/loop/gate.sh`, a `git show HEAD:tools/loop/gate.sh`, a `grep` over it — reads that file and runs nothing. A
+# `--plan` call runs no step either. Both read a command string as `.` and the two variables the caller binds:
+# `$gate` (the gate's program) and `$checks` (the programs its checks start).
+gate_command_jq() { # → jq definitions `words`, `assignment`, `wrapper`, `run_word`, `is_gate`, `is_check`
+  cat <<'JQ'
+      def words: [((. // "") | tostring) | splits("[ \\t;|&]+")] | map(select(length > 0));
+      def assignment: test("^[A-Za-z_][A-Za-z0-9_]*=");
+      def wrapper: . as $w | (["bash", "sh", "exec", "command", "timeout", "env", "nohup"] | index($w)) != null;
+      def run_word:
+        (if .[0] == "cd" then .[2:] else . end)
+        | until((length == 0) or (((.[0] | assignment) or (.[0] | wrapper)) | not);
+            (if (.[0] | assignment) then .[1:]
+             elif (.[0] == "timeout" and ((.[1] // "") | test("^[0-9]"))) then .[2:]
+             else .[1:] end))
+        | .[0] // "";
+      def is_gate: (($gate | length) > 0)
+                   and ((words) as $w
+                        | (($w | run_word) as $prog
+                           | (($prog == $gate) or ($prog | endswith("/" + $gate))))
+                          and ([$w[] | select(. == "--plan")] | length == 0));
+      def is_check: (($checks | length) > 0)
+                    and (([((. // "") | tostring) | splits("[;&|]+") | words
+                           | (run_word) as $prog
+                           | select([$checks[] as $c | select(($prog == $c) or ($prog | endswith("/" + $c)))] | length > 0)]
+                          | length) > 0)
+                    and ([words[] | select(. == "--plan")] | length == 0);
+JQ
+}
+
+# How many of the gate's checks a child has run by hand since the last look (issue #882), read from the lines its
+# stream has gained — the same incremental reading `run.sh`'s `child_context` takes, so a stream that runs to
+# megabytes costs one `wc` and one `jq` over the new lines per second and never a re-parse of the whole file. The
+# calls counted are the ones the gate itself would re-run (`gate_check_programs`), less the gate's own run: a check
+# the gate would not run again is the focused iteration an item's own diagnosis owes and is nobody's to bound. A
+# stream that is absent, empty or unreadable is no reading rather than an error, exactly as `child_context` treats
+# one: a child whose command writes no events is bounded by its clock, its turns and its context alone.
+child_check_calls() { # <events file> <lines already read> → "<check calls in the new lines> <lines read>"
+  local f="${1:-}" done_lines="${2:-0}" total gate_prog checks_json n
+  [ -n "$f" ] && [ -f "$f" ] || { printf '0 0\n'; return 0; }
+  total=$(wc -l < "$f" 2>/dev/null) || true
+  case "$total" in ''|*[!0-9]*) total=0 ;; esac
+  case "$done_lines" in ''|*[!0-9]*) done_lines=0 ;; esac
+  [ "$total" -ge "$done_lines" ] || done_lines=0
+  n=0
+  if [ "$total" -gt "$done_lines" ]; then
+    gate_prog=$(gate_program)
+    checks_json=$(gate_check_programs | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))' 2>/dev/null)
+    case "$checks_json" in '['*) ;; *) checks_json='[]' ;; esac
+    # The call is read where the stream puts it — inside the turn it was made in, `turn_end.message.content`, the shape
+    # `state.sh`'s `gateRepeat` classifies — and not as a top-level record, which a child's stream never writes: read
+    # that way the count stayed zero and the bound never fired (issue #882).
+    n=$(tail -n +$((done_lines + 1)) "$f" 2>/dev/null | head -n $((total - done_lines)) |
+      jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" "$(gate_command_jq)"'
+      [.[] | select(.type == "turn_end") | (.message.content // [])[]
+           | select(.type == "toolCall")
+           | ((.arguments?.command? // "") | tostring) as $c
+           | select(($c | is_check) and (($c | is_gate) | not))] | length' 2>/dev/null) || n=""
+    case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  fi
+  printf '%s %s\n' "$n" "$total"
+}
+
 # The branch every item descends from: the run's base is *this* branch's commit, never the commit the project
 # tree happens to have checked out (issue #301 — `state.sh init` read `HEAD`, so a run opened on a feature branch
 # recorded that branch's commit and refused its own first item as a stale base). One definition, because the

@@ -1163,15 +1163,18 @@ MUTATIONS=(
   # nothing (`272.1`), the program may sit behind the `cd …` prefix a child writes (`272.2`), and a command whose
   # argument is the gate's path only reads it (`272.3`). Renumbered from the branch's own 267.x when this landed: the
   # tree had already spent 267.1 and 267.2 on the stream rotation `fix-rotation-keeps-the-records` records.
-  '272.1@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the exclusion of a plan call, so the call that asks what a delta owes reads as the gate that decided the item and everything after it is spent after the gate (issue #830)@s#select(. == "--plan")#select(. == "--plan-never")#'
-  '272.2@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the cd prefix the program sits behind, so the gate a child runs from another directory reads as no gate at all and the item has no split (issue #830)@s#(if .\[0\] == "cd" then .\[2:\] else . end)#(if .[0] == "cd-never" then .[2:] else . end)#'
-  '272.3@-@tools/loop/state.sh@report#aCallThatNamesTheGateIsNotAGateRun@the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830)@s#(($w | run_word) as \$prog#(($w | .[-1]) as $prog#'
+  # The three definitions below moved from `state.sh` to `lib.sh` when issue #882 shared them with the run's own live
+  # count of those calls, so the records that quote them name `lib.sh`: a record left at the old path mutates nothing
+  # and reports itself stale.
+  '272.1@-@tools/loop/lib.sh@report#aCallThatNamesTheGateIsNotAGateRun@the exclusion of a plan call, so the call that asks what a delta owes reads as the gate that decided the item and everything after it is spent after the gate (issue #830)@s#select(. == "--plan")#select(. == "--plan-never")#'
+  '272.2@-@tools/loop/lib.sh@report#aCallThatNamesTheGateIsNotAGateRun@the cd prefix the program sits behind, so the gate a child runs from another directory reads as no gate at all and the item has no split (issue #830)@s#(if .\[0\] == "cd" then .\[2:\] else . end)#(if .[0] == "cd-never" then .[2:] else . end)#'
+  '272.3@-@tools/loop/lib.sh@report#aCallThatNamesTheGateIsNotAGateRun@the word the command starts as the program, so a command that only names the gate path reads as a gate run and the item is split before its work (issue #830)@s#(($w | run_word) as \$prog#(($w | .[-1]) as $prog#'
   # 855.x — a check the gate would run is the gate time, whoever started it (issue #857). Measured on item #849 stream:
   # one `gate.sh` at 823 s and four check calls a child ran by hand for 674 s, all four standing before that gate call,
   # so a bucket that took only the `gate.sh` call held its 823 s and those 674 s were ordinary tool time, and the part
   # no gate run paid was in no field at all. One record per invariant the case pins: the map read as the programs
   # the gate's checks start, the count of the checks a child ran by hand, and the clause that prices them.
-  '855.1@-@tools/loop/state.sh@report#aCheckTheGateWouldRunIsTheGateTime@the profile map read as the programs the gate-s own checks start, so a suite a child runs by hand is ordinary tool time again and the gate bucket holds only the gate (issue #857)@s#^      def is_check: (($checks | length) > 0)$#      def is_check: (($checks | length) < 0)#'
+  '855.1@-@tools/loop/lib.sh@report#aCheckTheGateWouldRunIsTheGateTime@the profile map read as the programs the gate-s own checks start, so a suite a child runs by hand is ordinary tool time again and the gate bucket holds only the gate (issue #857)@s#^      def is_check: (($checks | length) > 0)$#      def is_check: (($checks | length) < 0)#'
   '855.2@-@tools/loop/report.sh@report#aCheckTheGateWouldRunIsTheGateTime@the clause that prices the part of the gate no gate run paid, so that part is in the bucket and named nowhere (issue #857)@s#if \$repMs > 0#if $repMs > 999999999#'
   '855.3@-@tools/loop/state.sh@report#aCheckTheGateWouldRunIsTheGateTime@the count of the checks a child ran by hand, so the part of the bucket no gate run paid is priced at zero and an item that did pay the gate work itself records none (issue #857)@s#then (.calls += 1 | .ms += ($e.durationMs? // 0))#then .#'
   # 273.1 — a change child that answers nothing is that phase's failure, not the item's tree (issue #827). The reading
@@ -1251,6 +1254,14 @@ MUTATIONS=(
   # the field at that one place: the arm that reads the class out is the whole invariant, so the case's assertion on
   # the recorded class is the one that has to fail.
   '865.1@-@tools/loop/run.sh@run#anEmptyTreeIsRefusedBeforeTheGateChild@the class written beside a block by the arm that stopped it, so a blocked item reaches the record with a null mechanism and the report table prints `-` in its stop column for it (issue #865)@s|^  stop_reason="\$1"$|  stop_reason=""|'
+  # 882.x — the checks a child runs by hand are the gate's own work, and nothing bounded them (issue #882).
+  # `LOOP_GATE_RUNS_MAX` refuses a second full run through `tools/loop/gate.sh`, while the same work started outside it
+  # was priced only after the child had ended, as `metrics.gateRepeat` (issue #857) — 226 such calls held 1.3 h of the
+  # 3.1 h gate bucket of the run started 2026-11-13T05:47:11Z. Two rules, one case: the arm that ends a child past the
+  # recorded number (`882.1`), and the clause that counts the program a call **runs** rather than every word of it
+  # (`882.2`) — a call that only names the gate's own file is read and starts nothing.
+  '882.1@-@tools/loop/run.sh@run#childPastItsCheckBoundIsCut@the arm that ends a child past the recorded check bound, so the checks a child starts by hand are counted in the report and never acted on, and the gate-s work is paid outside the gate (issue #882)@s|^      if \[ "\$checks_seen" -ge "\$checks_max" \]; then$|      if false; then|'
+  '882.2@-@tools/loop/lib.sh@run#childPastItsCheckBoundIsCut@the clause that reads the program a call runs, so a call that only names the path of a program the gate-s checks start is counted as one that ran it and the transcript names four checks where the child ran two (issue #882)@s#select(($prog == $c) or ($prog | endswith("/" + $c)))#select(true)#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

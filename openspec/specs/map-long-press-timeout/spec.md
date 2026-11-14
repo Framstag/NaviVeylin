@@ -31,7 +31,7 @@ long press, and a press held past it SHALL be exactly one.
 ### Requirement: The long-press timeout is a persisted setting
 
 The app SHALL persist the map's long-press duration in milliseconds. The default SHALL be 500 ms, the minimum
-250 ms and the maximum 1000 ms (the options sheet offers them in 50 ms steps), and a value outside that range
+250 ms and the maximum 1000 ms (the settings surface offers them in 50 ms steps), and a value outside that range
 SHALL be clamped to it rather than
 installed. A settings file written before this field existed SHALL decode to the default rather than fail or clear.
 
@@ -56,7 +56,7 @@ installed. A settings file written before this field existed SHALL decode to the
 
 #### Scenario: A change applies immediately and persists
 
-- **WHEN** the long-press timeout is set to 900 ms from the options sheet
+- **WHEN** the long-press timeout is set to 900 ms from the settings surface
 - **THEN** the map's canvas state carries 900 ms at once
 - **AND** a fresh view model over the same settings file carries 900 ms
 - **Case**: `MapCanvasViewModelLongPressTimeoutTest#longPressTimeoutAppliesAndPersists`

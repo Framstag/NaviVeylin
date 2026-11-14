@@ -32,6 +32,15 @@ Every question this section answers has its own sub-section; read the one that o
 the section whole — §2a "Agent iteration protocol", §2b "Liveness guard and shell recipes", §2c "Gate timing
 record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime".
 
+The loop's own gate — `tools/loop/gate.sh`, whose profile command may carry `{base}` — resolves that base from
+the first of five sources that is a commit this tree knows **and** an ancestor of `HEAD`: the
+`--base` argument, the base the run recorded (`.run.base`), `git merge-base HEAD` against the run's base branch
+(read **before** the record, because a landing fast-forwards the branch while a record cannot move),
+`origin/main`, and `HEAD~1` — printed as `LOOP-GATE-BASE: <sha> (from <source>)` before the first step, and
+refused when none of the five resolves — a landings-only tree never fetches, and `origin/main` stood 7 commits
+behind local `main` on 2026-11-14, so every gate of that run measured `HEAD..<stale sha>` (841 s a gate, 56 % of
+the item's wall clock).
+
 ## 2a. Agent iteration protocol
 
 A session that changes this repository works in the loop below. The measurements behind it, the levers it

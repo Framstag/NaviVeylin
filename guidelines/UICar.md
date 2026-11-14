@@ -310,6 +310,16 @@ Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-searc
   no room here: a car `Row` allows two text lines and both are taken — the same documented,
   platform-constrained deviation as the marking, and it removes nothing the driver cannot reach, since
   the details screen shows the address.
+- **Rule: the car POI result list narrows by name from a filter row.** (spec `auto-search`, change
+  `poi-name-filter`.) "Filter by name" is the list's first row, it carries the active term as its text and
+  opens a `SearchTemplate` prefilled with that term (`PoiFilterScreen`); a submit applies the term to that
+  same results screen and pops back through `guardedHostCall`, so a refinement pushes no screen and the
+  back stack does not grow. The header carries the category and the active term. Under a term the POI walk
+  is asked for the candidate cap (`max(POI_CANDIDATE_CAP, 2 × row capacity)`, `:core`) instead of twice the
+  capacity, and the rows are the matches of the walk's own order, so a match past the page the display
+  limit truncated still appears. While that walk runs the list shows its wait row alone: the filter row
+  returns with the rows, and a term that matches nothing leaves a sentence naming the term rather than an
+  empty list.
 - **Rule: the car search's action-phrase labels are a documented parity deviation.** The suggestion rows
   use action phrases ("Search POIs near me", "Search contacts"), not the
   phone's mode labels ("Places" / "POIs" / "Contacts"). This is the

@@ -87,6 +87,19 @@ data class MapCanvasUiState(
     val searchReference: SearchReference? = null,
     /** POI search radius in meters. */
     val poiRadiusMeters: Double = MapCanvasViewModel.DEFAULT_POI_RADIUS_METERS,
+    /**
+     * The candidate set of the current POI search, as the walk returned it: unfiltered, nearest
+     * first, and wider than the display limit while a filter is in effect (spec: `poi-search` —
+     * A filtered search asks for a candidate set, not a page).
+     */
+    val poiCandidates: List<PoiEntry> = emptyList(),
+    /** The POI name filter's term; empty is the unfiltered list (spec: `poi-search`). */
+    val poiFilter: String = "",
+    /**
+     * True once the current (category, radius, centre)'s candidates were fetched at the candidate
+     * cap, so the filter narrows locally instead of widening again (design D3, guard 1).
+     */
+    val poiWidened: Boolean = false,
     /** POI search results, empty until the user triggers a search. */
     val poiResults: List<PoiEntry> = emptyList(),
     val isPoiSearching: Boolean = false,

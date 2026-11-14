@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.PoiCategories
 import com.framstag.libosmscout.client.PoiEntry
+import com.naviveylin.core.search.POI_CANDIDATE_CAP
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
@@ -395,6 +396,218 @@ class PoiSearchViewModelTest {
         assertTrue("route panel open", state.showRoutePanel)
         assertFalse(state.showDetailsSheet)
         assertFalse("route action keeps POI sheet closed", isPoiSearchOpen(state))
+    }
+
+    // ── The name filter and the candidate set it needs ─────────────────────────
+    // spec: poi-search — A name filter narrows a POI result list; A filtered search asks for a
+    // candidate set, not a page (change `poi-name-filter`, design D1–D4).
+
+    private fun poi(
+        label: String,
+        distance: Double,
+        operator: String? = null,
+        brand: String? = null
+    ): PoiEntry = poiEntry(label, "shop_supermarket", distance).apply {
+        this.operator = operator
+        this.brand = brand
+    }
+
+    /** One search's candidates: [count] entries named [prefix] and [i], nearest first. */
+    private fun candidates(count: Int, prefix: String, from: Int = 1): Array<PoiEntry> =
+        (from until from + count).map { poi("$prefix $it", it.toDouble()) }.toTypedArray()
+
+    /** Open POIs mode, select [category] and run the search the case starts from. */
+    private suspend fun searchFor(category: String, results: Array<PoiEntry>) {
+        openPoiSearch()
+        viewModel.onPoiCategorySelected(category)
+        client.nextPoiResults = results
+        viewModel.performPoiSearch()
+        viewModel.uiState.first { !it.isPoiSearching && it.poiCandidates.isNotEmpty() }
+    }
+
+    @Test
+    fun aFilterChangeRunsNoSearch() = runTest(mainDispatcherRule.dispatcher) {
+        openPoiSearch()
+        viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
+        // A term typed before the search is part of that one search, not a search of its own.
+        viewModel.onPoiFilterChanged("rewe")
+        client.nextPoiResults = arrayOf(
+            poi("REWE Markt", 100.0),
+            poi("Bäckerei Schmitt", 200.0),
+            poi("REWE City", 300.0)
+        )
+        viewModel.performPoiSearch()
+        viewModel.uiState.first { it.poiResults.isNotEmpty() }
+
+        assertEquals("one search ran", 1, client.poiSearchGenerations.size)
+        assertEquals(
+            listOf("REWE Markt", "REWE City"),
+            viewModel.uiState.value.poiResults.map { it.label }
+        )
+
+        viewModel.onPoiFilterChanged("rewe m")
+        val state = viewModel.uiState.first { it.poiFilter == "rewe m" }
+
+        assertEquals("the list narrows from the candidates in hand", listOf("REWE Markt"), state.poiResults.map { it.label })
+        assertEquals("and no search runs", 1, client.poiSearchGenerations.size)
+    }
+
+    @Test
+    fun aCategoryChangeStillNeedsTheSearchButton() = runTest(mainDispatcherRule.dispatcher) {
+        searchFor(PoiCategories.GROCERY, arrayOf(poi("REWE Markt", 100.0)))
+
+        viewModel.onPoiCategorySelected(PoiCategories.HOTELS)
+
+        assertEquals("a category change runs no walk", 1, client.poiSearchGenerations.size)
+        assertFalse(viewModel.uiState.value.isPoiSearching)
+    }
+
+    @Test
+    fun theFirstNonEmptyFilterWidensTheFetchOnce() = runTest(mainDispatcherRule.dispatcher) {
+        searchFor(PoiCategories.GROCERY, candidates(MapCanvasViewModel.MAX_POI_RESULTS, "Markt"))
+        assertEquals(
+            "an unfiltered search asks for the display limit",
+            listOf(MapCanvasViewModel.MAX_POI_RESULTS),
+            client.poiSearchLimits
+        )
+
+        client.nextPoiResults = candidates(MapCanvasViewModel.MAX_POI_RESULTS, "REWE Markt")
+        viewModel.onPoiFilterChanged("r")
+        viewModel.uiState.first { it.poiWidened }
+
+        assertEquals(
+            "the first non-blank term asks once for the candidate cap",
+            listOf(MapCanvasViewModel.MAX_POI_RESULTS, POI_CANDIDATE_CAP),
+            client.poiSearchLimits
+        )
+    }
+
+    @Test
+    fun laterFilterKeystrokesAskTheBackendForNothing() = runTest(mainDispatcherRule.dispatcher) {
+        searchFor(PoiCategories.GROCERY, candidates(MapCanvasViewModel.MAX_POI_RESULTS, "Markt"))
+        client.nextPoiResults = candidates(MapCanvasViewModel.MAX_POI_RESULTS, "REWE Markt")
+        viewModel.onPoiFilterChanged("r")
+        viewModel.uiState.first { it.poiWidened }
+        val requestsAfterTheWiden = client.poiSearchGenerations.size
+
+        viewModel.onPoiFilterChanged("re")
+        viewModel.onPoiFilterChanged("rew")
+        viewModel.uiState.first { it.poiFilter == "rew" }
+
+        assertEquals(
+            "later keystrokes ask the backend for nothing",
+            requestsAfterTheWiden,
+            client.poiSearchGenerations.size
+        )
+    }
+
+    @Test
+    fun aNewSearchNarrowsTheFetchAgain() = runTest(mainDispatcherRule.dispatcher) {
+        searchFor(PoiCategories.GROCERY, candidates(MapCanvasViewModel.MAX_POI_RESULTS, "REWE Markt"))
+        viewModel.onPoiFilterChanged("rewe")
+        viewModel.uiState.first { it.poiWidened }
+
+        // Still filtered: the search button asks for the candidate set again.
+        viewModel.performPoiSearch()
+        viewModel.uiState.first { client.poiSearchLimits.size == 3 }
+        assertEquals(POI_CANDIDATE_CAP, client.poiSearchLimits.last())
+
+        // Cleared: the next search asks for the display limit again.
+        viewModel.onPoiFilterChanged("")
+        viewModel.performPoiSearch()
+        viewModel.uiState.first { client.poiSearchLimits.size == 4 }
+        assertEquals(
+            "an unfiltered search narrows the fetch again",
+            MapCanvasViewModel.MAX_POI_RESULTS,
+            client.poiSearchLimits.last()
+        )
+    }
+
+    @Test
+    fun aFailedWidenKeepsTheRowsOnScreen() = runTest(mainDispatcherRule.dispatcher) {
+        searchFor(PoiCategories.GROCERY, candidates(MapCanvasViewModel.MAX_POI_RESULTS, "REWE Markt"))
+        val rowsBefore = viewModel.uiState.value.poiResults.size
+
+        client.poiSearchError = RuntimeException("native boom")
+        viewModel.onPoiFilterChanged("rewe")
+        val state = viewModel.uiState.first { it.snackbarMessage != null }
+
+        assertEquals("the previous candidates stay", rowsBefore, state.poiCandidates.size)
+        assertEquals("the rows stay displayed", rowsBefore, state.poiResults.size)
+        assertNull("the failure does not take the sheet over", state.poiSearchError)
+        assertFalse(state.isPoiSearching)
+    }
+
+    @Test
+    fun aFilterWithoutACategoryRunsNothing() = runTest(mainDispatcherRule.dispatcher) {
+        openPoiSearch()
+
+        viewModel.onPoiFilterChanged("rewe")
+
+        assertTrue("no walk without a category", client.poiSearchGenerations.isEmpty())
+        assertFalse(viewModel.uiState.value.isPoiSearching)
+        assertEquals("rewe", viewModel.uiState.value.poiFilter)
+    }
+
+    @Test
+    fun aFilteredSearchAsksForTheCandidateCap() = runTest(mainDispatcherRule.dispatcher) {
+        openPoiSearch()
+        viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
+        viewModel.onPoiFilterChanged("rewe")
+        client.nextPoiResults = arrayOf(poi("REWE Markt", 100.0))
+
+        viewModel.performPoiSearch()
+        viewModel.uiState.first { it.poiResults.isNotEmpty() }
+
+        assertEquals(
+            "a filtered search asks for the candidate cap",
+            listOf(POI_CANDIDATE_CAP),
+            client.poiSearchLimits
+        )
+    }
+
+    @Test
+    fun anUnfilteredSearchAsksForTheDisplayLimit() = runTest(mainDispatcherRule.dispatcher) {
+        searchFor(PoiCategories.GROCERY, arrayOf(poi("REWE Markt", 100.0)))
+
+        assertEquals(
+            "an unfiltered search asks for the display limit",
+            listOf(MapCanvasViewModel.MAX_POI_RESULTS),
+            client.poiSearchLimits
+        )
+    }
+
+    @Test
+    fun theDisplayedListIsTheNearestMatches() = runTest(mainDispatcherRule.dispatcher) {
+        openPoiSearch()
+        viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
+        viewModel.onPoiFilterChanged("rewe")
+        // Every candidate matches; the display maximum is what cuts the list.
+        client.nextPoiResults = candidates(MapCanvasViewModel.MAX_POI_RESULTS + 20, "REWE Markt")
+
+        viewModel.performPoiSearch()
+        val state = viewModel.uiState.first { it.poiCandidates.isNotEmpty() }
+
+        assertEquals(
+            "the displayed list is the nearest display-max matches",
+            (1..MapCanvasViewModel.MAX_POI_RESULTS).map { "REWE Markt $it" },
+            state.poiResults.map { it.label }
+        )
+    }
+
+    @Test
+    fun aMatchPastTheDisplayLimitIsFound() = runTest(mainDispatcherRule.dispatcher) {
+        openPoiSearch()
+        viewModel.onPoiCategorySelected(PoiCategories.GROCERY)
+        viewModel.onPoiFilterChanged("rewe")
+        // The only match sits behind a display limit's worth of nearer non-matching entries: a filter
+        // applied to a list the display limit already truncated could not see it (design D2).
+        client.nextPoiResults = candidates(120, "Bäckerei") + arrayOf(poi("REWE Markt", 90_000.0))
+
+        viewModel.performPoiSearch()
+        val state = viewModel.uiState.first { it.poiCandidates.isNotEmpty() }
+
+        assertEquals(listOf("REWE Markt"), state.poiResults.map { it.label })
     }
 
     private companion object {

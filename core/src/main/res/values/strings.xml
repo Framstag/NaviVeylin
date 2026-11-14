@@ -84,4 +84,12 @@
     <string name="navigation_failure_engine_failure">The route could not be calculated.</string>
     <string name="navigation_failure_gps_signal_missing">GPS signal required. Please wait for a GPS fix.</string>
     <string name="navigation_failure_unspecified">The route could not be calculated.</string>
+
+    <!-- POI name filter (spec: `poi-search` — A name filter narrows a POI result list;
+         spec: `search-dialog` — POIs mode offers a name filter beside category and radius).
+         One wording for the phone field, the car's filter row and the car's filter screen. -->
+    <string name="poi_filter_label">Filter by name</string>
+    <!-- Shown when the candidates of a search are non-empty but the typed term matches none of
+         them — the sentence is what tells the two empty states apart. -->
+    <string name="poi_filter_no_match">No entry matches \"%1$s\"</string>
 </resources>

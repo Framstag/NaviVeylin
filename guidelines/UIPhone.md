@@ -111,6 +111,14 @@ Source: spec `search-dialog` (phone only).
   start/destination picker uses the same rule and the same marking.
 - **Rule: the search field is mode-aware.** Location query in Places, category filter in POIs, contact
   filter in Contacts.
+- **Rule: the POIs mode narrows by name.** (spec `poi-search`, change `poi-name-filter`.) A filter field
+  beside the category dropdown and the radius slider narrows the result list to the entries whose name,
+  operator or brand carries the term, compared with the search's own folding (`:core`
+  `PoiNameFilter.matchesPoiFilter`). A keystroke runs no search: the first non-empty term of a
+  (category, radius, centre) widens the fetch to the candidate cap once
+  (`POI_CANDIDATE_CAP`, `:core`) and the remaining keystrokes re-derive the list locally; an empty filter is
+  the unfiltered list. A term that matches none of the candidates and a radius that holds no POI of the
+  category are two different sentences.
 - **Rule: the car search surface is not a mirror of the phone's.** Android Auto has its own search surface
   — see `UICar.md` §6b. The car `SearchTemplate` shows empty-query suggestions (mode rows + recent searches)
   instead of the phone's mode-switch + chips layout.

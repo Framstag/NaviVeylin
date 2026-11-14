@@ -159,6 +159,11 @@ internal fun MapCanvasModalBandContent(
             contactsQuery = addressBookState.query,
             onContactsQueryChanged = { addressBookViewModel.onQueryChanged(it) },
             onStyleLoadFailure = { viewModel.showSnackbar(it) },
+            // The POI name filter: its term, its sink, and whether the search returned any candidate
+            // at all — the sheet words the two empty answers differently (spec: `poi-search`).
+            poiFilter = state.poiFilter,
+            onPoiFilterChanged = { viewModel.onPoiFilterChanged(it) },
+            poiCandidatesEmpty = state.poiCandidates.isEmpty(),
             contactsContent = {
                 AddressBookSearchContent(
                     onResultSelected = { entry ->

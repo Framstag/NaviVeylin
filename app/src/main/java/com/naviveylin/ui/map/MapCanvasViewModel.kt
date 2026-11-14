@@ -256,6 +256,14 @@ class MapCanvasViewModel @Inject constructor(
     // Viewport snapshot taken when POI search opens; restored when the sheet closes
     internal var poiViewportSnapshot: ViewportState? = null
 
+    /**
+     * The width the POI request the gate is running right now asked the walk for: the display limit
+     * or the candidate cap, captured when the request was issued (spec: `poi-search` — A filtered
+     * search asks for a candidate set, not a page; design D2/D3). It is what tells a widen from a
+     * search when the outcome arrives.
+     */
+    internal var poiRequestWidth: Int = MAX_POI_RESULTS
+
     // Navigation view model — set via setNavigationViewModel() from screen
     internal var _navigationViewModel: com.naviveylin.navigation.NavigationViewModel? = null
 

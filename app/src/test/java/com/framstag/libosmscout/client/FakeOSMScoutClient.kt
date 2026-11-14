@@ -709,6 +709,12 @@ class FakeOSMScoutClient : OSMScoutClient() {
     /** Generations passed to [searchPOIsByTypes] in call order. */
     val poiSearchGenerations = mutableListOf<Long>()
 
+    /**
+     * The candidate count [searchPOIsByTypes] was asked for, in call order — the fetch width a case
+     * reads (spec: `poi-search` — A filtered search asks for a candidate set, not a page).
+     */
+    val poiSearchLimits = mutableListOf<Int>()
+
     override fun searchPOIsByTypes(
         typeNames: Array<String>,
         lat: Double, lon: Double,
@@ -717,8 +723,11 @@ class FakeOSMScoutClient : OSMScoutClient() {
     ): Array<PoiEntry>? {
         poiSearchTypeNames.add(typeNames.toList())
         poiSearchGenerations.add(generation)
+        poiSearchLimits.add(limit)
         poiSearchError?.let { throw it }
-        return nextPoiResults
+        // A real walk cannot return more than it was asked for (`entries.resize(limit)`), so a double
+        // that ignored the count would make the fetch width untestable.
+        return nextPoiResults?.take(limit)?.toTypedArray()
     }
 
     override fun searchPOIs(

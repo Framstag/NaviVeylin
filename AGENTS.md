@@ -29,13 +29,13 @@ give.
 | stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapStyling.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.5 kB, §16a 2.4 kB, §16b 1.2 kB (measured 2026-11-14) |
 | label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapStyling.md` §20 "Label wrapping" |
 | the phone map — modes, overlays, layering, the route-planning card | `UIPhoneMap.md` §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11 — sub-sections §7a 3.4 kB, §7b 8.0 kB, §8a 1.9 kB, §8b 3.3 kB, §8c 3.5 kB (measured 2026-10-31) |
-| phone surfaces — the details dialog, search, favourites | `UIPhone.md` §5, §6a, §12, §13, §14, §15, §16, §17, §18, §19 — sub-section §6a 6.1 kB (measured 2026-10-31) |
-| car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 5.6 kB, §6b 5.2 kB (measured 2026-11-09) |
+| phone surfaces — the details dialog, search, favourites | `UIPhone.md` §5, §6a, §12, §13, §14, §15, §16, §17, §18, §19 — sub-section §6a 6.9 kB (measured 2026-11-14) |
+| car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 5.6 kB, §6b 6.1 kB (measured 2026-11-14) |
 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6, §8d "Cross-variant map presentation" 6.4 kB (measured 2026-11-02) |
 | dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
 | the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 11.0 kB, §8b 3.0 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
 | a surface that must live while a phone and a car session are both active | `MapCar.md` §18, `UIPhoneMap.md` §10a "Phone surface while a car session is active" 2.4 kB (measured 2026-10-29) |
-| search, favourites, settings, persistence | `DesignStack.md` §9 "Data, persistence & search", `UIPhone.md` §6a "Phone search surface" 6.1 kB (measured 2026-10-29) |
+| search, favourites, settings, persistence | `DesignStack.md` §9 "Data, persistence & search", `UIPhone.md` §6a "Phone search surface" 6.9 kB (measured 2026-11-14) |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `BuildNative.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
 | route data and the numbers derived from it | `MapRoute.md` §19 |
 | declaring or checking a domain word — what it means, how it is spelt, its unit, and which spellings are refused | `Glossary.md` §1 "The declaration", §2 "A row is one term in one grammatical kind", §3 "Every row carries an anchor", §4 "The concept kind is the only global scope", §5 "The refusals", §6 "The projections", §7 "The drift row and its bound"; the rules of placement and legal edges are `architecture/structure.tsv`, not this document |

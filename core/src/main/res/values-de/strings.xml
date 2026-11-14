@@ -74,4 +74,9 @@
     <string name="navigation_failure_engine_failure">Die Route konnte nicht berechnet werden.</string>
     <string name="navigation_failure_gps_signal_missing">GPS-Signal erforderlich. Bitte warten Sie auf einen GPS-Fix.</string>
     <string name="navigation_failure_unspecified">Die Route konnte nicht berechnet werden.</string>
+
+    <!-- POI-Namefilter (spec: `poi-search`; spec: `search-dialog`). Dieselbe Formulierung für
+         das Feld auf dem Telefon, die Filterzeile und den Filterbildschirm im Auto. -->
+    <string name="poi_filter_label">Nach Name filtern</string>
+    <string name="poi_filter_no_match">Kein Eintrag passt zu \"%1$s\"</string>
 </resources>

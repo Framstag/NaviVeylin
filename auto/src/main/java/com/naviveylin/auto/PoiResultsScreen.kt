@@ -18,10 +18,13 @@ import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.search.POI_CANDIDATE_CAP
 import com.naviveylin.core.search.SearchGate
 import com.naviveylin.core.search.SearchGateState
 import com.naviveylin.core.search.SearchRequestClient
 import com.naviveylin.core.search.SearchSlots
+import com.naviveylin.core.search.filterPoiEntries
+import com.naviveylin.core.search.poiDisplayLabel
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +46,13 @@ import kotlinx.coroutines.withContext
  * ignores the rows over that capacity — and the walk is asked for twice as many candidates as the page
  * shows (spec: `auto-search` — Search result limit), so the page row continues a list the walk already
  * fetched instead of buying a second one.
+ *
+ * A name filter narrows the list (spec: `auto-search` — A car POI result list can be narrowed by name;
+ * change `poi-name-filter`). The "Filter by name" row is the list's first row and opens
+ * [PoiFilterScreen], which applies its term to *this* screen and pops back, so the back stack does not
+ * grow per refinement (design D5). Under a term the walk is asked for the candidate cap instead of
+ * twice the capacity, because a filter applied to a page the display limit already truncated would
+ * miss a match beyond it (design D2).
  */
 class PoiResultsScreen(
     carContext: CarContext,
@@ -56,6 +66,8 @@ class PoiResultsScreen(
     private val prefetched: List<PoiEntry>? = null,
     /** The page of the fetched rows to show; 0 is their first page (spec: `car-list-row-limit`). */
     private val page: Int = 0,
+    /** The name filter this screen carries, as [PoiFilterScreen] last applied it (design D5). */
+    private var filter: String = "",
     /** Production uses the main dispatcher; the tests inject their own, as the other car screens do. */
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -117,8 +129,16 @@ class PoiResultsScreen(
      * The candidates the walk is asked for: twice the rows this screen shows, the floor `auto-search`'s
      * "Search result limit" states ("at least twice the displayed maximum"), so the fetched rows always
      * cover the page and the one its page row opens.
+     *
+     * Under a name filter the walk is asked for the candidate cap instead — and never for less than
+     * twice the capacity, which is what a host reporting more than half the cap would otherwise lose
+     * (spec: `auto-search` — A filtered walk asks for the candidate cap; design D2).
      */
-    private val fetchBudget: Int get() = 2 * rowCapacity
+    private val fetchBudget: Int get() = if (filter.isBlank()) {
+        2 * rowCapacity
+    } else {
+        maxOf(POI_CANDIDATE_CAP, 2 * rowCapacity)
+    }
 
     init {
         enableBackNavigation()
@@ -213,11 +233,30 @@ class PoiResultsScreen(
         }
     }
 
+    /**
+     * Apply a term the filter screen submitted: re-search this category under it and show the narrowed
+     * list on this same screen, which is what keeps the back stack constant (design D5).
+     */
+    internal fun applyFilter(term: String) {
+        filter = term
+        loading = true
+        error = null
+        invalidate()
+        searchGate.request(category)
+    }
+
     override fun onGetTemplate(): Template = carScreenTemplate(carContext, ::buildTemplate)
 
     /** Template body; guarded by [carScreenTemplate] (spec: car-host-fault-isolation). */
     private fun buildTemplate(): Template {
         val listBuilder = ItemList.Builder()
+
+        // The filter row sits above the results — a row that survived a filter on the operator or brand
+        // must be reachable, and a filter that matched nothing must still be clearable from here
+        // (spec: `auto-search` — The filter row sits above the results; design D5).
+        if (!loading) {
+            listBuilder.addItem(filterRow())
+        }
 
         when {
             loading -> {
@@ -235,11 +274,27 @@ class PoiResultsScreen(
                 )
             }
             else -> {
-                val shown = FavoritesScreenMapper.page(results!!, capacity = rowCapacity, page = page)
+                // The list the term in effect leaves of the fetched candidates — the walk is asked for the
+                // candidate cap under a filter, so the page continues the narrowed set and not a page the
+                // display limit truncated (spec: `auto-search` — A car POI result list can be narrowed by
+                // name; design D2/D5).
+                val matches = filterPoiEntries(results!!, filter, results!!.size)
+                if (matches.isEmpty() && filter.isNotBlank()) {
+                    listBuilder.addItem(
+                        Row.Builder()
+                            .setTitle(
+                                carContext.getString(
+                                    com.naviveylin.core.R.string.poi_filter_no_match, filter
+                                )
+                            )
+                            .build()
+                    )
+                }
+                val shown = FavoritesScreenMapper.page(matches, capacity = rowCapacity, page = page)
                 for (poi in shown.rows) {
                     // Row tap selects the POI (rows with a click listener must
                     // not also carry row actions — ROW_CONSTRAINTS_SIMPLE).
-                    val title = (poi.label ?: "").ifBlank { poi.objectType ?: "POI" }
+                    val title = poiDisplayLabel(poi)
                     val distance = if (poi.distance > 0) {
                         carContext.getString(R.string.distance_away_m, formatDistanceNumber(poi.distance))
                     } else {
@@ -272,9 +327,35 @@ class PoiResultsScreen(
         }
 
         return ListTemplate.Builder()
-            .setHeader(Header.Builder().setTitle(categoryLabel).setStartHeaderAction(Action.BACK).build())
+            .setHeader(
+                Header.Builder()
+                    // The header carries the active term beside the category, so the driver can see why
+                    // the list is short (spec: `auto-search` — The header carries the active term).
+                    .setTitle(if (filter.isBlank()) categoryLabel else "$categoryLabel · $filter")
+                    .setStartHeaderAction(Action.BACK)
+                    .build()
+            )
             .setSingleList(listBuilder.build())
             .build()
+    }
+
+    /**
+     * The list's first row: the filter's own row, carrying the active term when one is set and opening
+     * [PoiFilterScreen] on tap. The screen applies its term to this instance and pops back, so a
+     * refinement costs no screen (design D5).
+     */
+    private fun filterRow(): Row {
+        val builder = Row.Builder()
+            .setTitle(carContext.getString(com.naviveylin.core.R.string.poi_filter_label))
+            .setOnClickListener {
+                armScreenPush(carContext, scope, "PoiFilterScreen") {
+                    PoiFilterScreen(carContext, initialTerm = filter, onApply = { applyFilter(it) })
+                }
+            }
+        if (filter.isNotBlank()) {
+            builder.addText(filter)
+        }
+        return builder.build()
     }
 
     /**
@@ -291,7 +372,7 @@ class PoiResultsScreen(
             armScreenPush(carContext, scope, "PoiResultsScreen (page)") {
                 PoiResultsScreen(
                     carContext, navigationViewModel, category, categoryLabel,
-                    prefetched = results, page = page + 1,
+                    prefetched = results, page = page + 1, filter = filter,
                     mainDispatcher = mainDispatcher, ioDispatcher = ioDispatcher
                 )
             }

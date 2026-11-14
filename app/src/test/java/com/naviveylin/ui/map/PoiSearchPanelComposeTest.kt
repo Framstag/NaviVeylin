@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -8,17 +9,22 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performScrollToIndex
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.PoiCategories
 import com.framstag.libosmscout.client.PoiEntry
 import com.naviveylin.core.search.SearchReference
+import com.naviveylin.core.search.filterPoiEntries
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,6 +33,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import androidx.test.core.app.ApplicationProvider
 
 /**
  * Compose UI tests for the search dialog's POIs mode (spec: poi-search,
@@ -48,6 +55,10 @@ class PoiSearchPanelComposeTest {
     private var selectedCategory by mutableStateOf<String?>(null)
     private var clickedEntries = mutableListOf<PoiEntry>()
     private var searchCount = 0
+
+    /** The filter term the panel was last handed, and every term it asked the state to apply. */
+    private var filterTerm by mutableStateOf("")
+    private var filterChanges = mutableListOf<String>()
 
     private fun poiEntry(label: String, objectType: String, distance: Double): PoiEntry =
         PoiEntry().apply {
@@ -74,9 +85,13 @@ class PoiSearchPanelComposeTest {
         category: String? = null,
         results: List<PoiEntry> = emptyList(),
         isSearching: Boolean = false,
-        error: String? = null
+        error: String? = null,
+        filter: String = "",
+        candidates: List<PoiEntry> = emptyList()
     ) {
         selectedCategory = category
+        filterTerm = filter
+        filterChanges = mutableListOf()
         composeRule.setContent {
             SearchDialog(
                 searchMode = SearchMode.POIS,
@@ -97,7 +112,22 @@ class PoiSearchPanelComposeTest {
                 onHistoryEntrySelected = {},
                 poiCategory = selectedCategory,
                 poiRadiusMeters = 5000.0,
-                poiResults = results,
+                // The panel renders what the state hands it: with candidates given, the displayed list is
+                // the phone state's own derivation (spec: `poi-search` — A name filter narrows a POI
+                // result list), so a case drives the field and reads what a user would see.
+                poiResults = if (candidates.isEmpty()) {
+                    results
+                } else {
+                    filterPoiEntries(
+                        candidates, filterTerm, MapCanvasViewModel.MAX_POI_RESULTS
+                    )
+                },
+                poiFilter = filterTerm,
+                poiCandidatesEmpty = candidates.isEmpty(),
+                onPoiFilterChanged = {
+                    filterTerm = it
+                    filterChanges.add(it)
+                },
                 isPoiSearching = isSearching,
                 poiError = error,
                 client = null,
@@ -119,12 +149,117 @@ class PoiSearchPanelComposeTest {
         composeRule.waitForIdle()
     }
 
-    /** The category dropdown field (the only editable field in POIs mode). */
-    private fun categoryField() = composeRule.onNode(hasSetTextAction())
+    /** The category dropdown field (tagged: the filter field is the other editable one). */
+    private fun categoryField() =
+        composeRule.onNode(hasSetTextAction() and hasTestTag("poi_category_field"))
+
+    /** The name filter field beside the category dropdown and the radius slider. */
+    private fun filterField() = composeRule.onNodeWithTag("poi_filter_field")
 
     /** A category row inside the dropdown menu (not the field text). */
     private fun categoryItem(name: String) =
         composeRule.onNode(hasText(name) and hasAnyAncestor(hasTestTag("poi_category_menu")))
+
+    @Test
+    fun theFilterFieldIsOfferedInPoisMode() {
+        launchDialog()
+
+        // Beside the category dropdown and the radius slider, not instead of either of them
+        // (spec: `search-dialog` — POIs mode offers a name filter beside category and radius).
+        filterField().assertIsDisplayed()
+        categoryField().assertIsDisplayed()
+        composeRule.onNodeWithText("Search").assertIsDisplayed()
+    }
+
+    @Test
+    fun anEmptyFilterShowsEveryCandidate() {
+        val candidates = listOf(
+            poiEntry("REWE Markt", "shop_supermarket", 100.0),
+            poiEntry("Bäckerei Schmitt", "shop_bakery", 200.0)
+        )
+        launchDialog(category = PoiCategories.GROCERY, filter = "", candidates = candidates)
+
+        // The list is a lazy column: the first row is on screen, the second is one scroll away.
+        composeRule.onNodeWithText("REWE Markt").assertIsDisplayed()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
+        composeRule.onNodeWithText("Bäckerei Schmitt").assertIsDisplayed()
+    }
+
+    @Test
+    fun aFilterWithNoMatchSaysSo() {
+        launchDialog(
+            category = PoiCategories.GROCERY,
+            filter = "aldi",
+            candidates = listOf(poiEntry("REWE Markt", "shop_supermarket", 100.0))
+        )
+
+        composeRule.onNodeWithText(noMatch("aldi")).assertIsDisplayed()
+        composeRule.onNodeWithText("No POIs found").assertDoesNotExist()
+    }
+
+    @Test
+    fun noPoisInRangeReadsDifferentlyFromNoMatch() {
+        launchDialog(category = PoiCategories.GROCERY, filter = "aldi", candidates = emptyList())
+
+        composeRule.onNodeWithText("No POIs found").assertIsDisplayed()
+        composeRule.onNodeWithText(noMatch("aldi")).assertDoesNotExist()
+    }
+
+    @Test
+    fun typingAFilterEnablesNothing() {
+        launchDialog()
+
+        filterField().performTextInput("rewe")
+
+        composeRule.onNodeWithText("Search").assertIsNotEnabled()
+        assertEquals("the field is handed to the state", "rewe", filterChanges.last())
+        assertEquals("and runs no search", 0, searchCount)
+    }
+
+    @Test
+    fun aFilterTypedBeforeTheSearchAppliesToIt() {
+        launchDialog(
+            category = PoiCategories.GROCERY,
+            candidates = listOf(
+                poiEntry("REWE Markt", "shop_supermarket", 100.0),
+                poiEntry("Bäckerei Schmitt", "shop_bakery", 200.0)
+            )
+        )
+
+        filterField().performTextInput("rewe")
+        composeRule.onNodeWithText("Search").performClick()
+
+        assertEquals("the filter is in the state before the search runs", "rewe", filterChanges.last())
+        assertEquals(1, searchCount)
+        composeRule.onNodeWithText("REWE Markt").assertIsDisplayed()
+        composeRule.onNodeWithText("Bäckerei Schmitt").assertDoesNotExist()
+    }
+
+    @Test
+    fun clearingTheFilterRestoresTheList() {
+        launchDialog(
+            category = PoiCategories.GROCERY,
+            filter = "rewe",
+            candidates = listOf(
+                poiEntry("REWE Markt", "shop_supermarket", 100.0),
+                poiEntry("Bäckerei Schmitt", "shop_bakery", 200.0)
+            )
+        )
+        composeRule.onNodeWithText("Bäckerei Schmitt").assertDoesNotExist()
+
+        filterField().performTextReplacement("")
+
+        // Both rows are back: the first on screen, the second one scroll away.
+        composeRule.onNodeWithText("REWE Markt").assertIsDisplayed()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
+        composeRule.onNodeWithText("Bäckerei Schmitt").assertIsDisplayed()
+        assertEquals("clearing runs no search", 0, searchCount)
+    }
+
+    /** The no-match sentence the panel words for [term], from the resource both variants share. */
+    private fun noMatch(term: String): String =
+        ApplicationProvider.getApplicationContext<Context>()
+            .getString(com.naviveylin.core.R.string.poi_filter_no_match, term)
 
     @Test
     fun noCategoryPreselected() {

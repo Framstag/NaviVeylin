@@ -72,6 +72,7 @@ import com.naviveylin.R
 import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.needsResolvedAddress
+import com.naviveylin.core.search.poiDisplayLabel
 import com.naviveylin.core.search.rowDetail
 import com.naviveylin.core.search.rowTitle
 import com.naviveylin.core.search.ResultMarking
@@ -142,7 +143,20 @@ fun SearchDialog(
     addressBookAvailable: Boolean,
     contactsQuery: String,
     onContactsQueryChanged: (String) -> Unit,
-    contactsContent: @Composable () -> Unit
+    contactsContent: @Composable () -> Unit,
+    /**
+     * The POI name filter's term and its sink (spec: `search-dialog` — POIs mode offers a name
+     * filter beside category and radius; change `poi-name-filter`, design D7). Defaults keep the
+     * other modes' call sites untouched.
+     */
+    poiFilter: String = "",
+    onPoiFilterChanged: (String) -> Unit = {},
+    /**
+     * True when the current POI search returned no candidate at all — the two empty states are
+     * different answers and the sheet must not word them alike (spec: `poi-search` — No POIs in
+     * range reads differently from no match).
+     */
+    poiCandidatesEmpty: Boolean = true
 ) {
     // The category dropdown replaces the shared field in POIs mode, so the
     // shared-field value/placeholder only apply to Places and Contacts.
@@ -224,6 +238,9 @@ fun SearchDialog(
                 poiCategory = poiCategory,
                 poiRadiusMeters = poiRadiusMeters,
                 poiResults = poiResults,
+                poiFilter = poiFilter,
+                poiCandidatesEmpty = poiCandidatesEmpty,
+                onPoiFilterChanged = onPoiFilterChanged,
                 isPoiSearching = isPoiSearching,
                 poiError = poiError,
                 client = client,
@@ -555,6 +572,7 @@ private fun PoiCategoryDropdown(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag("poi_category_field")
                 .menuAnchor(MenuAnchorType.PrimaryEditable)
         )
         ExposedDropdownMenu(
@@ -594,6 +612,8 @@ private fun PoiContent(
     poiCategory: String?,
     poiRadiusMeters: Double,
     poiResults: List<PoiEntry>,
+    poiFilter: String,
+    poiCandidatesEmpty: Boolean,
     isPoiSearching: Boolean,
     poiError: String?,
     client: OSMScoutClient?,
@@ -604,6 +624,7 @@ private fun PoiContent(
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
     onPoiSearch: () -> Unit,
+    onPoiFilterChanged: (String) -> Unit,
     isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit,
     /** Message sink for a rejected stylesheet-variant reload of the POI mini map (spec: map-styles). */
@@ -638,6 +659,21 @@ private fun PoiContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
+        // The name filter: a field beside the category dropdown and the radius slider. Typing it
+        // runs no search and enables nothing (spec: `search-dialog` — POIs mode offers a name
+        // filter beside category and radius), so it sits above the explicit trigger.
+        OutlinedTextField(
+            value = poiFilter,
+            onValueChange = onPoiFilterChanged,
+            label = { Text(stringResource(com.naviveylin.core.R.string.poi_filter_label)) },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("poi_filter_field")
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
         // Explicit search trigger — disabled until a category is selected
         Button(
             onClick = onPoiSearch,
@@ -663,6 +699,20 @@ private fun PoiContent(
                     text = poiError,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            // Two empty answers read differently: a term that matches none of the candidates is not
+            // the same as a radius that holds no POI of the category (spec: `poi-search` — A filter
+            // that matches nothing says so; No POIs in range reads differently from no match).
+            poiResults.isEmpty() && poiCategory != null && poiFilter.isNotBlank() && !poiCandidatesEmpty -> {
+                Text(
+                    text = stringResource(
+                        com.naviveylin.core.R.string.poi_filter_no_match, poiFilter
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
                 )
             }
@@ -913,25 +963,6 @@ private fun ResultList(
  * differs; the brand or operator alone when there is no name; "(unnamed)"
  * only when name, operator, and brand are all absent.
  */
-private fun poiDisplayLabel(entry: PoiEntry): String {
-    val name = entry.label
-    val brand = entry.brand
-    val operator = entry.operator
-    return when {
-        name.isNotEmpty() -> {
-            val extra = when {
-                !brand.isNullOrEmpty() && brand != name -> brand
-                !operator.isNullOrEmpty() && operator != name -> operator
-                else -> null
-            }
-            if (extra != null) "$name ($extra)" else name
-        }
-        !brand.isNullOrEmpty() -> brand
-        !operator.isNullOrEmpty() -> operator
-        else -> "(unnamed)"
-    }
-}
-
 @Composable
 private fun PoiResultItem(
     entry: PoiEntry,

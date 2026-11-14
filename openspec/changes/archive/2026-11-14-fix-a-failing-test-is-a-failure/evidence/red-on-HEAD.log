@@ -1,0 +1,73 @@
+gate#aTestFailureIsAFailureNotAnError|   the two cases the step named are its failures, and it is not also an error: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/lib.sh: Zeile 47: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/../issues/lib.sh: Datei oder Verzeichnis nicht gefunden
+gate#aTestFailureIsAFailureNotAnError| /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/gate.sh: Zeile 51: need_value: Kommando nicht gefunden
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/loop.conf)
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-BASE: a5153dfffc791ac00979ce72965794ffc4c84d6c (from --base)
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-TREE: head=bd1fb4064c9f213b3b5f76bee881d6de0caf9def diff=3d96e1b9a404715b
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally run=1883097
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally/gate.log
+gate#aTestFailureIsAFailureNotAnError| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh
+gate#aTestFailureIsAFailureNotAnError| > Task :app:testMobileDebugUnitTest FAILED
+gate#aTestFailureIsAFailureNotAnError| com.example.SpecTest > theFirstCase FAILED
+gate#aTestFailureIsAFailureNotAnError|     java.lang.AssertionError: expected:<14.0> but was:<7.0>
+gate#aTestFailureIsAFailureNotAnError|         at com.example.SpecTest.theFirstCase(SpecTest.java:42)
+gate#aTestFailureIsAFailureNotAnError| com.example.SpecTest > theSecondCase FAILED
+gate#aTestFailureIsAFailureNotAnError|     java.lang.AssertionError at SpecTest.java:57
+gate#aTestFailureIsAFailureNotAnError| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh — 0s
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh: 'LOOP-GATE: tests=0 failures=2 errors=0' not found in: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/lib.sh: Zeile 47: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/../issues/lib.sh: Datei oder Verzeichnis nicht gefunden
+gate#aTestFailureIsAFailureNotAnError| /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/gate.sh: Zeile 51: need_value: Kommando nicht gefunden
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/loop.conf)
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-BASE: a5153dfffc791ac00979ce72965794ffc4c84d6c (from --base)
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-TREE: head=bd1fb4064c9f213b3b5f76bee881d6de0caf9def diff=3d96e1b9a404715b
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally run=1883097
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally/gate.log
+gate#aTestFailureIsAFailureNotAnError| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh
+gate#aTestFailureIsAFailureNotAnError| > Task :app:testMobileDebugUnitTest FAILED
+gate#aTestFailureIsAFailureNotAnError| com.example.SpecTest > theFirstCase FAILED
+gate#aTestFailureIsAFailureNotAnError|     java.lang.AssertionError: expected:<14.0> but was:<7.0>
+gate#aTestFailureIsAFailureNotAnError|         at com.example.SpecTest.theFirstCase(SpecTest.java:42)
+gate#aTestFailureIsAFailureNotAnError| com.example.SpecTest > theSecondCase FAILED
+gate#aTestFailureIsAFailureNotAnError|     java.lang.AssertionError at SpecTest.java:57
+gate#aTestFailureIsAFailureNotAnError| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh — 0s
+gate#aTestFailureIsAFailureNotAnError| LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh
+--- gate#aTestFailureIsAFailureNotAnError[0] (exit 1)
+  the two cases the step named are its failures, and it is not also an error: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/lib.sh: Zeile 47: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/../issues/lib.sh: Datei oder Verzeichnis nicht gefunden
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/gate.sh: Zeile 51: need_value: Kommando nicht gefunden
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: a5153dfffc791ac00979ce72965794ffc4c84d6c (from --base)
+LOOP-GATE-TREE: head=bd1fb4064c9f213b3b5f76bee881d6de0caf9def diff=3d96e1b9a404715b
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally run=1883097
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally/gate.log
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh
+> Task :app:testMobileDebugUnitTest FAILED
+com.example.SpecTest > theFirstCase FAILED
+    java.lang.AssertionError: expected:<14.0> but was:<7.0>
+        at com.example.SpecTest.theFirstCase(SpecTest.java:42)
+com.example.SpecTest > theSecondCase FAILED
+    java.lang.AssertionError at SpecTest.java:57
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh — 0s
+LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh: 'LOOP-GATE: tests=0 failures=2 errors=0' not found in: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/lib.sh: Zeile 47: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/../issues/lib.sh: Datei oder Verzeichnis nicht gefunden
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/gate.sh: Zeile 51: need_value: Kommando nicht gefunden
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/engine-head/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: a5153dfffc791ac00979ce72965794ffc4c84d6c (from --base)
+LOOP-GATE-TREE: head=bd1fb4064c9f213b3b5f76bee881d6de0caf9def diff=3d96e1b9a404715b
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally run=1883097
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/tally/gate.log
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh
+> Task :app:testMobileDebugUnitTest FAILED
+com.example.SpecTest > theFirstCase FAILED
+    java.lang.AssertionError: expected:<14.0> but was:<7.0>
+        at com.example.SpecTest.theFirstCase(SpecTest.java:42)
+com.example.SpecTest > theSecondCase FAILED
+    java.lang.AssertionError at SpecTest.java:57
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh — 0s
+LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dc6GCG/cases/0/tree/case.MFRMAf/suite.sh
+FAIL gate#aTestFailureIsAFailureNotAnError
+loop-selftest: 1 of 1 cases failed

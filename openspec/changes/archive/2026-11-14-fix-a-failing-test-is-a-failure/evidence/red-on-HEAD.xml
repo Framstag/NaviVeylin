@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner output. The engine is this item's base
+     (git show 4c4e681967c30eedc0cdd874a900562ab7f8b32b:tools/loop/gate.sh, copied into
+     .pi/issue-loop/items/916/scratch/engine-head and handed to the suite as LOOP_ENGINE) with the case as it stands
+     in this change and no change of this item's engine, so this is the reading the fix is red on. -->
+<testsuite name="gate#aTestFailureIsAFailureNotAnError" tests="1" failures="1" errors="0" timestamp="2026-11-14T19:12:18Z">
+  <testcase name="gate#aTestFailureIsAFailureNotAnError" classname="gate">
+    <failure message="the two cases the step named are its failures, and it is not also an error: 'LOOP-GATE: tests=0 failures=2 errors=0' not found — the gate's line read 'LOOP-GATE: tests=0 failures=0 errors=1'"/>
+  </testcase>
+</testsuite>

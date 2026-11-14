@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The gate's own tally of the red run, transcribed from red-on-HEAD.log's lines: the shell runner writes no
+     JUnit XML, and the case tree the gate measured (.pi/tmp/loop-selftest.*/) is gone. The numbers and the
+     timestamp are the run's own — `LOOP-GATE: tests=0 failures=0 errors=1` at 2026-11-14T19:12:18Z — so this
+     is the tally the gate line quoted, not a runner output. -->
+<testsuite name="bash suite.sh" tests="0" failures="0" errors="1" timestamp="2026-11-14T19:12:18Z">
+  <properties>
+    <property name="gate-line" value="LOOP-GATE: tests=0 failures=0 errors=1"/>
+    <property name="source" value="evidence/red-on-HEAD.log"/>
+  </properties>
+</testsuite>

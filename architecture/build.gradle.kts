@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.naviveylin.build.testing.ForcedTestExecution
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -26,6 +27,13 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnit()
+    // Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate` — "A gate run proves
+    // that its tests executed"): `-PforceTests` makes this task not up to date, so a run is evidence of what
+    // executed; pair it with `--no-build-cache`, or the result outputs come back from the cache
+    // (guidelines/Build.md §4).
+    if (ForcedTestExecution.isRequested(providers.gradleProperty(ForcedTestExecution.PROPERTY).orNull)) {
+        outputs.upToDateWhen { false }
+    }
     // A failing run reports each failure's own message (guidelines/BuildTests.md §6f), like the three Android
     // modules' unit-test tasks.
     testLogging {

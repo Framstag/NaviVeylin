@@ -39,9 +39,17 @@ object ProjectSources {
         Konsist.scopeFromProject().files
             .mapNotNull { file ->
                 val path = projectRelative(file.path) ?: return@mapNotNull null
-                SourceFile(path = path, packageName = file.packagee?.name ?: "")
+                SourceFile(
+                    path = path,
+                    packageName = file.packagee?.name ?: "",
+                    imports = file.imports.map { it.name },
+                )
             }
             .sortedBy { it.path }
+
+    /** The baseline as the tree ships it, comment lines and all (task 1.7). */
+    fun baselineText(): String = ProjectRoot.resolve(BASELINE_PATH)
+        .readText()
 
     /**
      * The path from the project root, or `null` when the file is outside the covered source roots.

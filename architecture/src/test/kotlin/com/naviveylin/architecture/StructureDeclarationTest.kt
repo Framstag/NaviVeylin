@@ -1,6 +1,7 @@
 package com.naviveylin.architecture
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -116,6 +117,25 @@ class StructureDeclarationTest {
             "the row that claims the package is the whole fix",
             emptyList<StructureViolation>(),
             StructureCheck(StructureDeclaration.parse(claimed)).violations(treeFiles + newPackage),
+        )
+    }
+
+    @Test
+    fun emptyDeclarationFails() {
+        val report = StructureReport.of(
+            StructureDeclaration.parse("# the declaration holds no rows\n"),
+            treeFiles,
+            Baseline(emptyList()),
+        )
+
+        assertFalse("an empty declaration must fail, not report zero violations: ${report.summary()}", report.passed)
+        assertTrue(
+            "the refusal names the declaration: ${report.summary()}",
+            report.summary().contains(DECLARATION_PATH),
+        )
+        assertTrue(
+            "the refusal names what is missing: ${report.summary()}",
+            report.summary().contains("no declaration rows"),
         )
     }
 }

@@ -1,7 +1,14 @@
 package com.naviveylin.architecture
 
-/** A source file the declaration is checked against: its path from the project root, and its package. */
-data class SourceFile(val path: String, val packageName: String)
+/**
+ * A source file the check reads: its path from the project root, its package, and the `import` names the layer
+ * rules of [LayerRules] are statements about.
+ */
+data class SourceFile(
+    val path: String,
+    val packageName: String,
+    val imports: List<String> = emptyList(),
+)
 
 /** The rules this part of the check evaluates. Each id is what a report names. */
 enum class StructureRule(val id: String) {
@@ -15,6 +22,36 @@ enum class StructureRule(val id: String) {
     /** Default deny: a file in a package no row claims (spec `package-structure`, "An undeclared
      * package fails by default"). */
     UNDECLARED_PACKAGE("default-deny"),
+
+    /** A declaration with no rows while source files exist (spec `architecture-test-suite`, "The check fails
+     * closed"): the check refuses to report an empty rule set as a pass. */
+    EMPTY_DECLARATION("empty-declaration"),
+
+    /** A `concept` file importing another of our packages (spec `package-structure`, "concept is
+     * self-contained"). */
+    CONCEPT_IMPORTS_NOTHING_OF_OURS("concept imports nothing of ours"),
+
+    /** A `concept` file importing the Android framework (spec `package-structure`, "concept is
+     * self-contained"). */
+    CONCEPT_IMPORTS_NO_ANDROID_TYPE("concept imports no Android type"),
+
+    /** A `port` file importing the Android framework (spec `package-structure`, "port holds abstraction only"). */
+    PORT_IMPORTS_NO_ANDROID_TYPE("port imports no Android type"),
+
+    /** A `port` file importing a package that is not `concept` (spec `package-structure`, "port holds
+     * abstraction only"). */
+    PORT_IMPORTS_ONLY_CONCEPT("port imports only concept"),
+
+    /** A baseline entry whose file no longer violates the rule it exempts (spec `architecture-test-suite`, "The
+     * baseline is shrink-only"). */
+    STALE_EXEMPTION("stale-exemption"),
+
+    /** A baseline entry naming no change that removes it (spec `architecture-test-suite`, "The baseline is
+     * shrink-only"). */
+    EXEMPTION_WITHOUT_CHANGE("exemption-without-change"),
+
+    /** A baseline line that is not three tab-separated fields, so the exemption cannot be read. */
+    BASELINE_ROW_UNPARSABLE("baseline-row-unparsable"),
 }
 
 /** One finding: the rule that refused, the pointer of the file or row it refused, and the sentence. */
@@ -27,6 +64,17 @@ data class StructureViolation(val rule: StructureRule, val pointer: String, val 
 class StructureCheck(private val declaration: StructureDeclaration) {
 
     fun violations(files: List<SourceFile>): List<StructureViolation> {
+        if (declaration.rows.isEmpty()) {
+            return listOf(
+                StructureViolation(
+                    rule = StructureRule.EMPTY_DECLARATION,
+                    pointer = DECLARATION_PATH,
+                    message = "${StructureRule.EMPTY_DECLARATION.id}: $DECLARATION_PATH holds no declaration " +
+                        "rows while ${files.size} source files exist — the check cannot determine the structure",
+                ),
+            )
+        }
+
         val found = mutableListOf<StructureViolation>()
 
         declaration.rows.groupBy { it.packageName }

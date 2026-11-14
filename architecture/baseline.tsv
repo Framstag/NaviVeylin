@@ -1,0 +1,36 @@
+# architecture/baseline.tsv — the ratchet's exemptions (change package-structure-as-five-kinds, task 1.7).
+# Columns, tab-separated, on every line below that does not start with #: file, rule, owning change.
+# file is the project-relative path of a main source file; rule is the name of a rule in LayerRules the file
+# is exempted from; owning change is the change that removes the entry by moving or fixing its file. The check
+# refuses an entry that names no change and an entry whose file no longer violates the rule (spec
+# architecture-test-suite — "The baseline is shrink-only"), so this file can only shrink.
+# Measured 2026-11-14 by running the check with an empty baseline (this file holding no entries): 14 entries
+# over 13 files — 11 for 'concept imports no Android type' and 3 for 'concept imports nothing of ours'
+# (ResultMarkings.kt carries both). The concept packages are the rows of architecture/structure.tsv whose kind
+# is concept — com.naviveylin.core, com.naviveylin.concept and com.naviveylin.util — and the 11 are the Android
+# importers of the 59 files in com.naviveylin.core: tools/look.sh '^import (android|androidx)\.' --path
+# core/src/main/java (26 matches in 11 files); the 3 are its cross-package importers: tools/look.sh
+# '^import com\.naviveylin\.' --path core/src/main/java/com/naviveylin/core (9 matches in 6 files, and the 6 in
+# AutoEntryPoint.kt, AutoSearchProvider.kt and ResultMarkings.kt are the three concept files that leave the
+# package — the other 3 files sit in its subpackages, which are other kinds). The other two concept rows carry
+# neither.
+# The owning change is the follow-up migration that moves these files out of `concept` — the concept/platform
+# split this change's task 1.5 measures and does not perform, because no file move lands here. Its name is
+# reserved so every entry carries the change that removes it; the entry is the ratchet's record, not a claim
+# that the change is filed.
+# ManeuverSymbols.kt and CarSurfaceHost.kt are entries here and not declaration rows: a row addresses a
+# package, both sit in one (com.naviveylin.core), and declaring them `platform` would be a file move.
+core/src/main/java/com/naviveylin/core/CarSurfaceHost.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/DeepLinkParser.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/LocationGrant.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/MapRenderUtil.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/ManeuverSymbols.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/NavigationFailure.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/RenderBitmapPool.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/ResultMarkings.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/SearchRowIcons.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/StringResolver.kt	concept imports no Android type	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/AutoEntryPoint.kt	concept imports nothing of ours	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/AutoSearchProvider.kt	concept imports nothing of ours	package-structure-concept-migration
+core/src/main/java/com/naviveylin/core/ResultMarkings.kt	concept imports nothing of ours	package-structure-concept-migration

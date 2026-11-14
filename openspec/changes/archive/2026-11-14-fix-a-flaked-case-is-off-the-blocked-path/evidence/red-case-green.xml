@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-case-green.log,
+     transcribed from that run's own lines, and it is not the runner output. The tree is this change applied, so both
+     halves of the case — the one that records `flaked` and the sibling that records `delta` — are green here. -->
+<testsuite name="tools/loop-selftest.sh --case run#aFlakedCaseIsOffTheBlockedPath"
+           tests="1" failures="0" errors="0">
+  <testcase classname="run" name="aFlakedCaseIsOffTheBlockedPath"/>
+</testsuite>

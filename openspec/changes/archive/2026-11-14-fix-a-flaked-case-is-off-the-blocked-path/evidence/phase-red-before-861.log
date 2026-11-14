@@ -1,0 +1,42 @@
+[PHASE-BOUND: cut at 4000 characters — the phase state is printed first, so a cut takes the work package's tail; that text is in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.jqafmI/cases/8/tree/case.bTnBaW/repo/.pi/issue-loop/items/688]: 'PKG-LINE-001' not found in: LOOP-PHASE: A — root cause and the red test
+ITEM: #688 fix-issue-688-loop-spend · the state records phase A · base 3dc0ddfafc43
+CHECKLIST: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/prompts/worker.md
+## Phase A — root cause and the red test
+
+1. Verify the entry against the tree. Confirm the condition still holds, with a `file:line`, and that it
+   is not already fixed. If it no longer holds, stop: verdict `skipped`, sub-verdict `stale`, with the
+   `file:line` that shows the claim is gone. A stale claim carries no measurement and no review, so the run
+   does not retire the item on it: it escalates it, and your `LOOP-DECISION` is the question a person answers —
+   retire it as stale, or re-diagnose it. When the `ITEM_CHANGE` block names a change, this step verifies
+   *that* change's claims first: a cited `file:line` that moved, or a red case that is green on the base, is
+   `needs-diagnosis` naming the path, not an invitation to plan again.
+2. Name the root cause in one sentence: the single mechanism that explains the symptom. Two mechanisms
+   means the item is not eligible — verdict `skipped`, sub-verdict `needs-diagnosis`. For `{{PROPOSE_CLASS}}`
+   there is no root cause to name: name the one missing capability and the `file:line` (or the named run)
+   that shows it is absent, and treat two independent missing capabilities as `needs-diagnosis`.
+3. Produce the **red test**: the smallest case that exercises the defect and fails on HEAD. Record the
+   JUnit XML `tests=`/`failures=`, the case name and the timestamp. For a non-defect, the red case
+   asserts the number, count or absence the delta requires — never "better". For `{{PROPOSE_CLASS}}`, the
+   red case is the acceptance scenario the new requirement states: it fails on HEAD because the capability is
+   absent, and it passes only once the capability exists.
+4. Name the owning capability and the owning guideline section. Route with `AGENTS.md`'s Documentation
+   Map; never read a guideline in full.
+5. Count the surface before the plan is fixed. The rule you are about to change has more than one place that
+   asserts it, and the plan is only real once you know how many: `tools/look.sh '<the rule>'` names the files that
+   hold the rule's text and its symbol — over the cases (`tools/*-cases.sh`), the engine, the prompts and the
+   fixtures — and lists the cases and fixtures that assert the behaviour being changed. The proposal carries the count with the command that produced it
+   (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`), because the count, not the first
+   file the plan names, is what the estimate is set against. An estimate made before this pass is the defect
+   this step exists for: the #232 change was planned as two functions and landed as 292 insertions over six
+   files (issue #238).
+GIT: branch fix/issue-688-loop-spend · HEAD 33105f4f84db · base 3dc0ddfafc43 · ahead 1 · behind 0
+DIRTY: 1 path(s): dirty.txt
+GATE: green — tests=256 failures=0 errors=0 — the last gate line /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.jqafmI/cases/8/tree/case.bTnBaW/repo/.pi/issue-loop/items/688/events.jsonl records
+PATHS: none yet — a verdict is not a write; the red case lands in the tree the plan fixes
+PATHS: the item evidence copies, always — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.jqafmI/cases/8/tree/case.bTnBaW/repo/.pi/issue-loop/items/688
+PACKAGE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.jqafmI/cases/8/tree/case.bTnBaW/repo/.pi/issue-loop/items/688/work-package.md · fingerprint 0123456789abcdef · provenance issue #688
+ACCEPTANCE: a long package
+<<<ISS
+[PHASE-BOUND: cut at 4000 characters — the phase state is printed first, so a cut takes the work package's tail; that text is in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.jqafmI/cases/8/tree/case.bTnBaW/repo/.pi/issue-loop/items/688]
+FAIL phase#aResultOverTheBoundIsCutAndNamed
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain

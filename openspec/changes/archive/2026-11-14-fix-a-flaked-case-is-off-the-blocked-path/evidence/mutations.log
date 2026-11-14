@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 371 records (labels: 861.1 861.2 861.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.3HmfNT
+RED    861.1  run#aFlakedCaseIsOffTheBlockedPath   (the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861))
+       2026-11-14T13:53:10Z — and the second look is that worktree, not a fresh tree the item's work never warmed: '/.pi/worktrees/loop' not found in: /tmp/loop-attribute.VsmNGI
+restore 861.1 run#aFlakedCaseIsOffTheBlockedPath green again
+RED    861.2  run#aFlakedCaseIsOffTheBlockedPath   (the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861))
+       2026-11-14T13:53:30Z — the run itself failed: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:
+restore 861.2 run#aFlakedCaseIsOffTheBlockedPath green again
+RED    861.3  run#aFlakedCaseIsOffTheBlockedPath   (the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861))
+       2026-11-14T13:53:49Z — the run itself failed: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 child-turns-max=worker:
+restore 861.3 run#aFlakedCaseIsOffTheBlockedPath green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

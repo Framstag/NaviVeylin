@@ -178,6 +178,7 @@ LOOP_SHELL_CASES=(
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
+  'gate#aRedGateWritesTheLogItIsAttributedFrom'
   'gate#theSummaryNamesWhatEachSuiteCost'
   'gate#independentStepsRunTogether'
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
@@ -313,6 +314,7 @@ LOOP_SHELL_CASES=(
   'run#aRedGateIsBlockedByTheTail'
   'run#aBlockedItemRecordsTheRoundThatReadIt'
   'run#aCloseOverARedGateIsWaivedOrBlocked'
+  'run#aRedGateIsAttributedToTheTreeThatFailsIt'
   'run#plainTextChildStillReports'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
@@ -895,6 +897,7 @@ loop_run_shell_case() {
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
+    'gate#aRedGateWritesTheLogItIsAttributedFrom') fn=case_gate_aRedGateWritesTheLogItIsAttributedFrom ;;
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
@@ -1030,6 +1033,7 @@ loop_run_shell_case() {
     'run#aRedGateIsBlockedByTheTail') fn=case_run_aRedGateIsBlockedByTheTail ;;
     'run#aBlockedItemRecordsTheRoundThatReadIt') fn=case_run_aBlockedItemRecordsTheRoundThatReadIt ;;
     'run#aCloseOverARedGateIsWaivedOrBlocked') fn=case_run_aCloseOverARedGateIsWaivedOrBlocked ;;
+    'run#aRedGateIsAttributedToTheTreeThatFailsIt') fn=case_run_aRedGateIsAttributedToTheTreeThatFailsIt ;;
     'run#plainTextChildStillReports') fn=case_run_plainTextChildStillReports ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
@@ -2616,6 +2620,20 @@ case_state_aCloseOverARedGateWithoutAWaiverIsRefused() {
     --gate 'tests=4 failures=0 errors=0' --gate-waived 'a clause' 2>&1); status=$?
   assert_eq "2" "$status" "a waiver beside a gate that passed is refused"
   assert_contains "$out" "there is nothing to waive" "and says why"
+  # The attribution of a red gate is a closed vocabulary of its own (issue #853), and it answers about a tally that did
+  # not pass: prose is refused, a green tally has nothing to attribute, and a value with no tally is refused.
+  out=$(run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused \
+    --gate 'tests=1 failures=2 errors=0 (mobile)' --gate-attribution sideways 2>&1); status=$?
+  assert_eq "2" "$status" "an attribution outside delta|base|unattributable is refused"
+  assert_contains "$out" "--gate-attribution must be delta|base|unattributable" "and the refusal names the vocabulary"
+  out=$(run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --gate 'tests=4 failures=0 errors=0' --gate-attribution delta 2>&1); status=$?
+  assert_eq "2" "$status" "an attribution beside a gate that passed is refused"
+  assert_contains "$out" "there is nothing to attribute" "and says why"
+  out=$(run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused \
+    --gate-attribution base 2>&1); status=$?
+  assert_eq "2" "$status" "an attribution with no tally beside it is refused"
+  assert_contains "$out" "no --gate was given" "and the refusal says the tally is what it answers about"
   # A tally that carries no count at all — the shapes a project with no gate, or a gate that never ran, writes — is
   # neither red nor green, so it is recorded with its waiver and needs none to close.
   run_state "$p" done 21 --result done --verdict closed --change fix-demo \
@@ -5818,8 +5836,10 @@ GRADLEW
   base=$(git -C "$p" rev-parse HEAD~1)
   out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ) \
     || fail "the gate failed: $out"
-  # A reader that lists the directory without `-A`: a dotfile is the one tally a plain `ls` does not print.
-  visible=$(ls -1 "$d/tally" 2>/dev/null | grep -c . || true)
+  # A reader that lists the directory without `-A`: a dotfile is the one tally a plain `ls` does not print. The
+  # directory also holds the gate's own log now (`tools/loop/gate.sh` writes it beside the tallies, issue #853), so
+  # the count is of the tallies a glob finds and never of every file the directory carries.
+  visible=$(ls -1 "$d"/tally/*.xml 2>/dev/null | grep -c . || true)
   assert_eq "1" "$visible" \
     "a plain ls prints the compiled step's tally (the directory holds: $(ls -A "$d/tally" 2>/dev/null | tr '\n' ' '))"
   # …and the shell glob the round's evidence was read with finds the same file, under the command's own name.
@@ -5827,6 +5847,45 @@ GRADLEW
   for f in "$d"/tally/*.xml; do [ -f "$f" ] && globbed="$globbed$(basename "$f") "; done
   assert_eq "gradlew_test.xml " "$globbed" \
     "a *.xml glob finds the tally of a ./ command, named after the command without its ./ prefix (the directory holds: $(ls -A "$d/tally" 2>/dev/null | tr '\n' ' '))"
+  return 0
+}
+
+# The log a red gate is attributed from is the gate's own (issue #853): the run reads the failing case and its rerun
+# command out of that file through `tools/gate-attribute.sh`, and a log the gate did not write leaves every red
+# `unattributable`. The file is written beside the tallies the profile names and carries the step block and the
+# verdict the console printed, so the reader has one source for the case.
+case_gate_aRedGateWritesTheLogItIsAttributedFrom() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/gate-attribute.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf base out log
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD="./gradlew test"\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*.kt"\n'
+    printf 'LOOP_GATE_SUITES=""\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  cat > "$p/gradlew" <<'GRADLEW'
+printf 'notes: all 1 cases passed\n'
+GRADLEW
+  chmod +x "$p/gradlew"
+  printf 'class A\n' > "$p/a.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ) \
+    || fail "the gate failed: $out"
+  log="$d/tally/gate.log"
+  assert_contains "$out" "LOOP-GATE-LOG: $log" "the gate names the log it writes beside its tallies: $out"
+  [ -f "$log" ] || fail "the gate wrote no log beside its tallies: $(ls -A "$d/tally" 2>/dev/null | tr '\n' ' ')"
+  assert_contains "$(cat "$log")" 'gate: ./gradlew test' \
+    "the log carries the step block the console printed: $(cat "$log")"
+  assert_contains "$(cat "$log")" 'LOOP-GATE: tests=' "and the verdict line a reader takes the failing case from"
+  # The one derivation of a red gate's facts reads this file and nothing else, so its answer is what the gate's own
+  # log yields — a gate whose one case passed has no failing case to name.
+  assert_contains "$(bash "$LOOP_ENGINE/../gate-attribute.sh" "$log")" 'case: none — every case this log reports passed' \
+    "and tools/gate-attribute.sh reads the case out of the file the gate wrote"
   return 0
 }
 
@@ -10647,6 +10706,87 @@ case_run_aCloseOverARedGateIsWaivedOrBlocked() {
     "a suite with no clause to name does not fail the close it has no waiver for"
   assert_eq "null" "$(jq -r '.items[0].metrics.gateWaivedSuite' "$f4")" "and no suite survives beside an empty clause"
   assert_eq "1" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and this close reaches the tracker too"
+}
+
+case_run_aRedGateIsAttributedToTheTreeThatFailsIt() {
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/loop/gate.sh tools/gate-attribute.sh tools/loop/loop.conf tools/tooling.json tools/pi-child-events.sh
+  # A red gate is the item's only verdict, and the record it left could not say whether the case it named was the
+  # delta's or the base's (issue #853). Three runs, one per answer the field can carry, and the base tree the
+  # second one pays for is the only one of the three that is asked to exist.
+  local d p f out d2 p2 f2 d3 p3 f3 marker marker2 log tally
+  tally='tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s)'
+  # The log a red gate writes beside its tallies — the one file `tools/gate-attribute.sh` reads, and the one
+  # `tools/loop/gate.sh` now writes. Its failing case is the case every run below is attributed from.
+  log='gate: tools/demo-selftest.sh
+Demo#fails-at-base| the case failed
+FAIL Demo#fails-at-base
+gate: tools/demo-selftest.sh — 7s
+LOOP-GATE: tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s) — failing: tools/demo-selftest.sh'
+  # ── the delta's own red: the item's red test names the case, so no base tree is paid for it ──────────────────
+  d=$(scratch); p=$(new_project)
+  marker="$d/base-tree-ran"
+  # The base commit carries the case the log names, so a base tree *could* answer — the run is asserted not to ask.
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do\n  case "$a" in *fails-at-base) : > %s; exit 1 ;; esac\ndone\nexit 0\n' \
+    "$marker" > "$p/tools/demo-selftest.sh"
+  chmod +x "$p/tools/demo-selftest.sh"
+  git -C "$p" add tools/demo-selftest.sh >/dev/null 2>&1 \
+    && git -C "$p" commit -qm 'the case the gate log names' >/dev/null 2>&1 \
+    || fail "could not commit the base's case"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    "printf '%s\\n' 'gate: tools/demo-selftest.sh' 'Demo#fails-at-base| the case failed' 'FAIL Demo#fails-at-base' 'gate: tools/demo-selftest.sh — 7s' 'LOOP-GATE: $tally — failing: tools/demo-selftest.sh' > app/build/test-results/loop-gate/gate.log"
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#fails-at-base fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d/worker-report.txt"
+  printf 'LOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#fails-at-base fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d/gate-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  assert_eq "delta" "$(jq -r '.items[0].metrics.gateAttribution' "$f")" \
+    "the case the item's own red test names is the delta's, measured from the gate's log"
+  assert_eq "$tally" "$(jq -r '.items[0].metrics.gate' "$f")" "and the tally's own prose is not rewritten by the field"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "a red gate still blocks the item"
+  [ ! -e "$marker" ] || fail "a base tree was paid for a case the item's own red test already names"
+  assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and nothing is closed on the tracker"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "attributed: 1 of 1 items recorded which tree fails the case their gate named (delta ×1)" \
+    "so the report counts the answer instead of printing every red gate as the same verdict"
+  # ── a case the change did not write, whose rerun fails at the run's base commit: a pre-existing red ───────────
+  d2=$(scratch); p2=$(new_project)
+  marker2="$d2/base-tree-ran"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do\n  case "$a" in *fails-at-base) : > %s; exit 1 ;; esac\ndone\nexit 0\n' \
+    "$marker2" > "$p2/tools/demo-selftest.sh"
+  chmod +x "$p2/tools/demo-selftest.sh"
+  git -C "$p2" add tools/demo-selftest.sh >/dev/null 2>&1 \
+    && git -C "$p2" commit -qm 'the case the gate log names' >/dev/null 2>&1 \
+    || fail "could not commit the base's case"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d2" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    "printf '%s\\n' 'gate: tools/demo-selftest.sh' 'Demo#fails-at-base| the case failed' 'FAIL Demo#fails-at-base' 'gate: tools/demo-selftest.sh — 7s' 'LOOP-GATE: $tally — failing: tools/demo-selftest.sh' > app/build/test-results/loop-gate/gate.log"
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWrites fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d2/worker-report.txt"
+  printf 'LOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWrites fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d2/gate-report.txt"
+  out=$(run_loop "$p2" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f2=$(state_file "$p2")
+  assert_eq "base" "$(jq -r '.items[0].metrics.gateAttribution' "$f2")" \
+    "a case that the base commit fails too is recorded as a pre-existing red"
+  [ -e "$marker2" ] || fail "the base tree was never asked for the case the record says it fails"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f2")" \
+    "and the item blocks as it did before: the answer is readability, not a verdict on a gate that did not pass"
+  assert_eq "0" "$(git -C "$p2" worktree list | grep -c 'loop-attribute' || true)" "the base tree is removed again"
+  # ── a red gate whose log the run cannot read: unattributable, and the item blocks as it did before ───────────
+  d3=$(scratch); p3=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d3"
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWrites fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d3/worker-report.txt"
+  printf 'LOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseTheChangeWrites fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: %s\n' \
+    "$tally" > "$d3/gate-report.txt"
+  out=$(run_loop "$p3" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f3=$(state_file "$p3")
+  assert_eq "unattributable" "$(jq -r '.items[0].metrics.gateAttribution' "$f3")" \
+    "a red gate whose log the run cannot read says so rather than failing the item twice"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f3")" "and that item blocks exactly as it did before"
 }
 
 # The round that reads the diff before the gate is a round the run read and paid for, and the item's record says so

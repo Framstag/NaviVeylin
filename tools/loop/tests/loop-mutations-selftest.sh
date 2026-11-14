@@ -36,13 +36,15 @@ scratch=$(mktemp -d "$root/.pi/tmp/loop-mutations-selftest.XXXXXX") || {
 trap 'rm -rf "$scratch"' EXIT
 
 # The pristine engine, and the copy the harness will mutate. The copy keeps the layout the engine expects:
-# `…/tools/loop` with `…/tools/issues` beside it (`lib.sh` resolves its dependency as a sibling), and the
-# dependency is a symlink because no mutation touches it.
+# `…/tools/loop` with `…/tools/issues` beside it (`lib.sh` resolves its dependency as a sibling) and, beside that,
+# the gate-log reader a red tally is attributed through (`tools/gate-attribute.sh`, issue #853). Both dependencies
+# are symlinks because no mutation touches them.
 pristine="$scratch/pristine"
 cp -a "$root/tools/loop" "$pristine"
 mkdir -p "$scratch/engine/tools"
 cp -a "$root/tools/loop" "$scratch/engine/tools/loop"
 ln -s "$root/tools/issues" "$scratch/engine/tools/issues"
+ln -s "$root/tools/gate-attribute.sh" "$scratch/engine/tools/gate-attribute.sh"
 copy_dir="$scratch/engine/tools/loop"
 
 failures=0
@@ -180,6 +182,17 @@ check "a git diff names the records its file owns" "0" "$status"
 check "and nothing else" "$owned_count" "$(printf '%s\n' "$out" | grep -c '^RED')"
 contains "and it says the same selection the file set named" "selected $owned_count of $declared records" "$out"
 copy_is_pristine "and the copy is byte-identical to the pristine one again"
+
+# 10. the engine's second sibling. A copy that ships `tools/loop` and the issue tooling but not the gate-log reader a
+# red tally is attributed through is refused, rather than running cases that could only answer `unattributable` —
+# the shape the run of 2026-11-13 measured as a restore-failure on `853.2` (issue #853).
+mkdir -p "$scratch/bare/tools"
+cp -a "$root/tools/loop" "$scratch/bare/tools/loop"
+ln -s "$root/tools/issues" "$scratch/bare/tools/issues"
+out=$(timeout 120 bash "$harness" --files "$scoped_file" --engine "$scratch/bare/tools/loop" 2>&1)
+status=$?
+check "a copy with no sibling gate-log reader exits 2" "2" "$status"
+contains "and it names the sibling it lacks" "has no sibling gate-attribute.sh" "$out"
 
 if [ "$failures" -ne 0 ]; then
   printf 'loop-mutations-selftest: %s of %s cases failed — the mutation harness does not hold its own guards\n' \

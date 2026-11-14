@@ -616,7 +616,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -630,6 +630,7 @@ cmd_done() {
       --gate) need_value "$@"; gate="${2:-}"; shift 2 ;;
       --gate-waived) need_value "$@"; gate_waived="${2:-}"; shift 2 ;;
       --gate-waived-suite) need_value "$@"; gate_waived_suite="${2:-}"; shift 2 ;;
+      --gate-attribution) need_value "$@"; gate_attribution="${2:-}"; shift 2 ;;
       --events) need_value "$@"; events="${2:-}"; shift 2 ;;
       --closed) need_value "$@"; closed="${2:-}"; shift 2 ;;
       --root-cause) need_value "$@"; root_cause="${2:-}"; shift 2 ;;
@@ -708,6 +709,19 @@ cmd_done() {
   elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then
     loop_die "done: the gate is red ($gate) and the close records no waiver — --gate-waived names the one clause it closed over"
   fi
+  # Which tree fails the case the tally named is the other half of a red gate's record (issue #853): `delta` the
+  # change's own case, `base` a case that also fails at the base commit, `unattributable` a red the run could not
+  # answer. It is a closed vocabulary rather than a second place to write prose, and it belongs to a tally that did
+  # not pass — a green one has nothing to attribute.
+  case "$gate_attribution" in
+    ""|delta|base|unattributable) ;;
+    *) loop_die "done: --gate-attribution must be delta|base|unattributable" ;;
+  esac
+  if [ -n "$gate_attribution" ]; then
+    [ -n "$gate" ] || loop_die "done: --gate-attribution is an answer about a tally, and no --gate was given"
+    [ "$(gate_tally_state "$gate")" != green ] ||
+      loop_die "done: --gate-attribution was given for a gate that passed ($gate) — there is nothing to attribute"
+  fi
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; elif [ "$result" = cut ]; then printf 'cut'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
@@ -768,6 +782,7 @@ cmd_done() {
                            gate:$gate,
                            gateWaived:(if $gw == "" then null else $gw end),
                            gateWaivedSuite:(if $gws == "" then null else $gws end),
+                           gateAttribution:(if $ga == "" then null else $ga end),
                            gateRepeat:$usage.gateRepeat,
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
@@ -795,7 +810,7 @@ cmd_done() {
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg rv "$review_verdict" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
-    --arg gw "$gate_waived" --arg gws "$gate_waived_suite" \
+    --arg gw "$gate_waived" --arg gws "$gate_waived_suite" --arg ga "$gate_attribution" \
     --argjson usage "$usage" \
     --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence" \
     --arg ms "$merged_sha"

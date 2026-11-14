@@ -1176,6 +1176,58 @@ change_answered() { # change_answered <change report> → 0 when the report carr
     [ -n "$(report_field "$1" LOOP-TIMEOUT)" ] || [ -n "$(report_field "$1" LOOP-DEADLINE)" ]
 }
 
+# Which tree fails the case a red gate names (issue #853). The record a red tally left said what the gate reported —
+# the failing case's name — and nothing about the tree that made it fail, so a pre-existing red and the delta's own red
+# were the same verdict. `guidelines/BuildEvidence.md` §4d is the project's rule for the question, and both halves of
+# it are here: the tally, and the base commit the item descends from.
+#
+# The facts are the gate's own log — `tools/loop/gate.sh` writes it beside its tallies — read through the one derivation
+# `tools/gate-attribute.sh` owns of the failing case and the rerun command; nothing about a case is parsed a second
+# time here. `delta` is the case the item's own `LOOP-RED-TEST` line already names, and it pays no base tree: the
+# owner's recorded decision on #853 (`2026-11-12T16:00:04Z`, option 1) is that a red case the change itself named is
+# not a pre-existing red. Any other case is rerun once in a detached tree at the run's base, inside one case's bound:
+# only a rerun that ran and failed answers `base`. A tree that cannot be made, a case the base cannot select (exit 2),
+# a bound (124/137) and a log naming no case or no rerun command all answer `unattributable` — a red gate that cannot
+# be attributed must not fail the item a second time.
+attribute_red_gate() { # <tally> <tally dir> <change root> <base> → delta|base|unattributable, nothing when not red
+  local tally="${1:-}" tally_dir="${2:-}" root="${3:-}" base="${4:-}"
+  local log block case_name rerun tmp bound status
+  [ "$(gate_tally_state "$tally")" = red ] || return 0
+  log="$tally_dir/gate.log"
+  if [ -z "$tally_dir" ] || [ ! -r "$log" ]; then printf 'unattributable\n'; return 0; fi
+  block=$(bash "$LOOP_DIR/../gate-attribute.sh" "$log" 2>/dev/null) || block=""
+  case_name=$(printf '%s\n' "$block" | sed -n 's/^case: //p' | head -1)
+  rerun=$(printf '%s\n' "$block" | sed -n 's/^rerun: //p' | head -1)
+  case "$case_name" in ''|*'#'*) ;; *) case_name="" ;; esac
+  case "$rerun" in ''|'not derivable from this log') rerun="" ;; esac
+  [ -n "$case_name" ] && [ -n "$rerun" ] || { printf 'unattributable\n'; return 0; }
+  # The item's own red test is the free text `state.sh done` keeps in `metrics.redTest`; its case names are
+  # `<group>#<name>` tokens of it, so the token is matched whole and never as a prefix of a longer name.
+  if printf '%s' "${red_test:-}" | tr ' \t\n' '\n\n\n' | grep -qxF -- "$case_name"; then
+    printf 'delta\n'
+    return 0
+  fi
+  bound=$(loop_conf_value LOOP_CASE_MAX_SECONDS)
+  case "$bound" in ''|*[!0-9]*) bound=900 ;; esac
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/loop-attribute.XXXXXX") || { printf 'unattributable\n'; return 0; }
+  # `mktemp` made the directory and `git worktree add` wants to create its own.
+  rmdir "$tmp" 2>/dev/null || true
+  if ! git -C "$root" worktree add --detach "$tmp" "$base" >/dev/null 2>&1; then
+    rm -rf "$tmp" 2>/dev/null || true
+    printf 'unattributable\n'
+    return 0
+  fi
+  ( cd "$tmp" && timeout "$bound" bash -c "$rerun" ) >/dev/null 2>&1
+  status=$?
+  # The tree goes whatever the rerun answered: a base tree left behind is a worktree the next run reads as its own.
+  git -C "$root" worktree remove --force "$tmp" >/dev/null 2>&1 || rm -rf "$tmp" 2>/dev/null || true
+  case "$status" in
+    0) printf 'delta\n' ;;
+    2|124|137) printf 'unattributable\n' ;;
+    *) printf 'base\n' ;;
+  esac
+}
+
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
 # count zero blocking findings, which is a pass whose notes are recorded; a report that says nothing at all is
 # empty here, and an empty count keeps the loop's conservative reading — an old-shaped review never passes.
@@ -3019,6 +3071,14 @@ while true; do
     gate_waived_suite=""
   fi
   if [ -n "$gate_waived_suite" ] && [ -z "$gate_waived" ]; then gate_waived_suite=""; fi
+  # Which tree fails the case the red tally names (issue #853) is taken here, where the waiver fields are settled and
+  # both halves are in hand, and it changes no outcome: the answer is what makes the block readable, not a verdict on
+  # a gate that did not pass (§4d).
+  gate_attribution=""
+  [ "$(gate_tally_state "$gate_field")" = red ] &&
+    gate_attribution=$(attribute_red_gate "$gate_field" "$gate_tally_dir" "$worktree" "$base")
+  attribution_args=()
+  [ -z "$gate_attribution" ] || attribution_args+=(--gate-attribution "$gate_attribution")
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"
@@ -3366,7 +3426,7 @@ $review_notes_text"
       [ -z "$gate_waived_suite" ] || waived_args+=(--gate-waived-suite "$gate_waived_suite")
       loop_state done "$issue" --result done --verdict closed --change "$change" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
-        ${waived_args[@]+"${waived_args[@]}"} \
+        ${waived_args[@]+"${waived_args[@]}"} ${attribution_args[@]+"${attribution_args[@]}"} \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
         --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-sha "$merged_sha" \
         --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" >/dev/null
@@ -3474,7 +3534,7 @@ $review_notes_text"
       fi
       loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
-        --gate "$gate_field" \
+        --gate "$gate_field" ${attribution_args[@]+"${attribution_args[@]}"} \
         --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
         --events "$events_file" --leftover "$leftover_patch" \
         --stop-reason "$stop_reason" \
@@ -3540,7 +3600,7 @@ question the item asked; a retry costs another attempt, and an abandonment remov
       fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
-        --gate "$gate_field" \
+        --gate "$gate_field" ${attribution_args[@]+"${attribution_args[@]}"} \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
         --label-failures "$label_failures" --stop-reason "$stop_reason" \

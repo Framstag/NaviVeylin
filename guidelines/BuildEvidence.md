@@ -109,6 +109,13 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   case, its `file:line`, the first error line, the failed step, the flake line, and the rerun command derived
   from the step's own command. The flake line reads `not recorded — this tree keeps no flake list`, which is
   the fact and not a verdict.
+- **Rule: the loop records which tree fails the case its gate named** — an item whose gate tally is red carries
+  `metrics.gateAttribution`, one of `delta | base | unattributable`, beside the tally and the waiver fields
+  (`tools/loop/state.sh`). `delta` is the case the item's own `LOOP-RED-TEST` line already names; `base` is a case
+  that also fails in a detached tree at the run's base commit, and it is a pre-existing red rather than a finding
+  about the delta; `unattributable` is a log naming no case, a base tree that could not be made, or a case the base
+  could not select inside one case's bound. The field rewrites no tally's prose and changes nothing a red gate does
+  to an item — it makes the block readable.
 - **Rule: a flake of unknown origin gets an entry with its rerun evidence, never a silent retry** — record the
   red run and the green rerun together with the mechanism they ruled out.
 - **Rule: sweep the suite for what the change moves, before the gate** — a behaviour change can move an

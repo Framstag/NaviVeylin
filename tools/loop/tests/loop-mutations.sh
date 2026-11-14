@@ -79,12 +79,15 @@ done
 # copies of the files the records name, so it needs the engine and nothing else — which is what lets a caller
 # point it at a bare copy of the set.
 if [ "$check" -eq 0 ]; then
-# The engine reads its dependency as a sibling (`$LOOP_DIR/../issues`), so a copy must keep that layout —
-# `--engine <dir>` wants `<dir>` to be the copied `loop` directory, with `issues` beside it.
-[ -f "$engine/../issues/lib.sh" ] || {
-  echo "loop-mutations: --engine $engine has no sibling issues directory — copy the layout, not just tools/loop" >&2
-  exit 2
-}
+# The engine reads two files outside its own directory as siblings — `issues` (which `lib.sh` resolves) and the
+# gate-log reader a red tally is attributed through (`tools/gate-attribute.sh`, issue #853) — so a copy must keep
+# that layout: `--engine <dir>` wants `<dir>` to be the copied `loop` directory, with both beside it.
+for sibling in issues/lib.sh gate-attribute.sh; do
+  [ -e "$engine/../$sibling" ] || {
+    echo "loop-mutations: --engine $engine has no sibling $sibling — copy the layout, not just tools/loop" >&2
+    exit 2
+  }
+done
 [ -f "$root/tools/loop/tests/loop-selftest.sh" ] || { echo "loop-mutations: the gate tools/loop/tests/loop-selftest.sh is missing" >&2; exit 2; }
 fi
 
@@ -1214,6 +1217,13 @@ MUTATIONS=(
   # over two children that had written a paragraph each. One rule, one case: the note carries the reason the child
   # gave, and the constant is only the fallback for a child that gave none.
   '854.1@-@tools/loop/run.sh@run#aSkipPrintsTheReasonTheChildGave@the note the skip arm records, so the report prints the constant for every skip while the same record carries the child sentence (issue #854)@s|--note "\${root_cause:-skipped by the worker}"|--note "skipped by the worker"|'
+  # 853.x — which tree fails the case a red gate names (issue #853). The field is what makes a block readable, so each
+  # of its three halves is pinned by the case that reads it: the run's one attribution (`853.1`), the state's write
+  # beside the waiver fields (`853.2`), and the log `tools/loop/gate.sh` writes for it (`853.3`). Each mutation empties
+  # exactly one of them, so the case that fails is the one that half belongs to.
+  '853.1@-@tools/loop/run.sh@run#aRedGateIsAttributedToTheTreeThatFailsIt@the attribution a red tally is recorded with, so every red gate reads as one verdict and the case the delta wrote is asked of the base tree (issue #853)@s|^    gate_attribution=\$(attribute_red_gate "\$gate_field" "\$gate_tally_dir" "\$worktree" "\$base")$|    gate_attribution=""|'
+  '853.2@-@tools/loop/state.sh@run#aRedGateIsAttributedToTheTreeThatFailsIt@the field the record carries beside the tally and beside the waiver, so no run names which tree failed the case its gate named (issue #853)@s|^                           gateAttribution:(if \$ga == "" then null else \$ga end),$|                           gateAttribution:null,|'
+  '853.3@-@tools/loop/gate.sh@gate#aRedGateWritesTheLogItIsAttributedFrom@the log written beside the tallies, so the one source a red gate is attributed from does not exist and every red reads `unattributable` (issue #853)@s|^  gate_log="\$tally_root/gate.log"$|  gate_log=""|'
   # 863.1 — an item a merge refused is an action of its own (issue #863). The record carries `stopReason:
   # unmergeable` and its refusal, and the report printed the item's decision line and no branch, no count and no
   # command, so the caller was handed a question where the run had recorded a repair. One arm, one case: the arm

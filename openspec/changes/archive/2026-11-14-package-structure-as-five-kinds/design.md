@@ -1,5 +1,12 @@
 # Design
 
+## Scope of this archive
+
+This archive is the slice that landed on 2026-11-14 — the `:architecture` module, the declaration, the
+reader, and the three rules the tree now enforces (one row per package, a row the tree lacks, the
+default deny). The design below is the design of the whole plan, of which this archive lands the first
+part; the rest is carried by the open change `package-structure-rules-and-suite`.
+
 ## Context
 
 Measured on 2026-11-09 with `tools/project-metrics-report.sh app auto core` and an import-graph pass over
@@ -8,6 +15,10 @@ holds 92 with 59 of them in `core.core`, and that one package absorbs 491 of the
 project (58.5%), while 79% of all dependency traffic terminates somewhere in `:core`. `app.data` is the
 only package that is simultaneously a widely used library (`Ca` 85) and a client of the layer below
 (`Ce` 53). Both variants import 44 of the 68 `:core` symbols `:app` uses; the other 24 are `:app`-only.
+
+These figures are the plan's own baseline of 2026-11-09, taken by its author; this change's record
+reproduces none of them. The measurement this change's own record carries is in
+`evidence/declaration-figures.log` — 338 main sources over 27 packages, and 27 declaration rows.
 
 The dependency graph is not chaotic — sorted by Martin's instability it is close to monotonic, a
 well-formed two-tier cake (`core.*` at `I` ≤ 0.03, `app.ui.map` at 0.98, `auto.auto` at 0.99). What is

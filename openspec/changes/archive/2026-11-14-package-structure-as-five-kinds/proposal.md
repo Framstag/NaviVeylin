@@ -1,5 +1,17 @@
 # Proposal
 
+## Scope of this archive
+
+This archive is the slice of the change that landed on 2026-11-14: the `:architecture` module, the
+declaration `architecture/structure.tsv`, the reader, and the three rules the tree now enforces — one
+row per package, a row the tree lacks, and the default deny on an undeclared package. Its capability
+`package-structure` ships those three requirements and nothing else.
+
+The sections below are the plan the whole change was written against. The rest of that plan — the
+kind rules, the suite's place in the build and in the gate, the documents that own the structure, and
+the pilot migration — is carried by the open change `package-structure-rules-and-suite`, which holds
+those scenarios and those tasks. Nothing in this archive claims that part.
+
 ## Why
 
 Every business feature of this app is cut across the module cake: `search` exists as 17 files in
@@ -19,6 +31,10 @@ import-graph pass over the same tree, on 2026-11-09:
 | `app.data` | `Ca` 85, `Ce` 53 — both a widely used library and a client of the layer below |
 | `:core` symbols `:app` imports but `:auto` does not | **24 of 68** — not cross-variant concepts at all |
 | files that actually assemble several features | **4** (`MapCanvasScreen` 6, `MapCanvasScreenModalBands` 5, `MapCanvasScreenChromeBand` 2, `MapCanvasViewModel` 2) |
+
+These figures are the proposal's own baseline of 2026-11-09, taken by its author; this change's record
+reproduces none of them. The measurement this change's own record carries is in
+`evidence/declaration-figures.log` — 338 main sources over 27 packages, and 27 declaration rows.
 
 Nothing enforces any of this. `app/navigation/NavigationEngine.kt:32` imports
 `com.naviveylin.ui.route.routeLengthMeters` — a non-UI layer reaching upward into UI for a pure
@@ -59,12 +75,11 @@ executable check decays, and this one has.
 
 ### New Capabilities
 
-- `package-structure`: the five kinds, what each may contain, the structure declaration as the single
-  machine-readable description, and the six dependency rules that hold between the kinds — including
-  feature disjunction and the default-deny on an undeclared package.
-- `architecture-test-suite`: the test-time enforcement of those rules — where the suite runs, which
-  source sets it reads, the ratchet baseline and its shrink-only property, and the rule that a
-  violation is reported with the file, the import and the declaration row it contradicts.
+- `package-structure`: the declaration reader and the three rules this slice enforces — one row per
+  package, a row the tree lacks, and the default deny on an undeclared package. The five kinds and the
+  rules between them are added by the open change `package-structure-rules-and-suite`.
+- `architecture-test-suite`: created by the open change `package-structure-rules-and-suite`, which
+  holds the test-time enforcement of the kind rules.
 
 ### Modified Capabilities
 
@@ -110,5 +125,5 @@ the previous build exactly. Each migration step is a pure package move with no b
 reverts independently. A half-migrated tree is legal, because the declaration describes it and the
 baseline names every file still in its old home.
 
-surface: 34 scenarios across 2 delta files, 1 new guideline document plus its rationale companion, 1 new
-Gradle module and 1 declaration file, 8 pilot files moved — `grep -c '^#### Scenario:' openspec/changes/package-structure-as-five-kinds/specs/*/spec.md`
+surface: 4 scenarios across 1 delta file, 1 new Gradle module, the declaration rewritten in place, 0 files
+moved, 0 guideline documents — `grep -c '^#### Scenario:' openspec/changes/archive/2026-11-14-package-structure-as-five-kinds/specs/package-structure/spec.md`

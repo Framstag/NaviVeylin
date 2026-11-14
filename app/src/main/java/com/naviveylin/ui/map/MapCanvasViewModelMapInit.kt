@@ -100,7 +100,7 @@ internal suspend fun MapCanvasViewModel.initializeOffMain(mapPath: String, mapKe
         // directory) still matches the discovery's candidates. Runs in this off-main section and
         // through the serialized settings transaction, so a concurrent car write is not lost
         // (spec: settings-persistence).
-        settingsStorage.update {
+        settingsController.update {
             it.copy(lastMapPath = StartMapSelection.databaseDirectoryFor(installed, mapPath))
         }
         coroutineContext.ensureActive()

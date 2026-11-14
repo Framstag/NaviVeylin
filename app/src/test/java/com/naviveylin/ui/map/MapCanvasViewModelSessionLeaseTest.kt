@@ -13,6 +13,7 @@ import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
+import com.naviveylin.ui.settings.SettingsController
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationViewModel
@@ -68,7 +69,7 @@ class MapCanvasViewModelSessionLeaseTest {
         locationService = LocationService(context)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = SettingsStorage(context),
+            settingsController = SettingsController(SettingsStorage(context)),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),

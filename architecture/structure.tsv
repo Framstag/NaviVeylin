@@ -24,6 +24,7 @@ app	com.naviveylin.ui.map	platform	map	concept,port,feature/map
 app	com.naviveylin.ui.mapmanager	platform	mapsource	concept,port,feature/mapsource
 app	com.naviveylin.ui.navigation	platform	navigation	concept,port,feature/navigation
 app	com.naviveylin.ui.route	feature	route	concept,port
+app	com.naviveylin.ui.settings	platform	settings	concept,port,feature/settings
 app	com.naviveylin.ui.theme	platform	-	concept,port
 app	com.naviveylin.util	concept	-	-
 auto	com.naviveylin.auto	shell	-	any

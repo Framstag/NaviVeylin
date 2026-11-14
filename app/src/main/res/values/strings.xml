@@ -474,4 +474,8 @@
     <string name="description_label_way">Way</string>
     <string name="description_label_website">Website</string>
     <string name="description_label_width">Width</string>
+    <!-- The surface a settings row applies to, as a screen reader announces it (spec:
+         `settings-taxonomy` - a surface-specific row is marked, a shared row is not). -->
+    <string name="settings_scope_phone">Phone only</string>
+    <string name="settings_scope_car">Android Auto</string>
 </resources>

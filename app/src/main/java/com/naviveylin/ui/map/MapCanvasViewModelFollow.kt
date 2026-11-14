@@ -253,7 +253,7 @@ fun MapCanvasViewModel.setRoutingAnchor(anchor: VehicleAnchorPosition) {
     )
     publishResolvedAnchor()
     viewModelScope.launch {
-        settingsStorage.update { it.copy(routingAnchorId = anchor.id) }
+        settingsController.update { it.copy(routingAnchorId = anchor.id) }
     }
 }
 
@@ -270,7 +270,7 @@ fun MapCanvasViewModel.setFreeDrivingAnchor(anchor: VehicleAnchorPosition) {
     )
     publishResolvedAnchor()
     viewModelScope.launch {
-        settingsStorage.update { it.copy(freeDrivingAnchorId = anchor.id) }
+        settingsController.update { it.copy(freeDrivingAnchorId = anchor.id) }
     }
 }
 
@@ -698,7 +698,7 @@ fun MapCanvasViewModel.onSetFreeFormOrientation(northUp: Boolean) {
         }
     }
     viewModelScope.launch {
-        settingsStorage.update { it.copy(freeFormNorthUp = northUp) }
+        settingsController.update { it.copy(freeFormNorthUp = northUp) }
     }
 }
 
@@ -724,7 +724,7 @@ fun MapCanvasViewModel.onSetNavOrientation(northUp: Boolean) {
         }
     }
     viewModelScope.launch {
-        settingsStorage.update { it.copy(navNorthUp = northUp) }
+        settingsController.update { it.copy(navNorthUp = northUp) }
     }
 }
 

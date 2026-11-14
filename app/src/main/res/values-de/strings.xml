@@ -431,4 +431,8 @@
     <string name="description_label_way">Weg</string>
     <string name="description_label_website">Webseite</string>
     <string name="description_label_width">Breite</string>
+    <!-- Die Oberfläche, für die eine Einstellungszeile gilt, wie ein Screenreader sie ansagt
+         (Spezifikation: `settings-taxonomy`). -->
+    <string name="settings_scope_phone">Nur Telefon</string>
+    <string name="settings_scope_car">Android Auto</string>
 </resources>

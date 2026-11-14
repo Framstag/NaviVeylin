@@ -25,7 +25,6 @@ import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryEntry
 import com.naviveylin.data.SearchHistoryRepository
-import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportState
 import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationLease
@@ -35,6 +34,7 @@ import com.naviveylin.navigation.CarSessionPresenceImpl
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteResult
+import com.naviveylin.ui.settings.SettingsController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -60,7 +60,7 @@ import kotlin.math.cos
 @HiltViewModel
 class MapCanvasViewModel @Inject constructor(
     internal val viewportStorage: ViewportStorage,
-    internal val settingsStorage: SettingsStorage,
+    internal val settingsController: SettingsController,
     internal val assetCopier: AssetCopier,
     internal val client: OSMScoutClient,
     internal val favoriteRepository: FavoriteRepository,

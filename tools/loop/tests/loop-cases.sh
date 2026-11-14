@@ -17606,6 +17606,15 @@ case_phase_oneCallPrintsThePhaseState() {
 # re-read by every later turn, so one long work package would cost what the three calls it replaced cost together. The
 # number is the project's recorded `LOOP_TOOL_RESULT_MAX_CHARS` — one home for it — and a cut says it is a cut, because
 # a reader who cannot tell a short answer from a truncated one re-runs the call.
+#
+# What the answer keeps is the phase state and the package's head, so the fixture is asked of a phase whose state leaves
+# room for that head (issue #915). Phase A prints its own checklist — 2 630 bytes of the 4 000 this project records — and
+# with the ten state lines before it the kept window (the bound less the 262-byte notice) ends inside the package's
+# `<<<ISSUE_TEXT` delimiter: 3 696 bytes reach the delimiter and its line plus `PKG-LINE-001` need 27 bytes more than
+# the window has, so the
+# head this case asserts could not be there whatever the fixture's package said. A phase the prompt carries no section
+# for prints one line instead of a checklist, which is the same answer at 2.6 kB less, and the rule asserted is unchanged —
+# the state survives, the package's head survives, the tail it could not show is not there.
 case_phase_aResultOverTheBoundIsCutAndNamed() {
   # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
   local phase p wt out size recorded status
@@ -17625,24 +17634,25 @@ case_phase_aResultOverTheBoundIsCutAndNamed() {
   [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
 
   ( cd "$p" && env -u LOOP_TOOL_RESULT_MAX_CHARS LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" \
-      bash "$phase" A ) > "$p/recorded.txt" 2>&1
+      bash "$phase" prescreen ) > "$p/recorded.txt" 2>&1
   size=$(wc -c < "$p/recorded.txt" | tr -d ' ')
   out=$(cat "$p/recorded.txt")
   [ "$size" -le "$recorded" ] || fail "the answer carried $size characters against the recorded bound of $recorded"
   assert_contains "$out" 'PHASE-BOUND' "a cut answer says it was cut: $out"
-  assert_contains "$out" 'LOOP-PHASE: A' "and the phase state the call exists for survives the cut: $out"
+  assert_contains "$out" 'LOOP-PHASE: prescreen' "and the phase state the call exists for survives the cut: $out"
   assert_contains "$out" 'GIT: branch fix/issue-688-loop-spend' "the tree it stands in survives it too: $out"
+  assert_contains "$out" '<<<ISSUE_TEXT' "the package's own opening delimiter is part of the answer: $out"
   assert_contains "$out" 'PKG-LINE-001' "the package's head is part of the answer: $out"
   assert_not_contains "$out" 'PKG-LINE-300' "the tail it could not show is not there: $out"
 
   ( cd "$p" && LOOP_TOOL_RESULT_MAX_CHARS=900 LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" \
-      bash "$phase" A ) > "$p/env.txt" 2>&1
+      bash "$phase" prescreen ) > "$p/env.txt" 2>&1
   size=$(wc -c < "$p/env.txt" | tr -d ' ')
   [ "$size" -le 900 ] || fail "a bound the environment names is not the one applied: $size characters against 900"
   assert_contains "$(cat "$p/env.txt")" 'PHASE-BOUND' "and the answer says which bound cut it"
 
   ( cd "$p" && LOOP_TOOL_RESULT_MAX_CHARS=0 LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" \
-      bash "$phase" A ) > "$p/unbounded.txt" 2>&1
+      bash "$phase" prescreen ) > "$p/unbounded.txt" 2>&1
   size=$(wc -c < "$p/unbounded.txt" | tr -d ' ')
   [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
   assert_contains "$(cat "$p/unbounded.txt")" 'PKG-LINE-300' "with no bound the whole answer is printed"

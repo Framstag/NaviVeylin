@@ -78,10 +78,13 @@ stands in for one (`evidence/structural-checks.log`), and the loop's own gate is
       rename, or the record would have been orphaned (`--only 86.1` gave `RESTORE-FAILED` before the re-point).
       Verify: `RED    86.1  run#anAdoptionLandsOverADifferenceItCannotPlace`, `restore 86.1 … green again`,
       `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0` (`evidence/mutation-86.1.log`).
-- [x] 4.3 Every record in the registry still applies to the file it names (365 records at the time this is archived):
-      Verify: `bash tools/loop/tests/loop-mutations.sh --check` — inside the gate's `LOOP-GATE` step list in
-      `evidence/gate-run.log`, and re-checked by hand when this change was archived (`finalize-by-hand.md` beside the
-      item).
+- [x] 4.3 Every record the branch's registry holds applies to the file it names: 357 of them, which is the count this
+      branch carries because its base is 30 commits behind `main` (2026-11-14). Verify: `bash tools/loop/tests/loop-mutations.sh
+      --check` inside the gate's `LOOP-GATE` step list (`evidence/gate-run.log`, 12s) and again by hand on
+      2026-11-14 — `loop-mutations: all 357 cases passed — every selected record applies to the file it names`
+      (`evidence/hand-checks.log`). NOTE: the check is owed once more on the tree after `main` is merged, because
+      `main` carries #865's `865.1`, #882's `882.1`/`882.2` and the records of #830, #853, #855 and #866, which this
+      branch was cut before.
 
 ## 5. The rule's own documents
 
@@ -93,8 +96,9 @@ stands in for one (`evidence/structural-checks.log`), and the loop's own gate is
 - [x] 5.2 `guidelines/Backlog.recipes.md` section 7a (`:256`) — "What is not relaxed is the landing rule" replaced by
       the rule itself — and section 7d (`:1166`) — what the dirt is, the three case names and mutation `58.2`. Verify:
       `tools/check-doc-values.sh`, `tools/check-doc-routes.sh` and `tools/check-todo-references.sh` in the gate's step
-      list (`evidence/gate-run.log`); this change's own hand run of the two the item owes is in
-      `finalize-by-hand.md`.
+      list (`evidence/gate-run.log`), and re-taken by hand on 2026-11-14 — `check-doc-routes: all 340 section references
+      resolve, all 7 skill references resolve`, `LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config`, `OpenSpec
+      artifacts are consistent` (`evidence/hand-checks.log`).
 - [x] 5.3 `.pi/skills/create-issue/SKILL.md:54`: the example `cause` payload re-pointed from the folded-away case to
       `run#mergesOverADifferenceItCannotPlace` and a live line (`worktree.sh:653`), because the skill demands "the case
       that exercises it by the name the suite knows it". Verify: the json block reads as one pair and the case name is
@@ -115,3 +119,10 @@ stands in for one (`evidence/structural-checks.log`), and the loop's own gate is
       issue #862 and not to this change's paths (`evidence/gate-run.log:1272`, `:1900`; the tree the gate measured is
       `head=e3addcf8…`, and this item's head differs from it in comments and documents only). No green wide run is
       claimed here.
+- [x] 6.4 The archive itself was rebuilt by hand on 2026-11-14, after the run that finished the item was ended and its
+      worktree removed: this proposal, design, task list, spec delta and evidence list are an integrator's
+      reconstruction from the branch, and `evidence/hand-checks.log` carries the commands that re-took the item's own
+      verdicts. Verify: `tools/check-change-readiness.sh` on the archive directory → `LOOP-CHANGE-READY: ok`
+      (exit 0), and `openspec validate fix-a-landing-merges-over-a-difference-it-cannot-place --strict` on the delta,
+      copied into the open set for the run and removed after → `Change … is valid` (exit 0); both in
+      `evidence/hand-checks.log`.

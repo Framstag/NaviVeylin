@@ -1,0 +1,58 @@
+finalize by hand — 2026-11-14
+the run that finished this item was ended after its change was archived and its worktree removed, so an integrator
+rebuilt the change artifact from this branch and re-took the checks the archive cites. Nothing in this file was
+produced by the run it finalizes: every line below is a command run on 2026-11-14 in .pi/worktrees/final-862 at
+head 46ea0945 (base 0848c35dee76123bc3ec8d7221c16bcf7fa0bf2c, git merge-base main HEAD).
+
+=== the item's own cases, by name — bash tools/loop/tests/loop-selftest.sh --case <name> ===
+===== run#mergesOverADifferenceItCannotPlace =====
+PASS run#mergesOverADifferenceItCannotPlace
+===== run#anAdoptionLandsOverADifferenceItCannotPlace =====
+PASS run#anAdoptionLandsOverADifferenceItCannotPlace
+===== worktree#theLandingDecidesByTheReadingItIsHanded =====
+worktree#theLandingDecidesByTheReadingItIsHanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#theLandingDecidesByTheReadingItIsHanded| HEAD ist jetzt bei 8bc3189 init
+worktree#theLandingDecidesByTheReadingItIsHanded| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#theLandingDecidesByTheReadingItIsHanded
+
+=== bash tools/loop/tests/loop-mutations.sh --check ===
+2026-11-14T06:52:13Z
+== bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/final-862/.pi/tmp/loop-mutations.5sSB2h
+loop-mutations: all 357 cases passed — every selected record applies to the file it names
+NOTE: this branch's base is 30 commits behind main (2026-11-14), so the registry here is the 357 records it carried when the
+branch was cut; main carries #865's and #882's records and the ones of #830, #853, #855 and #866 beside them.
+Every record this tree holds applies to the file it names. The check is owed again on the tree after main is merged.
+
+=== the checks this change owes by hand (the item's own doc checks) ===
+date: 2026-11-14T07:05:37Z
+== tools/check-doc-routes.sh
+check-doc-routes: all 340 section references resolve, all 7 skill references resolve
+exit=0
+== tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+== bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+=== the archive's own three answers ===
+date: 2026-11-14T07:05:43Z
+== tools/check-change-readiness.sh openspec/changes/archive/2026-11-14-fix-a-landing-merges-over-a-difference-it-cannot-place
+LOOP-CHANGE-READY: ok
+exit=0
+== openspec validate --strict, the delta copied into the open set for the run and removed after
+Change 'fix-a-landing-merges-over-a-difference-it-cannot-place' is valid
+exit=0
+the transient open copy is removed again
+
+=== what was NOT run, and why ===
+bash tools/loop/tests/loop-selftest.sh --group run — started at 2026-11-14T06:52:46Z and abandoned at a 600 s
+bound with no result; its scratch and its suite lock were removed, and the case workers it left were ended.
+The whole suite, every run# case included, is measured by the gate's --from-git leg in evidence/gate-run.log
+(LOOP-GATE: tests=1067 failures=1 errors=0, the one failure phase#aResultOverTheBoundIsCutAndNamed, the wide
+selection's pre-existing red).
+Not run by design: tools/loop/gate.sh (the run's own, once, evidence/gate-run.log), the wide --from-git
+selection (its red is pre-existing and attributed to this item), and Gradle of any kind — this change compiles
+nothing and a fresh worktree carries no vcpkg/.

@@ -49,12 +49,17 @@ tools/issues/update.sh 42 --body finding.md                     # replace the bo
 tools/issues/update.sh 42 --label class/bug --label source/ci    # several labels at once
 tools/issues/update.sh 42 --status open-device --json            # one JSON document
 tools/issues/update.sh 42 --status on-hold --displace-settled    # name a transition off a settled state
+tools/issues/update.sh 42 --type Task --parent 906              # the tracker's own classification
 ```
 
 `--displace-settled` is not optional politeness: without it, a `--status` write over an item that carries
 `status/fixed-by` or `status/retired` is refused (exit 3, `status-settled`) — see below.
 
-At least one of `--label`, `--status`, `--body` is required. `--status` is a **value** (`open`,
+At least one of `--label`, `--status`, `--body`, `--type`, `--parent` is required. `--type` and `--parent` are
+the tracker's fields, not labels (`guidelines/Backlog.md` §3): a type the account does not declare is refused
+before the write (`type-opaque`), and `roles.containerType` (this repository: `Epic`) is the type the loop's
+pre-screen refuses as work — a series retrofitted after filing gets its container type and its links here.
+`--status` is a **value** (`open`,
 `open-device`, `unverified`, …), not a label; the script composes the namespaced label from the profile.
 
 `--status` **replaces** the item's state: the script reads the item, removes every other value of the status

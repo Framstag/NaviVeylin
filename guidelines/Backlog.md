@@ -89,8 +89,9 @@ one of GitHub's issue types and may sit under a parent issue; neither is a label
 vocabulary gate — `tools/issues/create.sh --type/--parent` and `tools/issues/update.sh --type/--parent` write them,
 and a name the account does not declare is refused **before anything is filed**: both writers read the declared set
 from the tracker (`issues_declared_types`) and refuse an unknown name with `type-opaque` (measured 2026-11-12: the
-account exposes the three defaults `Task`, `Bug`, `Feature`, and `gh issue create --type Bogus` names them but
-files the item first — issue #874 is that half-write, closed as the probe it was). The value this project treats as a
+account exposed the three defaults `Task`, `Bug`, `Feature`, and `gh issue create --type Bogus` named them but
+filed the item first — issue #874 is that half-write, closed as the probe it was; re-read 2026-11-14: the account
+also declares `Epic`, which is the name `roles.containerType` uses). The value this project treats as a
 container is `roles.containerType` in `tools/tooling.json`, and `tools/loop/prescreen.sh` refuses such an item as
 work with the verdict `container` — its children carry that work and are selected on their own labels (case
 `prescreen#aContainerTypeIsNotWork`). An EMPTY value, or a profile that omits the key, declares that no type is a

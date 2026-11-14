@@ -44,7 +44,23 @@ FINDING
 Fields: `title` (required), `class` (required: a value of the profile's `class/` namespace), `category`
 (required), `claim` (the sentence hashed into the fingerprint — the title when absent), `anchor`
 (`path` or `path:Symbol`, **never** a line number), `labels`, `body`, and `sourceId` when the finding comes
-from an existing record (the `§N` of the prose backlog, say) — it becomes the `<!-- nvid: N -->` marker.
+from an existing record (the `§N` of the prose backlog, say) — it becomes the `<!-- nvid: N -->` marker. Two
+further fields are **not labels** and never travel through the vocabulary gate: `type` and `parent`.
+
+### The tracker's own classification: type and parent
+
+A type is account-scoped and a parent is another issue, so neither is a label: `type` names one of the types the
+account declares (this repository: `Task`, `Bug`, `Feature`, `Epic`) and `parent` the number of the container the
+item sits under. `create.sh` refuses a type the account does not declare **before** it files anything
+(`type-opaque`, exit 3, the declared names on stderr) — `gh` itself reports `type "Bogus" not found; available
+types: …` only *after* it has created the item (measured 2026-11-12: issue #874 is that half-write).
+
+Filing a **series** — one epic and the items it holds — is one `Epic` plus one `Task` per child, each with
+`--parent <epic>`. This repository declares `roles.containerType: "Epic"` in `tools/tooling.json`, so the loop's
+pre-screen refuses to *work* a container at all: its children carry the work and are selected on their own
+labels. A series filed as one `class/feature` item whose body lists its children gets neither the parent link nor
+that refusal, and no check reports the omission — the label vocabulary has no epic, and a type is not a label
+(`guidelines/Backlog.md` §3).
 
 **A finding must also carry one shape, or it is refused (`shape-missing`, exit 3).** A worker that may not ask
 can only be handed an item that leaves it nothing to decide, so the payload says which of the two ways the work
@@ -81,6 +97,8 @@ Variants:
 
 ```bash
 tools/issues/create.sh --finding finding.json          # read the finding from a file
+tools/issues/create.sh --type Epic                     # the container a series is filed under
+tools/issues/create.sh --type Task --parent 906        # one child, linked to its epic (also a payload `parent`)
 tools/issues/create.sh --label category/car            # add a label the payload does not carry
 tools/issues/create.sh --status open-device            # set the status value
 tools/issues/create.sh --allow-duplicate               # file anyway; the override is recorded in the output

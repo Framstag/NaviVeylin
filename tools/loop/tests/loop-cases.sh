@@ -374,6 +374,7 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#theBoundRateIsNamed'
+  'state#aCutRecordsTheFilesItsPatchCarries'
   'report#theArchivesClassesAreDerivedNotInvented'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'

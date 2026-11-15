@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The declaration cases of change `package-structure-as-five-kinds` (tasks 1.3 and 1.4). Every case hands the
+ * The declaration cases of change `package-structure-as-five-kinds` (tasks 1.3, 1.4 and 1.11). Every case hands the
  * check the tree it means — the real one plus the one row or one file that makes the point — so no case writes
  * a package into the tree to watch it appear.
  */
@@ -152,6 +152,33 @@ class StructureDeclarationTest {
             "the refusal names the kind and the row: ${refusal?.message}",
             refusal?.message?.contains("widget") == true &&
                 refusal?.message?.contains("${DECLARATION_PATH}:") == true,
+        )
+    }
+
+    /** Task 1.11, third half: a declaration that holds no row is refused, never carried as an empty rule set. */
+    @Test
+    fun emptyDeclarationFails() {
+        val refusal = runCatching { StructureDeclaration.parse("") }.exceptionOrNull()
+
+        assertTrue(
+            "a declaration with no row must be refused as a declaration error: $refusal",
+            refusal is DeclarationParseError,
+        )
+        assertTrue(
+            "the refusal names the declaration a reader has to fill: ${refusal?.message}",
+            refusal?.message?.contains(DECLARATION_PATH) == true,
+        )
+
+        val commentsOnly = runCatching { StructureDeclaration.parse("# no row yet\n") }.exceptionOrNull()
+        assertTrue(
+            "a declaration of comment lines carries no row either: $commentsOnly",
+            commentsOnly is DeclarationParseError,
+        )
+
+        val violations = StructureCheck(StructureDeclaration(emptyList())).violations(treeFiles)
+        assertTrue(
+            "a check over an empty rule set reports the tree's files, never zero violations: $violations",
+            violations.isNotEmpty(),
         )
     }
 }

@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 403 records (labels: 934.1 934.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.gnfnIW
+RED    934.1  mutation#theFileSetLegScopesByTheCheapestFile   (the file the file-set leg scopes by, pointed back at the file that owns 39 of the declared records, so the leg spends its own bound proving a selection two records prove as well (issue #934))
+       2026-11-15T21:05:47Z — the file-set leg scopes by the file the declaration gives fewest records to (at least two of them) — tools/loop/state.sh owns 39 of them: expected 'tools/loop/phase.sh', got 'tools/loop/state.sh'
+restore 934.1 mutation#theFileSetLegScopesByTheCheapestFile green again
+RED    934.2  mutation#theFileSetLegScopesByTheCheapestFile   (the file the file-set leg scopes by, pointed at a file the declaration gives one record to, so the leg would run a set of one and the case names that instead of reading it as a set (issue #934))
+       2026-11-15T21:05:50Z — the file-set leg scopes by tools/loop/prompts/pre-gate-review.md, which the declared set gives no two records to — the cheapest file that owns at least two is tools/loop/phase.sh
+restore 934.2 mutation#theFileSetLegScopesByTheCheapestFile green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

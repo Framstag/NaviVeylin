@@ -1,0 +1,7 @@
+# mutation#theFileSetLegScopesByTheCheapestFile — the change's own case, run against the base 8f84a8b8's
+# tools/loop/tests/loop-mutations-selftest.sh (the fix not applied), 2026-11-15T21:01:35Z
+mutation#theFileSetLegScopesByTheCheapestFile|   the file-set leg scopes by the file the declaration gives fewest records to (at least two of them) — tools/loop/state.sh owns 39 of them: expected 'tools/loop/phase.sh', got 'tools/loop/state.sh'
+--- mutation#theFileSetLegScopesByTheCheapestFile[0] (exit 1)
+  the file-set leg scopes by the file the declaration gives fewest records to (at least two of them) — tools/loop/state.sh owns 39 of them: expected 'tools/loop/phase.sh', got 'tools/loop/state.sh'
+FAIL mutation#theFileSetLegScopesByTheCheapestFile
+loop-selftest: 1 of 1 cases failed

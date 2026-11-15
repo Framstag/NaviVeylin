@@ -1,0 +1,46 @@
+# the declared mutation set, counted per file it names — base 8f84a8b8, 2026-11-15T21:00:24Z
+#
+# The base's own two numbers, as the item measured them:
+#
+# $ bash tools/loop/tests/loop-mutations.sh --files tools/loop/state.sh --list | tail -1
+loop-mutations: selected 39 of 401 records (files: tools/loop/state.sh)
+#
+# $ bash tools/loop/tests/loop-selftest.sh --list | grep -c .
+460
+#
+# The per-file counts below are re-taken on the change's own tree, which declares 403 records after `934.1` and
+# `934.2`: the base's listing cannot be re-taken from a working tree that already carries those two records. This is
+# also the listing the case `mutation#theFileSetLegScopesByTheCheapestFile` reads, by the same `@`-separated fields
+# leg 7 derives its own set from.
+#
+# $ sed -n '/^MUTATIONS=(/,/^)/p' tools/loop/tests/loop-mutations.sh | awk -F'@' 'NF >= 6 && $3 != "" { c[$3]++ } END { for (f in c) if (c[f] >= 2) printf "%d %s\n", c[f], f }' | sort -n -k1,1 -k2,2
+2 tools/loop/phase.sh
+2 tools/loop/tests/loop-mutations-selftest.sh
+3 ../look.sh
+3 tools/loop/labels.sh
+4 tools/loop/prompts/reviewer.md
+4 tools/loop/tests/loop-cases.sh
+5 tools/loop/measure.sh
+6 tools/loop/prompts/worker.md
+7 tools/loop/loop-clean.sh
+11 ../pi-child-events.sh
+14 ../pi-trim-result.mjs
+14 tools/loop/prescreen.sh
+16 tools/loop/loop.conf
+18 tools/loop/gate.sh
+19 tools/loop/lib.sh
+21 tools/loop/worktree.sh
+26 tools/loop/tests/loop-selftest.sh
+39 tools/loop/state.sh
+41 tools/loop/report.sh
+140 tools/loop/run.sh
+#
+# The fewest records any file owning at least two carries is 2. Two files carry 2 —
+# `tools/loop/tests/loop-mutations-selftest.sh`, which reaches 2 only through this change's own `934.1`/`934.2`, and
+# `tools/loop/phase.sh` — so the tie goes to the path that sorts first, which is the pick the leg carries.
+#
+# $ sed -n '/^MUTATIONS=(/,/^)/p' tools/loop/tests/loop-mutations.sh | awk -F'@' 'NF >= 6 && $3 != "" { c[$3]++ } END { n=0; one=0; for (f in c) { n++; if (c[f]==1) one++ } printf "files=%d ownOne=%d\n", n, one }'
+files=28 ownOne=8
+#
+# 8 of the 28 files the declaration names own a single record, which is why the pick is not simply the cheapest owner:
+# a set of one is no set.

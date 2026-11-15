@@ -1,0 +1,8 @@
+PASS mutation#theFileSetLegScopesByTheCheapestFile
+PASS mutation#aStaleRecordIsNamed
+PASS mutation#everyDeclaredRecordApplies
+loop-selftest: mutation 3 cases 3.89 s
+loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox) — 3.96 s, selection: --case mutation#*
+PASS gate#theMapCoversEveryPipelineStep
+PASS run#theStopWaitIsDecidedByTheStateTheRunWrites
+PASS driver#everyCaseDeclaresTheFilesItCanReach

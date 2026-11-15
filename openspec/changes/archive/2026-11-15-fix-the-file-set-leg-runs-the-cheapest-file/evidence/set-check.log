@@ -1,0 +1,3 @@
+2026-11-15T21:06:21Z
+$ bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: all 403 cases passed — every selected record applies to the file it names

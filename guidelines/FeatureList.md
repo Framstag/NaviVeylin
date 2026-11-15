@@ -153,8 +153,11 @@ Three things a reader must know about the classification:
   which the shipped set names, or was retired from it.
 - **A stale entry — an id the classification names that is no longer shipped — is reported without failing.**
   It is not demanded of the catalogue either: coverage is measured over what is still shipped, and a stale
-  shortlist entry follows the same rule (§1). A line added ahead of the archive reads as stale for the same
-  reason and for the same non-reason: the capability is not shipped yet.
+  shortlist entry follows the same rule (§1). A line added ahead of the archive is a **second** state, reported as
+  its own: it is *pending* — an id an open change's delta introduces, which the archiving move publishes — and it is
+  neither stale nor a failure. The two states were conflated until 2026-11-15 (issue #926): the run that printed
+  `stale: 7` held five pending lines and two ids the tree no longer had, and the `stale: 0` a change promised itself
+  was unreachable for as long as an open change owed a line.
 - **`userVisible` is a property of the spec, not of each requirement.** A user-visible spec may contain a
   requirement that describes plumbing, and not every one of its requirements needs a bullet: which of them a
   bullet mentions is the phrasing step's editorial call. A user-visible *spec* that no highlight names is not a
@@ -165,6 +168,8 @@ Cases: `gate: an unclassified shipped spec id fails the run`, `gate: an unclassi
 `gate: a capability an open change introduces must be classified`, `gate: the unclassified open capability is
 named`, `gate: the open change that owes the line is named`, `gate: an archived change's delta is not read`,
 `gate: a classified delta passes before it ships`, `gate: a stale classification entry does not fail the run`,
+`gate: a delta-only classification is reported as pending, not as stale`, `gate: a delta-only classification is not a
+stale entry`,
 `gate: a user-visible spec with no renderable surface fails`, `gate: not exactly one car-only area fails the run`.
 
 - **Rule: a capability is classified in the change that writes its delta.** A change that introduces a

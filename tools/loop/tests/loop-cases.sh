@@ -236,6 +236,7 @@ LOOP_SHELL_CASES=(
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
   'run#aBoundEndedItemRecordsItsBound'
   'run#aRoundTheRunEndedRecordsItsBound'
+  'run#aReviewRoundBoundIsTheItemsStopClass'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
@@ -374,6 +375,7 @@ LOOP_SHELL_CASES=(
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#theBoundRateIsNamed'
   'state#aCutRecordsTheFilesItsPatchCarries'
+  'report#theArchivesClassesAreDerivedNotInvented'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
   'report#theRuleRecordsTheSecondReadsItCounted'
@@ -389,6 +391,8 @@ LOOP_SHELL_CASES=(
   'report#aRoleWhoseTurnNamedNoModelKeepsItsRow'
   'report#aTurnNoSessionRecordReachesIsItsOwnBucket'
   'report#thePhaseLineNamesTheClockItIsAShareOf'
+  'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow'
+  'report#theRefusedLandingIsReadFromTheRecord'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
@@ -977,6 +981,7 @@ loop_run_shell_case() {
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
     'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
     'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
+    'run#aReviewRoundBoundIsTheItemsStopClass') fn=case_run_aReviewRoundBoundIsTheItemsStopClass ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
@@ -1131,6 +1136,8 @@ loop_run_shell_case() {
     'report#aRoleWhoseTurnNamedNoModelKeepsItsRow') fn=case_report_aRoleWhoseTurnNamedNoModelKeepsItsRow ;;
     'report#aTurnNoSessionRecordReachesIsItsOwnBucket') fn=case_report_aTurnNoSessionRecordReachesIsItsOwnBucket ;;
     'report#thePhaseLineNamesTheClockItIsAShareOf') fn=case_report_thePhaseLineNamesTheClockItIsAShareOf ;;
+    'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow') fn=case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow ;;
+    'report#theRefusedLandingIsReadFromTheRecord') fn=case_report_theRefusedLandingIsReadFromTheRecord ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
@@ -1216,6 +1223,7 @@ loop_run_shell_case() {
     'state#aHoldMovesTheDeadlineWithIt') fn=case_state_aHoldMovesTheDeadlineWithIt ;;
     'run#aQuotaHoldPausesTheRunAndResumesIt') fn=case_run_aQuotaHoldPausesTheRunAndResumesIt ;;
     'report#theBoundRateIsNamed') fn=case_report_theBoundRateIsNamed ;;
+    'report#theArchivesClassesAreDerivedNotInvented') fn=case_report_theArchivesClassesAreDerivedNotInvented ;;
     'state#aCutRecordsTheFilesItsPatchCarries') fn=case_state_aCutRecordsTheFilesItsPatchCarries ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -7723,11 +7731,10 @@ EOF
   return 0
 }
 
-# The other half of the same figure, and the half the spec keeps off the item (issue #923): #898 was ended by the
-# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
-# `cut` with an empty `stop` cell — the round's ending survived only in the reason's prose, which no figure counts and
-# no reader can total. The round's own held (`metrics.roundBound`) names the round, the key and the figure, and the
-# item's `stopReason` stays null: the class is the item's, the round's ending is the round's.
+# The other half of the same figure (issue #923): the round's own held (`metrics.roundBound`) names the round, the key
+# and the figure, so a reader can count the rounds a bound ended without reading the reason's prose. The item's class
+# travels beside it and is owned by the case below (issue #898) — #898 was ended by the reviewer's turn bound at 110
+# turns and #883 by the item's context bound inside the reviewer phase, and both read `cut` with an empty `stop` cell.
 case_run_aRoundTheRunEndedRecordsItsBound() {
   # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo fixture action pid i status out state
@@ -7778,8 +7785,6 @@ EOF
   state=$(state_file "$p")
   assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
-  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
-    "and carries no class for the round: the spec keeps the item's class off a round the run ended"
   assert_eq "1" "$(jq -r '.items[0].metrics.roundBound.round // ""' "$state")" \
     "the round the run ended records itself under the round's own field"
   assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].metrics.roundBound.key // ""' "$state")" \
@@ -7787,10 +7792,79 @@ EOF
   assert_eq "3" "$(jq -r '.items[0].metrics.roundBound.value // ""' "$state")" "and the figure it reached"
   # The figure is counted apart from the item's class (issue #923): the archive's bound rate answers how many items the
   # run threw away, and this line answers how many rounds it paid for and could not read. Neither figure is folded
-  # into the other — the class the spec keeps off a round is exactly what this line must not need.
+  # into the other — the round's number is what the class cannot carry, and the class is what this line does not need.
   assert_contains "$out" "rounds a bound ended: 1 of 1 item(s) · #21 1 LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
     "the report counts the round the run ended at its bound, beside the class the item does not carry"
   assert_contains "$out" "bound: 1 of 1 items" "and the item's own bound rate counts the cut, as it did before"
+  return 0
+}
+
+# A bound a review round hit is the item's stop class, not only the round's (issue #898): #898 was ended by the
+# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
+# `cut` with an empty `stop` cell, so a reader could not tell a bound that ended the item from an arm that recorded
+# nothing without the child's transcript — the class the run writes for its own child's ending. The class and the key
+# are read by the same reader, from the round's own `LOOP-TIMEOUT` line, and the round keeps the round's own field
+# beside them (issue #923). On the tree before this change the item carries `stopReason: null`.
+case_run_aReviewRoundBoundIsTheItemsStopClass() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
+      -e 's/^LOOP_CHILD_TURNS_MAX_REVIEWER=.*/LOOP_CHILD_TURNS_MAX_REVIEWER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record the two bounds in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=3' "$conf" ||
+    fail "this case could not shorten the reviewer's turn bound in loop.conf"
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turn-reviewer.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  reviewer*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
+    "and carries the class a bound leaves on the item, whichever phase of it the run ended"
+  assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
+    "with the key the bound the round reached is recorded in"
+  assert_eq "3" "$(jq -r '.items[0].boundValue // ""' "$state")" "and the figure it reached"
+  assert_eq "1" "$(jq -r '.items[0].metrics.roundBound.round // ""' "$state")" \
+    "the round keeps its own field beside the class, not instead of it"
+  assert_contains "$(run_state "$p" report)" "bound LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
+    "the report's stop cell names the bound the round hit, so a reader needs no transcript to tell it"
+  assert_contains "$out" "bound: 1 of 1 items" "and the item's bound rate counts it as a bound rather than an arm"
   return 0
 }
 # it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
@@ -9474,6 +9548,10 @@ EOF
 
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
     "a round the run's own bound ended is cut, not blocked"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
+    "and the class a bound leaves on the item, before the gate as much as after it (issue #898)"
+  assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
+    "with the key the bound is recorded in, read from the line the reason quotes"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
     "and its record carries the cut, not a refusal no reviewer made"
   assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound of 3 turns" \
@@ -13265,6 +13343,60 @@ case_report_anUnmergeableItemNamesItsLanding() {
   assert_contains "$line23" "git -C $p merge --ff-only fix/issue-23-already-on-the-base" \
     "and still names the command a caller tries"
   assert_not_contains "$line23" "status --porcelain" "a refusal that named no path owes no path listing"
+  assert_contains "$block" "re-derived from the note" \
+    "a state that records no refusal says its landing is re-derived from the note, and not read from a record"
+}
+
+# The refused landing is the record the run wrote, not the note it quoted (issue #883). The note is prose the writer
+# composed — `run.sh` builds it from the refusal it caught — so a report that reads the branch and the paths back out
+# of it prints a landing from a second reading of text, and the run of 2026-11-20T06:12:41Z showed what that costs:
+# item #692 recorded `mergeRefused.branch` while its note had been rewritten once, and the landing the report printed
+# named a branch the run had not asked to merge. So the state records both halves at the refusal
+# (`state.sh done --merge-refused-branch/--merge-refused-path`) and this case gives the note a branch and a path to
+# disagree with: what prints is the record.
+case_report_theRefusedLandingIsReadFromTheRecord() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out block line31
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf 'demo work\n' > "$p/demo.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "demo work" >/dev/null 2>&1 || fail "could not commit in the throwaway repository"
+  git -C "$p" branch fix/issue-31-the-branch-the-run-asked-for >/dev/null 2>&1 ||
+    fail "could not create the attempt branch"
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1},{"issue":32,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result blocked --verdict blocked --stop-reason unmergeable \
+    --gate "tests=245 failures=0 errors=0" \
+    --merge-refused-branch fix/issue-31-the-branch-the-run-asked-for \
+    --merge-refused-path " M demo.txt" --merge-refused-path "?? docs/left-behind.md" \
+    --note "the branch fix/issue-31-a-note-the-run-did-not-take could not be merged onto the base, so the item is not closed on a fix the tree does not have — the project tree is not clean — refusing to merge fix/issue-31-a-note-the-run-did-not-take onto the base:\n?? docs/from-the-note.md" \
+    --decision-label agent/needs-decision >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  line31=$(printf '%s\n' "$block" | grep 'land fix/issue-31' || true)
+  [ -n "$line31" ] || fail "no landing line for the item a merge refused: $block"
+  assert_contains "$line31" "git -C $p merge --ff-only fix/issue-31-the-branch-the-run-asked-for" \
+    "the branch is the one the record carries, not the one the note happens to name"
+  assert_contains "$line31" "1 commit(s) the base does not have" "and what that branch carries"
+  assert_contains "$line31" " M demo.txt" "the path the record carries is printed"
+  assert_contains "$line31" "?? docs/left-behind.md" "every path the record carries, not the first"
+  assert_not_contains "$line31" "a-note-the-run-did-not-take" \
+    "the note's branch is not the run's record, and is not printed as if it were"
+  assert_not_contains "$line31" "from-the-note" "nor is the note's path"
+  assert_not_contains "$line31" "re-derived from the note" \
+    "a landing read from the record is no derivation, and the line does not say it is"
+  assert_eq "1" "$(printf '%s\n' "$block" | grep -c 'land fix/issue-31')" "the refused item is one line"
+  # The two halves are one fact, and the mechanism is what makes them a refusal: a path with no branch names nothing
+  # a caller can land, and neither half belongs to an item whose landing was never refused.
+  if run_state "$p" done 32 --result blocked --verdict blocked --stop-reason unmergeable \
+    --merge-refused-path " M demo.txt" >/dev/null 2>&1; then
+    fail "a path recorded with no branch names a refusal nothing identifies"
+  fi
+  if run_state "$p" done 32 --result done --verdict closed \
+    --merge-refused-branch fix/issue-31-the-branch-the-run-asked-for >/dev/null 2>&1; then
+    fail "a refusal is recorded beside the mechanism that names it, not on an item whose landing was taken"
+  fi
 }
 
 # An action list is empty only when the state and git say so — and it says it, rather than leaving the
@@ -13397,6 +13529,43 @@ case_report_theBoundRateIsNamed() {
   line=$(printf '%s\n' "$out" | grep '^bound: [0-9]' || true)
   assert_contains "$line" "bound: 0 of 3 items (0.0 %)" "a run the bound ended nothing in prints the rate it measured"
   assert_contains "$line" "archive: -" "and an archive with no finished run prints -, not a rate over nothing"
+}
+
+# The class an archived record ended by is derived on read, and what the derivation cannot decide is printed as its
+# own figure (issue #922). 119 of the archive's 179 blocked records name no mechanism — they predate `done
+# --stop-reason` — and the analysis pass printed that absence as one class, `unclassified 119`: a dash read as a zero.
+# 21 of those 119 are `bound`, decided by the `LOOP-TIMEOUT` sentence their own note quotes, and a record whose note
+# names no bound is undecidable — it is in neither the decided classes nor the count of records, because summing it
+# into either side invents a class or answers a measurement nobody made. The population is what a class belongs to: a
+# closed item is recorded with no class by design.
+case_report_theArchivesClassesAreDerivedNotInvented() {
+  # files: tools/loop/report.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p q out line
+  p=$(new_project)
+  init_state "$p" 2 90
+  mkdir -p "$p/.pi/issue-loop/runs" || fail "could not create the runs directory"
+  jq -nc '{run:{items:5}, items:[
+      {issue:101, result:"blocked", verdict:"blocked", stopReason:"refused"},
+      {issue:102, result:"blocked", verdict:"blocked",
+       note:"LOOP-TIMEOUT: the child reached the recorded turn bound of 60 turns (LOOP_CHILD_TURNS_MAX for the worker role) after 60 turn(s) — the run ended it and everything it started"},
+      {issue:103, result:"blocked", verdict:"blocked", note:"the worker exited 1 after the gate refused"},
+      {issue:104, result:"cut", metrics:{reviewVerdict:"cut-short"},
+       note:"LOOP-TIMEOUT: the child reached the recorded turn bound of 110 turns (LOOP_CHILD_TURNS_MAX_REVIEWER) after 110 turn(s)"},
+      {issue:105, result:"done", verdict:"closed"}
+    ]}' > "$p/.pi/issue-loop/runs/2026-11-01T00:00:00Z.json" || fail "could not write the archived run"
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(printf '%s\n' "$out" | grep '^archive classes: ' || true)
+  assert_contains "$line" "bound 1" "a record whose note quotes the turn bound is decided, not left unclassified"
+  assert_contains "$line" "refused 1" "and a record that recorded its own mechanism keeps it"
+  assert_contains "$line" "of 4 blocked or cut record(s): 2 decided, 1 undecidable, 1 ended by a review round, not by the item" \
+    "what the derivation decided and what it could not are counted apart, over the records a class belongs to"
+  assert_not_contains "$line" "unclassified" "an absence is printed as undecidable, never as a class of its own"
+  assert_not_contains "$line" "#105" "a closed record carries no class and is not counted on either side"
+
+  q=$(new_project); init_state "$q" 1 30
+  out=$(run_report "$q") || fail "the report failed for a project with no archive"
+  line=$(printf '%s\n' "$out" | grep '^archive classes: ' || true)
+  assert_contains "$line" "archive classes: -" "a project with no archived run prints -, not a class nobody measured"
 }
 
 # What a bound ended is priced, not only named (issue #809): the record kept the path of the patch a cap-ended
@@ -14361,6 +14530,76 @@ JSONL
   phases_line=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p" | grep '^  phases:' || true)
   assert_contains "$phases_line" "1.3 s over 1 item — no item wall recorded to read it against" \
     "an item that recorded no wall leaves the line with no denominator, and says so"
+}
+
+# The two figures the trend block did not state (issue #883): how much of the item clock the **gate** was, and how
+# much of the run's window no item's wall covers. Both were read by hand out of `items/*/` — the phase line says
+# where the spend went and never what share of the wall the gate is, and the window is the one clock that neither
+# the walls nor the holds are a share of. Measured on the run of 2026-11-13T05:47:11Z: the gate 4 568 s of #853's
+# 5 709 s wall (80 %), 60.4 % for #865, 58.8 % for #864, and 45 173 s of window against 22 925 s of walls — 22 247 s
+# (49.3 %) outside items. Every input is a recorded number (`.items[].metrics.phases.gateMs`, `.metrics.wallSeconds`,
+# `.run.startedEpoch` and `.run.stop.at`), so the two rows are readings and never a second clock.
+case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow() {
+  # files: tools/loop/gate.sh tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend gate_line outside_line start stop
+  d=$(scratch); p=$(new_project)
+  # Two items, each a turn and one gate call: 1 s of model time and 8 s of gate over a 12.5 s wall, and 2 s and
+  # 6.7 s over the same wall. The share the line totals is then 58.8 % — a figure that only the tenths places can
+  # tell apart from #864's 58.8 % — and the two per-item shares are 64 % and 53.6 %.
+  cat > "$d/gate101.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s1"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/101/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"bash","arguments":{"command":"./tools/loop/gate.sh --group quick"}}]},"toolResults":[]}
+ {"type":"tool_execution_end","toolCallId":"c1","toolName":"bash","durationMs":8000,"isError":false}
+JSONL
+  cat > "$d/gate102.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s2"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/102/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":2000,"content":[{"type":"toolCall","id":"c2","name":"bash","arguments":{"command":"./tools/loop/gate.sh --group quick"}}]},"toolResults":[]}
+ {"type":"tool_execution_end","toolCallId":"c2","toolName":"bash","durationMs":6700,"isError":false}
+JSONL
+  init_state "$p" 2 90
+  printf '[{"issue":101,"class":"bug","verdict":"eligible","rank":1},{"issue":102,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 101 --result done --verdict closed --wall 12.5 --events "$d/gate101.jsonl" >/dev/null
+  run_state "$p" done 102 --result done --verdict closed --wall 12.5 --events "$d/gate102.jsonl" >/dev/null
+  # The window is the start and the stop the state records: a run of 300 s between them, dated here rather than
+  # slept, so the figure the report prints is arithmetic over two recorded instants.
+  f=$(state_file "$p")
+  start=1700000000; stop=$((start + 300))
+  jq --argjson s "$start" --arg at "$(date -u -d "@$stop" '+%Y-%m-%dT%H:%M:%SZ')" \
+    '.run.startedEpoch = $s | .run.stop = {reason: "deadline", at: $at} | del(.stateDigest)' "$f" > "$f.w" && mv "$f.w" "$f"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  gate_line=$(printf '%s\n' "$trend" | grep '^  gate share:' || true)
+  [ -n "$gate_line" ] || fail "the trend printed no gate-share line: $trend"
+  assert_contains "$gate_line" \
+    "58.8 % — 14.7 s of the 25 s of item wall over 2 items · worst #101 64 % · #102 53.6 %" \
+    "the gate share names the gate bucket as a share of the item wall, and the worst two items behind the total"
+  outside_line=$(printf '%s\n' "$trend" | grep '^  outside items:' || true)
+  [ -n "$outside_line" ] || fail "the trend printed no outside-items line: $trend"
+  assert_contains "$outside_line" \
+    "91.7 % — 275 s of the 300 s window outside every item wall (25 s over 2 items)" \
+    "the window the run recorded, minus the walls its items recorded, as the time no item covers"
+  assert_not_contains "$outside_line" "recorded wait" "a run that waited in no hold names no wait"
+  # A run whose items spent nothing in a gate is a share of zero that nobody measured: the row says which, rather
+  # than printing `0 %` as if a gate had run for no time, and a run whose record carries no stop has no window.
+  jq '(.items[].metrics.phases.gateMs) = 0 | del(.run.stop) | del(.stateDigest)' "$f" > "$f.n" && mv "$f.n" "$f"
+  out=$(run_report "$p") || fail "the report failed for a run whose gate cost nothing"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "gate share: - · no item of this run spent time in a gate" \
+    "a gate nobody spent time in prints a dash with its reason, not a share of zero"
+  assert_contains "$trend" "outside items: - · this state records no run window" \
+    "a record with no stop has no window, and says so rather than dating itself from the moment the report ran"
+  # A state written before the phase buckets existed holds no gate time to read: the row is the dash the whole
+  # block prints for the same state, because a reader must be able to tell `not recorded` from `no gate ran`.
+  jq --argjson s "$start" --arg at "$(date -u -d "@$stop" '+%Y-%m-%dT%H:%M:%SZ')" \
+    '.run.startedEpoch = $s | .run.stop = {reason: "deadline", at: $at} | del(.items[].metrics.phases) | del(.stateDigest)' "$f" > "$f.o" &&
+    mv "$f.o" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the phases existed"
+  assert_contains "$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")" \
+    "gate share: - · this state records no phase durations — it was written before the report read them" \
+    "a state whose items record no phases says the figure was never recorded, not that no gate ran"
 }
 
 # Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the

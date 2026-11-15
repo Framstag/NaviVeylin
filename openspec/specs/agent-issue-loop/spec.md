@@ -2665,6 +2665,15 @@ A case that starts a process and waits for it SHALL bound that wait itself, at a
 own, so a process that never takes the signal the case sent is answered by the case — naming that process and what
 the case read — instead of by the suite's bound, which is minutes times the pool's width.
 
+That clock SHALL be derived from the staging the same case measured, and the wait SHALL be decided by the state the
+run writes before it: once the run has recorded both the stop the case asserts and its item's result, the rest of the
+run's end gets a grace of its own and the wait answers with the status the process ended with, so a run that is already
+ending is not held to a deadline. The deadline SHALL be a multiple of that staging, floored at the figure a quiet host
+needs and capped, because a host four times slower derives four times the wait while a case may not hold its slot for
+minutes. On the deadline the state SHALL be read once more, after the last thing the run writes, and the wait SHALL
+answer naming that state, so that a run which recorded everything and did not end is told apart from a trap that wrote
+nothing.
+
 #### Scenario: A case that never returns is failed by its own bound
 
 - **WHEN** a case in the pool does not return within `LOOP_CASE_MAX_SECONDS`
@@ -2688,6 +2697,18 @@ the case read — instead of by the suite's bound, which is minutes times the po
   the stop and item it read, releases what it held and ends the run so nothing of it outlives the case, and the
   suite reads that case's verdict long before its own case bound
 - **Case**: `run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock`
+
+#### Scenario: The stop wait is decided by the state the run writes
+
+- **WHEN** a case waits on a run it signalled under a deadline derived from the staging that same case measured
+- **THEN** a host that measured no staging and one whose staging came to 2.9 s get the 30 s a quiet host needs, a
+  staging of 8 s derives ten times itself, and a staging of 60 s is held at the cap; a run that recorded its stop and
+  its item's result and then ended answers the wait with the status it ended with, naming the stop and the item the
+  case read, inside a fraction of the deadline; a run that ended having recorded neither answers at once with its own
+  status and the empty state, so the caller's assertion names the hole; and a run that recorded both and was still
+  standing is answered `124` with the state it read after the tail grace, because the wait was decided by what the run
+  wrote and not by how many ticks elapsed
+- **Case**: `run#theStopWaitIsDecidedByTheStateTheRunWrites`
 
 ### Requirement: A case's own output reaches the suite's log while it runs
 
@@ -3088,6 +3109,13 @@ from the verdict the round recorded, never from the round count alone — and th
 maximum, from the state it already reads, and SHALL print the share of its landings that reddened `main` from the
 score the state records for each landing, never from the tracker (issues #247, #709).
 
+It SHALL also state the two figures the state holds and no line printed: the gate share of the items' own wall —
+each item's recorded gate bucket divided by its own recorded wall, in tenths, with the worst two items named — and the
+window that lies outside every item, taken from the run's recorded start and stop and given as the time and the share
+of the window it is. Both SHALL be read from fields the run wrote, and the sums the report takes over them SHALL be
+stated as its own arithmetic over recorded numbers, so that a figure the record does not hold prints as absent with the
+reason it is absent, never as a span dated from the clock the report ran at.
+
 #### Scenario: The two figures the state holds are totalled
 
 - **WHEN** a run's report is printed for a state whose items record the verdict their last review round ended on
@@ -3144,6 +3172,26 @@ run then blocked carries the same count as one whose round 1 passed.
   a score at all, names apart the landings that carry a commit and no score yet and those that carry no commit,
   and makes no tracker read of its own — the report is still built from the state file and from git
 - **Case**: `report#landingsAreTheStoredNumber`
+
+#### Scenario: The trend block names the gate share and the outside window
+
+- **WHEN** a run's report is printed for a state whose items record a gate bucket and a wall, and whose run records the
+  start and the stop it happened between
+- **THEN** the trend block prints `gate share:` as the sum of the items' gate buckets over the sum of their walls — in
+  tenths, with the worst two items named, so that two runs that differ by 1.6 points are told apart — and
+  `outside items:` as the recorded window minus those walls, with the share of the window that time is, and neither
+  figure is read from a log or dated from the moment the report ran
+- **Case**: `report#theTrendBlockNamesTheGateShareAndTheOutsideWindow`
+
+#### Scenario: A figure the record does not hold is absent with its reason
+
+- **WHEN** the report prints `gate share:` for items that recorded no phase duration at all, or that recorded phases
+  without spending time in a gate, or for a state written before the items recorded phases; or `outside items:` for a
+  state that records no stop, or for a window whose items recorded no wall
+- **THEN** each line prints `-` naming which of those it is — no phase duration recorded, no gate ran, this state records
+  no phase durations, this state records no run window, a recorded window and no item wall inside it, two records that
+  disagree — and never `0 %` and never a span dated from the clock the report ran at
+- **Case**: `report#theTrendBlockNamesTheGateShareAndTheOutsideWindow`
 
 ### Requirement: A landing records the commit it landed, and a run scores it
 
@@ -3482,13 +3530,16 @@ over the stream every child appends to decides which phase is discarded, not whe
 
 An item a bound the run enforces ended SHALL be recorded `cut`: the run's deadline or a role's turn bound
 ending a review round, and the role's turn bound, the context bound, the child clock, a vanished writer or the run's deadline ending the item's own child.
-It SHALL carry `bound` as its stop reason when the bound ended the item's own child, while a round the run ended
-carries none, as it did before — so the mechanism's spend is totalled beside the result — SHALL write no
+It SHALL carry `bound` as its stop reason, with the key the bound is recorded in, whenever a bound the run enforces
+ended it — a review round as much as the item's own child, because the bound is the run's and the item is what it
+ended — so the mechanism's spend is totalled beside the result, SHALL write no
 decision label and no comment, SHALL NOT enter the two-blocked streak `state.sh next` stops on, and SHALL be named on
 a line of its own in the report and counted there as a cut rather than a block, so no reader needs the mechanism's
 vocabulary to tell work from a refusal. The work an ended child left SHALL stay where the child left it, SHALL be
 named in the item's own record, and SHALL NOT be committed.
-The round a review bound ended SHALL be written on the branch as a cut with its announcement withdrawn. A state a
+The round a review bound ended SHALL be written on the branch as a cut with its announcement withdrawn, and SHALL stay
+named in the item's own record as its own fact — the round, the key and the figure — beside the class it now shares
+with the item. A state a
 tree wrote before `cut` carried a bound keeps that `blocked` + `bound` pair out of the streak, while a pre-mechanism
 pair with no stop reason still stops the run, and an answer the *transport* cut twice is not this case: no bound
 ended it, so it stays a block with its reason.
@@ -3496,12 +3547,19 @@ The reason a bound-ended round leaves on the item SHALL name the bound that ende
 quoted from the child's own `LOOP-TIMEOUT` line, and SHALL NOT offer the two bounds in general as the answer: a
 person reading the item tells the turn bound from the context bound, and how far past it the child ran, without
 a transcript they were not handed (issue #829).
+The class SHALL name the bound it stands for, as `boundKey` and `boundValue` beside it, and SHALL carry neither where
+no configuration records a value for what ended the child — the item's own clock, the run's deadline and a vanished
+writer are the class alone (issue #923).
+A round the run ended SHALL record its own ending in the round's own field beside the item's class — the round, the
+key and the figure, taken from the round's own `LOOP-TIMEOUT` line where the item's class carries no key of its own —
+and the report SHALL count those rounds on a line of its own rather than folding them into the item's rate.
 
 #### Scenario: A round the turn bound ended leaves no decision behind
 
 - **WHEN** an item's tail writes `LOOP-VERDICT: closed`, its gate answered and its change is archived, and the run
   then ends review round 1 at the reviewer's role's turn bound
-- **THEN** the item is recorded `cut` with its round marked cut, no `agent/needs-decision` label is written for it
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and its round marked cut, no
+  `agent/needs-decision` label is written for it
   and the report's decision list does not hold it, the branch carries `review-round-1-cut.md` and no
   `review-round-1-requested.md`, and `branch-state` reads `adoptable` — work the next run finishes, not a question
   only its owner can answer
@@ -3553,16 +3611,47 @@ a transcript they were not handed (issue #829).
 - **WHEN** the run ends review round 1 at the reviewer's role's turn bound of 3 turns, after the child took 3 turns
 - **THEN** the reason on the item names the turn bound, the figure it reached and the key it is recorded in
   (`LOOP_CHILD_TURNS_MAX_REVIEWER`), quoted from the round's own `LOOP-TIMEOUT` line, beside the round, the cut and
-  the sentence that leaves the change for the next run
+  the sentence that leaves the change for the next run, and the item records that bound as its stop reason
 - **Case**: `run#aReviewerEndedAtItsTurnBoundIsNotARefusal`
 
 #### Scenario: The round before the gate names the bound that cut it
 
 - **WHEN** the round before the gate is ended at the reviewer's turn bound and its transcript carries the bound,
   the key and the count
-- **THEN** the item is recorded `cut` with that reason naming the turn bound, the figure and the key, no gate child
-  is started on the unread diff, and no round after the gate is asked
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and that reason naming the turn bound, the
+  figure and the key, no gate child is started on the unread diff, and no round after the gate is asked
 - **Case**: `run#aPreGateReviewEndedAtItsBoundNamesIt`
+
+#### Scenario: A bound-ended item records the key and the figure it was cut at
+
+- **WHEN** an item's own worker takes three turns past a worker turn bound recorded as 3 in `loop.conf`, and the run
+  ends it there
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and `boundKey` `LOOP_CHILD_TURNS_MAX_WORKER`
+  with `boundValue` `3`, read from the child's own `LOOP-TIMEOUT` line, the state's own table prints
+  `bound LOOP_CHILD_TURNS_MAX_WORKER=3` in the record's `stop` cell, and the report names `#21` on its line of the
+  items a bound cut short — so the archive can be totalled by the bound and not only by the class
+- **Case**: `run#aBoundEndedItemRecordsItsBound`
+
+#### Scenario: A round the run ended records its own ending beside the item's class
+
+- **WHEN** the reviewer takes its third turn past a reviewer turn bound recorded as 3 and the run ends review
+  round 1 there
+- **THEN** the item is recorded `cut`, `metrics.roundBound` carries the round (`1`, or `pre-gate` for the round
+  before the gate), the key `LOOP_CHILD_TURNS_MAX_REVIEWER` and the figure `3`, the record's `round` column prints
+  `round 1 ended at LOOP_CHILD_TURNS_MAX_REVIEWER=3`, and the report prints
+  `rounds a bound ended: 1 of 1 item(s) · #21 1 LOOP_CHILD_TURNS_MAX_REVIEWER=3` beside `bound: 1 of 1 items` —
+  two figures, neither folded into the other
+- **Case**: `run#aRoundTheRunEndedRecordsItsBound`
+
+#### Scenario: A record written before the two fields is read by the bound its note names
+
+- **WHEN** the report reads a state written before `boundKey` and `roundBound` existed — a record carrying `bound`
+  with its figure in the note, and a record carrying `cut` with `cut-short` and the reviewer's key in the note
+- **THEN** the first prints the bound it was cut at in its `stop` cell and the second prints its round in the `round`
+  column, both read by the one derivation `state.sh` and `report.sh` share, which tells a round from the item's own
+  cut by the reviewer's role in the key and the round's own verdict rather than by the fields being absent
+- **Case**: none — no case pins the derivation: it was read on the committed archive when `cdf0648c` landed, and the
+  commit records that it is pinned by no case
 
 ### Requirement: The suite runs as legs on separate runners, and a leg is its own verdict
 
@@ -4819,6 +4908,9 @@ An item's children SHALL share one ledger of the reads that item made, named bes
 one child read is a repeat for the child started after it — replaced by one line naming the session that read it and the
 turn it read it at — unless the content that path holds has changed, in which case the read SHALL be handed over whole.
 A child given no ledger SHALL keep the ledger of its own process.
+The arm a project records SHALL answer a second read of a path this child was handed ahead of this ledger's content
+test: what the arm withholds SHALL NOT be handed over whole because the content changed, while a path this child
+was never handed SHALL be answered by this ledger as it was (issue #925).
 
 #### Scenario: The item's ledger outlives the child that filled it
 
@@ -4835,6 +4927,16 @@ A child given no ledger SHALL keep the ledger of its own process.
   repeat is replaced by can name the session that read the path
 - **Case**: `adapter#theChildIsStartedWithTheItemsLedger`
 
+#### Scenario: The arm's answer stands before this ledger's content test
+
+- **WHEN** a child reads one path, edits it, and reads it again under the `refuse` arm its project records, and a
+  path the item's ledger already holds is read for the first time by a child that was never handed it
+- **THEN** the second read is answered with the earlier result's range rather than handed over whole — the edit is
+  not sent, because the arm answers the read before this ledger's content test — while the read of the path the
+  item holds and this child does not is served as the file stands, its own notice having replaced the read the
+  child could not have held
+- **Case**: `repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt`
+
 ### Requirement: An item a merge refused names its landing
 
 The run records `stopReason: unmergeable` when the branch it committed for an item could not be merged onto the
@@ -4844,6 +4946,12 @@ it — `git -C <root> merge --ff-only <branch>` — and, where the refusal liste
 and the `git -C <root> status --porcelain` that lists them now. The landing SHALL be printed once: the branch that
 landing line names SHALL NOT be printed again by the branch arm, and an item the run escalated keeps the decision
 line it wrote, because a decision is a question beside the repair and not a second landing.
+
+The refusal SHALL be a record and not a sentence: the run SHALL write the branch it could not merge and every path the
+refusal named as `mergeRefused` on the item's record, refused half-formed — a path with no branch, and a branch on a
+record whose mechanism is not `unmergeable` — and the report SHALL print the branch and the paths from that record
+verbatim. Only where the state carries no refusal record — a state written before the field existed — SHALL the block
+fall back to the note, and it SHALL say on the line that what it printed is re-derived and not read from a record.
 
 #### Scenario: A refused landing is an action and not only a decision
 
@@ -4855,6 +4963,15 @@ line it wrote, because a decision is a question beside the repair and not a seco
   `git -C <root> status --porcelain` that lists them when the refusal listed any, and that branch is not printed a
   second time by the branch arm
 - **Case**: `report#anUnmergeableItemNamesItsLanding`
+
+#### Scenario: The refused landing is read from the record
+
+- **WHEN** an item recorded `stopReason: unmergeable` also records `mergeRefused` — the branch the merge refused and
+  every path the refusal named — beside a note that names a different branch and other paths
+- **THEN** the action line's branch, its commit count and its paths are the recorded ones, the note's branch and paths
+  are printed nowhere, the line does not say its landing was re-derived, and the item is one landing line; a state
+  written before the field existed prints the note's refusal with the line saying it was re-derived from the note
+- **Case**: `report#theRefusedLandingIsReadFromTheRecord`
 
 ### Requirement: The checks a child runs by hand are bounded while it runs
 
@@ -4969,6 +5086,16 @@ after that state, with one line naming where the whole package is. A case that a
 cut SHALL ask it of a phase whose state leaves room for that head at the recorded bound, because a token the window
 cannot reach is a fixture its own bound contradicts rather than a finding about the tool.
 
+The state SHALL be printed in the order a cut leaves it whole: the phase line, then the one `ROOT:` line, then the
+item, then the package's identity — its path, its fingerprint, its provenance and the title it is accepted against —
+and only then the tree, the last gate verdict the item's stream records, the paths the phase writes, the checklist and,
+last, the item's own text. Every path the answer prints under the run root SHALL be relative to that one `ROOT:` line,
+and a path outside the root SHALL keep its absolute form, so that what the bound takes is the checklist's tail and
+then the item's text, which the identity above it names the path to.
+
+A case that asks what an answer cut at a bound keeps SHALL pin the bound it asks at rather than inherit the recorded
+figure, and SHALL ask it of a root deep enough that the root's own length cannot decide the verdict.
+
 #### Scenario: A cut at the recorded bound keeps the state and the package's head
 
 - **WHEN** the phase state is printed at the recorded bound for a phase whose state leaves room for the work package's
@@ -4976,3 +5103,173 @@ cannot reach is a fixture its own bound contradicts rather than a finding about 
 - **THEN** the answer is at or under the bound, says it was cut, carries the phase state and the tree it stands in, and
   holds the package's opening delimiter and its first line but not its last
 - **Case**: `phase#aResultOverTheBoundIsCutAndNamed`
+
+#### Scenario: The identity survives the bound on a root of any depth
+
+- **WHEN** the phase state is printed at a pinned bound on the suite's own fixture root and on one over 120 characters
+  long, and at the recorded bound on that long root
+- **THEN** each answer is at or under its bound, says it was cut, and still holds the package's fingerprint, its
+  provenance, the title it is accepted against and the path that names the package relative to the root, together with
+  the last gate verdict and the evidence directory and their paths relative to the root — while the root itself is
+  printed once, on the `ROOT:` line, so no other line spends the bound on it
+- **Case**: `phase#theIdentitySurvivesTheBoundOnAnyRoot`
+
+#### Scenario: One call prints the phase state
+
+- **WHEN** a phase's state is asked in one call of a fixture whose state leaves room for the package's head, with the
+  bound off because the case asserts the shape of the whole answer
+- **THEN** the answer names the phase with the heading its own checklist carries, the item and the change the run asked
+  for and the phase the run recorded, the tree with its branch, its head, what it is ahead and behind of and the paths
+  it has dirty, the last gate verdict the item's stream records, the package's fingerprint and provenance with the
+  item's text inside its delimiters, the paths the phase is expected to write, and the checklist line naming the prompt
+  that carries the phase's section — no other phase's section, and a phase whose prompt carries no section named as
+  such instead of invented
+- **Case**: `phase#oneCallPrintsThePhaseState`
+
+### Requirement: What a review round is handed is bounded, and the cut is named
+
+The run SHALL cap each part a review round is handed — the change's diff, the round-before-the-gate report
+and the change's own files — at `LOOP_REVIEW_INPUT_MAX_BYTES`, where `0` or no value SHALL be no bound. A
+part over the cap SHALL be handed as its head, cut at a line boundary and marked, the rest named by path and
+line range in an index the round reads by path. A round under it SHALL be handed what it was handed before,
+and a cut SHALL be recorded on the item and printed by the report.
+
+#### Scenario: A part over the cap is handed as its head and the rest is named
+
+- **WHEN** `LOOP_REVIEW_INPUT_MAX_BYTES` is 64 and the change's diff and the inventory of the change's files are
+  both over it
+- **THEN** the diff the round is handed is its head, cut at a line boundary, its last line a `[LOOP-CUT: …]`
+  marker naming the file it heads and the cap, the prompt states the round's input is bounded this round and by
+  which figure and names `review-1.cut.md`, that index names every path the cut left out with its line range, the
+  item records the scale (`over the 64 B cap`, the index's name) under `metrics.reviewInput`, and the report
+  prints it against the item — so a cut round does not read as a whole one
+- **Case**: `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
+
+#### Scenario: A round under the cap is handed what it was handed before
+
+- **WHEN** every part of the round is under the cap
+- **THEN** the prompt carries no line about a bound, no `[LOOP-CUT:` marker and no instruction to stop at one, no
+  `<round>.cut.md` is written, the item's `metrics.reviewInput` is null, and the report prints `what the bound cut
+  from a round's input: none` — a round the bound did not touch is the round the key found
+- **Case**: `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
+
+#### Scenario: A configuration that records no bound cuts nothing
+
+- **WHEN** `LOOP_REVIEW_INPUT_MAX_BYTES` is `0`, or the project's `loop.conf` does not record it at all
+- **THEN** no part is capped, no index is written, the round's prompt carries no line about a bound and the item
+  records no scale, because a bound of zero bytes would refuse the round the input it is handed to read
+- **Case**: none — no case pins the `0` arm: `prompt#reviewerInputsAreBoundedAndTheCutIsNamed` sets a positive cap
+  and the default, so the arm is read from `run.sh` and pinned by no assertion
+
+### Requirement: A second read of a path a child was handed is counted, and the arm decides its answer
+
+A second read of a path a child was handed SHALL be counted, and answered by the arm `LOOP_REPEAT_READ` the project
+records: `measure` SHALL serve it, `refuse` SHALL answer it with one line naming the path and the earlier result's
+range instead of the text. An absent or undeclared value SHALL be `measure` and a path the child was never handed
+SHALL be served. The count SHALL be recorded as `metrics.repeatReads`, printed beside the repeats a session made,
+whichever arm answers.
+
+#### Scenario: A second read is counted under either arm, and the refusal arm withholds the text
+
+- **WHEN** one process reads a path, reads it again, and the project records `measure` for the first pair and
+  `refuse` for a second, and a third pair runs under a value the rule does not declare
+- **THEN** the second read under `measure` is served whole and the record gains one
+  `LOOP-TOOL-RESULT-REPEAT-READ: <tool> turn=<n> arm=measure` line, the second read under `refuse` is answered with
+  one `[LOOP-REPEAT-READ: …]` line — the path, the earlier result's line range, its size and the call that reads a
+  range of it — with none of the text, not even the edit the child itself made, and its record line names
+  `arm=refuse`, and the undeclared value serves its read as `measure` does
+- **Case**: `repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt`
+
+#### Scenario: The child is started with the arm the project records
+
+- **WHEN** the adapter starts a child and the project's `loop.conf` records `refuse`, then a word the rule does not
+  declare, then no key at all
+- **THEN** the child is handed `refuse`, then `measure`, then `measure` — the value the file records, never one the
+  adapter chose, and the arm that cannot break a child for a key nobody wrote
+- **Case**: `adapter#theChildIsStartedWithTheRepeatReadArm`
+
+#### Scenario: The count is recorded and printed beside the repeats a session made
+
+- **WHEN** two items' records hold the rule's lines and a third item's directory holds no record at all, or the
+  state was written before the figure existed
+- **THEN** `metrics.repeatReads` is the lines counted, `0` for a record read and holding no second read, and `null`
+  for a directory holding no record; the report's `reads:` line prints `2 second reads counted by the repeat-read
+  rule` beside the repeats a session made and never as that figure, says `the rule counted no second read` where
+  the rule counted none, and says `the repeat-read count is unrecorded — this state predates the figure` for a state
+  holding no such key rather than naming a run that counted none
+- **Case**: `report#theRuleRecordsTheSecondReadsItCounted`
+
+### Requirement: A step red on the run's base is subtracted from the item's tally and named
+
+A run SHALL measure, before it works anything, which of the gate's steps the base it starts from is already red at,
+and record the failing step-and-case pairs. A gate SHALL subtract exactly the pairs that record holds — a case it
+fails now and the base failed leaves the tally, a case it fails only now stays — print `LOOP-GATE-BASERED:<step>:<n>`
+on its console, log and verdict, and write the pairs to the run's record. A pre-flight it cannot take SHALL leave
+every red with the item.
+
+#### Scenario: The pre-flight names each red step and the case that failed there, and writes no tally
+
+- **WHEN** the run takes the pre-flight over a base whose steps are red, on a step set the profile owes
+- **THEN** it prints one `LOOP-BASERED-STEP:<step>|<n>` line and one `LOOP-BASERED-CASE:<step>|<case>` line per red
+  step and failing case, writes nothing into the gate's tally directory, holds no tally lock, and records the pairs
+  as the run's own base-red record
+- **Case**: `gate#aBaseRedStepIsSubtractedAndNamed`
+
+#### Scenario: A step red on the base and red for no new case is subtracted and named
+
+- **WHEN** the gate over an item's delta runs a step the run's base-red record holds, and the cases that step fails now
+  are the cases that record names
+- **THEN** the gate exits 0 from that step, prints `LOOP-GATE-BASERED:<step>:<n>` on the console and in its log,
+  quotes `— base-red: <step>:<n>` beside the verdict, and records the pairs it subtracted in the run's record
+- **Case**: `gate#aBaseRedStepIsSubtractedAndNamed`
+
+#### Scenario: A step red on the base and red for a case the base never had is still red
+
+- **WHEN** a step the base-red record holds fails now for a case the record does not name beside it
+- **THEN** only the pairs the record holds leave the tally, the step is still named in the verdict's failing list, and
+  the subtraction is never widened to the step's whole count
+- **Case**: `gate#aBaseRedStepIsSubtractedAndNamed`
+
+#### Scenario: A red no pre-flight measured is charged to the item
+
+- **WHEN** the run takes no pre-flight — the switch is off, the run records no base, the base is not a commit the tree
+  can read, or the tree carries uncommitted work — and the base could not be measured
+- **THEN** no step and no case is subtracted, and every red the gate reports stays charged to the item
+- **Case**: `gate#aBaseRedStepIsSubtractedAndNamed`
+
+### Requirement: The archive's classes are derived from the record, not from a field's absence
+
+A run's report SHALL total an archive's items by the class each record decides for itself — the `stopReason` it names,
+or the bound its own note quotes — and SHALL NOT read a field's absence as a class. The population SHALL be the
+records a class can belong to, `blocked` and `cut`. The records the derivation cannot decide, and the rounds a bound
+ended, SHALL each be printed as a figure of their own and summed into neither side. The analysis pass's rates SHALL
+read the same derivation.
+
+#### Scenario: A record whose own note names the bound that ended it is decided
+
+- **WHEN** an archived record is `blocked` and names no `stopReason`, and its note quotes the `LOOP-TIMEOUT` sentence
+  that ended it
+- **THEN** the report's class line totals it as `bound`, beside the record that recorded its own mechanism as
+  `refused`
+- **Case**: `report#theArchivesClassesAreDerivedNotInvented`
+
+#### Scenario: What the derivation cannot decide is printed apart, never as a class
+
+- **WHEN** an archived `blocked` or `cut` record names no mechanism and no bound its note quotes
+- **THEN** it is counted as undecidable beside the decided classes — as is the record a review round's own bound ended,
+  which carries no class of the item's — and no class of its own is invented for it
+- **Case**: `report#theArchivesClassesAreDerivedNotInvented`
+
+#### Scenario: A record a class cannot belong to is counted on neither side
+
+- **WHEN** an archived record closed, was skipped or was falsified
+- **THEN** it is in neither the decided nor the undecidable figure, and the denominator is the archived `blocked` and
+  `cut` records only
+- **Case**: `report#theArchivesClassesAreDerivedNotInvented`
+
+#### Scenario: An archive with no record a class can belong to prints an absence, not a zero
+
+- **WHEN** the run's report reads an archive that holds no record `blocked` or `cut`, or a project with no archive at
+  all
+- **THEN** the class line prints that there is no such record, rather than a class or a rate nobody measured
+- **Case**: `report#theArchivesClassesAreDerivedNotInvented`

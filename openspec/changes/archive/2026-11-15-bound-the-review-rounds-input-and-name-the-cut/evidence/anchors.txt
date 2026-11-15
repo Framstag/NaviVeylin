@@ -1,0 +1,103 @@
+# anchors — every `$` line is a command run in the tree at 929b9e8f, the lines under it its output.
+
+## the key, its default and the measurement it was priced from
+$ sed -n '905,916p' tools/loop/loop.conf
+# key existed, so a round whose three parts are all under it is byte-identical to the one the key found; a part
+# **over** it is replaced by its head at the cap and everything the cut left out is named — by path and line range —
+# in `review-<round>.cut.md`, which the round's prompt names and reads by path, so a finding can still point at a
+# line the round was not handed. `0`, or a configuration that records no key, is no bound.
+#
+# 32 000 is read off the evidence the item cites and not chosen for comfort: 20 kB is the largest diff a round of that
+# run passed with a report (#915, 5.1 M tokens) and 45 kB is one whose round ended at the context bound (#883), so
+# the cap sits above the change that was read and below the one that was not, rounded up to the next round figure —
+# and #898's 262 411 B diff, 8.2× the cap, is the input this key exists to stop paging. In tokens, 32 000 B is about
+# 8 000 at the 4 B a token these records page at, 1/31 of the 250 000 `LOOP_ITEM_CONTEXT_MAX_REVIEWER` leaves room
+# for; three parts therefore bound one round's input at about 24 000 tokens.
+LOOP_REVIEW_INPUT_MAX_BYTES=32000
+
+## the cap is read from the project configuration; 0, or a file that records no key, is no bound
+$ sed -n '1689,1693p' tools/loop/run.sh
+  review_input_cut_scale=""
+  [ -n "$diff" ] && [ -f "$diff" ] || return 0
+  cap=$(loop_conf_value LOOP_REVIEW_INPUT_MAX_BYTES)
+  case "$cap" in ''|*[!0-9]*) return 0 ;; esac
+  [ "$cap" -gt 0 ] || return 0
+
+## the three parts, the head, the marker, the index and the scale reader
+$ grep -n 'review_input_head()\|review_input_mark()\|bound_review_inputs()\|review_input_scale_of()\|cut_file="$label.cut.md"' tools/loop/run.sh
+1669:review_input_head() { # <cap> <source> <destination> → the lines kept
+1678:review_input_mark() { # <capped file> <the file it heads> <cap> <the cut index>
+1685:bound_review_inputs() { # <diff file> [<the round-before-the-gate report>]
+1695:  cut_file="$label.cut.md"
+1810:review_input_scale_of() { # <diff file> → the recorded scale, or nothing
+
+## a cut part is handed as its head, cut at a line boundary, marked on its last line
+$ sed -n '1669,1684p' tools/loop/run.sh
+review_input_head() { # <cap> <source> <destination> → the lines kept
+  local cap="$1" src="$2" dest="$3" lines
+  { head -c "$cap" "$src" 2>/dev/null || true; } | sed '$d' > "$dest" || : > "$dest"
+  lines=$(wc -l < "$dest" 2>/dev/null | tr -d ' \n')
+  case "$lines" in ''|*[!0-9]*) lines=0 ;; esac
+  printf '%s\n' "$lines"
+}
+
+# The last line of a capped part, so the round reads the marker before it reads the head as the file.
+review_input_mark() { # <capped file> <the file it heads> <cap> <the cut index>
+  printf '\n[LOOP-CUT: %s is the head of %s — the input a round is handed is bounded at %s bytes a part, and\neverything this cut left out is named, by path and line range, in %s. Do not page past this line to recover it]\n' \
+    "$1" "$2" "$3" "$4" >> "$1"
+}
+
+# The three parts, capped, and the index of what the cap left out. Prints the `{{REVIEW_INPUTS}}` section and sets
+# `review_input_cut_scale`; prints nothing and writes nothing when every part is under the cap.
+
+## the scale string, the file it is kept in, and the lines the prompt states
+$ sed -n '1771,1785p' tools/loop/run.sh
+    else
+      rm -f "$label.change-files.md" 2>/dev/null || true
+    fi
+  fi
+
+  [ "$cut_parts" -gt 0 ] || return 0
+  pct=$(awk -v c="$cut_total" -v t="$total" 'BEGIN { printf "%d", (t > 0 ? (c * 100 + t / 2) / t : 0) }')
+  review_input_cut_scale="$cut_parts of $parts parts over the ${cap} B cap · ${cut_total} of ${total} B cut (${pct} %) · ${cut_file}"
+  # The scale is written down beside the index as well as printed: the run calls this in a `$( )`, so the variable it
+  # sets never reaches the round's own shell, and the state write that records the cut (`state.sh done --review-input`)
+  # reads it back from here.
+  printf '%s\n' "$review_input_cut_scale" > "$label.scale"
+  {
+    printf '# The round%ss input, and what the bound cut — item #%s, `%s`\n\n' "'" "$issue" "$label"
+    printf 'Bounded at %s bytes a part (`LOOP_REVIEW_INPUT_MAX_BYTES`, `tools/loop/loop.conf`): %s.\n' "$cap" "$review_input_cut_scale"
+
+## the placeholder sits on the bullet own line, so an under-cap round is byte for byte the old one
+$ grep -n 'REVIEW_INPUTS' tools/loop/prompts/reviewer.md
+31:  "`change: none`" is an item that names no change, not a missing artefact.{{REVIEW_INPUTS}}
+
+## the scale travels into the item state as one line, and the report prints it against the item
+$ grep -n -- '--review-input' tools/loop/state.sh tools/loop/run.sh; grep -n 'what the bound cut from a round' tools/loop/report.sh
+tools/loop/state.sh:73:#                         [--review-input TEXT]   # the scale of what `LOOP_REVIEW_INPUT_MAX_BYTES` cut from the round
+tools/loop/state.sh:702:      --review-input) need_value "$@"; review_input="${2:-}"; shift 2 ;;
+tools/loop/state.sh:850:    *$'\n'*|*$'\r'*) loop_die "done: --review-input is one line" ;;
+tools/loop/run.sh:1658:# item's state (`state.sh done --review-input`), where `report.sh` prints it.
+tools/loop/run.sh:1780:  # sets never reaches the round's own shell, and the state write that records the cut (`state.sh done --review-input`)
+tools/loop/run.sh:3970:        --review-input "$review_input_cut_scale" >/dev/null
+tools/loop/run.sh:3997:        --review-input "$review_input_cut_scale" >/dev/null
+tools/loop/run.sh:4048:        --review-input "$review_input_cut_scale" >/dev/null
+tools/loop/run.sh:4085:        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
+tools/loop/run.sh:4161:        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
+365:printf 'what the bound cut from a round%ss input: %s\n' "'" "$(jq -r '[.items[] | select((.metrics.reviewInput // "") != "") | "#\(.issue) \(.metrics.reviewInput)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+
+## the case, its dispatch and its registration
+$ grep -n 'prompt#reviewerInputsAreBoundedAndTheCutIsNamed\|case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed' tools/loop/tests/loop-cases.sh
+150:  'prompt#reviewerInputsAreBoundedAndTheCutIsNamed'
+895:    'prompt#reviewerInputsAreBoundedAndTheCutIsNamed') fn=case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed ;;
+4604:case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed() {
+
+## the one mutation record, and the second one the file says it dropped
+$ grep -n "^  '924\.1@\|A second record for the index" tools/loop/tests/loop-mutations.sh
+1310:  # A second record for the index's own write (`} > "$cut_file"` → `> /dev/null`) was written twice and dropped twice:
+1315:  '924.1@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
+
+## the reviewers turn bound is not what this key touches
+$ grep -n 'LOOP_CHILD_TURNS_MAX_REVIEWER=' tools/loop/loop.conf
+179:LOOP_CHILD_TURNS_MAX_REVIEWER=110
+

@@ -1164,6 +1164,19 @@ MUTATIONS=(
   # (`boundKey`/`boundValue`) and the round's (`metrics.roundBound`), which never becomes the item's class.
   '923.1@-@tools/loop/run.sh@run#aBoundEndedItemRecordsItsBound@the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)@s|^\( *\)bound_key=.*$|\1bound_key=""|'
   '923.2@-@tools/loop/run.sh@run#aRoundTheRunEndedRecordsItsBound@the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)@s|^\( *\)round_bound_key=.*$|\1round_bound_key=""|'
+  # …and the archive is totalled by the same derivation (issue #922): 119 of its 179 blocked records name no
+  # mechanism, and a reader that takes the field alone counts that absence as a class of its own — the analysis
+  # pass printed it as `unclassified 119`, where 21 of the 119 are `bound` and the rest are undecidable.
+  '922.1@-@tools/loop/report.sh@report#theArchivesClassesAreDerivedNotInvented@the archive’s tally counting an absent class as a class, so the dash the archive prints reads as a measured `unclassified` and the record the derivation decides is counted on neither side (issue #922)@s|{cls: (stop_class),|{cls: (.stopReason // "unclassified"),|'
+  # 898.x — a bound that ended a review round is the item's class, not only the round's (issues #898, #883). Both runs
+  # read `cut` with an empty `stop` cell: #898 was ended by the reviewer's turn bound at 110 turns and #883 by the
+  # item's context bound inside the reviewer phase, so a reader needed the child's transcript to tell a bound that
+  # ended the item from an arm that recorded nothing. The class is written where the round is ended, before and after
+  # the gate (`898.1`, `898.2`), and the key the item carries is the round's own (`898.3`), read from the round's
+  # `LOOP-TIMEOUT` line by the same reader the item's own child's class uses.
+  '898.1@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the class the bound leaves on an item whose review round it ended, so the state is `cut` with `stopReason: null` however many rounds the bound threw away — the record #898 and #883 were filed with — while the round’s own field still names it (issue #898)@/^      if \[ -n "\$reviewer_timeout_line" \]; then$/,/^      fi$/s|^        stop_reason="bound"$|        stop_reason=""|'
+  '898.2@-@tools/loop/run.sh@run#aPreGateReviewEndedAtItsBoundNamesIt@the class the bound leaves on an item whose round before the gate it ended, so the round is named in the reason and recorded `blocked` then flipped to `cut` with no class at all (issue #898)@s|; stop_reason="bound"$||'
+  '898.3@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the key the item carries beside that class, read from the round’s own `LOOP-TIMEOUT` line, so an item a review bound ended names the bound but not the figure it spent and the archive cannot be totalled by it (issue #898)@s|^  if \[ "\$outcome" = cut \]|  if false && [ "$outcome" = cut ]|'
   # 272.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
   # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
   # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and
@@ -1339,6 +1352,14 @@ MUTATIONS=(
   # stops and the case must still red — with a wait that answered 0 without waiting (or a deadline that never
   # arrived) it would go green over a run that took no signal at all.
   '928.2@-@tools/loop/run.sh@run#aHupEndedRunRecordsItsStopAndUnpicksItsItem@the trap a signalled run answers HUP with, so the run goes on instead of stopping and only the deadline the case keeps for itself can answer it (issue #928)@s|^trap '\''on_signal 129 HUP'\'' HUP$|trap '\'': '\'' HUP|'
+  # 883.x — the report states what the state records, instead of re-deriving it (issue #883). `report.sh` read 47
+  # figures back out of text the run had already written — the note's branch, the paths after a refusal's
+  # `onto the base:`, a window dated from the clock the report happened to run at — so a report printed a landing, or
+  # a span, that the run's own record did not hold. Two records here: the window is read from the recorded stop, and
+  # the refused landing from the refusal the run wrote.
+  '883.1@-@tools/loop/report.sh@report#theTrendBlockNamesTheGateShareAndTheOutsideWindow@the window read as the clock since the run started instead of the stop the state recorded, so a run reports a span no record holds and the figure dates itself from the moment the report ran (issue #883)@s|--argjson window "\${window_secs:-null}"|--argjson window "$(( $(date +%s) - ${run_epoch:-0} ))"|'
+  '883.2@-@tools/loop/report.sh@report#theRefusedLandingIsReadFromTheRecord@the refused landing read back out of the note the block quoted rather than the refusal the run recorded, so the branch and the paths a caller is handed are a second reading of prose (issue #883)@s|^  if \[ "$refusal_kind" = record \]; then$|  if false; then|'
+  '883.3@-@tools/loop/state.sh@report#theRefusedLandingIsReadFromTheRecord@the arm that writes a refusal the run handed to its item, so the branch and the paths a block was given are recorded as no refusal at all and the report re-derives them from the note (issue #883)@s|^  if \[ -n "$merge_refused_branch" \]; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

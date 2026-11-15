@@ -1,0 +1,97 @@
+# #925 — what pins the behaviour
+
+Three cases and eleven mutation records. A mutation record names the expression it applies, the file, the case that
+must go red under it, and what the record's own sentence says it falsifies. `bash tools/loop/tests/loop-mutations.sh
+--check` confirms an expression applies; `--run` applies it and expects the named case red.
+
+## the cases
+
+  registration   tools/loop/tests/loop-cases.sh:457    'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
+  registration   tools/loop/tests/loop-cases.sh:343    'adapter#theChildIsStartedWithTheRepeatReadArm'
+  registration   tools/loop/tests/loop-cases.sh:381    'report#theRuleRecordsTheSecondReadsItCounted'
+  dispatch       tools/loop/tests/loop-cases.sh:1198   'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
+  dispatch       tools/loop/tests/loop-cases.sh:1088   'adapter#theChildIsStartedWithTheRepeatReadArm') fn=case_adapter_theChildIsStartedWithTheRepeatReadArm ;;
+  dispatch       tools/loop/tests/loop-cases.sh:1126   'report#theRuleRecordsTheSecondReadsItCounted') fn=case_report_theRuleRecordsTheSecondReadsItCounted ;;
+  function       tools/loop/tests/loop-cases.sh:18815  case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt() {
+  function       tools/loop/tests/loop-cases.sh:18700  case_adapter_theChildIsStartedWithTheRepeatReadArm() {
+  function       tools/loop/tests/loop-cases.sh:13879  case_report_theRuleRecordsTheSecondReadsItCounted() {
+
+`repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt` drives one process through `ctx_read`: a path read, the same
+path read again, the path appended to (an `EDITED-LINE` marker) and read again under `refuse`, and a pair under a
+value the rule does not declare. `adapter#theChildIsStartedWithTheRepeatReadArm` copies
+`tools/pi-child-events.sh`, `tools/pi-trim-result.mjs` and `tools/pi-shell-refusal.mjs` into a scratch project, forces
+`refuse`, and then records a word the rule does not declare — the child must be handed `measure` for it.
+`report#theRuleRecordsTheSecondReadsItCounted` writes three item directories (31, 32, 33) whose records hold
+`LOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=4 arm=measure` and `turn=6 arm=refuse`, the second item's directory
+holding no record at all, and reads the report's clause against them.
+
+## the eleven mutation records, read from tools/loop/tests/loop-mutations.sh:1325-1335
+  925.1
+  expression: s|^    if (arm !== "refuse" \|\| !entry.handed) return { text, entry, refused: false };$|    return { text, entry, refused: false };
+  file:       ../pi-trim-result.mjs
+  case:       repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+  falsifies:  the arm that withholds a second read, so the bound the rule declares hands every repeat over and counts what it said it would refuse
+
+  925.2
+  expression: s|^        appendFileSync(record, repeatReadRecordLine(tool, read.turn, arm));$|        void 0;
+  file:       ../pi-trim-result.mjs
+  case:       repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+  falsifies:  the line a counted second read leaves, so the rule fires and no record says it did — the figure the report prints stays empty (issue #925)
+
+  925.3
+  expression: s|^    if (arm !== "refuse" \|\| !entry.handed) return { text, entry, refused: false };$|    if (arm !== "refuse") return { text, entry, refused: false };
+  file:       ../pi-trim-result.mjs
+  case:       repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+  falsifies:  the guard that serves a read of a path this child was never handed, so the refusal names a range the child does not hold (issue #925)
+
+  925.4
+  expression: s|^    return { text: repeatReadNotice(read.path, entry.lines, entry.turn, entry.size), entry, refused: true };$|    return { text: repeatReadNotice(read.path, resultLines(text), read.turn, text.length), entry, refused: true };
+  file:       ../pi-trim-result.mjs
+  case:       repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+  falsifies:  the earlier result the refusal cites, so the line names the range of the read it is refusing instead of the one the child can ask for (issue #925)
+
+  925.5
+  expression: s|turn=\${turn} arm=\${arm}|turn=\${turn} arm=measure
+  file:       ../pi-trim-result.mjs
+  case:       repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+  falsifies:  the arm the record line names, so a counted read and a withheld one leave the same line and no reader can tell which arm answered it (issue #925)
+
+  925.6
+  expression: s|^export LOOP_REPEAT_READ="\$repeat_arm"$|export LOOP_REPEAT_READ="measure"
+  file:       ../pi-child-events.sh
+  case:       adapter#theChildIsStartedWithTheRepeatReadArm
+  falsifies:  the export of the recorded arm, so the child applies a value the adapter chose and a configuration that records refuse is counted and served (issue #925)
+
+  925.7
+  expression: s|\*) repeat_arm=measure|*) repeat_arm=refuse
+  file:       ../pi-child-events.sh
+  case:       adapter#theChildIsStartedWithTheRepeatReadArm
+  falsifies:  the fallback a word this rule does not declare takes, so a key nobody wrote hands the child the arm that withholds and a run is broken by its own configuration (issue #925)
+
+  925.8
+  expression: s|^    repeats_json=\$(repeat_reads "\$(dirname "\$events")/tool-result-trims.log")$|    repeats_json=$(repeat_reads "$(dirname "$events")/item.log")
+  file:       tools/loop/state.sh
+  case:       report#theRuleRecordsTheSecondReadsItCounted
+  falsifies:  the record the count is read from, so an item that repeated two paths records that it repeated none (issue #925)
+
+  925.9
+  expression: s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true
+  file:       tools/loop/state.sh
+  case:       report#theRuleRecordsTheSecondReadsItCounted
+  falsifies:  the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)
+
+  925.10
+  expression: s|repeats_json=null|repeats_json=0
+  file:       tools/loop/state.sh
+  case:       report#theRuleRecordsTheSecondReadsItCounted
+  falsifies:  the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)
+
+  925.11
+  expression: s|counted by the repeat-read rule|taken as given
+  file:       tools/loop/report.sh
+  case:       report#theRuleRecordsTheSecondReadsItCounted
+  falsifies:  the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)
+
+The records above are printed from the mutation file own fields (id, expression, file, case, description);
+the mutation file comment block above `925.1` states what each half stands for, and `--check` confirms every
+expression applies to its file.

@@ -1,0 +1,189 @@
+# anchors — every `$` line is a command run in the tree at 929b9e8f, the lines under it its output.
+
+## the key the project records, and the arm it opens with
+$ sed -n '462,482p' tools/loop/loop.conf
+# project-specific block, because it is this project's adapter that applies it (D16).
+LOOP_TOOL_RESULT_MAX_CHARS=4000
+
+# What a **second read** of a path a child has already been handed is answered with (issue #925). The worker prompt has
+# said "a file you have read once is cited, not read again" since #246, with the measurement that earned it (8 to 49 of
+# every item's 22 to 79 file reads were a second read), and the rule bought nothing: over the read census of the run
+# behind issue #925 the children issued 2 987 reads of which **2 167 (72.5 %)** were a second read of a path the item had
+# already read, and `#872` alone read four paths 283 to 295 times each across 226 turns and 2 914 calls — 12.89 calls per
+# turn against the run's 2.24. A prose rule is not a bound. So this project's adapter (`tools/pi-child-events.sh`, which
+# exports this key into every child it starts) hands the rule to `tools/pi-trim-result.mjs`, which counts every second
+# read of a path **this child** was handed, appends `LOOP-TOOL-RESULT-REPEAT-READ: <tool> turn=<n> arm=<arm>` to the
+# record beside the item's event stream, and — the count reaching the record is what `tools/loop/state.sh` reads as
+# `metrics.repeatReads` and `tools/loop/report.sh` prints — answers that read with the earlier result's line range
+# (`[LOOP-REPEAT-READ: … lines:1-N …]`) instead of the text. The two arms: `measure` counts and **still serves** the
+# read, `refuse` withholds it.
+# `measure` is the recorded value because an arm that withholds a read a child needed costs more than the turn it saves (a
+# repeat of a path the child edited is a verification, #685's question and not this rule's), and an absent key or any other
+# word is `measure` too. Read, never sourced, from this project-specific block: the engine
+# reads no such key, because it is the adapter that applies it (D16), and `LOOP_TOOL_RESULT_MAX_CHARS=0` turns this rule
+# off with the bound.
+LOOP_REPEAT_READ=measure
+
+## the arm is read from the raw file, and a word that is not one of the two arms is measure
+$ sed -n '93,100p' tools/pi-trim-result.mjs
+export function recordedRepeatArm(raw) {
+  return String(raw ?? "").trim().toLowerCase() === "refuse" ? "refuse" : "measure";
+}
+
+/** The line that tells the child what it is reading, and how to read the rest of it. */
+export function trimNotice(tool, total, bound) {
+  return `\n[LOOP-TRIMMED: ${tool} returned ${total} characters; the first ${bound} are shown — read the rest in`
+    + ` ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]\n`;
+
+## the record line, the notice, the refusal test and the answer a second read gets
+$ sed -n '122,135p;192,250p' tools/pi-trim-result.mjs
+export function repeatReadRecordLine(tool, turn, arm) {
+  return `LOOP-TOOL-RESULT-REPEAT-READ: ${tool} turn=${turn} arm=${arm}\n`;
+}
+
+/** The bound gate/evidence output is held to instead of the recorded one (§4d): what a red run is attributed from. */
+export const GATE_EVIDENCE_BOUND = 8000;
+
+/**
+ * What makes a result gate/evidence: a gate log or suite XML by path, or their marks in the text — the `LOOP-GATE`
+ * line family a gate log and `tools/gate-attribute.sh` end with, and a `<testsuite` root. Both seams are the ones a
+ * caller can see: a read tool carries its path, every other tool carries only its text.
+ */
+export function isGateEvidence(text, path) {
+  if (typeof path === "string" && path) {
+export function isRefusalNotice(text) {
+  return text.startsWith("[LOOP-ALREADY-READ") || text.startsWith("[LOOP-REPEAT-READ");
+}
+
+/**
+ * The line a refused second read is answered with (issue #925): the path, the earlier result's line range and size, the
+ * turn it came in at, and the call that reads a window of it — the same shape the item's notice has, so a child that has
+ * learned one has learned the other.
+ */
+export function repeatReadNotice(path, lines, turn, size) {
+  return `[LOOP-REPEAT-READ: ${path} was handed over whole at turn ${turn} as lines:1-${lines} (${size} characters) and`
+    + ` is not sent again — read a range of it instead (ctx_read mode="lines:1-${lines}")]\n`;
+}
+
+/** The one line a repeat read is replaced by: the text the item holds, the session and turn it was read at, and how to
+ * take a range of it instead. A read with no session named is the fallback wording this rule shipped with. */
+export function alreadyReadNotice(path, size, turn, session = "") {
+  const reader = session ? `in the ${session} session` : "of this session";
+  return `[LOOP-ALREADY-READ: ${path} (${size} characters) was read at turn ${turn} ${reader} and is`
+    + ` unchanged since — read a range instead of the whole file again (ctx_read mode="lines:N-M")]\n`;
+}
+
+/**
+ * The repeat-read rule (issue #925): the number, and — under the `refuse` arm — the bound. This process keeps the tally
+ * of the paths it has handed over, so a path already in it is a second read for **this child**; it is always counted, and
+ * under `refuse` it is answered with the earlier result's line range instead of the text. Under `measure` the text is
+ * served, and the rules below still apply to it — the content-identical repeat of #685 is a different question (does the
+ * item hold this exact content?) asked of a different ledger. `entry` and `refused` are returned so the caller can record
+ * whether the child ended up holding the text. The rule never throws: an error hands the text over as the tool returned it.
+ */
+export function repeatReadResult(text, read, tool = "?", record = "") {
+  try {
+    if (!read || !read.path || !read.child) return { text, refused: false };
+    const arm = recordedRepeatArm(read.arm);
+    let entry = read.child.get(read.path);
+    if (!entry) {
+      entry = { turn: read.turn, lines: resultLines(text), size: text.length, handed: false };
+      read.child.set(read.path, entry);
+      return { text, entry, refused: false };
+    }
+    if (record) {
+      try {
+        appendFileSync(record, repeatReadRecordLine(tool, read.turn, arm));
+      } catch {
+        // A record that cannot be written costs the figure, never the read the child asked for.
+      }
+    }
+    // An earlier read this child was never handed leaves no range to point at, so the arm serves the read and the rules
+    // below answer it: a refusal that named lines the child does not hold would send it to read what it cannot.
+    if (arm !== "refuse" || !entry.handed) return { text, entry, refused: false };
+    return { text: repeatReadNotice(read.path, entry.lines, entry.turn, entry.size), entry, refused: true };
+  } catch {
+    return { text, refused: false }; // a rule that could not be applied is not a reason to fail the read
+  }
+}
+
+/**
+ * The repeat rule: the text of a read, or the one line naming the earlier read when the item already holds the
+ * same content at the same path. A read whose sha differs from the ledger's is the session's own edit coming back, so
+
+## a path the child was never handed is answered by the ledger as it was
+$ sed -n '236,246p' tools/pi-trim-result.mjs
+        // A record that cannot be written costs the figure, never the read the child asked for.
+      }
+    }
+    // An earlier read this child was never handed leaves no range to point at, so the arm serves the read and the rules
+    // below answer it: a refusal that named lines the child does not hold would send it to read what it cannot.
+    if (arm !== "refuse" || !entry.handed) return { text, entry, refused: false };
+    return { text: repeatReadNotice(read.path, entry.lines, entry.turn, entry.size), entry, refused: true };
+  } catch {
+    return { text, refused: false }; // a rule that could not be applied is not a reason to fail the read
+  }
+}
+
+
+## the child is started with the arm the project records
+$ grep -n 'LOOP_REPEAT_READ' tools/pi-child-events.sh
+100:repeat_arm=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+103:export LOOP_REPEAT_READ="$repeat_arm"
+
+## the count reaches the item state
+$ grep -n 'repeatReads' tools/loop/state.sh
+968:                           repeatReads:$usage.repeatReads,
+1137:#   * **`repeatReads`** — the second reads the repeat-red rule counted, from the same record: one
+1186:child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,repeatReads,streamRotation}
+1413:         repeatReads: $repeats,
+1429:    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"gateRepeat":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"repeatReads":null,"streamRotation":null}' ;;
+
+## the report prints the count beside the duplicate reads it is not
+$ sed -n '536,548p' tools/loop/report.sh
+  # differ where a child other than the one that read a path reads it. It prints beside `dupReads`, never as the same
+  # figure; a record that was read and holds no second read says 0, a state written before the figure existed says so, and
+  # the two do not print the same words.
+  | ([.items[] | .metrics.repeatReads | select(. != null)]) as $rr
+  | ( if ($rr | length) == 0 then
+        (if ([.items[] | select((.metrics | has("repeatReads")) | not)] | length) > 0
+              and ([.items[] | select(.metrics.tokens != null or (.metrics.calls // null) != null)] | length) > 0
+           then "the repeat-read count is unrecorded — this state predates the figure"
+           else "the rule counted no second read" end)
+      else ([$rr[]] | add) as $rs
+        | "\($rs) second read\(if $rs == 1 then "" else "s" end) counted by the repeat-read rule"
+      end ) as $rrline
+  | ([.items[]
+
+## the cases, their registration and their dispatch
+$ grep -n 'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt\|adapter#theChildIsStartedWithTheRepeatReadArm\|report#theRuleRecordsTheSecondReadsItCounted' tools/loop/tests/loop-cases.sh
+343:  'adapter#theChildIsStartedWithTheRepeatReadArm'
+381:  'report#theRuleRecordsTheSecondReadsItCounted'
+457:  'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
+1088:    'adapter#theChildIsStartedWithTheRepeatReadArm') fn=case_adapter_theChildIsStartedWithTheRepeatReadArm ;;
+1126:    'report#theRuleRecordsTheSecondReadsItCounted') fn=case_report_theRuleRecordsTheSecondReadsItCounted ;;
+1198:    'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
+
+## the eleven mutation records
+$ grep -n "^  '925\.1@\|^  '925\.11@" tools/loop/tests/loop-mutations.sh | cut -c1-160
+1325:  '925.1@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the arm that withholds a second read, so the bound the rule declare
+1335:  '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints
+
+## the rule the worker prompt states
+$ sed -n '114,124p' tools/loop/prompts/worker.md
+gate's own timing is `LOOP-MEASURE-GATE seconds=`. Neither is counted again by hand.
+
+**A file you have read once is cited, not read again.** When a later step needs a fact from a file already in
+your transcript, read the line you have; a second read of the same path is a second model turn and buys
+nothing. The same holds for a command: a measurement you have taken is quoted, not re-taken. Measured on five
+items of this loop (issue #246): 8 to 49 of every item's 22 to 79 file reads were a second read. Prose did not hold
+it: `tools/pi-trim-result.mjs` counts each second read of a path you were handed — `metrics.repeatReads` in the
+report — and under `LOOP_REPEAT_READ=refuse` answers it with the earlier result's line range, not the text.
+
+**A read that arrived cut is not the file.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every
+result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown
+
+## the guideline the change corrected
+$ grep -n 'LOOP_REPEAT_READ' guidelines/Backlog.recipes.md
+221:a child other than the first reads a path. The arm is `LOOP_REPEAT_READ` in the configuration's project block, read by
+

@@ -1,0 +1,2 @@
+Change 'fix-the-archive-classes-are-derived-and-pending-is-not-stale' is valid
+exit: 0

@@ -1,0 +1,150 @@
+# anchors — every `$` line is a command run in the tree at 929b9e8f, the lines under it its output.
+
+## the items bound fields are read from the childs own LOOP-TIMEOUT line
+$ sed -n '1252,1266p' tools/loop/run.sh
+bound_key_value() { # bound_key_value <timeout line> → "<KEY> <value>", or nothing
+  local line="${1:-}" key="" value=""
+  value=$(printf '%s' "$line" | sed -n 's/.*recorded turn bound of \([0-9][0-9]*\) turns.*/\1/p')
+  key=$(printf '%s' "$line" | sed -n 's/.*turns (\([A-Z][A-Z0-9_]*\) for the .*/\1/p')
+  if [ -z "$key" ]; then
+    value=$(printf '%s' "$line" | sed -n 's/.*recorded context bound of \([0-9][0-9]*\) tokens.*/\1/p')
+    key=$(printf '%s' "$line" | sed -n 's/.*context bound of [0-9][0-9]* tokens (\([A-Z][A-Z0-9_]*\)).*/\1/p')
+  fi
+  if [ -z "$key" ]; then
+    value=$(printf '%s' "$line" | sed -n 's/.*recorded check bound of \([0-9][0-9]*\) checks.*/\1/p')
+    key=$(printf '%s' "$line" | sed -n 's/.*check bound of [0-9][0-9]* checks (\([A-Z][A-Z0-9_]*\)).*/\1/p')
+  fi
+  [ -n "$key" ] && [ -n "$value" ] || return 0
+  printf '%s %s\n' "$key" "$value"
+}
+
+## the rounds own ending, and the items key it fills where the item has none
+$ grep -n 'round_bound_round=\|round_bound_key=\|round_bound_value=\|bound_args+=(--round-bound' tools/loop/run.sh
+3001:  round_bound_round=""
+3002:  round_bound_key=""
+3003:  round_bound_value=""
+3104:            round_bound_round="pre-gate"
+3106:            round_bound_key="${round_bound_line%% *}"
+3107:            round_bound_value="${round_bound_line##* }"
+3736:        round_bound_round="$round"
+3738:        round_bound_key="${round_bound_line%% *}"
+3739:        round_bound_value="${round_bound_line##* }"
+4076:        bound_args+=(--round-bound "$round_bound_round" --round-bound-key "$round_bound_key" --round-bound-value "$round_bound_value")
+
+## a bound no configuration records a value for carries the class and no figure
+$ sed -n '3705,3712p;3927,3936p' tools/loop/run.sh
+        deadline_claim="$reviewer_deadline"
+        review_verdict="deadline"
+        outcome="cut"
+        # The run's own deadline is a bound it enforces, so the item carries the class a bound leaves on it — and no
+        # key, because a clock is not a value `loop.conf` records (issue #898).
+        stop_reason="bound"
+        record_cut_round "$round"
+        blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
+  wall_ms=$(( $(date +%s%3N) - started ))
+  wall="$((wall_ms / 1000)).$(printf '%03d' $((wall_ms % 1000)))"
+  # A bound that ended a review round after the gate is the item's own class, and its key travels beside it (issue
+  # #898): those rounds run after the block above, where the class and its key are derived, so the round's own fields
+  # are read here for the two the record keeps. A round the run's deadline ended carries no key — a clock is not a
+  # value `loop.conf` records — and keeps the class alone, as the item's own child does.
+  if [ "$outcome" = cut ] && [ "$stop_reason" = bound ] && [ -z "$bound_key" ] && [ -n "$round_bound_key" ]; then
+    bound_key="$round_bound_key"
+    bound_value="$round_bound_value"
+    bound_args+=(--bound-key "$bound_key" --bound-value "$bound_value")
+
+
+## state.sh: the five flags and the shape checks
+$ sed -n '686,690p;721,722p;790,806p' tools/loop/state.sh
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" merge_refused_branch="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
+  # A landing that was refused names its branch and the paths its refusal read (issue #883), read as the array the
+  # report counts: the branch alone is the shape of a refusal that named no path (a base that moved, a branch this
+  # tree does not hold), and no path is accepted without it.
+  local -a merge_refused_paths=()
+      --round-bound-key) need_value "$@"; round_bound_key="${2:-}"; shift 2 ;;
+      --round-bound-value) need_value "$@"; round_bound_value="${2:-}"; shift 2 ;;
+  case "${round_bound}${round_bound_key}${round_bound_value}" in
+    "") ;;
+    *)
+      [ -n "$round_bound" ] && [ -n "$round_bound_key" ] && [ -n "$round_bound_value" ] ||
+        loop_die "done: --round-bound names the round a bound ended, with --round-bound-key and --round-bound-value beside it"
+      # No `--stop-reason` is required beside it, and none is refused either: `roundBound` names the round a bound
+      # ended and the class names the bound, so a cut the run wrote carries both (issue #898) and a caller that writes
+      # the round alone is a record this writer keeps — the two fields are recorded, and neither is derived here.
+      case "$round_bound_key" in
+        LOOP_*) ;;
+        *) loop_die "done: --round-bound-key names a key loop.conf records (LOOP_…), and this one is $round_bound_key" ;;
+      esac
+      case "$round_bound_value" in
+        *[!0-9]*) loop_die "done: --round-bound-value is the figure the key holds, and this one is $round_bound_value" ;;
+      esac ;;
+  esac
+  # A landing's own commit is what attaches it to the pipeline run it caused (issue #709): the field is a commit or
+
+## state.sh: the field it stores, and the two places it is read back
+$ grep -n 'boundKey\|boundValue\|roundBound' tools/loop/state.sh
+339:         | (if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
+342:           + (if $b == null then "" else " \($b.boundKey)=\($b.boundValue)" end)
+343:           + (if (.metrics.roundBound // null) == null then ""
+344:              else " · round \(.metrics.roundBound.round // "-") ended at \(.metrics.roundBound.key)=\(.metrics.roundBound.value)" end)
+345:           + (if $rb == null then "" else " · round ended at \($rb.boundKey)=\($rb.boundValue)" end) ) end)
+775:  # `roundBound`, which names the round beside the class the item carries (issues #898, #923) — and its key and value
+795:      # No `--stop-reason` is required beside it, and none is refused either: `roundBound` names the round a bound
+947:                  boundKey:(if $bk == "" then null else $bk end),
+948:                  boundValue:(if $bv == "" then null else ($bv | tonumber) end),
+956:                           roundBound:(if $rbk == "" then null
+1514:            elif (.boundKey // null) != null then "bound \(.boundKey)=\(.boundValue)"
+1515:            elif $bd != null then "bound \($bd.boundKey)=\($bd.boundValue)"
+1521:       | ((if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
+1522:          | if (.metrics.roundBound // null) != null then "\(.metrics.roundBound.round // "-") \(.metrics.roundBound.key)=\(.metrics.roundBound.value)"
+1523:            elif $rb != null then "- \($rb.boundKey)=\($rb.boundValue)"
+
+## report.sh: the round line, and the item rate it stands beside
+$ grep -n 'rounds a bound ended' tools/loop/report.sh; grep -n "printf 'bound: %s of %s items" tools/loop/report.sh
+323:# The rounds a bound ended are the other half of the same figure (issue #923): the class the line above counts is the
+342:printf 'rounds a bound ended: %s of %s item(s) · %s\n' \
+290:printf 'bound: %s of %s items (%s) · archive: %s' \
+
+## one derivation shared: state.sh and report.sh read the archive through the same jq definitions
+$ grep -n 'bound_class_jq' tools/loop/lib.sh tools/loop/shared.tsv
+tools/loop/lib.sh:326:bound_class_jq() { # → jq definitions `bound_named`, `bound_round`, `bound_of` and `stop_class`
+tools/loop/shared.tsv:19:bound_class_jq	lib.sh	report.sh state.sh
+
+
+## the cases, their registration and their dispatch
+$ grep -n 'run#aBoundEndedItemRecordsItsBound\|run#aRoundTheRunEndedRecordsItsBound\|case_run_aBoundEndedItemRecordsItsBound\|case_run_aRoundTheRunEndedRecordsItsBound' tools/loop/tests/loop-cases.sh
+237:  'run#aBoundEndedItemRecordsItsBound'
+238:  'run#aRoundTheRunEndedRecordsItsBound'
+982:    'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
+983:    'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
+7672:case_run_aBoundEndedItemRecordsItsBound() {
+7738:case_run_aRoundTheRunEndedRecordsItsBound() {
+
+## the two mutation records, and the comment that says what each half is
+$ grep -n "^  '923\.1@\|^  '923\.2@\|# 923.x" tools/loop/tests/loop-mutations.sh
+1161:  # 923.x — which bound ended an item, and which ended a round it ended, are figures the archive can be totalled by
+1165:  '923.1@-@tools/loop/run.sh@run#aBoundEndedItemRecordsItsBound@the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)@s|^\( *\)bound_key=.*$|\1bound_key=""|'
+1166:  '923.2@-@tools/loop/run.sh@run#aRoundTheRunEndedRecordsItsBound@the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)@s|^\( *\)round_bound_key=.*$|\1round_bound_key=""|'
+
+## the case the change realigned
+$ grep -n 'driver#theSharedNamesAreDeclared\|report#wallTimeAndReasonInTheTable' tools/loop/tests/loop-cases.sh | head -4
+368:  'report#wallTimeAndReasonInTheTable'
+430:  'driver#theSharedNamesAreDeclared'
+1116:    'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
+1171:    'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
+
+## the guideline that states the bound
+$ grep -n 'boundKey\|roundBound' guidelines/Backlog.recipes.md | head -6
+1507:bound-ended child, and the round's own number, key and figure stay in `metrics.roundBound` beside it.
+1609:(`bound_key_value`) and writes the pair beside the class — `boundKey`, `boundValue`, the key naming the value in
+1616:ended. The round stays a fact of its own beside the class — `metrics.roundBound: {round, boundKey, boundValue}`,
+1642:`metrics.roundBound` or `bound_round` so a record written before the field counts like any other. A project with no
+
+
+## the five flags, as state.sh reads them
+$ grep -n -- '--bound-key)\|--bound-value)\|--round-bound)\|--round-bound-key)\|--round-bound-value)' tools/loop/state.sh
+718:      --bound-key) need_value "$@"; bound_key="${2:-}"; shift 2 ;;
+719:      --bound-value) need_value "$@"; bound_value="${2:-}"; shift 2 ;;
+720:      --round-bound) need_value "$@"; round_bound="${2:-}"; shift 2 ;;
+721:      --round-bound-key) need_value "$@"; round_bound_key="${2:-}"; shift 2 ;;
+722:      --round-bound-value) need_value "$@"; round_bound_value="${2:-}"; shift 2 ;;
+

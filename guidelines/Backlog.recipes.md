@@ -320,7 +320,9 @@ gated item into the tail, the run's own deadline cuts that item, and it is left 
 item per run, because the deadline ends that child and the run stops right after it. The work it left is kept as
 the leftover patch, the item's state names that patch and the report prints the recovery, and the cut item is not
 escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
-It is recorded `cut` there as well, for the reason the review round's own cut is (§7e, issue #785).
+It is recorded `cut` there as well, for the reason the review round's own cut is (§7e, issue #785), and it carries
+`bound` and the key it is recorded in — every arm the run's own bound ends does, a review round as much as the
+item's own child (issue #898).
 That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
 of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
 read by nobody, so a cut round bought a rework worker for a change nobody refused) — and the run takes
@@ -629,9 +631,10 @@ the archive's rate printed the same shapes as a healthy one. The line is `bound:
 16 files · #798 111 turns`. The class it counts is the record's own **result**, `cut` — the fifth result, which
 exists only for a phase a bound the run enforces ended — beside the `blocked` + `stopReason: bound` pair a record
 written before that result came into use carries. Counting the mechanism field alone under-reads the figure in the
-one direction it exists to stop (measured 2026-11-10): a spec requirement keeps `stopReason` off a round a review
-bound ended, because no item child was ended there, and two of that day's three runs therefore recorded three cuts
-each while the line named none of them. The items are named with what each kept, which is why
+one direction it exists to stop (measured 2026-11-10): a tree that wrote a round the run ended recorded it with no
+class at all, so two of that day's three runs recorded three cuts each while the line named none of them. The class
+covers a round since issue #898, and a record written before it still answers by its result — the wider field is the
+one that cannot be narrowed. The items are named with what each kept, which is why
 `state.sh done --leftover` records `leftoverFiles` beside the path: the patch states how many files it carries and a
 count passed in beside it is a second account that can disagree, so the count is read from the file, and a path that
 does not resolve records nothing rather than `0 files`. It is a **measurement, never a stop** — no key bounds a rate
@@ -742,6 +745,20 @@ remainder instead of inventing a bucket for it — `… · 12.8 s over 1 item, 3
 in neither a turn nor a tool` — the share taken of the wall the items that recorded a phase figure *and* a wall
 recorded, so the two halves are over one set only where every item of it recorded a wall; an item that recorded
 phases and no wall is in the numerator and not in the denominator.
+
+**The gate share and the outside-items window are read from the record, not from a log** (issue #883). Two lines the
+trend was silent about, and both are sums of fields the state already held, so neither needed a field or a place in
+the engine contract: `gate share:` divides the gate bucket of each item that recorded one by its own `metrics.wallSeconds`
+— in tenths, because 60.4 % and 58.8 % are told apart only by the tenth, and it names the worst two items — and
+`outside items:` subtracts the summed item walls and the run's recorded waits (`.run.holds[].seconds`) from the window
+`state.sh` reads out of `.run.startedEpoch` and `.run.stop.at`. Measured on the run of 2026-11-13T05:47:11Z: item #853
+spent 4 568 s of its 5 709 s (80 %) in a gate, #865 60.4 % and #864 58.8 %; the window held 45 173 s against 22 925 s of
+item wall, so **22 247 s — 49.3 % — stood outside every item the run took**. The window is the difference of two recorded
+instants, never a second reading of the clock, which is why `report.sh` prints `-` with its reason where the state holds
+no window, no phase durations, or no item time in a gate — a dash names which of the three is missing instead of printing
+a figure no record holds. What only a report can know stays a **derivation and says so** in its line: the phase line's "in
+neither a turn nor a tool" remainder and the outside-items figure are subtractions over recorded numbers, while every
+figure that enters them was written by the arm that measured it.
 
 **The gate a share is taken at is the call that ran it** (issue #830). Measured 2026-11-10 over the five items that
 were filed as two thirds of a run spent after its first gate: the streams are the run's own record
@@ -1262,6 +1279,22 @@ recorded with the paths it changed and merged over — issue #862's count: 5 of 
 `attributed=none` into the transcript of the item it then dropped. The cases are
 `run#mergesOverADifferenceItCannotPlace`, `run#anAdoptionLandsOverADifferenceItCannotPlace` and
 `worktree#theLandingDecidesByTheReadingItIsHanded`; the mutation is `tools/loop/tests/loop-mutations.sh` 58.2.
+
+**A refused landing is a record, and no report re-reads the note to find it** (issue #883). The landing step keeps two
+values when it refuses — the branch it asked the merge for, and the paths the refusal printed after `onto the base:`
+(`git status --porcelain` lines, leading space and all) — and the arm that blocks the item hands both to `state.sh done`
+as `--merge-refused-branch` and one `--merge-refused-path` per path. The item then carries
+`mergeRefused: {branch, paths}` beside `merged: {branch, commits, evidence, sha}`; a state written before the field
+existed carries no key, and an item whose landing was never refused carries `null`. The two halves are one fact, so the
+refusals keep them together: a path with no branch is refused, and a branch is accepted only on an item whose
+`stopReason` is `unmergeable` — a landing that happened is `merged` and no refusal. `report.sh` prints the landing from
+that field, because the note the block quotes is prose the run composed and a reader that re-parsed it can print a
+branch and a path list the run never recorded: a state written before the field existed still falls back to the note,
+and its line then says the branch and the paths are re-derived rather than read (the note holds those newlines as `\n`,
+so the fallback converts them before it takes the lines). The cases are
+`report#theRefusedLandingIsReadFromTheRecord` and `report#anUnmergeableItemNamesItsLanding`; the mutation is
+`tools/loop/tests/loop-mutations.sh` 883.2. A hand analysis reads the same field and must not re-parse a note or a
+transcript for a figure the record already holds.
 The merge lands in the project's **own** tree, and what a merge there moves is the branch that tree holds — so
 the landing step reads the checkout instead of assuming it, and refuses a tree switched off the base branch
 while the run is open, naming both branches (the start's own guard covers only the tree a run is *opened* on,
@@ -1451,10 +1484,12 @@ change was archived and its branch held three commits — and review round 1 was
 turns, after which the item was recorded `blocked`, given `agent/needs-decision` and `status/on-hold`, and counted
 towards the run's two-blocked stop; #783, #767 and #763 reached the same state the same day. An item the loop's own
 bound cut is therefore recorded **`cut`**, the fifth result beside `done`, `skipped`, `blocked` and `falsified`:
-it writes no decision label, it is named on a line of its own (`cut short by the run's own bound: …`) instead of in
-the blocks, it does not enter the two-blocked streak `state.sh next` stops on, and the run takes no second pass over
-the queue after it, because that pass would re-exclude the item whose branch the cut child had just made (#674's
-rule, one result wider). The same holds one level down, for the **item's own child** (issue #790): a worker, a gate
+it carries `bound` and the key the bound is recorded in — a round the run ended as much as the item's own child
+(issues #898, #883: a reviewer turn bound at 110 turns and an item's context bound inside the reviewer phase are
+the two records this answers) — it writes no decision label, it is named on a line of its own (`cut short by the
+run's own bound: …`) instead of in the blocks, it does not enter the two-blocked streak `state.sh next` stops on, and
+the run takes no second pass over the queue after it, because that pass would re-exclude the item whose branch the
+cut child had just made (#674's rule, one result wider). The same holds one level down, for the **item's own child** (issue #790): a worker, a gate
 child, a tail or the rework worker of a refusing round the run ended at its role's turns, at the child clock or at
 the run's deadline leaves a phase, not a finding — #788, #778 and #759 each sat in one run's state as `blocked`
 with a bound's reason and a 4–6 k-line patch beside them, so the next reader had to read the mechanism to know the
@@ -1467,7 +1502,9 @@ pre-screen offers the item as work with its branch named, `start-item` setting t
 are the same rule: nothing the loop ended itself may arrive at the pre-screen as an item its owner owes an answer
 to, because that answer is a slot of the decision ceiling spent on a question the loop asked itself. A round the
 *transport* cut twice is not this: no bound ended it, so it stays a block with its reason, because nothing about it
-says the item is converging.
+says the item is converging. A round a bound ended is the item's class as well (issue #898): its record carries
+`bound` and the key the round reached, `state.sh` prints that pair in the report's `stop` cell as it does for a
+bound-ended child, and the round's own number, key and figure stay in `metrics.roundBound` beside it.
 
 A **block** the run's own bound caused was the same fact one result over (issue #786), and is now that fact: the
 item's tree was left mid-phase, its work is kept exactly as the child left it and its patch is named in the
@@ -1571,20 +1608,39 @@ and never what that child had spent, so the archive could be totalled by the cla
 bound ended, and not one of them with a figure. `run.sh` now reads the child's own `LOOP-TIMEOUT` line back
 (`bound_key_value`) and writes the pair beside the class — `boundKey`, `boundValue`, the key naming the value in
 `tools/loop/loop.conf` that fired (`LOOP_CHILD_TURNS_MAX_WORKER`, `LOOP_ITEM_CONTEXT_MAX_REVIEWER`,
-`LOOP_CHILD_CHECKS_MAX`, the role-qualified key included) — for the four phases the spec names: the worker, the gate
-child, the tail and the rework worker. A bound no configuration records a value for gets neither: the wall clock and
-the run's own deadline are read as the class they are and no key is guessed from a neighbour. The review round is
-the other half and is **not** the item's class — the spec keeps `stopReason` off a round the run ended
-(`agent-issue-loop`, "An item the run's own bound cut is recorded `cut`, not `blocked`"; issues #785, #790) — so a
-round's ending travels in the round's own field, `metrics.roundBound: {round, boundKey, boundValue}`; `state.sh`
+`LOOP_CHILD_CHECKS_MAX`, the role-qualified key included) — for every phase the run enforces a bound on: the worker,
+the gate child, the tail, the rework worker and a review round, before the gate as much as after it. A bound no
+configuration records a value for gets neither: the wall clock and the run's own deadline are read as the class they
+are and no key is guessed from a neighbour. A review round is not a second kind of ending (issue #898): it is the
+item's own `cut`, carrying the class and the key, because the bound is the run's whichever phase of the item it
+ended. The round stays a fact of its own beside the class — `metrics.roundBound: {round, boundKey, boundValue}`,
+because which round it was is what a class cannot carry — `state.sh`
 prints it in a `round` column beside `stop`, and `report.sh` counts it on a line of its own — `rounds a bound ended:
 N of M item(s) · #issue round KEY=value`. `#898` and `#883` are the records this answers: a reviewer bound ended
-each round, both read `cut` with an empty `stop`, and the bound they were ended at is now a figure. The two are never
+each round and each read `cut` with an empty `stop`, which is what a run wrote while the spec kept its class off a
+round's ending. The two are never
 folded into one: the bound rate is how many items the run threw away, the round line is how many rounds it paid for
 and could not read. Both readings are derived on read for a record written before the fields — `lib.sh`'s
 `bound_class_jq`, shared by `state.sh` and `report.sh` so there is one predicate and not two — and a round is told
 from an item's own cut by the reviewer's role in the key or by its `cut-short`/`deadline` verdict, because the
 pre-gate round a record of #857, #791, #875 and #861 names carries the bare `LOOP_ITEM_CONTEXT_MAX` in its note.
+
+The archive's own class is derived the same way, and what the derivation cannot decide is a printed figure rather
+than a zero (issue #922). The archive holds 158 states and 511 records, 179 of them `blocked` or `cut` — the only
+two a class can belong to, since a closed, skipped or falsified item is recorded with no class by design — and 119
+of the 140 blocked and 15 of the 39 cut records name no mechanism at all, because `done --stop-reason` arrived with
+#865, after most of the archive was written. The analysis pass totalled the blocked half as
+`blocked by stop class: bound 27 · child-blocked 1 · refused 9 · unmergeable 5 · undecidable 98` and, beside it,
+`unclassified 119` from `(.stopReason // "unclassified")` — a dash counted as a class, and read as a zero by
+everyone who quoted it. `report.sh` totals the population with the same
+`stop_class` the state's `stop` column is read through — the 21 of those 119 blocked records whose note still quotes
+the `LOOP-TIMEOUT` sentence that ended them reach `bound` — and prints `archive classes: bound 51 · child-blocked 1
+· refused 9 · unmergeable 5 — of 179 blocked or cut record(s): 66 decided, 107 undecidable, 6 ended by a review
+round, not by the item` (measured 2026-11-15). Three sides and not two: what no evidence decides is `undecidable`
+and is summed into neither, because counting it as a class invents one and counting it as decided calls a
+measurement nobody made an answer; and a round's ending stays the round's own (#785, #790) even here, read from
+`metrics.roundBound` or `bound_round` so a record written before the field counts like any other. A project with no
+archive prints `archive classes: -`.
 
 A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and
 the skip arm wrote the constant `skipped by the worker` into that note on every skip it took, while the child's own

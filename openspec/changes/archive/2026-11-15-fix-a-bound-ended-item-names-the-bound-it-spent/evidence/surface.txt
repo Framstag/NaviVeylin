@@ -1,0 +1,17 @@
+change #923 (fix-a-bound-ended-item-names-the-bound-it-spent), landed as cdf0648c
+
+Every line below is the commit's own diffstat at 929b9e8f; the tree already carries all of it — the delta describes it, and no line of the change's own diff is code.
+
+commit cdf0648c2d4fa204acfe7c5b2ecc69324badfe60
+a cut by a bound records which bound, and a round the run ended records its own ending (#923)
+2026-11-15 09:49:00 +0100
+
+ guidelines/Backlog.recipes.md      |  20 +++++
+ tools/loop/lib.sh                  |  43 ++++++++++
+ tools/loop/report.sh               |  21 +++++
+ tools/loop/run.sh                  |  76 +++++++++++++++++-
+ tools/loop/shared.tsv              |   1 +
+ tools/loop/state.sh                |  89 ++++++++++++++++++---
+ tools/loop/tests/loop-cases.sh     | 157 +++++++++++++++++++++++++++++++++++--
+ tools/loop/tests/loop-mutations.sh |  12 ++-
+ 8 files changed, 398 insertions(+), 21 deletions(-)

@@ -1,0 +1,24 @@
+Focused cases, one at a time (`--jobs 1`), on the tree carrying this change
+================================================================================
+
+    $ tools/loop/tests/loop-selftest.sh --case '<name>' --jobs 1
+
+    PASS run#aReviewRoundBoundIsTheItemsStopClass
+    PASS run#aRoundTheRunEndedRecordsItsBound
+    PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+    PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+    PASS run#aBoundEndedItemRecordsItsBound
+    PASS run#childIsEndedAtTheRunsDeadline
+    PASS run#reviewerEndedAtTheRunsDeadlineIsNotADecision
+    PASS run#eachRoleIsBoundedByItsOwnContext
+    PASS run#stopReasonIsPrintedAndReported
+    PASS report#theBoundRateIsNamed
+    PASS state#aBlockAtTheRunsBoundIsNoRefusal
+    PASS state#nextHonoursEveryStopCondition
+    PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+
+The thirteen are the cases that read the item's class, the round's field, the bound rate or the stop column; the
+full suite is the parent's, and one case at a time is the host-load rule this change was run under.
+
+Not run here: the whole set (`tools/loop/tests/loop-selftest.sh` with no `--case`), the full mutation set, and the
+build gate — the parent runs those.

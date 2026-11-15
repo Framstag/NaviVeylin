@@ -1,0 +1,18 @@
+change #925 (a-repeat-read-is-a-measured-bound-with-an-arm), landed as 36ed407b
+
+Every count below is the commit's own diffstat at 929b9e8f; the tree already carries all of it.
+
+commit 36ed407b77bb23c8eaee98d2e84de5906cab1b32
+fix: the-repeat-read-rule-is-a-measured-bound-wit (#925)
+2026-11-15 08:42:27 +0100
+
+ guidelines/Backlog.recipes.md      |  24 ++++-
+ tools/loop/loop.conf               |  19 ++++
+ tools/loop/prompts/worker.md       |   5 +-
+ tools/loop/report.sh               |  27 ++++-
+ tools/loop/state.sh                |  46 +++++++--
+ tools/loop/tests/loop-cases.sh     | 204 +++++++++++++++++++++++++++++++++++++
+ tools/loop/tests/loop-mutations.sh |  20 ++++
+ tools/pi-child-events.sh           |  13 +++
+ tools/pi-trim-result.mjs           | 113 ++++++++++++++++++--
+ 9 files changed, 450 insertions(+), 21 deletions(-)

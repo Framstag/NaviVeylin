@@ -1,0 +1,7 @@
+$ openspec validate fix-a-case-waits-on-the-state-the-run-writes --strict
+Change 'fix-a-case-waits-on-the-state-the-run-writes' is valid
+exit=0
+
+$ openspec validate fix-a-case-waits-on-the-state-the-run-writes --strict --json | jq -c .
+{"items":[{"id":"fix-a-case-waits-on-the-state-the-run-writes","type":"change","valid":true,"issues":[],"durationMs":47}],"summary":{"totals":{"items":1,"passed":1,"failed":0},"byType":{"change":{"items":1,"passed":1,"failed":0}}},"version":"1.0","root":{"path":"/home/tim/projects/NaviVeylin/.pi/worktrees/os-b","source":"nearest"}}
+exit=0

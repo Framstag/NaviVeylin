@@ -162,6 +162,14 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
   # summary derives stays the budget: the figure floors at zero, with the wait named beside it either way.
   [ -z "$spent_min" ] || [ "$spent_min" -ge 0 ] || spent_min=0
 fi
+# The window the run recorded, in seconds (issue #883): the start `state.sh init` wrote and the stop it wrote when it
+# ended. Both are in the state, so the figure is their difference and never a second reading of the clock — a run that
+# has not stopped has no window to print, and says so rather than dating itself from the moment the report ran.
+window_secs=""
+if is_num "$run_epoch" && is_num "${stop_epoch:-}"; then
+  window_secs=$(( stop_epoch - run_epoch ))
+  [ "$window_secs" -gt 0 ] || window_secs=""
+fi
 if [ "$owner_gone" -eq 1 ]; then
   printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$owner_pid"
@@ -227,11 +235,13 @@ cap_items=$(jq -r '.items | length' "$state_file")
 # the record answers it in **two** fields, not one (measured 2026-11-10). The fifth result `cut` exists for exactly one
 # reason: a bound the run enforces ended a phase of the item (`state.sh`, `run.sh`: a turn bound, a context bound, the
 # child clock, the run's deadline or a vanished writer), so every item carrying it is a hit. `stopReason: bound` is the
-# narrower field — a spec requirement keeps it off the rounds a review bound ended, because no item child was ended
-# there — and a run whose cuts were all review rounds therefore printed `0 of N` while its items were being thrown
-# away: on 2026-11-10 two of the day's three runs recorded three such cuts and the line named none of them. A record
-# written before `cut` existed carries the same fact as `blocked` + `bound`, so that pair is counted too; counting
-# `cut` alone would lower the archive's rate for the one direction it exists to expose.
+# narrower field and the one a reader checks: #898 and #883 were ended by a bound the run enforced — a review round's
+# turn bound and the item's context bound inside the reviewer phase — and a tree that wrote them before issue #898
+# recorded those cuts with no class, so a run whose cuts were all review rounds printed `0 of N` while its items were
+# being thrown away (2026-11-10: three such cuts in two of the day's three runs, none named). The class is written for
+# a round too since issue #898, so a new record answers in both fields and the result still answers for the old ones.
+# A record written before `cut` existed carries the same fact as `blocked` + `bound`, so that pair is counted too;
+# counting `cut` alone would lower the archive's rate for the one direction it exists to expose.
 #
 # The two halves are named apart so the hit is visibly a disjunction and so the mutation set can drop one of them
 # without a jq program quoted inside a sed expression.
@@ -248,7 +258,9 @@ cap_named=$(jq -r "[ .items[]
 
 # The archive is the finished runs `state.sh init` kept beside this one — the directory it derives, a project's
 # `LOOP_RUNS_DIR` when it records one — read in one pass over every file it holds, with the run being reported left
-# out so the line does not count it twice.
+# out so the line does not count it twice. The paths it reads are kept under this report's own spelling: `lib.sh`
+# holds a function-local `archived`, and a static reader of the engine that counts the two as one name is refused a
+# row for state no two files share (`driver#theSharedNamesAreDeclared`).
 archive_runs=$(loop_conf_value LOOP_RUNS_DIR)
 case "$archive_runs" in
   "") archive_runs="$(dirname "$state_file")/runs" ;;
@@ -256,19 +268,19 @@ case "$archive_runs" in
   *) archive_runs="$LOOP_ROOT/$archive_runs" ;;
 esac
 archive_hits="" archive_items=""
+archive_files=()
 if [ -d "$archive_runs" ]; then
-  archived=()
   for f in "$archive_runs"/*.json; do
     [ -f "$f" ] || continue
     [ "$f" = "$state_file" ] && continue
-    archived[${#archived[@]}]="$f"
+    archive_files[${#archive_files[@]}]="$f"
   done
-  if [ ${#archived[@]} -gt 0 ]; then
+  if [ ${#archive_files[@]} -gt 0 ]; then
     # The archive is read with the run's own selector, over every record rather than over the ones that name a
     # mechanism: the field is the narrower half of the same fact, so an archive counted by it alone would print a rate
     # the run's own side cannot be compared with (`report#theBoundRateIsNamed`).
-    archive_hits=$(jq -rs "[ .[] | .items[]? | $bound_hit_select ] | length" "${archived[@]}" 2>/dev/null)
-    archive_items=$(jq -rs '[ .[] | .items[]? ] | length' "${archived[@]}" 2>/dev/null)
+    archive_hits=$(jq -rs "[ .[] | .items[]? | $bound_hit_select ] | length" "${archive_files[@]}" 2>/dev/null)
+    archive_items=$(jq -rs '[ .[] | .items[]? ] | length' "${archive_files[@]}" 2>/dev/null)
   fi
 fi
 case "$archive_hits" in ''|*[!0-9]*) archive_hits="" ;; esac
@@ -282,14 +294,43 @@ printf 'bound: %s of %s items (%s) · archive: %s' \
 [ -z "$cap_named" ] || printf ' · %s' "$cap_named"
 printf '\n'
 
+# What class ended each archived record is derived on read, and never taken from the absence of a field (issue #922).
+# The archive predates `done --stop-reason` — that vocabulary arrived with #865 — so 119 of its 140 blocked records
+# and 15 of its 39 cut ones name no mechanism at all, and the analysis pass's `unclassified 119` was the blocked
+# half of that absence counted as a class: a dash read as a zero. `lib.sh`'s `stop_class` decides the records whose own note quotes the `LOOP-TIMEOUT` sentence that
+# ended them (21 of those 119, measured 2026-11-15 over the 158 archived states), and what it cannot decide is printed
+# as its own figure instead of being summed into either side: counting it as a class would invent one, and counting it
+# as decided would call a measurement nobody made an answer. The population is the records a class can belong to —
+# `blocked` and `cut` — because a closed, skipped or falsified item is recorded with no class by design, and a
+# denominator of all 511 records would drown the figure the line exists to print.
+archive_classes="-"
+if [ ${#archive_files[@]} -gt 0 ]; then
+  archive_classes=$(jq -rs "$(bound_class_jq)"'
+    [ .[] | .items[]? | select(.result == "blocked" or .result == "cut") ] as $ended
+    | [ $ended[] | {cls: (stop_class),
+                    round: (((.metrics.roundBound // null) != null) or ((bound_round) != null))} ] as $rows
+    | [ $rows[] | select(.cls != "") ] as $decided
+    | [ $rows[] | select(.cls == "" and .round) ] as $rounds
+    | [ $rows[] | select(.cls == "" and (.round | not)) ] as $undecided
+    | if ($ended | length) == 0 then "none — no archived record ended blocked or cut"
+      else (if ($decided | length) == 0 then "none decided"
+            else ($decided | map(.cls) | group_by(.) | map("\(.[0]) \(length)") | join(" · ")) end)
+           + " — of \($ended | length) blocked or cut record(s): \($decided | length) decided,"
+           + " \($undecided | length) undecidable, \($rounds | length) ended by a review round, not by the item"
+      end' "${archive_files[@]}" 2>/dev/null)
+fi
+case "$archive_classes" in '') archive_classes="-" ;; esac
+printf 'archive classes: %s\n' "$archive_classes"
+
 # The rounds a bound ended are the other half of the same figure (issue #923): the class the line above counts is the
 # **item's**, and the spec keeps it off a review round the run ended (issues #785, #790) — #898 was ended by the
 # reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both printed
-# `cut` with nothing beside it. So a round's ending is its own field (`metrics.roundBound`, written by `run.sh` and
-# `state.sh done`), counted here beside the item's class and never folded into it: the two figures answer two
-# questions — how many items the run threw away, and how many rounds it paid for and could not read. A record written
-# before the field is read from its note by the same reader `state.sh` uses, and one whose note names the reviewer's
-# key while its verdict is a round's (`cut-short`, `deadline`) is that round's, not the item's.
+# `cut` with nothing beside it. Since issue #898 the item carries `bound` and the key like any child the run ended, and
+# the round is recorded as its own field (`metrics.roundBound`, written by `run.sh` and `state.sh done`), counted here
+# beside the item's class and never folded into it: the two figures answer two questions — how many items the run threw
+# away, and how many rounds it paid for and could not read. A record written before the field is read from its note by
+# the same reader `state.sh` uses, and one whose note names the reviewer's key while its verdict is a round's
+# (`cut-short`, `deadline`) is that round's, not the item's.
 round_hits=$(jq -r "$(bound_class_jq)"'
   [ .items[] | select((.metrics.roundBound // null) != null or (bound_round) != null) ] | length' "$state_file")
 round_named=$(jq -r "$(bound_class_jq)"'
@@ -400,9 +441,17 @@ printf 'state: %s\n' "$state_file"
 # A value that is not a decimal number is no floor, and it is refused here rather than handed to jq: `--argjson` on a
 # malformed value fails the whole program, and a report whose `calls:` line silently disappears is worse than one
 # that says the floor is off. `1.` and `.` are refused; a leading zero (`05`) is read as 5, as jq reads it.
+#
+# The two figures the block could not state (issue #883): how much of the item clock the **gate** was, and how much of
+# the run's window no item's wall covers. Both were read by hand out of `items/*/` — the phase line says where the
+# spend went and not what share of the wall the gate is, and the window is the one clock neither the item walls nor
+# the holds are a share of. Nothing is derived from a log here: the phase buckets, the item walls, the run's start and
+# stop and the recorded holds are all in the state, and the report's own budget line already reads the same clock.
+# Measured on the run of 2026-11-13T05:47:11Z: the gate 4 568 s of a 5 709 s item wall for #853 (80 %), 60.4 % for
+# #865 and 58.8 % for #864, and 45 173 s of window against 22 925 s of item walls — 22 247 s (49.3 %) outside items.
 calls_floor=$(loop_conf_value LOOP_ITEM_CALLS_PER_TURN_MIN)
 printf '%s' "$calls_floor" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || calls_floor=0
-trend=$(jq -r --argjson floor "$calls_floor" '
+trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-null}" --argjson pause "$paused_secs" '
   def median:
     if length == 0 then null
     elif (length % 2) == 1 then .[(length / 2) | floor]
@@ -576,6 +625,40 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)\($wallnote)\($repnote)"
           end
       end ) as $phaseline
+  # How much of the item clock the gate was (issue #883), over the items that recorded both a gate bucket and a wall:
+  # a record whose phases hold no gate time is a run in which no gate ran, not a share of zero, and it prints as the
+  # dash with its reason like every other figure nobody measured. The share is printed in tenths where the run-level
+  # line prints whole percent, because the figures this number exists to compare were read off the archive items and
+  # two of them — 60.4 % and 58.8 % — are told apart by the tenth.
+  | ([.items[]
+      | select((.metrics.phases.gateMs // 0) > 0 and (.metrics.wallSeconds // 0) > 0)
+      | {i: .issue, g: .metrics.phases.gateMs, w: (.metrics.wallSeconds * 1000)}]) as $gs
+  | ( if ($gs | length) == 0 then
+        (if ($phs | length) == 0 then
+           (if $hasSpend > 0
+             then "- · this state records no phase durations — it was written before the report read them"
+             else "- · no item recorded a phase duration, so no item holds a gate bucket to take a share of" end)
+         else "- · no item of this run spent time in a gate" end)
+      else ([$gs[].g] | add) as $tg
+        | ([$gs[].w] | add) as $tw
+        | ($gs | map(. + {s: (((.g * 1000) / .w) | round | . / 10)}) | sort_by(-.s)) as $shares
+        | "\((($tg * 1000 / $tw) | round | . / 10)) % — \($tg | dur) of the \($tw | dur) of item wall over \($gs | length | items_n) · worst \($shares[0:2] | map("#\(.i) \(.s) %") | join(" · "))"
+      end ) as $gateshare
+  # The share of the run window that no item wall covers (issue #883): the window is the start and stop the run wrote
+  # and the walls are the ones each item wrote, so the difference is the time the run spent on what it did between
+  # items — the landings, the holds, the pre-screen. A wall that runs past the window is no share: the two records then
+  # disagree and the line says which, rather than printing a negative figure or a share that hides it.
+  | ( if $window == null then
+        "- · this state records no run window — the run has not stopped, or its record carries no start and stop to measure"
+      elif ($walls | length) == 0 then
+        "- · the run recorded a \($window * 1000 | dur) window and no item recorded a wall, so nothing is inside it"
+      else (($walls | add // 0) * 1000) as $ims
+        | ($window * 1000) as $wms
+        | (($wms - $ims) | if . < 0 then 0 else . end) as $out
+        | "\(((($out * 1000) / $wms) | round | . / 10)) % — \($out | dur) of the \($wms | dur) window outside every item wall (\($ims | dur) over \($walls | length | items_n))"
+          + (if $pause > 0 then " · \($pause * 1000 | dur) of it a recorded wait" else "" end)
+          + (if $ims > $wms then " · the item walls sum to more than the window — the two records disagree" else "" end)
+      end ) as $outside
   | ( if ($rol | length) == 0 then
         (if $hasSpend > 0
           then "- · this state records no role split — it was written before the report read one"
@@ -678,7 +761,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
         then "- · this state records no gate attribution — it was written before the report counted one"
       else "0 of \($attributableItems) items recorded which tree fails the case their gate named · no red gate was attributed"
       end ) as $attributionline
-  | "  review: \($review)\n  waived: \($waivedline)\n  attributed: \($attributionline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
+  | "  review: \($review)\n  waived: \($waivedline)\n  attributed: \($attributionline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  gate share: \($gateshare)\n  outside items: \($outside)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"
@@ -747,20 +830,37 @@ done < <(decisions)
 # run writes `stopReason: unmergeable` when the branch it committed could not be merged onto the base, and the
 # item's decision line then quoted the refusal and nothing a caller could run. Measured on the run of
 # 2026-11-11T20:36:10Z, action 1 for #859: a green gate (`tests=245 failures=0 errors=0`), review round 1 PASS, five
-# commits on the branch and 9.8 M tokens spent, and the line told a person to decide. Everything the repair needs is
-# already read here — the branch the refusal names, the count the branch arm below takes by patch identity, and the
-# paths the refusal itself lists — so no state field is added and nothing in the engine moves. The landing is one
-# line: the branch this arm names is skipped by the branch arm below, because a branch printed twice is the defect
-# #850 fixed, and a refused landing is not two landings. The item's `decide` line stays where the run escalated it,
-# because a decision the run wrote is a question beside the repair and not a second landing.
+# commits on the branch and 9.8 M tokens spent, and the line told a person to decide. The branch the refusal names,
+# the count the branch arm below takes by patch identity, and the paths the refusal listed are what the repair needs.
+# The landing is one line: the branch this arm names is skipped by the branch arm below, because a branch printed
+# twice is the defect #850 fixed, and a refused landing is not two landings. The item's `decide` line stays where the
+# run escalated it, because a decision the run wrote is a question beside the repair and not a second landing.
+#
+# The two halves are read from the record the run wrote (issue #883), not from the note it quoted: `mergeRefused.branch`
+# and `mergeRefused.paths` are written at the refusal (`run.sh` `merge_committed_branch`, `state.sh done
+# --merge-refused-branch/--merge-refused-path`), so the landing this report prints is the landing the run took. A
+# state written before that field existed carries no `mergeRefused` key, and its note is parsed as it always was —
+# that arm says on the line that the refusal is a derivation and not a reading, because a note is prose the writer
+# composed and a reader that re-parses it can print a landing the run did not record.
 unmergeable_branches=" "
 while IFS= read -r issue; do
   [ -n "${issue:-}" ] || continue
   note=$(jq -r --argjson i "$issue" '[.items[] | select(.issue == $i)][0].note // ""' "$state_file")
-  # The refusal names the branch, and it is the only source that does: a state record carries `merged.branch` empty
-  # for an item whose merge was refused, and the branch may have been swept since — the run of 2026-11-11T20:36:10Z
-  # no longer holds #859's. A state whose note does not carry the sentence falls back to the branch git still has.
-  branch=$(printf '%s' "$note" | sed -n 's#.*the branch \([^ ]*\) could not be merged onto the base.*#\1#p')
+  refused=$(jq -r --argjson i "$issue" '
+    ([.items[] | select(.issue == $i)][0]) as $it
+    | (if ($it | has("mergeRefused")) | not then "absent"
+       elif ($it.mergeRefused.branch // "") == "" then "empty"
+       else "record" end) as $kind
+    | [$kind, ($it.mergeRefused.branch // "")] | @tsv' "$state_file")
+  IFS=$'\t' read -r refusal_kind refused_branch <<< "$refused"
+  # The refusal names the branch, and a record carries it: the branch may have been swept since — the run of
+  # 2026-11-11T20:36:10Z no longer holds #859's — so a state that records none falls back to the note it quoted, and
+  # then to the branch git still has.
+  if [ "$refusal_kind" = record ]; then
+    branch="$refused_branch"
+  else
+    branch=$(printf '%s' "$note" | sed -n 's#.*the branch \([^ ]*\) could not be merged onto the base.*#\1#p')
+  fi
   if [ -z "$branch" ]; then
     branch=$(printf '%s\n' "$branch_table" | awk -F'\t' -v i="$issue" 'index($1, "fix/issue-" i "-") == 1 { print $1; exit }')
   fi
@@ -773,10 +873,16 @@ while IFS= read -r issue; do
     *) carried="$ahead commit(s) the base does not have" ;;
   esac
   # The paths the refusal named, as the refusal wrote them — `worktree.sh` prints `git status --porcelain` after its
-  # `onto the base:` and the run carries it into the note, so the caller sees which dirt refused the landing without
-  # running anything first. The state holds those newlines as newlines, a line that went through `@tsv` holds them as
-  # `\n`, and both are read by converting the escapes before the lines are taken.
-  named=$(printf '%s\n' "$note" | sed 's#\\n#\n#g' | awk 'f { print } /onto the base:/ { f = 1 }' | sed '/^[[:space:]]*$/d')
+  # `onto the base:` and the run records those lines with the branch (issue #883), so the caller sees which dirt
+  # refused the landing without running anything first. A state written before the record existed is read out of the
+  # note: the state holds those newlines as newlines, a line that went through `@tsv` holds them as `\n`, and both
+  # are read by converting the escapes before the lines are taken.
+  if [ "$refusal_kind" = record ]; then
+    named=$(jq -r --argjson i "$issue" '([.items[] | select(.issue == $i)][0].mergeRefused.paths // []) | .[]' "$state_file" |
+      sed '/^[[:space:]]*$/d')
+  else
+    named=$(printf '%s\n' "$note" | sed 's#\\n#\n#g' | awk 'f { print } /onto the base:/ { f = 1 }' | sed '/^[[:space:]]*$/d')
+  fi
   paths=$(printf '%s\n' "$named" | awk 'NR > 1 { printf ", " } { printf "%s", $0 }')
   path_count=$(printf '%s\n' "$named" | grep -c . || true)
   repair=""
@@ -784,7 +890,10 @@ while IFS= read -r issue; do
     ''|0) ;;
     *) repair=" — after the $path_count path(s) its refusal named are cleared ($paths) — git -C $LOOP_ROOT status --porcelain lists them" ;;
   esac
-  actions[${#actions[@]}]="land $branch onto the base — $carried — item #$issue — git -C $LOOP_ROOT merge --ff-only $branch$repair"
+  derived=""
+  [ "$refusal_kind" = record ] ||
+    derived=" · this state records no refusal — its branch and paths are re-derived from the note, not read from a record"
+  actions[${#actions[@]}]="land $branch onto the base — $carried — item #$issue — git -C $LOOP_ROOT merge --ff-only $branch$repair$derived"
 done < <(jq -r '.items[] | select((.stopReason // "") == "unmergeable") | .issue' "$state_file")
 
 # The branches are read from git, and a branch is an action because of what it *carries*, not because it

@@ -1,0 +1,19 @@
+loop-mutations: selected 3 of 388 records (labels: 898.1 898.2 898.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/review-stop/.pi/tmp/loop-mutations.zUyFOH
+RED    898.1  run#aReviewRoundBoundIsTheItemsStopClass   (the class the bound leaves on an item whose review round it ended, so the state is `cut` with `stopReason: null` however many rounds the bound threw away — the record #898 and #883 were filed with — while the round's own field still names it (issue #898))
+       2026-11-15T11:07:35Z — and carries the class a bound leaves on the item, whichever phase of it the run ended: expected 'bound', got 'null'
+restore 898.1 run#aReviewRoundBoundIsTheItemsStopClass green again
+RED    898.2  run#aPreGateReviewEndedAtItsBoundNamesIt   (the class the bound leaves on an item whose round before the gate it ended, so the round is named in the reason and recorded `blocked` then flipped to `cut` with no class at all (issue #898))
+       2026-11-15T11:09:10Z — and the class a bound leaves on the item, before the gate as much as after it (issue #898): expected 'bound', got 'null'
+restore 898.2 run#aPreGateReviewEndedAtItsBoundNamesIt green again
+RED    898.3  run#aReviewRoundBoundIsTheItemsStopClass   (the key the item carries beside that class, read from the round's own `LOOP-TIMEOUT` line, so an item a review bound ended names the bound but not the figure it spent and the archive cannot be totalled by it (issue #898))
+       2026-11-15T11:10:38Z — with the key the bound the round reached is recorded in: expected 'LOOP_CHILD_TURNS_MAX_REVIEWER', got ''
+restore 898.3 run#aReviewRoundBoundIsTheItemsStopClass green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+
+Preceded by the staleness check, which applies every record's expressions to a copy of the file it names:
+
+    $ tools/loop/tests/loop-mutations.sh --check --only '898.1 898.2 898.3'
+    loop-mutations: selected 3 of 388 records (labels: 898.1 898.2 898.3)
+    loop-mutations: all 3 cases passed — every selected record applies to the file it names

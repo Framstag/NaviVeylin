@@ -1,0 +1,45 @@
+Readings taken 2026-11-15T12:52:08Z in /home/tim/projects/NaviVeylin/.pi/worktrees/os-b, branch fix/spec-927-928-883-the-loop-prints-what-it-records at 929b9e8f.
+The change directories are uncommitted working-tree additions; the code each proposal names is committed in the
+base's history (see the proposal's Evidence section).
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/os-b
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit=0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 341 section references resolve, all 7 skill references resolve
+exit=0
+
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 3 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+$ bash tools/loop/evidence-check.sh openspec/changes/fix-a-case-waits-on-the-state-the-run-writes
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 375 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0
+
+$ bash -n <each shell file this change touches>
+bash -n tools/loop/tests/loop-cases.sh: ok
+bash -n tools/loop/tests/loop-mutations.sh: ok
+bash -n tools/loop/report.sh: ok
+bash -n tools/loop/state.sh: ok
+bash -n tools/loop/run.sh: ok
+bash -n tools/loop/phase.sh: ok
+
+No build, no Android test and no native step: this change touches no compiled file.
+Loop selftest NOT run by this change's author (a docs-only change runs no suite; the gate that landed the
+implementation is the loop's own run and its tally is not retained here).

@@ -128,6 +128,13 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   and then confirm with the `BUILD SUCCESSFUL|BUILD FAILED` verdict line in the log. A liveness probe that
   cannot match the real process reports "finished" for work still in flight, and a guard's own `echo` must
   never state a verdict the guard did not measure.
+- **Rule: a case that sends `SIGHUP` is started with a plain `&`, never `nohup`.** `nohup` leaves `SIGHUP`
+  ignored on entry, and a non-interactive `bash` cannot then install the `trap … HUP` the run under test
+  needs — the signal is ignored, the run goes on, and the case reports the bug it exists to detect
+  (`run#aHupEndedRunRecordsItsStopAndUnpicksItsItem` printed "a run that took HUP did not end inside 750 ticks
+  derived from 7550 ms of staging (status 124) — its stop was '' and its item ''" under `nohup` and passed
+  under `&`, measured 2026-11-15). A plain background call survives the tool call's end on this host, and
+  `setsid` is not on the allowlist.
 - **Rule: use the allowlist recipes instead of re-discovering them.** `find <dir> -print | xargs -r rm -rf`
   (never `find … -exec rm -rf {} +`); `awk` for arithmetic (`bc` is not allowed); `perl -0pi` is blocked —
   for a bulk edit use the editor's `replace_all` with an anchor on a neighbouring unique line; no `$()` or

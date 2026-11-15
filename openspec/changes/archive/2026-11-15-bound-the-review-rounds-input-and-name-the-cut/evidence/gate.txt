@@ -1,0 +1,16 @@
+# #924 — the gate verdict, and what the tree does and does not hold
+
+No gate tally is recorded for this item: it landed from an analysis session, and the run states in the main
+worktree name no item 924 (`grep -ho '"issue": *92[345]' /home/tim/projects/NaviVeylin/.pi/issue-loop/runs/*.json`
+exits with no output over 158 states). `git log -1 --format=%B 290c3d8c` carries the change's reasoning, its case
+and its mutation record, and no suite line at all — so no suite verdict for this commit exists to quote, and this
+file does not invent one.
+
+The pins the tree holds are the case and the mutation record the message names:
+
+  Case `prompt#reviewerInputsAreBoundedAndTheCutIsNamed` and mutation record `924.1`.
+
+The one hole is recorded by the mutation file itself, at `tools/loop/tests/loop-mutations.sh:1310-1314`: a second
+record for the index write (`} > "$cut_file"` changed to `> /dev/null`) was written twice and dropped twice, so the
+index's own write is pinned by no mutation. `924.1` falsifies the bound's gate (`[ "$cap" -gt 0 ] || return 0`),
+not the index write.

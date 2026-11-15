@@ -479,11 +479,17 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
 # mean. The line the merge prints is the run's record of it; the refusal is left in `merge_refusal` for the
 # block's reason.
 merge_refusal=""
+# What a refusal named is kept beside its reason, because the record is what the report prints (issue #883): the
+# branch this merge was asked for, and the paths the refusal read as `git status --porcelain` printed them. The
+# note keeps the refusal's prose; the report reads these two instead of parsing the branch and the paths back out
+# of it.
+merge_refused_branch=""
+merge_refused_paths=()
 merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed, 5 refused (the reason in merge_refusal)
   # `base` is deliberately not in this list: the merge moves the run's own base, and every later item is cut from
   # it. Declared here, the assignment below wrote a copy — the state file advanced and the run kept the commit it
   # read once at its start, so the next item was handed a base several merges old (issue #252).
-  local issue="$1" branch="$2" out landing_line landing_write_note landing_write_decides
+  local issue="$1" branch="$2" out landing_line landing_write_note landing_write_decides refused_path
   # What the landing hands `merge-item` about the project's own tree (#862): the item's own readings, as its children
   # took them — the first one that recorded a difference names the paths, and whether the difference decides is what
   # those readings said about it, never a second judgement taken here.
@@ -504,6 +510,15 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   merge_refusal=""
   out=$(bash "$LOOP_DIR/worktree.sh" merge-item "$issue" "$branch" ${land_args[@]+"${land_args[@]}"} 2>&1) || {
     merge_refusal="$out"
+    # The record of the refusal (issue #883): the branch this call asked to land, and the lines the refusal printed
+    # after its `onto the base:` — the paths the porcelain read named. A refusal that names no path (a base that
+    # moved, a branch this tree does not hold) records the branch alone and the report prints no path clause for it.
+    merge_refused_branch="$branch"
+    merge_refused_paths=()
+    while IFS= read -r refused_path; do
+      [ -n "$refused_path" ] || continue
+      merge_refused_paths[${#merge_refused_paths[@]}]="$refused_path"
+    done <<< "$(printf '%s\n' "$out" | sed -n '/onto the base:/,$p' | sed '1d')"
     printf '%s\n' "$out" >&2
     return "$LOOP_REFUSE"
   }
@@ -524,6 +539,10 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   # item blocks with its branch named rather than closing on a base nobody can reproduce (issue #252).
   if [ -z "$base" ] || ! loop_state set-base "$base" >/dev/null 2>&1; then
     merge_refusal="the base could not be recorded after the merge — $(loop_base_ref) did not resolve, or the run's state refused it, so the state and the tree would disagree about what every later item descends from"
+    # This refusal is about the base record rather than the merge, and it is still a landing the run could not take:
+    # the branch is the fact the run holds (issue #883), and the refusal named no path.
+    merge_refused_branch="$branch"
+    merge_refused_paths=()
     printf '%s\n' "$merge_refusal" >&2
     return "$LOOP_REFUSE"
   fi
@@ -2559,6 +2578,11 @@ while true; do
     break
   fi
   issue="$next_out"
+  # A landing refusal is the record of the item it refused (issue #883), so an item starts holding none: the arm that
+  # carries one clears it after its own `done`, and this is the other half of that promise — no later item can record
+  # a landing the run never asked of it.
+  merge_refused_branch=""
+  merge_refused_paths=()
   # The host is read again for every item, because memory is what the previous item's own gate may have spent,
   # and it is read *before* the item's first child exists: below the recorded floor the item is recorded
   # `blocked` with the measurement and the number it was compared against, and the run stops. A run on a starved
@@ -2964,14 +2988,16 @@ while true; do
   # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
   # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
   empty_tree_reading=""
-  # The bound a **review round** the run ended hit, as the round's own fact and never as the item's stop class (issue
-  # #923). The spec keeps the item's class off a round (`worker`, the gate child, the tail and the rework worker are the
-  # four phases it names bare `bound` for), and the round's ending went nowhere at all: #898 was ended by the reviewer's
-  # turn bound at 110 turns and #883 by the item's context bound in the reviewer phase, and both read `cut` with an
-  # empty `stop` cell — a reader could not tell which bound fired, or that a bound fired at all, without the child's
-  # transcript. The key and the figure are read from the round's own `LOOP-TIMEOUT` line, by the same reader the item's
-  # class uses, so a round ended by the run's deadline (no key: the deadline is a clock, not a value in `loop.conf`)
-  # records no figure and keeps the verdict it already carried.
+  # The bound a **review round** the run ended hit: the round's own fact — its number, its key and the figure — and,
+  # beside it, the item's stop class (issues #923, #898). #923 recorded the round here and left the class off the item,
+  # which is what the spec then asked for, and the two runs it was filed from read `cut` with an empty `stop` cell: #898
+  # was ended by the reviewer's turn bound at 110 turns and #883 by the item's context bound in the reviewer phase, so a
+  # reader could not tell which bound fired, or that a bound fired at all, without the child's transcript. A bound the
+  # run enforces is the run's whichever phase it ended, so the class and its key reach the item's record through the
+  # same path the item's own child uses (`stop_reason`, `bound_key`), and the round keeps its own field beside them.
+  # The key and the figure are read from the round's own `LOOP-TIMEOUT` line, by the same reader the item's class uses,
+  # so a round ended by the run's deadline (no key: the deadline is a clock, not a value in `loop.conf`) records the
+  # class and no figure and keeps the verdict it already carried.
   round_bound_round=""
   round_bound_key=""
   round_bound_value=""
@@ -3461,13 +3487,12 @@ while true; do
   # The pre-gate round comes first because it stopped the item before any gate ran (issue #758): its reason names the
   # round, and an item it ended has no gate result for the arms below to read.
   if [ -n "$pre_gate_refusal" ]; then
-    # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and the class
-    # stays off it — the spec names `bound` on the worker's, the gate child's, the tail's and the rework worker's
-    # results, not on a review round's. Writing a class here would refuse the cut's own state write and leave the item
-    # at whatever it was last written as (issue #865). The round's own ending is not lost to that silence: a bound the
-    # transcript names is recorded as the round's own fact, and counted apart from the item's class (issue #923).
+    # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and it carries
+    # `bound`, the class a bound leaves on the item whichever phase of it the run ended (issue #898). The class is what
+    # the state write below reads, so the round's ending reaches the record through the same field the item's own
+    # child's does, and the round's own field carries the round, its key and its figure beside it (issue #923).
     if [ "$pre_gate_cut" -eq 1 ]; then
-      outcome="blocked"; blocked_reason="$pre_gate_refusal"
+      outcome="blocked"; blocked_reason="$pre_gate_refusal"; stop_reason="bound"
     else
       block refused "$pre_gate_refusal"
     fi
@@ -3525,7 +3550,8 @@ while true; do
   # a bound ended, and no figure for any of them. The key and the figure are read from the same `LOOP-TIMEOUT` line the
   # reason quotes, and an item whose clock, the run's deadline or a vanished writer ended it gets neither: none of the
   # three is a value `loop.conf` records, and a figure guessed from the value it usually sits beside would read as a
-  # measurement. A review round is not read here at all — its ending is `round_bound_*` above.
+  # measurement. A round the run ended before the gate is read here like any other cut — its reason quotes the bound's
+  # own line — and one it ends after the gate is read below, where the round's fields are known (issue #898).
   bound_key=""
   bound_value=""
   if [ "$stop_reason" = bound ]; then
@@ -3679,6 +3705,9 @@ while true; do
         deadline_claim="$reviewer_deadline"
         review_verdict="deadline"
         outcome="cut"
+        # The run's own deadline is a bound it enforces, so the item carries the class a bound leaves on it — and no
+        # key, because a clock is not a value `loop.conf` records (issue #898).
+        stop_reason="bound"
         record_cut_round "$round"
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
@@ -3696,10 +3725,14 @@ while true; do
       if [ -n "$reviewer_timeout_line" ]; then
         review_verdict="cut-short"
         outcome="cut"
+        # The round the run ended is the item's own cut, with the class the bound leaves on it (issue #898): `bound`
+        # reaches the record through the field a child's ending does, and the key is read from the round's fields below
+        # — this write is the class, that one is the figure.
+        stop_reason="bound"
         record_cut_round "$round"
         blocked_reason="the run ended the reviewer of round $round at one of its spend bounds — $reviewer_timeout_line — the round was cut, not refused, so the change is left for the next run"
-        # The round's own ending, recorded where a reader can count it (issue #923): the item carries no class for a
-        # round, so the bound travels in the round's own field — its number, its key and the figure it reached.
+        # The round's own ending, recorded where a reader can count it (issue #923): beside the class the item now
+        # carries, the bound travels in the round's own field — its number, its key and the figure it reached.
         round_bound_round="$round"
         round_bound_line=$(bound_key_value "$reviewer_timeout_line")
         round_bound_key="${round_bound_line%% *}"
@@ -3893,6 +3926,15 @@ while true; do
   # a "positive duration" that rounds to zero would make the metric unassertable (D11).
   wall_ms=$(( $(date +%s%3N) - started ))
   wall="$((wall_ms / 1000)).$(printf '%03d' $((wall_ms % 1000)))"
+  # A bound that ended a review round after the gate is the item's own class, and its key travels beside it (issue
+  # #898): those rounds run after the block above, where the class and its key are derived, so the round's own fields
+  # are read here for the two the record keeps. A round the run's deadline ended carries no key — a clock is not a
+  # value `loop.conf` records — and keeps the class alone, as the item's own child does.
+  if [ "$outcome" = cut ] && [ "$stop_reason" = bound ] && [ -z "$bound_key" ] && [ -n "$round_bound_key" ]; then
+    bound_key="$round_bound_key"
+    bound_value="$round_bound_value"
+    bound_args+=(--bound-key "$bound_key" --bound-value "$bound_value")
+  fi
   closure="no"
   case "$outcome" in
     closed)
@@ -4099,13 +4141,28 @@ question the item asked; a retry costs another attempt, and an abandonment remov
       if [ -n "$label_failures" ]; then
         blocked_note="$blocked_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
       fi
+      # The landing's refusal, recorded where the run knows it (issue #883): the block's note quotes the refusal,
+      # and the report prints the landing from `mergeRefused` instead of reading the branch and the paths back out
+      # of that note. The fields travel only from the arm that has them, so no other block records a refusal.
+      refused_args=()
+      if [ -n "$merge_refused_branch" ]; then
+        refused_args+=(--merge-refused-branch "$merge_refused_branch")
+        for refused_path in ${merge_refused_paths[@]+"${merge_refused_paths[@]}"}; do
+          refused_args+=(--merge-refused-path "$refused_path")
+        done
+      fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --gate "$gate_field" ${attribution_args[@]+"${attribution_args[@]}"} \
+        ${refused_args[@]+"${refused_args[@]}"} \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
         --label-failures "$label_failures" --stop-reason "$stop_reason" \
         --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
+      # The refusal belongs to the item it refused: cleared here so the next item's block cannot record a landing that
+      # was never asked of it.
+      merge_refused_branch=""
+      merge_refused_paths=()
       ;;
   esac
   detail="${change:-$blocked_reason}"

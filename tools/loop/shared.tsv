@@ -34,7 +34,6 @@ gate_check_programs	lib.sh	state.sh
 gate_command_jq	lib.sh	state.sh
 gate_program	lib.sh	state.sh
 gate_tally_state	lib.sh	state.sh run.sh
-i	prescreen.sh	run.sh gate.sh state.sh
 issue	labels.sh	prescreen.sh phase.sh report.sh run.sh state.sh worktree.sh
 item	measure.sh	report.sh
 kept	loop-clean.sh	state.sh worktree.sh
@@ -92,6 +91,8 @@ loop_worktree_branches	lib.sh	worktree.sh loop-clean.sh
 LOOP_WORKTREE	lib.sh	run.sh loop-clean.sh phase.sh report.sh worktree.sh
 max_decisions	run.sh	state.sh
 max_review_rounds	run.sh	state.sh
+merge_refused_branch	run.sh	state.sh
+merge_refused_paths	run.sh	state.sh
 owner_pid	report.sh	state.sh
 path_count	measure.sh	report.sh
 phase	phase.sh	lib.sh run.sh state.sh

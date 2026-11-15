@@ -1,0 +1,41 @@
+# a-repeat-read-is-a-measured-bound-with-an-arm — the validator runs, verbatim
+
+$ openspec validate a-repeat-read-is-a-measured-bound-with-an-arm --strict
+Change 'a-repeat-read-is-a-measured-bound-with-an-arm' is valid
+exit=0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/os-a
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit=0
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 3 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 341 section references resolve, all 7 skill references resolve
+exit=0
+
+$ tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+
+$ tools/check-rule-routes.sh
+exit=1, with 9 rules reached by no glob — none of them in a document this change names, and the same 9 and the
+same exit on the base tree with this change's directory out of the way:
+::error file=tools/doc-routes.json::the rule "…" in BuildTests.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "…" in UICar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "…" in UIPhone.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 9 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
+This red is the tree's and not this change's: the change adds a delta, a proposal, tasks and evidence, and edits no
+guideline, no config and no code. `openspec/changes/*/` is ignored by the tree (`.gitignore:76`), so what a run of
+these checks sees is this change's directory and nothing else of it.

@@ -1,0 +1,42 @@
+# #924 — what pins the behaviour
+
+One case and one mutation record. A mutation record names the expression it applies, the file, the case that must go
+red under it, and what the record's own sentence says it falsifies. `bash tools/loop/tests/loop-mutations.sh --check`
+confirms an expression applies; `--run` applies it and expects the named case red.
+
+## the case
+
+  registration   tools/loop/tests/loop-cases.sh:150    'prompt#reviewerInputsAreBoundedAndTheCutIsNamed'
+  dispatch       tools/loop/tests/loop-cases.sh:895    'prompt#reviewerInputsAreBoundedAndTheCutIsNamed') fn=case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed ;;
+  function       tools/loop/tests/loop-cases.sh:4604   case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed() {
+
+The case records a 64-byte `LOOP_REVIEW_INPUT_MAX_BYTES` and asserts, over a diff and an inventory that are both over
+it: the prompt states the cap (`LOOP_REVIEW_INPUT_MAX_BYTES=[1-9][0-9]*`), the head's last line carries the
+`[LOOP-CUT:` marker and names `review-1.cut.md`, that index names the paths and line ranges the cut left out, the
+item records the scale under `metrics.reviewInput` and the report prints it; and the other half — an under-cap round's
+prompt carries no line about a bound, no `[LOOP-CUT:` marker and no instruction to stop at one. It pins the cap's
+value nowhere, and says so (`:4607-4608`): both runs set their own, so a template that hardcoded today's number would
+pass. What the case asserts of the index is its content — a path, a line range, and a change file the inventory was
+too small to list — not that a round reads it by path.
+
+## the mutation record, read from tools/loop/tests/loop-mutations.sh:1315
+
+  924.1
+  expression: s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#
+  file:       tools/loop/run.sh
+  case:       prompt#reviewerInputsAreBoundedAndTheCutIsNamed
+  falsifies:  the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)
+
+## the arm this change states, which no case pins
+
+The delta's scenario "A configuration that records no bound cuts nothing" describes the `0` and absent-value arm
+(`tools/loop/run.sh:1692-1693`). The case sets a positive cap and the default, so the arm is read from the tree and
+pinned by no assertion; the scenario says `Case: none` for it.
+
+## the second record the mutation file dropped
+
+A second mutation record for the index's own write (`} > "$cut_file"` changed to `> /dev/null`) was written twice and
+dropped twice. `tools/loop/tests/loop-mutations.sh:1310-1314` carries the record of that in its own words: "`--check`
+confirms the expression applies, yet the case stays green in this harness and in a hand-run of the driver against a
+mutated engine copy. A record the case cannot notice is a failure of the harness, not a pass". The index's write is
+therefore pinned by no mutation; `924.1` falsifies the cap gate, not the write.

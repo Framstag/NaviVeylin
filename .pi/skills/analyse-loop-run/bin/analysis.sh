@@ -28,6 +28,15 @@ root="$project/.pi/issue-loop"
 die() { printf 'analysis: %s\n' "$1" >&2; exit 2; }
 need() { [ $# -ge 2 ] && [ -n "${2:-}" ] || die "$1 needs a value"; }
 
+# The class a record ended by is the engine's own reader, sourced and not re-implemented (issue #922): `done
+# --stop-reason` arrived with #865, so 119 of the archive's 179 blocked records name no mechanism, and a reader that
+# takes the field alone prints that absence as one class — `unclassified 119`, a dash read as a zero, 21 of which are
+# `bound` and decided by the `LOOP-TIMEOUT` sentence their note quotes. A second predicate here would drift from the
+# one `report.sh` and `state.sh` share, which is why the two `rates` blocks below read this one's definitions.
+# shellcheck source=tools/loop/lib.sh
+source "$project/tools/loop/lib.sh"
+stop_class_defs=$(bound_class_jq)
+
 # ── select: which run is the subject (skill §0) ───────────────────────────────────────────────────────────────
 #
 # A finished run that worked no item is not a subject: the newest archives here are often one-second pre-flight
@@ -260,17 +269,21 @@ cmd_rates() {
     esac
   done
   printf 'archive: %s state(s)\n' "$(ls -1 "$root"/runs/*.json 2>/dev/null | wc -l)"
-  jq -s -r '
+  jq -s -r "$stop_class_defs"'
     [.[] | select(.run != null)]
     | "runs with a state record: \(length) · no stop recorded: \([.[] | select(.run.stop == null)] | length)",
       "items worked \( [.[] | .items[]?] | length) · done \( [.[] | .items[]? | select(.result=="done")] | length) · blocked \( [.[] | .items[]? | select(.result=="blocked")] | length)",
-      "blocked by stop class: \([.[] | .items[]? | select(.result=="blocked") | (.stopReason // "unclassified")] | group_by(.) | map("\(.[0]) \(length)") | join(" · "))",
+      "blocked by stop class: \([.[] | .items[]? | select(.result=="blocked") | {c: (stop_class)}]
+                              | ([.[] | select(.c != "")] as $decided | [.[] | select(.c == "")] as $undecided
+                                 | (if ($decided | length) == 0 then "none decided"
+                                    else ($decided | map(.c) | group_by(.) | map("\(.[0]) \(length)") | join(" · ")) end)
+                                   + " · undecidable \($undecided | length)"))",
       "outcomes: \([.[] | .items[]? | (.result // "no-result")] | group_by(.) | map("\(.[0]) \(length)") | join(" · "))"
   ' "$root"/runs/*.json
   printf '\nlast %s runs that worked an item (oldest first)\n' "$n"
-  jq -s -r --argjson n "$n" '
+  jq -s -r --argjson n "$n" "$stop_class_defs"'
     [.[] | select(.items != null and (.items | length) > 0)] | sort_by(.run.startedAt) | .[-$n:]
-    | .[] | "  \(.run.startedAt[0:16])  \(.items | length) item(s)  done \([.items[] | select(.result=="done")] | length)  blocked \([.items[] | select(.result=="blocked")] | length)  \([.items[] | select(.result != "done") | (.stopReason // "unclassified")] | group_by(.) | map("\(.[0])×\(length)") | join(" "))"
+    | .[] | "  \(.run.startedAt[0:16])  \(.items | length) item(s)  done \([.items[] | select(.result=="done")] | length)  blocked \([.items[] | select(.result=="blocked")] | length)  \([.items[] | select(.result != "done") | (if (.result == "blocked" or .result == "cut") then (stop_class) else .result end) | if . == "" then "undecidable" else . end] | group_by(.) | map("\(.[0])×\(length)") | join(" "))"
   ' "$root"/runs/*.json
 }
 

@@ -683,7 +683,12 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" merge_refused_branch="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
+  # A landing that was refused names its branch and the paths its refusal read (issue #883), read as the array the
+  # report counts: the branch alone is the shape of a refusal that named no path (a base that moved, a branch this
+  # tree does not hold), and no path is accepted without it.
+  local -a merge_refused_paths=()
+  local refused_path
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -708,8 +713,8 @@ cmd_done() {
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
       # The bound the class was cut at, and the one that ended a review round (issue #923): the class says a bound
-      # stopped the item and the key says which one, and a round's ending is its own fact because the spec keeps it
-      # off the item's class.
+      # stopped the item and the key says which one. A round the run ended carries both — the class and its key, as the
+      # item's own child does (issue #898) — and the round's field names the round it happened in beside them.
       --bound-key) need_value "$@"; bound_key="${2:-}"; shift 2 ;;
       --bound-value) need_value "$@"; bound_value="${2:-}"; shift 2 ;;
       --round-bound) need_value "$@"; round_bound="${2:-}"; shift 2 ;;
@@ -719,6 +724,12 @@ cmd_done() {
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
       --merged-sha) need_value "$@"; merged_sha="${2:-}"; shift 2 ;;
+      # What a refused landing named (issue #883): the branch the merge could not take, and each path the refusal
+      # read as one `git status --porcelain` line — leading space included, exactly as `worktree.sh` printed it
+      # after its `onto the base:`. The report prints the action from this record, so it no longer parses the
+      # branch and the paths back out of the block's note.
+      --merge-refused-branch) need_value "$@"; merge_refused_branch="${2:-}"; shift 2 ;;
+      --merge-refused-path) need_value "$@"; merge_refused_paths[${#merge_refused_paths[@]}]="${2:-}"; shift 2 ;;
       --*) loop_die "done: unknown argument $1" ;;
       *) [ -z "$issue" ] || loop_die "done: issue given twice"; issue="$1"; shift ;;
     esac
@@ -760,9 +771,9 @@ cmd_done() {
     loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
   # Which bound a mechanism names is a figure beside a class and never on its own (issue #923): the key and the value
   # are `loop.conf`'s own, so they are accepted only beside `bound`, and accepted together — a figure with no key is
-  # unreadable at the report and a key with no figure is the class twice. The round's ending is the other field: the
-  # spec keeps a round it ended off the item's class (issues #785, #790), so it is `roundBound` and never a second
-  # `stopReason`, and its key and value have the same two rules.
+  # unreadable at the report and a key with no figure is the class twice. The round a bound ended is the other field —
+  # `roundBound`, which names the round beside the class the item carries (issues #898, #923) — and its key and value
+  # have the same two rules.
   case "${bound_key}${bound_value}" in
     "") ;;
     *)
@@ -781,9 +792,9 @@ cmd_done() {
     *)
       [ -n "$round_bound" ] && [ -n "$round_bound_key" ] && [ -n "$round_bound_value" ] ||
         loop_die "done: --round-bound names the round a bound ended, with --round-bound-key and --round-bound-value beside it"
-      # No `--stop-reason` is required beside it, and none is refused either: the item's class is the run's to write and
-      # the round's ending is not it — the two travel together on a cut whose round was the round and on a cut whose
-      # child was the child, and neither field is derived from the other.
+      # No `--stop-reason` is required beside it, and none is refused either: `roundBound` names the round a bound
+      # ended and the class names the bound, so a cut the run wrote carries both (issue #898) and a caller that writes
+      # the round alone is a record this writer keeps — the two fields are recorded, and neither is derived here.
       case "$round_bound_key" in
         LOOP_*) ;;
         *) loop_die "done: --round-bound-key names a key loop.conf records (LOOP_…), and this one is $round_bound_key" ;;
@@ -804,6 +815,24 @@ cmd_done() {
     [ "${#merged_sha}" -ge 7 ] && [ "${#merged_sha}" -le 40 ] ||
       loop_die "done: --merged-sha must be a commit (7-40 lowercase hex characters)"
   fi
+  # The refusal of a landing is the record the report prints instead of the note's prose (issue #883): measured on
+  # the run of 2026-11-11T20:36:10Z, the branch and the paths of item #859's refusal were read back out of the note
+  # — a sentence this writer composes — so a note that read differently, or a report that read a different note,
+  # printed a different landing. The two halves are one fact: a path with no branch names a refusal nothing
+  # identifies, and the branch belongs to `unmergeable` alone, because a landing that happened is `merged`. A path is
+  # one porcelain line, so a line break in one would split the clause the report composes out of the array.
+  if [ ${#merge_refused_paths[@]} -gt 0 ] && [ -z "$merge_refused_branch" ]; then
+    loop_die "done: --merge-refused-path is one path a refused landing named, and the refusal's branch is given beside it with --merge-refused-branch"
+  fi
+  if [ -n "$merge_refused_branch" ] && [ "$stop_reason" != unmergeable ]; then
+    loop_die "done: --merge-refused-branch names the branch a refused landing could not merge, and this item records ${stop_reason:-no mechanism}"
+  fi
+  local refused_path
+  for refused_path in ${merge_refused_paths[@]+"${merge_refused_paths[@]}"}; do
+    case "$refused_path" in
+      *$'\n'*|*$'\r'*) loop_die "done: --merge-refused-path is one line of a refusal, and this one carries a line break" ;;
+    esac
+  done
   # The verdict of the round the item's review loop ended on — the fact the round *count* cannot express (issue #247):
   # `reviewRounds` is the round **attempted** (`run.sh:1680` sets it before the reviewer runs), so an item whose
   # round 1 refused and then blocked records `1` exactly as one whose round 1 passed. `run.sh` already decides these
@@ -889,6 +918,15 @@ cmd_done() {
     | if $n == 0 then (.detail // "") else "" end' "$STATE_FILE" 2>/dev/null || true)
   [ -z "${resume_note:-}" ] || note="${resume_note}${note:+ · $note}"
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
+  # The refused landing as one value (issue #883): `null` when there is none, so a state whose item was never refused
+  # carries the field as null and a state written before it existed carries no key at all — the same two shapes the
+  # report tells apart for `gateWaived`, `gateAttribution` and `streamRotation`.
+  local merge_refused="null"
+  if [ -n "$merge_refused_branch" ]; then
+    merge_refused=$(printf '%s\n' ${merge_refused_paths[@]+"${merge_refused_paths[@]}"} |
+      jq -Rsc --arg b "$merge_refused_branch" '{branch:$b, paths:(split("\n") | map(select(length > 0)))}') ||
+      loop_die "done: --merge-refused-branch could not be recorded"
+  fi
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
   # the report has one source. The sums are the item's — every child of it appended to the same file — and a
   # figure nothing reported stays null, which the report prints as `-` (issue #211).
@@ -911,6 +949,7 @@ cmd_done() {
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me,
                           sha:(if $ms == "" then null else $ms end)},
+                  mergeRefused:$mr,
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
                            reviewInput:(if $ri == "" then null else $ri end),
@@ -954,7 +993,7 @@ cmd_done() {
     --arg gw "$gate_waived" --arg gws "$gate_waived_suite" --arg ga "$gate_attribution" \
     --argjson usage "$usage" \
     --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence" \
-    --arg ms "$merged_sha"
+    --arg ms "$merged_sha" --argjson mr "$merge_refused"
   printf 'recorded %s (#%s %s)\n' "$result" "$issue" "$verdict"
 }
 
@@ -1475,11 +1514,10 @@ cmd_report() {
             elif (.boundKey // null) != null then "bound \(.boundKey)=\(.boundValue)"
             elif $bd != null then "bound \($bd.boundKey)=\($bd.boundValue)"
             else "bound" end) as $stopcol
-       # The round a bound ended is its own column (issue #923): the spec keeps the class off an item whose round was
-       # ended, so such a cut printed `cut` beside `-` — #898 and #883 read exactly that, and a reader could not tell
-       # a round ending from an arm that recorded nothing. A record written since names the round, its key and its
-       # figure; one that predates the field is read from its note. Appended after every column a reader already
-       # quoted, for the reason the band and the calls column were appended.
+       # The round a bound ended is its own column (issue #923): the round is a fact about the item a class cannot
+       # carry — which round it was — so it keeps a column of its own beside `stop`. A record written since names the
+       # round, its key and its figure; one that predates the field is read from its note. Appended after every column
+       # a reader already quoted, for the reason the band and the calls column were appended.
        | ((if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
           | if (.metrics.roundBound // null) != null then "\(.metrics.roundBound.round // "-") \(.metrics.roundBound.key)=\(.metrics.roundBound.value)"
             elif $rb != null then "- \($rb.boundKey)=\($rb.boundValue)"

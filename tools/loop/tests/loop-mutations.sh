@@ -1174,9 +1174,9 @@ MUTATIONS=(
   # ended the item from an arm that recorded nothing. The class is written where the round is ended, before and after
   # the gate (`898.1`, `898.2`), and the key the item carries is the round's own (`898.3`), read from the round's
   # `LOOP-TIMEOUT` line by the same reader the item's own child's class uses.
-  '898.1@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the class the bound leaves on an item whose review round it ended, so the state is `cut` with `stopReason: null` however many rounds the bound threw away — the record #898 and #883 were filed with — while the round’s own field still names it (the run's item #898)@/^      if \[ -n "\$reviewer_timeout_line" \]; then$/,/^      fi$/s|^        stop_reason="bound"$|        stop_reason=""|'
-  '898.2@-@tools/loop/run.sh@run#aPreGateReviewEndedAtItsBoundNamesIt@the class the bound leaves on an item whose round before the gate it ended, so the round is named in the reason and recorded `blocked` then flipped to `cut` with no class at all (the run's item #898)@s|; stop_reason="bound"$||'
-  '898.3@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the key the item carries beside that class, read from the round’s own `LOOP-TIMEOUT` line, so an item a review bound ended names the bound but not the figure it spent and the archive cannot be totalled by it (the run's item #898)@s|^  if \[ "\$outcome" = cut \]|  if false && [ "$outcome" = cut ]|'
+  '898.1@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the class the bound leaves on an item whose review round it ended, so the state is `cut` with `stopReason: null` however many rounds the bound threw away — the record #898 and #883 were filed with — while the round’s own field still names it (the run’s item #898)@/^      if \[ -n "\$reviewer_timeout_line" \]; then$/,/^      fi$/s|^        stop_reason="bound"$|        stop_reason=""|'
+  '898.2@-@tools/loop/run.sh@run#aPreGateReviewEndedAtItsBoundNamesIt@the class the bound leaves on an item whose round before the gate it ended, so the round is named in the reason and recorded `blocked` then flipped to `cut` with no class at all (the run’s item #898)@s|; stop_reason="bound"$||'
+  '898.3@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the key the item carries beside that class, read from the round’s own `LOOP-TIMEOUT` line, so an item a review bound ended names the bound but not the figure it spent and the archive cannot be totalled by it (the run’s item #898)@s|^  if \[ "\$outcome" = cut \]|  if false && [ "$outcome" = cut ]|'
   # 272.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
   # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
   # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and
@@ -1360,6 +1360,13 @@ MUTATIONS=(
   '883.1@-@tools/loop/report.sh@report#theTrendBlockNamesTheGateShareAndTheOutsideWindow@the window read as the clock since the run started instead of the stop the state recorded, so a run reports a span no record holds and the figure dates itself from the moment the report ran (issue #883)@s|--argjson window "\${window_secs:-null}"|--argjson window "$(( $(date +%s) - ${run_epoch:-0} ))"|'
   '883.2@-@tools/loop/report.sh@report#theRefusedLandingIsReadFromTheRecord@the refused landing read back out of the note the block quoted rather than the refusal the run recorded, so the branch and the paths a caller is handed are a second reading of prose (issue #883)@s|^  if \[ "$refusal_kind" = record \]; then$|  if false; then|'
   '883.3@-@tools/loop/state.sh@report#theRefusedLandingIsReadFromTheRecord@the arm that writes a refusal the run handed to its item, so the branch and the paths a block was given are recorded as no refusal at all and the report re-derives them from the note (issue #883)@s|^  if \[ -n "$merge_refused_branch" \]; then$|  if false; then|'
+  # 921.1 — a red the run's base already carried is not the item's (issue #921). Five items of the run of
+  # 2026-11-14T17:40:09Z (`#867`, `#868`, `#878`, `#881`, `#883`) went red at a step no change of theirs touched, and the
+  # step had been red on `main` since before the run's base, so the run's green rate read as the changes' fault. The
+  # subtraction is the one arm: with it gone the pre-flight's record is read and ignored, the carrier step is counted
+  # again, the gate exits 1 and no `LOOP-GATE-BASERED` line names what was subtracted — the case's first half asserts
+  # all three, so the record reds it for the right reason rather than for a line that moved.
+  '921.1@-@tools/loop/gate.sh@gate#aBaseRedStepIsSubtractedAndNamed@the subtraction of the step-and-case pairs a base already red for, so a carrier the change never wrote goes back into the item tally, the gate exits red on it and no line names what left (issue #921)@s|^    elif \[ -n "$base_red_json" \] && base_red_had "$cmd"; then$|    elif false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

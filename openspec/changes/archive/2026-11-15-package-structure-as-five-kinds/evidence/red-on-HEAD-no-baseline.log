@@ -1,0 +1,76 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :architecture:compileKotlin UP-TO-DATE
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar UP-TO-DATE
+> Task :architecture:compileTestKotlin UP-TO-DATE
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
+
+> Task :architecture:test FAILED
+
+StructureReportTest > greenRunPrintsFigures FAILED
+    java.lang.AssertionError: the project's own tree must pass the check: rows=27 files=338 exemptions=0 rules=4
+    core/src/main/java/com/naviveylin/core/AutoEntryPoint.kt is declared 'concept' and imports com.naviveylin.core.addressbook.AddressBookContactsProvider, which 'concept imports nothing of ours' forbids
+    core/src/main/java/com/naviveylin/core/AutoEntryPoint.kt is declared 'concept' and imports com.naviveylin.core.addressbook.AddressBookSearchProvider, which 'concept imports nothing of ours' forbids
+    core/src/main/java/com/naviveylin/core/AutoSearchProvider.kt is declared 'concept' and imports com.naviveylin.core.search.SearchReference, which 'concept imports nothing of ours' forbids
+    core/src/main/java/com/naviveylin/core/AutoSearchProvider.kt is declared 'concept' and imports com.naviveylin.core.search.SearchRequestClient, which 'concept imports nothing of ours' forbids
+    core/src/main/java/com/naviveylin/core/AutoSearchProvider.kt is declared 'concept' and imports com.naviveylin.core.search.SearchSlots, which 'concept imports nothing of ours' forbids
+    core/src/main/java/com/naviveylin/core/CarSurfaceHost.kt is declared 'concept' and imports android.content.Context, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/CarSurfaceHost.kt is declared 'concept' and imports android.graphics.Rect, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/CarSurfaceHost.kt is declared 'concept' and imports android.view.Surface, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/DeepLinkParser.kt is declared 'concept' and imports android.content.Intent, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/DeepLinkParser.kt is declared 'concept' and imports android.net.Uri, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt is declared 'concept' and imports android.content.Context, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt is declared 'concept' and imports android.content.Intent, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt is declared 'concept' and imports android.util.Log, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/LocationGrant.kt is declared 'concept' and imports android.Manifest, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/LocationGrant.kt is declared 'concept' and imports android.content.Context, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/LocationGrant.kt is declared 'concept' and imports android.content.pm.PackageManager, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/LocationGrant.kt is declared 'concept' and imports androidx.core.content.ContextCompat, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ManeuverSymbols.kt is declared 'concept' and imports android.graphics.Bitmap, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ManeuverSymbols.kt is declared 'concept' and imports android.graphics.Canvas, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ManeuverSymbols.kt is declared 'concept' and imports android.graphics.Paint, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ManeuverSymbols.kt is declared 'concept' and imports android.graphics.Path, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/MapRenderUtil.kt is declared 'concept' and imports android.graphics.Bitmap, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/NavigationFailure.kt is declared 'concept' and imports android.content.Context, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/NavigationFailure.kt is declared 'concept' and imports androidx.annotation.StringRes, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/RenderBitmapPool.kt is declared 'concept' and imports android.graphics.Bitmap, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ResultMarkings.kt is declared 'concept' and imports android.graphics.Bitmap, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ResultMarkings.kt is declared 'concept' and imports android.graphics.Canvas, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ResultMarkings.kt is declared 'concept' and imports android.graphics.Paint, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ResultMarkings.kt is declared 'concept' and imports android.graphics.Path, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/ResultMarkings.kt is declared 'concept' and imports com.naviveylin.core.search.ResultMarking, which 'concept imports nothing of ours' forbids
+    core/src/main/java/com/naviveylin/core/SearchRowIcons.kt is declared 'concept' and imports android.graphics.Bitmap, which 'concept imports no Android type' forbids
+    core/src/main/java/com/naviveylin/core/StringResolver.kt is declared 'concept' and imports android.content.Context, which 'concept imports no Android type' forbids
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.assertTrue(Assert.java:42)
+        at com.naviveylin.architecture.StructureReportTest.greenRunPrintsFigures(StructureReportTest.kt:24)
+
+1 test completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':architecture:test'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/architecture/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 3s
+7 actionable tasks: 1 executed, 6 up-to-date

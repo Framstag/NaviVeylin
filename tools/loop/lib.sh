@@ -305,6 +305,49 @@ gate_command_jq() { # → jq definitions `words`, `assignment`, `wrapper`, `run_
 JQ
 }
 
+# The class and the bound a record carries, and the round ending it would otherwise lose, derived on read (issue #923).
+# `state.sh done --stop-reason`'s vocabulary arrived with issue #865, so a child the run's own bound ended was recorded
+# `blocked` with no mechanism before it, and a record written since carries the word `bound` with the figure only in
+# its note — the note quotes `run.sh`'s own `LOOP-TIMEOUT` sentence, whose field label the reader strips. Reading that
+# sentence back is what lets the archive's unclassified records and the records that name no key be counted by the
+# bound that fired, in one place rather than in each reader's own predicate. **No review round is inferred as the
+# item's class**, because the spec keeps it off the item (issues #785, #790): #898 and #883 were ended by a reviewer
+# round's bound and are recorded `cut` with no class, which is what the spec asks for — the round's ending is a fact of
+# its own (`bound_round`), counted apart from the item's.
+#
+# The two shapes a round is told by are both needed, and neither alone is enough (measured 2026-11-14 over the
+# archive's 511 item records): the reviewer's own keys carry the role (`LOOP_CHILD_TURNS_MAX_REVIEWER`,
+# `LOOP_ITEM_CONTEXT_MAX_REVIEWER`), and the pre-gate round — which ran before the role-keyed form — names the bare
+# `LOOP_ITEM_CONTEXT_MAX` in #857, #791, #875 and #861, whose round verdict is written beside it as `cut-short`. Excluded
+# by the key alone, five records would return the wrong class; excluded by the verdict as well, exactly the round's
+# records are the round's. A record that already names a class is returned as it stands, and so is one whose note names
+# no bound at all.
+bound_class_jq() { # → jq definitions `bound_named`, `bound_round`, `bound_of` and `stop_class`
+  cat <<'JQ'
+      def bound_named:
+        ( .note // "" ) as $n
+        | ( $n | [scan("recorded (?:turn|context|check) bound of ([0-9]+) (?:turns|tokens|checks) \\(([A-Z0-9_]+)")] | .[0] ) as $m
+        | if $m == null then null else {boundKey: $m[1], boundValue: ($m[0] | tonumber)} end;
+      def bound_round:
+        ( .metrics.reviewVerdict // "" ) as $rv
+        | (bound_named) as $b
+        | if $b == null then null
+          elif ($b.boundKey | test("_REVIEWER")) then $b
+          elif ($rv == "cut-short") or ($rv == "deadline") then $b
+          else null end;
+      def bound_of:
+        ( .metrics.reviewVerdict // "" ) as $rv
+        | (bound_named) as $b
+        | if $b == null then null
+          elif ($b.boundKey | test("_REVIEWER")) then null
+          elif ($rv == "cut-short") or ($rv == "deadline") then null
+          else $b end;
+      def stop_class:
+        ( .stopReason // "" ) as $sr
+        | if $sr != "" then $sr else (if (bound_of) == null then "" else "bound" end) end;
+JQ
+}
+
 # How many of the gate's checks a child has run by hand since the last look (issue #882), read from the lines its
 # stream has gained — the same incremental reading `run.sh`'s `child_context` takes, so a stream that runs to
 # megabytes costs one `wc` and one `jq` over the new lines per second and never a re-parse of the whole file. The

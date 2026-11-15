@@ -1,0 +1,3 @@
+StructureReportTest > greenRunPrintsFigures FAILED
+    app/src/main/java/com/naviveylin/concept/Timestamp.kt is declared 'concept' and imports com.naviveylin.core.DiagnosticsLog, which 'concept imports nothing of ours' forbids
+> Task :architecture:test FAILED

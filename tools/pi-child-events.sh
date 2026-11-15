@@ -89,6 +89,19 @@ bound=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\
   "$here/loop/loop.conf" 2>/dev/null | tail -1)
 export LOOP_TOOL_RESULT_MAX_CHARS="${bound:-0}"
 
+# …and which arm the repeat-read rule applies (issue #925). The worker prompt has asked a child to cite a path it has
+# already read rather than open it again since #246, and the rule bought nothing: over the run behind that issue 2 167 of
+# 2 987 reads (72.5 %) were a second read of a path the item had already read, and `#872` read four paths 283 to 295
+# times each across 226 turns. So the second read is a measured number, and the arm decides what it is answered with —
+# `measure`, the value `tools/loop/loop.conf` records, counts it and still serves the read (no child is broken by the
+# rule), and `refuse` answers it with the earlier result's line range instead of the text. Read here, never sourced, as
+# the bound is: the recorded value has one home, and a project that records no key or a word this rule does not declare
+# hands the child `measure`.
+repeat_arm=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+  "$here/loop/loop.conf" 2>/dev/null | tail -1)
+case "$repeat_arm" in refuse) ;; *) repeat_arm=measure ;; esac
+export LOOP_REPEAT_READ="$repeat_arm"
+
 if [ $# -lt 2 ]; then
   printf 'pi-child-events: usage: %s <command> [args…] <prompt-file>\n' "$(basename "$0")" >&2
   exit 2

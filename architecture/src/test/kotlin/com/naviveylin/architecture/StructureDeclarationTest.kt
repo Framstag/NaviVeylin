@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The declaration cases of change `package-structure-as-five-kinds` (tasks 1.3 and 1.4). Every case hands the
+ * The declaration cases of change `package-structure-as-five-kinds` (tasks 1.3, 1.4 and 1.11). Every case hands the
  * check the tree it means — the real one plus the one row or one file that makes the point — so no case writes
  * a package into the tree to watch it appear.
  */
@@ -120,22 +120,67 @@ class StructureDeclarationTest {
         )
     }
 
+    /** Task 1.11, second half: a kind no rule resolves is refused, not carried along as an exemption. */
+    @Test
+    fun unknownKindFails() {
+        val withUnknownKind = declarationText.trimEnd('\n') +
+            "\ncore\tcom.naviveylin.core.probe\twidget\t-\t-\n"
+
+        val refusal = runCatching { StructureDeclaration.parse(withUnknownKind) }.exceptionOrNull()
+
+        assertTrue(
+            "a row whose kind is not one of the five must be refused at its line, not parsed",
+            refusal is DeclarationParseError,
+        )
+        assertTrue(
+            "the refusal names the kind and the row: $refusal",
+            refusal?.message?.contains("widget") == true &&
+                refusal?.message?.contains("$DECLARATION_PATH:") == true,
+        )
+    }
+
+    /** Task 1.11, first half: a declaration the reader cannot open is a failure, never an empty rule set. */
+    @Test
+    fun missingDeclarationFails() {
+        val missing = "architecture/no-such-structure.tsv"
+        val refusal = runCatching { ProjectRoot.declarationText(missing) }.exceptionOrNull()
+
+        assertTrue(
+            "a missing declaration must be refused as a declaration error, and the tree's own must read: " +
+                "$refusal",
+            refusal is DeclarationParseError,
+        )
+        assertTrue(
+            "the refusal names the file a reader has to restore: $refusal?.message",
+            refusal?.message?.contains(missing) == true,
+        )
+    }
+
+    /** Task 1.11, third half: a declaration that holds no row is refused, never carried as an empty rule set. */
     @Test
     fun emptyDeclarationFails() {
+        val noRow = runCatching { StructureDeclaration.parse("# the declaration holds no rows\n") }
+            .exceptionOrNull()
+
+        assertTrue(
+            "a declaration with no row must be refused as a declaration error: $noRow",
+            noRow is DeclarationParseError,
+        )
+        assertTrue(
+            "the refusal names the declaration a reader has to fill: ${noRow?.message}",
+            noRow?.message?.contains(DECLARATION_PATH) == true,
+        )
+
         val report = StructureReport.of(
-            StructureDeclaration.parse("# the declaration holds no rows\n"),
+            StructureDeclaration(emptyList()),
             treeFiles,
             Baseline(emptyList()),
         )
 
-        assertFalse("an empty declaration must fail, not report zero violations: ${report.summary()}", report.passed)
+        assertFalse("an empty rule set must fail, not report zero violations: ${report.summary()}", report.passed)
         assertTrue(
             "the refusal names the declaration: ${report.summary()}",
             report.summary().contains(DECLARATION_PATH),
-        )
-        assertTrue(
-            "the refusal names what is missing: ${report.summary()}",
-            report.summary().contains("no declaration rows"),
         )
     }
 }

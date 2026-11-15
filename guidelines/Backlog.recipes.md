@@ -201,14 +201,34 @@ line a repeat is replaced by names the session that read the path — `LOOP_CHIL
 run handed that child — because "this session" is false for every child after the first. A ledger line carries
 `sha`, turn, size and session ahead of the path, and a line of the older four-column shape is dropped rather than
 misread, so a stale entry costs one read and never a stale one. The two figures are therefore not one number's halves:
-a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop** — no key
-gates it and no outcome reads it — and an item whose stream
+a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop**: it bounds
+nothing and no outcome reads it — and an item whose stream
 measured no read records `null`, which the row and the trend print as `-` with their own reasons (a record that
 predates the field is told apart from one that met a run of items which opened no file).
 `report#anItemRecordsItsRepeatReads` and `repeat#aRepeatIsRecordedAsWhatItWithheld` are the cases of the count and the
 record, `repeat#anItemsLedgerSpansItsChildren`, `repeat#theHookWritesTheItemsLedger` and
 `adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger, and mutation records `96.1`–`96.3` and `858.1`–`858.6`
 are what prove they notice each half go.
+
+The rule the prompt stated is a measured bound with a refusal arm since #925, because the prompt lost: over the run
+behind that issue 2 167 of its 2 987 reads were a second read of a path the item already had (72.5 %), and #872 alone
+read four paths 283 to 295 times each across 226 turns. So `tools/pi-trim-result.mjs` keeps the tally of the paths
+**this child** was handed — a second `Map`, never the item's ledger, because "this child already held the text" and "the
+item holds this content" are two questions — and a second read is always counted: it appends
+`LOOP-TOOL-RESULT-REPEAT-READ: <tool> turn=<n> arm=<arm>` to the record beside the child's stream, and `state.sh` reads
+that file into `metrics.repeatReads`, which the report prints in the `reads:` line beside `dupReads` and never as the same
+figure: `dupReads` counts a repeat one **session** had and `repeatReads` one a **child** was handed, so they differ where
+a child other than the first reads a path. The arm is `LOOP_REPEAT_READ` in the configuration's project block, read by
+the adapter and never sourced (D16): `measure`, the recorded value, serves the read and counts it, `refuse` answers it
+with `[LOOP-REPEAT-READ: <path> … lines:1-N (size characters) … ctx_read mode="lines:1-N"]` and no text at all, and a
+word the rule does not declare — or none — is `measure`, so a configuration nobody wrote cannot break a child. A read of
+a path the child was **never handed**, the item's ledger having withheld it, is served under either arm, because a
+refusal naming lines the child does not hold would send it to read what it cannot. The figure keeps the report's two
+kinds of dash apart the way `dupReads` does: a record that was read and holds no second read is `0`, and a state written
+before the field existed has no key. `repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt` drives both arms through
+the hook, the only place two reads meet one process, `adapter#theChildIsStartedWithTheRepeatReadArm` the export and its
+fallback, and `report#theRuleRecordsTheSecondReadsItCounted` the figure, the zero and the missing key; mutation records
+`925.1`–`925.11` are their falsification.
 
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round
@@ -469,6 +489,25 @@ on one `child-turns-max=` token, in the order its `agent-roles=` names them, so 
 applies is one the header already carried: the token listed five roles while six keys existed, and the rework round —
 the role added after the token was written — could be ended at a bound the run's own header never printed
 (issue #842). A bound a run cannot be audited for is not a recorded bound.
+
+A third bound bounds the **input** and not the reading of it (issue #924). `LOOP_REVIEW_INPUT_MAX_BYTES` (32 000 in
+`tools/loop/loop.conf`, `0` or absent = no bound) caps each part one review round is handed — the diff
+`{{DIFF_PATH}}` names, the round-before-the-gate report (none before the gate has run), and an inventory of the
+change's own files — and a part over
+the cap is handed as its head, cut at a line boundary and marked `[LOOP-CUT: …]`. Everything the cut left out is named
+by path and line range in `<round>.cut.md`, which the round's prompt names so a `BLOCKING:` finding may still point at
+a range the head did not carry; the figures travel into the prompt and into the item's record
+(`state.sh done --review-input`), where the report prints them on `what the bound cut from a round's input:`. A round
+whose parts are all under the cap writes nothing and its prompt is byte for byte the one the key found. It
+exists because the turn bound answers the wrong question: measured over the eight rounds of the run the item records,
+the reviewer spent **46.1 M tokens — 22.5 % of the run's 204.7 M — 5.8 M a round** for the six that reported, and two
+rounds ended with no verdict at all, one at `LOOP_ITEM_CONTEXT_MAX_REVIEWER` (#883, 250 418) and one at
+`LOOP_CHILD_TURNS_MAX_REVIEWER` (#898, whose diff was 262 411 B). The value is read off the rounds that reported:
+#915's 20 kB diff passed in 5.1 M, #883's 45 kB did not, and 32 000 B is about 8 000 tokens a part at 4 B a token, so
+one bounded round is about 24 000 tokens rather than a paging session. `LOOP_CHILD_TURNS_MAX_REVIEWER` is not touched
+by it: what changed is what a round is handed, not how long it may look. `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
+holds both halves — the round under the cap carries no line about one, and the round over it hands the head and names
+what the cut left out, in the prompt, in the index and in the state the report prints from.
 
 **Where a stop bound sits** (measured 2026-11-06, issue #786; re-read 2026-11-09 for #804 and #842): each value is
 the archive's own p95 or above, per role, and the value a run applies is the one `tools/loop/loop.conf` records —
@@ -1506,6 +1545,26 @@ ends with the patch's own sentence the run wrote there, so the resume line appen
 lacks it (#855). A count is not
 an answer, so `none` is printed only when all eight sources were
 read and empty — it never hides a branch that carries work.
+
+Which bound stopped a phase is a recorded figure and not only prose (issue #923). `bound` said the run ended a child
+and never what that child had spent, so the archive could be totalled by the class and not by the key: six items a
+bound ended, and not one of them with a figure. `run.sh` now reads the child's own `LOOP-TIMEOUT` line back
+(`bound_key_value`) and writes the pair beside the class — `boundKey`, `boundValue`, the key naming the value in
+`tools/loop/loop.conf` that fired (`LOOP_CHILD_TURNS_MAX_WORKER`, `LOOP_ITEM_CONTEXT_MAX_REVIEWER`,
+`LOOP_CHILD_CHECKS_MAX`, the role-qualified key included) — for the four phases the spec names: the worker, the gate
+child, the tail and the rework worker. A bound no configuration records a value for gets neither: the wall clock and
+the run's own deadline are read as the class they are and no key is guessed from a neighbour. The review round is
+the other half and is **not** the item's class — the spec keeps `stopReason` off a round the run ended
+(`agent-issue-loop`, "An item the run's own bound cut is recorded `cut`, not `blocked`"; issues #785, #790) — so a
+round's ending travels in the round's own field, `metrics.roundBound: {round, boundKey, boundValue}`; `state.sh`
+prints it in a `round` column beside `stop`, and `report.sh` counts it on a line of its own — `rounds a bound ended:
+N of M item(s) · #issue round KEY=value`. `#898` and `#883` are the records this answers: a reviewer bound ended
+each round, both read `cut` with an empty `stop`, and the bound they were ended at is now a figure. The two are never
+folded into one: the bound rate is how many items the run threw away, the round line is how many rounds it paid for
+and could not read. Both readings are derived on read for a record written before the fields — `lib.sh`'s
+`bound_class_jq`, shared by `state.sh` and `report.sh` so there is one predicate and not two — and a round is told
+from an item's own cut by the reviewer's role in the key or by its `cut-short`/`deadline` verdict, because the
+pre-gate round a record of #857, #791, #875 and #861 names carries the bare `LOOP_ITEM_CONTEXT_MAX` in its note.
 
 A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and
 the skip arm wrote the constant `skipped by the worker` into that note on every skip it took, while the child's own

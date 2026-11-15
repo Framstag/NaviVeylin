@@ -63,6 +63,18 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   the second stage. A shared working tree inflates `touched` and `mention` with other changes' dirty files, so
   the change's own file list is the honest `--diff` input. **A pre-gate run is not gate evidence** and the
   completion rule is unchanged.
+- **Rule: the structure check is a suite of the gate and a prerequisite of every module test task** (change
+  `package-structure-as-five-kinds`, spec `architecture-test-suite` — "The check is part of a gate run" and
+  "Running a module's tests runs the structure check"). `:architecture:test` reads the declaration and the
+  three modules' sources as text — no Android plugin, no device, no app build — so it starts beside the build
+  instead of after it. The root `test` task the documented gate, `loop.conf`'s `LOOP_GATE_COMPILED_CMD` and the
+  CI unit-test step run reaches it because `settings.gradle.kts` includes the module; every `Test` task of
+  `:app`, `:auto` and `:core` depends on it, so `./gradlew :app:testMobileDebugUnitTest --tests "…"` fails at
+  the structure check before the named class reports a pass. Its tallies are
+  `architecture/build/test-results/test/*.xml`, and the CI suite report counts them. A run can still name the
+  skip itself — `-x :architecture:test` or `--exclude-task` — and a local invocation can never be forced past
+  that; the hole is closed by the required status check on `main`, an owner's repository setting (the parent
+  change's task 5.2), not by this rule.
 - **Rule: report tallies, not vibes** — quote `tests/failures/errors` per module from the XML
   (`app/build/test-results/testMobileDebugUnitTest/*.xml` etc.). A bare `BUILD SUCCESSFUL` says nothing about
   what ran.
@@ -122,6 +134,17 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   case that fails twice is the delta's, and a tree that cannot run it answers `delta` and blocks as before. For
   `delta`, `base` and `unattributable` the field rewrites no tally's prose and changes nothing a red gate does to an
   item — it makes the block readable.
+- **Rule: a red the base carried is subtracted from the tally, by pair** — a gate step red on the base the run
+  starts from is not charged to the item (issue #921, measured 2026-11-14). `tools/loop/run.sh` takes one pre-flight
+  run of the gate's own step set on that base (`gate.sh --base-red --base <sha>`, switched by `LOOP_BASE_RED=on|off`
+  in `tools/loop/loop.conf`) and records its output as `run.baseRed`, a map from step to the failing case names it
+  named; the pre-flight spends no `runs_max` and writes no tally, and it is skipped when the run cannot resolve a base
+  or the worktree carries uncommitted changes. The gate then subtracts exactly the step-and-case pairs that record
+  holds — a case the step fails now *and* failed on the base leaves the tally, a case it fails only now stays — prints
+  what it subtracted as `LOOP-GATE-BASERED:<step>:<n>` in the log and on the console and beside the verdict as
+  `— base-red: <step>:<n>`, and writes the same pairs to `run.baseRedUsed`. A step left with none of its own red counts
+  green with the red quoted; a step red on the base **and** red for a case the base never had is still red. A step that
+  fails without naming a case is the base's only when the base named none there either.
 - **Rule: a flake of unknown origin gets an entry with its rerun evidence, never a silent retry** — record the
   red run and the green rerun together with the mechanism they ruled out.
 - **Rule: sweep the suite for what the change moves, before the gate** — a behaviour change can move an

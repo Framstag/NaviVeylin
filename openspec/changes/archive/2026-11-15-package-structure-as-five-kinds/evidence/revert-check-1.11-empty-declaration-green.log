@@ -1,0 +1,15 @@
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
+> Task :architecture:compileKotlin
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar
+> Task :architecture:compileTestKotlin UP-TO-DATE
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
+> Task :architecture:test
+BUILD SUCCESSFUL in 8s
+7 actionable tasks: 3 executed, 4 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

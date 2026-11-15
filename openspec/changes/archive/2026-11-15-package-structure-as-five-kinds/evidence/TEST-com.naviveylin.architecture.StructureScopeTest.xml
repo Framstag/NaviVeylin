@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.architecture.StructureScopeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-15T09:55:54.532Z" hostname="dingens" time="0.345">
+  <properties/>
+  <testcase name="violationInTestSourceIsReported" classname="com.naviveylin.architecture.StructureScopeTest" time="0.088"/>
+  <testcase name="everySourceSetOfTheThreeModulesIsRead" classname="com.naviveylin.architecture.StructureScopeTest" time="0.064"/>
+  <testcase name="violationInTheAppModuleIsReported" classname="com.naviveylin.architecture.StructureScopeTest" time="0.131"/>
+  <testcase name="suiteRunsWithoutDeviceOrAppBuild" classname="com.naviveylin.architecture.StructureScopeTest" time="0.061"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

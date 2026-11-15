@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.architecture.ShellRuleTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-15T09:55:53.478Z" hostname="dingens" time="0.006">
+  <properties/>
+  <testcase name="featureHostingTwoFeaturesFails" classname="com.naviveylin.architecture.ShellRuleTest" time="0.003"/>
+  <testcase name="shellMayHostSeveralFeatures" classname="com.naviveylin.architecture.ShellRuleTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,30 @@
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
+> Task :architecture:compileKotlin
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar
+> Task :architecture:compileTestKotlin UP-TO-DATE
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
+> Task :architecture:test
+StructureDeclarationTest > emptyDeclarationFails FAILED
+    java.lang.AssertionError: a declaration with no row must be refused as a declaration error: null
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.assertTrue(Assert.java:42)
+        at com.naviveylin.architecture.StructureDeclarationTest.emptyDeclarationFails(StructureDeclarationTest.kt:165)
+37 tests completed, 1 failed
+> Task :architecture:test FAILED
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':architecture:test'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/871/architecture/build/reports/tests/test/index.html
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+BUILD FAILED in 44s
+7 actionable tasks: 3 executed, 4 up-to-date

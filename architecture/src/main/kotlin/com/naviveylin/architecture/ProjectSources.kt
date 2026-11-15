@@ -17,7 +17,27 @@ object ProjectRoot {
     fun resolve(path: String): File = File(dir, path)
 
     /** The declaration as the tree ships it, comment lines and all. */
-    fun declarationText(): String = resolve(DECLARATION_PATH).readText()
+    fun declarationText(): String = declarationText(DECLARATION_PATH)
+
+    /**
+     * The declaration a given path ships, comment lines and all. A missing or unreadable file is refused by
+     * name: the check cannot tell a tree that has no structure from a tree whose structure is empty, so it
+     * reports failure instead of passing on no evidence (change `package-structure-as-five-kinds`, task 1.11).
+     */
+    fun declarationText(path: String): String {
+        val file = resolve(path)
+        if (!file.isFile) {
+            throw DeclarationParseError(
+                "$path: the structure declaration is missing — a check that cannot read the declaration " +
+                    "reports failure, never a pass"
+            )
+        }
+        return try {
+            file.readText()
+        } catch (error: java.io.IOException) {
+            throw DeclarationParseError("$path: the structure declaration is unreadable (${error.message})")
+        }
+    }
 }
 
 /**

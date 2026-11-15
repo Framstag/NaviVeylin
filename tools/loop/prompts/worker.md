@@ -116,8 +116,9 @@ gate's own timing is `LOOP-MEASURE-GATE seconds=`. Neither is counted again by h
 **A file you have read once is cited, not read again.** When a later step needs a fact from a file already in
 your transcript, read the line you have; a second read of the same path is a second model turn and buys
 nothing. The same holds for a command: a measurement you have taken is quoted, not re-taken. Measured on five
-items of this loop (issue #246): 8 to 49 of every item's 22 to 79 file reads were a second read of a path the
-item had already read.
+items of this loop (issue #246): 8 to 49 of every item's 22 to 79 file reads were a second read. Prose did not hold
+it: `tools/pi-trim-result.mjs` counts each second read of a path you were handed — `metrics.repeatReads` in the
+report — and under `LOOP_REPEAT_READ=refuse` answers it with the earlier result's line range, not the text.
 
 **A read that arrived cut is not the file.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every
 result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown

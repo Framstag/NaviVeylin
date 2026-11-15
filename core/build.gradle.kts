@@ -159,3 +159,12 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core-ktx:1.6.1")
 }
+
+// Every unit-test task of this module runs the structure check first (change `package-structure-as-five-kinds`,
+// task 1.9 — spec `architecture-test-suite`, "Running a module's tests runs the structure check"): a focused run
+// of one class here may not report a pass on a tree the structure forbids. `:architecture:test` reads the
+// declaration and the three modules' sources as text, so it compiles none of this module and starts beside the
+// build rather than after it; `guidelines/BuildEvidence.md` §4b carries the rule.
+tasks.withType<Test>().configureEach {
+    dependsOn(":architecture:test")
+}

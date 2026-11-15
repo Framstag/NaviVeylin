@@ -175,7 +175,7 @@
     "search-result-row-icon": { "area": "search", "userVisible": true, "surfaces": ["phone", "car"] },
     "settings-persistence": { "area": "settings-legal", "userVisible": false, "surfaces": ["phone"] },
     "settings-surface": { "area": "settings-legal", "userVisible": true, "surfaces": ["phone"] },
-    "settings-taxonomy": { "area": "settings-legal", "userVisible": true, "surfaces": ["phone", "car"] },
+    "settings-taxonomy": { "area": "settings-legal", "userVisible": false, "surfaces": ["phone", "car"] },
     "shaping-inbox": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "share/location-receiving": { "area": "handoff", "userVisible": true, "surfaces": ["phone"] },
     "smooth-follow": { "area": "positioning", "userVisible": true, "surfaces": ["phone"] },

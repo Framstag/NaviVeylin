@@ -559,8 +559,8 @@ MUTATIONS=(
   # again — the arm that decides by what it was handed is the whole invariant.
   '862.1@-@tools/loop/worktree.sh@worktree#theLandingDecidesByTheReadingItIsHanded@the reading the landing is handed left out, so a difference the run placed in nothing refuses the merge again (issue #862)@s|^  if \[ "\$landing_decides" = "no" \]; then$|  if false; then|'
   '58.3@-@tools/loop/state.sh@state#aBlockedItemNamesTheMechanismThatStoppedIt@the mechanism written into the item record (issue #280)@s|^                  stopReason:(if \$sr == "" then null else \$sr end),$|                  stopReason:null,|'
-  '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \. == "" then "-" else \. end|if true then "-" else . end|'
-  '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \. == "" then "-" else \. end|if false then "-" else . end|'
+  '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \$sc == "" then "-"|if true then "-"|'
+  '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \$sc == "" then "-"|if false then "-"|'
   # 59.x — the self-test's cases run in a bounded pool, and what a case leaves behind ends with it (issue #260).
   # Measured 2026-10-22: 163 cases strictly one after another, 723 s, though every case already owned a throwaway
   # repository, a scratch tree and a process group of its own. One record per invariant: 59.1 bounds the pool to one
@@ -927,7 +927,7 @@ MUTATIONS=(
   # `leftover-from-killed-run.patch`, and a note naming the turn bound the run itself had enforced. The ids
   # 85.x–91.x are taken on the base by #782, #794, #796, #803, #802 and #797.
   '92.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the result a bound-ended child records, so the item is read as a refusal the run'"'"'s own bound never measured (issues #786, #790)@s|^  if \[ "\$pre_gate_cut" -eq 1 \] \|\| \[ "\$stop_reason" = bound \]; then outcome="cut"; fi$|  if [ "$pre_gate_cut" -eq 1 ]; then outcome="cut"; fi|'
-  '92.2@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790)@s|^        --stop-reason "\$stop_reason" \\$|        --stop-reason "" \\|'
+  '92.2@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790)@s|^        --stop-reason "\$stop_reason" |        --stop-reason "" |'
   '92.3@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the result a rework worker the bound ends records, so the item is read as a refusal the run'"'"'s own bound never measured (issue #790)@s|^        stop_reason="bound"$|        stop_reason=""|'
 
   # 93.x — a child pays for the full gate only the number of times the profile records (issue #756). Measured
@@ -1158,6 +1158,12 @@ MUTATIONS=(
   # mechanism field is kept off a round a review bound ended, so a run whose cuts were all review rounds printed
   # `0 of N` with its items being thrown away (2026-11-10).
   '270.4@-@tools/loop/report.sh@report#theBoundRateIsNamed@the half of the hit that reads the result, so every item a review bound ended is counted as no hit and a run at five times the archive rate reads like a healthy one (measured 2026-11-10)@s|^bound_hit_result=.*$|bound_hit_result=false|'
+  # 923.x — which bound ended an item, and which ended a round it ended, are figures the archive can be totalled by
+  # (issue #923). `bound` says the run ended the item and not what it spent, so six items a bound ended had no key
+  # and no figure between them; the two records below are the two arms that carry them — the item's own
+  # (`boundKey`/`boundValue`) and the round's (`metrics.roundBound`), which never becomes the item's class.
+  '923.1@-@tools/loop/run.sh@run#aBoundEndedItemRecordsItsBound@the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)@s|^\( *\)bound_key=.*$|\1bound_key=""|'
+  '923.2@-@tools/loop/run.sh@run#aRoundTheRunEndedRecordsItsBound@the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)@s|^\( *\)round_bound_key=.*$|\1round_bound_key=""|'
   # 272.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
   # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
   # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and
@@ -1284,6 +1290,36 @@ MUTATIONS=(
   '861.1@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
   '861.2@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861)@s|^    && \[ "\$gate_attribution" != "flaked" \]; then$|    && true; then|'
   '861.3@-@tools/loop/state.sh@run#aFlakedCaseIsOffTheBlockedPath@the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861)@s|^  elif \[ "\$result" = done \] && \[ "\$(gate_tally_state "\$gate")" = red \] && \[ "\$gate_attribution" != flaked \]; then$|  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then|'
+  # 924.x — the round the reviewer is handed is bounded (issue #924), and the cap is the half a case sees from the
+  # outside: with it removed the bounded round hands the whole part again, the item's state records no cut and the
+  # report prints the constant for a run nothing was cut from. One record, one invariant.
+  #
+  # A second record for the index's own write (`} > "$cut_file"` → `> /dev/null`) was written twice and dropped twice:
+  # `--check` confirms the expression applies, yet the case stays green in this harness and in a hand-run of the driver
+  # against a mutated engine copy. A record the case cannot notice is a failure of the harness, not a pass — and the
+  # open question it leaves (the case asserts the index's content, so what the redirected write loses is not visible to
+  # it) belongs in the review, not in a green record.
+  '924.1@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
+  # 925.x — the rule the worker prompt stated and nothing counted is a measured bound with a refusal arm (issue #925):
+  # the second read of a path one child was handed is counted every time, and the arm `LOOP_REPEAT_READ` records picks
+  # what it is answered with. Over the run behind that issue 2 167 of 2 987 reads (72.5 %) were a second read of a path
+  # the item already had, and `#872` read four paths 283 to 295 times each across 226 turns — the advisory lost, so it
+  # became a count and an arm. One record per half: the arm that withholds (`925.1`), the line that counts (`925.2`), the
+  # guard that serves a read the child was never handed (`925.3`), the earlier result the refusal cites (`925.4`), the arm
+  # the record names (`925.5`), the adapter export (`925.6`) and its fallback (`925.7`), the record the count is read from
+  # (`925.8`), the anchor that keeps a withheld repeat out of the count (`925.9`), the null that is not a zero (`925.10`),
+  # and the trend that prints it (`925.11`).
+  '925.1@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the arm that withholds a second read, so the bound the rule declares hands every repeat over and counts what it said it would refuse@s|^    if (arm !== "refuse" \|\| !entry.handed) return { text, entry, refused: false };$|    return { text, entry, refused: false };|'
+  '925.2@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the line a counted second read leaves, so the rule fires and no record says it did — the figure the report prints stays empty (issue #925)@s|^        appendFileSync(record, repeatReadRecordLine(tool, read.turn, arm));$|        void 0;|'
+  '925.3@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the guard that serves a read of a path this child was never handed, so the refusal names a range the child does not hold (issue #925)@s|^    if (arm !== "refuse" \|\| !entry.handed) return { text, entry, refused: false };$|    if (arm !== "refuse") return { text, entry, refused: false };|'
+  '925.4@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the earlier result the refusal cites, so the line names the range of the read it is refusing instead of the one the child can ask for (issue #925)@s|^    return { text: repeatReadNotice(read.path, entry.lines, entry.turn, entry.size), entry, refused: true };$|    return { text: repeatReadNotice(read.path, resultLines(text), read.turn, text.length), entry, refused: true };|'
+  '925.5@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the arm the record line names, so a counted read and a withheld one leave the same line and no reader can tell which arm answered it (issue #925)@s|turn=\${turn} arm=\${arm}|turn=\${turn} arm=measure|'
+  '925.6@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheRepeatReadArm@the export of the recorded arm, so the child applies a value the adapter chose and a configuration that records refuse is counted and served (issue #925)@s|^export LOOP_REPEAT_READ="\$repeat_arm"$|export LOOP_REPEAT_READ="measure"|'
+  '925.7@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheRepeatReadArm@the fallback a word this rule does not declare takes, so a key nobody wrote hands the child the arm that withholds and a run is broken by its own configuration (issue #925)@s|\*) repeat_arm=measure|*) repeat_arm=refuse|'
+  '925.8@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the record the count is read from, so an item that repeated two paths records that it repeated none (issue #925)@s|^    repeats_json=\$(repeat_reads "\$(dirname "\$events")/tool-result-trims.log")$|    repeats_json=$(repeat_reads "$(dirname "$events")/item.log")|'
+  '925.9@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)@s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true|'
+  '925.10@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)@s|repeats_json=null|repeats_json=0|'
+  '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)@s|counted by the repeat-read rule|taken as given|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

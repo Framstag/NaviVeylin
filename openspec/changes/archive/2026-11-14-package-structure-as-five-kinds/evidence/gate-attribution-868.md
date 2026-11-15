@@ -21,15 +21,20 @@ before the first step (`tools/loop/gate.sh:262`). Recomputed here, with the loop
 
     LOOP-GATE-TREE: head=2b795305c7b9f2805cfe913fb9d300e82434efc3 diff=07272d69e375ee25
 
-(`bash .pi/review-868/identity.sh 5215e5452b97bb6452d198110bba3d7390fd347b`, which sources `tools/loop/lib.sh` and
-calls `loop_change_identity`, the function `gate.sh` and `run.sh` both use.) `head` names the commit those contents
-now have — the gate ran them **uncommitted** on `f1084146` — and `diff` is a digest over file contents, so it is the
-same value the gate printed: nothing of `architecture/**` was written after the gate, the two files it gated being
-exactly what commit `77a51af1` carries, and every later write is an `evidence/` file the identity's
-`LOOP_REVIEW_EXCLUDE_PATHSPEC` (`:(exclude,glob)**/evidence/**`) leaves out. Review round 1 was handed the round's diff
-as a patch plus that patch's `sha256` (`.pi/review-868/diff.patch.identity`); the two `diff=` values are **different
+(Recomputed with the loop's own `loop_change_identity` over `tools/loop/lib.sh`, base
+`5215e5452b97bb6452d198110bba3d7390fd347b` — the function `gate.sh:260` and `run.sh` both use. The script that ran it is
+a run-local artifact: `.pi/*` is gitignored (`.gitignore:21`), so `.pi/review-868/identity.sh` is not in the merged
+tree, and the function, the base and the command above are what a reader reproduces it with.) `head` names the commit
+those contents now have — the gate ran them **uncommitted** on `f1084146` — and `diff` is a digest over file contents,
+so `07272d69e375ee25` is the value the gate printed: nothing of `architecture/**` was written after the gate, the two
+files it gated being exactly what commit `77a51af1` carries. Every later write is an `evidence/` file the identity's
+`LOOP_REVIEW_EXCLUDE_PATHSPEC` (`:(exclude,glob)**/evidence/**`) leaves out, **except** the archived `tasks.md` that the
+round-1 correction commit wrote — it is inside the identity scope and moves the digest at HEAD to
+`head=0570b98dbbb4837cc3f4601602f210ff5d3234b1 diff=f9f6ea9086d70366` — and no `architecture/**` file was written, so
+the gate measured the code the tree still carries. Review round 1 was handed the round's diff as a patch plus that
+patch's `sha256` (`.pi/review-868/diff.patch.identity`, also run-local); the two `diff=` values are **different
 derivations** and are not compared for equality — the comparison item 3 asks for is on `head=` plus the file-content
-argument above, which `loop_change_identity` recomputed at the reviewed tree returns as `diff=07272d69e375ee25`.
+argument here.
 
 ## The two falsifications, and the mutations they performed
 
@@ -37,7 +42,7 @@ Tasks 3.1 and 3.5 each name a mutation of the **tree** (`add import … to a con
 its target package`) and require the named **case** to fail. Neither tree edit can reach the case it names: both cases
 assert over a source list and a baseline the test hands the check itself (`ConceptRuleTest.reportOf`,
 `StructureBaselineTest.reportOf`), so a tree edit reds `greenRunPrintsFigures`, never the named case. Each falsification
-therefore carries the case level, and 3.5 carries the prescribed tree level beside it.
+therefore carries the case level, and 3.5 carries a tree-level run beside it.
 
 - **3.1, case level — the production rule.** The `concept imports nothing of ours` arm of `LayerRules.conceptFindings`
 deleted, so the rule declines to refuse a cross-package import. Red: `ConceptRuleTest#conceptImportsNothingOfOurs`,
@@ -52,7 +57,7 @@ no longer violates the rule must fail: rows=1 files=1 exemptions=0 rules=4"
 (`evidence/revert-check-stale-exemption-red.xml`, `tests="4" skipped="0" failures="1" errors="0" timestamp="2026-11-15T06:20:11.667Z"`).
 `rules=4` is `LayerRules.ALL.size`, which the mutation does not touch, and the three sibling cases stay green. Restored
 verbatim.
-- **3.5, tree level — the prescribed mutation.** One stale entry appended to `architecture/baseline.tsv`
+- **3.5, tree level — a stale entry in the baseline.** One stale entry appended to `architecture/baseline.tsv`
 (`app/src/main/java/com/naviveylin/concept/Version.kt`, exempted from `concept imports no Android type` — a file that
 imports nothing of Android): `StructureReportTest#greenRunPrintsFigures` reds naming the entry, verbatim
 `stale-exemption: architecture/baseline.tsv:37 app/src/main/java/com/naviveylin/concept/Version.kt (concept imports no
@@ -84,9 +89,9 @@ test out of the 2 294 the suite completed (`gate-output-868.log:305`), and the c
 nine cases of which this is the one that failed — the class's own run, `evidence/flake-case-green-alone.xml`, carries
 all nine green.
 
-- **Not on this change's paths.** `git diff --name-only 5215e545...HEAD` is `architecture/**` and
-  `openspec/changes/archive/2026-11-14-package-structure-as-five-kinds/evidence/**` and nothing else — no file of
-  `:app` is in the diff, so the same bytes of `app/**` and of every Gradle file that builds it are the base's.
+- **Not on this change's paths.** `git diff --name-only 5215e545...HEAD` is `architecture/**`, the archived change's
+  `evidence/**` and its `tasks.md` (the round-1 correction), and nothing else — no file of `:app` is in the diff, so the
+  same bytes of `app/**` and of every Gradle file that builds it are the base's.
 - **Red long before this work, same case, same error**: `openspec/changes/archive/2026-10-18-fix-parked-state-race/report.md:82`
   names `NoClassDefFoundError: sun.security.ssl.NamedGroup$SupportedGroups` on `MapManagerSourceSwitchPlanTest`;
   `2026-10-27…/evidence/gate-attribution.md:16-23` records the same case failing and "Rerun alone, the class passed";

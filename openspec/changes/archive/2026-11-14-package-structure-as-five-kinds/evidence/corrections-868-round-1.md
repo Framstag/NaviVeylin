@@ -36,8 +36,9 @@ measured**
 by file and condition. Two facts it records correct the note's own premise: the 3.5 red XML's message reads `rules=4`,
 not `rules=0` (`LayerRules.ALL.size` is four and the mutation never touched it), and the named cases of 3.1 and 3.5
 assert over source lists and baselines the tests build, so **no** tree edit can redden them — which is why each
-falsification carries the case level. The prescribed tree mutation of 3.5 was then run as written: one stale entry in
-`architecture/baseline.tsv` reds `greenRunPrintsFigures` naming it, `evidence/revert-check-stale-entry-tree-red.xml`
+falsification carries the case level. A tree-level run was then measured beside 3.5's, not 3.5's prescribed file move
+(which no case can see, for the reason above): one stale entry in `architecture/baseline.tsv` reds
+`greenRunPrintsFigures` naming it, `evidence/revert-check-stale-entry-tree-red.xml`
 (`timestamp="2026-11-15T06:48:15.327Z"`), restored with `git checkout architecture/baseline.tsv` and re-run green in
 16 s.
 
@@ -62,3 +63,13 @@ landed behind the archive: this slice (1.5, the baseline half of 1.7, 1.8, 1.10)
 `architecture/**` route added only after the module and the declaration are tracked"), and the guideline that owns
 the structure is task 4.1. Adding either here would land a rule for a document the same change has not written yet,
 so it is not this slice's to write.
+
+## What round 2 asked for, and what it cost
+
+Round 2 (`review-868-round-2-passed.md`) graded these seven dispositions and passed them all, raising five notes of its
+own — all of them one-clause corrections to this directory's own sentences, none of them a change to the code or to a
+claim the change rests on. They are applied: the tree-identity section now names the archived `tasks.md` as the one
+write outside `evidence/**` that moves the identity's digest at HEAD (`f9f6ea9086d70366`), names the red step's path
+list accurately, calls the tree-level run what it is (a stale entry, not task 3.5's prescribed file move), and marks
+`.pi/review-868/*` as run-local artifacts the merged tree does not carry. Round 2's fifth note is a reminder to the
+owner of task 1.8 that the case's hard-coded figures are the task's to settle.

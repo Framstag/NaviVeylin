@@ -23,6 +23,7 @@
     "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and two of them (`deviceStatus`, `settledRecordMarker`) are empty because this project has no device-gated state and no tombstone record — declared empty, never omitted.",
     "queuedVerdict": "eligible",
     "heldVerdict": "held",
+    "blockedVerdict": "waiting-on",
     "workedClasses": ["bug", "improvement"],
     "firstCategories": ["infra"],
     "firstCategoryClasses": ["bug"],

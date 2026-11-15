@@ -40,6 +40,7 @@
 # Exit: 0 created, 2 usage/malformed, 3 policy, 4 duplicate.
 #
 # Usage: create.sh [--finding <file>] [--label <label>]… [--status <value>] [--sensor <id>] [--import]
+#                  [--type <name>] [--parent <number>] [--blocked-by <number>]…
 #                  [--allow-duplicate] [--json] [--profile <path>]
 set -uo pipefail
 
@@ -60,6 +61,9 @@ import_path=0
 # travel as CLI flags of their own rather than through the vocabulary gate.
 type_name=""
 parent_number=""
+# What must land before this item can be worked (#919): the tracker's own dependency edge, not a line of prose in
+# the body. It may arrive on the command line or as `.blockedBy` in the finding, like the type and the parent.
+blocked_by=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
@@ -67,6 +71,7 @@ while [ $# -gt 0 ]; do
     --label) need_value "$@"; extra_labels+=("${2:-}"); shift 2 ;;
     --status) need_value "$@"; extra_status="${2:-}"; shift 2 ;;
     --sensor) need_value "$@"; sensor_id="${2:-}"; shift 2 ;;
+    --blocked-by) need_value "$@"; blocked_by+=("${2:-}"); shift 2 ;;
     --import) import_path=1; shift ;;
     --allow-duplicate) allow_duplicate=1; shift ;;
     --json) json=1; shift ;;
@@ -104,9 +109,29 @@ source_id=$(jq -r '.sourceId // ""' <<< "$finding")
 # contradiction is not resolved silently.
 [ -n "$type_name" ] || type_name=$(jq -r '.type // ""' <<< "$finding")
 [ -n "$parent_number" ] || parent_number=$(jq -r '.parent // ""' <<< "$finding")
+# The payload's `blockedBy` is one number or a list, so a template may state the order its predecessor gave it
+# without a second flag; the flags add to it, and the set is deduplicated below.
+if [ "${#blocked_by[@]}" -eq 0 ]; then
+  while IFS= read -r blocker; do
+    [ -n "$blocker" ] && blocked_by+=("$blocker")
+  done < <(jq -r 'if has("blockedBy") then (.blockedBy | if type == "array" then .[] else . end) else empty end' <<< "$finding" 2>/dev/null)
+fi
 case "${parent_number:-}" in
   ''|*[!0-9]*) [ -z "$parent_number" ] || issues_die "create: --parent takes an issue number, not '$parent_number'" ;;
 esac
+if [ "${#blocked_by[@]}" -gt 0 ]; then
+  unique_blockers=()
+  for blocker in "${blocked_by[@]}"; do
+    case "$blocker" in
+      ''|*[!0-9]*) issues_die "create: --blocked-by takes an issue number, not '$blocker'" ;;
+    esac
+    [ "$blocker" = "${parent_number:-}" ] &&
+      issues_die "create: an item cannot be blocked by its own parent (#$blocker) — the parent holds it, it does not precede it"
+    printf '%s\n' "${unique_blockers[@]+${unique_blockers[@]}}" | grep -qxF "$blocker" && continue
+    unique_blockers+=("$blocker")
+  done
+  blocked_by=("${unique_blockers[@]}")
+fi
 case "${type_name:-}" in
   '') ;;
   *[[:space:]]*) issues_die "create: --type takes one type name, not '$type_name'" ;;
@@ -424,8 +449,40 @@ done
 [ -z "$type_name" ] || args+=(--type "$type_name")
 [ -z "$parent_number" ] || args+=(--parent "$parent_number")
 
+# The dependency edges are written after the item exists, because the mutation takes the two node ids and one of
+# them is the item's own. Every predecessor's handle is read **before** the filing: an issue number the tracker does
+# not hold is refused with nothing written, and the one failure that cannot be prevented — a mutation that fails
+# after the item was filed — is reported with the item's number, because the item exists and its edge does not.
+blocker_ids=()
+if [ "${#blocked_by[@]}" -gt 0 ]; then
+  for blocker in "${blocked_by[@]}"; do
+    blocker_id=$(issues_issue_node_id "$blocker") || true
+    [ -n "$blocker_id" ] ||
+      issues_die "create: #$blocker does not exist on the tracker — a dependency on an issue nobody filed would block nothing; nothing was written"
+    blocker_ids+=("$blocker_id")
+  done
+fi
+
 url=$(gh "${args[@]}") || exit $?
 number="${url##*/}"
+
+if [ "${#blocker_ids[@]}" -gt 0 ]; then
+  new_id=$(issues_issue_node_id "$number") || true
+  if [ -z "$new_id" ]; then
+    printf 'create: #%s was filed but its own handle could not be read, so the dependency on %s was not written — add it in the tracker\n' \
+      "$number" "${blocked_by[*]}" >&2
+    exit 1
+  fi
+  edge_index=0
+  for blocker_id in "${blocker_ids[@]}"; do
+    if ! issues_blocked_by_add "$new_id" "$blocker_id"; then
+      printf 'create: #%s was filed but blockedBy #%s could not be written — add the edge in the tracker\n' \
+        "$number" "${blocked_by[$edge_index]}" >&2
+      exit 1
+    fi
+    edge_index=$((edge_index + 1))
+  done
+fi
 
 if [ "$shape" = "b" ]; then
   decisions=0
@@ -453,20 +510,24 @@ esac
 
 if [ "$json" -eq 1 ]; then
   label_json=$(if [ "${#labels[@]}" -gt 0 ]; then printf '%s\n' "${labels[@]}"; fi | jq -R . | jq -s .)
+  blocked_json=$(if [ "${#blocked_by[@]}" -gt 0 ]; then printf '%s\n' "${blocked_by[@]}"; fi | jq -R . | jq -s 'map(tonumber? // .)')
   jq -n --arg title "$title" --arg fingerprint "$fingerprint" \
         --argjson labels "$label_json" --argjson overridden "$overridden" \
         --arg number "$number" --arg shape "$shape" --arg change "$change" \
+        --argjson blockedBy "$blocked_json" \
         --arg cause "${cause_file}${cause_file:+:}${cause_line:-}" \
         --argjson decisions "${decisions:-0}" \
         '{created: true, outcome: "created", number: ($number | tonumber? // $number), title: $title,
           labels: $labels, fingerprint: $fingerprint, overrideRecorded: $overridden,
           shape: $shape, change: (if $change == "" then null else $change end),
-          cause: (if $cause == "" then null else $cause end), decisions: $decisions}'
+          cause: (if $cause == "" then null else $cause end), decisions: $decisions,
+          blockedBy: $blockedBy}'
 else
   if [ "$overridden" = true ]; then
     printf 'note: --allow-duplicate overrides an existing fingerprint (%s)\n' "$fingerprint"
   fi
   printf '%s\n' "$url"
   printf '%s\n' "$shape_line"
+  [ "${#blocked_by[@]}" -eq 0 ] || printf 'blocked by %s\n' "$(printf '#%s ' "${blocked_by[@]}")"
 fi
 exit "$ISSUES_EXIT_OK"

@@ -70,6 +70,10 @@ fi
 vocabulary() { loop_compat_profile_value "$1"; }
 queued_verdict=$(loop_role queuedVerdict)
 held_verdict=$(loop_role heldVerdict)
+# The verdict a candidate gets when something must land before it: the tracker's own `blockedBy` edge (#919), or
+# this run's record of the item its change depends on blocked (#913). The value is the profile's, and the issue
+# that holds it is appended as `:#N`, so the record names its predecessor. Empty is a project that does not block.
+blocked_verdict=$(loop_role blockedVerdict)
 decision_verdict=$(loop_role decisionAgent)
 # The verdict for a candidate the tracker did not answer for. It is deliberately *not* a profile role: it names no
 # judgement about the item, only that nothing is known about it, so it writes no label and reaches no other
@@ -125,6 +129,31 @@ refusal_labels="${refusal_labels:-}"
 label_value() { # label_value <labels-json> <namespace> -> the value, or empty
   printf '%s' "$1" | jq -r --arg n "$2" --arg s "$separator" \
     '[.[] | select(.name | startswith($n + $s)) | (.name | ltrimstr($n + $s))] | .[0] // ""'
+}
+
+# One prerequisite of a candidate, in two reads that answer the same question ("what must land first?"). The
+# tracker's `blockedBy` edge is the declaration, and it is open exactly when the issue blocking it is not CLOSED —
+# the edge is left in place after the predecessor lands, so the state is what clears it and no write of ours does.
+#
+# The run's own record is the case the tracker cannot state (#913): a run measured at 2026-11-14T13:41:53Z
+# recorded #898 `blocked` and then started the six items that name the same change — 160 turns and 25 m 31 s for
+# 0 landings. Those items carried no edge to each other; what they shared was the change, whose earlier task was
+# the prerequisite that never landed. So a candidate whose change this run recorded `blocked` waits on that item,
+# and the verdict names it. A bound-ended record is not a prerequisite failure (`state.sh next`'s own rule), and an
+# item is never blocked by itself.
+blocked_by_of() { # <issue-json> <number> <body> <blocked-items-json> → `<source>\t<number>` or empty
+  local issue_json="$1" number="$2" body="$3" within_run="$4" blocker source="tracker" change
+  blocker=$(printf '%s' "$issue_json" | jq -r '
+    [.blockedBy.nodes[]? | select((.state // "OPEN") != "CLOSED") | .number] | .[0] // ""' 2>/dev/null)
+  if [ -z "$blocker" ]; then
+    change=$(issues_change_of "$body")
+    [ -n "$change" ] || return 0
+    blocker=$(printf '%s' "$within_run" | jq -r --arg c "$change" --argjson n "$number" '
+      [.[] | select(.change == $c and .issue != $n) | .issue] | .[0] // ""' 2>/dev/null)
+    source="run"
+  fi
+  [ -n "$blocker" ] || return 0
+  printf '%s\t%s\n' "$source" "$blocker"
 }
 
 # The citation sensor: which citation does the item carry that the tree does not hold? It **reports** — the
@@ -231,6 +260,18 @@ branch_question_answered() { # <issue> <branch> <head> → the question the answ
 candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit" 2>/dev/null) ||
   loop_die "prescreen: the issue tooling could not list eligible items"
 [ -n "$candidates_json" ] || candidates_json='[]'
+
+# What this run has already recorded `blocked` (#913), read once rather than per candidate: a run's item carries the
+# change it was worked as, so the items that share a blocked item's change are the ones its unlanded prerequisite
+# holds. A record the run's own bound ended is not a prerequisite failure — `state.sh next` reads the same field the
+# same way — and an item with no change depends on nothing this read can name.
+blocked_within_run='[]'
+if [ -n "$LOOP_STATE_FILE" ] && [ -r "$LOOP_STATE_FILE" ]; then
+  blocked_within_run=$(jq -c '
+    [.items[]? | select(.result == "blocked" and (.stopReason // "") != "bound" and (.change // "") != "")
+     | {change: .change, issue: .issue}]' "$LOOP_STATE_FILE" 2>/dev/null) || blocked_within_run='[]'
+fi
+[ -n "$blocked_within_run" ] || blocked_within_run='[]'
 
 # The tracker writes the refusals need are collected here and applied once, after the queue is written, so
 # a pre-screen that dies mid-selection changes no item (the labels are the run script's, never a child's).
@@ -361,6 +402,28 @@ while [ "$scan_index" -lt "$count" ]; do
      ! printf '%s' "$labels" | jq -e --arg l "$LOOP_AUTHORISATION_LABEL" 'any(.[]; .name == $l)' >/dev/null; then
     verdict="missing-authorisation"
     reason="the item does not carry ${LOOP_AUTHORISATION_LABEL} — the opt-in is the author's, not the run's"
+  fi
+
+  # What must land before this item (#919, #913), read before the change-readiness gate: an item whose predecessor
+  # has not landed is not work, whatever its change says, and the verdict states the predecessor so the next run
+  # re-reads the same edge. It is asked before the branch rule as well — an attempt on an item that cannot be worked
+  # yet is not an adoption. No label is written for this verdict: the edge it was read from is already visible on the
+  # tracker (the refusal-label rule of #163 covers the states a tracker shows nowhere), so landing the predecessor
+  # unblocks the item with no write of ours.
+  if [ "$verdict" = "$queued_verdict" ] && [ -n "$blocked_verdict" ]; then
+    blocked=$(blocked_by_of "$issue" "$number" "$body" "$blocked_within_run")
+    if [ -n "$blocked" ]; then
+      blocker_source=${blocked%%$'\t'*}
+      blocker=${blocked#*$'\t'}
+      verdict="${blocked_verdict}:#${blocker}"
+      if [ "$blocker_source" = "run" ]; then
+        reason="this run recorded #${blocker} blocked in the same change, and its prerequisite never landed — the candidate is not started until that change is worked again"
+        evidence="run-blocked:#${blocker}"
+      else
+        reason="the tracker holds this item blocked by #${blocker}, which is not closed — the predecessor lands first, and the edge clears itself when it does"
+        evidence="blockedBy:#${blocker}"
+      fi
+    fi
   fi
 
   # ── the shape the item was filed in, and the change it names (`finding-shape-at-filing`, this change) ────────

@@ -1,0 +1,110 @@
+[
+  {
+    "number": 90,
+    "title": "The predecessor nothing has landed yet",
+    "body": "no citation at all",
+    "state": "OPEN",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/build-and-harness"
+      },
+      {
+        "name": "status/open"
+      }
+    ]
+  },
+  {
+    "number": 91,
+    "title": "A child the tracker holds blocked by an open item",
+    "body": "no citation at all",
+    "state": "OPEN",
+    "blockedBy": {
+      "totalCount": 1,
+      "nodes": [
+        {
+          "number": 90,
+          "state": "OPEN",
+          "title": "The predecessor nothing has landed yet"
+        }
+      ]
+    },
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 92,
+    "title": "A child whose predecessor has landed",
+    "body": "no citation at all",
+    "state": "OPEN",
+    "blockedBy": {
+      "totalCount": 1,
+      "nodes": [
+        {
+          "number": 90,
+          "state": "CLOSED",
+          "title": "The predecessor nothing has landed yet"
+        }
+      ]
+    },
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 94,
+    "title": "A candidate from a tracker that has no dependency field",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

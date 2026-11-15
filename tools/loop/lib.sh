@@ -815,7 +815,10 @@ loop_issue_json() {
   # here (capability `issue-types`, `guidelines/Backlog.md` §3). They sit before `author,state` on purpose: a
   # case discriminates the comments read from the plain one by its trailing fields (`run#anUnreadable…` names
   # `author,state,comments`), and that tail is what `--comments` appends to.
-  local fields="number,title,body,labels,issueType,parent,author,state" errfile status
+  # `blockedBy` is the tracker's dependency edge (#919): the item this one must wait for. It sits before
+  # `author,state` on purpose, like `issueType` and `parent`, so the `--comments` tail a case discriminates stays
+  # where it was. It is asked for cheaply here: `gh` answers an empty connection for an item nothing blocks.
+  local fields="number,title,body,labels,issueType,parent,blockedBy,author,state" errfile status
   [ "${2:-}" = "--comments" ] && fields="$fields,comments"
   # The CLI's own words survive a failure. Swallowing them (`2>/dev/null`, which is what this function did) made
   # every failed read an anonymous exit status: the retry seam's `tracker-unreachable:` line, its retry lines and
@@ -882,7 +885,10 @@ LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories firstCat
 # `containerType` joins them: it names the tracker's issue type this project treats as a container, and a
 # profile that names none (or omits the key) reads as "no type is a container", so the pre-screen refuses
 # nothing on that axis and a tracker whose types are all work behaves exactly as before.
-LOOP_OPTIONAL_ROLE_KEYS="shapingAgent shapingVerdicts nextUpAgent containerType"
+# `blockedVerdict` joins them: it names the verdict a candidate gets when the tracker holds it blocked, or when
+# this run recorded the item its change depends on blocked (#919, #913). A profile that omits the key blocks
+# nothing, so a project that has not adopted the tracker's dependency edges behaves exactly as before.
+LOOP_OPTIONAL_ROLE_KEYS="shapingAgent shapingVerdicts nextUpAgent containerType blockedVerdict"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""

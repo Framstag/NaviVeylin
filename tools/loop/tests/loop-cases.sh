@@ -68,6 +68,9 @@ LOOP_SHELL_CASES=(
   'prescreen#refusesReservedLabelInSelection'
   'prescreen#withoutTheOptInIsNeverQueued'
   'prescreen#settledItemIsDropped'
+  'prescreen#aBlockedCandidateWaitsForItsPredecessor'
+  'prescreen#theRunHoldsWhatItsBlockedItemShares'
+  'prescreen#anEmptyBlockedVerdictBlocksNothing'
   'prescreen#deviceItemIsAVerdictNotWork'
   'prescreen#readsTheVerdictsFromTheProfile'
   'prescreen#aFinishedAttemptBranchIsADecision'
@@ -811,6 +814,9 @@ loop_run_shell_case() {
     'prescreen#refusesReservedLabelInSelection') fn=case_prescreen_refusesReservedLabelInSelection ;;
     'prescreen#withoutTheOptInIsNeverQueued') fn=case_prescreen_withoutTheOptInIsNeverQueued ;;
     'prescreen#settledItemIsDropped') fn=case_prescreen_settledItemIsDropped ;;
+    'prescreen#aBlockedCandidateWaitsForItsPredecessor') fn=case_prescreen_aBlockedCandidateWaitsForItsPredecessor ;;
+    'prescreen#theRunHoldsWhatItsBlockedItemShares') fn=case_prescreen_theRunHoldsWhatItsBlockedItemShares ;;
+    'prescreen#anEmptyBlockedVerdictBlocksNothing') fn=case_prescreen_anEmptyBlockedVerdictBlocksNothing ;;
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#aFinishedAttemptBranchIsADecision') fn=case_prescreen_aFinishedAttemptBranchIsADecision ;;
@@ -3048,6 +3054,88 @@ case_prescreen_settledItemIsDropped() {
   assert_eq "" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 92) | .verdict')" \
     "a closed issue is no longer a candidate at all"
   assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "neither reaches the queue"
+}
+
+# The tracker's dependency edge (#919): a candidate the tracker holds blocked is not work, and the verdict names the
+# predecessor so the next run re-reads the same edge. No label is written for it — the edge is already visible on the
+# tracker — and the predecessor's *state* is what clears it, so landing it unblocks the child with no write of ours.
+case_prescreen_aBlockedCandidateWaitsForItsPredecessor() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario blocked)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "the screen still has candidates to queue"
+  assert_eq "blocked-by:#90" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .verdict')" \
+    "the candidate the tracker holds blocked is excluded, and the verdict names its predecessor"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .reason')" "blocked by #90" \
+    "the reason says what the item waits for"
+  assert_eq "blockedBy:#90" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .evidence')" \
+    "and the evidence names the edge it was read from"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 92) | .verdict')" \
+    "the same edge whose predecessor is closed blocks nothing — the state clears it, not a write of ours"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 94) | .verdict')" \
+    "a tracker that carries no dependency field reads exactly as before"
+  assert_eq "92" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" "the blocked candidate never reaches the queue"
+  if grep -q 'agent/excluded-blocked' "$p/gh.log" 2>/dev/null; then
+    fail "a label was written for the blocked verdict — the edge is already visible on the tracker"
+  fi
+}
+
+# #913: a run that recorded an item blocked must not start the items that name the same change. Measured
+# 2026-11-14T13:41:53Z: the run recorded #898 blocked (its `child-blocked` prerequisite never landed), then started
+# the six items of the same change's task list — 160 turns, 254 tool calls and 4.97 M tokens for 0 landings. Those
+# items carry no edge to each other; what they share is the change, whose earlier task was the prerequisite.
+case_prescreen_theRunHoldsWhatItsBlockedItemShares() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 5 90
+  run_state "$p" done 40 --result blocked --change demo-change --verdict blocked \
+    --stop-reason child-blocked >/dev/null || fail "could not record the blocked item"
+  run_state "$p" done 39 --result done --change landed-change --verdict eligible >/dev/null ||
+    fail "could not record the landed item"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario blocked-run)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "the screen still has candidates to queue"
+  assert_eq "blocked-by:#40" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .verdict')" \
+    "the candidate of the change this run recorded blocked waits on that item"
+  assert_eq "run-blocked:#40" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .evidence')" \
+    "and the record says the block is this run's, not an edge the tracker holds"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 42) | .verdict')" \
+    "another change is not held by it"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 43) | .verdict')" \
+    "an item of a change that landed blocks nothing"
+  assert_eq "42" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" "the held candidate is not in the queue"
+}
+
+# The verdict is a role key, so a project that declares none blocks nothing — and a profile written before the key
+# existed is read the same way, which is why `LOOP_OPTIONAL_ROLE_KEYS` carries it and an omitted key is not a
+# half-adapted profile.
+case_prescreen_anEmptyBlockedVerdictBlocksNothing() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario blocked)
+
+  jq '.roles.blockedVerdict = ""' "$p/tools/tooling.json" > "$p/tools/tooling.json.tmp" &&
+    mv "$p/tools/tooling.json.tmp" "$p/tools/tooling.json" || fail "could not empty the role in the project's copy"
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "the screen completed with the role empty"
+  assert_eq "91" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" \
+    "an empty value blocks nothing — the candidate the tracker holds blocked is work again"
+
+  jq 'del(.roles.blockedVerdict)' "$p/tools/tooling.json" > "$p/tools/tooling.json.tmp" &&
+    mv "$p/tools/tooling.json.tmp" "$p/tools/tooling.json" || fail "could not remove the role from the project's copy"
+  # A fresh state for the second half: the screen writes the queue into the state that is there, and the first
+  # half's queue is the record of the profile that carried a value.
+  init_state "$p" 3 90
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "the screen completed with the key omitted"
+  assert_eq "91" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" \
+    "a profile written before the key existed blocks nothing, rather than stopping the screen"
 }
 
 case_prescreen_deviceItemIsAVerdictNotWork() {

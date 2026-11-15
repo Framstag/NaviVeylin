@@ -14830,8 +14830,8 @@ case_report_landingsAreTheStoredNumber() {
 # The epic a run's items belong to is the fact the record did not hold (issue #920): an item recorded its class, its
 # change and its spend, and the epic itself is never worked — the screen refuses a container — so six children of one
 # epic printed six rows and nothing said they were one epic's work. Measured on the run of 2026-11-14T12:19:45Z: six
-# children of epic #906 (#899–#904) each recorded `skipped`, and the 25 m 31 s / 4.97 M tokens they cost was reachable
-# only by summing `.items[]` by hand. The parent enters the state through the pre-screen — `loop_issue_json` already
+# children of epic #906 (#899–#904) each recorded `skipped`, and the 4.97 M tokens and 529.364 s of wall they cost was
+# reachable only by summing `.items[]` by hand. The parent enters the state through the pre-screen — `loop_issue_json` already
 # asks the tracker for `parent` beside `issueType`, so it is a field of an answer the screen holds — and the writer
 # carries it from the queue into the item's own record, which is what the report groups by.
 case_prescreen_theScreenRecordsTheItemsEpic() {
@@ -14856,6 +14856,23 @@ case_prescreen_theScreenRecordsTheItemsEpic() {
     "the item's own record names it, which is what the report groups by"
   assert_eq "null" "$(jq -r '.items[] | select(.issue == 23) | .parent' "$f")" \
     "and an item in no epic records null rather than a parent of its own"
+  # The one item keeps one record (#284): a second account of #21 joins its note and changes no field the first
+  # record established — its class, its mechanism and now its epic (the arm `state.sh done` takes when the item is
+  # already there).
+  run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused --note "a second account" >/dev/null ||
+    fail "a second account of the child was refused"
+  assert_eq "906" "$(jq -r '.items[] | select(.issue == 21) | .parent' "$f")" \
+    "and a second account of the same item leaves the first record's epic alone"
+  assert_contains "$(jq -r '.items[] | select(.issue == 21) | .note' "$f")" "a second account" \
+    "while the note it brought is kept"
+  # A parent that is not a number records `null`, and never fails the writer: `state.sh done` reads the field out of
+  # the queue record it was handed and keeps only digits, so a malformed value costs the item its epic and nothing
+  # else.
+  printf '[{"issue":25,"class":"bug","parent":"abc","verdict":"eligible","rank":1}]' |
+    run_state "$p" queue >/dev/null || fail "the queue was refused"
+  run_state "$p" done 25 --result skipped --verdict skipped >/dev/null || fail "the item with a malformed parent was not recorded"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 25) | .parent' "$f")" \
+    "a parent that is not a number is recorded as null, not as a parent of its own"
 }
 
 # The run's verdict read per epic as well as per item (issue #920): the line groups the run's own items by the parent

@@ -1739,7 +1739,10 @@ What the report says about the **epic** a run's items belong to (issue #920): th
 change and its spend, and the epic is never itself worked — the screen refuses a container, so its children carry all
 the work — which left a run that worked six children of one epic with six rows and nothing saying they were one epic's
 work. Measured on the run of 2026-11-14T12:19:45Z: #899–#904, six children of epic #906, each recorded `skipped`, and
-the 25 m 31 s / 4.97 M tokens they cost was reachable only by summing `.items[]` by hand. The tracker's `parent` link
+the 4.97 M tokens and 529.364 s of their own wall they cost was reachable only by summing `.items[]` by hand
+(`jq -r '[.items[]|select(.issue>=899 and .issue<=904)] | map(.metrics.wallSeconds)|add' .pi/issue-loop/runs/2026-11-14T12:19:45Z.json`;
+the issue quotes 25 m 31 s for the same six and the state this tree holds for that run says 8 m 49 s, so the figure
+printed here is the one the command gives). The tracker's `parent` link
 is read by the pre-screen's own fetch (`loop_issue_json` asks for it beside `issueType`, so it costs no second call),
 written beside the item's class in the queue and copied into the item's record by `state.sh done`, and the report's
 `by epic:` line groups the run's items by it: `epic #N: m of n children closed · <tokens> · <wall>`, one group per

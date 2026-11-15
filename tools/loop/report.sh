@@ -368,7 +368,7 @@ printf 'what the bound cut from a round%ss input: %s\n' "'" "$(jq -r '[.items[] 
 # Which epic a group of the run's items belongs to is the fact the record did not hold (issue #920): the item named
 # its class, its change and its spend, and the epic itself is never worked — a container is refused by the screen — so
 # a run that worked six children of one epic printed six rows and nothing said they were one epic's work, and the
-# 25 m 31 s / 4.97 M tokens they cost was reachable only by summing `.items[]` by hand. The line groups the run's own
+# 4.97 M tokens and 529.364 s of wall they cost was reachable only by summing `.items[]` by hand. The line groups the run's own
 # items by the parent the screen recorded (`state.sh done` writes it out of the queue it read), and gives the three
 # figures a person asks an epic for: how many of its children closed, what they spent and what they cost in clock.
 # `n` is the run's children of that epic and not the epic's own count, because the report reads the state and git and

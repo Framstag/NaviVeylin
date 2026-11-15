@@ -338,9 +338,11 @@ while [ "$scan_index" -lt "$count" ]; do
   # The epic this item belongs to (issue #920): the tracker's own parent link, recorded here because a run's record
   # named the item's class, its change and its spend and never what those were part of — a run that worked six
   # children of one epic could not say so. It costs no second read: `loop_issue_json` (`lib.sh`) already asks for
-  # `parent` beside `issueType`, so this is a field of the answer the screen holds. `// ""` keeps a tracker without
-  # sub-issues and a fixture written before the field reading exactly as before.
-  parent=$(printf '%s' "$issue" | jq -r '.parent.number // ""')
+  # `parent` beside `issueType`, so this is a field of the answer the screen holds. The read keeps only a number: a
+  # tracker with no sub-issues, a candidate with no parent and an answer whose `number` is not a number all leave the
+  # field empty, which the record below writes as `null` — the same two shapes `state.sh done` accepts, and neither of
+  # them a `tonumber` that fails the record build.
+  parent=$(printf '%s' "$issue" | jq -r 'if (.parent.number | type) == "number" then (.parent.number | tostring) else "" end')
 
   verdict="$queued_verdict"
   reason=""

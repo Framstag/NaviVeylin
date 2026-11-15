@@ -76,7 +76,7 @@ loop_render	lib.sh	run.sh
 loop_resolve	lib.sh	prescreen.sh gate.sh labels.sh loop-clean.sh measure.sh phase.sh report.sh run.sh state.sh worktree.sh
 loop_role	lib.sh	prescreen.sh labels.sh report.sh run.sh state.sh
 loop_roles_load	lib.sh	report.sh labels.sh prescreen.sh run.sh state.sh
-LOOP_ROOT	lib.sh	prescreen.sh gate.sh loop-clean.sh report.sh run.sh state.sh worktree.sh
+LOOP_ROOT	lib.sh	prescreen.sh gate.sh loop-clean.sh phase.sh report.sh run.sh state.sh worktree.sh
 loop_same_dir	lib.sh	loop-clean.sh
 LOOP_SCRATCH_LINE	lib.sh	worktree.sh loop-clean.sh
 loop_scratch_paths	lib.sh	loop-clean.sh worktree.sh

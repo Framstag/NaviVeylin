@@ -3488,7 +3488,7 @@ while true; do
   # round, and an item it ended has no gate result for the arms below to read.
   if [ -n "$pre_gate_refusal" ]; then
     # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and it carries
-    # `bound`, the class a bound leaves on the item whichever phase of it the run ended (issue #898). The class is what
+    # `bound`, the class a bound leaves on the item whichever phase of it the run ended (the run's item #898). The class is what
     # the state write below reads, so the round's ending reaches the record through the same field the item's own
     # child's does, and the round's own field carries the round, its key and its figure beside it (issue #923).
     if [ "$pre_gate_cut" -eq 1 ]; then
@@ -3551,7 +3551,7 @@ while true; do
   # reason quotes, and an item whose clock, the run's deadline or a vanished writer ended it gets neither: none of the
   # three is a value `loop.conf` records, and a figure guessed from the value it usually sits beside would read as a
   # measurement. A round the run ended before the gate is read here like any other cut — its reason quotes the bound's
-  # own line — and one it ends after the gate is read below, where the round's fields are known (issue #898).
+  # own line — and one it ends after the gate is read below, where the round's fields are known (the run's item #898).
   bound_key=""
   bound_value=""
   if [ "$stop_reason" = bound ]; then
@@ -3706,7 +3706,7 @@ while true; do
         review_verdict="deadline"
         outcome="cut"
         # The run's own deadline is a bound it enforces, so the item carries the class a bound leaves on it — and no
-        # key, because a clock is not a value `loop.conf` records (issue #898).
+        # key, because a clock is not a value `loop.conf` records (the run's item #898).
         stop_reason="bound"
         record_cut_round "$round"
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
@@ -3725,7 +3725,7 @@ while true; do
       if [ -n "$reviewer_timeout_line" ]; then
         review_verdict="cut-short"
         outcome="cut"
-        # The round the run ended is the item's own cut, with the class the bound leaves on it (issue #898): `bound`
+        # The round the run ended is the item's own cut, with the class the bound leaves on it (the run's item #898): `bound`
         # reaches the record through the field a child's ending does, and the key is read from the round's fields below
         # — this write is the class, that one is the figure.
         stop_reason="bound"

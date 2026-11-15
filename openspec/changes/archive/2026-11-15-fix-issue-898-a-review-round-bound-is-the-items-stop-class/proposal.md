@@ -4,7 +4,8 @@
 
 The shipped requirement "An item the run's own bound cut is recorded `cut`, not `blocked`" says that the item
 carries `bound` as its stop reason *when the bound ended the item's own child, while a round the run ended carries
-none, as it did before*. That second clause is the defect (issues #898, #883): a bound that ends a review round is a
+none, as it did before*. That second clause is the defect (the run's items #898 and #883, both recorded `cut` with
+`stopReason: null` though a reviewer bound ended them): a bound that ends a review round is a
 bound the run enforces, and the item is what it ended, yet the record says nothing about a mechanism — so the reader
 who asks "how did this item end?" gets the same `cut` with an empty `stop` cell that an arm recording nothing would
 leave.
@@ -68,3 +69,9 @@ two paragraphs of `guidelines/Backlog.recipes.md` §7b and §7e that repeat the 
   item; that arm is a different rule, and `run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart` keeps it.
 - It does not give the archive's older records a class on read: `lib.sh` still derives none for them, and the
   `bound:` rate still counts their result.
+- **It is not the implementation of issue #898.** That issue is "Settings writes have one owner: SettingsController
+  and the SettingSpec registry" and its work is another session's, shipped and closed on 2026-11-15. The number in
+  this directory's name, in `898.1`–`898.3` and in the archived issue comment is the *run's item id* — the item
+  `stopReason: null` was found on — and the change answers the loop's accounting, not Settings. The citation was
+  corrected on 2026-11-15 after the collision was found; the directory name stays, because a shipped archive is a
+  record and a rename would make every reference to it a second wrong number.

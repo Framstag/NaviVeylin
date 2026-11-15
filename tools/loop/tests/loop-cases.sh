@@ -7733,7 +7733,7 @@ EOF
 
 # The other half of the same figure (issue #923): the round's own held (`metrics.roundBound`) names the round, the key
 # and the figure, so a reader can count the rounds a bound ended without reading the reason's prose. The item's class
-# travels beside it and is owned by the case below (issue #898) — #898 was ended by the reviewer's turn bound at 110
+# travels beside it and is owned by the case below (the run's item #898) — #898 was ended by the reviewer's turn bound at 110
 # turns and #883 by the item's context bound inside the reviewer phase, and both read `cut` with an empty `stop` cell.
 case_run_aRoundTheRunEndedRecordsItsBound() {
   # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
@@ -7799,7 +7799,7 @@ EOF
   return 0
 }
 
-# A bound a review round hit is the item's stop class, not only the round's (issue #898): #898 was ended by the
+# A bound a review round hit is the item's stop class, not only the round's (the run's item #898): #898 was ended by the
 # reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
 # `cut` with an empty `stop` cell, so a reader could not tell a bound that ended the item from an arm that recorded
 # nothing without the child's transcript — the class the run writes for its own child's ending. The class and the key
@@ -9549,7 +9549,7 @@ EOF
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
     "a round the run's own bound ended is cut, not blocked"
   assert_eq "bound" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
-    "and the class a bound leaves on the item, before the gate as much as after it (issue #898)"
+    "and the class a bound leaves on the item, before the gate as much as after it (the run's item #898)"
   assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
     "with the key the bound is recorded in, read from the line the reason quotes"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \

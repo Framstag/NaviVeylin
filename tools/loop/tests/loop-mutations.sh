@@ -1164,6 +1164,10 @@ MUTATIONS=(
   # (`boundKey`/`boundValue`) and the round's (`metrics.roundBound`), which never becomes the item's class.
   '923.1@-@tools/loop/run.sh@run#aBoundEndedItemRecordsItsBound@the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)@s|^\( *\)bound_key=.*$|\1bound_key=""|'
   '923.2@-@tools/loop/run.sh@run#aRoundTheRunEndedRecordsItsBound@the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)@s|^\( *\)round_bound_key=.*$|\1round_bound_key=""|'
+  # …and the archive is totalled by the same derivation (issue #922): 119 of its 179 blocked records name no
+  # mechanism, and a reader that takes the field alone counts that absence as a class of its own — the analysis
+  # pass printed it as `unclassified 119`, where 21 of the 119 are `bound` and the rest are undecidable.
+  '922.1@-@tools/loop/report.sh@report#theArchivesClassesAreDerivedNotInvented@the archive’s tally counting an absent class as a class, so the dash the archive prints reads as a measured `unclassified` and the record the derivation decides is counted on neither side (issue #922)@s|{cls: (stop_class),|{cls: (.stopReason // "unclassified"),|'
   # 272.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
   # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
   # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and

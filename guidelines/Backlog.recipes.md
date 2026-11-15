@@ -1586,6 +1586,23 @@ and could not read. Both readings are derived on read for a record written befor
 from an item's own cut by the reviewer's role in the key or by its `cut-short`/`deadline` verdict, because the
 pre-gate round a record of #857, #791, #875 and #861 names carries the bare `LOOP_ITEM_CONTEXT_MAX` in its note.
 
+The archive's own class is derived the same way, and what the derivation cannot decide is a printed figure rather
+than a zero (issue #922). The archive holds 158 states and 511 records, 179 of them `blocked` or `cut` — the only
+two a class can belong to, since a closed, skipped or falsified item is recorded with no class by design — and 119
+of the 140 blocked and 15 of the 39 cut records name no mechanism at all, because `done --stop-reason` arrived with
+#865, after most of the archive was written. The analysis pass totalled the blocked half as
+`blocked by stop class: bound 27 · child-blocked 1 · refused 9 · unmergeable 5 · undecidable 98` and, beside it,
+`unclassified 119` from `(.stopReason // "unclassified")` — a dash counted as a class, and read as a zero by
+everyone who quoted it. `report.sh` totals the population with the same
+`stop_class` the state's `stop` column is read through — the 21 of those 119 blocked records whose note still quotes
+the `LOOP-TIMEOUT` sentence that ended them reach `bound` — and prints `archive classes: bound 51 · child-blocked 1
+· refused 9 · unmergeable 5 — of 179 blocked or cut record(s): 66 decided, 107 undecidable, 6 ended by a review
+round, not by the item` (measured 2026-11-15). Three sides and not two: what no evidence decides is `undecidable`
+and is summed into neither, because counting it as a class invents one and counting it as decided calls a
+measurement nobody made an answer; and a round's ending stays the round's own (#785, #790) even here, read from
+`metrics.roundBound` or `bound_round` so a record written before the field counts like any other. A project with no
+archive prints `archive classes: -`.
+
 A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and
 the skip arm wrote the constant `skipped by the worker` into that note on every skip it took, while the child's own
 sentence travelled beside it as `metrics.rootCause` — so the run of 2026-11-11T11:37:08Z printed `#838 too-wide

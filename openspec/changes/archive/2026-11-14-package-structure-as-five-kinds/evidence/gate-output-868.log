@@ -1,0 +1,351 @@
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=860982
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileVendoredJava UP-TO-DATE
+> Task :architecture:compileKotlin UP-TO-DATE
+> Task :osmscout-client-java:processVendoredResources NO-SOURCE
+> Task :osmscout-client-java:vendoredClasses UP-TO-DATE
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar UP-TO-DATE
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :architecture:compileTestKotlin UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :osmscout-client-java:compileTestJava UP-TO-DATE
+> Task :osmscout-client-java:processTestResources UP-TO-DATE
+> Task :osmscout-client-java:testClasses UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources
+> Task :auto:checkNoWallClockWaits
+> Task :core:generateDebugResources
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources
+> Task :auto:generateDebugResources
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :core:packageDebugResources
+> Task :auto:packageDebugResources
+> Task :auto:javaPreCompileDebug
+> Task :auto:writeDebugAarMetadata
+> Task :auto:extractDeepLinksDebug
+> Task :auto:mapDebugSourceSetPaths
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:compileDebugLibraryResources
+> Task :auto:mergeDebugAssets
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths
+> Task :auto:generateDebugUnitTestResources
+> Task :auto:parseDebugLocalResources
+> Task :core:parseDebugLocalResources
+> Task :auto:processDebugManifest
+> Task :app:checkNoCoordinatesInLogs
+> Task :core:writeDebugAarMetadata
+> Task :core:extractDeepLinksDebug
+> Task :core:javaPreCompileDebug
+> Task :core:mapDebugSourceSetPaths
+> Task :core:processDebugManifest
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:compileDebugLibraryResources
+> Task :core:generateDebugRFile
+> Task :core:mergeDebugAssets
+> Task :core:preDebugUnitTestBuild
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig
+> Task :app:generateAutomotiveDebugResources
+> Task :core:koverFindJar
+> Task :core:javaPreCompileDebugUnitTest
+> Task :app:packageAutomotiveDebugResources
+> Task :core:generateDebugUnitTestStubRFile
+> Task :auto:mergeDebugUnitTestResources
+> Task :auto:generateDebugRFile
+> Task :auto:checkDebugUnitTestAarMetadata
+> Task :app:processAutomotiveDebugNavigationResources
+> Task :app:javaPreCompileAutomotiveDebug
+> Task :app:parseAutomotiveDebugLocalResources
+> Task :auto:mergeDebugUnitTestManifest
+> Task :app:checkAutomotiveDebugAarMetadata
+> Task :app:generateAutomotiveDebugRFile
+> Task :app:mapAutomotiveDebugSourceSetPaths
+> Task :auto:processDebugUnitTestManifest
+> Task :app:compileAutomotiveDebugNavigationResources
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest
+> Task :auto:mergeDebugUnitTestAssets
+> Task :auto:koverFindJar
+> Task :auto:processDebugUnitTestResources
+> Task :osmscout-client-java:test
+> Task :auto:packageDebugUnitTestForUnitTest
+> Task :auto:generateDebugUnitTestConfig
+> Task :app:createAutomotiveDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksAutomotiveDebug
+> Task :app:mergeAutomotiveDebugResources
+> Task :app:processAutomotiveDebugMainManifest
+> Task :app:processAutomotiveDebugManifest
+> Task :app:generateAutomotiveDebugAssets UP-TO-DATE
+> Task :app:mergeAutomotiveDebugAssets
+> Task :app:preAutomotiveDebugUnitTestBuild
+
+> Task :app:mergeAutomotiveDebugUnitTestManifest
+/home/tim/projects/NaviVeylin/app/build/intermediates/tmp/manifest/test/automotive/debug/tempFile2ProcessTestManifest9868334993740379361.xml:83:9-85:35 Warning:
+	meta-data#com.google.android.gms.car.application was tagged at tempFile2ProcessTestManifest9868334993740379361.xml:83 to remove other declarations but no other declaration present
+
+> Task :app:processAutomotiveDebugUnitTestManifest
+> Task :app:koverFindJar
+> Task :app:preMobileDebugBuild
+> Task :app:javaPreCompileAutomotiveDebugUnitTest
+> Task :app:generateMobileDebugBuildConfig
+> Task :app:generateMobileDebugResources
+> Task :app:packageMobileDebugResources
+> Task :app:processMobileDebugNavigationResources
+> Task :app:parseMobileDebugLocalResources
+> Task :app:javaPreCompileMobileDebug
+> Task :app:checkMobileDebugAarMetadata
+> Task :app:mapMobileDebugSourceSetPaths
+> Task :app:generateMobileDebugRFile
+> Task :app:compileMobileDebugNavigationResources
+> Task :app:createMobileDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksMobileDebug
+> Task :app:processMobileDebugMainManifest
+> Task :app:processMobileDebugManifest
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:mergeMobileDebugAssets
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:mergeMobileDebugResources
+
+> Task :app:mergeMobileDebugUnitTestManifest
+/home/tim/projects/NaviVeylin/app/src/debug/AndroidManifest.xml Warning:
+	uses-feature#android.hardware.type.automotive was tagged at AndroidManifest.xml:0 to remove other declarations but no other declaration present
+
+> Task :app:processMobileDebugUnitTestManifest
+> Task :app:processAutomotiveDebugManifestForPackage
+> Task :app:javaPreCompileMobileDebugUnitTest
+> Task :app:processMobileDebugManifestForPackage
+> Task :app:processAutomotiveDebugResources
+> Task :app:processMobileDebugResources
+> Task :app:packageAutomotiveDebugUnitTestForUnitTest
+> Task :app:generateAutomotiveDebugUnitTestConfig
+> Task :app:packageMobileDebugUnitTestForUnitTest
+> Task :app:generateMobileDebugUnitTestConfig
+> Task :architecture:test
+> Task :core:kspDebugKotlin
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac
+> Task :core:processDebugJavaRes
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :core:createFullJarDebug
+> Task :core:kspDebugUnitTestKotlin
+> Task :core:compileDebugUnitTestKotlin
+> Task :core:processDebugUnitTestJavaRes
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:hiltSyncDebugUnitTest
+> Task :core:hiltAggregateDepsDebugUnitTest
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :core:transformDebugUnitTestClassesWithAsm
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:processDebugJavaRes
+> Task :auto:bundleLibRuntimeToJarDebug
+> Task :auto:createFullJarDebug
+> Task :core:testDebugUnitTest
+> Task :app:kspAutomotiveDebugKotlin
+> Task :auto:compileDebugUnitTestKotlin
+> Task :app:kspMobileDebugKotlin
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:processDebugUnitTestJavaRes
+> Task :core:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:compileMobileDebugKotlin
+> Task :app:compileAutomotiveDebugKotlin
+> Task :auto:testDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:compileMobileDebugJavaWithJavac
+> Task :app:compileAutomotiveDebugJavaWithJavac
+> Task :app:hiltSyncAutomotiveDebug
+> Task :app:processAutomotiveDebugJavaRes
+> Task :app:hiltAggregateDepsAutomotiveDebug
+> Task :app:hiltSyncMobileDebug
+> Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebug
+> Task :app:processMobileDebugJavaRes
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToCompileJar
+> Task :app:transformAutomotiveDebugClassesWithAsm
+> Task :app:transformMobileDebugClassesWithAsm
+> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar
+> Task :app:kspMobileDebugUnitTestKotlin
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+> Task :app:compileMobileDebugUnitTestKotlin
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+> Task :auto:test
+> Task :app:processAutomotiveDebugUnitTestJavaRes
+> Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncAutomotiveDebugUnitTest
+> Task :app:hiltAggregateDepsAutomotiveDebugUnitTest
+> Task :app:hiltJavaCompileAutomotiveDebugUnitTest NO-SOURCE
+> Task :app:processMobileDebugUnitTestJavaRes
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm
+> Task :app:hiltSyncMobileDebugUnitTest
+> Task :app:testAutomotiveDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:hiltAggregateDepsMobileDebugUnitTest
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm
+> Task :app:testMobileDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:testMobileDebugUnitTest
+
+MapManagerSourceSwitchPlanTest > aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered FAILED
+    java.lang.NoClassDefFoundError: Could not initialize class sun.security.ssl.NamedGroup$SupportedGroups
+        at java.base/sun.security.ssl.SSLConfiguration.<init>(SSLConfiguration.java:191)
+        at java.base/sun.security.ssl.TransportContext.<init>(TransportContext.java:121)
+        at java.base/sun.security.ssl.SSLSocketImpl.<init>(SSLSocketImpl.java:125)
+        at java.base/sun.security.ssl.SSLSocketFactoryImpl.createSocket(SSLSocketFactoryImpl.java:72)
+        at java.base/sun.net.www.protocol.https.HttpsClient.createSocket(HttpsClient.java:420)
+        at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:163)
+        at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:539)
+        at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:644)
+        at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:265)
+        at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:378)
+        at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:196)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1260)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1146)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.connect(HttpURLConnection.java:1075)
+        at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:181)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1707)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1632)
+        at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:531)
+        at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307)
+        at com.naviveylin.data.HttpUrlFetcher$text$2.invokeSuspend(HttpUrlFetcher.kt:65)
+        at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+        at com.naviveylin.core.mapsource.RepositorySource.availableRegions(RepositorySource.kt:26)
+        at com.naviveylin.ui.mapmanager.MapManagerViewModel$refreshRepositoryRegions$1.invokeSuspend(MapManagerViewModel.kt:1075)
+
+        Caused by:
+        java.lang.NoClassDefFoundError: Could not initialize class sun.security.ssl.NamedGroup$SupportedGroups
+            at java.base/sun.security.ssl.SSLConfiguration.<init>(SSLConfiguration.java:191)
+            at java.base/sun.security.ssl.TransportContext.<init>(TransportContext.java:121)
+            at java.base/sun.security.ssl.SSLSocketImpl.<init>(SSLSocketImpl.java:125)
+            at java.base/sun.security.ssl.SSLSocketFactoryImpl.createSocket(SSLSocketFactoryImpl.java:72)
+            at java.base/sun.net.www.protocol.https.HttpsClient.createSocket(HttpsClient.java:420)
+            at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:163)
+            at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:539)
+            at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:644)
+            at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:265)
+            at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:378)
+            at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:196)
+            at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1260)
+            at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1146)
+            at java.base/sun.net.www.protocol.http.HttpURLConnection.connect(HttpURLConnection.java:1075)
+            at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:181)
+            at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1707)
+            at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1632)
+            at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:531)
+            at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307)
+            at com.naviveylin.data.HttpUrlFetcher$text$2.invokeSuspend(HttpUrlFetcher.kt:65)
+            at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+            at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+            at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)
+            at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+            at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+            at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)
+            at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+            at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+
+            Caused by:
+            java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "DefaultDispatcher-worker-2 @coroutine#13725"]
+                at java.base/sun.security.ssl.NamedGroup$SupportedGroups.<clinit>(NamedGroup.java:787)
+                ... 28 more
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:testMobileDebugUnitTest
+
+2294 tests completed, 1 failed
+
+> Task :app:testMobileDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testMobileDebugUnitTest'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/app/build/reports/tests/testMobileDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 11m 52s
+171 actionable tasks: 156 executed, 15 up-to-date
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 713s
+gate-pool: 4 steps start together — at most 4 in flight
+gate: bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  settings-surface (introduced by the open change settings-taxonomy-and-surface — classify it in that change, before it archives)
+  settings-taxonomy (introduced by the open change settings-taxonomy-and-surface — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  architecture-test-suite
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+  store-assets
+specs read: 190
+classified: 195
+unclassified: 2
+delta spec ids: 56
+stale: 5
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+gate: bash tools/gen-feature-list.sh --check-classification — 6s
+gate: tools/check-doc-routes.sh
+check-doc-routes: all 341 section references resolve, all 7 skill references resolve
+gate: tools/check-doc-routes.sh — 2s
+gate: tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 41 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+gate: tools/check-openspec-hygiene.sh — 1s
+gate: tools/tests/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
+gate: tools/tests/check-openspec-hygiene-selftest.sh — 1s
+LOOP-GATE: tests=7 failures=0 errors=2 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 713s, bash tools/gen-feature-list.sh --check-classification 6s, tools/check-doc-routes.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache bash tools/gen-feature-list.sh --check-classification

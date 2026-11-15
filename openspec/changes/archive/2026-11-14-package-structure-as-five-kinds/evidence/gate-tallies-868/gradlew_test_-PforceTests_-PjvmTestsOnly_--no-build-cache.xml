@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="1" time="713" run="860982">
+  <system-out> BUILD FAILED in 11m 52s 171 actionable tasks: 156 executed, 15 up-to-date</system-out>
+</testsuite>

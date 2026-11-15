@@ -1,0 +1,34 @@
+# The classification step's red, before item #867's work — verbatim excerpt
+#
+# Source: openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/gate-861.log
+# (item #861's gate, file mtime 2026-11-14 18:41:01 +0100 — before this item's base commit 4c4e6819
+# at 19:58:58, before this item's first commit bf839e9c at 22:08:24, before this item's first process
+# started at 22:03:04). Lines 1391-1412 of that file, copied with sed -n '1391,1412p', unedited:
+#
+gate: tools/loop/tests/loop-mutations-selftest.sh — 976s
+gate: bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  settings-surface (introduced by the open change settings-taxonomy-and-surface — classify it in that change, before it archives)
+  settings-taxonomy (introduced by the open change settings-taxonomy-and-surface — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  architecture-test-suite
+  package-structure
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+  store-assets
+specs read: 189
+classified: 195
+unclassified: 2
+delta spec ids: 30
+stale: 6
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+gate: bash tools/gen-feature-list.sh --check-classification — 12s
+gate-pool: 4 steps start together — at most 4 in flight
+#
+# Same step, same two unclassified ids, same "classification gate failed" — at a different HEAD
+# (0a7b66cae1ca6dc9cf996a5ae5833bf6efc6b6c4 there, base 4c4e681967c30eedc0cdd874a900562ab7f8b32b
+# here) and hours before this item existed. Attribution of that run: item #861's
+# evidence/gate-red-attribution-861.md, "Red 2".

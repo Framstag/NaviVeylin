@@ -1,0 +1,54 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=31997d389b8864d2ed74776c79a1ebb1c6680874 paths=24 insertions=2597 deletions=53
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH guidelines/BuildEvidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/declaration-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/evidence-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/gate-861.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/gate-red-attribution-861.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/mutations-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/mutations.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/phase-red-before-861.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/red-case-green.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/red-case-green.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/red-gate-attribution-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/evidence/review-round-1-cut.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-14-fix-a-flaked-case-is-off-the-blocked-path/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git 31997d389b8864d2ed74776c79a1ebb1c6680874
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=442 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-the-bound-case-asks-a-phase-that-fits scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 0 cases added, 1 rewritten, 0 fixtures realigned — `tools/look.sh 'PHASE-BOUND'` (4 matches in 2 files) and `tools/look.sh 'PKG-LINE-001' --path tools` (1 match in 1 file)
+LOOP-MEASURE-END

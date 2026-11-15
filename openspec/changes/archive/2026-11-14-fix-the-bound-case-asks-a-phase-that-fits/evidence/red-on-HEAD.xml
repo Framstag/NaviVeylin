@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner output. The tree is this item's base
+     (a1404a6caf15c34a96d951ed6b2cac94ff8018de) with the case as it stands there and no change of this item's, so
+     this is the reading the delta is red on. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case phase#aResultOverTheBoundIsCutAndNamed"
+           tests="1" failures="1" errors="0">
+  <testcase classname="phase" name="aResultOverTheBoundIsCutAndNamed">
+    <failure message="the package's head is part of the answer: 'PKG-LINE-001' not found in … [PHASE-BOUND: cut at 4000 characters — the phase state is printed first, so a cut takes the work package's tail; …]"/>
+  </testcase>
+</testsuite>

@@ -1,0 +1,10 @@
+# The declaration's figures, re-measured for task 1.2 (item #867, 2026-11-14).
+
+$ git ls-files 'app/src/main/java' 'auto/src/main/java' 'core/src/main/java' | sed -n '/\.kt$/p' | wc -l
+338
+
+$ git ls-files 'app/src/main/java' 'auto/src/main/java' 'core/src/main/java' | sed -n '/\.kt$/p' | sed 's#/[^/]*$##' | sort -u | wc -l
+27
+
+$ sed -n 's/^\([^#][^\t]*\)\t.*/\1/p' architecture/structure.tsv | wc -l   # rows
+27

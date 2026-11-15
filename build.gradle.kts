@@ -2,6 +2,9 @@ plugins {
     id("com.android.application") version "9.4.1" apply false
     id("com.android.library") version "9.4.1" apply false
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.10" apply false
+    // The host-only JVM module `:architecture` reads the three modules' sources (change
+    // `package-structure-as-five-kinds`, design D3); the version is the Kotlin the rest of the build runs.
+    id("org.jetbrains.kotlin.jvm") version "2.2.10" apply false
     id("com.google.dagger.hilt.android") version "2.59" apply false
     id("com.google.devtools.ksp") version "2.3.6" apply false
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10" apply false

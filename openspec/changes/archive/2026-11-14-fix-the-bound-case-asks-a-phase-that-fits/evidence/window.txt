@@ -1,0 +1,15 @@
+$ tools/look.sh 'LOOP_TOOL_RESULT_MAX_CHARS' --path tools/loop/loop.conf
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf for 'LOOP_TOOL_RESULT_MAX_CHARS'
+LOOK-FILE: tools/loop/loop.conf 1
+tools/loop/loop.conf:450:LOOP_TOOL_RESULT_MAX_CHARS=4000
+
+$ for r in 419d482c HEAD; do printf "%s " "$r"; git show "$r":tools/loop/prompts/worker.md | awk '/^## Phase A( |$)/{i=1} i&&/^## /&&!($0 ~ /^## Phase A( |$)/){i=0} i{n+=length($0)+1} END{print n+0}'; done
+419d482c 2630
+HEAD 2630
+
+$ sed -n 's/^phase#[A-Za-z0-9]*| //p' evidence/red-on-HEAD.log > evidence/stripped.log; awk '{buf=buf $0 "
+"} END{i1=index(buf,"LOOP-PHASE: A"); i2=index(buf,"<<<ISS"); i3=index(buf,"[PHASE-BOUND"); print "head_to_delim="i2-i1; print "answer_head_bytes="i3-1-i1; n=index(substr(buf,i3),"]"); print "notice_bytes="n; print "window=4000-notice-2="4000-n-2}'
+head_to_delim=3696
+answer_head_bytes=3702
+notice_bytes=262
+window=4000-notice-2=3736

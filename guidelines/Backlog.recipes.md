@@ -1021,6 +1021,14 @@ removal. Two worktrees of one repository are one repository and two scratch root
 suites in different trees cost each other is the host's load — measured 2026-10-24, issue #295, where the pair whose
 failing sets moved was a change worktree and a detached control worktree: the pair this lease does not cover.
 
+**A case that asserts what a bound keeps asks a fixture that bound leaves room for.** A case whose assertion is a
+token inside a tool's answer is a case about the window, so the fixture it asks must leave that token inside the
+window — and when the token is the work package's head, the phase it asks matters, because the checklist printed
+before the package is that phase's own section of its prompt and one phase's section can be most of the bound. A token
+the window cannot reach is a fixture its own bound contradicts, and it reddens the suite for every item the engine
+gates (issue #915, `phase#aResultOverTheBoundIsCutAndNamed`). What gives way when the state alone fills the bound is a
+decision about the answer's shape and not a case's to make.
+
 
 ## §7d Refusals, records and the landing
 

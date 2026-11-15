@@ -21,4 +21,5 @@ rootProject.name = "NaviVeylin"
 include(":app")
 include(":auto")
 include(":core")
+include(":architecture")
 include(":osmscout-client-java")

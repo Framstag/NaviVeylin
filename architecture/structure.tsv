@@ -2,7 +2,7 @@
 # Columns, tab-separated, on every line below that does not start with #: module, package, kind, feature, may_import.
 # kind is one of concept, port, feature, platform, shell. feature is the business name a feature or platform row carries, - when the package serves several or none.
 # may_import is the permission the kind's rules give, not a census of the imports the code has today: - is "nothing of ours", "any" is shell only.
-# Measured 2026-11-13: 332 main sources over 27 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (332); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (27).
+# Measured 2026-11-14: 338 main sources over 27 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (338); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (27).
 # One row per package as the tree stands today, no file moved: a package the pilot or a later migration splits keeps its row until the files move.
 # Added 2026-11-11 by change domain-vocabulary-is-declared: com.naviveylin.concept holds the skeleton types the glossary emits for a concept row no file declared, so the row set stays 1:1 with the tree.
 # Added 2026-11-13 by change package-structure-as-five-kinds (task 7.1): com.naviveylin.core.port holds the pilot's port interfaces; the port files are new, no file moved, and every earlier row stands unchanged.
@@ -27,6 +27,17 @@ app	com.naviveylin.ui.route	feature	route	concept,port
 app	com.naviveylin.ui.settings	platform	settings	concept,port,feature/settings
 app	com.naviveylin.ui.theme	platform	-	concept,port
 app	com.naviveylin.util	concept	-	-
+# Test-only packages, added 2026-11-15 by change package-structure-rules-and-suite (task 2.2) once the check
+# read the test source sets: 502 test sources over 4 packages that no main source shares, measured
+# find app/src/test/java auto/src/test/java core/src/test/java -name '*.kt' -o -name '*.java' | wc -l (502), all
+# four under app/src/test/java. They are declared 'shell' because a test harness assembles every kind it
+# exercises — the kind whose hosting the declaration permits. A fifth test-only package,
+# com.naviveylin.build, is deliberately not declared: Konsist's project scope drops every path carrying a
+# 'build' segment, so its 10 files are unread, and a row for them would name a package the check cannot find.
+app	com.framstag.libosmscout.client	shell	-	any
+app	com.naviveylin.featurelist	shell	-	any
+app	com.naviveylin.i18n	shell	-	any
+app	com.naviveylin.test	shell	-	any
 auto	com.naviveylin.auto	shell	-	any
 core	com.naviveylin.core	concept	-	-
 core	com.naviveylin.core.addressbook	port	-	concept

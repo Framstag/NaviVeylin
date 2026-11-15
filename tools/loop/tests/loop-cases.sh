@@ -183,6 +183,7 @@ LOOP_SHELL_CASES=(
   'gate#theSummaryNamesWhatEachSuiteCost'
   'gate#independentStepsRunTogether'
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
+  'gate#aBaseRedStepIsSubtractedAndNamed'
   'gate#aPooledWavePrintsEachStepWholeWhenItEnds'
   'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes'
   'gate#aSecondGateRefusesWhileOneRuns'
@@ -915,6 +916,7 @@ loop_run_shell_case() {
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
+    'gate#aBaseRedStepIsSubtractedAndNamed') fn=case_gate_aBaseRedStepIsSubtractedAndNamed ;;
     'gate#aPooledWavePrintsEachStepWholeWhenItEnds') fn=case_gate_aPooledWavePrintsEachStepWholeWhenItEnds ;;
     'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes') fn=case_gate_aCarrierAnotherRunWroteIsNotReadAsThisOnes ;;
     'gate#aSecondGateRefusesWhileOneRuns') fn=case_gate_aSecondGateRefusesWhileOneRuns ;;
@@ -6049,6 +6051,100 @@ SUITE
 # step wrote, and the verdict is the sum of those summaries. The failure mode this refuses is the shared `$stream`
 # the serial engine could afford (issue #801) — it is the guard the item asks for beside the timing case, and it is
 # green on the base by construction, because one step at a time shares nothing either.
+# A gate step that was already red on the base the run started from is a carrier, not the delta's fault (issue #921).
+# The run measures the base once (`gate.sh --base-red`, recorded by `state.sh base-red` as `run.baseRed`) and every
+# gate subtracts exactly the step-and-case pairs that record holds — naming what it subtracted on its console, in its
+# log and in the run's record (`run.baseRedUsed`), and quoting it in the verdict so a green carrier is not read as a
+# clean step. Both halves are one rule: a step red on the base *and* red for a case the base never had is still red, so
+# the subtraction is case by case and never by step alone.
+case_gate_aBaseRedStepIsSubtractedAndNamed() {
+  # files: tools/loop/gate.sh tools/loop/state.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf state base log out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  state="$p/.pi/issue-loop/run.json"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_FIRST_STEPS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|./suite-one;notes/*|./suite-two"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=1\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  # Two steps, both red before the change, one case each: the numbers each reports are its own.
+  for s in one two; do
+    cat > "$p/suite-$s" <<SUITE
+printf 'FAIL notes#aCaseThatWasRed-$s\n'
+printf 'notes: 1 of 2 cases failed\n'
+exit 1
+SUITE
+    chmod +x "$p/suite-$s"
+  done
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the base' >/dev/null 2>&1 \
+    || fail "could not commit the base in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD)
+  # The pre-flight, taken on the base tree itself: it names each red step and the case that failed there, and that
+  # output is what the state records — one reader of the shape, so the two gates below subtract the same pairs.
+  log="$d/base-red.log"
+  # 1 is a base that carries red — the measurement, not a failure: the command fails here only when it measured neither.
+  rc=0
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base-red --base "$base" ) > "$log" 2>&1 || rc=$?
+  case "$rc" in 0|1) : ;; *) fail "the pre-flight did not run (exit $rc): $(cat "$log")" ;; esac
+  assert_contains "$(cat "$log")" 'LOOP-BASERED-STEP:./suite-one|1' \
+    "the pre-flight names the red step and its count: $(cat "$log")"
+  assert_contains "$(cat "$log")" 'LOOP-BASERED-CASE:./suite-two|notes#aCaseThatWasRed-two' \
+    "and the case that failed beside it: $(cat "$log")"
+  # The pre-flight is not the item's measurement: it holds no tally lock and leaves no carrier behind.
+  [ -z "$(ls -A "$d/tally" 2>/dev/null)" ] || fail "the pre-flight wrote into the tally directory: $(ls -A "$d/tally")"
+  # The change: one path the map owes both steps, and neither script's red touched by it.
+  printf 'a changed note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  ( cd "$p" && LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/state.sh" init --items 1 --minutes 1 --review off --may-close no --base "$base" ) \
+    >/dev/null 2>&1 || fail "could not initialize the run state"
+  ( cd "$p" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/state.sh" base-red --from "$log" --base "$base" ) \
+    >/dev/null 2>&1 || fail "the pre-flight's output was not written into the state"
+  assert_contains "$(jq -c '.run.baseRed' "$state")" 'notes#aCaseThatWasRed-two' \
+    "the run's record carries the case the base was red for: $(jq -c '.run.baseRed' "$state")"
+  # ── first half: red on the base and red for no new case is a carrier, subtracted and named ──────────────────
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "0" "$rc" "a step red on the base and red for no new case is not a red gate: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "the gate names the step it subtracted: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-two:1' "and the step beside it: $out"
+  assert_contains "$out" 'tests=4 failures=0 errors=0' "the tally it subtracted from is the green one: $out"
+  assert_contains "$out" 'base-red: ./suite-one:1, ./suite-two:1' "the verdict quotes the red it carried: $out"
+  assert_contains "$(cat "$d/tally/gate.log" 2>/dev/null)" 'LOOP-GATE-BASERED:./suite-two:1' \
+    "the gate's own log carries the line too: $(cat "$d/tally/gate.log" 2>/dev/null)"
+  assert_contains "$(jq -c '.run.baseRedUsed.steps' "$state")" '"./suite-two":1' \
+    "and the run's record says what the gate subtracted: $(jq -c '.run.baseRedUsed' "$state")"
+  # ── second half: red on the base *and* red for a case the base never had is still red ──────────────────────
+  cat > "$p/suite-two" <<'SUITE'
+printf 'FAIL notes#aCaseThatWasRed-two\n'
+printf 'FAIL notes#aNewCaseTheBaseNeverHad\n'
+printf 'notes: 2 of 3 cases failed\n'
+exit 1
+SUITE
+  chmod +x "$p/suite-two"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a case the base never had' >/dev/null 2>&1 \
+    || fail "could not commit the new failing case"
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a step red for a case the base never had is still red: $out"
+  assert_contains "$out" '— failing: ./suite-two' "the verdict names that step: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "the carrier beside it is still subtracted and named: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-two:1' \
+    "the step's own base-red pair leaves the tally: $out"
+  case "$out" in *'LOOP-GATE-BASERED:./suite-two:2'*)
+    fail "a step red for a new case had all of its red subtracted as the base's: $out" ;; esac
+  assert_contains "$out" 'tests=5 failures=1' "the new case is counted and the base's pair is not: $out"
+  return 0
+}
+
 case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out rc tally failing ok_cases

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
@@ -512,6 +513,7 @@ internal fun MapMenu(
     onDownloadMaps: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     toasterTopPadding: Dp
 ) {
@@ -562,6 +564,16 @@ internal fun MapMenu(
                         onClick = {
                             onDismiss()
                             onOpenSearch()
+                        }
+                    )
+                    // Settings sits between Search and About (spec: `map-menu` — Menu entries with
+                    // leading icons): the menu opens the settings surface at its root.
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.settings_title)) },
+                        leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        onClick = {
+                            onDismiss()
+                            onOpenSettings()
                         }
                     )
                     DropdownMenuItem(

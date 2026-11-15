@@ -3,6 +3,7 @@ package com.naviveylin.ui.map
 import android.Manifest
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
@@ -36,6 +37,7 @@ import com.naviveylin.ui.route.RoutePanelViewModel
 
 import android.content.Context
 import com.naviveylin.ui.route.RoutePanelUiState
+import com.naviveylin.ui.settings.SettingsSurfaceHost
 import com.naviveylin.core.NavigationState
 import com.naviveylin.data.AddressBookRationaleStore
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -68,6 +70,7 @@ internal fun MapCanvasMenuBandContent(
         onDownloadMaps = { onNavigateToMapManager() },
         onOpenFavorites = { viewModel.toggleFavoritesSheet() },
         onOpenSearch = { viewModel.openSearch() },
+        onOpenSettings = { viewModel.settingsController.openRoot() },
         onOpenAbout = { showAboutDialogState.value = true },
         toasterTopPadding = if (isLandscape) 8.dp else 4.dp
     )
@@ -406,6 +409,18 @@ internal fun MapCanvasModalBandContent(
             onDismiss = { showNavDetailsState.value = false }
         )
     }
+
+    // The settings surface — a full-height overlay in this band, above every other surface and the
+    // chrome band, never a navigation destination (spec: `settings-surface` — "The settings surface
+    // is a full-height overlay inside the map screen"; design D3). It is composed last so its back
+    // handler is registered last and takes the gesture before the overlays under it; the map band
+    // keeps its size and the renderer, follow state and route session are never touched here.
+    SettingsSurfaceHost(
+        controller = viewModel.settingsController,
+        onOpenMapManager = onNavigateToMapManager,
+        onOpenAbout = { showAboutDialogState.value = true },
+        modifier = Modifier.fillMaxSize()
+    )
 }
 
 @Composable

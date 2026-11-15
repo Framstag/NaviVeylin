@@ -33,8 +33,19 @@ data class SettingChoice(
     @param:StringRes val labelRes: Int
 )
 
-/** The payload a control kind needs beside its key; [SettingControl.SWITCH] and `LINK` carry none. */
+/** Where a [SettingControl.LINK] row sends the user (design D1: a link row's target). */
+enum class SettingsLinkTarget {
+    /** The Map Manager screen, which stays the one screen for map source, downloads and updates. */
+    MAP_MANAGER,
+
+    /** The About dialog the app already shows. */
+    ABOUT
+}
+
+/** The payload a control kind needs beside its key; [SettingControl.SWITCH] carries none. */
 sealed interface SettingControlPayload {
+    /** A link's destination: the row leaves the surface instead of editing a value. */
+    data class Link(val target: SettingsLinkTarget) : SettingControlPayload
     /** A slider's endpoints and step, in the value's own unit. */
     data class Slider(val min: Int, val max: Int, val step: Int) : SettingControlPayload
 

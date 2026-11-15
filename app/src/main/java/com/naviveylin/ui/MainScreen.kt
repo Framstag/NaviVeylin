@@ -27,16 +27,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.naviveylin.R
 import com.naviveylin.ui.about.AboutDialog
+import com.naviveylin.ui.settings.SettingsSurfaceHost
+import com.naviveylin.ui.settings.SettingsViewModel
 
 /**
  * Main hub screen. Shows welcome message when no map is displayed.
  * Navigate to Map Manager to download/select a map, then to Map Canvas.
+ *
+ * Its overflow menu carries the phone's second settings path (spec: `settings-surface` — "Three
+ * entry points, one surface at a time"): no map is shown here, so the surface is hosted over this
+ * screen rather than in the map's modal band, and both hosts read the same [SettingsViewModel]'s
+ * controller, which is the change's one writer (design D2).
  */
 @Composable
 fun MainScreen(
-    onNavigateToMapManager: () -> Unit
+    onNavigateToMapManager: () -> Unit,
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -99,6 +108,13 @@ fun MainScreen(
                     }
                 )
                 DropdownMenuItem(
+                    text = { Text(stringResource(R.string.settings_title)) },
+                    onClick = {
+                        menuExpanded = false
+                        settingsViewModel.controller.openRoot()
+                    }
+                )
+                DropdownMenuItem(
                     text = { Text(stringResource(R.string.about)) },
                     onClick = {
                         menuExpanded = false
@@ -112,5 +128,14 @@ fun MainScreen(
         if (showAboutDialog) {
             AboutDialog(onDismiss = { showAboutDialog = false })
         }
+
+        // The settings surface, opened by this screen's own menu entry and by the About link row of
+        // its topic page; the same composable the map screen hosts, so the two cannot drift.
+        SettingsSurfaceHost(
+            controller = settingsViewModel.controller,
+            onOpenMapManager = onNavigateToMapManager,
+            onOpenAbout = { showAboutDialog = true },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }

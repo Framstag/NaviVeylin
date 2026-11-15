@@ -60,6 +60,7 @@ class MapMenuComposeTest {
                     onDownloadMaps = { downloadMaps++ },
                     onOpenFavorites = { favorites++ },
                     onOpenSearch = { search++ },
+                    onOpenSettings = {},
                     onOpenAbout = { about++ },
                     toasterTopPadding = 4.dp
                 )
@@ -84,6 +85,7 @@ class MapMenuComposeTest {
                     onDownloadMaps = { downloadMaps++ },
                     onOpenFavorites = { favorites++ },
                     onOpenSearch = { search++ },
+                    onOpenSettings = {},
                     onOpenAbout = { about++ },
                     toasterTopPadding = 4.dp
                 )

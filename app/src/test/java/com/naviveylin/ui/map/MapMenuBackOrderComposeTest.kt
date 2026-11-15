@@ -46,6 +46,7 @@ class MapMenuBackOrderComposeTest {
             onDownloadMaps = {},
             onOpenFavorites = {},
             onOpenSearch = {},
+            onOpenSettings = {},
             onOpenAbout = {},
             toasterTopPadding = 4.dp
         )

@@ -238,6 +238,12 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             preferSymbolPoiIcons = state.preferSymbolPoiIcons,
                             onSetPreferSymbolPoiIcons = { preferSymbols ->
                                 viewModel.onSetPreferSymbolPoiIcons(preferSymbols)
+                            },
+                            // The sheet's last row closes it and opens the surface, which is the
+                            // map screen's own host (spec: `settings-surface` — "Three entry points,
+                            // one surface at a time").
+                            onOpenSettings = {
+                                viewModel.settingsController.openRoot()
                             }
                         )
                     },
@@ -418,6 +424,12 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             preferSymbolPoiIcons = state.preferSymbolPoiIcons,
                             onSetPreferSymbolPoiIcons = { preferSymbols ->
                                 viewModel.onSetPreferSymbolPoiIcons(preferSymbols)
+                            },
+                            // The sheet's last row closes it and opens the surface, which is the
+                            // map screen's own host (spec: `settings-surface` — "Three entry points,
+                            // one surface at a time").
+                            onOpenSettings = {
+                                viewModel.settingsController.openRoot()
                             }
                         )
                     },
@@ -640,6 +652,12 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                                 freeDrivingAnchor = state.freeDrivingAnchor,
                                 onSetFreeDrivingAnchor = { anchor ->
                                     viewModel.setFreeDrivingAnchor(anchor)
+                                },
+                                // The sheet's last row closes it and opens the surface, which is
+                                // the map screen's own host (spec: `settings-surface` — "Three
+                                // entry points, one surface at a time").
+                                onOpenSettings = {
+                                    viewModel.settingsController.openRoot()
                                 }
                             )
                         },

@@ -1300,6 +1300,26 @@ MUTATIONS=(
   # open question it leaves (the case asserts the index's content, so what the redirected write loses is not visible to
   # it) belongs in the review, not in a green record.
   '924.1@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
+  # 925.x — the rule the worker prompt stated and nothing counted is a measured bound with a refusal arm (issue #925):
+  # the second read of a path one child was handed is counted every time, and the arm `LOOP_REPEAT_READ` records picks
+  # what it is answered with. Over the run behind that issue 2 167 of 2 987 reads (72.5 %) were a second read of a path
+  # the item already had, and `#872` read four paths 283 to 295 times each across 226 turns — the advisory lost, so it
+  # became a count and an arm. One record per half: the arm that withholds (`925.1`), the line that counts (`925.2`), the
+  # guard that serves a read the child was never handed (`925.3`), the earlier result the refusal cites (`925.4`), the arm
+  # the record names (`925.5`), the adapter export (`925.6`) and its fallback (`925.7`), the record the count is read from
+  # (`925.8`), the anchor that keeps a withheld repeat out of the count (`925.9`), the null that is not a zero (`925.10`),
+  # and the trend that prints it (`925.11`).
+  '925.1@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the arm that withholds a second read, so the bound the rule declares hands every repeat over and counts what it said it would refuse@s|^    if (arm !== "refuse" \|\| !entry.handed) return { text, entry, refused: false };$|    return { text, entry, refused: false };|'
+  '925.2@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the line a counted second read leaves, so the rule fires and no record says it did — the figure the report prints stays empty (issue #925)@s|^        appendFileSync(record, repeatReadRecordLine(tool, read.turn, arm));$|        void 0;|'
+  '925.3@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the guard that serves a read of a path this child was never handed, so the refusal names a range the child does not hold (issue #925)@s|^    if (arm !== "refuse" \|\| !entry.handed) return { text, entry, refused: false };$|    if (arm !== "refuse") return { text, entry, refused: false };|'
+  '925.4@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the earlier result the refusal cites, so the line names the range of the read it is refusing instead of the one the child can ask for (issue #925)@s|^    return { text: repeatReadNotice(read.path, entry.lines, entry.turn, entry.size), entry, refused: true };$|    return { text: repeatReadNotice(read.path, resultLines(text), read.turn, text.length), entry, refused: true };|'
+  '925.5@-@../pi-trim-result.mjs@repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt@the arm the record line names, so a counted read and a withheld one leave the same line and no reader can tell which arm answered it (issue #925)@s|turn=\${turn} arm=\${arm}|turn=\${turn} arm=measure|'
+  '925.6@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheRepeatReadArm@the export of the recorded arm, so the child applies a value the adapter chose and a configuration that records refuse is counted and served (issue #925)@s|^export LOOP_REPEAT_READ="\$repeat_arm"$|export LOOP_REPEAT_READ="measure"|'
+  '925.7@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheRepeatReadArm@the fallback a word this rule does not declare takes, so a key nobody wrote hands the child the arm that withholds and a run is broken by its own configuration (issue #925)@s|\*) repeat_arm=measure|*) repeat_arm=refuse|'
+  '925.8@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the record the count is read from, so an item that repeated two paths records that it repeated none (issue #925)@s|^    repeats_json=\$(repeat_reads "\$(dirname "\$events")/tool-result-trims.log")$|    repeats_json=$(repeat_reads "$(dirname "$events")/item.log")|'
+  '925.9@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)@s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true|'
+  '925.10@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)@s|repeats_json=null|repeats_json=0|'
+  '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)@s|counted by the repeat-read rule|taken as given|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

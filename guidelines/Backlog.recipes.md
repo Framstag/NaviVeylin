@@ -201,14 +201,34 @@ line a repeat is replaced by names the session that read the path — `LOOP_CHIL
 run handed that child — because "this session" is false for every child after the first. A ledger line carries
 `sha`, turn, size and session ahead of the path, and a line of the older four-column shape is dropped rather than
 misread, so a stale entry costs one read and never a stale one. The two figures are therefore not one number's halves:
-a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop** — no key
-gates it and no outcome reads it — and an item whose stream
+a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop**: it bounds
+nothing and no outcome reads it — and an item whose stream
 measured no read records `null`, which the row and the trend print as `-` with their own reasons (a record that
 predates the field is told apart from one that met a run of items which opened no file).
 `report#anItemRecordsItsRepeatReads` and `repeat#aRepeatIsRecordedAsWhatItWithheld` are the cases of the count and the
 record, `repeat#anItemsLedgerSpansItsChildren`, `repeat#theHookWritesTheItemsLedger` and
 `adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger, and mutation records `96.1`–`96.3` and `858.1`–`858.6`
 are what prove they notice each half go.
+
+The rule the prompt stated is a measured bound with a refusal arm since #925, because the prompt lost: over the run
+behind that issue 2 167 of its 2 987 reads were a second read of a path the item already had (72.5 %), and #872 alone
+read four paths 283 to 295 times each across 226 turns. So `tools/pi-trim-result.mjs` keeps the tally of the paths
+**this child** was handed — a second `Map`, never the item's ledger, because "this child already held the text" and "the
+item holds this content" are two questions — and a second read is always counted: it appends
+`LOOP-TOOL-RESULT-REPEAT-READ: <tool> turn=<n> arm=<arm>` to the record beside the child's stream, and `state.sh` reads
+that file into `metrics.repeatReads`, which the report prints in the `reads:` line beside `dupReads` and never as the same
+figure: `dupReads` counts a repeat one **session** had and `repeatReads` one a **child** was handed, so they differ where
+a child other than the first reads a path. The arm is `LOOP_REPEAT_READ` in the configuration's project block, read by
+the adapter and never sourced (D16): `measure`, the recorded value, serves the read and counts it, `refuse` answers it
+with `[LOOP-REPEAT-READ: <path> … lines:1-N (size characters) … ctx_read mode="lines:1-N"]` and no text at all, and a
+word the rule does not declare — or none — is `measure`, so a configuration nobody wrote cannot break a child. A read of
+a path the child was **never handed**, the item's ledger having withheld it, is served under either arm, because a
+refusal naming lines the child does not hold would send it to read what it cannot. The figure keeps the report's two
+kinds of dash apart the way `dupReads` does: a record that was read and holds no second read is `0`, and a state written
+before the field existed has no key. `repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt` drives both arms through
+the hook, the only place two reads meet one process, `adapter#theChildIsStartedWithTheRepeatReadArm` the export and its
+fallback, and `report#theRuleRecordsTheSecondReadsItCounted` the figure, the zero and the missing key; mutation records
+`925.1`–`925.11` are their falsification.
 
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round

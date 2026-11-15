@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.architecture.StructureDeclarationTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-15T06:20:19.002Z" hostname="dingens" time="4.738">
+  <properties/>
+  <testcase name="structureCheckFailsOnRowWithoutPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="4.494"/>
+  <testcase name="structureCheckFailsOnDuplicateRow" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.065"/>
+  <testcase name="defaultDenyFailsForANewPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.07"/>
+  <testcase name="emptyDeclarationFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.058"/>
+  <testcase name="structureCheckFailsOnUndeclaredPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.051"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

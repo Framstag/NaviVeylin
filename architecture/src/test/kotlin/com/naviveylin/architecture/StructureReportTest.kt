@@ -23,16 +23,16 @@ class StructureReportTest {
         )
 
         assertTrue("the project's own tree must pass the check: ${report.summary()}", report.passed)
-        assertEquals("every declaration row must be read: ${report.summary()}", 31, report.rows)
+        assertEquals("every declaration row must be read: ${report.summary()}", 33, report.rows)
         assertEquals(
             "every main and test source file of the three modules must be classified: ${report.summary()}",
-            840,
+            853,
             report.files,
         )
         assertEquals(
-            "the day-one baseline's 14 entries, the feature rules' 23 and the mirror rule's 7 rows must be " +
+            "the day-one baseline's 14 entries, the feature rules' 23 and the mirror rule's 9 rows must be " +
                 "counted as outstanding exemptions: ${report.summary()}",
-            44,
+            46,
             report.exemptions,
         )
         assertEquals(
@@ -42,7 +42,7 @@ class StructureReportTest {
         )
         assertTrue(
             "the green run must state its four figures: ${report.summary()}",
-            report.summary().contains("rows=31 files=840 exemptions=44 rules=10"),
+            report.summary().contains("rows=33 files=853 exemptions=46 rules=10"),
         )
     }
 

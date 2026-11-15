@@ -388,6 +388,8 @@ LOOP_SHELL_CASES=(
   'report#aRoleWhoseTurnNamedNoModelKeepsItsRow'
   'report#aTurnNoSessionRecordReachesIsItsOwnBucket'
   'report#thePhaseLineNamesTheClockItIsAShareOf'
+  'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow'
+  'report#theRefusedLandingIsReadFromTheRecord'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
@@ -1128,6 +1130,8 @@ loop_run_shell_case() {
     'report#aRoleWhoseTurnNamedNoModelKeepsItsRow') fn=case_report_aRoleWhoseTurnNamedNoModelKeepsItsRow ;;
     'report#aTurnNoSessionRecordReachesIsItsOwnBucket') fn=case_report_aTurnNoSessionRecordReachesIsItsOwnBucket ;;
     'report#thePhaseLineNamesTheClockItIsAShareOf') fn=case_report_thePhaseLineNamesTheClockItIsAShareOf ;;
+    'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow') fn=case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow ;;
+    'report#theRefusedLandingIsReadFromTheRecord') fn=case_report_theRefusedLandingIsReadFromTheRecord ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
@@ -13189,6 +13193,60 @@ case_report_anUnmergeableItemNamesItsLanding() {
   assert_contains "$line23" "git -C $p merge --ff-only fix/issue-23-already-on-the-base" \
     "and still names the command a caller tries"
   assert_not_contains "$line23" "status --porcelain" "a refusal that named no path owes no path listing"
+  assert_contains "$block" "re-derived from the note" \
+    "a state that records no refusal says its landing is re-derived from the note, and not read from a record"
+}
+
+# The refused landing is the record the run wrote, not the note it quoted (issue #883). The note is prose the writer
+# composed — `run.sh` builds it from the refusal it caught — so a report that reads the branch and the paths back out
+# of it prints a landing from a second reading of text, and the run of 2026-11-20T06:12:41Z showed what that costs:
+# item #692 recorded `mergeRefused.branch` while its note had been rewritten once, and the landing the report printed
+# named a branch the run had not asked to merge. So the state records both halves at the refusal
+# (`state.sh done --merge-refused-branch/--merge-refused-path`) and this case gives the note a branch and a path to
+# disagree with: what prints is the record.
+case_report_theRefusedLandingIsReadFromTheRecord() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out block line31
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf 'demo work\n' > "$p/demo.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "demo work" >/dev/null 2>&1 || fail "could not commit in the throwaway repository"
+  git -C "$p" branch fix/issue-31-the-branch-the-run-asked-for >/dev/null 2>&1 ||
+    fail "could not create the attempt branch"
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1},{"issue":32,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result blocked --verdict blocked --stop-reason unmergeable \
+    --gate "tests=245 failures=0 errors=0" \
+    --merge-refused-branch fix/issue-31-the-branch-the-run-asked-for \
+    --merge-refused-path " M demo.txt" --merge-refused-path "?? docs/left-behind.md" \
+    --note "the branch fix/issue-31-a-note-the-run-did-not-take could not be merged onto the base, so the item is not closed on a fix the tree does not have — the project tree is not clean — refusing to merge fix/issue-31-a-note-the-run-did-not-take onto the base:\n?? docs/from-the-note.md" \
+    --decision-label agent/needs-decision >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  line31=$(printf '%s\n' "$block" | grep 'land fix/issue-31' || true)
+  [ -n "$line31" ] || fail "no landing line for the item a merge refused: $block"
+  assert_contains "$line31" "git -C $p merge --ff-only fix/issue-31-the-branch-the-run-asked-for" \
+    "the branch is the one the record carries, not the one the note happens to name"
+  assert_contains "$line31" "1 commit(s) the base does not have" "and what that branch carries"
+  assert_contains "$line31" " M demo.txt" "the path the record carries is printed"
+  assert_contains "$line31" "?? docs/left-behind.md" "every path the record carries, not the first"
+  assert_not_contains "$line31" "a-note-the-run-did-not-take" \
+    "the note's branch is not the run's record, and is not printed as if it were"
+  assert_not_contains "$line31" "from-the-note" "nor is the note's path"
+  assert_not_contains "$line31" "re-derived from the note" \
+    "a landing read from the record is no derivation, and the line does not say it is"
+  assert_eq "1" "$(printf '%s\n' "$block" | grep -c 'land fix/issue-31')" "the refused item is one line"
+  # The two halves are one fact, and the mechanism is what makes them a refusal: a path with no branch names nothing
+  # a caller can land, and neither half belongs to an item whose landing was never refused.
+  if run_state "$p" done 32 --result blocked --verdict blocked --stop-reason unmergeable \
+    --merge-refused-path " M demo.txt" >/dev/null 2>&1; then
+    fail "a path recorded with no branch names a refusal nothing identifies"
+  fi
+  if run_state "$p" done 32 --result done --verdict closed \
+    --merge-refused-branch fix/issue-31-the-branch-the-run-asked-for >/dev/null 2>&1; then
+    fail "a refusal is recorded beside the mechanism that names it, not on an item whose landing was taken"
+  fi
 }
 
 # An action list is empty only when the state and git say so — and it says it, rather than leaving the
@@ -14285,6 +14343,76 @@ JSONL
   phases_line=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p" | grep '^  phases:' || true)
   assert_contains "$phases_line" "1.3 s over 1 item — no item wall recorded to read it against" \
     "an item that recorded no wall leaves the line with no denominator, and says so"
+}
+
+# The two figures the trend block did not state (issue #883): how much of the item clock the **gate** was, and how
+# much of the run's window no item's wall covers. Both were read by hand out of `items/*/` — the phase line says
+# where the spend went and never what share of the wall the gate is, and the window is the one clock that neither
+# the walls nor the holds are a share of. Measured on the run of 2026-11-13T05:47:11Z: the gate 4 568 s of #853's
+# 5 709 s wall (80 %), 60.4 % for #865, 58.8 % for #864, and 45 173 s of window against 22 925 s of walls — 22 247 s
+# (49.3 %) outside items. Every input is a recorded number (`.items[].metrics.phases.gateMs`, `.metrics.wallSeconds`,
+# `.run.startedEpoch` and `.run.stop.at`), so the two rows are readings and never a second clock.
+case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend gate_line outside_line start stop
+  d=$(scratch); p=$(new_project)
+  # Two items, each a turn and one gate call: 1 s of model time and 8 s of gate over a 12.5 s wall, and 2 s and
+  # 6.7 s over the same wall. The share the line totals is then 58.8 % — a figure that only the tenths places can
+  # tell apart from #864's 58.8 % — and the two per-item shares are 64 % and 53.6 %.
+  cat > "$d/gate101.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s1"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/101/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"bash","arguments":{"command":"./tools/loop/gate.sh --group quick"}}]},"toolResults":[]}
+ {"type":"tool_execution_end","toolCallId":"c1","toolName":"bash","durationMs":8000,"isError":false}
+JSONL
+  cat > "$d/gate102.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s2"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/102/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":2000,"content":[{"type":"toolCall","id":"c2","name":"bash","arguments":{"command":"./tools/loop/gate.sh --group quick"}}]},"toolResults":[]}
+ {"type":"tool_execution_end","toolCallId":"c2","toolName":"bash","durationMs":6700,"isError":false}
+JSONL
+  init_state "$p" 2 90
+  printf '[{"issue":101,"class":"bug","verdict":"eligible","rank":1},{"issue":102,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 101 --result done --verdict closed --wall 12.5 --events "$d/gate101.jsonl" >/dev/null
+  run_state "$p" done 102 --result done --verdict closed --wall 12.5 --events "$d/gate102.jsonl" >/dev/null
+  # The window is the start and the stop the state records: a run of 300 s between them, dated here rather than
+  # slept, so the figure the report prints is arithmetic over two recorded instants.
+  f=$(state_file "$p")
+  start=1700000000; stop=$((start + 300))
+  jq --argjson s "$start" --arg at "$(date -u -d "@$stop" '+%Y-%m-%dT%H:%M:%SZ')" \
+    '.run.startedEpoch = $s | .run.stop = {reason: "deadline", at: $at} | del(.stateDigest)' "$f" > "$f.w" && mv "$f.w" "$f"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  gate_line=$(printf '%s\n' "$trend" | grep '^  gate share:' || true)
+  [ -n "$gate_line" ] || fail "the trend printed no gate-share line: $trend"
+  assert_contains "$gate_line" \
+    "58.8 % — 14.7 s of the 25 s of item wall over 2 items · worst #101 64 % · #102 53.6 %" \
+    "the gate share names the gate bucket as a share of the item wall, and the worst two items behind the total"
+  outside_line=$(printf '%s\n' "$trend" | grep '^  outside items:' || true)
+  [ -n "$outside_line" ] || fail "the trend printed no outside-items line: $trend"
+  assert_contains "$outside_line" \
+    "91.7 % — 275 s of the 300 s window outside every item wall (25 s over 2 items)" \
+    "the window the run recorded, minus the walls its items recorded, as the time no item covers"
+  assert_not_contains "$outside_line" "recorded wait" "a run that waited in no hold names no wait"
+  # A run whose items spent nothing in a gate is a share of zero that nobody measured: the row says which, rather
+  # than printing `0 %` as if a gate had run for no time, and a run whose record carries no stop has no window.
+  jq '(.items[].metrics.phases.gateMs) = 0 | del(.run.stop) | del(.stateDigest)' "$f" > "$f.n" && mv "$f.n" "$f"
+  out=$(run_report "$p") || fail "the report failed for a run whose gate cost nothing"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "gate share: - · no item of this run spent time in a gate" \
+    "a gate nobody spent time in prints a dash with its reason, not a share of zero"
+  assert_contains "$trend" "outside items: - · this state records no run window" \
+    "a record with no stop has no window, and says so rather than dating itself from the moment the report ran"
+  # A state written before the phase buckets existed holds no gate time to read: the row is the dash the whole
+  # block prints for the same state, because a reader must be able to tell `not recorded` from `no gate ran`.
+  jq --argjson s "$start" --arg at "$(date -u -d "@$stop" '+%Y-%m-%dT%H:%M:%SZ')" \
+    '.run.startedEpoch = $s | .run.stop = {reason: "deadline", at: $at} | del(.items[].metrics.phases) | del(.stateDigest)' "$f" > "$f.o" &&
+    mv "$f.o" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the phases existed"
+  assert_contains "$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")" \
+    "gate share: - · this state records no phase durations — it was written before the report read them" \
+    "a state whose items record no phases says the figure was never recorded, not that no gate ran"
 }
 
 # Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the

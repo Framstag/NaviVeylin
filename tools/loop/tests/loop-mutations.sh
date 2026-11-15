@@ -1320,6 +1320,14 @@ MUTATIONS=(
   '925.9@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)@s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true|'
   '925.10@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)@s|repeats_json=null|repeats_json=0|'
   '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)@s|counted by the repeat-read rule|taken as given|'
+  # 883.x — the report states what the state records, instead of re-deriving it (issue #883). `report.sh` read 47
+  # figures back out of text the run had already written — the note's branch, the paths after a refusal's
+  # `onto the base:`, a window dated from the clock the report happened to run at — so a report printed a landing, or
+  # a span, that the run's own record did not hold. Two records here: the window is read from the recorded stop, and
+  # the refused landing from the refusal the run wrote.
+  '883.1@-@tools/loop/report.sh@report#theTrendBlockNamesTheGateShareAndTheOutsideWindow@the window read as the clock since the run started instead of the stop the state recorded, so a run reports a span no record holds and the figure dates itself from the moment the report ran (issue #883)@s|--argjson window "\${window_secs:-null}"|--argjson window "$(( $(date +%s) - ${run_epoch:-0} ))"|'
+  '883.2@-@tools/loop/report.sh@report#theRefusedLandingIsReadFromTheRecord@the refused landing read back out of the note the block quoted rather than the refusal the run recorded, so the branch and the paths a caller is handed are a second reading of prose (issue #883)@s|^  if \[ "$refusal_kind" = record \]; then$|  if false; then|'
+  '883.3@-@tools/loop/state.sh@report#theRefusedLandingIsReadFromTheRecord@the arm that writes a refusal the run handed to its item, so the branch and the paths a block was given are recorded as no refusal at all and the report re-derives them from the note (issue #883)@s|^  if \[ -n "$merge_refused_branch" \]; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

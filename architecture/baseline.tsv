@@ -1,9 +1,11 @@
 # architecture/baseline.tsv — the ratchet's exemptions (change package-structure-as-five-kinds, task 1.7).
 # Columns, tab-separated, on every line below that does not start with #: file, rule, owning change.
-# file is the project-relative path of a main source file; rule is the name of a rule in LayerRules the file
-# is exempted from; owning change is the change that removes the entry by moving or fixing its file. The check
-# refuses an entry that names no change and an entry whose file no longer violates the rule (spec
-# architecture-test-suite — "The baseline is shrink-only"), so this file can only shrink.
+# file is the project-relative path of a main source file, or — for a rule that judges a declaration row rather
+# than a file — `row <module>⇥<package>`, four columns then; rule is the name of a rule in LayerRules or
+# DeclarationRules the subject is exempted from; owning change is the change that removes the entry by moving,
+# fixing or re-declaring its subject. The check refuses an entry that names no change and an entry whose subject
+# no longer violates the rule (spec architecture-test-suite — "The baseline is shrink-only"), so this file can
+# only shrink.
 # Measured 2026-11-14 by running the check with an empty baseline (this file holding no entries): 14 entries
 # over 13 files — 11 for 'concept imports no Android type' and 3 for 'concept imports nothing of ours'
 # (ResultMarkings.kt carries both). The concept packages are the rows of architecture/structure.tsv whose kind
@@ -74,3 +76,18 @@ app/src/main/java/com/naviveylin/ui/route/RoutePanelViewModel.kt	feature imports
 app/src/main/java/com/naviveylin/ui/route/RoutePanelViewModel.kt	feature imports nothing upward	package-structure-feature-migration
 app/src/main/java/com/naviveylin/ui/route/RouteSummary.kt	feature imports no Android type	package-structure-feature-migration
 app/src/main/java/com/naviveylin/ui/route/RouteSummary.kt	feature imports nothing upward	package-structure-feature-migration
+#
+# The 7 row entries below are the day-one unmirrored platform rows (change package-structure-rules-and-suite,
+# task 1.7's mirror half, item #870). The mirror rule pairs a platform row with a `feature/<name>` row by name,
+# and no package carries either prefix yet, so all seven fail and one entry per row exempts the whole package —
+# 7 rows against the 149 file entries a per-file mirror rule would need. Each entry is stale the moment its row
+# satisfies the rule (`StructureBaselineTest#staleRowExemptionFails`), so the pilot's entry deletes itself in
+# 8.2. Measured 2026-11-15: awk -F'\t' '!/^#/ && $3=="platform" && $4!="-"' architecture/structure.tsv | wc -l
+# (7) — ui.about, ui.addressbook, ui.attribution, ui.favorites, ui.map, ui.mapmanager and ui.navigation.
+row app	com.naviveylin.ui.about	mirror	package-structure-feature-migration
+row app	com.naviveylin.ui.addressbook	mirror	package-structure-feature-migration
+row app	com.naviveylin.ui.attribution	mirror	package-structure-feature-migration
+row app	com.naviveylin.ui.favorites	mirror	package-structure-as-five-kinds (8.1)
+row app	com.naviveylin.ui.map	mirror	package-structure-feature-migration
+row app	com.naviveylin.ui.mapmanager	mirror	package-structure-feature-migration
+row app	com.naviveylin.ui.navigation	mirror	package-structure-feature-migration

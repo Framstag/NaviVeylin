@@ -26,6 +26,17 @@ app	com.naviveylin.ui.navigation	platform	navigation	concept,port,feature/naviga
 app	com.naviveylin.ui.route	feature	route	concept,port
 app	com.naviveylin.ui.theme	platform	-	concept,port
 app	com.naviveylin.util	concept	-	-
+# Test-only packages, added 2026-11-15 by change package-structure-rules-and-suite (task 2.2) once the check
+# read the test source sets: 502 test sources over 4 packages that no main source shares, measured
+# find app/src/test/java auto/src/test/java core/src/test/java -name '*.kt' -o -name '*.java' | wc -l (502), all
+# four under app/src/test/java. They are declared 'shell' because a test harness assembles every kind it
+# exercises — the kind whose hosting the declaration permits. A fifth test-only package,
+# com.naviveylin.build, is deliberately not declared: Konsist's project scope drops every path carrying a
+# 'build' segment, so its 10 files are unread, and a row for them would name a package the check cannot find.
+app	com.framstag.libosmscout.client	shell	-	any
+app	com.naviveylin.featurelist	shell	-	any
+app	com.naviveylin.i18n	shell	-	any
+app	com.naviveylin.test	shell	-	any
 auto	com.naviveylin.auto	shell	-	any
 core	com.naviveylin.core	concept	-	-
 core	com.naviveylin.core.addressbook	port	-	concept

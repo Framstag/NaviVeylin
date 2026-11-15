@@ -14,7 +14,7 @@ class StructureDeclarationTest {
 
     private val declarationText: String = ProjectRoot.declarationText()
     private val declaration: StructureDeclaration = StructureDeclaration.parse(declarationText)
-    private val treeFiles: List<SourceFile> = ProjectSources.mainSourceFiles()
+    private val treeFiles: List<SourceFile> = ProjectSources.sourceFiles()
 
     @Test
     fun structureCheckFailsOnRowWithoutPackage() {
@@ -73,7 +73,7 @@ class StructureDeclarationTest {
     @Test
     fun structureCheckFailsOnUndeclaredPackage() {
         assertEquals(
-            "every main source file of the three modules sits in a declared package",
+            "every source file of the three modules sits in a declared package",
             emptyList<StructureViolation>(),
             StructureCheck(declaration).violations(treeFiles),
         )

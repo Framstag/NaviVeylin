@@ -36,6 +36,16 @@ data class StructureDeclaration(val rows: List<DeclarationRow>) {
     /** The kind a package is declared as, or `null` when no row claims it. */
     fun kindOf(packageName: String): String? = rowFor(packageName)?.kind
 
+    /**
+     * The row an imported symbol belongs to: the row whose package name is the longest one the import names,
+     * so `com.naviveylin.R` resolves to the `shell` row of `com.naviveylin` and a symbol of a nested class to the
+     * row of the package that holds it.
+     */
+    fun rowOwning(importName: String): DeclarationRow? =
+        rows
+            .filter { importName == it.packageName || importName.startsWith(it.packageName + ".") }
+            .maxByOrNull { it.packageName.length }
+
     /** The packages the declaration claims, in row order. */
     fun declaredPackages(): Set<String> = rows.map { it.packageName }.toSet()
 

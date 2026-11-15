@@ -38,6 +38,13 @@
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
+#   state.sh base-red --from <file> [--base <sha>]
+#                         # the red the run's base already carried, as the pre-flight measured it (issue #921):
+#                         # a JSON object of step → the case names that failed there, which `gate.sh` subtracts
+#                         # from its own tally so a carrier is charged to no item
+#   state.sh base-red-used --step <command> --count <n> [--step … --count …]
+#                         # what a gate subtracted because the base already had it, so the record says which reds
+#                         # were carried instead of charged (issue #921)
 #   state.sh stop <reason>              # the condition that ended the run, as `next` names it
 #   state.sh hold --seconds N [--reason TEXT]
 #                         # a wait a condition outside the run imposed: the deadline moves with it, so the pause
@@ -63,6 +70,7 @@
 #                                        uncommitted|unverified|unanswered|reviewer-wrote|contradicted]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
+#                         [--review-input TEXT]   # the scale of what `LOOP_REVIEW_INPUT_MAX_BYTES` cut from the round
 #   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
 #   state.sh adoption-refused <issue> --reason TEXT
 #                         # an admissible branch the tree, the base or the replay refused: the item's mechanism
@@ -312,7 +320,7 @@ cmd_show() {
      && ! kill -0 "$owner_pid" 2>/dev/null; then
     gone_stop="the run that wrote this state is gone — its process (pid $owner_pid) is not running and it recorded no reason"
   fi
-  jq -r --arg gone "$gone_stop" '
+  jq -r --arg gone "$gone_stop" "$(bound_class_jq)"'
     (.run) as $r
     | "agent-issue-loop — " + (if .current == null then "no item in progress"
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
@@ -327,7 +335,14 @@ cmd_show() {
       "",
       "items",
       (if (.items | length) == 0 then "  (none yet)"
-       else (.items[] | "  #\(.issue) \(.result)/\(.verdict) \(.change // "-") · \(.metrics.wallSeconds // "-")s · rounds \(.metrics.reviewRounds // "-") · gate \(.metrics.gate // "-")") end)
+       else (.items[] | (stop_class) as $c | (bound_of) as $b
+         | (if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
+         | "  #\(.issue) \(.result)/\(.verdict) \(.change // "-") · \(.metrics.wallSeconds // "-")s · rounds \(.metrics.reviewRounds // "-") · gate \(.metrics.gate // "-")"
+           + (if $c == "" then "" else " · stop " + $c end)
+           + (if $b == null then "" else " \($b.boundKey)=\($b.boundValue)" end)
+           + (if (.metrics.roundBound // null) == null then ""
+              else " · round \(.metrics.roundBound.round // "-") ended at \(.metrics.roundBound.key)=\(.metrics.roundBound.value)" end)
+           + (if $rb == null then "" else " · round ended at \($rb.boundKey)=\($rb.boundValue)" end) ) end)
   ' "$STATE_FILE"
 }
 
@@ -561,6 +576,57 @@ cmd_set_base() {
   printf 'state: base advanced to %s\n' "${sha:0:12}"
 }
 
+cmd_base_red() { # the red the run's base already carried, from the pre-flight's own output (issue #921)
+  require_state
+  local from="" base="" red
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --from) need_value "$@"; from="${2:-}"; shift 2 ;;
+      --base) need_value "$@"; base="${2:-}"; shift 2 ;;
+      *) loop_die "base-red: unknown argument $1" ;;
+    esac
+  done
+  [ -n "$from" ] || loop_die "base-red: usage: state.sh base-red --from <the pre-flight's output> [--base <sha>]"
+  [ -r "$from" ] || loop_die "base-red: cannot read $from"
+  # The pre-flight's output is the record's source, read the way `run.sh` reads it: a step is entered by its
+  # `LOOP-BASERED-STEP:<command>|<n>` line and each case that failed there follows as `LOOP-BASERED-CASE:<command>|<name>`.
+  # One reader, so a change to the shape is one change and not two that must agree.
+  red=$(jq -Rn '
+    reduce inputs as $line ({};
+      if ($line | test("^LOOP-BASERED-STEP:")) then
+        .[($line | capture("^LOOP-BASERED-STEP:(?<step>.*)\\|[0-9]+$") | .step)] = []
+      elif ($line | test("^LOOP-BASERED-CASE:")) then
+        ($line | capture("^LOOP-BASERED-CASE:(?<step>.*)\\|(?<case>.+)$")) as $c
+        | .[$c.step] += [$c.case]
+      else . end)
+  ' < "$from") || loop_die "base-red: cannot read the pre-flight's output at $from"
+  printf '%s' "$red" | jq -e 'type == "object"' >/dev/null 2>&1 ||
+    loop_die "base-red: $from is not a pre-flight's output"
+  patch_state '.run.baseRed = $red | .run.baseRedBase = $base' --argjson red "$red" --arg base "$base"
+  printf 'state: base red recorded — %s step(s) already red at %s\n' \
+    "$(printf '%s' "$red" | jq -r 'length')" "${base:0:12}"
+}
+
+cmd_base_red_used() { # what a gate subtracted because the base already had it (issue #921)
+  require_state
+  local steps='{}' step raised
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --step) need_value "$@"; step="${2:-}"; shift 2 ;;
+      *) loop_die "base-red-used: unknown argument $1" ;;
+    esac
+    [ $# -gt 0 ] && [ "$1" = --count ] || loop_die "base-red-used: every --step is followed by its --count <n>"
+    need_value "$@"; raised="${2:-}"; shift 2
+    case "$raised" in ''|*[!0-9]*) loop_die "base-red-used: --count must be a non-negative integer" ;; esac
+    steps=$(printf '%s' "$steps" | jq -c --arg step "$step" --argjson n "$raised" '. + {($step): $n}') ||
+      loop_die "base-red-used: cannot add $step to the record"
+  done
+  [ "$(printf '%s' "$steps" | jq -r 'length')" -gt 0 ] ||
+    loop_die "base-red-used: nothing was subtracted — a call that names no step records nothing"
+  patch_state '.run.baseRedUsed = {at: (now | todate), steps: $steps}' --argjson steps "$steps"
+  printf 'state: %s step(s) recorded as carried by the base\n' "$(printf '%s' "$steps" | jq -r 'length')"
+}
+
 cmd_stop() { # the condition that ended the run, as `next` names it
   require_state
   [ $# -gt 0 ] || loop_die "stop: usage: state.sh stop <reason>"
@@ -617,7 +683,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -628,6 +694,7 @@ cmd_done() {
       --pi-exit) need_value "$@"; pi_exit="${2:-}"; shift 2 ;;
       --rounds) need_value "$@"; rounds="${2:-}"; shift 2 ;;
       --review-verdict) need_value "$@"; review_verdict="${2:-}"; shift 2 ;;
+      --review-input) need_value "$@"; review_input="${2:-}"; shift 2 ;;
       --gate) need_value "$@"; gate="${2:-}"; shift 2 ;;
       --gate-waived) need_value "$@"; gate_waived="${2:-}"; shift 2 ;;
       --gate-waived-suite) need_value "$@"; gate_waived_suite="${2:-}"; shift 2 ;;
@@ -640,6 +707,14 @@ cmd_done() {
       --leftover) need_value "$@"; leftover="${2:-}"; shift 2 ;;
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
+      # The bound the class was cut at, and the one that ended a review round (issue #923): the class says a bound
+      # stopped the item and the key says which one, and a round's ending is its own fact because the spec keeps it
+      # off the item's class.
+      --bound-key) need_value "$@"; bound_key="${2:-}"; shift 2 ;;
+      --bound-value) need_value "$@"; bound_value="${2:-}"; shift 2 ;;
+      --round-bound) need_value "$@"; round_bound="${2:-}"; shift 2 ;;
+      --round-bound-key) need_value "$@"; round_bound_key="${2:-}"; shift 2 ;;
+      --round-bound-value) need_value "$@"; round_bound_value="${2:-}"; shift 2 ;;
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
@@ -683,6 +758,40 @@ cmd_done() {
   # except `bound` on a `cut`, which is the same fact one result over (issue #790).
   [ -z "$stop_reason" ] || [ "$result" = blocked ] || { [ "$result" = cut ] && [ "$stop_reason" = bound ]; } ||
     loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
+  # Which bound a mechanism names is a figure beside a class and never on its own (issue #923): the key and the value
+  # are `loop.conf`'s own, so they are accepted only beside `bound`, and accepted together — a figure with no key is
+  # unreadable at the report and a key with no figure is the class twice. The round's ending is the other field: the
+  # spec keeps a round it ended off the item's class (issues #785, #790), so it is `roundBound` and never a second
+  # `stopReason`, and its key and value have the same two rules.
+  case "${bound_key}${bound_value}" in
+    "") ;;
+    *)
+      [ "$stop_reason" = bound ] || loop_die "done: --bound-key and --bound-value name the bound a `bound` class was cut at, and this item records ${stop_reason:-no mechanism}"
+      [ -n "$bound_key" ] && [ -n "$bound_value" ] || loop_die "done: --bound-key and --bound-value are one figure and are given together"
+      case "$bound_key" in
+        LOOP_*) ;;
+        *) loop_die "done: --bound-key names a key loop.conf records (LOOP_…), and this one is $bound_key" ;;
+      esac
+      case "$bound_value" in
+        *[!0-9]*) loop_die "done: --bound-value is the figure the key holds, and this one is $bound_value" ;;
+      esac ;;
+  esac
+  case "${round_bound}${round_bound_key}${round_bound_value}" in
+    "") ;;
+    *)
+      [ -n "$round_bound" ] && [ -n "$round_bound_key" ] && [ -n "$round_bound_value" ] ||
+        loop_die "done: --round-bound names the round a bound ended, with --round-bound-key and --round-bound-value beside it"
+      # No `--stop-reason` is required beside it, and none is refused either: the item's class is the run's to write and
+      # the round's ending is not it — the two travel together on a cut whose round was the round and on a cut whose
+      # child was the child, and neither field is derived from the other.
+      case "$round_bound_key" in
+        LOOP_*) ;;
+        *) loop_die "done: --round-bound-key names a key loop.conf records (LOOP_…), and this one is $round_bound_key" ;;
+      esac
+      case "$round_bound_value" in
+        *[!0-9]*) loop_die "done: --round-bound-value is the figure the key holds, and this one is $round_bound_value" ;;
+      esac ;;
+  esac
   # A landing's own commit is what attaches it to the pipeline run it caused (issue #709): the field is a commit or
   # nothing, so a value that is not one is refused here rather than stored — the score would otherwise read the
   # runs of a commit nobody landed, and the report would print that as the landing's verdict. 7 is git's shortest
@@ -703,6 +812,13 @@ cmd_done() {
   case "$review_verdict" in
     ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
     *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
+  esac
+  # The scale of what the round%ss input bound cut (issue #924): a sentence `run.sh` composes from the three parts it
+  # measured (`bound_review_inputs`), recorded here so `report.sh` can print it beside the item. It is that script%ss
+  # figure and not a second derivation, so nothing is checked beyond its shape — one line, the fields separated by
+  # ` · `. A round with nothing over the cap records nothing, which is a fact and not a missing field.
+  case "$review_input" in
+    *$'\n'*|*$'\r'*) loop_die "done: --review-input is one line" ;;
   esac
   # Which tree fails the case the tally named is the other half of a red gate's record (issue #853): `delta` a case that
   # fails again when it is run once more, `flaked` one that passes on that second look (issue #861), `base` a case that
@@ -790,11 +906,17 @@ cmd_done() {
                   note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
                   leftoverFiles:(if $lof == "" then null else ($lof | tonumber) end),
                   stopReason:(if $sr == "" then null else $sr end),
+                  boundKey:(if $bk == "" then null else $bk end),
+                  boundValue:(if $bv == "" then null else ($bv | tonumber) end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me,
                           sha:(if $ms == "" then null else $ms end)},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
+                           reviewInput:(if $ri == "" then null else $ri end),
+                           roundBound:(if $rbk == "" then null
+                                       else {round:(if $rb == "" then null else $rb end),
+                                             key:$rbk, value:($rbv | tonumber)} end),
                            gate:$gate,
                            gateWaived:(if $gw == "" then null else $gw end),
                            gateWaivedSuite:(if $gws == "" then null else $gws end),
@@ -804,6 +926,7 @@ cmd_done() {
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
                            reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
                            withheld:$usage.withheld,
+                           repeatReads:$usage.repeatReads,
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
                            phases:$usage.phases, roles:$usage.roles, roleModels:$usage.roleModels,
@@ -823,8 +946,10 @@ cmd_done() {
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" --arg lof "$leftover_files" \
+    --arg bk "$bound_key" --arg bv "$bound_value" \
+    --arg rb "$round_bound" --arg rbk "$round_bound_key" --arg rbv "$round_bound_value" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
-    --arg rv "$review_verdict" \
+    --arg rv "$review_verdict" --arg ri "$review_input" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --arg gw "$gate_waived" --arg gws "$gate_waived_suite" --arg ga "$gate_attribution" \
     --argjson usage "$usage" \
@@ -970,16 +1095,27 @@ num_or_null() {
 #     is the rule's own record and nothing else; a file that does not exist yields null — never the zero a record that
 #     was read would give — and a state written before the field yields null too, which the report prints as the dash
 #     with its reason.
+#   * **`repeatReads`** — the second reads the repeat-red rule counted, from the same record: one
+#     `LOOP-TOOL-RESULT-REPEAT-READ: <tool> turn=<n> arm=<arm>` line per read of a path **this child** had already been
+#     handed (issue #925). It is the rule's own count and not a re-derivation of the stream's: the stream's `dupReads`
+#     counts a path one *session* had already read, this one counts a path one *child* was handed, and the rule is the
+#     only reader that knows which read it served and which it withheld — which is why the record line carries the arm.
+#     A file that does not exist yields null, a record that was read and holds no such line says `0`, and the two must
+#     not print the same.
 #
 # Each is null where nothing was measured, never zero: a stream with no `session` record has no role split, one with
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
 
-# The repeat rule's own record, summed (issue #831): one `<tool> chars=<n> kept=<k>` line per repeat it replaced, so a
-# line states the volume the child was not handed — `n - k`, floored at zero, because the notice can outgrow a result
-# too small to be worth replacing and the rule then withholds nothing. A file that cannot be read prints nothing, which
-# the caller records as null.
+# The two figures the repeat-read rules keep for themselves, summed from the record beside the stream: the volume a
+# replaced repeat withheld (issue #831) and the second reads the rule counted (issue #925). Both are the rule's own
+# record and nothing else — the stream holds the tool's answer, not the text the context was handed — and a file that
+# cannot be read prints nothing, which the caller records as null.
+#
+# One `<tool> chars=<n> kept=<k>` line per repeat it replaced, so a line states the volume the child was not handed —
+# `n - k`, floored at zero, because the notice can outgrow a result too small to be worth replacing and the rule then
+# withholds nothing.
 repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
   local file="${1:-}"
   [ -n "$file" ] && [ -r "$file" ] || return 0
@@ -997,8 +1133,19 @@ repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
   ' "$file"
 }
 
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,streamRotation}
-  local events="${1:-}" blob="" gate_prog="" withheld_json checks_json
+# The rule's own count of second reads (issue #925): one line per read of a path this child had already been handed, so the
+# count is the number of lines. The match is anchored at the line's own start and on the full prefix, so the
+# `LOOP-TOOL-RESULT-REPEAT` lines above — the volume a replaced repeat withheld — are not counted here as reads.
+repeat_reads() { # repeat_reads <trims-record> → a count
+  local file="${1:-}" n
+  [ -n "$file" ] && [ -r "$file" ] || return 0
+  n=$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ' "$file" 2>/dev/null) || true
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  printf '%s\n' "$n"
+}
+
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,repeatReads,streamRotation}
+  local events="${1:-}" blob="" gate_prog="" withheld_json repeats_json checks_json
   # The gate is the project's declaration, not a name this engine may carry: `lib.sh`'s `gate_program` reduces
   # `LOOP_GATE_CMD` to the program a child's tool call names, and `lib.sh`'s `gate_check_programs` names the
   # programs the gate's own checks start (issue #857) — one enumeration, which the run's live count of those calls
@@ -1013,11 +1160,17 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
     # repeat line says `0`, which is a measurement, and the two must not print the same.
     withheld_json=$(repeat_withheld "$(dirname "$events")/tool-result-trims.log")
     case "$withheld_json" in '{'*) ;; *) withheld_json=null ;; esac
+    # …and the second reads that rule counted (issue #925), from the same record and by the same rule: a record that was
+    # read and holds no such line says `0`, a record that is not there is null, and the report prints the dash with its
+    # reason rather than a zero nobody measured.
+    repeats_json=$(repeat_reads "$(dirname "$events")/tool-result-trims.log")
+    case "$repeats_json" in ''|*[!0-9]*) repeats_json=null ;; esac
     # The two rules that say which call **runs** the gate and which runs one of the checks it would run are
     # `lib.sh`'s (`gate_command_jq`, issues #830 and #857), shared with the run's own live count of those calls
     # (issue #882): one set of definitions, so this report and the bound that ends a child cannot disagree about
     # which calls the gate would have re-run.
-    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" "$(gate_command_jq)"'
+    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" \
+      --argjson repeats "$repeats_json" "$(gate_command_jq)"'
       # A turn is read from the usage its last `message_update` carried, or from the one its own `turn_end` record
       # carries when no update survives — the same rule `sessions` keeps per turn below (one place per fact), so a
       # rotation that took the updates changes no figure this function prints (issue #840).
@@ -1218,6 +1371,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          dupReads: (if $reads > 0 then $dup.dup else null end),
          dupChars: (if $reads > 0 then $dup.chars else null end),
          withheld: $withheld,
+         repeatReads: $repeats,
          phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
                   else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
          roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
@@ -1233,7 +1387,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"gateRepeat":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"streamRotation":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"gateRepeat":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"repeatReads":null,"streamRotation":null}' ;;
   esac
 }
 
@@ -1287,12 +1441,12 @@ cmd_report() {
   local tokens_warn
   tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
   case "$tokens_warn" in ''|*[!0-9]*) tokens_warn=0 ;; esac
-  jq -r --argjson over "$tokens_warn" '
+  jq -r --argjson over "$tokens_warn" "$(bound_class_jq)"'
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads | round |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -1314,7 +1468,22 @@ cmd_report() {
        # A record written before the field existed has no `stopReason`, one written since carries `null` when no
        # mechanism is given, and only a mechanism block carries a word: all three print `-`, and `//` alone does
        # not, because it yields the empty string for an empty one (#280, review round 1).
-       | ((.stopReason // "") | if . == "" then "-" else . end) as $stopcol
+       | ((stop_class) as $sc
+          | (bound_of) as $bd
+          | if $sc == "" then "-"
+            elif $sc != "bound" then $sc
+            elif (.boundKey // null) != null then "bound \(.boundKey)=\(.boundValue)"
+            elif $bd != null then "bound \($bd.boundKey)=\($bd.boundValue)"
+            else "bound" end) as $stopcol
+       # The round a bound ended is its own column (issue #923): the spec keeps the class off an item whose round was
+       # ended, so such a cut printed `cut` beside `-` — #898 and #883 read exactly that, and a reader could not tell
+       # a round ending from an arm that recorded nothing. A record written since names the round, its key and its
+       # figure; one that predates the field is read from its note. Appended after every column a reader already
+       # quoted, for the reason the band and the calls column were appended.
+       | ((if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
+          | if (.metrics.roundBound // null) != null then "\(.metrics.roundBound.round // "-") \(.metrics.roundBound.key)=\(.metrics.roundBound.value)"
+            elif $rb != null then "- \($rb.boundKey)=\($rb.boundValue)"
+            else "-" end) as $roundcol
        # The band column (issue #662): how far above the recorded bound the spend is, and `-` otherwise — below it,
        # no band recorded, or no spend reported at all, which is the same answer the token cell gives. Appended
        # after the mechanism, so every column the report already had keeps its name and its order.
@@ -1339,7 +1508,7 @@ cmd_report() {
         | ((.metrics.dupReads // null) as $dup
            | (.metrics.reads // null) as $reads
            | if $dup == null or $reads == null or $reads == 0 then "-" else "\($dup)/\($reads)" end) as $dupcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) |") end),
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) | \($roundcol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")
@@ -1423,6 +1592,8 @@ case "$cmd" in
   adoption-refused) cmd_adoption_refused "$@" ;;
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
+  base-red) cmd_base_red "$@" ;;
+  base-red-used) cmd_base_red_used "$@" ;;
   stop) cmd_stop "$@" ;;
   hold) cmd_hold "$@" ;;
   report) cmd_report "$@" ;;

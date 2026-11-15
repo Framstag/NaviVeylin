@@ -134,6 +134,17 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   case that fails twice is the delta's, and a tree that cannot run it answers `delta` and blocks as before. For
   `delta`, `base` and `unattributable` the field rewrites no tally's prose and changes nothing a red gate does to an
   item — it makes the block readable.
+- **Rule: a red the base carried is subtracted from the tally, by pair** — a gate step red on the base the run
+  starts from is not charged to the item (issue #921, measured 2026-11-14). `tools/loop/run.sh` takes one pre-flight
+  run of the gate's own step set on that base (`gate.sh --base-red --base <sha>`, switched by `LOOP_BASE_RED=on|off`
+  in `tools/loop/loop.conf`) and records its output as `run.baseRed`, a map from step to the failing case names it
+  named; the pre-flight spends no `runs_max` and writes no tally, and it is skipped when the run cannot resolve a base
+  or the worktree carries uncommitted changes. The gate then subtracts exactly the step-and-case pairs that record
+  holds — a case the step fails now *and* failed on the base leaves the tally, a case it fails only now stays — prints
+  what it subtracted as `LOOP-GATE-BASERED:<step>:<n>` in the log and on the console and beside the verdict as
+  `— base-red: <step>:<n>`, and writes the same pairs to `run.baseRedUsed`. A step left with none of its own red counts
+  green with the red quoted; a step red on the base **and** red for a case the base never had is still red. A step that
+  fails without naming a case is the base's only when the base named none there either.
 - **Rule: a flake of unknown origin gets an entry with its rerun evidence, never a silent retry** — record the
   red run and the green rerun together with the mechanism they ruled out.
 - **Rule: sweep the suite for what the change moves, before the gate** — a behaviour change can move an

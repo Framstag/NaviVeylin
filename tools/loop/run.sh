@@ -811,6 +811,53 @@ if [ "$checkout_ref" != "$(loop_base_ref)" ]; then
   exit "$LOOP_REFUSE"
 fi
 
+# 4b. the base-red pre-flight (issue #921). Five items of one run went red at a step no change of theirs touched, each
+#     owed a gate re-run it could not earn, and the run's green rate read as their fault. So the run measures the red
+#     its base already carries once, before it works anything: `gate.sh --base-red` runs the profile's whole step set
+#     (at the run's start no delta is known, so the whole set is the one a delta touching every path owes), prints the
+#     step and the case names that failed there, and `state.sh base-red` records them as `run.baseRed` — the pairs a
+#     later gate subtracts from its own tally.
+#
+#     It runs here, after the checkout guard (a run on the wrong branch is refused before it spends thirteen minutes)
+#     and only when it can read a base: a tree with uncommitted work is not the base the run starts from, and a step
+#     set that cannot be measured must not be read as a base that was green. `LOOP_BASE_RED=off` takes none.
+base_red=$(loop_conf_value LOOP_BASE_RED)
+case "$base_red" in off|no|0) base_red=off ;; *) base_red=on ;; esac
+take_base_red() { # → `run.baseRed` holds the pre-flight's record, or this records none and returns non-zero
+  local dir log status recorded red_steps
+  dir=$(dirname "$LOOP_STATE_FILE")
+  log="$dir/base-red.log"
+  mkdir -p "$dir" 2>/dev/null || true
+  progress base-red "measuring the profile's own steps on ${base:0:12} — its output is kept in $log"
+  status=0
+  ( cd "$LOOP_ROOT" && bash "$here/gate.sh" --base-red --base "$base" ) > "$log" 2>&1 || status=$?
+  # 0 is a base with nothing red on it and 1 is one that carries red: both are a measurement. Any other status is the
+  # pre-flight failing to run at all, and a set it could not measure would subtract every red as if the base had it.
+  case "$status" in
+    0|1) ;;
+    *) printf 'base-red: the pre-flight could not be taken (gate exit %s) — its output is at %s\n' "$status" "$log"; return 1 ;;
+  esac
+  recorded=$(loop_state base-red --from "$log" --base "$base" 2>&1) || {
+    printf 'base-red: the pre-flight output at %s could not be written into the state — a gate will charge its reds to the item\n' "$log"
+    [ -z "$recorded" ] || printf '%s\n' "$recorded"
+    return 1
+  }
+  red_steps=$(loop_state get run.baseRed 2>/dev/null | jq -r 'if type == "object" then length else 0 end' 2>/dev/null || printf 0)
+  printf 'base-red: %s step(s) of the profile were already red at %s — kept in %s, and a gate subtracts exactly them\n' \
+    "${red_steps:-0}" "${base:0:12}" "$log"
+}
+if [ "$base_red" = "off" ]; then
+  printf 'base-red: off (LOOP_BASE_RED=off) — a step red on this run%s base will be charged to the item that carries it\n' "'"
+elif [ -z "$base" ]; then
+  printf 'base-red: not taken — the run records no base to measure\n'
+elif ! git -C "$LOOP_ROOT" cat-file -e "$base^{commit}" 2>/dev/null; then
+  printf 'base-red: not taken — %s is not a commit this tree can read\n' "$base"
+elif [ -n "$(git -C "$LOOP_ROOT" status --porcelain 2>/dev/null)" ]; then
+  printf 'base-red: not taken — this tree carries uncommitted work, so it is not the base the run starts from\n'
+else
+  take_base_red || printf 'base-red: no record was taken — every step a gate reds will be charged to the item\n'
+fi
+
 # 5. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
 #    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no
 #    item: it names the item whose branch the kept tree carries, records the refusal under that item,
@@ -1172,6 +1219,31 @@ report_lines() { # report_lines <file>
 
 report_field() { # report_field <file> <FIELD>
   report_lines "$1" | sed -n "s/^${2}: //p" | tail -1
+}
+
+# The bound a child's own `LOOP-TIMEOUT` line names, as an item's record carries it: the key the bound is recorded in
+# and the figure that key holds (issue #923). `bound` alone says the run ended the item and not which of the three
+# spend bounds it enforces it hit, so the archive could be totalled by the class and never by the key — the report
+# printed 6 items a bound ended and no figure for what they had spent. The line is the one the child's transcript
+# carries for a bound (`run.sh` writes it below): a turn bound names `LOOP_CHILD_TURNS_MAX_<ROLE>`, the context bound
+# names the key the phase inherits (`LOOP_ITEM_CONTEXT_MAX`, or the role-qualified `…_REVIEWER`), and the check bound
+# names `LOOP_CHILD_CHECKS_MAX`. A child the item's clock, the run's deadline or a vanished writer ended carries no
+# key — none of the three is a value recorded in `loop.conf` — so it prints nothing, and the item's record keeps the
+# class with no key rather than a key guessed from its neighbours.
+bound_key_value() { # bound_key_value <timeout line> → "<KEY> <value>", or nothing
+  local line="${1:-}" key="" value=""
+  value=$(printf '%s' "$line" | sed -n 's/.*recorded turn bound of \([0-9][0-9]*\) turns.*/\1/p')
+  key=$(printf '%s' "$line" | sed -n 's/.*turns (\([A-Z][A-Z0-9_]*\) for the .*/\1/p')
+  if [ -z "$key" ]; then
+    value=$(printf '%s' "$line" | sed -n 's/.*recorded context bound of \([0-9][0-9]*\) tokens.*/\1/p')
+    key=$(printf '%s' "$line" | sed -n 's/.*context bound of [0-9][0-9]* tokens (\([A-Z][A-Z0-9_]*\)).*/\1/p')
+  fi
+  if [ -z "$key" ]; then
+    value=$(printf '%s' "$line" | sed -n 's/.*recorded check bound of \([0-9][0-9]*\) checks.*/\1/p')
+    key=$(printf '%s' "$line" | sed -n 's/.*check bound of [0-9][0-9]* checks (\([A-Z][A-Z0-9_]*\)).*/\1/p')
+  fi
+  [ -n "$key" ] && [ -n "$value" ] || return 0
+  printf '%s %s\n' "$key" "$value"
 }
 
 # The word on the verdict line, and nothing else about it: the fence a child may have written around the line is not a
@@ -1543,6 +1615,182 @@ review_correction_scope() { # <refused head> <refusing report path>
   printf '### The refusing round%ss findings\n\n' "'"
   cat "$report"
   printf '\n'
+}
+
+# ── the round's input, and the bound on it (issue #924) ───────────────────────────────────────────────
+#
+# The reviewer's input set had no ceiling, and the round paid for it by paging: measured over the eight rounds of
+# the run the item records, the reviewer spent 46.1 M tokens — 22.5 % of the run's 204.7 M — 5.8 M a round for the
+# six that reported and 8.9 M for #883, at about 92 k tokens a turn, and two rounds ended with no verdict at all,
+# one at `LOOP_ITEM_CONTEXT_MAX` (#883, 250 418) and one at `LOOP_CHILD_TURNS_MAX_REVIEWER` (#898). A turn bound
+# decides when to stop reading an unbounded input, so what is bounded here is the input itself:
+# `LOOP_REVIEW_INPUT_MAX_BYTES` caps each of the three parts the round is handed, and the turn bound is not touched.
+#
+#   the diff                  the file `{{DIFF_PATH}}` names — what a round writes with `write_review_diff`
+#   the paths before the gate  the round before the gate's report, the file a finding's path is named in
+#   the change's own files    an inventory of them, path beside size — what paging an evidence tree is reading
+#
+# A part **under** the cap is handed exactly as it was before this bound existed, and a round whose three parts are
+# all under it calls none of this: no file is written and its prompt carries no line about a bound, so such a round
+# is byte for byte the one this key found. A part **over** it is handed as its head, at the cap, cut at a line
+# boundary and marked `[LOOP-CUT: …]`; everything the cut left out is named — by path and line range — in
+# `<round>.cut.md`, which the round's prompt names (`prompts/reviewer.md`, `{{REVIEW_INPUTS}}`) so a finding can
+# still point at a line the round was not handed, and the scale of the cut travels into the prompt and into the
+# item's state (`state.sh done --review-input`), where `report.sh` prints it.
+review_input_cut_scale=""
+
+review_input_bytes() { # <file> → its size, or `0` when it cannot be read
+  local size
+  size=$(wc -c < "$1" 2>/dev/null | tr -d ' \n')
+  case "$size" in ''|*[!0-9]*) printf '0\n' ;; *) printf '%s\n' "$size" ;; esac
+}
+
+# The head of one part at the cap, and the number of lines it kept. A partial line is dropped rather than handed as
+# if it were a whole one: a hunk cut in the middle of a line reads as a hunk that is there.
+review_input_head() { # <cap> <source> <destination> → the lines kept
+  local cap="$1" src="$2" dest="$3" lines
+  { head -c "$cap" "$src" 2>/dev/null || true; } | sed '$d' > "$dest" || : > "$dest"
+  lines=$(wc -l < "$dest" 2>/dev/null | tr -d ' \n')
+  case "$lines" in ''|*[!0-9]*) lines=0 ;; esac
+  printf '%s\n' "$lines"
+}
+
+# The last line of a capped part, so the round reads the marker before it reads the head as the file.
+review_input_mark() { # <capped file> <the file it heads> <cap> <the cut index>
+  printf '\n[LOOP-CUT: %s is the head of %s — the input a round is handed is bounded at %s bytes a part, and\neverything this cut left out is named, by path and line range, in %s. Do not page past this line to recover it]\n' \
+    "$1" "$2" "$3" "$4" >> "$1"
+}
+
+# The three parts, capped, and the index of what the cap left out. Prints the `{{REVIEW_INPUTS}}` section and sets
+# `review_input_cut_scale`; prints nothing and writes nothing when every part is under the cap.
+bound_review_inputs() { # <diff file> [<the round-before-the-gate report>]
+  local diff="${1:-}" report="${2:-}" cap label cut_file family_dir change_dir
+  local diff_bytes report_bytes change_bytes=0 parts=0 cut_parts=0 total=0 cut_total=0 kept_lines used size line rel
+  local index_diff="" index_report="" index_change="" rest="" pct
+  review_input_cut_scale=""
+  [ -n "$diff" ] && [ -f "$diff" ] || return 0
+  cap=$(loop_conf_value LOOP_REVIEW_INPUT_MAX_BYTES)
+  case "$cap" in ''|*[!0-9]*) return 0 ;; esac
+  [ "$cap" -gt 0 ] || return 0
+  label="${diff%.diff}"
+  cut_file="$label.cut.md"
+  rm -f "$cut_file" "$label.scale" "$label.before-gate.md" "$label.change-files.md" "$label.change-files.list" 2>/dev/null || true
+
+  # 1. the diff — the part the round pages today, and the one the item's own round ended on.
+  parts=1
+  diff_bytes=$(review_input_bytes "$diff")
+  total=$diff_bytes
+  if [ "$diff_bytes" -gt "$cap" ]; then
+    cut_parts=$((cut_parts + 1))
+    kept_lines=$(review_input_head "$cap" "$diff" "$diff.head")
+    index_diff=$(awk -v keep="$kept_lines" '
+      /^\+\+\+ / { p = substr($0, 7); sub(/\t.*$/, "", p); next }
+      /^@@ / && NR > keep && p != "" && p != "/dev/null" {
+        h = $0; sub(/^@@ [^+]*\+/, "", h); sub(/ .*$/, "", h)
+        split(h, a, ","); n = (a[2] == "" ? 1 : a[2] + 0)
+        if (n == 0) next
+        printf "- `%s` lines %d-%d (%d lines)\n", p, a[1] + 0, a[1] + n - 1, n
+      }' "$diff")
+    cut_total=$((cut_total + diff_bytes - $(review_input_bytes "$diff.head")))
+    review_input_mark "$diff.head" "$diff" "$cap" "$cut_file"
+    mv "$diff.head" "$diff"
+  fi
+
+  # 2. the paths the round before the gate named — its findings, where a path is written down as one.
+  if [ -n "$report" ] && [ -f "$report" ]; then
+    parts=$((parts + 1))
+    report_bytes=$(review_input_bytes "$report")
+    total=$((total + report_bytes))
+    if [ "$report_bytes" -gt "$cap" ]; then
+      cut_parts=$((cut_parts + 1))
+      kept_lines=$(review_input_head "$cap" "$report" "$label.before-gate.md")
+      index_report="- \`$report\` lines $((kept_lines + 1))-$(wc -l < "$report" | tr -d ' \n') — the findings beyond the cap, named where they were written
+"
+      cut_total=$((cut_total + report_bytes - $(review_input_bytes "$label.before-gate.md")))
+      review_input_mark "$label.before-gate.md" "$report" "$cap" "$cut_file"
+    fi
+  fi
+
+  # 3. the change's own files, as an inventory: a round paging an evidence tree is reading names and sizes, so a
+  # bounded list of them is the part, and the tree itself is not the run's to cut.
+  change_dir=""
+  if [ -n "${change:-}" ] && [ -n "${worktree:-}" ]; then
+    family_dir=$(loop_change_family)
+    change_dir=$(loop_change_archive_dir "$worktree" "$change")
+    [ -n "$change_dir" ] || change_dir="$family_dir/$change"
+    [ -d "$worktree/$change_dir" ] || change_dir=""
+  fi
+  if [ -n "$change_dir" ]; then
+    parts=$((parts + 1))
+    ( cd "$worktree" || exit 1; find "$change_dir" -type f | LC_ALL=C sort ) > "$label.change-files.list" 2>/dev/null || true
+    : > "$label.change-files.md"
+    used=0
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      size=$(review_input_bytes "$worktree/$rel")
+      change_bytes=$((change_bytes + size))
+      line=$(printf '%s B\t%s' "$size" "$rel")
+      if [ "$used" -lt "$cap" ] && [ $((used + ${#line} + 1)) -le "$cap" ]; then
+        printf '%s\n' "$line" >> "$label.change-files.md"
+        used=$((used + ${#line} + 1))
+      else
+        rest="$rest$rel
+"
+      fi
+    done < "$label.change-files.list"
+    rm -f "$label.change-files.list" 2>/dev/null || true
+    total=$((total + change_bytes))
+    if [ -n "$rest" ]; then
+      cut_parts=$((cut_parts + 1))
+      while IFS= read -r rel; do
+        [ -n "$rel" ] || continue
+        index_change="$index_change- \`$rel\` lines 1-$(wc -l < "$worktree/$rel" 2>/dev/null | tr -d ' \n')
+"
+      done <<< "$rest"
+      cut_total=$((cut_total + change_bytes - used))
+      review_input_mark "$label.change-files.md" "$change_dir" "$cap" "$cut_file"
+    else
+      rm -f "$label.change-files.md" 2>/dev/null || true
+    fi
+  fi
+
+  [ "$cut_parts" -gt 0 ] || return 0
+  pct=$(awk -v c="$cut_total" -v t="$total" 'BEGIN { printf "%d", (t > 0 ? (c * 100 + t / 2) / t : 0) }')
+  review_input_cut_scale="$cut_parts of $parts parts over the ${cap} B cap · ${cut_total} of ${total} B cut (${pct} %) · ${cut_file}"
+  # The scale is written down beside the index as well as printed: the run calls this in a `$( )`, so the variable it
+  # sets never reaches the round's own shell, and the state write that records the cut (`state.sh done --review-input`)
+  # reads it back from here.
+  printf '%s\n' "$review_input_cut_scale" > "$label.scale"
+  {
+    printf '# The round%ss input, and what the bound cut — item #%s, `%s`\n\n' "'" "$issue" "$label"
+    printf 'Bounded at %s bytes a part (`LOOP_REVIEW_INPUT_MAX_BYTES`, `tools/loop/loop.conf`): %s.\n' "$cap" "$review_input_cut_scale"
+    printf 'This file is the index of what the cap left out — one entry a line, a path and the lines it holds — so a\n'
+    printf 'finding can name a range the round was not handed. It is an index and not a part: read it, never page it as\n'
+    printf 'if the rest of a part were behind it.\n\n'
+    printf '## the parts this round is handed\n\n'
+    printf -- '- the change%ss diff: `%s`%s\n' "'" "$diff" "$(if [ -n "$index_diff" ]; then printf ' — its head'; fi)"
+    [ -z "$index_report" ] || printf -- '- the round before the gate: `%s` — its head\n' "$label.before-gate.md"
+    [ -z "$index_change" ] || printf -- '- the change%ss own files: `%s` — the inventory%ss head, of `%s`\n' "'" "$label.change-files.md" "'" "$change_dir"
+    [ -z "$index_diff" ] || printf '\n## the change%ss diff — what the cut left out\n%s\n' "'" "$index_diff"
+    [ -z "$index_report" ] || printf '\n## the round before the gate — what the cut left out\n%s\n' "$index_report"
+    [ -z "$index_change" ] || printf '\n## the change%ss own files — what the cut left out\n%s\n' "'" "$index_change"
+  } > "$cut_file"
+
+  # The section is placed on the bullet%ss own line in `prompts/reviewer.md` and starts with its blank line, so an
+  # empty one leaves the prompt byte for byte as it was: a round under the cap reads what it always read.
+  printf '\n\n**Your input this round is bounded, and what the bound cut is named for you.** %s.\n\n' "$review_input_cut_scale"
+  printf 'A part over the cap is handed as its **head** — cut at a line boundary and marked `[LOOP-CUT: …]` — and every\n'
+  printf 'line the cut left out is named, by path and line range, in `%s`, which you read by path before you grade.\n' "$cut_file"
+  printf 'A `BLOCKING:` finding may name a range the head did not carry. **Do not page a part past its `[LOOP-CUT:`\n'
+  printf 'marker** to recover the rest: that cut is the run%ss own bound and not a tool window, so the index is what\n' "'"
+  printf 'the round was handed instead of those lines, and a scenario only the cut could show stays `UNPROVEN`.\n'
+}
+
+# What the bound cut from the round whose diff this is, in the one line `bound_review_inputs` composed — empty when
+# that round's three parts were all under the cap, and read after the call because the call runs in a subshell.
+review_input_scale_of() { # <diff file> → the recorded scale, or nothing
+  local label="${1%.diff}"
+  if [ -f "$label.scale" ]; then cat "$label.scale" 2>/dev/null || true; fi
 }
 
 # Test results are the gate's evidence, and the run reads them out of the worktree after a worker — so a
@@ -2189,9 +2437,10 @@ change_readiness_of() { # <change dir> → the checker's one-line verdict
 # template it has accumulated so far, and both sections name `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` themselves. A
 # section inserted after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the
 # round that exists to verify corrections pointing at a placeholder (item #245's round-1 review).
-render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope] [the pre-gate section]
+render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope] [the pre-gate section] [the bounded-input section]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
     "CORRECTION_SCOPE=${2:-}" "PRE_GATE=${3:-}" \
+    "REVIEW_INPUTS=${4:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "DIFF_RANGE=$diff_base" "EVIDENCE_DIR=$item_dir" \
     "WORK_PACKAGE=${package:-}" \
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
@@ -2699,6 +2948,9 @@ while true; do
   # not run is not re-run, and a round before a gate that has already run has nothing to read.
   pre_gate_refusal=""
   pre_gate_refusal_verdict=""
+  # What the round%ss input bound cut, in the words `bound_review_inputs` composed (issue #924): empty when every
+  # part of this item%ss rounds was under the cap, and the figures the pre-gate round read when it was the one over it.
+  review_input_cut_scale=""
   # What the round answered, when it answered and refused nothing (issue #813). The refusal verdicts above are what
   # the run's outcome reads; this is what the item's record keeps, and it is the round's own answer — `PASS` or `FAIL`,
   # the two the prompt asks for — so that an item which read a round and then ended on its gate does not record
@@ -2712,6 +2964,17 @@ while true; do
   # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
   # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
   empty_tree_reading=""
+  # The bound a **review round** the run ended hit, as the round's own fact and never as the item's stop class (issue
+  # #923). The spec keeps the item's class off a round (`worker`, the gate child, the tail and the rework worker are the
+  # four phases it names bare `bound` for), and the round's ending went nowhere at all: #898 was ended by the reviewer's
+  # turn bound at 110 turns and #883 by the item's context bound in the reviewer phase, and both read `cut` with an
+  # empty `stop` cell — a reader could not tell which bound fired, or that a bound fired at all, without the child's
+  # transcript. The key and the figure are read from the round's own `LOOP-TIMEOUT` line, by the same reader the item's
+  # class uses, so a round ended by the run's deadline (no key: the deadline is a clock, not a value in `loop.conf`)
+  # records no figure and keeps the verdict it already carried.
+  round_bound_round=""
+  round_bound_key=""
+  round_bound_value=""
   # Whether the phase that ran the gate answered nothing at all — measured in the phase itself, because a child that
   # exits 0 and writes no report is that phase's failure and no reading about the item's tree (issue #810). Empty for
   # every other shape, and kept beside `empty_tree_reading` for the same reason: it is decided before the outcome block
@@ -2759,11 +3022,14 @@ while true; do
         diff_base="$base"
         diff_file="$item_dir/review-pre-gate.diff"
         write_review_diff "$diff_base" "$diff_file"
+        # No round ran before this one, so the bound covers the two parts there are: the diff and the change's files.
+        review_inputs=$(bound_review_inputs "$diff_file" "")
+        review_input_cut_scale=$(review_input_scale_of "$diff_file")
         before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
           { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
         pre_gate_report="$item_dir/pre-gate-review.md"
         render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt.md" "" \
-          "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")"
+          "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs"
         run_child "$item_dir/reviewer-pre-gate-prompt.md" "$pre_gate_report"
         # An answer cut on its way to the file decides nothing, and it is the run's own transport rather than a
         # reviewer that stayed quiet, so the round is asked once more — the rule the rounds after the gate follow
@@ -2775,7 +3041,7 @@ while true; do
             "$(last_line "$pre_gate_report")" >&2
           pre_gate_report="$item_dir/pre-gate-review-retry.md"
           render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-retry.md" "" \
-            "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")"
+            "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs"
           run_child "$item_dir/reviewer-pre-gate-prompt-retry.md" "$pre_gate_report"
           pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
         fi
@@ -2807,6 +3073,12 @@ while true; do
             # quotes that line: a reader of the blocked item must not have to choose between the two bounds, or
             # re-derive from a transcript nobody handed them which number ended the round (issue #829).
             pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds — $pre_gate_timeout_line — the round was cut, not refused, so the change is left for the next run"
+            # …and the round's ending is recorded beside the refusals it did not write (issue #923): the item keeps no
+            # class for it, so without this the bound that ended the round survives only in the reason's prose.
+            round_bound_round="pre-gate"
+            round_bound_line=$(bound_key_value "$pre_gate_timeout_line")
+            round_bound_key="${round_bound_line%% *}"
+            round_bound_value="${round_bound_line##* }"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
@@ -3192,7 +3464,8 @@ while true; do
     # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and the class
     # stays off it — the spec names `bound` on the worker's, the gate child's, the tail's and the rework worker's
     # results, not on a review round's. Writing a class here would refuse the cut's own state write and leave the item
-    # at whatever it was last written as (issue #865).
+    # at whatever it was last written as (issue #865). The round's own ending is not lost to that silence: a bound the
+    # transcript names is recorded as the round's own fact, and counted apart from the item's class (issue #923).
     if [ "$pre_gate_cut" -eq 1 ]; then
       outcome="blocked"; blocked_reason="$pre_gate_refusal"
     else
@@ -3247,6 +3520,26 @@ while true; do
   # reports `LOOP_CHILD_TIMEOUT` and the child's own `LOOP-TIMEOUT` line for every bound it enforces — the child
   # clock, the run's deadline and the role's turns — and that arm turns all three into the one word `bound`.
   if [ "$pre_gate_cut" -eq 1 ] || [ "$stop_reason" = bound ]; then outcome="cut"; fi
+  # Which bound the item's own class was cut at travels beside the class (issue #923): `bound` alone says the run ended
+  # the item and not what it had spent, so the archive could be totalled by the class and never by the key — six items
+  # a bound ended, and no figure for any of them. The key and the figure are read from the same `LOOP-TIMEOUT` line the
+  # reason quotes, and an item whose clock, the run's deadline or a vanished writer ended it gets neither: none of the
+  # three is a value `loop.conf` records, and a figure guessed from the value it usually sits beside would read as a
+  # measurement. A review round is not read here at all — its ending is `round_bound_*` above.
+  bound_key=""
+  bound_value=""
+  if [ "$stop_reason" = bound ]; then
+    bound_line=$(bound_key_value "${blocked_reason:-}")
+    [ -n "$bound_line" ] || bound_line=$(bound_key_value "${timeout_claim:-}")
+    bound_key="${bound_line%% *}"
+    bound_value="${bound_line##* }"
+  fi
+  # Both records are the cut's own (`--stop-reason bound`, or the round that ended it), so they travel together to the
+  # one write that can carry them: the blocked arm names a finding about the item, and no bound is a finding. The array
+  # is built at that write and not here (issue #923): the review rounds run *after* this block, so the round's ending
+  # is unknown until the terminal arm below.
+  bound_args=()
+  [ -z "$bound_key" ] || bound_args+=(--bound-key "$bound_key" --bound-value "$bound_value")
   # The silence over a red gate is refused **here** (issue #811): the outcome is decided above, and this is the last
   # moment before the branch is merged and the item closed on the tracker. An item whose tally carries a nonzero
   # `failures=` or `errors=` and whose child recorded no waiver takes the blocked path every other refusal takes —
@@ -3314,10 +3607,13 @@ while true; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
       write_review_diff "$diff_base" "$diff_file"
+      # The round's three parts, each capped (issue #924); the section is empty when none of them is over it.
+      review_inputs=$(bound_review_inputs "$diff_file" "${pre_gate_report:-}")
+      review_input_cut_scale=$(review_input_scale_of "$diff_file")
       before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       reviewer_report="$item_dir/reviewer-report-$round.md"
-      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope"
+      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope" "" "$review_inputs"
       # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
       # fact a later run reads (#262): with only the answer written, a reviewer killed mid-answer left a branch
       # that read exactly like a passed one, and the next run adopted it. A round that cannot be announced stays
@@ -3342,7 +3638,7 @@ while true; do
         printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
           "$round" "$(last_line "$reviewer_report")" >&2
         reviewer_report="$item_dir/reviewer-report-$round-retry.md"
-        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md" "$correction_scope"
+        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md" "$correction_scope" "" "$review_inputs"
         run_child "$item_dir/reviewer-prompt-$round-retry.md" "$reviewer_report"
         reviewer_deadline=$(report_field "$reviewer_report" LOOP-DEADLINE 2>/dev/null || true)
         if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
@@ -3402,6 +3698,12 @@ while true; do
         outcome="cut"
         record_cut_round "$round"
         blocked_reason="the run ended the reviewer of round $round at one of its spend bounds — $reviewer_timeout_line — the round was cut, not refused, so the change is left for the next run"
+        # The round's own ending, recorded where a reader can count it (issue #923): the item carries no class for a
+        # round, so the bound travels in the round's own field — its number, its key and the figure it reached.
+        round_bound_round="$round"
+        round_bound_line=$(bound_key_value "$reviewer_timeout_line")
+        round_bound_key="${round_bound_line%% *}"
+        round_bound_value="${round_bound_line##* }"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
@@ -3622,7 +3924,8 @@ $review_notes_text"
         ${waived_args[@]+"${waived_args[@]}"} ${attribution_args[@]+"${attribution_args[@]}"} \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
         --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-sha "$merged_sha" \
-        --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" >/dev/null
+        --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" \
+        --review-input "$review_input_cut_scale" >/dev/null
       score_landings
       ;;
     falsified)
@@ -3648,7 +3951,8 @@ $review_notes_text"
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --closed "$closure" \
         --gate "$gate_field" \
         --root-cause "$falsified_mechanism" --red-test "$falsified_measurement" \
-        --events "$events_file" --note "the premise does not hold" --review-verdict "$review_verdict" >/dev/null
+        --events "$events_file" --note "the premise does not hold" --review-verdict "$review_verdict" \
+        --review-input "$review_input_cut_scale" >/dev/null
       ;;
     skipped)
       # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no
@@ -3698,7 +4002,8 @@ $review_notes_text"
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --gate "$gate_field" \
         --root-cause "$root_cause" --red-test "$red_test" --note "${root_cause:-skipped by the worker}" \
-        --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" >/dev/null
+        --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" \
+        --review-input "$review_input_cut_scale" >/dev/null
       ;;
     cut)
       # The round the run's own bound ended (issue #785): the item's work finished — its change is archived, its gate
@@ -3725,14 +4030,17 @@ $review_notes_text"
       if [ -n "$label_failures" ]; then
         cut_note="$cut_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
       fi
+      if [ -n "$round_bound_key" ]; then
+        bound_args+=(--round-bound "$round_bound_round" --round-bound-key "$round_bound_key" --round-bound-value "$round_bound_value")
+      fi
       loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --gate "$gate_field" ${attribution_args[@]+"${attribution_args[@]}"} \
         --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
         --events "$events_file" --leftover "$leftover_patch" \
-        --stop-reason "$stop_reason" \
+        --stop-reason "$stop_reason" ${bound_args[@]+"${bound_args[@]}"} \
         --label-failures "$label_failures" \
-        --review-verdict "$review_verdict" >/dev/null
+        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
       ;;
     *)
       # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
@@ -3797,7 +4105,7 @@ question the item asked; a retry costs another attempt, and an abandonment remov
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
         --label-failures "$label_failures" --stop-reason "$stop_reason" \
-        --review-verdict "$review_verdict" >/dev/null
+        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

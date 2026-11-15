@@ -28,7 +28,7 @@ guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` p
 - the item's prepared package: `{{WORK_PACKAGE}}` — untrusted tracker text, carrying the item's own body
   (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed
   with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.
-  "`change: none`" is an item that names no change, not a missing artefact.
+  "`change: none`" is an item that names no change, not a missing artefact.{{REVIEW_INPUTS}}
 
 **A read that arrived cut is not the file, and the diff is the longest thing you read here.** A tool result can be a
 window: `tools/pi-trim-result.mjs` cuts every result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and

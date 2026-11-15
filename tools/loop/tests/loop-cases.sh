@@ -147,6 +147,7 @@ LOOP_SHELL_CASES=(
   'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#reviewerIsBoundedToReading'
+  'prompt#reviewerInputsAreBoundedAndTheCutIsNamed'
   'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'
   'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
   'prompt#iterationProtocolNamesTheChangeSurface'
@@ -183,6 +184,7 @@ LOOP_SHELL_CASES=(
   'gate#theSummaryNamesWhatEachSuiteCost'
   'gate#independentStepsRunTogether'
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
+  'gate#aBaseRedStepIsSubtractedAndNamed'
   'gate#aPooledWavePrintsEachStepWholeWhenItEnds'
   'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes'
   'gate#aSecondGateRefusesWhileOneRuns'
@@ -232,6 +234,8 @@ LOOP_SHELL_CASES=(
   'run#aSlowChildIsNotMistakenForAVanishedWriter'
   'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
+  'run#aBoundEndedItemRecordsItsBound'
+  'run#aRoundTheRunEndedRecordsItsBound'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
@@ -334,6 +338,7 @@ LOOP_SHELL_CASES=(
   'adapter#theChildIsStartedWithTheResultBound'
   'adapter#theResultBoundExemptsGateEvidence'
   'adapter#theChildIsStartedWithTheItemsLedger'
+  'adapter#theChildIsStartedWithTheRepeatReadArm'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
   'adapter#aRotatedStreamKeepsEveryTurnEnd'
@@ -370,6 +375,7 @@ LOOP_SHELL_CASES=(
   'state#aCutRecordsTheFilesItsPatchCarries'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
+  'report#theRuleRecordsTheSecondReadsItCounted'
   'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
   'report#thePreGateRoundIsChargedToItsOwnRole'
@@ -442,6 +448,7 @@ LOOP_SHELL_CASES=(
   'phase#aResultOverTheBoundIsCutAndNamed'
   'repeat#aRepeatReadIsNamedNotHandedOverAgain'
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
+  'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'repeat#aRepeatIsRecordedAsWhatItWithheld'
@@ -879,6 +886,7 @@ loop_run_shell_case() {
     'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#reviewerIsBoundedToReading') fn=case_prompt_reviewerIsBoundedToReading ;;
+    'prompt#reviewerInputsAreBoundedAndTheCutIsNamed') fn=case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed ;;
     'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton') fn=case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton ;;
     'prompt#workerNamesTheChangeSurfaceBeforeThePlan') fn=case_prompt_workerNamesTheChangeSurfaceBeforeThePlan ;;
     'prompt#iterationProtocolNamesTheChangeSurface') fn=case_prompt_iterationProtocolNamesTheChangeSurface ;;
@@ -915,6 +923,7 @@ loop_run_shell_case() {
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
+    'gate#aBaseRedStepIsSubtractedAndNamed') fn=case_gate_aBaseRedStepIsSubtractedAndNamed ;;
     'gate#aPooledWavePrintsEachStepWholeWhenItEnds') fn=case_gate_aPooledWavePrintsEachStepWholeWhenItEnds ;;
     'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes') fn=case_gate_aCarrierAnotherRunWroteIsNotReadAsThisOnes ;;
     'gate#aSecondGateRefusesWhileOneRuns') fn=case_gate_aSecondGateRefusesWhileOneRuns ;;
@@ -964,6 +973,8 @@ loop_run_shell_case() {
     'run#aSlowChildIsNotMistakenForAVanishedWriter') fn=case_run_aSlowChildIsNotMistakenForAVanishedWriter ;;
     'run#reviewerEndedAtTheRunsDeadlineIsNotADecision') fn=case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision ;;
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
+    'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
+    'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
@@ -1066,6 +1077,7 @@ loop_run_shell_case() {
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
     'adapter#theResultBoundExemptsGateEvidence') fn=case_adapter_theResultBoundExemptsGateEvidence ;;
     'adapter#theChildIsStartedWithTheItemsLedger') fn=case_adapter_theChildIsStartedWithTheItemsLedger ;;
+    'adapter#theChildIsStartedWithTheRepeatReadArm') fn=case_adapter_theChildIsStartedWithTheRepeatReadArm ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
     'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
@@ -1103,6 +1115,7 @@ loop_run_shell_case() {
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
+    'report#theRuleRecordsTheSecondReadsItCounted') fn=case_report_theRuleRecordsTheSecondReadsItCounted ;;
     'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
     'report#thePreGateRoundIsChargedToItsOwnRole') fn=case_report_thePreGateRoundIsChargedToItsOwnRole ;;
@@ -1171,6 +1184,7 @@ loop_run_shell_case() {
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
     'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
+    'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'repeat#aRepeatIsRecordedAsWhatItWithheld') fn=case_repeat_aRepeatIsRecordedAsWhatItWithheld ;;
@@ -4492,6 +4506,87 @@ case_prompt_reviewerIsBoundedToReading() {
   assert_contains "$text" "$cap" "the wall-clock bound named in the task is the run's own ($cap s)"
 }
 
+# Issue #924: the round's input set had no ceiling, and the round paid for it by paging — over the eight rounds of
+# the run the item records the reviewer spent 46.1 M tokens (22.5 % of the run's 204.7 M, 5.8 M a round for the six
+# that reported), and two rounds ended with no verdict at all: one at `LOOP_ITEM_CONTEXT_MAX_REVIEWER` (#883, 250 418)
+# and one at `LOOP_CHILD_TURNS_MAX_REVIEWER` (#898, a 262 411 B diff). A turn bound decides when to stop reading an
+# unbounded input, so what is bounded is the input: each of the round's three parts is capped at
+# `LOOP_REVIEW_INPUT_MAX_BYTES`, and what the cap cuts is named — by path and line range — in a file the round reads
+# by path, so a finding can still point at a line the head did not carry. The figures reach the round's prompt and
+# the item's state, which is where the report prints them from.
+#
+# Two runs: the recorded cap, which the stub item's round is far under, and a cap small enough that the round's parts
+# are over it. The under-cap run is the one that says a round nobody cut is byte for byte the round it always was.
+case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/loop.conf tools/loop/state.sh tools/loop/report.sh tools/loop/prompts/reviewer.md tools/pi-child-events.sh tools/tooling.json
+  local d p conf sf prompt diff cut text out recorded
+  # The key and its default are recorded in the configuration the run reads. The value is not pinned here for the
+  # reason the neighbour case states: both runs set their own, so a template that hardcoded today's number would
+  # still be reported. What is asserted is that a default is there and that it is a positive number of bytes.
+  recorded=$(grep -E '^LOOP_REVIEW_INPUT_MAX_BYTES=' "$LOOP_ENGINE/loop.conf" || true)
+  assert_matches "$recorded" '^LOOP_REVIEW_INPUT_MAX_BYTES=[1-9][0-9]*$' \
+    'loop.conf records no positive LOOP_REVIEW_INPUT_MAX_BYTES'
+  # A round under the cap hands what it always handed, so the bound's section has to leave the template byte for
+  # byte as it was: the placeholder sits on the bullet's own line for that reason — a line of its own would add a
+  # blank one to every under-cap round.
+  grep -qF 'not a missing artefact.{{REVIEW_INPUTS}}' "$LOOP_ENGINE/prompts/reviewer.md" ||
+    fail "the bound's placeholder is not on the bullet's own line, so an empty section would add a blank line"
+
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail 'the under-cap run failed'
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$prompt" ] || fail 'the reviewer prompt was not rendered'
+  text=$(cat "$prompt")
+  assert_contains "$text" 'not a missing artefact.' 'the under-cap round keeps the bullet it always carried'
+  assert_not_contains "$text" 'Bounded at' 'a round under the cap carries no line about a bound'
+  assert_not_contains "$text" '[LOOP-CUT:' 'and no marker'
+  assert_not_contains "$text" 'Do not page a part past' 'and no instruction about one'
+  [ -f "$p/.pi/issue-loop/items/21/review-1.cut.md" ] && fail 'an under-cap round wrote a cut index'
+  sf=$(state_file "$p")
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 21) | .metrics.reviewInput' "$sf")" \
+    'an under-cap round records no cut'
+  assert_contains "$(run_report "$p")" "what the bound cut from a round's input: none" \
+    'and the report says none, as the lines beside it do'
+
+  # A cap both parts of this item's round are over: the diff, and the change's own files.
+  conf="$d/bounded.conf"
+  sed -e 's/^LOOP_REVIEW_INPUT_MAX_BYTES=.*/LOOP_REVIEW_INPUT_MAX_BYTES=64/' "$LOOP_CONF" > "$conf" ||
+    fail 'could not write the loop configuration'
+  grep -qx 'LOOP_REVIEW_INPUT_MAX_BYTES=64' "$conf" || fail 'this case could not set the cap in loop.conf'
+  export LOOP_CONF="$conf"
+  p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail 'the bounded run failed'
+  diff="$p/.pi/issue-loop/items/21/review-1.diff"
+  cut="$p/.pi/issue-loop/items/21/review-1.cut.md"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$diff" ] || fail 'the round's diff was not written'
+  [ -f "$cut" ] || fail 'the cut index was not written beside it'
+  [ -f "$prompt" ] || fail 'the reviewer prompt was not rendered'
+  text=$(cat "$prompt")
+  assert_contains "$text" 'Your input this round is bounded' 'the round is told its input is bounded this round'
+  assert_contains "$text" 'Bounded at 64 bytes a part' 'and by which figure, read from the configuration'
+  assert_contains "$text" 'review-1.cut.md' 'and the file that names what the cut left out'
+  assert_contains "$text" 'Do not page a part past' 'and that the marker is where the reading stops'
+  # What the round is handed is the head, and the head says so on its last line.
+  assert_contains "$(cat "$diff")" '[LOOP-CUT:' 'the handed diff is marked as a head'
+  [ "$(wc -c < "$diff")" -lt 1000 ] || fail "the handed diff was not capped: $(wc -c < "$diff") bytes"
+  # The index names what the cut left out, one entry a line: the path and the lines the head did not carry.
+  assert_contains "$(cat "$cut")" 'demo-fix.txt' 'the cut index names a path the diff part carried'
+  assert_contains "$(cat "$cut")" 'lines 1-' 'and the line range it holds'
+  assert_contains "$(cat "$cut")" 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' \
+    'and a change file the inventory was too small to list'
+  # The figures the round read are the run's own record too, so a reader of the state sees the cut rather than a head
+  # that reads like the whole part.
+  sf=$(state_file "$p")
+  assert_contains "$(jq -r '.items[] | select(.issue == 21) | .metrics.reviewInput' "$sf")" 'over the 64 B cap' \
+    "the item's state records the cut scale"
+  assert_contains "$(jq -r '.items[] | select(.issue == 21) | .metrics.reviewInput' "$sf")" 'review-1.cut.md' \
+    'and the index it names'
+  out=$(run_report "$p")
+  assert_contains "$out" '#21' 'the report names the item whose round was cut'
+  assert_contains "$out" 'over the 64 B cap' 'and prints the scale the round was handed'
+}
+
 # The same bound reaches a session that spawns its own reviewer (issue #236): the loop's prompt is the one
 # skeleton, and the iteration protocol is where a session is told to hand it over. Two surfaces, one rule.
 case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
@@ -6049,6 +6144,100 @@ SUITE
 # step wrote, and the verdict is the sum of those summaries. The failure mode this refuses is the shared `$stream`
 # the serial engine could afford (issue #801) — it is the guard the item asks for beside the timing case, and it is
 # green on the base by construction, because one step at a time shares nothing either.
+# A gate step that was already red on the base the run started from is a carrier, not the delta's fault (issue #921).
+# The run measures the base once (`gate.sh --base-red`, recorded by `state.sh base-red` as `run.baseRed`) and every
+# gate subtracts exactly the step-and-case pairs that record holds — naming what it subtracted on its console, in its
+# log and in the run's record (`run.baseRedUsed`), and quoting it in the verdict so a green carrier is not read as a
+# clean step. Both halves are one rule: a step red on the base *and* red for a case the base never had is still red, so
+# the subtraction is case by case and never by step alone.
+case_gate_aBaseRedStepIsSubtractedAndNamed() {
+  # files: tools/loop/gate.sh tools/loop/state.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf state base log out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  state="$p/.pi/issue-loop/run.json"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_FIRST_STEPS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|./suite-one;notes/*|./suite-two"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=1\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  # Two steps, both red before the change, one case each: the numbers each reports are its own.
+  for s in one two; do
+    cat > "$p/suite-$s" <<SUITE
+printf 'FAIL notes#aCaseThatWasRed-$s\n'
+printf 'notes: 1 of 2 cases failed\n'
+exit 1
+SUITE
+    chmod +x "$p/suite-$s"
+  done
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the base' >/dev/null 2>&1 \
+    || fail "could not commit the base in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD)
+  # The pre-flight, taken on the base tree itself: it names each red step and the case that failed there, and that
+  # output is what the state records — one reader of the shape, so the two gates below subtract the same pairs.
+  log="$d/base-red.log"
+  # 1 is a base that carries red — the measurement, not a failure: the command fails here only when it measured neither.
+  rc=0
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base-red --base "$base" ) > "$log" 2>&1 || rc=$?
+  case "$rc" in 0|1) : ;; *) fail "the pre-flight did not run (exit $rc): $(cat "$log")" ;; esac
+  assert_contains "$(cat "$log")" 'LOOP-BASERED-STEP:./suite-one|1' \
+    "the pre-flight names the red step and its count: $(cat "$log")"
+  assert_contains "$(cat "$log")" 'LOOP-BASERED-CASE:./suite-two|notes#aCaseThatWasRed-two' \
+    "and the case that failed beside it: $(cat "$log")"
+  # The pre-flight is not the item's measurement: it holds no tally lock and leaves no carrier behind.
+  [ -z "$(ls -A "$d/tally" 2>/dev/null)" ] || fail "the pre-flight wrote into the tally directory: $(ls -A "$d/tally")"
+  # The change: one path the map owes both steps, and neither script's red touched by it.
+  printf 'a changed note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  ( cd "$p" && LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/state.sh" init --items 1 --minutes 1 --review off --may-close no --base "$base" ) \
+    >/dev/null 2>&1 || fail "could not initialize the run state"
+  ( cd "$p" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/state.sh" base-red --from "$log" --base "$base" ) \
+    >/dev/null 2>&1 || fail "the pre-flight's output was not written into the state"
+  assert_contains "$(jq -c '.run.baseRed' "$state")" 'notes#aCaseThatWasRed-two' \
+    "the run's record carries the case the base was red for: $(jq -c '.run.baseRed' "$state")"
+  # ── first half: red on the base and red for no new case is a carrier, subtracted and named ──────────────────
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "0" "$rc" "a step red on the base and red for no new case is not a red gate: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "the gate names the step it subtracted: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-two:1' "and the step beside it: $out"
+  assert_contains "$out" 'tests=4 failures=0 errors=0' "the tally it subtracted from is the green one: $out"
+  assert_contains "$out" 'base-red: ./suite-one:1, ./suite-two:1' "the verdict quotes the red it carried: $out"
+  assert_contains "$(cat "$d/tally/gate.log" 2>/dev/null)" 'LOOP-GATE-BASERED:./suite-two:1' \
+    "the gate's own log carries the line too: $(cat "$d/tally/gate.log" 2>/dev/null)"
+  assert_contains "$(jq -c '.run.baseRedUsed.steps' "$state")" '"./suite-two":1' \
+    "and the run's record says what the gate subtracted: $(jq -c '.run.baseRedUsed' "$state")"
+  # ── second half: red on the base *and* red for a case the base never had is still red ──────────────────────
+  cat > "$p/suite-two" <<'SUITE'
+printf 'FAIL notes#aCaseThatWasRed-two\n'
+printf 'FAIL notes#aNewCaseTheBaseNeverHad\n'
+printf 'notes: 2 of 3 cases failed\n'
+exit 1
+SUITE
+  chmod +x "$p/suite-two"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a case the base never had' >/dev/null 2>&1 \
+    || fail "could not commit the new failing case"
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a step red for a case the base never had is still red: $out"
+  assert_contains "$out" '— failing: ./suite-two' "the verdict names that step: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "the carrier beside it is still subtracted and named: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-two:1' \
+    "the step's own base-red pair leaves the tally: $out"
+  case "$out" in *'LOOP-GATE-BASERED:./suite-two:2'*)
+    fail "a step red for a new case had all of its red subtracted as the base's: $out" ;; esac
+  assert_contains "$out" 'tests=5 failures=1' "the new case is counted and the base's pair is not: $out"
+  return 0
+}
+
 case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out rc tally failing ok_cases
@@ -7389,6 +7578,144 @@ EOF
     "the branch reads as work the next run can finish, not as a round nobody answered"
   assert_contains "$out" "review: - · no round of this run ended in a verdict · 1 undecided · 0 never reviewed" \
     "the run's own rate counts the cut round as undecided, never as a refused round"
+}
+
+# Which bound ended an item was readable only in the prose a reader had to parse (issue #923): `bound` says the run ended
+# the item and not what it had spent, so the archive could be totalled by the class and never by the key — six items a
+# bound ended, and no figure for which of the three it was. The child appends a fixture stream of three turns and then
+# blocks, the recorded worker bound is 3, and the run reads the key and the figure out of the `LOOP-TIMEOUT` line the
+# child's own transcript carries — the same line the reason quotes.
+case_run_aBoundEndedItemRecordsItsBound() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # The wall clock keeps its recorded default, so the only bound this case can reach is the worker's turn one, and the
+  # class it records can only be the turn bound's key.
+  sed -e 's/^LOOP_CHILD_TURNS_MAX_WORKER=.*/LOOP_CHILD_TURNS_MAX_WORKER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record a small turn bound"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" ||
+    fail "this case could not shorten the worker's turn bound in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$state")" "with the run's own bound as its class"
+  assert_eq "LOOP_CHILD_TURNS_MAX_WORKER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
+    "and the key the bound is recorded in, read from the child's own LOOP-TIMEOUT line"
+  assert_eq "3" "$(jq -r '.items[0].boundValue // ""' "$state")" \
+    "with the figure that key holds, so the archive can be totalled by the bound and not only by the class"
+  # The state's own table is where a caller reads an item, so the key travels into its `stop` cell too: `bound` alone
+  # left the figure in the note the table prints as prose.
+  assert_contains "$(run_state "$p" report)" "bound LOOP_CHILD_TURNS_MAX_WORKER=3" \
+    "the run's own table names the bound the item was cut at"
+  # …and the figure is the record's, not a second reading of the note: a mechanism with no key keeps its class and
+  # prints it bare rather than a figure guessed from a neighbouring value.
+  assert_contains "$out" "cut short by the run's own bound: #21" \
+    "the report names the item the run's bound cut"
+  return 0
+}
+
+# The other half of the same figure, and the half the spec keeps off the item (issue #923): #898 was ended by the
+# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
+# `cut` with an empty `stop` cell — the round's ending survived only in the reason's prose, which no figure counts and
+# no reader can total. The round's own held (`metrics.roundBound`) names the round, the key and the figure, and the
+# item's `stopReason` stays null: the class is the item's, the round's ending is the round's.
+case_run_aRoundTheRunEndedRecordsItsBound() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
+      -e 's/^LOOP_CHILD_TURNS_MAX_REVIEWER=.*/LOOP_CHILD_TURNS_MAX_REVIEWER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record the two bounds in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=3' "$conf" ||
+    fail "this case could not shorten the reviewer's turn bound in loop.conf"
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turn-reviewer.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  reviewer*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
+    "and carries no class for the round: the spec keeps the item's class off a round the run ended"
+  assert_eq "1" "$(jq -r '.items[0].metrics.roundBound.round // ""' "$state")" \
+    "the round the run ended records itself under the round's own field"
+  assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].metrics.roundBound.key // ""' "$state")" \
+    "with the key the bound is recorded in"
+  assert_eq "3" "$(jq -r '.items[0].metrics.roundBound.value // ""' "$state")" "and the figure it reached"
+  # The figure is counted apart from the item's class (issue #923): the archive's bound rate answers how many items the
+  # run threw away, and this line answers how many rounds it paid for and could not read. Neither figure is folded
+  # into the other — the class the spec keeps off a round is exactly what this line must not need.
+  assert_contains "$out" "rounds a bound ended: 1 of 1 item(s) · #21 1 LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
+    "the report counts the round the run ended at its bound, beside the class the item does not carry"
+  assert_contains "$out" "bound: 1 of 1 items" "and the item's own bound rate counts the cut, as it did before"
+  return 0
 }
 # it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
 # and restoring the worktree until 23:55, its last restore being what left that tree dirty, so the next run
@@ -12705,15 +13032,16 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
   assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
     "whose reason is its own note, so - in the stop column is not a row without a reason"
-  # Eighteen columns, so nineteen separators: the wall, the reason and the three spend columns were added, then
+  # Nineteen columns, so twenty separators: the wall, the reason and the three spend columns were added, then
   # the block's mechanism, then the band an item's spend is read against (issue #662), then the shape it spent it
-  # in (#757), then the reads it repeated (#814), and nothing was dropped. The row keeps its shape with the new
-  # column, and the block neither mechanism caused has the same shape as the others.
-  assert_eq "19" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its eighteen columns"
-  assert_eq "19" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # in (#757), then the reads it repeated (#814), then the ending of the round the run cut (#923), and nothing was
+  # dropped. The row keeps its shape with the new column, and the block neither mechanism caused has the same shape
+  # as the others.
+  assert_eq "20" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its nineteen columns"
+  assert_eq "20" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
-  assert_eq "19" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "20" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
     "and so does a block no mechanism caused"
 }
 
@@ -13295,6 +13623,58 @@ JSONL
   out=$(run_report "$p") || fail "the report failed for a run that opened no file"
   assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" "- · no item recorded a file read" \
     "and a run of items that answered without opening a file prints the other dash"
+}
+
+# A repeat the rule counted was a number nobody recorded (issue #925): the rule writes a line per second read of a path
+# one child was handed, and the stream cannot say it — the stream holds the tool's answer, not the read the rule answered
+# — so `state.sh` reads the record beside the item's stream into `metrics.repeatReads` and `report.sh` prints it beside
+# the session's own repeat count, never as the same figure: `dupReads` counts a repeat a *session* had, this counts one a
+# *child* was handed. The three states a figure can be in are kept apart as everywhere else in the report: a count, a
+# zero a record that was read gives, and the dash of a state written before the field existed.
+case_report_theRuleRecordsTheSecondReadsItCounted() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/pi-trim-result.mjs tools/tooling.json
+  local d p f out
+  d=$(scratch); p=$(new_project)
+  # One directory per item, because the rule's record is read from beside the item's own stream.
+  mkdir -p "$d/i31" "$d/i32" "$d/i33"
+  for i in 31 32 33; do
+    cat > "$d/i$i/events.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s1"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/PLACEHOLDER/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0},"content":[]},"toolResults":[]}
+JSONL
+    sed -i "s|PLACEHOLDER|$i|" "$d/i$i/events.jsonl"
+  done
+  # #31 was handed two paths a second time — one served under `measure` and one withheld, which is why the record line
+  # carries the arm — and #32's record is the repeat of an unchanged path alone, so it counted no second read. #33's
+  # directory holds no record, which is the null the figure keeps apart from a zero.
+  printf 'LOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=4 arm=measure\nLOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=6 arm=refuse\nLOOP-TOOL-RESULT-REPEAT: ctx_read chars=90 kept=40\n' \
+    > "$d/i31/tool-result-trims.log"
+  printf 'LOOP-TOOL-RESULT-REPEAT: read chars=90 kept=40\n' > "$d/i32/tool-result-trims.log"
+  init_state "$p" 3 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1},{"issue":32,"class":"bug","verdict":"eligible","rank":2},{"issue":33,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result done --verdict closed --wall 42 --events "$d/i31/events.jsonl" >/dev/null
+  run_state "$p" done 32 --result done --verdict closed --wall 42 --events "$d/i32/events.jsonl" >/dev/null
+  run_state "$p" done 33 --result done --verdict closed --wall 42 --events "$d/i33/events.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "2" "$(jq -r '.items[] | select(.issue == 31) | .metrics.repeatReads' "$f")" \
+    "the second reads the rule counted are recorded per item, read from the record beside its stream"
+  assert_eq "0" "$(jq -r '.items[] | select(.issue == 32) | .metrics.repeatReads' "$f")" \
+    "a record that was read and holds no second read says 0, which is a measurement"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 33) | .metrics.repeatReads' "$f")" \
+    "and an item whose directory holds no record records nothing, never a zero"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "2 second reads counted by the repeat-read rule" \
+    "the trend prints the count the rule kept, beside the session's own repeat figure and not as one"
+  # A state written before the figure existed holds the key not at all: the dash and its reason, never a zero.
+  jq 'del(.items[].metrics.repeatReads)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the figure existed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "the repeat-read count is unrecorded — this state predates the figure" \
+    "a state that predates the count says so rather than naming a run that counted none"
+  return 0
 }
 
 # The cost reader summed the turns and the sessions a rotated stream still holds, and nothing said the rest was
@@ -17838,6 +18218,52 @@ case_repeat_theHookWritesTheItemsLedger() {
   return 0
 }
 
+# The arm a child applies has one home (issue #925): `LOOP_REPEAT_READ` in `tools/loop/loop.conf` — `measure`, the
+# recorded value, or `refuse` — and the adapter exports it into every child it starts, the way it exports the result
+# bound: read, never sourced, so the value a run applied is the value a person can find. A key this rule does not declare,
+# or none at all, hands the child `measure`, because the arm that serves the read is the one that cannot break a child.
+# The case copies the three files the adapter stands on into a scratch tree so it can edit that tree's own configuration:
+# the recorded arm and the missing key are the same export's two halves.
+case_adapter_theChildIsStartedWithTheRepeatReadArm() {
+  # files: tools/pi-child-events.sh tools/loop/loop.conf tools/pi-trim-result.mjs tools/pi-shell-refusal.mjs
+  local d tree recorder got recorded
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  tree="$d/tools"
+  mkdir -p "$tree/loop"
+  cp "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" \
+    "$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs" "$tree/" 2>/dev/null \
+    || fail "the adapter's own files are not in the tree: tools/pi-child-events.sh needs them beside it"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'printf "%s\n" "$LOOP_REPEAT_READ" > "$RECORD"'
+  } > "$recorder"
+  printf 'Reply with OK.\n' > "$d/prompt.md"
+  # The recorded value itself, forced to `refuse` in the scratch configuration: a case that pinned the child to whatever
+  # `loop.conf` happens to record could not tell an adapter that follows the file from one that hard-codes the default.
+  recorded=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  case "$recorded" in measure|refuse) ;; *) fail "loop.conf records ${recorded:-nothing}, which is neither arm the rule declares" ;; esac
+  sed 's/^LOOP_REPEAT_READ=.*/LOOP_REPEAT_READ=refuse/' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  RECORD="$d/env.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  assert_eq "refuse" "$(cat "$d/env.txt" 2>/dev/null || true)" \
+    "the child applies the arm the configuration records, not one the adapter chose"
+  # …and a value the rule does not declare is `measure`: the fallback is the arm that serves the read.
+  sed 's/^LOOP_REPEAT_READ=.*/LOOP_REPEAT_READ=refused?/' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  RECORD="$d/env-word.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero on a word the rule does not declare: $(head -3 "$d/out")"
+  assert_eq "measure" "$(cat "$d/env-word.txt" 2>/dev/null || true)" \
+    "a word this rule does not declare hands the child measure, never the arm that withholds"
+  # …and a configuration that records none leaves the child `measure`: no run may be broken by a key nobody wrote.
+  sed '/^LOOP_REPEAT_READ=/d' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  RECORD="$d/env-none.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero against a configuration that records no arm: $(head -3 "$d/out")"
+  assert_eq "measure" "$(cat "$d/env-none.txt" 2>/dev/null || true)" \
+    "a configuration that records no arm hands the child measure, the arm that cannot break it"
+  return 0
+}
+
 # What a repeat is measured against is the item, so one file has to be named for it (issue #858). The adapter is where
 # the item's own paths are named — the trim record already lands beside the child's event stream — so the ledger does
 # too, and the child is named by the prompt the run handed it: the line a repeat is replaced by has to say which session
@@ -17898,6 +18324,106 @@ case_repeat_aRepeatAfterAnEditIsHandedOverWhole() {
   assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "the unchanged read after it is a repeat again"
   assert_contains "$(cat "$out")" "$size characters" "measured against the content the edit left, not the first read"
   assert_contains "$(cat "$out")" 'turn 4' "at the turn that content came in"
+  return 0
+}
+
+# A repeat read was the one rule the loop stated and never counted (issue #925). The worker prompt has asked for the
+# citation rather than the second read since #246, and over the run behind #925 the children issued 2 987 reads of which
+# 2 167 (72.5 %) were a second read of a path the item had already read, while `#872` alone read four paths 283 to 295
+# times each across 226 turns — a prose rule is not a bound. So a second read of a path **this child** was handed is
+# counted every time, and the arm `LOOP_REPEAT_READ` records decides what it is answered with: `measure`, the recorded
+# value, serves the read and counts it, and `refuse` answers it with the earlier result's line range and a refusal line
+# instead of the text. The rule is per child and lives in the process's own tally, so the case drives the **hook** — the
+# one place two reads meet one process; the CLI is a child that reads one path once, whose arm can never fire.
+#
+# Three arms are the same rule's three edges: the counted read under `measure`, the withheld one under `refuse`, and the
+# read a child was never handed — a path the item's own ledger had already withheld — which `refuse` **serves**, because
+# a notice naming lines the child does not hold would send it to read what it cannot.
+case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d file harness out record held size sha
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing counts a second read: tools/pi-trim-result.mjs is not in the tree (issue #925)"
+  d=$(scratch)
+  harness="$d/hook.mjs"
+  # The extension driven the way one child drives it: two reads of one path, one process, and the child's own tally. The
+  # edit between them is what makes the second read a read the #685 rule hands over as well — this case is about the
+  # count, not about the content, and the `refuse` arm answers the read before that rule asks.
+  {
+    printf '%s\n' 'import { appendFileSync, readFileSync, writeFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, extension, first, second] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'async function read() {'
+    printf '%s\n' '  await handlers.get("turn_start")();'
+    printf '%s\n' '  const text = readFileSync(file, "utf8");'
+    printf '%s\n' '  const out = await handlers.get("tool_result")({ toolName: "ctx_read", input: { path: file }, content: [{ type: "text", text }] });'
+    printf '%s\n' '  const blocks = out && out.content ? out.content : [{ type: "text", text }];'
+    printf '%s\n' '  return blocks.map((b) => b.text).join("");'
+    printf '%s\n' '}'
+    printf '%s\n' 'writeFileSync(first, await read());'
+    printf '%s\n' 'appendFileSync(file, "EDITED-LINE\\n");'
+    printf '%s\n' 'writeFileSync(second, await read());'
+  } > "$harness"
+  # The recorded arm: `measure` counts the read and serves it, so the rule cannot break a child that the default runs.
+  # Each arm reads its own file: a case that let one arm's edit stand would measure the second arm against four lines.
+  file="$d/measure.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  record="$d/measure.log"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=measure LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first.txt" "$d/second.txt" \
+    || fail "the extension exited non-zero under the measure arm: $(head -3 "$d/second.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/second.txt")" "under measure a second read is handed over whole"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ' "$record" 2>/dev/null || true)" \
+    "and it is counted — the first read is no repeat and the second one is"
+  assert_contains "$(cat "$record")" 'arm=measure' "the record says which arm answered the read"
+  assert_contains "$(cat "$record")" 'turn=2' "and the turn it came in at, not the turn the earlier text did"
+  # …and the value the record does not declare is `measure` too, never the arm that withholds.
+  file="$d/word.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ='refused?' LOOP_TOOL_RESULT_TRIM_RECORD="$d/word.log" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first-word.txt" "$d/second-word.txt" \
+    || fail "the extension exited non-zero on a value it does not declare: $(head -3 "$d/second-word.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/second-word.txt")" \
+    "a word the rule does not declare serves the read: the arm that cannot break a child is the fallback"
+  # The `refuse` arm answers the read with the earlier result's line range and a refusal line, and no text travels twice.
+  file="$d/refuse.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  record="$d/refuse.log"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=refuse LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first-refused.txt" "$d/second-refused.txt" \
+    || fail "the extension exited non-zero under the refuse arm: $(head -3 "$d/second-refused.txt")"
+  out=$(cat "$d/second-refused.txt")
+  assert_not_contains "$out" 'MIDDLE-LINE' "under refuse the text is not sent to the child a second time"
+  assert_not_contains "$out" 'EDITED-LINE' "not even the edit the child itself made"
+  assert_contains "$out" '[LOOP-REPEAT-READ' "it is answered with a refusal line"
+  assert_contains "$out" 'lines:1-3' "naming the earlier result's line range, the range it can ask for"
+  assert_contains "$out" "$file" "and the path the child holds"
+  size=$(wc -c < "$d/first-refused.txt" | tr -d ' ')
+  assert_contains "$out" "$size characters" "and the size the earlier result had"
+  assert_contains "$out" 'turn 1' "at the turn that result came in"
+  [ "$(grep -c . "$d/second-refused.txt")" -eq 1 ] \
+    || fail "the refused read carried more than its one line: $out"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ' "$record" 2>/dev/null || true)" \
+    "a refused read is counted as well as a served one"
+  assert_contains "$(cat "$record")" 'arm=refuse' "and its line names the arm that withheld it"
+  # …and the read a child was never handed is served: the item's ledger already held that path, so this child's first read
+  # was replaced by the item's notice, and a refusal here would name lines the child does not hold.
+  held="$d/held.md"
+  printf 'HELD-FIRST\nHELD-MIDDLE\nHELD-LAST\n' > "$held"
+  sha=$(sha256sum < "$held" | cut -c1-32)
+  printf '%s\t%s\t%s\t%s\t%s\n' "$sha" 1 "$(wc -c < "$held" | tr -d ' ')" worker-prompt "$held" > "$d/item-ledger.tsv"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=refuse LOOP_TOOL_RESULT_LEDGER="$d/item-ledger.tsv" \
+    node "$harness" "$held" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first-held.txt" "$d/second-held.txt" \
+    || fail "the extension exited non-zero on a path the item held: $(head -3 "$d/second-held.txt")"
+  assert_contains "$(cat "$d/first-held.txt")" 'LOOP-ALREADY-READ' \
+    "the item's ledger withholds the child's first read of a path it already holds"
+  out=$(cat "$d/second-held.txt")
+  assert_not_contains "$out" '[LOOP-REPEAT-READ' \
+    "so the read that follows is served: a refusal would name lines this child was never handed"
+  assert_contains "$out" 'EDITED-LINE' "it is handed the file as it stands, edit and all"
   return 0
 }
 

@@ -282,6 +282,27 @@ printf 'bound: %s of %s items (%s) · archive: %s' \
 [ -z "$cap_named" ] || printf ' · %s' "$cap_named"
 printf '\n'
 
+# The rounds a bound ended are the other half of the same figure (issue #923): the class the line above counts is the
+# **item's**, and the spec keeps it off a review round the run ended (issues #785, #790) — #898 was ended by the
+# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both printed
+# `cut` with nothing beside it. So a round's ending is its own field (`metrics.roundBound`, written by `run.sh` and
+# `state.sh done`), counted here beside the item's class and never folded into it: the two figures answer two
+# questions — how many items the run threw away, and how many rounds it paid for and could not read. A record written
+# before the field is read from its note by the same reader `state.sh` uses, and one whose note names the reviewer's
+# key while its verdict is a round's (`cut-short`, `deadline`) is that round's, not the item's.
+round_hits=$(jq -r "$(bound_class_jq)"'
+  [ .items[] | select((.metrics.roundBound // null) != null or (bound_round) != null) ] | length' "$state_file")
+round_named=$(jq -r "$(bound_class_jq)"'
+  [ .items[] as $it
+    | (if ($it.metrics.roundBound // null) != null
+        then "\($it.metrics.roundBound.round // "-") \($it.metrics.roundBound.key)=\($it.metrics.roundBound.value)"
+        else (($it | bound_round) as $b | if $b == null then "" else "- \($b.boundKey)=\($b.boundValue)" end)
+        end) as $end
+    | select($end != "")
+    | "#\($it.issue) \($end)" ] | join(" · ")' "$state_file")
+printf 'rounds a bound ended: %s of %s item(s) · %s\n' \
+  "${round_hits:-0}" "$cap_items" "${round_named:-none}"
+
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.
 LOOP_STATE_FILE="$state_file" bash "$LOOP_DIR/state.sh" report
 
@@ -298,6 +319,11 @@ printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.
 # from a refusal. A state a tree wrote before `cut` carried a bound keeps its two `blocked` items in the block
 # tally, exactly as that tree counted them. Empty for a run with none, exactly as the other named lists are.
 printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# What the round%ss input bound cut, item by item (issue #924): the figures `run.sh` measured over the three parts
+# it hands a round, recorded at `state.sh done --review-input` and printed here because a cut is the one thing about
+# a round a reader cannot see in its report — the head a round was handed reads like the whole part. A run whose
+# rounds were all under the cap records nothing, and the line says `none` as the ones beside it do.
+printf 'what the bound cut from a round%ss input: %s\n' "'" "$(jq -r '[.items[] | select((.metrics.reviewInput // "") != "") | "#\(.issue) \(.metrics.reviewInput)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the
@@ -432,7 +458,8 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # What the shape above cannot show is the rule the worker prompt has stated since #246 and nothing counted (issue
   # #814): a path a child has already read is cited rather than opened again. `tools/loop-spend.py` measures it
   # offline (`LOOP-SPEND-READS calls= duplicate=`), and until the state recorded it the report could not say whether
-  # an item followed the rule or ignored it. The line prints the run repeats with the file reads they are a share
+  # an item followed the rule or ignored it. Since #925 the rule counts the second read itself, and its own figure prints
+  # beside this one (`$rrline`), so the pair says how often the rule fired beside what the stream would have said anyway. The line prints the run repeats with the file reads they are a share
   # of, the characters the repeats hold in their own results, how many of those the repeat rule withheld from the
   # the child (issue #831) as a share of those characters (issue #866), and the item that repeated most — the same
   # three-part shape the calls line prints. The two halves are kept apart because since #685 they are different numbers:
@@ -449,9 +476,28 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   # the figure in its place: a low share says the rule had nothing to withhold, not that it failed, and a high repeat
   # count is no saving to buy with a lower result bound — halving that bound roughly doubles the window count the same
   # lever means to cut. A **warning,
-  # never a stop**: no key gates it, no item outcome reads it. The field absence is told apart from its null: a record
+  # never a stop**: no key gates it, no item outcome reads it — the arm `LOOP_REPEAT_READ` records (issue #925) decides
+  # what a second read is *answered with*, and what it withholds is the text of a result, not the outcome of an item. The
+  # absence is told apart from its null: a record
   # written before the figure existed has no `dupReads` key at all, while one of this era that met an item which opened
   # no file has it as `null` — and the two dashes say which of the two it is.
+  # …and the count the rule itself kept (issue #925). Until it, the sentence above was the whole of the rule, and it lost:
+  # over the run behind that issue 2 167 of 2 987 reads (72.5 %) were a second read of a path the item had already read.
+  # So a second read of a path a **child** was handed is counted where it is answered (`tools/pi-trim-result.mjs`),
+  # written beside the stream of the item, and recorded as `metrics.repeatReads`. It is the figure of the rule itself and
+  # a re-reading of the stream: `dupReads` counts a repeat a *session* had, this counts one a *child* was handed, and they
+  # differ where a child other than the one that read a path reads it. It prints beside `dupReads`, never as the same
+  # figure; a record that was read and holds no second read says 0, a state written before the figure existed says so, and
+  # the two do not print the same words.
+  | ([.items[] | .metrics.repeatReads | select(. != null)]) as $rr
+  | ( if ($rr | length) == 0 then
+        (if ([.items[] | select((.metrics | has("repeatReads")) | not)] | length) > 0
+              and ([.items[] | select(.metrics.tokens != null or (.metrics.calls // null) != null)] | length) > 0
+           then "the repeat-read count is unrecorded — this state predates the figure"
+           else "the rule counted no second read" end)
+      else ([$rr[]] | add) as $rs
+        | "\($rs) second read\(if $rs == 1 then "" else "s" end) counted by the repeat-read rule"
+      end ) as $rrline
   | ([.items[]
       | select((.metrics.dupReads // null) != null and (.metrics.reads // 0) > 0)
       | {i: .issue, d: .metrics.dupReads, r: .metrics.reads, c: (.metrics.dupChars // 0),
@@ -478,7 +524,8 @@ trend=$(jq -r --argjson floor "$calls_floor" '
                   end ) as $wline
             | "\($td) of \($tr) file reads were a second read of a path the session already had (\((($td / $tr) * 100) | round) %) · \($tc) chars in the repeat results · \($wline) · worst \(([$dups[] | select(.d > 0)] | max_by(.d)) | "#\(.i) \(.d) of \(.r)")"
           end
-      end ) as $readsline
+      end ) as $readsbase
+  | "\($readsbase) · \($rrline)" as $readsline
   # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so
   # the line names how many items it is over — a rate over 3 items and one over 227 are not the same claim. A bucket
   # nobody spent time in is left out of the phase line rather than printed as `0 s`, because a zero there reads as a

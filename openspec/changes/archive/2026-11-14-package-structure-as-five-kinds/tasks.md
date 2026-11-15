@@ -1,9 +1,13 @@
 # Tasks
 
 This archive is the slice of `package-structure-as-five-kinds` that landed on 2026-11-14: tasks 1.1–1.4
-and the falsification 3.4. The rest of that plan — the kind rules, the suite's place in the gate, the
-documents that own the structure, and the pilot migration — is carried by the open change
-`package-structure-rules-and-suite`, which holds the scenarios and the tasks that did not land here.
+and the falsification 3.4. A second slice of the same plan landed behind it on 2026-11-15, carried by
+the tracker item #868 and recorded in this directory's `evidence/`: the `concept` and `port` layer rules
+(1.5), the baseline half of 1.7, the green-run figures and the empty-declaration refusal (1.8), the
+exemption rule (1.10), and the falsifications 3.1 and 3.5. The rest of the plan — the feature rules, the
+`platform` and `shell` rules of 1.7, the suite's place in the gate, the documents that own the structure,
+and the pilot migration — is carried by the open working change `openspec/changes/package-structure-as-five-kinds/`,
+whose `tasks.md` holds the scenarios and the tasks that did not land here.
 
 ## 1. The architecture module and its inputs
 

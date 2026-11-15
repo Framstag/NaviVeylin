@@ -26,7 +26,9 @@ commits are named").
    `userVisible: false` — its requirement states a placement and labelling rule, not a user-facing capability —
    and `settings-surface` keeps `userVisible: true`. `#922` added both rows to main itself, so the branch now
    carries main's rows rather than a second copy of them.
-2. The gate was re-run on the merged, committed tree — not on a dirty one. Its record:
+2. The gate was re-run on the merged, committed tree — not on a dirty one. Its console named the run and the
+   tree it measured; that line is not in the captured log, so it is quoted from the console here and reproduced
+   in full with its reproduction command in `evidence/gate-console-identity.md`:
 
 ```
 LOOP-GATE-TREE: head=e2f38592f42fbc0cf2bbeca2e6eaecff1aab653f diff=9c6cfd80b7df6af2
@@ -43,10 +45,13 @@ was claimed (`LOOP-GATE-BASERED` appears nowhere in the log). The base-red measu
 ## The notes it raised, and what each cost
 
 - **Stale per-case reports beside a fresh gate log.** Correct, and repaired: `evidence/` now carries this run's
-  `TEST-*.xml` for both settings cases (mobile `12:19:24Z`, automotive twins beside them), the feature-list
-  classification report of this run (`unclassified: 0`, `stale: 4`, `delta spec ids: 0`) and the three
-  architecture reports this change's declaration touches (fresh `12:09:17Z`, asserting `rows=33 files=853
-  exemptions=46 rules=10`).
+  `TEST-*.xml` for both settings cases (mobile `12:19:24.671Z`/`12:18:06.578Z`, automotive twins
+  `12:13:35.283Z`/`12:12:36.121Z`), the feature-list classification report of this run (`unclassified: 0`,
+  `stale: 4`, `delta spec ids: 0`) and the three architecture reports of this run (fresh `12:09:17.698Z`). The
+  architecture figures `rows=33 files=853 exemptions=46 rules=10` are the assertions of
+  `architecture/src/test/kotlin/com/naviveylin/architecture/StructureReportTest.kt:33-47`, not a message inside
+  those reports — a green report carries none. One report stays the earlier run's, because this gate did not owe
+  that step: `tools_tests_gen-feature-list-selftest.sh-run584422.xml` now carries its run number in its name.
 - **Scenario coverage `UNPROVEN`, not `PASS`, for the group-1 scenarios.** Accepted and not argued: the shipped
   `settings-taxonomy` and `settings-surface` scenarios that need a renderer carry `**Case**: none` in the spec
   text itself, and the three cases this change ships assert the registry, the emission and the car row set —

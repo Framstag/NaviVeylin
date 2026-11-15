@@ -446,6 +446,7 @@ LOOP_SHELL_CASES=(
   'gate#theStepBoundIsClampedByTheCeilingTheCallerNamed'
   'phase#oneCallPrintsThePhaseState'
   'phase#aResultOverTheBoundIsCutAndNamed'
+  'phase#theIdentitySurvivesTheBoundOnAnyRoot'
   'repeat#aRepeatReadIsNamedNotHandedOverAgain'
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
   'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
@@ -1182,6 +1183,7 @@ loop_run_shell_case() {
     'gate#theStepBoundIsClampedByTheCeilingTheCallerNamed') fn=case_gate_theStepBoundIsClampedByTheCeilingTheCallerNamed ;;
     'phase#oneCallPrintsThePhaseState') fn=case_phase_oneCallPrintsThePhaseState ;;
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
+    'phase#theIdentitySurvivesTheBoundOnAnyRoot') fn=case_phase_theIdentitySurvivesTheBoundOnAnyRoot ;;
     'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
     'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
@@ -17910,6 +17912,11 @@ case_phase_oneCallPrintsThePhaseState() {
   local phase p wt out status
   phase="$LOOP_PROJECT_ROOT/tools/loop/phase.sh"
   [ -f "$phase" ] || fail "nothing prints the phase state in one call: tools/loop/phase.sh is not in the tree (issue #688)"
+  # This case asserts the shape of the whole answer, so it runs with the bound off — its own answer, not the project's
+  # recorded figure: a cut it did not ask for would leave the verdict to the length of the fixture's root, which is the
+  # defect `phase#theIdentitySurvivesTheBoundOnAnyRoot` owns (issue #927). It is exported here so every invocation
+  # below carries it; the case runs in a subshell, so no other case sees it.
+  export LOOP_TOOL_RESULT_MAX_CHARS=0
   p=$(phase_fixture)
   wt="$p/.pi/worktrees/item"
 
@@ -18037,6 +18044,81 @@ case_phase_aResultOverTheBoundIsCutAndNamed() {
   [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
   assert_contains "$(cat "$p/unbounded.txt")" 'PKG-LINE-300' "with no bound the whole answer is printed"
   assert_not_contains "$(cat "$p/unbounded.txt")" 'PHASE-BOUND' "and nothing is said about a bound it never met"
+  return 0
+}
+
+# The bound may take the tail and never the identity (issue #927). A child handed an answer whose `fingerprint` never
+# printed cannot tell which package it works from, and the answer cannot either: on a deep worktree root the head was
+# absolute paths — the checklist's, the gate's stream, the package and the evidence directory — so the 4 000 the
+# project records ran out inside the `PACKAGE:` line and the fingerprint line never printed. The same case passed on
+# a short project root and was red in every worktree the loop runs in, so the verdict was decided by the length of a
+# root. Two halves are asserted here, on the same fixture at two root depths:
+#
+#   the identity  the phase, the item, the package's fingerprint, provenance and acceptance title, its path, the gate
+#                 line and the paths a phase writes are printed before the two sections a cut may take, so a bound the
+#                 case pins itself leaves them all in the answer.
+#   the root      every path under the root is printed relative to the `ROOT:` line, which is the only line that
+#                 carries the root at all — so a deeper root costs the answer one line and not one prefix per path, and
+#                 the absolute form is that line's value plus any path printed below it.
+#
+# The bound is pinned here rather than inherited from `loop.conf`: a case that reads the recorded figure measures
+# whatever number the project last wrote, which is how this one measured nothing on the short root (issue #915's rule
+# from the other side). 2 000 is 1.7 times the identity's measured head — 872 bytes on a 35-character fixture root —
+# so it is loose enough that a root several times deeper than any this suite creates still leaves the identity inside
+# it, and tight enough that the order cannot be the pre-#927 one: the checklist alone is over 2 600 bytes, so an
+# answer that printed it before the identity has no fingerprint at 2 000 whatever the root.
+case_phase_theIdentitySurvivesTheBoundOnAnyRoot() {
+  # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-gate.md tools/loop/prompts/worker-tail.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
+  local phase pinned deep recorded out
+  phase="$LOOP_ENGINE/phase.sh"
+  [ -f "$phase" ] || fail "nothing prints the phase state in one call: tools/loop/phase.sh is not in the tree (issue #927)"
+  pinned=2000
+
+  # One fixture, one bound: what the answer must carry whatever the root it was asked on is, and what it must not
+  # spend the bound on.
+  identity_at() { # <label> <project root> <bound> → the identity lines, of an answer cut at that bound
+    local label="$1" root="$2" bound="$3" wt out size lines
+    wt="$root/.pi/worktrees/item"
+    out=$( cd "$root" && LOOP_TOOL_RESULT_MAX_CHARS="$bound" LOOP_STATE_FILE="$root/.pi/issue-loop/run.json" \
+      LOOP_WORKTREE="$wt" bash "$phase" A 2>&1 )
+    size=$(printf '%s' "$out" | wc -c)
+    [ "$size" -le "$bound" ] || fail "$label: the answer carried $size characters against the pinned bound of $bound"
+    assert_contains "$out" 'PHASE-BOUND' "$label: an answer this bound cuts says it was cut: $out"
+    assert_contains "$out" 'fingerprint 0123456789abcdef' "$label: the package's fingerprint survives the cut: $out"
+    assert_contains "$out" 'provenance issue #688' "$label: and its provenance: $out"
+    assert_contains "$out" 'ACCEPTANCE: the phase state is three calls away' "$label: and the title it is accepted against: $out"
+    assert_contains "$out" 'PACKAGE: .pi/issue-loop/items/688/work-package.md' "$label: with a path that names the package: $out"
+    assert_contains "$out" 'GATE: green — tests=256 failures=0 errors=0' "$label: the last gate verdict the item's stream records: $out"
+    assert_contains "$out" 'GATE: green — tests=256 failures=0 errors=0 — the last gate line .pi/issue-loop/items/688/events.jsonl records' \
+      "$label: with the stream's own path, relative to the root: $out"
+    assert_contains "$out" 'PATHS: the item evidence copies, always — .pi/issue-loop/items/688' "$label: and the evidence directory: $out"
+    assert_contains "$out" "ROOT: $root · a path under it is printed relative to it" \
+      "$label: beside the root those paths resolve against, which is the absolute form of every one of them: $out"
+    lines=$(printf '%s\n' "$out" | grep -cF -- "$root")
+    assert_eq "1" "$lines" "$label: the root is printed once and no other line carries it, so a deep root costs the answer one line"
+    return 0
+  }
+
+  root=$(phase_fixture)
+  identity_at "on the suite's own fixture root" "$root" "$pinned"
+
+  # The same fixture under a root long enough to have taken the identity from the recorded bound before #927: what the
+  # cut costs must not be a function of how deep the tree sits, so the depth is pinned as the fact this half proves.
+  deep="$LOOP_TMP/deep-root-$(printf 'x%.0s' $(seq 1 80))"
+  mkdir -p "$deep" || fail "could not create a deep root beside the suite's scratch tree"
+  root=$( LOOP_CASE_TMP="$deep" phase_fixture )
+  [ "${#root}" -gt 120 ] || fail "the fixture root is ${#root} characters — too short to stand in for a deep tree"
+  identity_at "on a ${#root}-character fixture root" "$root" "$pinned"
+
+  # …and the recorded bound the project cuts its answers at, which is the one the issue measured: on that deep root
+  # the identity is printed, because it is printed before the checklist rather than after it.
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
+  out=$( cd "$root" && env -u LOOP_TOOL_RESULT_MAX_CHARS LOOP_STATE_FILE="$root/.pi/issue-loop/run.json" \
+    LOOP_WORKTREE="$root/.pi/worktrees/item" bash "$phase" A 2>&1 )
+  assert_contains "$out" 'fingerprint 0123456789abcdef' \
+    "at the recorded $recorded-character bound and on this deep root the fingerprint is still printed: $out"
   return 0
 }
 

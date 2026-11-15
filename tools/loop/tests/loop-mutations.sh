@@ -1320,6 +1320,14 @@ MUTATIONS=(
   '925.9@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)@s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true|'
   '925.10@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)@s|repeats_json=null|repeats_json=0|'
   '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)@s|counted by the repeat-read rule|taken as given|'
+  # 927.x — the phase answer's identity is printed before anything the bound may cut, and every path it carries is
+  # relative to one `ROOT:` line (issue #927): the same case passed on a short project root and was red in every
+  # worktree, because the head was absolute paths and the cut landed inside the `PACKAGE:` line. One record per half —
+  # the order (927.1) prints the checklist at the head again, so the bound the case pins runs out before the
+  # fingerprint, and the relative form (927.2) prints each path under the root with the root again, so the answer
+  # carries the root once per path and spends the bound on a prefix every reader of it already holds.
+  '927.1@-@tools/loop/phase.sh@phase#theIdentitySurvivesTheBoundOnAnyRoot@the order that prints the package'"'"'s identity before the checklist, so a cut takes the fingerprint and the path that names the package and the answer names no work package (issue #927)@s|^  printf '"'"'ROOT: %s · a path under it is printed relative to it\\n'"'"' "\$LOOP_ROOT"$|  printf '"'"'%s\\n'"'"' "$section"|'
+  '927.2@-@tools/loop/phase.sh@phase#theIdentitySurvivesTheBoundOnAnyRoot@the relative form of a path under the root, so every path carries the root again and the bound is spent on a prefix the reader already holds (issue #927)@s|\${1#"$LOOP_ROOT"/}|$1|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

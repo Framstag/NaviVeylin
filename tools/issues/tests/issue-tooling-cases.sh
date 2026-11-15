@@ -164,6 +164,7 @@ ISSUES_SHELL_CASES=(
   'check#selfCheckIsGreen'
   'prioritise#recordsOutgrowOneArgument'
   'create#writesTheTypeItWasGiven'
+  'create#writesTheDependencyItWasGiven'
   'update#writesTheTypeItWasGiven'
 )
 
@@ -203,6 +204,7 @@ issues_run_shell_case() {
     'create#aCauseWithoutACaseIsRefused') case_create_aCauseWithoutACaseIsRefused ;;
     'create#aNamedChangeThatDoesNotExistIsRefused') case_create_aNamedChangeThatDoesNotExistIsRefused ;;
     'create#writesTheTypeItWasGiven') case_create_writesTheTypeItWasGiven ;;
+    'create#writesTheDependencyItWasGiven') case_create_writesTheDependencyItWasGiven ;;
     'update#writesTheTypeItWasGiven') case_update_writesTheTypeItWasGiven ;;
     'create#aChangeThatIsNotReadyIsRefused') case_create_aChangeThatIsNotReadyIsRefused ;;
     'create#aTierBWithNoDecisionIsRefused') case_create_aTierBWithNoDecisionIsRefused ;;
@@ -3524,6 +3526,61 @@ case_create_writesTheTypeItWasGiven() {
   assert_contains "$out" "type-opaque" "with the reason the vocabulary gate uses for an unknown value"
   assert_contains "$out" "Task Bug Feature" "and names the set the account declares"
   [ ! -s "$log" ] || fail "a refused type still created an item: $(cat "$log")"
+}
+
+# A dependency edge (#919) is the tracker's own relation — `Issue.blockedBy` reads it and `addBlockedBy` writes it —
+# so the create path writes the edge and nothing in the body carries the relation. What a caller names is a
+# predecessor, and every predecessor's handle is read *before* the filing: a number nobody filed is refused with
+# nothing written, because an edge on an item that does not exist blocks nothing.
+case_create_writesTheDependencyItWasGiven() {
+  local dir log finding out status line count
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  jq -n '[{number: 90, id: "ISSUE_90", title: "the predecessor", state: "OPEN", body: "b",
+           labels: [], author: {login: "Framstag"}}]' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  finding=$(with_cause "$(jq -n '{sourceId: "199", title: "a finding that waits for its predecessor",
+                     class: "bug", category: "build-and-harness", claim: "A claim", anchor: "a",
+                     body: "the body, verbatim"}')")
+
+  out=$(printf '%s' "$finding" | run_tool create.sh --blocked-by 90 --json 2>&1) ||
+    fail "create.sh refused a dependency on a filed issue: $out"
+  jq -e '.blockedBy == [90]' <<< "$out" >/dev/null || fail "the result does not carry the dependency it wrote: $out"
+  line=$(grep 'addBlockedBy' "$log" | head -1)
+  [ -n "$line" ] || fail "no addBlockedBy mutation was recorded"
+  assert_contains "$line" "issue=ISSUE_1" "the new item's handle is the one read after the filing"
+  assert_contains "$line" "blocking=ISSUE_90" "and the predecessor's handle is the id the tracker gave it"
+  # The relation is the edge and nothing in the body repeats it: a line a reader would have to parse is the shape this
+  # item was filed asking for and its own comment replaced (issue #919).
+  case "$(grep 'issue create' "$log" | head -1)" in
+    *"blocked by"*|*Depends-on*) fail "the relation travelled in the body instead of the tracker's edge" ;;
+  esac
+
+  # A finding may state it in its own JSON, which is how a filing path built from a template states the order its
+  # predecessor gave it — and the same predecessor named twice is one edge.
+  : > "$log"
+  jq '.blockedBy = [90, 90]' <<< "$finding" | run_tool create.sh --json >/dev/null ||
+    fail "a finding naming its own dependency failed"
+  count=$(grep -c 'addBlockedBy' "$log")
+  assert_eq "1" "$count" "the predecessor named twice is written once"
+
+  # A parent holds an item; it does not precede it, so the two fields are not the same edge.
+  : > "$log"
+  out=$(printf '%s' "$finding" | run_tool create.sh --parent 90 --blocked-by 90 --json 2>&1); status=$?
+  assert_eq "2" "$status" "an item blocked by its own parent is a usage error: $out"
+  assert_contains "$out" "its own parent" "and the refusal says which relation it read"
+  [ ! -s "$log" ] || fail "a refused dependency still called gh: $(cat "$log")"
+
+  # A predecessor the tracker does not hold is refused before the filing, so nothing is left behind.
+  : > "$log"
+  out=$(printf '%s' "$finding" | run_tool create.sh --blocked-by 91 --json 2>&1); status=$?
+  assert_eq "2" "$status" "an unfiled predecessor is refused: $out"
+  assert_contains "$out" "nothing was written" "and the refusal says nothing was filed"
+  [ ! -s "$log" ] || fail "a refused predecessor still called gh: $(cat "$log")"
+
+  # A predecessor is a number, not a phrase.
+  out=$(printf '%s' "$finding" | run_tool create.sh --blocked-by three --json 2>&1); status=$?
+  assert_eq "2" "$status" "a non-numeric predecessor is a usage error"
+  [ ! -s "$log" ] || fail "a malformed predecessor still called gh: $(cat "$log")"
 }
 
 case_update_writesTheTypeItWasGiven() {

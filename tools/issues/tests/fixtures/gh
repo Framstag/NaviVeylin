@@ -178,7 +178,7 @@ case "$group" in
     # all states, as the query's `states: [OPEN, CLOSED]` asks — and refuse a query they do not describe (#805).
     if [ "${1:-}" = "graphql" ]; then
       shift
-      query=""; jq_filter=""; label=""; owner=""; name=""
+      query=""; jq_filter=""; label=""; owner=""; name=""; issue_id=""; blocking_id=""
       while [ $# -gt 0 ]; do
         case "$1" in
           --jq) jq_filter="${2:-}"; shift 2 ;;
@@ -187,6 +187,8 @@ case "$group" in
                 label=*) label="${2#label=}" ;;
                 owner=*) owner="${2#owner=}" ;;
                 name=*) name="${2#name=}" ;;
+                issue=*) issue_id="${2#issue=}" ;;
+                blocking=*) blocking_id="${2#blocking=}" ;;
                 *) refuse "api graphql -f ${2:-}" ;;
               esac; shift 2 ;;
           --paginate) shift ;;
@@ -206,8 +208,18 @@ case "$group" in
           fi
           exit 0
           ;;
+        # The dependency edge (#919): the mutation is a write, so it is recorded like every other, and a case reads
+        # the two node handles it was handed. A mutation the fixtures cannot describe is refused, never answered.
+        *addBlockedBy*)
+          [ -n "${GH_STUB_RECORD:-}" ] || refuse "api graphql addBlockedBy without GH_STUB_RECORD"
+          [ -n "$issue_id" ] && [ -n "$blocking_id" ] ||
+            refuse "api graphql addBlockedBy — the mutation names no issueId and blockingIssueId"
+          record_write api graphql -f "query=addBlockedBy" -f "issue=$issue_id" -f "blocking=$blocking_id"
+          printf '{"data":{"addBlockedBy":{"clientMutationId":null}}}\n'
+          exit 0
+          ;;
         *totalCount*) ;;
-        *) refuse "api graphql — the query names no totalCount and no issueTypes" ;;
+        *) refuse "api graphql — the query names no totalCount, no issueTypes and no addBlockedBy" ;;
       esac
       [ -n "$label" ] || refuse "api graphql — the query carries no label to count"
       need_file repo.txt
@@ -350,21 +362,37 @@ case "$group" in
       view)
         number="${1:-}"; shift || true
         case "$number" in ''|*[!0-9]*) refuse "issue view $number" ;; esac
-        fields=""
+        fields=""; filter=""
         while [ $# -gt 0 ]; do
-          case "$1" in --json) fields="${2:-}"; shift 2 ;; *) refuse "issue view $*" ;; esac
+          case "$1" in
+            --json) fields="${2:-}"; shift 2 ;;
+            # `--jq` is the real CLI's own client-side filter, and a caller that reads one field through it
+            # (`--json id --jq .id`) is a caller the stub must answer rather than refuse.
+            --jq) filter="${2:-}"; shift 2 ;;
+            *) refuse "issue view $*" ;;
+          esac
         done
         need_file issues.json
-        # `--json a,b` selects fields on the real CLI, and it is the only thing that makes a caller's field list
-        # observable: a reader that forgets one (issue #196: `comments`, so the recorded answer never reached the
-        # worker) must be red here rather than silently served everything by the stub.
-        jq --argjson n "$number" --arg fields "$fields" '
-          [.[] | select(.number == $n)]
-          | if length != 1 then error("no fixture issue #\($n)") else .[0] end
-          | if $fields == "" then . else
-              . as $issue
-              | reduce ($fields | split(",")[]) as $k ({}; if ($issue | has($k)) then . + {($k): $issue[$k]} else . end)
-            end' "$(fixture_path issues.json)"
+        # The node id of an item the fixtures cannot hold: `issue create` answers issue 1, so the item a case just
+        # filed has no fixture entry, and its handle is the only field a writer asks for after the create. A number
+        # the fixtures *do* hold is answered from them, and every other field still refuses an unknown issue.
+        if [ "$fields" = "id" ] && [ "$number" = "1" ] &&
+           ! jq -e --argjson n "$number" 'any(.[]; .number == $n)' "$(fixture_path issues.json)" >/dev/null 2>&1; then
+          view_out='{"id":"ISSUE_1"}'
+        else
+          # `--json a,b` selects fields on the real CLI, and it is the only thing that makes a caller's field list
+          # observable: a reader that forgets one (issue #196: `comments`, so the recorded answer never reached the
+          # worker) must be red here rather than silently served everything by the stub.
+          view_out=$(jq --argjson n "$number" --arg fields "$fields" '
+            [.[] | select(.number == $n)]
+            | if length != 1 then error("no fixture issue #\($n)") else .[0] end
+            | if $fields == "" then . else
+                . as $issue
+                | reduce ($fields | split(",")[]) as $k ({}; if ($issue | has($k)) then . + {($k): $issue[$k]} else . end)
+              end' "$(fixture_path issues.json)") || exit $?
+        fi
+        if [ -n "$filter" ]; then printf '%s' "$view_out" | jq -r "$filter"
+        else printf '%s\n' "$view_out"; fi
         ;;
       create|edit|close|comment|delete|reopen)
         [ "$sub" = "close" ] && check_close_reason "$@"

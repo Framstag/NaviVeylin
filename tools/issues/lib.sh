@@ -195,6 +195,20 @@ issues_declared_types() {
   return "$status"
 }
 
+# An issue's node id: the handle every mutation that changes one item takes (they speak `ID!`, never a number).
+# A read that fails prints nothing and returns non-zero, so the caller decides what an unread handle means.
+issues_issue_node_id() { # <number> → the id, or nothing
+  gh issue view "$1" --json id --jq .id 2>/dev/null
+}
+
+# Write one dependency edge. The tracker holds it natively — `Issue.blockedBy` reads it and `addBlockedBy` writes
+# it — so nothing in the item's body carries the relation and nothing has to parse prose (#919).
+issues_blocked_by_add() { # <issue-id> <blocking-issue-id>
+  gh api graphql \
+    -f query='mutation($issue: ID!, $blocking: ID!) { addBlockedBy(input: { issueId: $issue, blockingIssueId: $blocking }) { clientMutationId } }' \
+    -f issue="$1" -f blocking="$2" >/dev/null
+}
+
 # Run one of the core's classes. The core is Java with no Gradle source set and no build system (design D1),
 # but it is **compiled once and then run from the class path**, never handed to the single-file source
 # launcher: `java core/Foo.java` resolves Foo's siblings only on some JDKs — JDK 27 finds them, JDK 21 does

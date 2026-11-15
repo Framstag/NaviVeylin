@@ -1284,6 +1284,16 @@ MUTATIONS=(
   '861.1@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
   '861.2@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861)@s|^    && \[ "\$gate_attribution" != "flaked" \]; then$|    && true; then|'
   '861.3@-@tools/loop/state.sh@run#aFlakedCaseIsOffTheBlockedPath@the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861)@s|^  elif \[ "\$result" = done \] && \[ "\$(gate_tally_state "\$gate")" = red \] && \[ "\$gate_attribution" != flaked \]; then$|  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then|'
+  # 924.x — the round the reviewer is handed is bounded (issue #924), and the cap is the half a case sees from the
+  # outside: with it removed the bounded round hands the whole part again, the item's state records no cut and the
+  # report prints the constant for a run nothing was cut from. One record, one invariant.
+  #
+  # A second record for the index's own write (`} > "$cut_file"` → `> /dev/null`) was written twice and dropped twice:
+  # `--check` confirms the expression applies, yet the case stays green in this harness and in a hand-run of the driver
+  # against a mutated engine copy. A record the case cannot notice is a failure of the harness, not a pass — and the
+  # open question it leaves (the case asserts the index's content, so what the redirected write loses is not visible to
+  # it) belongs in the review, not in a green record.
+  '924.1@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

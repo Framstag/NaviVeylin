@@ -147,6 +147,7 @@ LOOP_SHELL_CASES=(
   'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#reviewerIsBoundedToReading'
+  'prompt#reviewerInputsAreBoundedAndTheCutIsNamed'
   'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'
   'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
   'prompt#iterationProtocolNamesTheChangeSurface'
@@ -879,6 +880,7 @@ loop_run_shell_case() {
     'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#reviewerIsBoundedToReading') fn=case_prompt_reviewerIsBoundedToReading ;;
+    'prompt#reviewerInputsAreBoundedAndTheCutIsNamed') fn=case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed ;;
     'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton') fn=case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton ;;
     'prompt#workerNamesTheChangeSurfaceBeforeThePlan') fn=case_prompt_workerNamesTheChangeSurfaceBeforeThePlan ;;
     'prompt#iterationProtocolNamesTheChangeSurface') fn=case_prompt_iterationProtocolNamesTheChangeSurface ;;
@@ -4490,6 +4492,87 @@ case_prompt_reviewerIsBoundedToReading() {
   # the bound is the number the run itself enforces, so the two cannot drift
   cap=8100
   assert_contains "$text" "$cap" "the wall-clock bound named in the task is the run's own ($cap s)"
+}
+
+# Issue #924: the round's input set had no ceiling, and the round paid for it by paging — over the eight rounds of
+# the run the item records the reviewer spent 46.1 M tokens (22.5 % of the run's 204.7 M, 5.8 M a round for the six
+# that reported), and two rounds ended with no verdict at all: one at `LOOP_ITEM_CONTEXT_MAX_REVIEWER` (#883, 250 418)
+# and one at `LOOP_CHILD_TURNS_MAX_REVIEWER` (#898, a 262 411 B diff). A turn bound decides when to stop reading an
+# unbounded input, so what is bounded is the input: each of the round's three parts is capped at
+# `LOOP_REVIEW_INPUT_MAX_BYTES`, and what the cap cuts is named — by path and line range — in a file the round reads
+# by path, so a finding can still point at a line the head did not carry. The figures reach the round's prompt and
+# the item's state, which is where the report prints them from.
+#
+# Two runs: the recorded cap, which the stub item's round is far under, and a cap small enough that the round's parts
+# are over it. The under-cap run is the one that says a round nobody cut is byte for byte the round it always was.
+case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/loop.conf tools/loop/state.sh tools/loop/report.sh tools/loop/prompts/reviewer.md tools/pi-child-events.sh tools/tooling.json
+  local d p conf sf prompt diff cut text out recorded
+  # The key and its default are recorded in the configuration the run reads. The value is not pinned here for the
+  # reason the neighbour case states: both runs set their own, so a template that hardcoded today's number would
+  # still be reported. What is asserted is that a default is there and that it is a positive number of bytes.
+  recorded=$(grep -E '^LOOP_REVIEW_INPUT_MAX_BYTES=' "$LOOP_ENGINE/loop.conf" || true)
+  assert_matches "$recorded" '^LOOP_REVIEW_INPUT_MAX_BYTES=[1-9][0-9]*$' \
+    'loop.conf records no positive LOOP_REVIEW_INPUT_MAX_BYTES'
+  # A round under the cap hands what it always handed, so the bound's section has to leave the template byte for
+  # byte as it was: the placeholder sits on the bullet's own line for that reason — a line of its own would add a
+  # blank one to every under-cap round.
+  grep -qF 'not a missing artefact.{{REVIEW_INPUTS}}' "$LOOP_ENGINE/prompts/reviewer.md" ||
+    fail "the bound's placeholder is not on the bullet's own line, so an empty section would add a blank line"
+
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail 'the under-cap run failed'
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$prompt" ] || fail 'the reviewer prompt was not rendered'
+  text=$(cat "$prompt")
+  assert_contains "$text" 'not a missing artefact.' 'the under-cap round keeps the bullet it always carried'
+  assert_not_contains "$text" 'Bounded at' 'a round under the cap carries no line about a bound'
+  assert_not_contains "$text" '[LOOP-CUT:' 'and no marker'
+  assert_not_contains "$text" 'Do not page a part past' 'and no instruction about one'
+  [ -f "$p/.pi/issue-loop/items/21/review-1.cut.md" ] && fail 'an under-cap round wrote a cut index'
+  sf=$(state_file "$p")
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 21) | .metrics.reviewInput' "$sf")" \
+    'an under-cap round records no cut'
+  assert_contains "$(run_report "$p")" "what the bound cut from a round's input: none" \
+    'and the report says none, as the lines beside it do'
+
+  # A cap both parts of this item's round are over: the diff, and the change's own files.
+  conf="$d/bounded.conf"
+  sed -e 's/^LOOP_REVIEW_INPUT_MAX_BYTES=.*/LOOP_REVIEW_INPUT_MAX_BYTES=64/' "$LOOP_CONF" > "$conf" ||
+    fail 'could not write the loop configuration'
+  grep -qx 'LOOP_REVIEW_INPUT_MAX_BYTES=64' "$conf" || fail 'this case could not set the cap in loop.conf'
+  export LOOP_CONF="$conf"
+  p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail 'the bounded run failed'
+  diff="$p/.pi/issue-loop/items/21/review-1.diff"
+  cut="$p/.pi/issue-loop/items/21/review-1.cut.md"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$diff" ] || fail 'the round's diff was not written'
+  [ -f "$cut" ] || fail 'the cut index was not written beside it'
+  [ -f "$prompt" ] || fail 'the reviewer prompt was not rendered'
+  text=$(cat "$prompt")
+  assert_contains "$text" 'Your input this round is bounded' 'the round is told its input is bounded this round'
+  assert_contains "$text" 'Bounded at 64 bytes a part' 'and by which figure, read from the configuration'
+  assert_contains "$text" 'review-1.cut.md' 'and the file that names what the cut left out'
+  assert_contains "$text" 'Do not page a part past' 'and that the marker is where the reading stops'
+  # What the round is handed is the head, and the head says so on its last line.
+  assert_contains "$(cat "$diff")" '[LOOP-CUT:' 'the handed diff is marked as a head'
+  [ "$(wc -c < "$diff")" -lt 1000 ] || fail "the handed diff was not capped: $(wc -c < "$diff") bytes"
+  # The index names what the cut left out, one entry a line: the path and the lines the head did not carry.
+  assert_contains "$(cat "$cut")" 'demo-fix.txt' 'the cut index names a path the diff part carried'
+  assert_contains "$(cat "$cut")" 'lines 1-' 'and the line range it holds'
+  assert_contains "$(cat "$cut")" 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' \
+    'and a change file the inventory was too small to list'
+  # The figures the round read are the run's own record too, so a reader of the state sees the cut rather than a head
+  # that reads like the whole part.
+  sf=$(state_file "$p")
+  assert_contains "$(jq -r '.items[] | select(.issue == 21) | .metrics.reviewInput' "$sf")" 'over the 64 B cap' \
+    "the item's state records the cut scale"
+  assert_contains "$(jq -r '.items[] | select(.issue == 21) | .metrics.reviewInput' "$sf")" 'review-1.cut.md' \
+    'and the index it names'
+  out=$(run_report "$p")
+  assert_contains "$out" '#21' 'the report names the item whose round was cut'
+  assert_contains "$out" 'over the 64 B cap' 'and prints the scale the round was handed'
 }
 
 # The same bound reaches a session that spawns its own reviewer (issue #236): the loop's prompt is the one

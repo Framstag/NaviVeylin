@@ -8,7 +8,18 @@ data class SourceFile(
     val path: String,
     val packageName: String,
     val imports: List<String> = emptyList(),
-)
+) {
+
+    /**
+     * Whether the file belongs to a test source set. The import rules judge main sources only (see
+     * [LayerRules]); the shape and declaration rules judge every source set.
+     */
+    val isTestSource: Boolean get() = TEST_SOURCE_MARKER in path.replace('\\', '/')
+
+    private companion object {
+        const val TEST_SOURCE_MARKER = "/src/test/java/"
+    }
+}
 
 /** The rules this part of the check evaluates. Each id is what a report names. */
 enum class StructureRule(val id: String) {
@@ -64,10 +75,38 @@ enum class StructureRule(val id: String) {
 
     /** A baseline line that is not three tab-separated fields, so the exemption cannot be read. */
     BASELINE_ROW_UNPARSABLE("baseline-row-unparsable"),
+
+    /** A `platform` row whose feature no `feature` row declares, or whose package imports none of that
+     * feature (spec `package-structure`, "a platform package mirrors a feature"). The finding addresses the
+     * declaration row, so one entry exempts the package rather than each of its files. */
+    MIRROR("mirror"),
+
+    /** A `platform` file importing another `platform` package (spec `package-structure`, "a platform package
+     * mirrors a feature"). */
+    PLATFORM_IMPORTS_SIBLING_PLATFORM("platform imports sibling platform"),
+
+    /** A file of a kind other than `shell` importing several features (spec `package-structure`, "shell is
+     * the only kind that hosts several features"). */
+    HOSTS_SEVERAL_FEATURES("hosts several features"),
+
+    /** A row-granularity baseline entry whose row no longer violates the rule it exempts (spec
+     * `architecture-test-suite`, "The baseline is shrink-only"). */
+    STALE_ROW_EXEMPTION("stale-row-exemption"),
 }
 
-/** One finding: the rule that refused, the pointer of the file or row it refused, and the sentence. */
-data class StructureViolation(val rule: StructureRule, val pointer: String, val message: String)
+/**
+ * One finding: the rule that refused, the pointer a reader follows to see it, and the sentence.
+ *
+ * [subject] is what a baseline entry addresses to exempt the finding: a file's path, or — for a rule that
+ * judges a declaration row rather than a file, like [StructureRule.MIRROR] — the row, written
+ * `row <module>\t<package>`. It is [pointer] for every file-level rule.
+ */
+data class StructureViolation(
+    val rule: StructureRule,
+    val pointer: String,
+    val message: String,
+    val subject: String = pointer,
+)
 
 /**
  * The declaration check. It reads the declaration and a list of source files, so every case can hand

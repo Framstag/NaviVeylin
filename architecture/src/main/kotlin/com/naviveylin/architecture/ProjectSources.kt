@@ -21,21 +21,25 @@ object ProjectRoot {
 }
 
 /**
- * The files the check reads: the main sources of the three modules the structure covers. Konsist reads
- * source text, so `:app` — an application module no test classpath reaches — is covered like the others.
- *
- * The test source sets are a later task of the change (2.2); this list is main sources only.
+ * The files the check reads: the main **and** test sources of the three modules the structure covers (change
+ * `package-structure-rules-and-suite`, task 2.2; spec `architecture-test-suite` — "The check reads every source
+ * set of the three modules"). Konsist reads source text, so `:app` — an application module no test classpath
+ * reaches — is covered like the others, and a violation in a test source is a violation like any other: the
+ * rule is about the package a file sits in, not about the artifact it compiles into.
  */
 object ProjectSources {
 
     /** The source roots the structure covers, as a path fragment that survives an absolute path. */
-    val mainSourceRoots: List<String> = listOf(
+    val sourceRoots: List<String> = listOf(
         "app/src/main/java/",
         "auto/src/main/java/",
         "core/src/main/java/",
+        "app/src/test/java/",
+        "auto/src/test/java/",
+        "core/src/test/java/",
     )
 
-    fun mainSourceFiles(): List<SourceFile> =
+    fun sourceFiles(): List<SourceFile> =
         Konsist.scopeFromProject().files
             .mapNotNull { file ->
                 val path = projectRelative(file.path) ?: return@mapNotNull null
@@ -72,8 +76,14 @@ object ProjectSources {
                 ?: return null
             else -> normalized
         }
-        return mainSourceRoots.firstOrNull { relative.startsWith(it) }?.let { relative }
+        return sourceRoots.firstOrNull { relative.startsWith(it) }?.let { relative }
     }
+
+    /**
+     * The main sources alone — the scope [LayerRules]' import rules judge, while the shape and declaration rules
+     * judge every source set (see [LayerRules]).
+     */
+    fun mainSourceFiles(): List<SourceFile> = sourceFiles().filterNot { it.isTestSource }
 
     /** The project root in both shapes a file system reports it, so a symlinked checkout matches too. */
     private fun projectRootPrefixes(): List<String> =

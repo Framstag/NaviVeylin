@@ -27,11 +27,12 @@ data class StructureReport(
 
     companion object {
 
-        /** Evaluate the declaration, the layer rules and the baseline over [files]. */
+        /** Evaluate the declaration, its rules and the baseline over [files]. */
         fun of(declaration: StructureDeclaration, files: List<SourceFile>, baseline: Baseline): StructureReport {
-            val findings = LayerRules.violations(declaration, files)
+            val findings = LayerRules.violations(declaration, files.filterNot { it.isTestSource }) +
+                DeclarationRules.violations(declaration, files)
             val exemptions = baseline.entries.count { entry ->
-                findings.any { it.pointer == entry.file && it.rule.id == entry.rule }
+                findings.any { it.subject == entry.file && it.rule.id == entry.rule }
             }
             val violations = StructureCheck(declaration).violations(files) +
                 baseline.refusals(findings) +
@@ -40,7 +41,7 @@ data class StructureReport(
                 rows = declaration.rows.size,
                 files = files.size,
                 exemptions = exemptions,
-                rules = LayerRules.ALL.size,
+                rules = StructureRules.ALL.size,
                 violations = violations,
             )
         }

@@ -20,6 +20,7 @@ class FeatureRuleTest {
             "core\tcom.naviveylin.core.port\tport\t-\tconcept\n" +
             "app\tcom.naviveylin.feature.navigation\tfeature\tnavigation\tconcept,port\n" +
             "app\tcom.naviveylin.feature.route\tfeature\troute\tconcept,port\n" +
+            "app\tcom.naviveylin.feature.map\tfeature\tmap\tconcept,port\n" +
             "app\tcom.naviveylin.platform.map\tplatform\tmap\tconcept,port,feature/map\n" +
             "app\tcom.naviveylin.shell\tshell\t-\tany\n",
     )
@@ -37,7 +38,12 @@ class FeatureRuleTest {
             imports = navigationImports,
         ),
         SourceFile("app/src/main/java/com/naviveylin/feature/route/RouteLength.kt", "com.naviveylin.feature.route"),
-        SourceFile("app/src/main/java/com/naviveylin/platform/map/MapCanvas.kt", "com.naviveylin.platform.map"),
+        SourceFile("app/src/main/java/com/naviveylin/feature/map/MapModel.kt", "com.naviveylin.feature.map"),
+        SourceFile(
+            "app/src/main/java/com/naviveylin/platform/map/MapCanvas.kt",
+            "com.naviveylin.platform.map",
+            listOf("com.naviveylin.feature.map.MapModel"),
+        ),
         SourceFile("app/src/main/java/com/naviveylin/shell/AppShell.kt", "com.naviveylin.shell"),
     )
 

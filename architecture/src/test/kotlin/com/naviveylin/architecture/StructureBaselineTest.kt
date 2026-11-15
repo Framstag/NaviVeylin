@@ -77,6 +77,58 @@ class StructureBaselineTest {
         assertTrue("the check must pass once the entry names its change: ${green.summary()}", green.passed)
     }
 
+    /**
+     * A row entry exempts a rule that judges a declaration row (`mirror`), and it is stale the moment its row
+     * satisfies that rule — with its own rule id, so a reader can tell a row entry from a file entry without
+     * opening the baseline.
+     */
+    @Test
+    fun staleRowExemptionFails() {
+        val concept = SourceFile(SOURCE, "com.naviveylin.concept")
+        val platform = SourceFile(PLATFORM_SOURCE, "com.naviveylin.platform.reports")
+        val unmirrored = StructureDeclaration.parse(
+            "# test declaration\n" +
+                "app\tcom.naviveylin.concept\tconcept\t-\t-\n" +
+                "app\tcom.naviveylin.platform.reports\tplatform\treports\tconcept,feature/reports\n",
+        )
+
+        val exempted = StructureReport.of(unmirrored, listOf(concept, platform), baselineOf(ROW_ENTRY))
+
+        assertTrue("a row entry must exempt its row: ${exempted.summary()}", exempted.passed)
+        assertTrue(
+            "the row entry must be counted as an outstanding exemption: ${exempted.summary()}",
+            exempted.summary().contains("exemptions=1"),
+        )
+
+        val mirrored = StructureDeclaration.parse(
+            "# test declaration\n" +
+                "app\tcom.naviveylin.concept\tconcept\t-\t-\n" +
+                "app\tcom.naviveylin.feature.reports\tfeature\treports\tconcept\n" +
+                "app\tcom.naviveylin.platform.reports\tplatform\treports\tconcept,feature/reports\n",
+        )
+        val reaching = platform.copy(imports = listOf("com.naviveylin.feature.reports.Reports"))
+        val feature = SourceFile("app/src/main/java/com/naviveylin/feature/reports/Reports.kt", "com.naviveylin.feature.reports")
+        val stale = StructureReport.of(mirrored, listOf(concept, feature, reaching), baselineOf(ROW_ENTRY))
+
+        assertFalse("a row entry whose row is mirrored must fail: ${stale.summary()}", stale.passed)
+        assertTrue(
+            "the violation must name the entry at its line: ${stale.summary()}",
+            stale.summary().contains("$BASELINE_PATH:2"),
+        )
+        assertTrue(
+            "the violation must name the row the entry exempts: ${stale.summary()}",
+            stale.summary().contains("com.naviveylin.platform.reports"),
+        )
+        assertTrue(
+            "the violation must carry the row rule id, not the file one: ${stale.summary()}",
+            stale.summary().contains(StructureRule.STALE_ROW_EXEMPTION.id) &&
+                !stale.summary().contains(StructureRule.STALE_EXEMPTION.id),
+        )
+
+        val green = StructureReport.of(mirrored, listOf(concept, feature, reaching), baselineOf())
+        assertTrue("the check must pass once the row entry is removed: ${green.summary()}", green.passed)
+    }
+
     @Test
     fun baselinedFileIsCountedNotReported() {
         val report = reportOf(
@@ -130,8 +182,10 @@ class StructureBaselineTest {
 
     private companion object {
         const val SOURCE = "app/src/main/java/com/naviveylin/concept/Concept.kt"
+        const val PLATFORM_SOURCE = "app/src/main/java/com/naviveylin/platform/reports/ReportsView.kt"
         const val ANDROID_RULE = "concept imports no Android type"
         const val OWNING_CHANGE = "package-structure-concept-migration"
+        const val ROW_ENTRY = "row app\tcom.naviveylin.platform.reports\tmirror\t$OWNING_CHANGE"
 
         fun entry(rule: String): String = "$SOURCE\t$rule\t$OWNING_CHANGE"
     }

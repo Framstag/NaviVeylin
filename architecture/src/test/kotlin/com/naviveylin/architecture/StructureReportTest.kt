@@ -18,27 +18,31 @@ class StructureReportTest {
         val declaration = StructureDeclaration.parse(ProjectRoot.declarationText())
         val report = StructureReport.of(
             declaration,
-            ProjectSources.mainSourceFiles(),
+            ProjectSources.sourceFiles(),
             Baseline.parse(ProjectSources.baselineText()),
         )
 
         assertTrue("the project's own tree must pass the check: ${report.summary()}", report.passed)
-        assertEquals("every declaration row must be read: ${report.summary()}", 27, report.rows)
-        assertEquals("every main source file must be classified: ${report.summary()}", 338, report.files)
+        assertEquals("every declaration row must be read: ${report.summary()}", 31, report.rows)
         assertEquals(
-            "the day-one baseline's 14 entries and the feature rules' 23 must be counted as outstanding " +
-                "exemptions: ${report.summary()}",
-            37,
+            "every main and test source file of the three modules must be classified: ${report.summary()}",
+            840,
+            report.files,
+        )
+        assertEquals(
+            "the day-one baseline's 14 entries, the feature rules' 23 and the mirror rule's 7 rows must be " +
+                "counted as outstanding exemptions: ${report.summary()}",
+            44,
             report.exemptions,
         )
         assertEquals(
             "every rule the check evaluates must be counted: ${report.summary()}",
-            LayerRules.ALL.size,
+            StructureRules.ALL.size,
             report.rules,
         )
         assertTrue(
             "the green run must state its four figures: ${report.summary()}",
-            report.summary().contains("rows=27 files=338 exemptions=37 rules=7"),
+            report.summary().contains("rows=31 files=840 exemptions=44 rules=10"),
         )
     }
 

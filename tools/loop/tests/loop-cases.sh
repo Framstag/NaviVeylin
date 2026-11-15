@@ -334,6 +334,7 @@ LOOP_SHELL_CASES=(
   'adapter#theChildIsStartedWithTheResultBound'
   'adapter#theResultBoundExemptsGateEvidence'
   'adapter#theChildIsStartedWithTheItemsLedger'
+  'adapter#theChildIsStartedWithTheRepeatReadArm'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
   'adapter#aRotatedStreamKeepsEveryTurnEnd'
@@ -370,6 +371,7 @@ LOOP_SHELL_CASES=(
   'state#aCutRecordsTheFilesItsPatchCarries'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
+  'report#theRuleRecordsTheSecondReadsItCounted'
   'report#aTruncatedStreamSaysSo'
   'report#theSpendIsSplitByPhaseRoleAndGate'
   'report#thePreGateRoundIsChargedToItsOwnRole'
@@ -442,6 +444,7 @@ LOOP_SHELL_CASES=(
   'phase#aResultOverTheBoundIsCutAndNamed'
   'repeat#aRepeatReadIsNamedNotHandedOverAgain'
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
+  'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'repeat#aRepeatIsRecordedAsWhatItWithheld'
@@ -1066,6 +1069,7 @@ loop_run_shell_case() {
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
     'adapter#theResultBoundExemptsGateEvidence') fn=case_adapter_theResultBoundExemptsGateEvidence ;;
     'adapter#theChildIsStartedWithTheItemsLedger') fn=case_adapter_theChildIsStartedWithTheItemsLedger ;;
+    'adapter#theChildIsStartedWithTheRepeatReadArm') fn=case_adapter_theChildIsStartedWithTheRepeatReadArm ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
     'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
@@ -1103,6 +1107,7 @@ loop_run_shell_case() {
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
     'report#anItemRecordsItsRepeatReads') fn=case_report_anItemRecordsItsRepeatReads ;;
+    'report#theRuleRecordsTheSecondReadsItCounted') fn=case_report_theRuleRecordsTheSecondReadsItCounted ;;
     'report#aTruncatedStreamSaysSo') fn=case_report_aTruncatedStreamSaysSo ;;
     'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
     'report#thePreGateRoundIsChargedToItsOwnRole') fn=case_report_thePreGateRoundIsChargedToItsOwnRole ;;
@@ -1171,6 +1176,7 @@ loop_run_shell_case() {
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
     'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
+    'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'repeat#aRepeatIsRecordedAsWhatItWithheld') fn=case_repeat_aRepeatIsRecordedAsWhatItWithheld ;;
@@ -13297,6 +13303,58 @@ JSONL
     "and a run of items that answered without opening a file prints the other dash"
 }
 
+# A repeat the rule counted was a number nobody recorded (issue #925): the rule writes a line per second read of a path
+# one child was handed, and the stream cannot say it — the stream holds the tool's answer, not the read the rule answered
+# — so `state.sh` reads the record beside the item's stream into `metrics.repeatReads` and `report.sh` prints it beside
+# the session's own repeat count, never as the same figure: `dupReads` counts a repeat a *session* had, this counts one a
+# *child* was handed. The three states a figure can be in are kept apart as everywhere else in the report: a count, a
+# zero a record that was read gives, and the dash of a state written before the field existed.
+case_report_theRuleRecordsTheSecondReadsItCounted() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/pi-trim-result.mjs tools/tooling.json
+  local d p f out
+  d=$(scratch); p=$(new_project)
+  # One directory per item, because the rule's record is read from beside the item's own stream.
+  mkdir -p "$d/i31" "$d/i32" "$d/i33"
+  for i in 31 32 33; do
+    cat > "$d/i$i/events.jsonl" <<'JSONL'
+ {"type":"session","version":3,"id":"s1"}
+ {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/PLACEHOLDER/worker-prompt.md"}]}}
+ {"type":"turn_end","message":{"role":"assistant","usage":{"input":100,"output":10,"cacheRead":0,"cacheWrite":0},"content":[]},"toolResults":[]}
+JSONL
+    sed -i "s|PLACEHOLDER|$i|" "$d/i$i/events.jsonl"
+  done
+  # #31 was handed two paths a second time — one served under `measure` and one withheld, which is why the record line
+  # carries the arm — and #32's record is the repeat of an unchanged path alone, so it counted no second read. #33's
+  # directory holds no record, which is the null the figure keeps apart from a zero.
+  printf 'LOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=4 arm=measure\nLOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=6 arm=refuse\nLOOP-TOOL-RESULT-REPEAT: ctx_read chars=90 kept=40\n' \
+    > "$d/i31/tool-result-trims.log"
+  printf 'LOOP-TOOL-RESULT-REPEAT: read chars=90 kept=40\n' > "$d/i32/tool-result-trims.log"
+  init_state "$p" 3 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1},{"issue":32,"class":"bug","verdict":"eligible","rank":2},{"issue":33,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result done --verdict closed --wall 42 --events "$d/i31/events.jsonl" >/dev/null
+  run_state "$p" done 32 --result done --verdict closed --wall 42 --events "$d/i32/events.jsonl" >/dev/null
+  run_state "$p" done 33 --result done --verdict closed --wall 42 --events "$d/i33/events.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "2" "$(jq -r '.items[] | select(.issue == 31) | .metrics.repeatReads' "$f")" \
+    "the second reads the rule counted are recorded per item, read from the record beside its stream"
+  assert_eq "0" "$(jq -r '.items[] | select(.issue == 32) | .metrics.repeatReads' "$f")" \
+    "a record that was read and holds no second read says 0, which is a measurement"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 33) | .metrics.repeatReads' "$f")" \
+    "and an item whose directory holds no record records nothing, never a zero"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "2 second reads counted by the repeat-read rule" \
+    "the trend prints the count the rule kept, beside the session's own repeat figure and not as one"
+  # A state written before the figure existed holds the key not at all: the dash and its reason, never a zero.
+  jq 'del(.items[].metrics.repeatReads)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the figure existed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^  reads:' || true)" \
+    "the repeat-read count is unrecorded — this state predates the figure" \
+    "a state that predates the count says so rather than naming a run that counted none"
+  return 0
+}
+
 # The cost reader summed the turns and the sessions a rotated stream still holds, and nothing said the rest was
 # dropped (issue #841): in the run started 2026-11-09T21:42:41Z nine of fifteen item streams carried a
 # `stream_rotation` record — 1 697 dropped turns against the 1 372 the state recorded, 72 255 266 B in their
@@ -17838,6 +17896,52 @@ case_repeat_theHookWritesTheItemsLedger() {
   return 0
 }
 
+# The arm a child applies has one home (issue #925): `LOOP_REPEAT_READ` in `tools/loop/loop.conf` — `measure`, the
+# recorded value, or `refuse` — and the adapter exports it into every child it starts, the way it exports the result
+# bound: read, never sourced, so the value a run applied is the value a person can find. A key this rule does not declare,
+# or none at all, hands the child `measure`, because the arm that serves the read is the one that cannot break a child.
+# The case copies the three files the adapter stands on into a scratch tree so it can edit that tree's own configuration:
+# the recorded arm and the missing key are the same export's two halves.
+case_adapter_theChildIsStartedWithTheRepeatReadArm() {
+  # files: tools/pi-child-events.sh tools/loop/loop.conf tools/pi-trim-result.mjs tools/pi-shell-refusal.mjs
+  local d tree recorder got recorded
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  tree="$d/tools"
+  mkdir -p "$tree/loop"
+  cp "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" \
+    "$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs" "$tree/" 2>/dev/null \
+    || fail "the adapter's own files are not in the tree: tools/pi-child-events.sh needs them beside it"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'printf "%s\n" "$LOOP_REPEAT_READ" > "$RECORD"'
+  } > "$recorder"
+  printf 'Reply with OK.\n' > "$d/prompt.md"
+  # The recorded value itself, forced to `refuse` in the scratch configuration: a case that pinned the child to whatever
+  # `loop.conf` happens to record could not tell an adapter that follows the file from one that hard-codes the default.
+  recorded=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  case "$recorded" in measure|refuse) ;; *) fail "loop.conf records ${recorded:-nothing}, which is neither arm the rule declares" ;; esac
+  sed 's/^LOOP_REPEAT_READ=.*/LOOP_REPEAT_READ=refuse/' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  RECORD="$d/env.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  assert_eq "refuse" "$(cat "$d/env.txt" 2>/dev/null || true)" \
+    "the child applies the arm the configuration records, not one the adapter chose"
+  # …and a value the rule does not declare is `measure`: the fallback is the arm that serves the read.
+  sed 's/^LOOP_REPEAT_READ=.*/LOOP_REPEAT_READ=refused?/' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  RECORD="$d/env-word.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero on a word the rule does not declare: $(head -3 "$d/out")"
+  assert_eq "measure" "$(cat "$d/env-word.txt" 2>/dev/null || true)" \
+    "a word this rule does not declare hands the child measure, never the arm that withholds"
+  # …and a configuration that records none leaves the child `measure`: no run may be broken by a key nobody wrote.
+  sed '/^LOOP_REPEAT_READ=/d' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  RECORD="$d/env-none.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
+    || fail "the adapter exited non-zero against a configuration that records no arm: $(head -3 "$d/out")"
+  assert_eq "measure" "$(cat "$d/env-none.txt" 2>/dev/null || true)" \
+    "a configuration that records no arm hands the child measure, the arm that cannot break it"
+  return 0
+}
+
 # What a repeat is measured against is the item, so one file has to be named for it (issue #858). The adapter is where
 # the item's own paths are named — the trim record already lands beside the child's event stream — so the ledger does
 # too, and the child is named by the prompt the run handed it: the line a repeat is replaced by has to say which session
@@ -17898,6 +18002,106 @@ case_repeat_aRepeatAfterAnEditIsHandedOverWhole() {
   assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "the unchanged read after it is a repeat again"
   assert_contains "$(cat "$out")" "$size characters" "measured against the content the edit left, not the first read"
   assert_contains "$(cat "$out")" 'turn 4' "at the turn that content came in"
+  return 0
+}
+
+# A repeat read was the one rule the loop stated and never counted (issue #925). The worker prompt has asked for the
+# citation rather than the second read since #246, and over the run behind #925 the children issued 2 987 reads of which
+# 2 167 (72.5 %) were a second read of a path the item had already read, while `#872` alone read four paths 283 to 295
+# times each across 226 turns — a prose rule is not a bound. So a second read of a path **this child** was handed is
+# counted every time, and the arm `LOOP_REPEAT_READ` records decides what it is answered with: `measure`, the recorded
+# value, serves the read and counts it, and `refuse` answers it with the earlier result's line range and a refusal line
+# instead of the text. The rule is per child and lives in the process's own tally, so the case drives the **hook** — the
+# one place two reads meet one process; the CLI is a child that reads one path once, whose arm can never fire.
+#
+# Three arms are the same rule's three edges: the counted read under `measure`, the withheld one under `refuse`, and the
+# read a child was never handed — a path the item's own ledger had already withheld — which `refuse` **serves**, because
+# a notice naming lines the child does not hold would send it to read what it cannot.
+case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d file harness out record held size sha
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing counts a second read: tools/pi-trim-result.mjs is not in the tree (issue #925)"
+  d=$(scratch)
+  harness="$d/hook.mjs"
+  # The extension driven the way one child drives it: two reads of one path, one process, and the child's own tally. The
+  # edit between them is what makes the second read a read the #685 rule hands over as well — this case is about the
+  # count, not about the content, and the `refuse` arm answers the read before that rule asks.
+  {
+    printf '%s\n' 'import { appendFileSync, readFileSync, writeFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, extension, first, second] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'async function read() {'
+    printf '%s\n' '  await handlers.get("turn_start")();'
+    printf '%s\n' '  const text = readFileSync(file, "utf8");'
+    printf '%s\n' '  const out = await handlers.get("tool_result")({ toolName: "ctx_read", input: { path: file }, content: [{ type: "text", text }] });'
+    printf '%s\n' '  const blocks = out && out.content ? out.content : [{ type: "text", text }];'
+    printf '%s\n' '  return blocks.map((b) => b.text).join("");'
+    printf '%s\n' '}'
+    printf '%s\n' 'writeFileSync(first, await read());'
+    printf '%s\n' 'appendFileSync(file, "EDITED-LINE\\n");'
+    printf '%s\n' 'writeFileSync(second, await read());'
+  } > "$harness"
+  # The recorded arm: `measure` counts the read and serves it, so the rule cannot break a child that the default runs.
+  # Each arm reads its own file: a case that let one arm's edit stand would measure the second arm against four lines.
+  file="$d/measure.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  record="$d/measure.log"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=measure LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first.txt" "$d/second.txt" \
+    || fail "the extension exited non-zero under the measure arm: $(head -3 "$d/second.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/second.txt")" "under measure a second read is handed over whole"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ' "$record" 2>/dev/null || true)" \
+    "and it is counted — the first read is no repeat and the second one is"
+  assert_contains "$(cat "$record")" 'arm=measure' "the record says which arm answered the read"
+  assert_contains "$(cat "$record")" 'turn=2' "and the turn it came in at, not the turn the earlier text did"
+  # …and the value the record does not declare is `measure` too, never the arm that withholds.
+  file="$d/word.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ='refused?' LOOP_TOOL_RESULT_TRIM_RECORD="$d/word.log" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first-word.txt" "$d/second-word.txt" \
+    || fail "the extension exited non-zero on a value it does not declare: $(head -3 "$d/second-word.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/second-word.txt")" \
+    "a word the rule does not declare serves the read: the arm that cannot break a child is the fallback"
+  # The `refuse` arm answers the read with the earlier result's line range and a refusal line, and no text travels twice.
+  file="$d/refuse.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  record="$d/refuse.log"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=refuse LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first-refused.txt" "$d/second-refused.txt" \
+    || fail "the extension exited non-zero under the refuse arm: $(head -3 "$d/second-refused.txt")"
+  out=$(cat "$d/second-refused.txt")
+  assert_not_contains "$out" 'MIDDLE-LINE' "under refuse the text is not sent to the child a second time"
+  assert_not_contains "$out" 'EDITED-LINE' "not even the edit the child itself made"
+  assert_contains "$out" '[LOOP-REPEAT-READ' "it is answered with a refusal line"
+  assert_contains "$out" 'lines:1-3' "naming the earlier result's line range, the range it can ask for"
+  assert_contains "$out" "$file" "and the path the child holds"
+  size=$(wc -c < "$d/first-refused.txt" | tr -d ' ')
+  assert_contains "$out" "$size characters" "and the size the earlier result had"
+  assert_contains "$out" 'turn 1' "at the turn that result came in"
+  [ "$(grep -c . "$d/second-refused.txt")" -eq 1 ] \
+    || fail "the refused read carried more than its one line: $out"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ' "$record" 2>/dev/null || true)" \
+    "a refused read is counted as well as a served one"
+  assert_contains "$(cat "$record")" 'arm=refuse' "and its line names the arm that withheld it"
+  # …and the read a child was never handed is served: the item's ledger already held that path, so this child's first read
+  # was replaced by the item's notice, and a refusal here would name lines the child does not hold.
+  held="$d/held.md"
+  printf 'HELD-FIRST\nHELD-MIDDLE\nHELD-LAST\n' > "$held"
+  sha=$(sha256sum < "$held" | cut -c1-32)
+  printf '%s\t%s\t%s\t%s\t%s\n' "$sha" 1 "$(wc -c < "$held" | tr -d ' ')" worker-prompt "$held" > "$d/item-ledger.tsv"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=refuse LOOP_TOOL_RESULT_LEDGER="$d/item-ledger.tsv" \
+    node "$harness" "$held" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/first-held.txt" "$d/second-held.txt" \
+    || fail "the extension exited non-zero on a path the item held: $(head -3 "$d/second-held.txt")"
+  assert_contains "$(cat "$d/first-held.txt")" 'LOOP-ALREADY-READ' \
+    "the item's ledger withholds the child's first read of a path it already holds"
+  out=$(cat "$d/second-held.txt")
+  assert_not_contains "$out" '[LOOP-REPEAT-READ' \
+    "so the read that follows is served: a refusal would name lines this child was never handed"
+  assert_contains "$out" 'EDITED-LINE' "it is handed the file as it stands, edit and all"
   return 0
 }
 

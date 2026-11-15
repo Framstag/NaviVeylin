@@ -804,6 +804,7 @@ cmd_done() {
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
                            reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
                            withheld:$usage.withheld,
+                           repeatReads:$usage.repeatReads,
                            tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context,
                            phases:$usage.phases, roles:$usage.roles, roleModels:$usage.roleModels,
@@ -970,16 +971,27 @@ num_or_null() {
 #     is the rule's own record and nothing else; a file that does not exist yields null — never the zero a record that
 #     was read would give — and a state written before the field yields null too, which the report prints as the dash
 #     with its reason.
+#   * **`repeatReads`** — the second reads the repeat-red rule counted, from the same record: one
+#     `LOOP-TOOL-RESULT-REPEAT-READ: <tool> turn=<n> arm=<arm>` line per read of a path **this child** had already been
+#     handed (issue #925). It is the rule's own count and not a re-derivation of the stream's: the stream's `dupReads`
+#     counts a path one *session* had already read, this one counts a path one *child* was handed, and the rule is the
+#     only reader that knows which read it served and which it withheld — which is why the record line carries the arm.
+#     A file that does not exist yields null, a record that was read and holds no such line says `0`, and the two must
+#     not print the same.
 #
 # Each is null where nothing was measured, never zero: a stream with no `session` record has no role split, one with
 # no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
 # records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
 # reads a child's dialect without depending on it.
 
-# The repeat rule's own record, summed (issue #831): one `<tool> chars=<n> kept=<k>` line per repeat it replaced, so a
-# line states the volume the child was not handed — `n - k`, floored at zero, because the notice can outgrow a result
-# too small to be worth replacing and the rule then withholds nothing. A file that cannot be read prints nothing, which
-# the caller records as null.
+# The two figures the repeat-read rules keep for themselves, summed from the record beside the stream: the volume a
+# replaced repeat withheld (issue #831) and the second reads the rule counted (issue #925). Both are the rule's own
+# record and nothing else — the stream holds the tool's answer, not the text the context was handed — and a file that
+# cannot be read prints nothing, which the caller records as null.
+#
+# One `<tool> chars=<n> kept=<k>` line per repeat it replaced, so a line states the volume the child was not handed —
+# `n - k`, floored at zero, because the notice can outgrow a result too small to be worth replacing and the rule then
+# withholds nothing.
 repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
   local file="${1:-}"
   [ -n "$file" ] && [ -r "$file" ] || return 0
@@ -997,8 +1009,19 @@ repeat_withheld() { # repeat_withheld <trims-record> → {"reads":n,"chars":n}
   ' "$file"
 }
 
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,streamRotation}
-  local events="${1:-}" blob="" gate_prog="" withheld_json checks_json
+# The rule's own count of second reads (issue #925): one line per read of a path this child had already been handed, so the
+# count is the number of lines. The match is anchored at the line's own start and on the full prefix, so the
+# `LOOP-TOOL-RESULT-REPEAT` lines above — the volume a replaced repeat withheld — are not counted here as reads.
+repeat_reads() { # repeat_reads <trims-record> → a count
+  local file="${1:-}" n
+  [ -n "$file" ] && [ -r "$file" ] || return 0
+  n=$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ' "$file" 2>/dev/null) || true
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  printf '%s\n' "$n"
+}
+
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,roleModels,afterGate,gateRepeat,reads,dupReads,dupChars,withheld,repeatReads,streamRotation}
+  local events="${1:-}" blob="" gate_prog="" withheld_json repeats_json checks_json
   # The gate is the project's declaration, not a name this engine may carry: `lib.sh`'s `gate_program` reduces
   # `LOOP_GATE_CMD` to the program a child's tool call names, and `lib.sh`'s `gate_check_programs` names the
   # programs the gate's own checks start (issue #857) — one enumeration, which the run's live count of those calls
@@ -1013,11 +1036,17 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
     # repeat line says `0`, which is a measurement, and the two must not print the same.
     withheld_json=$(repeat_withheld "$(dirname "$events")/tool-result-trims.log")
     case "$withheld_json" in '{'*) ;; *) withheld_json=null ;; esac
+    # …and the second reads that rule counted (issue #925), from the same record and by the same rule: a record that was
+    # read and holds no such line says `0`, a record that is not there is null, and the report prints the dash with its
+    # reason rather than a zero nobody measured.
+    repeats_json=$(repeat_reads "$(dirname "$events")/tool-result-trims.log")
+    case "$repeats_json" in ''|*[!0-9]*) repeats_json=null ;; esac
     # The two rules that say which call **runs** the gate and which runs one of the checks it would run are
     # `lib.sh`'s (`gate_command_jq`, issues #830 and #857), shared with the run's own live count of those calls
     # (issue #882): one set of definitions, so this report and the bound that ends a child cannot disagree about
     # which calls the gate would have re-run.
-    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" "$(gate_command_jq)"'
+    blob=$(jq -s -c --arg gate "$gate_prog" --argjson checks "$checks_json" --argjson withheld "$withheld_json" \
+      --argjson repeats "$repeats_json" "$(gate_command_jq)"'
       # A turn is read from the usage its last `message_update` carried, or from the one its own `turn_end` record
       # carries when no update survives — the same rule `sessions` keeps per turn below (one place per fact), so a
       # rotation that took the updates changes no figure this function prints (issue #840).
@@ -1218,6 +1247,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          dupReads: (if $reads > 0 then $dup.dup else null end),
          dupChars: (if $reads > 0 then $dup.chars else null end),
          withheld: $withheld,
+         repeatReads: $repeats,
          phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
                   else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
          roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
@@ -1233,7 +1263,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"gateRepeat":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"streamRotation":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"roleModels":null,"afterGate":null,"gateRepeat":null,"reads":null,"dupReads":null,"dupChars":null,"withheld":null,"repeatReads":null,"streamRotation":null}' ;;
   esac
 }
 

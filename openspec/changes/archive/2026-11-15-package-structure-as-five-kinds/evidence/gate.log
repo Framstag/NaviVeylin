@@ -1,6 +1,7 @@
-LOOP-GATE-TALLY: app/build/test-results/loop-gate run=414174
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=607630
 LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
 gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+Starting a Gradle Daemon, 1 busy and 3 stopped Daemons could not be reused, use --status for details
 > Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :buildSrc:compileKotlin UP-TO-DATE
 > Task :buildSrc:compileJava NO-SOURCE
@@ -9,10 +10,6 @@ gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
 > Task :buildSrc:processResources NO-SOURCE
 > Task :buildSrc:classes UP-TO-DATE
 > Task :buildSrc:jar UP-TO-DATE
-
-> Configure project :app
-app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
-
 > Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:checkCleartextTransportPolicy
 > Task :osmscout-client-java:compileVendoredJava UP-TO-DATE
@@ -22,19 +19,11 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :osmscout-client-java:processResources NO-SOURCE
 > Task :osmscout-client-java:classes UP-TO-DATE
 > Task :osmscout-client-java:jar UP-TO-DATE
-> Task :architecture:compileKotlin UP-TO-DATE
-> Task :architecture:compileJava NO-SOURCE
-> Task :architecture:processResources NO-SOURCE
-> Task :architecture:classes UP-TO-DATE
-> Task :architecture:jar UP-TO-DATE
 > Task :osmscout-client-java:compileTestJava UP-TO-DATE
 > Task :osmscout-client-java:processTestResources UP-TO-DATE
 > Task :osmscout-client-java:testClasses UP-TO-DATE
-> Task :architecture:compileTestKotlin UP-TO-DATE
-> Task :architecture:compileTestJava NO-SOURCE
-> Task :architecture:processTestResources NO-SOURCE
-> Task :architecture:testClasses UP-TO-DATE
 > Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
 > Task :core:checkNoWallClockWaits
 > Task :core:preBuild
 > Task :core:preDebugBuild
@@ -43,14 +32,41 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :core:packageDebugResources UP-TO-DATE
 > Task :core:parseDebugLocalResources UP-TO-DATE
 > Task :core:generateDebugRFile UP-TO-DATE
-> Task :auto:checkHardcodedStrings
+> Task :auto:checkNoWallClockWaits
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :app:checkNativeParity
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
 > Task :core:kspDebugKotlin UP-TO-DATE
 > Task :core:compileDebugKotlin UP-TO-DATE
 > Task :core:javaPreCompileDebug UP-TO-DATE
 > Task :core:compileDebugJavaWithJavac UP-TO-DATE
 > Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
 > Task :core:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:koverFindJar UP-TO-DATE
 > Task :core:processDebugJavaRes UP-TO-DATE
 > Task :core:createFullJarDebug UP-TO-DATE
 > Task :core:writeDebugAarMetadata UP-TO-DATE
@@ -61,80 +77,62 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :core:generateDebugAssets UP-TO-DATE
 > Task :core:mergeDebugAssets UP-TO-DATE
 > Task :core:preDebugUnitTestBuild
-> Task :auto:checkNoWallClockWaits
-> Task :auto:checkTripSendGate
-> Task :auto:preBuild
-> Task :auto:preDebugBuild
-> Task :auto:processDebugNavigationResources UP-TO-DATE
-> Task :auto:generateDebugResources UP-TO-DATE
-> Task :auto:packageDebugResources UP-TO-DATE
-> Task :auto:parseDebugLocalResources UP-TO-DATE
-> Task :auto:generateDebugRFile UP-TO-DATE
-> Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
-> Task :core:koverFindJar UP-TO-DATE
+> Task :app:checkNoCoordinatesInLogs
 > Task :auto:compileDebugKotlin UP-TO-DATE
-> Task :auto:javaPreCompileDebug UP-TO-DATE
 > Task :auto:compileDebugJavaWithJavac NO-SOURCE
 > Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
 > Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :core:koverFindJar UP-TO-DATE
 > Task :auto:createFullJarDebug UP-TO-DATE
-> Task :auto:writeDebugAarMetadata UP-TO-DATE
-> Task :auto:extractDeepLinksDebug UP-TO-DATE
-> Task :auto:processDebugManifest UP-TO-DATE
-> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
-> Task :auto:compileDebugLibraryResources UP-TO-DATE
-> Task :auto:generateDebugAssets UP-TO-DATE
-> Task :auto:mergeDebugAssets UP-TO-DATE
-> Task :auto:preDebugUnitTestBuild
-> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
-> Task :core:compileDebugUnitTestKotlin UP-TO-DATE
-> Task :core:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :core:javaPreCompileDebugUnitTest UP-TO-DATE
-> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :core:hiltSyncDebugUnitTest UP-TO-DATE
 > Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
-> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
-> Task :auto:generateDebugUnitTestResources UP-TO-DATE
-> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
-> Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
-> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
 > Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
 > Task :auto:processDebugUnitTestManifest UP-TO-DATE
-> Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
 > Task :auto:processDebugUnitTestResources UP-TO-DATE
-> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
-> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
-> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
-> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
-> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
-> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
-> Task :auto:koverFindJar UP-TO-DATE
-> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :app:checkHardcodedStrings
-> Task :app:checkNativeParity
-> Task :app:checkNoCoordinatesInLogs
+> Task :core:compileDebugUnitTestKotlin UP-TO-DATE
 > Task :app:checkNoWallClockWaits
 > Task :app:checkSubmoduleFeatureHeaders
+> Task :core:processDebugUnitTestJavaRes UP-TO-DATE
 > Task :app:checkSubmoduleIcons
 > Task :app:checkSubmoduleStylesheets
+> Task :core:javaPreCompileDebugUnitTest UP-TO-DATE
 > Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :app:syncSubmoduleStylesheets UP-TO-DATE
 > Task :app:preBuild
 > Task :app:preAutomotiveDebugBuild
 > Task :app:generateAutomotiveDebugBuildConfig UP-TO-DATE
+> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :app:generateAutomotiveDebugResources UP-TO-DATE
 > Task :app:packageAutomotiveDebugResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
+> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :core:hiltSyncDebugUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
+> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :architecture:compileKotlin
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :architecture:jar
+> Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
 > Task :app:processAutomotiveDebugNavigationResources UP-TO-DATE
 > Task :app:parseAutomotiveDebugLocalResources UP-TO-DATE
 > Task :app:generateAutomotiveDebugRFile UP-TO-DATE
 > Task :app:kspAutomotiveDebugKotlin UP-TO-DATE
+> Task :architecture:compileTestKotlin
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
 > Task :app:compileAutomotiveDebugKotlin UP-TO-DATE
 > Task :app:javaPreCompileAutomotiveDebug UP-TO-DATE
 > Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
 > Task :app:hiltSyncAutomotiveDebug UP-TO-DATE
 > Task :app:hiltAggregateDepsAutomotiveDebug UP-TO-DATE
+> Task :osmscout-client-java:test
 > Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
 > Task :app:checkAutomotiveDebugAarMetadata UP-TO-DATE
 > Task :app:mapAutomotiveDebugSourceSetPaths UP-TO-DATE
@@ -211,16 +209,13 @@ app/release.keystore not found — release builds will be UNSIGNED. Generate it 
 > Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
 > Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
 > Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
-> Task :osmscout-client-java:test
 > Task :architecture:test
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-> Task :core:testDebugUnitTest
-> Task :core:test
 > Task :app:testAutomotiveDebugUnitTest
 > Task :auto:testDebugUnitTest
-
+> Task :core:testDebugUnitTest
+> Task :core:test
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-
 > Task :auto:test
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
@@ -231,10 +226,10 @@ OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader clas
 
 > Task :app:test
 
-BUILD SUCCESSFUL in 6m 38s
-171 actionable tasks: 19 executed, 152 up-to-date
+BUILD SUCCESSFUL in 12m 43s
+171 actionable tasks: 22 executed, 149 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
-gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 398s
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 764s
 gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/check-action-runtimes.sh
 action runtimes: 22 action pins across 4 workflow files target Node 24, and their 6 hosted runner image(s) are pinned.
@@ -256,25 +251,23 @@ ok: runtimes#aHostedRunnerImageIsPinned — an expression and self-hosted are sk
 ok: a workflow with no action pin passes
 ok: a tree with no workflow directory is a layout error
 check-action-runtimes-selftest: all 15 cases passed (offline, no token, no build)
-gate: tools/tests/check-action-runtimes-selftest.sh — 1s
+gate: tools/tests/check-action-runtimes-selftest.sh — 0s
 gate: bash tools/gen-feature-list.sh --check-classification
-gen-feature-list: unclassified spec id(s):
-  settings-surface (introduced by the open change settings-taxonomy-and-surface — classify it in that change, before it archives)
-  settings-taxonomy (introduced by the open change settings-taxonomy-and-surface — classify it in that change, before it archives)
 gen-feature-list: stale classification entry for a spec that no longer exists:
   search-name-matching
   search-result-row-icon
+  settings-surface
+  settings-taxonomy
   start-map-selection
   store-assets
 specs read: 191
-classified: 195
-unclassified: 2
-delta spec ids: 30
-stale: 4
+classified: 197
+unclassified: 0
+delta spec ids: 56
+stale: 6
 car-only areas: 1
 highlights: 19
-gen-feature-list: classification gate failed
-gate: bash tools/gen-feature-list.sh --check-classification — 4s
+gate: bash tools/gen-feature-list.sh --check-classification — 8s
 gate: tools/check-doc-values.sh
 LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
 gate: tools/check-doc-values.sh — 0s
@@ -289,7 +282,7 @@ check-doc-values-selftest: all 5 cases passed (throwaway fixtures and this tree,
 gate: tools/tests/check-doc-values-selftest.sh — 0s
 gate: tools/check-doc-routes.sh
 check-doc-routes: all 341 section references resolve, all 7 skill references resolve
-gate: tools/check-doc-routes.sh — 1s
+gate: tools/check-doc-routes.sh — 2s
 gate: tools/tests/check-doc-routes-selftest.sh
 PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
 PASS  routes#aDanglingSectionNumberIsReported — a dangling section number fails naming the reference (exit 1)
@@ -330,7 +323,7 @@ PASS  routed-read#range — a range a row states is the span of the lettered sec
 PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three
 PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
 check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
-gate: tools/tests/check-doc-routes-selftest.sh — 8s
+gate: tools/tests/check-doc-routes-selftest.sh — 19s
 gate: tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
 # tools/tests/check-doc-routes-mutations.json — 11 mutation(s), case command: bash tools/tests/check-doc-routes-selftest.sh --case {case}
 skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
@@ -361,17 +354,17 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 201 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
-check-todo-references: 67 citation(s) resolve through the recorded table; 11741 file(s) excluded by the allowlist above
-gate: tools/check-todo-references.sh — 3s
+check-todo-references: 67 citation(s) resolve through the recorded table; 11796 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 5s
 gate: tools/tests/check-jvm-test-graph-selftest.sh
 check-jvm-test-graph-selftest: all 3 cases passed (--dry-run configurations, no build, no network)
-gate: tools/tests/check-jvm-test-graph-selftest.sh — 7s
+gate: tools/tests/check-jvm-test-graph-selftest.sh — 16s
 gate: tools/tests/check-dex-gate-graph-selftest.sh
 check-dex-gate-graph-selftest: all 6 cases passed (--dry-run configurations, no build, no network)
-gate: tools/tests/check-dex-gate-graph-selftest.sh — 32s
+gate: tools/tests/check-dex-gate-graph-selftest.sh — 66s
 gate: tools/check-openspec-hygiene.sh
 Every capability spec states its Purpose.
-OpenSpec artifacts are consistent: 24 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 42 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
 gate: tools/check-openspec-hygiene.sh — 1s
 gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/tests/check-openspec-hygiene-selftest.sh
@@ -379,8 +372,9 @@ check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, n
 gate: tools/tests/check-openspec-hygiene-selftest.sh — 0s
 gate: tools/tests/check-gate-artifacts-selftest.sh
 check-gate-artifacts-selftest: all 3 cases passed (Gradle invocations, a real asset source, the mutation restored)
-gate: tools/tests/check-gate-artifacts-selftest.sh — 71s
+gate: tools/tests/check-gate-artifacts-selftest.sh — 138s
 gate: tools/check-rule-routes.sh
+::error file=tools/doc-routes.json::the rule "a red the base carried is subtracted from the tally, by pair" in BuildEvidence.md is reached by no glob — a rule no change is told to obey
 ::error file=tools/doc-routes.json::the rule "the loop records which tree fails the case its gate named" in BuildEvidence.md is reached by no glob — a rule no change is told to obey
 ::error file=tools/doc-routes.json::the rule "a case that needs a landed map frame drives the production path, and no test-only setter publishes one." in BuildTests.md is reached by no glob — a rule no change is told to obey
 ::error file=tools/doc-routes.json::the rule "a case that renders without reporting a surface size asserts nothing lands, and why." in BuildTests.md is reached by no glob — a rule no change is told to obey
@@ -388,9 +382,9 @@ gate: tools/check-rule-routes.sh
 ::error file=tools/doc-routes.json::the rule "the pixels are the fake client's, and the bitmap is the renderer's overrun buffer." in BuildTests.md is reached by no glob — a rule no change is told to obey
 ::error file=tools/doc-routes.json::the rule "the car POI result list narrows by name from a filter row." in UICar.md is reached by no glob — a rule no change is told to obey
 ::error file=tools/doc-routes.json::the rule "the POIs mode narrows by name." in UIPhone.md is reached by no glob — a rule no change is told to obey
-check-rule-routes: 0 glob(s) match no tracked path, 7 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 glob(s) match no tracked path, 8 rule(s) are reached by no glob, 0 rule(s) state no name
 check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
-gate: tools/check-rule-routes.sh — 4s
+gate: tools/check-rule-routes.sh — 6s
 gate: tools/tests/check-rule-routes-selftest.sh
 PASS  routes#theMapResolvesAndEveryRuleIsReached — a map whose glob matches the tree and whose rule is reached passes (exit 0)
 PASS  routes#aDocumentNoGlobNamesIsReported — a normative document no glob matches is reported, even though its rule is reached by another path's route (exit 1)
@@ -406,7 +400,7 @@ PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family der
 PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a document a route split had left with no glob derives its own entries, not nothing (exit 0)
 PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and so does the document that shares the backlog concern with a sibling of its own (exit 0)
 check-rule-routes-selftest: all 13 cases passed (throwaway fixtures, no Gradle, no device, no network)
-gate: tools/tests/check-rule-routes-selftest.sh — 2s
+gate: tools/tests/check-rule-routes-selftest.sh — 3s
 gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/mutate.sh --mutations tools/tests/check-rule-routes-mutations.json --list
 # tools/tests/check-rule-routes-mutations.json — 6 mutation(s), case command: bash tools/tests/check-rule-routes-selftest.sh --case {case}
@@ -435,7 +429,7 @@ ok: sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag
 ok: sonar-workflow#theFindingsRecordIsTheScanPipelinesOwn
 ok: sonar-workflow#theFindingsRecordCarriesNoTrackerToken
 check-sonar-workflow-selftest: all 13 cases passed (the repository's own scan files, no build, no network)
-gate: tools/tests/check-sonar-workflow-selftest.sh — 3s
+gate: tools/tests/check-sonar-workflow-selftest.sh — 4s
 gate: tools/tests/ci-vcpkg-cache-selftest.sh
 PASS  vcpkg-cache#anAnsweringFeedIsReported — a client that answers makes the probe print the source the job should use (exit 0)
 PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — a refusing client is reported with its own message (exit 1)
@@ -446,4 +440,4 @@ PASS  vcpkg-cache#aRejectedArgumentIsNotReadAsADeadFeed — a client rejecting t
 PASS  vcpkg-cache#theProbePrintsNothingSensitive — the probe's line carries no credential and no coordinate (exit 0)
 ci-vcpkg-cache-selftest: all 7 cases passed (throwaway stubs, no network)
 gate: tools/tests/ci-vcpkg-cache-selftest.sh — 0s
-LOOP-GATE: tests=106 failures=0 errors=2 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 398s, tools/check-action-runtimes.sh 0s, tools/tests/check-action-runtimes-selftest.sh 1s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 3s, tools/tests/check-jvm-test-graph-selftest.sh 7s, tools/tests/check-dex-gate-graph-selftest.sh 32s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/tests/check-gate-artifacts-selftest.sh 71s, tools/check-rule-routes.sh 4s, tools/tests/check-rule-routes-selftest.sh 2s, tools/mutate.sh --mutations tools/tests/check-rule-routes-mutations.json --list 0s, tools/check-sonar-workflow.sh 0s, tools/tests/check-sonar-workflow-selftest.sh 3s, tools/tests/ci-vcpkg-cache-selftest.sh 0s) — failing: bash tools/gen-feature-list.sh --check-classification tools/check-rule-routes.sh
+LOOP-GATE: tests=106 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 764s, tools/check-action-runtimes.sh 0s, tools/tests/check-action-runtimes-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 8s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 2s, tools/tests/check-doc-routes-selftest.sh 19s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 5s, tools/tests/check-jvm-test-graph-selftest.sh 16s, tools/tests/check-dex-gate-graph-selftest.sh 66s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/tests/check-gate-artifacts-selftest.sh 138s, tools/check-rule-routes.sh 6s, tools/tests/check-rule-routes-selftest.sh 3s, tools/mutate.sh --mutations tools/tests/check-rule-routes-mutations.json --list 0s, tools/check-sonar-workflow.sh 0s, tools/tests/check-sonar-workflow-selftest.sh 4s, tools/tests/ci-vcpkg-cache-selftest.sh 0s) — failing: tools/check-rule-routes.sh

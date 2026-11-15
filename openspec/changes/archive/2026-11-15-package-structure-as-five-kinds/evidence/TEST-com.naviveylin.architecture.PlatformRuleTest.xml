@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.architecture.PlatformRuleTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-15T09:55:53.452Z" hostname="dingens" time="0.015">
+  <properties/>
+  <testcase name="platformWithoutFeatureFails" classname="com.naviveylin.architecture.PlatformRuleTest" time="0.002"/>
+  <testcase name="platformImportingSiblingPlatformFails" classname="com.naviveylin.architecture.PlatformRuleTest" time="0.009"/>
+  <testcase name="platformPackageReachingNoFeatureFails" classname="com.naviveylin.architecture.PlatformRuleTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

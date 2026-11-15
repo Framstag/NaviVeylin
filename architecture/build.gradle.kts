@@ -1,12 +1,9 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.naviveylin.build.testing.ForcedTestExecution
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
 }
-
-// `-PforceTests` makes the check not up to date, like the three modules' unit-test tasks (`guidelines/
-// BuildEvidence.md` §4b — "to force it, use `-PforceTests --no-build-cache`").
-val forceTests: Boolean = providers.gradleProperty("forceTests").isPresent
 
 // What the check reads: the declaration and the three modules' main sources, as text. They are declared as
 // inputs of the test task, or Gradle answers UP-TO-DATE from a previous run's green result and a violating
@@ -41,7 +38,11 @@ dependencies {
 tasks.withType<Test> {
     useJUnit()
     inputs.files(checkedTree)
-    if (forceTests) {
+    // Forced test execution (change `speed-up-build-test-gate`, spec `build-test-gate` — "A gate run proves
+    // that its tests executed"): `-PforceTests` makes this task not up to date, so a run is evidence of what
+    // executed; pair it with `--no-build-cache`, or the result outputs come back from the cache
+    // (guidelines/Build.md §4).
+    if (ForcedTestExecution.isRequested(providers.gradleProperty(ForcedTestExecution.PROPERTY).orNull)) {
         outputs.upToDateWhen { false }
     }
     // A failing run reports each failure's own message (guidelines/BuildTests.md §6f), like the three Android

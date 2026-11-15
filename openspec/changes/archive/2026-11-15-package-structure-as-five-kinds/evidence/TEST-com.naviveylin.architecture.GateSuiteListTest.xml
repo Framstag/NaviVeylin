@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.architecture.GateSuiteListTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-14T23:55:46.947Z" hostname="dingens" time="0.851">
+<testsuite name="com.naviveylin.architecture.GateSuiteListTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-15T09:30:47.342Z" hostname="dingens" time="0.055">
   <properties/>
-  <testcase name="gateFailsAtStructureCheck" classname="com.naviveylin.architecture.GateSuiteListTest" time="0.844"/>
-  <testcase name="gateSuiteListIncludesArchitecture" classname="com.naviveylin.architecture.GateSuiteListTest" time="0.003"/>
+  <testcase name="gateFailsAtStructureCheck" classname="com.naviveylin.architecture.GateSuiteListTest" time="0.048"/>
+  <testcase name="gateSuiteListIncludesArchitecture" classname="com.naviveylin.architecture.GateSuiteListTest" time="0.006"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

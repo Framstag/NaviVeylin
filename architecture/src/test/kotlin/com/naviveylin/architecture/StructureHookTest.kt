@@ -18,7 +18,7 @@ class StructureHookTest {
 
     private val hookedModules = listOf("app", "auto", "core")
     private val declaration = StructureDeclaration.parse(ProjectRoot.declarationText())
-    private val treeFiles = ProjectSources.mainSourceFiles()
+    private val treeFiles = ProjectSources.sourceFiles()
 
     @Test
     fun focusedTestRunOnViolatingTreeFails() {

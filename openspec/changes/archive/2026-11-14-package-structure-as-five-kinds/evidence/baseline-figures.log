@@ -1,0 +1,33 @@
+# architecture/baseline.tsv's day-one figures, reproduced (item #868, review round 1 NOTE 1)
+#
+# The two commands the baseline's header names, run in the tree at 2b795305 on 2026-11-15, and the count of
+# package `com.naviveylin.core`'s main sources that the header's "59 files" names.
+
+$ find core/src/main/java/com/naviveylin/core -maxdepth 1 -name '*.kt' | wc -l
+59
+
+$ bash tools/look.sh '^import (android|androidx)\.' --path core/src/main/java | grep -v '^LOOK' | awk -F: '{print $1}' | sort | uniq -c
+      3 core/src/main/java/com/naviveylin/core/CarSurfaceHost.kt
+      2 core/src/main/java/com/naviveylin/core/DeepLinkParser.kt
+      3 core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt
+      4 core/src/main/java/com/naviveylin/core/LocationGrant.kt
+      4 core/src/main/java/com/naviveylin/core/ManeuverSymbols.kt
+      1 core/src/main/java/com/naviveylin/core/MapRenderUtil.kt
+      2 core/src/main/java/com/naviveylin/core/NavigationFailure.kt
+      1 core/src/main/java/com/naviveylin/core/RenderBitmapPool.kt
+      4 core/src/main/java/com/naviveylin/core/ResultMarkings.kt
+      1 core/src/main/java/com/naviveylin/core/SearchRowIcons.kt
+      1 core/src/main/java/com/naviveylin/core/StringResolver.kt
+# 26 matches in 11 files — the header's "26 matches in 11 files", over all of core/src/main/java; the 11 are the
+# direct package's files, which is why the header's figure and this one agree.
+
+$ bash tools/look.sh '^import com\.naviveylin\.' --path core/src/main/java/com/naviveylin/core | grep -v '^LOOK' | awk -F: '{print $1}' | sort | uniq -c
+      2 core/src/main/java/com/naviveylin/core/AutoEntryPoint.kt
+      3 core/src/main/java/com/naviveylin/core/AutoSearchProvider.kt
+      1 core/src/main/java/com/naviveylin/core/mapsource/MapTreeDiscovery.kt
+      1 core/src/main/java/com/naviveylin/core/ResultMarkings.kt
+      1 core/src/main/java/com/naviveylin/core/search/SearchRegionScope.kt
+      1 core/src/main/java/com/naviveylin/core/search/SearchResultRanker.kt
+# 9 matches in 6 files — the header's "9 matches in 6 files"; the three in the package itself are AutoEntryPoint.kt,
+# AutoSearchProvider.kt and ResultMarkings.kt, the three the baseline exempts from 'concept imports nothing of ours'.
+# The other three sit in subpackages (mapsource, search), which are other kinds and violate nothing here.

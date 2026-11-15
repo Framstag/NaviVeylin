@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.architecture.StructureDeclarationTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-15T00:25:54.973Z" hostname="dingens" time="1.674">
+<testsuite name="com.naviveylin.architecture.StructureDeclarationTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-15T09:30:43.692Z" hostname="dingens" time="3.607">
   <properties/>
-  <testcase name="structureCheckFailsOnRowWithoutPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="1.565"/>
-  <testcase name="unknownKindFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.018"/>
-  <testcase name="structureCheckFailsOnDuplicateRow" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.03"/>
-  <testcase name="defaultDenyFailsForANewPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.017"/>
-  <testcase name="missingDeclarationFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.013"/>
-  <testcase name="emptyDeclarationFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.014"/>
-  <testcase name="structureCheckFailsOnUndeclaredPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.011"/>
+  <testcase name="structureCheckFailsOnRowWithoutPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="3.214"/>
+  <testcase name="unknownKindFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.064"/>
+  <testcase name="structureCheckFailsOnDuplicateRow" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.088"/>
+  <testcase name="defaultDenyFailsForANewPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.062"/>
+  <testcase name="missingDeclarationFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.057"/>
+  <testcase name="emptyDeclarationFails" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.071"/>
+  <testcase name="structureCheckFailsOnUndeclaredPackage" classname="com.naviveylin.architecture.StructureDeclarationTest" time="0.037"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

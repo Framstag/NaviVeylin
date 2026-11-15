@@ -14540,7 +14540,7 @@ JSONL
 # (49.3 %) outside items. Every input is a recorded number (`.items[].metrics.phases.gateMs`, `.metrics.wallSeconds`,
 # `.run.startedEpoch` and `.run.stop.at`), so the two rows are readings and never a second clock.
 case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow() {
-  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/gate.sh tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p f out trend gate_line outside_line start stop
   d=$(scratch); p=$(new_project)
   # Two items, each a turn and one gate call: 1 s of model time and 8 s of gate over a 12.5 s wall, and 2 s and

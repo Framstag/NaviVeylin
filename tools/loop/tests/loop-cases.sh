@@ -3125,7 +3125,9 @@ case_prescreen_anEmptyBlockedVerdictBlocksNothing() {
 
   jq 'del(.roles.blockedVerdict)' "$p/tools/tooling.json" > "$p/tools/tooling.json.tmp" &&
     mv "$p/tools/tooling.json.tmp" "$p/tools/tooling.json" || fail "could not remove the role from the project's copy"
-  rm -f "$(state_file "$p")"
+  # A fresh state for the second half: the screen writes the queue into the state that is there, and the first
+  # half's queue is the record of the profile that carried a value.
+  init_state "$p" 3 90
   out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "0" "$status" "the screen completed with the key omitted"
   assert_eq "91" "$(jq -r '.queue[0].issue' "$(state_file "$p")")" \

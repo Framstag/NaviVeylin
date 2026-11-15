@@ -372,7 +372,7 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#theBoundRateIsNamed'
-  'state#aCutRecordsTheFilesItsPatchCarries'
+  'report#theArchivesClassesAreDerivedNotInvented'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#anItemRecordsItsRepeatReads'
   'report#theRuleRecordsTheSecondReadsItCounted'
@@ -1212,6 +1212,7 @@ loop_run_shell_case() {
     'state#aHoldMovesTheDeadlineWithIt') fn=case_state_aHoldMovesTheDeadlineWithIt ;;
     'run#aQuotaHoldPausesTheRunAndResumesIt') fn=case_run_aQuotaHoldPausesTheRunAndResumesIt ;;
     'report#theBoundRateIsNamed') fn=case_report_theBoundRateIsNamed ;;
+    'report#theArchivesClassesAreDerivedNotInvented') fn=case_report_theArchivesClassesAreDerivedNotInvented ;;
     'state#aCutRecordsTheFilesItsPatchCarries') fn=case_state_aCutRecordsTheFilesItsPatchCarries ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -13321,6 +13322,43 @@ case_report_theBoundRateIsNamed() {
   line=$(printf '%s\n' "$out" | grep '^bound: [0-9]' || true)
   assert_contains "$line" "bound: 0 of 3 items (0.0 %)" "a run the bound ended nothing in prints the rate it measured"
   assert_contains "$line" "archive: -" "and an archive with no finished run prints -, not a rate over nothing"
+}
+
+# The class an archived record ended by is derived on read, and what the derivation cannot decide is printed as its
+# own figure (issue #922). 119 of the archive's 179 blocked records name no mechanism — they predate `done
+# --stop-reason` — and the analysis pass printed that absence as one class, `unclassified 119`: a dash read as a zero.
+# 21 of those 119 are `bound`, decided by the `LOOP-TIMEOUT` sentence their own note quotes, and a record whose note
+# names no bound is undecidable — it is in neither the decided classes nor the count of records, because summing it
+# into either side invents a class or answers a measurement nobody made. The population is what a class belongs to: a
+# closed item is recorded with no class by design.
+case_report_theArchivesClassesAreDerivedNotInvented() {
+  # files: tools/loop/report.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p q out line
+  p=$(new_project)
+  init_state "$p" 2 90
+  mkdir -p "$p/.pi/issue-loop/runs" || fail "could not create the runs directory"
+  jq -nc '{run:{items:5}, items:[
+      {issue:101, result:"blocked", verdict:"blocked", stopReason:"refused"},
+      {issue:102, result:"blocked", verdict:"blocked",
+       note:"LOOP-TIMEOUT: the child reached the recorded turn bound of 60 turns (LOOP_CHILD_TURNS_MAX for the worker role) after 60 turn(s) — the run ended it and everything it started"},
+      {issue:103, result:"blocked", verdict:"blocked", note:"the worker exited 1 after the gate refused"},
+      {issue:104, result:"cut", metrics:{reviewVerdict:"cut-short"},
+       note:"LOOP-TIMEOUT: the child reached the recorded turn bound of 110 turns (LOOP_CHILD_TURNS_MAX_REVIEWER) after 110 turn(s)"},
+      {issue:105, result:"done", verdict:"closed"}
+    ]}' > "$p/.pi/issue-loop/runs/2026-11-01T00:00:00Z.json" || fail "could not write the archived run"
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(printf '%s\n' "$out" | grep '^archive classes: ' || true)
+  assert_contains "$line" "bound 1" "a record whose note quotes the turn bound is decided, not left unclassified"
+  assert_contains "$line" "refused 1" "and a record that recorded its own mechanism keeps it"
+  assert_contains "$line" "of 4 blocked or cut record(s): 2 decided, 1 undecidable, 1 ended by a review round, not by the item" \
+    "what the derivation decided and what it could not are counted apart, over the records a class belongs to"
+  assert_not_contains "$line" "unclassified" "an absence is printed as undecidable, never as a class of its own"
+  assert_not_contains "$line" "#105" "a closed record carries no class and is not counted on either side"
+
+  q=$(new_project); init_state "$q" 1 30
+  out=$(run_report "$q") || fail "the report failed for a project with no archive"
+  line=$(printf '%s\n' "$out" | grep '^archive classes: ' || true)
+  assert_contains "$line" "archive classes: -" "a project with no archived run prints -, not a class nobody measured"
 }
 
 # What a bound ended is priced, not only named (issue #809): the record kept the path of the patch a cap-ended

@@ -256,8 +256,8 @@ case "$archive_runs" in
   *) archive_runs="$LOOP_ROOT/$archive_runs" ;;
 esac
 archive_hits="" archive_items=""
+archived=()
 if [ -d "$archive_runs" ]; then
-  archived=()
   for f in "$archive_runs"/*.json; do
     [ -f "$f" ] || continue
     [ "$f" = "$state_file" ] && continue
@@ -281,6 +281,34 @@ printf 'bound: %s of %s items (%s) · archive: %s' \
   "$cap_hits" "$cap_items" "$(bound_share "$cap_hits" "$cap_items")" "$archive_clause"
 [ -z "$cap_named" ] || printf ' · %s' "$cap_named"
 printf '\n'
+
+# What class ended each archived record is derived on read, and never taken from the absence of a field (issue #922).
+# The archive predates `done --stop-reason` — that vocabulary arrived with #865 — so 119 of its 179 blocked records
+# name no mechanism at all, and the analysis pass's `unclassified 119` was that absence counted as a class: a dash
+# read as a zero. `lib.sh`'s `stop_class` decides the records whose own note quotes the `LOOP-TIMEOUT` sentence that
+# ended them (21 of those 119, measured 2026-11-15 over the 158 archived states), and what it cannot decide is printed
+# as its own figure instead of being summed into either side: counting it as a class would invent one, and counting it
+# as decided would call a measurement nobody made an answer. The population is the records a class can belong to —
+# `blocked` and `cut` — because a closed, skipped or falsified item is recorded with no class by design, and a
+# denominator of all 511 records would drown the figure the line exists to print.
+archive_classes="-"
+if [ ${#archived[@]} -gt 0 ]; then
+  archive_classes=$(jq -rs "$(bound_class_jq)"'
+    [ .[] | .items[]? | select(.result == "blocked" or .result == "cut") ] as $ended
+    | [ $ended[] | {cls: (stop_class),
+                    round: (((.metrics.roundBound // null) != null) or ((bound_round) != null))} ] as $rows
+    | [ $rows[] | select(.cls != "") ] as $decided
+    | [ $rows[] | select(.cls == "" and .round) ] as $rounds
+    | [ $rows[] | select(.cls == "" and (.round | not)) ] as $undecided
+    | if ($ended | length) == 0 then "none — no archived record ended blocked or cut"
+      else (if ($decided | length) == 0 then "none decided"
+            else ($decided | map(.cls) | group_by(.) | map("\(.[0]) \(length)") | join(" · ")) end)
+           + " — of \($ended | length) blocked or cut record(s): \($decided | length) decided,"
+           + " \($undecided | length) undecidable, \($rounds | length) ended by a review round, not by the item"
+      end' "${archived[@]}" 2>/dev/null)
+fi
+case "$archive_classes" in '') archive_classes="-" ;; esac
+printf 'archive classes: %s\n' "$archive_classes"
 
 # The rounds a bound ended are the other half of the same figure (issue #923): the class the line above counts is the
 # **item's**, and the spec keeps it off a review round the run ended (issues #785, #790) — #898 was ended by the

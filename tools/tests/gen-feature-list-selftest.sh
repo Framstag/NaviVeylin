@@ -323,7 +323,12 @@ jq '.specs.newcap = {"area":"one","userVisible":false,"surfaces":[]}' \
 check
 is "gate: a classified delta passes before it ships" "0" "$last_rc"
 is "gate: a delta-only classification leaves nothing unclassified" "0" "$(sed -n 's/^unclassified: //p' "$work/c.out")"
-is "gate: a delta-only classification is reported as stale, not as a failure" "1" "$(sed -n 's/^stale: //p' "$work/c.out")"
+# The two states are reported apart (issue #926): a line for an open change's delta is pending — the capability is
+# on its way — and only an id the tree no longer holds is a stale entry.
+is "gate: a delta-only classification is reported as pending, not as stale" "1" "$(sed -n 's/^pending (classified ahead of its archive): //p' "$work/c.out")"
+is "gate: a delta-only classification is not a stale entry" "0" "$(sed -n 's/^stale: //p' "$work/c.out")"
+grep -q 'classified ahead of its archive' "$work/c.err" && ok "gate: the pending entry is named as one" || bad "gate: the pending entry is named as one"
+grep -q 'stale classification entry' "$work/c.err" && bad "gate: a pending entry is not reported as stale" || ok "gate: a pending entry is not reported as stale"
 rm -rf "$repo/openspec/changes" "$data/specs.json.tmp"
 specs_
 

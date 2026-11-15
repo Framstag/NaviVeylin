@@ -195,11 +195,18 @@ delta_ids=$(printf '%s\n' "$delta_origins" | cut -f1 | sed '/^$/d' | sort -u)
 required_ids=$(printf '%s\n%s\n' "$shipped_ids" "$delta_ids" | sed '/^$/d' | sort -u)
 
 unclassified=$(comm -23 <(printf '%s\n' "$required_ids") <(printf '%s\n' "$classified_ids"))
-# stale is measured over the shipped set alone: a delta's line reads as stale until the capability ships, which is
-# reported and does not fail — the same rule a removed spec id follows (guidelines/FeatureList.md §4).
-stale=$(comm -13 <(printf '%s\n' "$shipped_ids") <(printf '%s\n' "$classified_ids"))
+# A classified line whose capability is not shipped is one of two states, and they were conflated (issue #926): it
+# names a delta an open change introduces — the line is due *before* the archive, so it is pending and reads as
+# unfinished work, not as an entry for something gone — or it names a spec id the tree no longer holds, which is the
+# stale entry `guidelines/FeatureList.md` §4 rules a re-shortlist rather than a failure. Both are report-only and
+# neither sets `gate_errors`; the figure the run prints named the pending ones `stale`, which is why #922's
+# `stale: 0` was unreachable while an open change owed a line (measured 2026-11-15: `stale: 7`, five of them deltas).
+not_shipped=$(comm -13 <(printf '%s\n' "$shipped_ids") <(printf '%s\n' "$classified_ids"))
+pending=$(comm -12 <(printf '%s\n' "$delta_ids") <(printf '%s\n' "$not_shipped"))
+stale=$(comm -23 <(printf '%s\n' "$not_shipped") <(printf '%s\n' "$delta_ids"))
 
 unclassified_n=$(printf '%s\n' "$unclassified" | grep -c . || true)
+pending_n=$(printf '%s\n' "$pending" | grep -c . || true)
 stale_n=$(printf '%s\n' "$stale" | grep -c . || true)
 
 # area ids referenced by the classification must exist
@@ -249,6 +256,10 @@ if [ "$caronly_n" -ne 1 ]; then
   gate_errors=1
   echo "gen-feature-list: expected exactly one car-only area, found $caronly_n" >&2
 fi
+if [ "$pending_n" -gt 0 ]; then
+  echo "gen-feature-list: classified ahead of its archive (an open change's delta — unfinished work, not a stale entry):" >&2
+  printf '%s\n' "$pending" | sed 's/^/  /' >&2
+fi
 if [ "$stale_n" -gt 0 ]; then
   echo "gen-feature-list: stale classification entry for a spec that no longer exists:" >&2
   printf '%s\n' "$stale" | sed 's/^/  /' >&2
@@ -275,6 +286,7 @@ if [ "$mode" = "check" ]; then
   echo "unclassified: $unclassified_n"
   echo "delta spec ids: $(printf '%s\n' "$delta_ids" | grep -c . || true)"
   echo "stale: $stale_n"
+  echo "pending (classified ahead of its archive): $pending_n"
   echo "car-only areas: $caronly_n"
   echo "highlights: $(jq '.highlights | length' "$highlights_file")"
   [ "$gate_errors" -eq 0 ] || fail "classification gate failed"
@@ -424,6 +436,7 @@ echo "dirty areas: $dirty_n"
 echo "areas: $area_count"
 echo "unclassified spec ids: $unclassified_n"
 echo "stale classification entries: $stale_n"
+echo "pending classification entries: $pending_n"
 echo "prompt files: $prompt_n"
 echo "baseline: $baseline_file"
 

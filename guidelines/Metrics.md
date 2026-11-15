@@ -60,7 +60,16 @@ A file is attributed to a module, package and layer only when its path matches
 - **package** — the path segments after the source root, joined with dots; `(no package)` when there are none;
 - **layer** — the first segment after `com.naviveylin`; `(root)` for a file directly in `com.naviveylin`,
   `(no package)` when there is no package, and the first two segments for a foreign package (`com.framstag`);
+  the layer is this report's own grouping and **not** the structure's kind: which of the five kinds
+  (`concept`, `port`, `feature/<name>`, `platform/<name>`, `shell`) a package is, and what it may import, is
+  `architecture/structure.tsv`, read by `Structure.md` §1, and this report does not read the declaration —
+  pointing it there is a later change, not this tool's current shape;
 - **depth** — the number of dots in the package path, printed with each package row.
+
+- **Rule: the unclassified bucket is this tool's, not the declaration's.** A file the layout rule cannot place is
+  listed in `UNCLASSIFIED`, and that bucket is a statement about this report's path shape alone: a file the
+  declaration places and this layout does not is unclassified here and legal there, so a row in this bucket is
+  never read as a structure violation of `Structure.md` §2.
 
 - **Rule: a source file that matches no source root is listed in `UNCLASSIFIED`.** A source file that matches no
   source root is attributed to no

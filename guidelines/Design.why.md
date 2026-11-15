@@ -69,6 +69,16 @@ beside the section its `## §N` anchor names.
   now that consumer. The parsing path is retired in the app here, and `RouteEntry.descriptions` (with the
   `instruction*` arrays) follows in `retire-instruction-prose`, which is also where the live path's
   `TurnInstructionLocalizer` is replaced by the rows' structure-based builder.
+- `:core` = "shared, Android-lean logic used by both `:app` and `:auto`" (`guidelines/Design.md` §1 before this
+  change, whose rule `:core` holds the shared, Android-lean logic both variants use) → `:core` is a module, and where a package sits is
+  `architecture/structure.tsv`'s row, read by `guidelines/Structure.md` (change
+  `package-structure-as-five-kinds`) — the claim decayed because nothing read it: measured 2026-11-14,
+  `./tools/look.sh '^import android\.(graphics|view|content)' --path core/src/main` reports 21 framework import
+  lines in 11 files of the module the sentence called Android-lean, `ManeuverSymbols.kt:3-6` among them drawing
+  with `Bitmap`/`Canvas`/`Paint`/`Path`. The wording is gone rather than corrected in place, because a second
+  prose statement of a placement is the drift the declaration exists to end; `Structure.md` §2 states the rule
+  the files owe, and §4 states how the ratchet carries them until they move.
+
 ## Appendix B — Provenance
 
 | Section | Key sources (`openspec/`) |

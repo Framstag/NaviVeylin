@@ -61,7 +61,11 @@
         "MapStyling.md §16",
         "MapStyling.md §16a",
         "MapStyling.md §16b",
-        "MapStyling.md §17"
+        "MapStyling.md §17",
+        "Structure.md §1",
+        "Structure.md §2",
+        "Structure.md §3",
+        "Structure.md §4"
       ],
       "rules": [
         "MapRendering.md §1 \"the vehicle anchor is applied in exactly one place — the follow render target.\"",
@@ -362,7 +366,26 @@
         "MapStyling.md §17 \"Triggers\"",
         "MapStyling.md §17 \"Measured retention ceiling\"",
         "MapStyling.md §17 \"No fault escapes a release\"",
-        "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\""
+        "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\"",
+        "Structure.md §1 \"a file belongs to exactly one of the five kinds, and its package's row says which.\"",
+        "Structure.md §1 \"a composable and a ViewModel are `platform`, and hosting is `shell`.\"",
+        "Structure.md §1 \"the kinds are packages inside `:app`, `:auto` and `:core`, never Gradle modules.\"",
+        "Structure.md §2 \"`concept` is self-contained.\"",
+        "Structure.md §2 \"`port` holds abstraction only.\"",
+        "Structure.md §2 \"features are mutually disjunct.\"",
+        "Structure.md §2 \"a feature is Android-free.\"",
+        "Structure.md §2 \"a platform package mirrors a feature by name.\"",
+        "Structure.md §2 \"an undeclared package fails by default.\"",
+        "Structure.md §2 \"the check fails closed on a declaration it cannot read.\"",
+        "Structure.md §2 \"a violation names the file, the import, the kind and the contradicted row.\"",
+        "Structure.md §3 \"adding structure is one declaration row, never a rule.\"",
+        "Structure.md §3 \"a declaration row states the permission its kind gives, not the imports the code has today.\"",
+        "Structure.md §3 \"no document enumerates a package.\"",
+        "Structure.md §4 \"the tree lands green, and every unmigrated file is a named baseline entry.\"",
+        "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
+        "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
+        "Structure.md §4 \"the baseline is the only exemption.\"",
+        "Structure.md §4 \"a green run prints what it verified.\""
       ]
     },
     {
@@ -402,9 +425,33 @@
         "DesignCrossVariant.md §8a",
         "DesignCrossVariant.md §8b",
         "UICar.md §2",
-        "UICar.md §3"
+        "UICar.md §3",
+        "Structure.md §1",
+        "Structure.md §2",
+        "Structure.md §3",
+        "Structure.md §4"
       ],
-      "rules": []
+      "rules": [
+        "Structure.md §1 \"a file belongs to exactly one of the five kinds, and its package's row says which.\"",
+        "Structure.md §1 \"a composable and a ViewModel are `platform`, and hosting is `shell`.\"",
+        "Structure.md §1 \"the kinds are packages inside `:app`, `:auto` and `:core`, never Gradle modules.\"",
+        "Structure.md §2 \"`concept` is self-contained.\"",
+        "Structure.md §2 \"`port` holds abstraction only.\"",
+        "Structure.md §2 \"features are mutually disjunct.\"",
+        "Structure.md §2 \"a feature is Android-free.\"",
+        "Structure.md §2 \"a platform package mirrors a feature by name.\"",
+        "Structure.md §2 \"an undeclared package fails by default.\"",
+        "Structure.md §2 \"the check fails closed on a declaration it cannot read.\"",
+        "Structure.md §2 \"a violation names the file, the import, the kind and the contradicted row.\"",
+        "Structure.md §3 \"adding structure is one declaration row, never a rule.\"",
+        "Structure.md §3 \"a declaration row states the permission its kind gives, not the imports the code has today.\"",
+        "Structure.md §3 \"no document enumerates a package.\"",
+        "Structure.md §4 \"the tree lands green, and every unmigrated file is a named baseline entry.\"",
+        "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
+        "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
+        "Structure.md §4 \"the baseline is the only exemption.\"",
+        "Structure.md §4 \"a green run prints what it verified.\""
+      ]
     },
     {
       "glob": "core/**",
@@ -412,9 +459,33 @@
         "Design.md §1",
         "DesignNative.md §5a",
         "DesignNative.md §5b",
-        "MapRendering.md §1"
+        "MapRendering.md §1",
+        "Structure.md §1",
+        "Structure.md §2",
+        "Structure.md §3",
+        "Structure.md §4"
       ],
-      "rules": []
+      "rules": [
+        "Structure.md §1 \"a file belongs to exactly one of the five kinds, and its package's row says which.\"",
+        "Structure.md §1 \"a composable and a ViewModel are `platform`, and hosting is `shell`.\"",
+        "Structure.md §1 \"the kinds are packages inside `:app`, `:auto` and `:core`, never Gradle modules.\"",
+        "Structure.md §2 \"`concept` is self-contained.\"",
+        "Structure.md §2 \"`port` holds abstraction only.\"",
+        "Structure.md §2 \"features are mutually disjunct.\"",
+        "Structure.md §2 \"a feature is Android-free.\"",
+        "Structure.md §2 \"a platform package mirrors a feature by name.\"",
+        "Structure.md §2 \"an undeclared package fails by default.\"",
+        "Structure.md §2 \"the check fails closed on a declaration it cannot read.\"",
+        "Structure.md §2 \"a violation names the file, the import, the kind and the contradicted row.\"",
+        "Structure.md §3 \"adding structure is one declaration row, never a rule.\"",
+        "Structure.md §3 \"a declaration row states the permission its kind gives, not the imports the code has today.\"",
+        "Structure.md §3 \"no document enumerates a package.\"",
+        "Structure.md §4 \"the tree lands green, and every unmigrated file is a named baseline entry.\"",
+        "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
+        "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
+        "Structure.md §4 \"the baseline is the only exemption.\"",
+        "Structure.md §4 \"a green run prints what it verified.\""
+      ]
     },
     {
       "glob": "buildSrc/**",
@@ -768,7 +839,8 @@
         "BuildEvidence.md §11 \"look at the screenshot, then measure it — never only describe it.\"",
         "BuildEvidence.md §11 \"compare the two verdicts.\"",
         "BuildEvidence.md §11 \"say when a measurement was impossible\"",
-        "BuildEvidence.md §11 \"iterate with focused suites and drive the device with one reusable script\""
+        "BuildEvidence.md §11 \"iterate with focused suites and drive the device with one reusable script\"",
+        "BuildEvidence.md §4d \"the loop records which tree fails the case its gate named\""
       ]
     },
     {
@@ -782,7 +854,8 @@
         "BuildTests.md §6e",
         "BuildTests.md §6f",
         "BuildTests.md §6g",
-        "BuildTests.md §6h"
+        "BuildTests.md §6h",
+        "BuildTests.md §6i"
       ],
       "rules": [
         "BuildTests.md §6a \"a test class that loads the host JNI stub runs under `@RunWith(RobolectricTestRunner::class)` with the default sandbox config — no `@Config(sdk=…)` or `@GraphicsMode(…)`.\"",
@@ -804,7 +877,11 @@
         "BuildTests.md §6g \"instrumented tests need a connected device/emulator; if none is available, say so instead of running them.\"",
         "BuildTests.md §6g \"after a submodule bump, use the per-module gate form, not one `./gradlew test`\"",
         "BuildTests.md §6g \"the submodule's meson suite has a per-test budget that one test exceeds\"",
-        "BuildTests.md §6h \"the committed JNI host stub ships in each test source set so `System.loadLibrary` succeeds.\""
+        "BuildTests.md §6h \"the committed JNI host stub ships in each test source set so `System.loadLibrary` succeeds.\"",
+        "BuildTests.md §6i \"a case that needs a landed map frame drives the production path, and no test-only setter publishes one.\"",
+        "BuildTests.md §6i \"a case that renders without reporting a surface size asserts nothing lands, and why.\"",
+        "BuildTests.md §6i \"drive the scheduler past the renderer's debounce window.\"",
+        "BuildTests.md §6i \"the pixels are the fake client's, and the bitmap is the renderer's overrun buffer.\""
       ]
     },
     {
@@ -1040,7 +1117,9 @@
         "UIPhone.md §18 \"the notification is re-posted only when its host-visible content changed.\"",
         "UIPhone.md §18 \"the notification is silent and ongoing.\"",
         "UIPhone.md §19 \"`Notification.actions` is nullable and its icon is read with `getIcon()`.\"",
-        "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\""
+        "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\"",
+        "UIPhone.md §6a \"the POIs mode narrows by name.\"",
+        "UICar.md §6b \"the car POI result list narrows by name from a filter row.\""
       ]
     },
     {
@@ -1064,8 +1143,7 @@
       "rules": [
         "Design.md §1 \"only `:app` touches the JNI layer and Android context-bound storage\"",
         "Design.md §1 \"placement is declared in `architecture/structure.tsv`, a word's meaning in `tools/glossary/`\"",
-        "Design.md §1 \"`:core` holds the shared, Android-lean logic both variants use\"",
-        "Design.md §1 \"a shared behaviour lives once, in `:core` beside the state it reads\"",
+        "Design.md §1 \"a shared behaviour lives once, beside the state it reads\"",
         "Design.md §1 \"`:auto` consumes app functionality through `:core` provider interfaces\"",
         "Design.md §1 \"one shared state contract between the variants, extended additively\"",
         "Design.md §1 \"one app module serves all form factors via resource qualifiers\"",
@@ -1156,7 +1234,8 @@
         "DesignCrossVariant.md §10 \"native libs are aligned for 16 KB pages; R8 keeps JNI bridge classes\"",
         "DesignCrossVariant.md §11 \"extract pure, JVM-testable logic from rendering and template code\"",
         "DesignCrossVariant.md §11 \"JNI-dependent unit tests are designed around the host stub's classloader rule\"",
-        "DesignCrossVariant.md §11 \"Compose UI tests extract gesture handlers into reusable `Modifier` factories\""
+        "DesignCrossVariant.md §11 \"Compose UI tests extract gesture handlers into reusable `Modifier` factories\"",
+        "Design.md §1 \"the variant edges are `:auto` → `:core` + the JNI jar, and `:app` → `:auto` and `:core`\""
       ]
     },
     {
@@ -1218,7 +1297,8 @@
         "Metrics.md §4 \"a line is exactly one of code, comment or blank, and the three sum to the file's total.\"",
         "Metrics.md §4 \"documentation is counted but never mixed into a source figure.\"",
         "Metrics.md §6 \"car code is the `auto` module or a car-named file; everything else is phone code.\"",
-        "Metrics.md §7 \"every list is ordered by its figure, descending, with ties by name ascending, under `LC_ALL=C`.\""
+        "Metrics.md §7 \"every list is ordered by its figure, descending, with ties by name ascending, under `LC_ALL=C`.\"",
+        "Metrics.md §3 \"the unclassified bucket is this tool's, not the declaration's.\""
       ]
     },
     {
@@ -1310,6 +1390,71 @@
       "glob": "tools/sensors/metrics/vocabulary-drift.sh",
       "sections": [
         "Glossary.md §7"
+      ]
+    },
+    {
+      "glob": "guidelines/Structure.*",
+      "sections": [
+        "Structure.md §1",
+        "Structure.md §2",
+        "Structure.md §3",
+        "Structure.md §4",
+        "Structure.md §5",
+        "Structure.md §6"
+      ],
+      "rules": [
+        "Structure.md §1 \"a file belongs to exactly one of the five kinds, and its package's row says which.\"",
+        "Structure.md §1 \"a composable and a ViewModel are `platform`, and hosting is `shell`.\"",
+        "Structure.md §1 \"the kinds are packages inside `:app`, `:auto` and `:core`, never Gradle modules.\"",
+        "Structure.md §2 \"`concept` is self-contained.\"",
+        "Structure.md §2 \"`port` holds abstraction only.\"",
+        "Structure.md §2 \"features are mutually disjunct.\"",
+        "Structure.md §2 \"a feature is Android-free.\"",
+        "Structure.md §2 \"a platform package mirrors a feature by name.\"",
+        "Structure.md §2 \"an undeclared package fails by default.\"",
+        "Structure.md §2 \"the check fails closed on a declaration it cannot read.\"",
+        "Structure.md §2 \"a violation names the file, the import, the kind and the contradicted row.\"",
+        "Structure.md §3 \"adding structure is one declaration row, never a rule.\"",
+        "Structure.md §3 \"a declaration row states the permission its kind gives, not the imports the code has today.\"",
+        "Structure.md §3 \"no document enumerates a package.\"",
+        "Structure.md §4 \"the tree lands green, and every unmigrated file is a named baseline entry.\"",
+        "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
+        "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
+        "Structure.md §4 \"the baseline is the only exemption.\"",
+        "Structure.md §4 \"a green run prints what it verified.\"",
+        "Structure.md §5 \"one feature per change.\"",
+        "Structure.md §5 \"a migration moves packages and changes no behaviour.\"",
+        "Structure.md §5 \"a migration deletes the entries its move satisfies.\"",
+        "Structure.md §5 \"a migration runs the three modules' suites and the structure check, forced.\"",
+        "Structure.md §6 \"the suite proves the ladder between kinds, never cohesion inside a package.\"",
+        "Structure.md §6 \"a package boundary is a test, never a compiler error.\"",
+        "Structure.md §6 \"only the merge closes the exclude-task escape.\""
+      ]
+    },
+    {
+      "glob": "architecture/**",
+      "sections": [
+        "Structure.md §2",
+        "Structure.md §4",
+        "Structure.md §6"
+      ],
+      "rules": [
+        "Structure.md §2 \"`concept` is self-contained.\"",
+        "Structure.md §2 \"`port` holds abstraction only.\"",
+        "Structure.md §2 \"features are mutually disjunct.\"",
+        "Structure.md §2 \"a feature is Android-free.\"",
+        "Structure.md §2 \"a platform package mirrors a feature by name.\"",
+        "Structure.md §2 \"an undeclared package fails by default.\"",
+        "Structure.md §2 \"the check fails closed on a declaration it cannot read.\"",
+        "Structure.md §2 \"a violation names the file, the import, the kind and the contradicted row.\"",
+        "Structure.md §4 \"the tree lands green, and every unmigrated file is a named baseline entry.\"",
+        "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
+        "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
+        "Structure.md §4 \"the baseline is the only exemption.\"",
+        "Structure.md §4 \"a green run prints what it verified.\"",
+        "Structure.md §6 \"the suite proves the ladder between kinds, never cohesion inside a package.\"",
+        "Structure.md §6 \"a package boundary is a test, never a compiler error.\"",
+        "Structure.md §6 \"only the merge closes the exclude-task escape.\""
       ]
     }
   ]

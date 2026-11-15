@@ -282,6 +282,27 @@ printf 'bound: %s of %s items (%s) · archive: %s' \
 [ -z "$cap_named" ] || printf ' · %s' "$cap_named"
 printf '\n'
 
+# The rounds a bound ended are the other half of the same figure (issue #923): the class the line above counts is the
+# **item's**, and the spec keeps it off a review round the run ended (issues #785, #790) — #898 was ended by the
+# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both printed
+# `cut` with nothing beside it. So a round's ending is its own field (`metrics.roundBound`, written by `run.sh` and
+# `state.sh done`), counted here beside the item's class and never folded into it: the two figures answer two
+# questions — how many items the run threw away, and how many rounds it paid for and could not read. A record written
+# before the field is read from its note by the same reader `state.sh` uses, and one whose note names the reviewer's
+# key while its verdict is a round's (`cut-short`, `deadline`) is that round's, not the item's.
+round_hits=$(jq -r "$(bound_class_jq)"'
+  [ .items[] | select((.metrics.roundBound // null) != null or (bound_round) != null) ] | length' "$state_file")
+round_named=$(jq -r "$(bound_class_jq)"'
+  [ .items[] as $it
+    | (if ($it.metrics.roundBound // null) != null
+        then "\($it.metrics.roundBound.round // "-") \($it.metrics.roundBound.key)=\($it.metrics.roundBound.value)"
+        else (($it | bound_round) as $b | if $b == null then "" else "- \($b.boundKey)=\($b.boundValue)" end)
+        end) as $end
+    | select($end != "")
+    | "#\($it.issue) \($end)" ] | join(" · ")' "$state_file")
+printf 'rounds a bound ended: %s of %s item(s) · %s\n' \
+  "${round_hits:-0}" "$cap_items" "${round_named:-none}"
+
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.
 LOOP_STATE_FILE="$state_file" bash "$LOOP_DIR/state.sh" report
 

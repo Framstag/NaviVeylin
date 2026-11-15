@@ -1221,6 +1221,31 @@ report_field() { # report_field <file> <FIELD>
   report_lines "$1" | sed -n "s/^${2}: //p" | tail -1
 }
 
+# The bound a child's own `LOOP-TIMEOUT` line names, as an item's record carries it: the key the bound is recorded in
+# and the figure that key holds (issue #923). `bound` alone says the run ended the item and not which of the three
+# spend bounds it enforces it hit, so the archive could be totalled by the class and never by the key — the report
+# printed 6 items a bound ended and no figure for what they had spent. The line is the one the child's transcript
+# carries for a bound (`run.sh` writes it below): a turn bound names `LOOP_CHILD_TURNS_MAX_<ROLE>`, the context bound
+# names the key the phase inherits (`LOOP_ITEM_CONTEXT_MAX`, or the role-qualified `…_REVIEWER`), and the check bound
+# names `LOOP_CHILD_CHECKS_MAX`. A child the item's clock, the run's deadline or a vanished writer ended carries no
+# key — none of the three is a value recorded in `loop.conf` — so it prints nothing, and the item's record keeps the
+# class with no key rather than a key guessed from its neighbours.
+bound_key_value() { # bound_key_value <timeout line> → "<KEY> <value>", or nothing
+  local line="${1:-}" key="" value=""
+  value=$(printf '%s' "$line" | sed -n 's/.*recorded turn bound of \([0-9][0-9]*\) turns.*/\1/p')
+  key=$(printf '%s' "$line" | sed -n 's/.*turns (\([A-Z][A-Z0-9_]*\) for the .*/\1/p')
+  if [ -z "$key" ]; then
+    value=$(printf '%s' "$line" | sed -n 's/.*recorded context bound of \([0-9][0-9]*\) tokens.*/\1/p')
+    key=$(printf '%s' "$line" | sed -n 's/.*context bound of [0-9][0-9]* tokens (\([A-Z][A-Z0-9_]*\)).*/\1/p')
+  fi
+  if [ -z "$key" ]; then
+    value=$(printf '%s' "$line" | sed -n 's/.*recorded check bound of \([0-9][0-9]*\) checks.*/\1/p')
+    key=$(printf '%s' "$line" | sed -n 's/.*check bound of [0-9][0-9]* checks (\([A-Z][A-Z0-9_]*\)).*/\1/p')
+  fi
+  [ -n "$key" ] && [ -n "$value" ] || return 0
+  printf '%s %s\n' "$key" "$value"
+}
+
 # The word on the verdict line, and nothing else about it: the fence a child may have written around the line is not a
 # cut answer, so every reader of `VERDICT:` reads the line where it stands (#793). A report that states no verdict
 # prints nothing, which is the reading each caller already had for a report that never carried the line.
@@ -2759,6 +2784,17 @@ while true; do
   # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
   # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
   empty_tree_reading=""
+  # The bound a **review round** the run ended hit, as the round's own fact and never as the item's stop class (issue
+  # #923). The spec keeps the item's class off a round (`worker`, the gate child, the tail and the rework worker are the
+  # four phases it names bare `bound` for), and the round's ending went nowhere at all: #898 was ended by the reviewer's
+  # turn bound at 110 turns and #883 by the item's context bound in the reviewer phase, and both read `cut` with an
+  # empty `stop` cell — a reader could not tell which bound fired, or that a bound fired at all, without the child's
+  # transcript. The key and the figure are read from the round's own `LOOP-TIMEOUT` line, by the same reader the item's
+  # class uses, so a round ended by the run's deadline (no key: the deadline is a clock, not a value in `loop.conf`)
+  # records no figure and keeps the verdict it already carried.
+  round_bound_round=""
+  round_bound_key=""
+  round_bound_value=""
   # Whether the phase that ran the gate answered nothing at all — measured in the phase itself, because a child that
   # exits 0 and writes no report is that phase's failure and no reading about the item's tree (issue #810). Empty for
   # every other shape, and kept beside `empty_tree_reading` for the same reason: it is decided before the outcome block
@@ -2854,6 +2890,12 @@ while true; do
             # quotes that line: a reader of the blocked item must not have to choose between the two bounds, or
             # re-derive from a transcript nobody handed them which number ended the round (issue #829).
             pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds — $pre_gate_timeout_line — the round was cut, not refused, so the change is left for the next run"
+            # …and the round's ending is recorded beside the refusals it did not write (issue #923): the item keeps no
+            # class for it, so without this the bound that ended the round survives only in the reason's prose.
+            round_bound_round="pre-gate"
+            round_bound_line=$(bound_key_value "$pre_gate_timeout_line")
+            round_bound_key="${round_bound_line%% *}"
+            round_bound_value="${round_bound_line##* }"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
@@ -3239,7 +3281,8 @@ while true; do
     # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and the class
     # stays off it — the spec names `bound` on the worker's, the gate child's, the tail's and the rework worker's
     # results, not on a review round's. Writing a class here would refuse the cut's own state write and leave the item
-    # at whatever it was last written as (issue #865).
+    # at whatever it was last written as (issue #865). The round's own ending is not lost to that silence: a bound the
+    # transcript names is recorded as the round's own fact, and counted apart from the item's class (issue #923).
     if [ "$pre_gate_cut" -eq 1 ]; then
       outcome="blocked"; blocked_reason="$pre_gate_refusal"
     else
@@ -3294,6 +3337,26 @@ while true; do
   # reports `LOOP_CHILD_TIMEOUT` and the child's own `LOOP-TIMEOUT` line for every bound it enforces — the child
   # clock, the run's deadline and the role's turns — and that arm turns all three into the one word `bound`.
   if [ "$pre_gate_cut" -eq 1 ] || [ "$stop_reason" = bound ]; then outcome="cut"; fi
+  # Which bound the item's own class was cut at travels beside the class (issue #923): `bound` alone says the run ended
+  # the item and not what it had spent, so the archive could be totalled by the class and never by the key — six items
+  # a bound ended, and no figure for any of them. The key and the figure are read from the same `LOOP-TIMEOUT` line the
+  # reason quotes, and an item whose clock, the run's deadline or a vanished writer ended it gets neither: none of the
+  # three is a value `loop.conf` records, and a figure guessed from the value it usually sits beside would read as a
+  # measurement. A review round is not read here at all — its ending is `round_bound_*` above.
+  bound_key=""
+  bound_value=""
+  if [ "$stop_reason" = bound ]; then
+    bound_line=$(bound_key_value "${blocked_reason:-}")
+    [ -n "$bound_line" ] || bound_line=$(bound_key_value "${timeout_claim:-}")
+    bound_key="${bound_line%% *}"
+    bound_value="${bound_line##* }"
+  fi
+  # Both records are the cut's own (`--stop-reason bound`, or the round that ended it), so they travel together to the
+  # one write that can carry them: the blocked arm names a finding about the item, and no bound is a finding. The array
+  # is built at that write and not here (issue #923): the review rounds run *after* this block, so the round's ending
+  # is unknown until the terminal arm below.
+  bound_args=()
+  [ -z "$bound_key" ] || bound_args+=(--bound-key "$bound_key" --bound-value "$bound_value")
   # The silence over a red gate is refused **here** (issue #811): the outcome is decided above, and this is the last
   # moment before the branch is merged and the item closed on the tracker. An item whose tally carries a nonzero
   # `failures=` or `errors=` and whose child recorded no waiver takes the blocked path every other refusal takes —
@@ -3449,6 +3512,12 @@ while true; do
         outcome="cut"
         record_cut_round "$round"
         blocked_reason="the run ended the reviewer of round $round at one of its spend bounds — $reviewer_timeout_line — the round was cut, not refused, so the change is left for the next run"
+        # The round's own ending, recorded where a reader can count it (issue #923): the item carries no class for a
+        # round, so the bound travels in the round's own field — its number, its key and the figure it reached.
+        round_bound_round="$round"
+        round_bound_line=$(bound_key_value "$reviewer_timeout_line")
+        round_bound_key="${round_bound_line%% *}"
+        round_bound_value="${round_bound_line##* }"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
@@ -3772,12 +3841,15 @@ $review_notes_text"
       if [ -n "$label_failures" ]; then
         cut_note="$cut_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
       fi
+      if [ -n "$round_bound_key" ]; then
+        bound_args+=(--round-bound "$round_bound_round" --round-bound-key "$round_bound_key" --round-bound-value "$round_bound_value")
+      fi
       loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --gate "$gate_field" ${attribution_args[@]+"${attribution_args[@]}"} \
         --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
         --events "$events_file" --leftover "$leftover_patch" \
-        --stop-reason "$stop_reason" \
+        --stop-reason "$stop_reason" ${bound_args[@]+"${bound_args[@]}"} \
         --label-failures "$label_failures" \
         --review-verdict "$review_verdict" >/dev/null
       ;;

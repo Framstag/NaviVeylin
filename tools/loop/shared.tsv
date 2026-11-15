@@ -16,6 +16,7 @@
 apply	loop-clean.sh	worktree.sh lib.sh
 body	phase.sh	prescreen.sh
 bound	phase.sh	lib.sh run.sh
+bound_class_jq	lib.sh	report.sh state.sh
 branch	run.sh	report.sh lib.sh loop-clean.sh phase.sh prescreen.sh state.sh worktree.sh
 bytes	loop-clean.sh	worktree.sh lib.sh state.sh
 cases	gate.sh	measure.sh

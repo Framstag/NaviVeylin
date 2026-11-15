@@ -559,8 +559,8 @@ MUTATIONS=(
   # again — the arm that decides by what it was handed is the whole invariant.
   '862.1@-@tools/loop/worktree.sh@worktree#theLandingDecidesByTheReadingItIsHanded@the reading the landing is handed left out, so a difference the run placed in nothing refuses the merge again (issue #862)@s|^  if \[ "\$landing_decides" = "no" \]; then$|  if false; then|'
   '58.3@-@tools/loop/state.sh@state#aBlockedItemNamesTheMechanismThatStoppedIt@the mechanism written into the item record (issue #280)@s|^                  stopReason:(if \$sr == "" then null else \$sr end),$|                  stopReason:null,|'
-  '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \. == "" then "-" else \. end|if true then "-" else . end|'
-  '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \. == "" then "-" else \. end|if false then "-" else . end|'
+  '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \$sc == "" then "-"|if true then "-"|'
+  '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \$sc == "" then "-"|if false then "-"|'
   # 59.x — the self-test's cases run in a bounded pool, and what a case leaves behind ends with it (issue #260).
   # Measured 2026-10-22: 163 cases strictly one after another, 723 s, though every case already owned a throwaway
   # repository, a scratch tree and a process group of its own. One record per invariant: 59.1 bounds the pool to one
@@ -927,7 +927,7 @@ MUTATIONS=(
   # `leftover-from-killed-run.patch`, and a note naming the turn bound the run itself had enforced. The ids
   # 85.x–91.x are taken on the base by #782, #794, #796, #803, #802 and #797.
   '92.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the result a bound-ended child records, so the item is read as a refusal the run'"'"'s own bound never measured (issues #786, #790)@s|^  if \[ "\$pre_gate_cut" -eq 1 \] \|\| \[ "\$stop_reason" = bound \]; then outcome="cut"; fi$|  if [ "$pre_gate_cut" -eq 1 ]; then outcome="cut"; fi|'
-  '92.2@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790)@s|^        --stop-reason "\$stop_reason" \\$|        --stop-reason "" \\|'
+  '92.2@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790)@s|^        --stop-reason "\$stop_reason" |        --stop-reason "" |'
   '92.3@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the result a rework worker the bound ends records, so the item is read as a refusal the run'"'"'s own bound never measured (issue #790)@s|^        stop_reason="bound"$|        stop_reason=""|'
 
   # 93.x — a child pays for the full gate only the number of times the profile records (issue #756). Measured
@@ -1158,6 +1158,12 @@ MUTATIONS=(
   # mechanism field is kept off a round a review bound ended, so a run whose cuts were all review rounds printed
   # `0 of N` with its items being thrown away (2026-11-10).
   '270.4@-@tools/loop/report.sh@report#theBoundRateIsNamed@the half of the hit that reads the result, so every item a review bound ended is counted as no hit and a run at five times the archive rate reads like a healthy one (measured 2026-11-10)@s|^bound_hit_result=.*$|bound_hit_result=false|'
+  # 923.x — which bound ended an item, and which ended a round it ended, are figures the archive can be totalled by
+  # (issue #923). `bound` says the run ended the item and not what it spent, so six items a bound ended had no key
+  # and no figure between them; the two records below are the two arms that carry them — the item's own
+  # (`boundKey`/`boundValue`) and the round's (`metrics.roundBound`), which never becomes the item's class.
+  '923.1@-@tools/loop/run.sh@run#aBoundEndedItemRecordsItsBound@the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)@s|^\( *\)bound_key=.*$|\1bound_key=""|'
+  '923.2@-@tools/loop/run.sh@run#aRoundTheRunEndedRecordsItsBound@the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)@s|^\( *\)round_bound_key=.*$|\1round_bound_key=""|'
   # 272.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
   # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
   # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and

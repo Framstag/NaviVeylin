@@ -32,7 +32,16 @@
 #
 # A gate is a measurement, and a measurement is taken once: see `runs_max` below and the refusal it arms.
 #
-# Usage: gate.sh [--base <sha>] [--plan] [--quiet]
+# The red the run's base already carried is not the delta's (issue #921). Measured 2026-11-14: five items of one run
+# went red at a step no change of theirs touched, each owed a gate re-run it could not earn, and the run's green rate
+# read as the changes' fault. So the run takes one pre-flight of the profile's whole step set on the base it starts
+# from and records it as `run.baseRed` — step to the case names that failed there (`--base-red` below, taken by
+# `run.sh`). A step's red whose case names the record already holds as red is subtracted from this gate's tally and
+# named (`LOOP-GATE-BASERED:<step>:<n>`), so a carrier is quoted instead of dropped, and a step red on the base *and*
+# red for a case the base did not have stays red. The pre-flight names the whole set because at the run's start no
+# delta is known; it is switchable by `LOOP_BASE_RED`, and a tree that can read no base takes none.
+#
+# Usage: gate.sh [--base <sha>] [--plan] [--quiet] [--base-red]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -46,17 +55,32 @@ source "$here/lib.sh"
 base=""
 plan=0
 quiet=0
+base_red_mode=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --plan) plan=1; shift ;;
     --quiet) quiet=1; shift ;;
+    --base-red) base_red_mode=1; shift ;;
     -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) loop_die "gate: unknown argument $1" ;;
   esac
 done
 
 loop_resolve
+
+# The base-red pre-flight is the same gate asked one other question (issue #921): which of the profile's steps are
+# already red on the base this run starts from. It owes every pair rather than one delta's (`owe_pairs` below), writes
+# no tally and holds no tally lock — it is not the item's measurement, so it must not spend the runs the profile
+# records for the child (`runs_max` below), and it must not be read as a carrier of this run's evidence. It measures
+# the base tree as it stands: a tree that cannot name a base takes none, and a run refuses nothing here.
+if [ "$base_red_mode" -eq 1 ]; then
+  [ "$plan" -eq 0 ] || loop_die "gate: --plan lists a delta's commands; --base-red measures the base's own steps — one call is one of the two"
+  # A pre-flight's own steps run with the pre-flight switched off: a suite of this tree starts runs, and a run started
+  # inside one would take a second pre-flight of its own (issue #921). The switch is the profile's, and this one line
+  # is the only place the engine overrides it.
+  export LOOP_BASE_RED=off
+fi
 
 # The environment a kept worktree carries is the gate's own, not only its children's (issue #267). `worktree.sh`
 # writes the machine-local values into `<worktree>/.pi/loop-env.sh` — a file rather than a `vcpkg` symlink, because a
@@ -77,6 +101,9 @@ compiled_patterns=$(loop_conf_value LOOP_GATE_COMPILED_PATTERNS)
 first_steps=$(loop_conf_value LOOP_GATE_FIRST_STEPS)
 suites=$(loop_conf_value LOOP_GATE_SUITES)
 tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
+# The pre-flight writes no tally: it is not the item's measurement, so it holds no lock and leaves no carrier of a
+# step it measured on the base (issue #921).
+[ "$base_red_mode" -eq 0 ] || tally_root=""
 
 # A step is bounded, and the profile owns the bound (issue #311): the run bounds a child with
 # `LOOP_CHILD_MAX_SECONDS` and the suite bounds one case with `LOOP_CASE_MAX_SECONDS`, but inside the gate nothing
@@ -284,12 +311,15 @@ owed=""
 # `first`, `compiled` or `suite` — because the three lists are not run the same way (issue #801): a first step refuses
 # a delta in seconds and runs alone, the build owns the build directory the suites read through the environment and
 # runs alone, and the suites share nothing but the read-only engine, so they run together.
-owe_pairs() { # <kind> <";"-separated `<glob>|<command>` pairs> → every command this delta owes, appended in order
-  local kind=$1 pairs=$2 glob cmd p
+owe_pairs() { # <kind> <";"-separated `<glob>|<command>` pairs> [every] → every command this delta owes, appended in order
+  local kind=$1 pairs=$2 every=${3:-} glob cmd p
   [ -n "$pairs" ] || return 0
   while IFS='|' read -r glob cmd; do
     [ -n "${glob:-}" ] && [ -n "${cmd:-}" ] || continue
     cmd=${cmd//\{base\}/$base}
+    # The pre-flight asks for the list itself, not for the part of it a delta owes (issue #921): at the run's start no
+    # delta is known, so the step set it measures is the profile's whole one — the set a delta touching every path owes.
+    if [ -n "$every" ]; then owed="$owed$kind"$'\t'"$cmd"$'\n'; continue; fi
     while IFS= read -r p; do
       [ -n "$p" ] || continue
       # shellcheck disable=SC2254 # the same: a pattern from the profile
@@ -306,6 +336,14 @@ owe_pairs() { # <kind> <";"-separated `<glob>|<command>` pairs> → every comman
 # minutes into the gate (issue #792 — #790's attempt passed the 11 cases its own selection owed and died on a
 # declaration one path token short). `LOOP_GATE_FIRST_STEPS` is read before the compiled step and before every suite,
 # and it names no project fact here: which command is cheap, and which path owes it, are the profile's.
+#
+# The pre-flight (`--base-red`) owes every pair rather than the delta's, and substitutes `{base}` the same way, so a
+# step it names is the byte-identical command the gate will name later: the record is keyed by that command.
+if [ "$base_red_mode" -eq 1 ]; then
+  owe_pairs first "$first_steps" every
+  [ -z "$compiled_cmd" ] || owed="$owed"$'compiled\t'"${compiled_cmd//\{base\}/$base}"$'\n'
+  owe_pairs suite "$suites" every
+else
 owe_pairs first "$first_steps"
 if [ -n "$compiled_patterns" ] && [ -n "$compiled_cmd" ]; then
   while IFS= read -r p; do
@@ -315,6 +353,7 @@ if [ -n "$compiled_patterns" ] && [ -n "$compiled_cmd" ]; then
 fi
 if [ -n "$suites" ]; then
   owe_pairs suite "$suites"
+fi
 fi
 # One step per command, and the first list that named it owns how it runs: a command two pairs owe is one step and not
 # two, so the dedupe is on the command alone.
@@ -343,7 +382,7 @@ fi
 # caller reading the log has to be able to tell that from a green one. The record is written only when this run is
 # going to measure something: a refusal and a `--plan` call spend nothing and leave the file alone, and a run that is
 # counted is a run the child paid for whether or not its suites passed.
-if [ "$runs_max" -gt 0 ] && [ -n "${LOOP_CHILD_EVENTS:-}" ]; then
+if [ "$runs_max" -gt 0 ] && [ -n "${LOOP_CHILD_EVENTS:-}" ] && [ "$base_red_mode" -eq 0 ]; then
   session_key=$(session_key_of "$LOOP_CHILD_EVENTS")
   if [ -n "$session_key" ]; then
     # Beside the stream, and named after it: the record belongs to the same directory the run keeps an item's stream in,
@@ -376,6 +415,11 @@ failures=0
 errors=0
 failed_suites=""
 ran_entries=""
+# What the run's base already carried, as the pre-flight recorded it (`run.baseRed`), and what this gate subtracted
+# from its own tally because of it — named in the verdict so a green carrier is not read as a clean step.
+base_red_json=""
+base_red_named=""
+base_red_used_args=()
 # A suite's output is read from the file the suite writes as the suite writes it, and that one file is what the
 # summary is parsed from — one observation feeds the log and the tally. Measured 2026-10-23 (issue #269):
 # `out=$($cmd 2>&1)` held the whole output until the command exited, so a gate that ran a suite for eleven minutes
@@ -467,6 +511,44 @@ trap 'gate_release_tally; rm -rf "$gate_tmp"' EXIT
 # The directory is claimed before any step writes a tally into it, and after the refusals above: a gate that owes
 # nothing, prints a plan or has spent its runs measures nothing and leaves no lock behind.
 gate_take_tally
+
+# ── What the base already carried (issue #921) ────────────────────────────────
+# The failing case names a step's output states. The suite's own red line names them — `<group>#<name>` for the
+# self-test harness, `<class> > <method>` for Gradle — and `tools/gate-attribute.sh` reads the same two shapes, so the
+# record is keyed by a case name that the attribution of the same log reads.
+failing_cases() { # <output> → one failing case name per line, as the output names it, sorted and deduped
+  printf '%s\n' "$1" | awk '
+    /^FAIL / { n = $0; sub(/^FAIL /, "", n); sub(/ \(exceeded [0-9]+ s\)$/, "", n); print n; next }
+    /^[^ \t]/ && / > .* FAILED$/ && !/^> Task / { n = $0; sub(/ FAILED$/, "", n); print n }
+  ' | sort -u
+}
+# A record read from the run, keyed by the step's command: `base_red_of` prints the case names it holds for one, and
+# `base_red_had` says whether it holds that step at all — a step the base was green at is not a carrier, whatever it
+# fails now.
+base_red_had() { # <command> → 0 when the run's record holds this step
+  [ -n "$base_red_json" ] || return 1
+  printf '%s' "$base_red_json" | jq -e --arg c "$1" 'type == "object" and has($c)' >/dev/null 2>&1
+}
+base_red_of() { # <command> → the case names the record holds for this step, one per line
+  [ -n "$base_red_json" ] || return 0
+  printf '%s' "$base_red_json" | jq -r --arg c "$1" '.[$c] // [] | .[]' 2>/dev/null || true
+}
+# The base's red and this gate's, as pairs: a case the step failed on the base and fails again is one pair the tally
+# subtracts, and a case it fails now only is not. A step whose failure names no case (a suite that died before its
+# summary, a step that overran its bound) is a carrier only of a base record that names none either: a red the base did
+# not have is never subtracted just because the base had a red at the same step.
+shared_cases() { # <the step's failing cases now> <the record's> → the cases both name, one per line
+  [ -n "$1" ] && [ -n "$2" ] || return 0
+  printf '%s\n' "$1" | grep -x -F -f <(printf '%s\n' "$2") || true
+}
+if [ "$base_red_mode" -eq 0 ] && [ -n "${LOOP_STATE_FILE:-}" ] && [ -r "$LOOP_STATE_FILE" ]; then
+  base_red_json=$(loop_state get run.baseRed 2>/dev/null || true)
+  case "$base_red_json" in ''|null) base_red_json="" ;; esac
+  printf '%s' "$base_red_json" | jq -e 'type == "object"' >/dev/null 2>&1 || base_red_json=""
+fi
+if [ "$base_red_mode" -eq 1 ]; then
+  say "LOOP-BASERED: measuring the profile's ${#owed_cmd[@]} step(s) on ${base:-the tree as it stands} — this pre-flight writes no tally"
+fi
 
 # One slot per running step: its command, its process, its output, its completion record, its clock, and the two facts
 # a reader needs beside the status — whether the bound ended it, and whether its bytes already reached the console.
@@ -585,7 +667,8 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
     say "gate: $cmd — ${took}s"
   fi
   ran_entries="${ran_entries}${ran_entries:+, }$cmd ${took}s"
-  [ "$rc" -eq 0 ] || failed_suites="$failed_suites $cmd"
+  step_red=0
+  [ "$rc" -eq 0 ] || step_red=1
   # The suite's own summary line: `<name>: all N cases passed` or `<name>: M of N cases failed`.
   n=$(printf '%s\n' "$out" | sed -n 's/.*all \([0-9][0-9]*\) cases passed.*/\1/p' | tail -1)
   if [ -z "$n" ]; then
@@ -621,6 +704,47 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
       "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
       > "$tally_root/$name.xml" 2>/dev/null || true
   fi
+  # The red the run's base already carried is not this delta's (issue #921), and it is subtracted as pairs, never as a
+  # step: a case the step failed on the base and fails again leaves the tally, a case it fails only now stays, and the
+  # step is a carrier — green — only when nothing of its red is left. A step that fails without naming a case is the
+  # base's only when the base named none there either. The console names the pairs that left, so a green gate that
+  # carried a red reads as one, and the tally keeps the step's own measurement either way.
+  base_red_taken=0
+  if [ "$step_red" -eq 1 ]; then
+    now_cases=$(failing_cases "$out")
+    if [ "$base_red_mode" -eq 1 ]; then
+      say "LOOP-BASERED-STEP:${cmd}|$((f + err))"
+      while IFS= read -r case_name; do
+        [ -n "$case_name" ] || continue
+        say "LOOP-BASERED-CASE:${cmd}|${case_name}"
+      done <<< "$now_cases"
+    elif [ -n "$base_red_json" ] && base_red_had "$cmd"; then
+      step_base_red=$(base_red_of "$cmd")
+      now_count=$(printf '%s\n' "$now_cases" | grep -c . || true)
+      case "$now_count" in ''|*[!0-9]*) now_count=0 ;; esac
+      shared=$(shared_cases "$now_cases" "$step_base_red")
+      shared_count=$(printf '%s\n' "$shared" | grep -c . || true)
+      case "$shared_count" in ''|*[!0-9]*) shared_count=0 ;; esac
+      subtracted=0
+      if [ "$now_count" -eq 0 ] && [ -z "$step_base_red" ]; then
+        # The step names no case and the base named none: the red is the base's own failure, error and all.
+        base_red_taken=1
+        errors=$((errors - err))
+        subtracted=$((f + err))
+      elif [ "$shared_count" -gt 0 ]; then
+        failures=$((failures - shared_count))
+        subtracted=$shared_count
+        [ "$shared_count" -eq "$now_count" ] && base_red_taken=1
+      fi
+      if [ "$subtracted" -gt 0 ]; then
+        base_red_named="${base_red_named}${base_red_named:+, }${cmd}:${subtracted}"
+        base_red_used_args+=(--step "$cmd" --count "$subtracted")
+        say "LOOP-GATE-BASERED:${cmd}:${subtracted}"
+      fi
+    fi
+  fi
+  [ "$base_red_taken" -eq 0 ] || step_red=0
+  [ "$step_red" -eq 0 ] || failed_suites="$failed_suites $cmd"
 }
 
 run_wave() { # <slot> … → the steps started together, waited for, then each recorded in the profile's order
@@ -660,13 +784,29 @@ done
 
 # The verdict is the last line of the log as well, so a reader that only has the file still gets the numbers the
 # console carried — and a `--quiet` gate writes no console at all but leaves a log a red run can be attributed from.
+# A green carrier says what it carried (issue #921): the subtracted steps and their counts are part of the verdict, so
+# a gate green because its base was red is not read as a gate green because nothing was wrong.
+base_red_note=""
+[ -z "$base_red_named" ] || base_red_note=" — base-red: $base_red_named"
+# What this gate subtracted is also in the run's own record (issue #921), beside the pre-flight that recorded the red:
+# the console and the log carry the line, and the state carries the pairs, so a report reads which reds were carried
+# instead of charged without reading a log back. A gate typed in a tree with no run state records nothing there.
+if [ "${#base_red_used_args[@]}" -gt 0 ] && [ -n "${LOOP_STATE_FILE:-}" ] && [ -f "$LOOP_STATE_FILE" ]; then
+  loop_state base-red-used "${base_red_used_args[@]}" >/dev/null 2>&1 || true
+fi
+if [ "$base_red_mode" -eq 1 ]; then
+  verdict_line=$(printf 'LOOP-BASERED: tests=%s failures=%s errors=%s (%s) — failing:%s' "$cases" "$failures" "$errors" "$ran_entries" "${failed_suites:-none}")
+  printf '%s\n' "$verdict_line"
+  [ -z "$failed_suites" ] || exit 1
+  exit 0
+fi
 if [ -n "$failed_suites" ]; then
-  verdict_line=$(printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites")
+  verdict_line=$(printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s%s' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites" "$base_red_note")
   log_line "$verdict_line"
   printf '%s\n' "$verdict_line"
   exit 1
 fi
-verdict_line=$(printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)' "$cases" "$failures" "$errors" "$ran_entries")
+verdict_line=$(printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)%s' "$cases" "$failures" "$errors" "$ran_entries" "$base_red_note")
 log_line "$verdict_line"
 printf '%s\n' "$verdict_line"
 exit 0

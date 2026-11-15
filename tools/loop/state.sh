@@ -38,6 +38,13 @@
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
+#   state.sh base-red --from <file> [--base <sha>]
+#                         # the red the run's base already carried, as the pre-flight measured it (issue #921):
+#                         # a JSON object of step → the case names that failed there, which `gate.sh` subtracts
+#                         # from its own tally so a carrier is charged to no item
+#   state.sh base-red-used --step <command> --count <n> [--step … --count …]
+#                         # what a gate subtracted because the base already had it, so the record says which reds
+#                         # were carried instead of charged (issue #921)
 #   state.sh stop <reason>              # the condition that ended the run, as `next` names it
 #   state.sh hold --seconds N [--reason TEXT]
 #                         # a wait a condition outside the run imposed: the deadline moves with it, so the pause
@@ -559,6 +566,57 @@ cmd_set_base() {
     loop_refuse "set-base: $sha is not on $branch — recording it would close items against a base that never carried their fix"
   patch_state '.run.base = $sha' --arg sha "$sha"
   printf 'state: base advanced to %s\n' "${sha:0:12}"
+}
+
+cmd_base_red() { # the red the run's base already carried, from the pre-flight's own output (issue #921)
+  require_state
+  local from="" base="" red
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --from) need_value "$@"; from="${2:-}"; shift 2 ;;
+      --base) need_value "$@"; base="${2:-}"; shift 2 ;;
+      *) loop_die "base-red: unknown argument $1" ;;
+    esac
+  done
+  [ -n "$from" ] || loop_die "base-red: usage: state.sh base-red --from <the pre-flight's output> [--base <sha>]"
+  [ -r "$from" ] || loop_die "base-red: cannot read $from"
+  # The pre-flight's output is the record's source, read the way `run.sh` reads it: a step is entered by its
+  # `LOOP-BASERED-STEP:<command>|<n>` line and each case that failed there follows as `LOOP-BASERED-CASE:<command>|<name>`.
+  # One reader, so a change to the shape is one change and not two that must agree.
+  red=$(jq -Rn '
+    reduce inputs as $line ({};
+      if ($line | test("^LOOP-BASERED-STEP:")) then
+        .[($line | capture("^LOOP-BASERED-STEP:(?<step>.*)\\|[0-9]+$") | .step)] = []
+      elif ($line | test("^LOOP-BASERED-CASE:")) then
+        ($line | capture("^LOOP-BASERED-CASE:(?<step>.*)\\|(?<case>.+)$")) as $c
+        | .[$c.step] += [$c.case]
+      else . end)
+  ' < "$from") || loop_die "base-red: cannot read the pre-flight's output at $from"
+  printf '%s' "$red" | jq -e 'type == "object"' >/dev/null 2>&1 ||
+    loop_die "base-red: $from is not a pre-flight's output"
+  patch_state '.run.baseRed = $red | .run.baseRedBase = $base' --argjson red "$red" --arg base "$base"
+  printf 'state: base red recorded — %s step(s) already red at %s\n' \
+    "$(printf '%s' "$red" | jq -r 'length')" "${base:0:12}"
+}
+
+cmd_base_red_used() { # what a gate subtracted because the base already had it (issue #921)
+  require_state
+  local steps='{}' step raised
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --step) need_value "$@"; step="${2:-}"; shift 2 ;;
+      *) loop_die "base-red-used: unknown argument $1" ;;
+    esac
+    [ $# -gt 0 ] && [ "$1" = --count ] || loop_die "base-red-used: every --step is followed by its --count <n>"
+    need_value "$@"; raised="${2:-}"; shift 2
+    case "$raised" in ''|*[!0-9]*) loop_die "base-red-used: --count must be a non-negative integer" ;; esac
+    steps=$(printf '%s' "$steps" | jq -c --arg step "$step" --argjson n "$raised" '. + {($step): $n}') ||
+      loop_die "base-red-used: cannot add $step to the record"
+  done
+  [ "$(printf '%s' "$steps" | jq -r 'length')" -gt 0 ] ||
+    loop_die "base-red-used: nothing was subtracted — a call that names no step records nothing"
+  patch_state '.run.baseRedUsed = {at: (now | todate), steps: $steps}' --argjson steps "$steps"
+  printf 'state: %s step(s) recorded as carried by the base\n' "$(printf '%s' "$steps" | jq -r 'length')"
 }
 
 cmd_stop() { # the condition that ended the run, as `next` names it
@@ -1423,6 +1481,8 @@ case "$cmd" in
   adoption-refused) cmd_adoption_refused "$@" ;;
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
+  base-red) cmd_base_red "$@" ;;
+  base-red-used) cmd_base_red_used "$@" ;;
   stop) cmd_stop "$@" ;;
   hold) cmd_hold "$@" ;;
   report) cmd_report "$@" ;;

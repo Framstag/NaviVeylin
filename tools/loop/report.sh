@@ -283,9 +283,9 @@ printf 'bound: %s of %s items (%s) · archive: %s' \
 printf '\n'
 
 # What class ended each archived record is derived on read, and never taken from the absence of a field (issue #922).
-# The archive predates `done --stop-reason` — that vocabulary arrived with #865 — so 119 of its 179 blocked records
-# name no mechanism at all, and the analysis pass's `unclassified 119` was that absence counted as a class: a dash
-# read as a zero. `lib.sh`'s `stop_class` decides the records whose own note quotes the `LOOP-TIMEOUT` sentence that
+# The archive predates `done --stop-reason` — that vocabulary arrived with #865 — so 119 of its 140 blocked records
+# and 15 of its 39 cut ones name no mechanism at all, and the analysis pass's `unclassified 119` was the blocked
+# half of that absence counted as a class: a dash read as a zero. `lib.sh`'s `stop_class` decides the records whose own note quotes the `LOOP-TIMEOUT` sentence that
 # ended them (21 of those 119, measured 2026-11-15 over the 158 archived states), and what it cannot decide is printed
 # as its own figure instead of being summed into either side: counting it as a class would invent one, and counting it
 # as decided would call a measurement nobody made an answer. The population is the records a class can belong to —

@@ -743,6 +743,20 @@ in neither a turn nor a tool` — the share taken of the wall the items that rec
 recorded, so the two halves are over one set only where every item of it recorded a wall; an item that recorded
 phases and no wall is in the numerator and not in the denominator.
 
+**The gate share and the outside-items window are read from the record, not from a log** (issue #883). Two lines the
+trend was silent about, and both are sums of fields the state already held, so neither needed a field or a place in
+the engine contract: `gate share:` divides the gate bucket of each item that recorded one by its own `metrics.wallSeconds`
+— in tenths, because 60.4 % and 58.8 % are told apart only by the tenth, and it names the worst two items — and
+`outside items:` subtracts the summed item walls and the run's recorded waits (`.run.holds[].seconds`) from the window
+`state.sh` reads out of `.run.startedEpoch` and `.run.stop.at`. Measured on the run of 2026-11-13T05:47:11Z: item #853
+spent 4 568 s of its 5 709 s (80 %) in a gate, #865 60.4 % and #864 58.8 %; the window held 45 173 s against 22 925 s of
+item wall, so **22 247 s — 49.3 % — stood outside every item the run took**. The window is the difference of two recorded
+instants, never a second reading of the clock, which is why `report.sh` prints `-` with its reason where the state holds
+no window, no phase durations, or no item time in a gate — a dash names which of the three is missing instead of printing
+a figure no record holds. What only a report can know stays a **derivation and says so** in its line: the phase line's "in
+neither a turn nor a tool" remainder and the outside-items figure are subtractions over recorded numbers, while every
+figure that enters them was written by the arm that measured it.
+
 **The gate a share is taken at is the call that ran it** (issue #830). Measured 2026-11-10 over the five items that
 were filed as two thirds of a run spent after its first gate: the streams are the run's own record
 (`.pi/issue-loop/items/{719,738,808,810,819}/events.jsonl`, gitignored), read with the probe and its log this project
@@ -1262,6 +1276,22 @@ recorded with the paths it changed and merged over — issue #862's count: 5 of 
 `attributed=none` into the transcript of the item it then dropped. The cases are
 `run#mergesOverADifferenceItCannotPlace`, `run#anAdoptionLandsOverADifferenceItCannotPlace` and
 `worktree#theLandingDecidesByTheReadingItIsHanded`; the mutation is `tools/loop/tests/loop-mutations.sh` 58.2.
+
+**A refused landing is a record, and no report re-reads the note to find it** (issue #883). The landing step keeps two
+values when it refuses — the branch it asked the merge for, and the paths the refusal printed after `onto the base:`
+(`git status --porcelain` lines, leading space and all) — and the arm that blocks the item hands both to `state.sh done`
+as `--merge-refused-branch` and one `--merge-refused-path` per path. The item then carries
+`mergeRefused: {branch, paths}` beside `merged: {branch, commits, evidence, sha}`; a state written before the field
+existed carries no key, and an item whose landing was never refused carries `null`. The two halves are one fact, so the
+refusals keep them together: a path with no branch is refused, and a branch is accepted only on an item whose
+`stopReason` is `unmergeable` — a landing that happened is `merged` and no refusal. `report.sh` prints the landing from
+that field, because the note the block quotes is prose the run composed and a reader that re-parsed it can print a
+branch and a path list the run never recorded: a state written before the field existed still falls back to the note,
+and its line then says the branch and the paths are re-derived rather than read (the note holds those newlines as `\n`,
+so the fallback converts them before it takes the lines). The cases are
+`report#theRefusedLandingIsReadFromTheRecord` and `report#anUnmergeableItemNamesItsLanding`; the mutation is
+`tools/loop/tests/loop-mutations.sh` 883.2. A hand analysis reads the same field and must not re-parse a note or a
+transcript for a figure the record already holds.
 The merge lands in the project's **own** tree, and what a merge there moves is the branch that tree holds — so
 the landing step reads the checkout instead of assuming it, and refuses a tree switched off the base branch
 while the run is open, naming both branches (the start's own guard covers only the tree a run is *opened* on,

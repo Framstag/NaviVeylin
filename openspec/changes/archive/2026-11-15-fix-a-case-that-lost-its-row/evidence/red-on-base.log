@@ -1,0 +1,8 @@
+2026-11-15T22:37:47Z
+# red-on-base.sh: this change's case and cases file, run by the base d794277b's driver (the check absent)
+driver#aCaseWithNoSelectionRowIsRefused|   a cases file whose body has no row is refused, never read as a whole suite: PASS stub#kept: expected '1', got '0'
+--- driver#aCaseWithNoSelectionRowIsRefused[0] (exit 1)
+  a cases file whose body has no row is refused, never read as a whole suite: PASS stub#kept: expected '1', got '0'
+FAIL driver#aCaseWithNoSelectionRowIsRefused
+loop-selftest: 1 of 1 cases failed
+exit=1

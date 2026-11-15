@@ -1,0 +1,37 @@
+2026-11-15T22:37:55Z
+# bash tools/loop/tests/loop-selftest.sh --group driver
+PASS driver#noEngineFileExceedsItsBound
+PASS driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#everyEngineScriptIsInTheTable
+PASS driver#aFileWithoutABoundIsRefused
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS driver#theSummaryNamesWhatEachGroupCost
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aNameAssignedTwiceIsRefused
+PASS driver#anUndeclaredReadIsRefused
+PASS driver#theSharedNamesAreDeclared
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#theSourceOrderIsDeclared
+PASS driver#aCallToALaterFilesFunctionFails
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#noFixtureFifoIsOpenedWriteOnly
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS driver#theCaseBoundScalesWithThePool
+PASS driver#theSuiteRunsItsCasesInAPool
+loop-selftest: driver 32 cases 510.99 s
+loop-selftest: all 32 cases passed (JDK 27, offline, no token, no sandbox) — 49.32 s, selection: --group driver
+exit=0

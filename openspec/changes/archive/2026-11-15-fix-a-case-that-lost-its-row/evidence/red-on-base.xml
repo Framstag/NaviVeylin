@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --case driver#aCaseWithNoSelectionRowIsRefused" tests="1" failures="1" errors="0" time="0">
+  <system-out>loop-selftest: 1 of 1 cases failed — driver#aCaseWithNoSelectionRowIsRefused (2026-11-15T22:37:47Z, this change's cases file run by the base d794277b's loop-selftest.sh)</system-out>
+</testsuite>

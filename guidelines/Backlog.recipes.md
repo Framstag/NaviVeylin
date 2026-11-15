@@ -322,7 +322,7 @@ the leftover patch, the item's state names that patch and the report prints the 
 escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
 It is recorded `cut` there as well, for the reason the review round's own cut is (§7e, issue #785), and it carries
 `bound` and the key it is recorded in — every arm the run's own bound ends does, a review round as much as the
-item's own child (issue #898).
+item's own child (the run's item #898).
 That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
 of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
 read by nobody, so a cut round bought a rework worker for a change nobody refused) — and the run takes
@@ -633,7 +633,7 @@ exists only for a phase a bound the run enforces ended — beside the `blocked` 
 written before that result came into use carries. Counting the mechanism field alone under-reads the figure in the
 one direction it exists to stop (measured 2026-11-10): a tree that wrote a round the run ended recorded it with no
 class at all, so two of that day's three runs recorded three cuts each while the line named none of them. The class
-covers a round since issue #898, and a record written before it still answers by its result — the wider field is the
+covers a round since the run's item #898 exposed the cut, and a record written before it still answers by its result — the wider field is the
 one that cannot be narrowed. The items are named with what each kept, which is why
 `state.sh done --leftover` records `leftoverFiles` beside the path: the patch states how many files it carries and a
 count passed in beside it is a second account that can disagree, so the count is read from the file, and a path that
@@ -1485,7 +1485,7 @@ turns, after which the item was recorded `blocked`, given `agent/needs-decision`
 towards the run's two-blocked stop; #783, #767 and #763 reached the same state the same day. An item the loop's own
 bound cut is therefore recorded **`cut`**, the fifth result beside `done`, `skipped`, `blocked` and `falsified`:
 it carries `bound` and the key the bound is recorded in — a round the run ended as much as the item's own child
-(issues #898, #883: a reviewer turn bound at 110 turns and an item's context bound inside the reviewer phase are
+(the run's items #898 and #883: a reviewer turn bound at 110 turns and an item's context bound inside the reviewer phase are
 the two records this answers) — it writes no decision label, it is named on a line of its own (`cut short by the
 run's own bound: …`) instead of in the blocks, it does not enter the two-blocked streak `state.sh next` stops on, and
 the run takes no second pass over the queue after it, because that pass would re-exclude the item whose branch the
@@ -1502,7 +1502,7 @@ pre-screen offers the item as work with its branch named, `start-item` setting t
 are the same rule: nothing the loop ended itself may arrive at the pre-screen as an item its owner owes an answer
 to, because that answer is a slot of the decision ceiling spent on a question the loop asked itself. A round the
 *transport* cut twice is not this: no bound ended it, so it stays a block with its reason, because nothing about it
-says the item is converging. A round a bound ended is the item's class as well (issue #898): its record carries
+says the item is converging. A round a bound ended is the item's class as well (the run's item #898): its record carries
 `bound` and the key the round reached, `state.sh` prints that pair in the report's `stop` cell as it does for a
 bound-ended child, and the round's own number, key and figure stay in `metrics.roundBound` beside it.
 
@@ -1611,7 +1611,7 @@ bound ended, and not one of them with a figure. `run.sh` now reads the child's o
 `LOOP_CHILD_CHECKS_MAX`, the role-qualified key included) — for every phase the run enforces a bound on: the worker,
 the gate child, the tail, the rework worker and a review round, before the gate as much as after it. A bound no
 configuration records a value for gets neither: the wall clock and the run's own deadline are read as the class they
-are and no key is guessed from a neighbour. A review round is not a second kind of ending (issue #898): it is the
+are and no key is guessed from a neighbour. A review round is not a second kind of ending (the run's item #898): it is the
 item's own `cut`, carrying the class and the key, because the bound is the run's whichever phase of the item it
 ended. The round stays a fact of its own beside the class — `metrics.roundBound: {round, boundKey, boundValue}`,
 because which round it was is what a class cannot carry — `state.sh`

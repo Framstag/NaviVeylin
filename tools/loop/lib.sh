@@ -311,7 +311,7 @@ JQ
 # its note — the note quotes `run.sh`'s own `LOOP-TIMEOUT` sentence, whose field label the reader strips. Reading that
 # sentence back is what lets the archive's unclassified records and the records that name no key be counted by the
 # bound that fired, in one place rather than in each reader's own predicate. **No review round is inferred as the
-# item's class**: the class is the run's own write, and since issue #898 a round the run ended carries `bound` beside
+# item's class**: the class is the run's own write, and since the run's item #898 exposed the cut a round the run ended carries `bound` beside
 # the round it happened in — #898 and #883 are the records a tree wrote before that, `cut` with no class, and a
 # derived class must not invent one for them. The round's ending also stays a fact of its own (`bound_round`), read
 # beside the class and never instead of it.

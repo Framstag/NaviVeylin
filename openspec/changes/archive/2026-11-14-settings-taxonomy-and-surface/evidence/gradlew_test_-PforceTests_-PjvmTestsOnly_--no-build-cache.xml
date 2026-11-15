@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="0" time="803" run="584422">
-  <system-out>BUILD SUCCESSFUL in 13m 22s 171 actionable tasks: 62 executed, 109 up-to-date Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html</system-out>
+<testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="0" time="622" run="2447687">
+  <system-out>BUILD SUCCESSFUL in 10m 20s 171 actionable tasks: 19 executed, 152 up-to-date Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html</system-out>
 </testsuite>

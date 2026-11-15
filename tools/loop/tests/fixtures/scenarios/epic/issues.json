@@ -1,0 +1,111 @@
+[
+  {
+    "number": 21,
+    "title": "§21 A bug whose epic is #906",
+    "body": "<!-- nvid: 21 -->\n\n- **Observed** ✗: the first child shows nothing.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 906
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/todo-import"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 22,
+    "title": "§22 A second bug of the same epic #906",
+    "body": "<!-- nvid: 22 -->\n\n- **Observed** ✗: the second child shows nothing either.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 906
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/todo-import"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 23,
+    "title": "§23 A bug that belongs to no epic",
+    "body": "<!-- nvid: 23 -->\n\n- **Observed** ✗: an item with no parent at all.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/todo-import"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 24,
+    "title": "§24 A bug that belongs to another epic #907",
+    "body": "<!-- nvid: 24 -->\n\n- **Observed** ✗: a child of a second epic.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 907
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "source/todo-import"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

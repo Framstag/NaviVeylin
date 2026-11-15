@@ -365,6 +365,39 @@ printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | selec
 # a round a reader cannot see in its report — the head a round was handed reads like the whole part. A run whose
 # rounds were all under the cap records nothing, and the line says `none` as the ones beside it do.
 printf 'what the bound cut from a round%ss input: %s\n' "'" "$(jq -r '[.items[] | select((.metrics.reviewInput // "") != "") | "#\(.issue) \(.metrics.reviewInput)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# Which epic a group of the run's items belongs to is the fact the record did not hold (issue #920): the item named
+# its class, its change and its spend, and the epic itself is never worked — a container is refused by the screen — so
+# a run that worked six children of one epic printed six rows and nothing said they were one epic's work, and the
+# 25 m 31 s / 4.97 M tokens they cost was reachable only by summing `.items[]` by hand. The line groups the run's own
+# items by the parent the screen recorded (`state.sh done` writes it out of the queue it read), and gives the three
+# figures a person asks an epic for: how many of its children closed, what they spent and what they cost in clock.
+# `n` is the run's children of that epic and not the epic's own count, because the report reads the state and git and
+# never the tracker — the line says so by naming the children it counted, and a figure no child reported prints `-`
+# rather than the zero a sum of nothing would read as.
+printf 'by epic: %s\n' "$(jq -r '
+  def dur: if . >= 3600 then ((. / 3600 * 10 | round) / 10 | "\(.) h")
+           elif . >= 60 then "\((. / 60) | floor) m \(. % 60 | floor) s"
+           else "\(. | round) s" end;
+  def mtok: ((. / 1000000 * 10 | round) / 10 | "\(.) Mtok");
+  def spent: (.metrics.tokens // null)
+    | if . == null then null
+      else ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0)) end;
+  ([.items[] | select((.parent // null) == null)]) as $alone
+  | [.items[] | select((.parent // null) != null)] as $kids
+  | if ($kids | length) == 0 then
+      "none — no item of this run recorded an epic"
+    else
+      ($kids | group_by(.parent)
+        | map(.[0].parent as $p
+              | ([.[] | select(.result == "done")] | length) as $closed
+              | ([.[] | spent | select(. != null)]) as $spend
+              | ([.[] | select(.metrics.wallSeconds != null) | .metrics.wallSeconds]) as $walls
+              | "epic #\($p): \($closed) of \(length) \(if length == 1 then "child" else "children" end) closed"
+                + " · \(if ($spend | length) == 0 then "- tokens (no child reported them)" else ($spend | add | mtok) end)"
+                + " · \(if ($walls | length) == 0 then "- wall (no child recorded one)" else ($walls | add | dur) end)")
+        | join(" · ")) as $groups
+      | "\($groups)\(if ($alone | length) > 0 then " · \($alone | length) item(s) in no epic" else "" end)"
+    end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the

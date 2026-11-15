@@ -1735,6 +1735,18 @@ alone, and every step the run records is attributed to that item rather than to 
 unanswered, and the run that started at 19:34 replaced its state, merged its unfinished item into `main`, closed
 it and was refused at the lock two minutes into a 240-minute budget.
 
+What the report says about the **epic** a run's items belong to (issue #920): the item's record named its class, its
+change and its spend, and the epic is never itself worked — the screen refuses a container, so its children carry all
+the work — which left a run that worked six children of one epic with six rows and nothing saying they were one epic's
+work. Measured on the run of 2026-11-14T12:19:45Z: #899–#904, six children of epic #906, each recorded `skipped`, and
+the 25 m 31 s / 4.97 M tokens they cost was reachable only by summing `.items[]` by hand. The tracker's `parent` link
+is read by the pre-screen's own fetch (`loop_issue_json` asks for it beside `issueType`, so it costs no second call),
+written beside the item's class in the queue and copied into the item's record by `state.sh done`, and the report's
+`by epic:` line groups the run's items by it: `epic #N: m of n children closed · <tokens> · <wall>`, one group per
+epic and a count of the items in none. `n` is the run's children of that epic and not the epic's own count, because
+the report reads the state and git and never the tracker; a figure no child reported prints `-` with its reason, not
+the zero a sum of nothing would read as.
+
 ## §8 The human lane
 
 

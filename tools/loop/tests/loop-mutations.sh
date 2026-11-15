@@ -1360,6 +1360,14 @@ MUTATIONS=(
   '883.1@-@tools/loop/report.sh@report#theTrendBlockNamesTheGateShareAndTheOutsideWindow@the window read as the clock since the run started instead of the stop the state recorded, so a run reports a span no record holds and the figure dates itself from the moment the report ran (issue #883)@s|--argjson window "\${window_secs:-null}"|--argjson window "$(( $(date +%s) - ${run_epoch:-0} ))"|'
   '883.2@-@tools/loop/report.sh@report#theRefusedLandingIsReadFromTheRecord@the refused landing read back out of the note the block quoted rather than the refusal the run recorded, so the branch and the paths a caller is handed are a second reading of prose (issue #883)@s|^  if \[ "$refusal_kind" = record \]; then$|  if false; then|'
   '883.3@-@tools/loop/state.sh@report#theRefusedLandingIsReadFromTheRecord@the arm that writes a refusal the run handed to its item, so the branch and the paths a block was given are recorded as no refusal at all and the report re-derives them from the note (issue #883)@s|^  if \[ -n "$merge_refused_branch" \]; then$|  if false; then|'
+  # 920.x — the epic a run's items belong to, one record per hop the fact takes (issue #920): the screen's own record,
+  # the queue the writer reads it out of, the item's record, and the line the report groups by. Each is a place a
+  # later edit can drop the field while every other figure the record carries stays intact — which is exactly the
+  # shape the issue measured, where six children of one epic recorded `skipped` and no field said so.
+  '920.1@-@tools/loop/prescreen.sh@prescreen#theScreenRecordsTheItemsEpic@the epic the screen writes beside the class, so the tracker'"'"'s parent link is read and thrown away and the queue holds no epic for any child (issue #920)@s#^     parent:(if \$parent == "" then null else (\$parent | tonumber) end),$#     parent:null,#'
+  '920.2@-@tools/loop/state.sh@prescreen#theScreenRecordsTheItemsEpic@the queue projection that keeps the epic beside the class, so a screen that records it still hands the run a queue without one and the item'"'"'s own record cannot name its epic (issue #920)@s#rank, gates, pinned, parent}#rank, gates, pinned}#'
+  '920.3@-@tools/loop/state.sh@prescreen#theScreenRecordsTheItemsEpic@the field the writer copies out of the queue into the item'"'"'s record, so the epic is in the queue and in no record the report can group by (issue #920)@s#parent:(if \$p == "" then null else (\$p | tonumber) end)#parent:null#'
+  '920.4@-@tools/loop/report.sh@report#theRunGroupsItsItemsByEpic@the grouping the line is, replaced by a group per item, so a run of six children of one epic prints six groups of one and the epic'"'"'s spend is never summed (issue #920)@s#(\$kids | group_by(.parent)#(\$kids | group_by(.issue)#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

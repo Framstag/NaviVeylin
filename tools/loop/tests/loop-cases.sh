@@ -398,6 +398,7 @@ LOOP_SHELL_CASES=(
   'report#landingsAreTheStoredNumber'
   'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt'
   'report#anActionNamesAnItemPathThatExists'
+  'report#theRunGroupsItsItemsByEpic'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#reportsAnAgedItemDirectory'
@@ -465,6 +466,7 @@ LOOP_SHELL_CASES=(
   'prescreen#aReworkCutBranchIsWork'
   'prescreen#anAnsweredBranchIsWorkNotADecision'
   'prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch'
+  'prescreen#theScreenRecordsTheItemsEpic'
   'worktree#setsAsideAReworkCutBranchAndStartsFresh'
   'run#aRotatedStreamStillCountsTheTurnsItDropped'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
@@ -865,6 +867,7 @@ loop_run_shell_case() {
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
     'prescreen#aClosedItemIsNotSelected') fn=case_prescreen_aClosedItemIsNotSelected ;;
+    'prescreen#theScreenRecordsTheItemsEpic') fn=case_prescreen_theScreenRecordsTheItemsEpic ;;
     'prompt#thePackageCarriesTheChange') fn=case_prompt_thePackageCarriesTheChange ;;
     'prompt#aTierAItemSaysSo') fn=case_prompt_aTierAItemSaysSo ;;
     'run#aTierBItemWritesNoSecondChange') fn=case_run_aTierBItemWritesNoSecondChange ;;
@@ -1143,6 +1146,7 @@ loop_run_shell_case() {
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
     'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt') fn=case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt ;;
     'report#anActionNamesAnItemPathThatExists') fn=case_report_anActionNamesAnItemPathThatExists ;;
+    'report#theRunGroupsItsItemsByEpic') fn=case_report_theRunGroupsItsItemsByEpic ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#reportsAnAgedItemDirectory') fn=case_clean_reportsAnAgedItemDirectory ;;
@@ -14733,6 +14737,91 @@ case_report_landingsAreTheStoredNumber() {
   assert_not_contains "$landings" "gh issue list" "the line points at no tracker read"
   assert_not_contains "$landings" "#21" "it invents no id it never read"
   [ ! -e "$d/gh-calls.log" ] || fail "the report called the tracker: $(cat "$d/gh-calls.log")"
+}
+
+# The epic a run's items belong to is the fact the record did not hold (issue #920): an item recorded its class, its
+# change and its spend, and the epic itself is never worked — the screen refuses a container — so six children of one
+# epic printed six rows and nothing said they were one epic's work. Measured on the run of 2026-11-14T12:19:45Z: six
+# children of epic #906 (#899–#904) each recorded `skipped`, and the 25 m 31 s / 4.97 M tokens they cost was reachable
+# only by summing `.items[]` by hand. The parent enters the state through the pre-screen — `loop_issue_json` already
+# asks the tracker for `parent` beside `issueType`, so it is a field of an answer the screen holds — and the writer
+# carries it from the queue into the item's own record, which is what the report groups by.
+case_prescreen_theScreenRecordsTheItemsEpic() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p f out
+  p=$(new_project)
+  init_state "$p" 4 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario epic)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "906" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .parent')" \
+    "the screen records the epic a child belongs to"
+  assert_eq "907" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .parent')" \
+    "and keeps two epics' children apart"
+  assert_eq "null" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .parent')" \
+    "an item the tracker gives no parent records none"
+  f=$(state_file "$p")
+  assert_eq "906" "$(jq -r '.queue[] | select(.issue == 21) | .parent' "$f")" \
+    "the queue keeps the epic beside the class (state.sh queue)"
+  run_state "$p" done 21 --result skipped --verdict skipped >/dev/null || fail "the child was not recorded"
+  run_state "$p" done 23 --result skipped --verdict skipped >/dev/null || fail "the parentless item was not recorded"
+  assert_eq "906" "$(jq -r '.items[] | select(.issue == 21) | .parent' "$f")" \
+    "the item's own record names it, which is what the report groups by"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 23) | .parent' "$f")" \
+    "and an item in no epic records null rather than a parent of its own"
+}
+
+# The run's verdict read per epic as well as per item (issue #920): the line groups the run's own items by the parent
+# the screen recorded and gives the three figures a person asks an epic for — how many of its children closed, what
+# they spent and what they cost in clock. `n` is the run's children of that epic and not the epic's own count, because
+# the report reads the state and git and never the tracker, and a figure no child reported prints `-` with its reason
+# rather than the zero a sum of nothing would read as (the rule every unreported figure in this report keeps).
+case_report_theRunGroupsItsItemsByEpic() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p p2 d f out line bare
+  p=$(new_project); p2=$(new_project); d=$(scratch)
+  # Two children that each spent 2.5 Mtok: the epic's figure is their sum, which is the number a reader had to take
+  # by hand out of six rows before this line existed.
+  cat > "$d/spend.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":2500000,"output":0,"cacheRead":0,"cacheWrite":0},"durationMs":1000,"content":[]}}
+JSONL
+  init_state "$p" 4 90
+  printf '[{"issue":21,"class":"bug","parent":906,"verdict":"eligible","rank":1},{"issue":22,"class":"bug","parent":906,"verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","parent":907,"verdict":"eligible","rank":4}]' |
+    run_state "$p" queue >/dev/null || fail "the queue was refused"
+  f=$(state_file "$p")
+  run_state "$p" done 21 --result done --verdict closed --wall 1500 --events "$d/spend.jsonl" >/dev/null ||
+    fail "the first child was not recorded"
+  run_state "$p" done 22 --result blocked --verdict blocked --wall 31 --stop-reason refused --events "$d/spend.jsonl" >/dev/null ||
+    fail "the second child was not recorded"
+  run_state "$p" done 23 --result skipped --verdict skipped --wall 20 >/dev/null ||
+    fail "the item in no epic was not recorded"
+  run_state "$p" done 24 --result skipped --verdict skipped >/dev/null ||
+    fail "the other epic's child was not recorded"
+  assert_eq "906" "$(jq -r '.items[] | select(.issue == 21) | .parent' "$f")" "the record carries the epic"
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(printf '%s\n' "$out" | sed -n '/^by epic:/p')
+  [ -n "$line" ] || fail "the report printed no epic line"
+  assert_contains "$line" "epic #906: 1 of 2 children closed" \
+    "the epic's children the run worked are counted with how many it closed"
+  assert_contains "$line" "5 Mtok" "their spend is summed, in the unit every other token figure is printed in"
+  assert_contains "$line" "25 m 31 s" "and their wall, in the clock the run's own bounds are read in"
+  assert_contains "$line" "epic #907: 0 of 1 child closed · - tokens (no child reported them) · - wall (no child recorded one)" \
+    "a figure no child reported is a dash with its reason, never a zero, and an epic of one child is not 'children'"
+  assert_contains "$line" "1 item(s) in no epic" "an item outside every epic is named, so the groups and the table agree"
+  case "$line" in
+    *"epic #906"*"epic #907"*) ;;
+    *) fail "the epics are printed in one order, the one the record's own ids give: $line" ;;
+  esac
+  assert_not_contains "$line" "#23" "an item in no epic is counted, not grouped"
+  # A run whose items belong to no epic says so rather than printing an empty line: the state a run of top-level
+  # items writes carries `parent: null` on every record, which is not an epic of its own.
+  init_state "$p2" 1 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p2" queue >/dev/null ||
+    fail "the second project's queue was refused"
+  run_state "$p2" done 31 --result done --verdict closed --wall 42 >/dev/null || fail "the top-level item was not recorded"
+  bare=$(run_report "$p2" | sed -n '/^by epic:/p')
+  assert_contains "$bare" "by epic: none — no item of this run recorded an epic" \
+    "a run of items in no epic prints none, not a group of nulls"
 }
 
 # ----------------------------------------------------------------------------- cases: the leftovers

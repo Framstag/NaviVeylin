@@ -450,7 +450,10 @@ cmd_queue() {
   local queue excluded kept
   # What an exclusion of this run already carries, so a second pre-screen does not erase the run's own record.
   kept=$(jq -c '[.excluded[] | select(has("mechanism")) | {issue, mechanism, adoptionRefusal}]' "$STATE_FILE" 2>/dev/null || printf '[]')
-  queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates, pinned}]')
+  # The epic an item belongs to is written beside its class and never read back from the tracker (issue #920): the
+  # report groups a run's items by it, and the report reads the state alone. `parent` is the screen's own field, so a
+  # record written before it existed, or a tracker whose items carry no parent, keeps `null` here.
+  queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates, pinned, parent}]')
   # The exclusion carries the one clause of evidence that produced it (the branch a previous attempt left
   # behind, or the label that states why): the run escalates the decisions among the exclusions, and it cannot
   # cite evidence it threw away here. What the run itself decided about an exclusion before a re-screen arrives
@@ -459,7 +462,7 @@ cmd_queue() {
   # escalate on its second reading what it recorded as work on its first.
   excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" --argjson kept "${kept:-[]}" '[
     .[] | select((.verdict // $queued) != $queued)
-    | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}
+    | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false), parent}
     | . as $e | ($kept | map(select(.issue == $e.issue)) | .[0] // {}) as $d
     | $e + (if ($d | has("mechanism")) then {mechanism: $d.mechanism, adoptionRefusal: ($d.adoptionRefusal // "")} else {} end)]')
   # An item this run has already recorded is never queued again: the pre-screen reads the tracker, and a
@@ -906,7 +909,7 @@ cmd_done() {
     leftover_files=$(grep -c '^+++ ' "$leftover" 2>/dev/null)
     case "$leftover_files" in ''|*[!0-9]*) leftover_files="" ;; esac
   fi
-  local class usage
+  local class parent usage
   # The resume the start found (issue #754): the patch a bound-ended child left, and whether it applied. `done` is where
   # it joins the item's note, because the start runs before the run knows which arm will record the item and every one of
   # those arms writes its own prose. The sentence is prepended, so a note that already names the arm keeps its own words
@@ -918,6 +921,13 @@ cmd_done() {
     | if $n == 0 then (.detail // "") else "" end' "$STATE_FILE" 2>/dev/null || true)
   [ -z "${resume_note:-}" ] || note="${resume_note}${note:+ · $note}"
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
+  # The epic the item belongs to is read where its class is read and from the same record (issue #920): the screen
+  # wrote the tracker's parent link beside the class, so an item is in the queue while it is still eligible and in the
+  # exclusions when the tracker moved underneath it. A state written before the field existed, an item the screen read
+  # with no parent, and a value that is not a number all record `null` — which is what the report reads as "this item
+  # belongs to no epic of this run" rather than as an epic of its own.
+  parent=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].parent // "") | tostring' "$STATE_FILE" 2>/dev/null || true)
+  case "$parent" in ''|*[!0-9]*) parent="" ;; esac
   # The refused landing as one value (issue #883): `null` when there is none, so a state whose item was never refused
   # carries the field as null and a state written before it existed carries no key at all — the same two shapes the
   # report tells apart for `gateWaived`, `gateAttribution` and `streamRotation`.
@@ -941,6 +951,7 @@ cmd_done() {
     .items = (
       if ([.items[] | select(.issue == $i)] | length) == 0 then
         .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change,
+                  parent:(if $p == "" then null else ($p | tonumber) end),
                   note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
                   leftoverFiles:(if $lof == "" then null else ($lof | tonumber) end),
                   stopReason:(if $sr == "" then null else $sr end),
@@ -983,6 +994,7 @@ cmd_done() {
     | (if $mb == "" then . else .excluded = [.excluded[] | select(.issue != $i)] end)
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
+    --arg p "$parent" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" --arg lof "$leftover_files" \
     --arg bk "$bound_key" --arg bv "$bound_value" \

@@ -269,7 +269,7 @@ while [ "$scan_index" -lt "$count" ]; do
     record=$(jq -n --argjson issue "$number" --arg verdict "$unreadable_verdict" \
       --arg reason "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" '
       {issue:$issue, title:"", class:"", category:"", status:"", author:"", verdict:$verdict, reason:$reason,
-       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false, pinned:false,
+       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false, pinned:false, parent:null,
        gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
     records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
     continue
@@ -294,6 +294,12 @@ while [ "$scan_index" -lt "$count" ]; do
   # tier: a container is a real item that is never *work*. `// ""` keeps a tracker without types, and a fixture
   # written before this field, reading exactly as before.
   issue_type=$(printf '%s' "$issue" | jq -r '.issueType.name // ""')
+  # The epic this item belongs to (issue #920): the tracker's own parent link, recorded here because a run's record
+  # named the item's class, its change and its spend and never what those were part of — a run that worked six
+  # children of one epic could not say so. It costs no second read: `loop_issue_json` (`lib.sh`) already asks for
+  # `parent` beside `issueType`, so this is a field of the answer the screen holds. `// ""` keeps a tracker without
+  # sub-issues and a fixture written before the field reading exactly as before.
+  parent=$(printf '%s' "$issue" | jq -r '.parent.number // ""')
 
   verdict="$queued_verdict"
   reason=""
@@ -593,12 +599,13 @@ the item is left open and no child was started: shape $changes_family/${named_ch
   record=$(jq -n --argjson issue "$number" --arg title "$title" --arg class "$class" \
     --arg category "$category" --arg status "$status" --arg author "$author" \
     --arg verdict "$verdict" --arg reason "$reason" --arg evidence "$evidence" \
-    --arg absent "$absent_citation" \
+    --arg absent "$absent_citation" --arg parent "$parent" \
     --argjson escalated "$([ "$already_escalated" -eq 1 ] && printf true || printf false)" \
     --argjson pinned "$([ "$pinned" -eq 1 ] && printf true || printf false)" '
     {issue:$issue, title:$title, class:$class, category:$category, status:$status, author:$author,
      verdict:$verdict, reason:$reason, evidence:$evidence, absentCitation:$absent, rank:null, alreadyEscalated:$escalated,
      pinned:$pinned,
+     parent:(if $parent == "" then null else ($parent | tonumber) end),
      gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done

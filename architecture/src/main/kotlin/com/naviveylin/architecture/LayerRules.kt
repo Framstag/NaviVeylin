@@ -1,9 +1,10 @@
 package com.naviveylin.architecture
 
 /**
- * The layer rules over what a `concept` and a `port` package may import (change
- * `package-structure-as-five-kinds`, task 1.5; spec `package-structure` — "concept is self-contained" and
- * "port holds abstraction only").
+ * The layer rules over what a `concept`, a `port` and a `feature` package may import (change
+ * `package-structure-as-five-kinds`, task 1.5, and change `package-structure-rules-and-suite`, task 1.6; spec
+ * `package-structure` — "concept is self-contained", "port holds abstraction only", "features are mutually
+ * disjunct" and "a feature is Android-free").
  *
  * A rule states the file, the import, the file's declared kind and the rule it contradicts, so a red run is a
  * finding a reader can act on without the check's help. Every rule is evaluated from the declaration and the
@@ -17,6 +18,9 @@ object LayerRules {
         StructureRule.CONCEPT_IMPORTS_NO_ANDROID_TYPE,
         StructureRule.PORT_IMPORTS_NO_ANDROID_TYPE,
         StructureRule.PORT_IMPORTS_ONLY_CONCEPT,
+        StructureRule.FEATURE_IMPORTS_ANOTHER_FEATURE,
+        StructureRule.FEATURE_IMPORTS_NO_ANDROID_TYPE,
+        StructureRule.FEATURE_IMPORTS_NOTHING_UPWARD,
     )
 
     private const val OURS = "com.naviveylin."
@@ -27,6 +31,7 @@ object LayerRules {
             when (declaration.kindOf(file.packageName)) {
                 CONCEPT -> conceptFindings(file)
                 PORT -> portFindings(declaration, file)
+                FEATURE -> featureFindings(declaration, file)
                 else -> emptyList()
             }
         }
@@ -61,6 +66,40 @@ object LayerRules {
             violation(file, PORT, rule, name)
         }
 
+    /**
+     * `feature/<name>` is a unit: it imports `concept` and `port`, never another feature, never upward into
+     * `platform` or `shell`, and no Android type. Two features communicate through `shell`, which is the only
+     * kind that knows several of them at once.
+     */
+    private fun featureFindings(declaration: StructureDeclaration, file: SourceFile): List<StructureViolation> =
+        file.imports.mapNotNull { name ->
+            val rule = when {
+                isAndroid(name) -> StructureRule.FEATURE_IMPORTS_NO_ANDROID_TYPE
+                !name.startsWith(OURS) -> null
+                else -> {
+                    val owner = rowOwning(declaration, name)
+                    when {
+                        owner == null || owner.packageName == file.packageName -> null
+                        owner.kind == FEATURE -> StructureRule.FEATURE_IMPORTS_ANOTHER_FEATURE
+                        owner.kind == PLATFORM || owner.kind == SHELL ->
+                            StructureRule.FEATURE_IMPORTS_NOTHING_UPWARD
+                        else -> null
+                    }
+                }
+            } ?: return@mapNotNull null
+            violation(file, FEATURE, rule, name)
+        }
+
+    /**
+     * The declaration row an imported symbol belongs to: the row whose package name is the longest one the
+     * import names, so `com.naviveylin.R` resolves to the `shell` row of `com.naviveylin` and a symbol of a
+     * nested class to the row of the package that holds it.
+     */
+    private fun rowOwning(declaration: StructureDeclaration, import: String): DeclarationRow? =
+        declaration.rows
+            .filter { import == it.packageName || import.startsWith(it.packageName + ".") }
+            .maxByOrNull { it.packageName.length }
+
     private fun violation(file: SourceFile, kind: String, rule: StructureRule, import: String): StructureViolation =
         StructureViolation(
             rule = rule,
@@ -76,4 +115,7 @@ object LayerRules {
 
     private const val CONCEPT = "concept"
     private const val PORT = "port"
+    private const val FEATURE = "feature"
+    private const val PLATFORM = "platform"
+    private const val SHELL = "shell"
 }

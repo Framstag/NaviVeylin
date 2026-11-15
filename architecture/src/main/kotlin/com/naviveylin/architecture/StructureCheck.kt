@@ -42,6 +42,18 @@ enum class StructureRule(val id: String) {
      * abstraction only"). */
     PORT_IMPORTS_ONLY_CONCEPT("port imports only concept"),
 
+    /** A `feature/<name>` file importing another `feature/<other>` (spec `package-structure`, "features are
+     * mutually disjunct"). */
+    FEATURE_IMPORTS_ANOTHER_FEATURE("feature imports another feature"),
+
+    /** A `feature` file importing the Android framework (spec `package-structure`, "a feature is
+     * Android-free"). */
+    FEATURE_IMPORTS_NO_ANDROID_TYPE("feature imports no Android type"),
+
+    /** A `feature` file importing `platform` or `shell` (spec `package-structure`, "features are mutually
+     * disjunct": a feature reaches upward into neither — only `shell` knows several features at once). */
+    FEATURE_IMPORTS_NOTHING_UPWARD("feature imports nothing upward"),
+
     /** A baseline entry whose file no longer violates the rule it exempts (spec `architecture-test-suite`, "The
      * baseline is shrink-only"). */
     STALE_EXEMPTION("stale-exemption"),

@@ -26,8 +26,9 @@ class StructureReportTest {
         assertEquals("every declaration row must be read: ${report.summary()}", 27, report.rows)
         assertEquals("every main source file must be classified: ${report.summary()}", 338, report.files)
         assertEquals(
-            "the day-one baseline's 14 entries must be counted as outstanding exemptions: ${report.summary()}",
-            14,
+            "the day-one baseline's 14 entries and the feature rules' 23 must be counted as outstanding " +
+                "exemptions: ${report.summary()}",
+            37,
             report.exemptions,
         )
         assertEquals(
@@ -37,7 +38,7 @@ class StructureReportTest {
         )
         assertTrue(
             "the green run must state its four figures: ${report.summary()}",
-            report.summary().contains("rows=27 files=338 exemptions=14 rules=4"),
+            report.summary().contains("rows=27 files=338 exemptions=37 rules=7"),
         )
     }
 

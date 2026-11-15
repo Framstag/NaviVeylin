@@ -1,0 +1,12 @@
+# #925 — the gate verdict, and what the tree does and does not hold
+
+No gate tally is recorded for this item: it landed from an analysis session, and the run states in the main
+worktree name no item 925 (`grep -ho '"issue": *92[345]' /home/tim/projects/NaviVeylin/.pi/issue-loop/runs/*.json`
+exits with no output over 158 states). `git log -1 --format=%B 36ed407b` carries the message's evidence paragraph —
+2 167 of 2 987 reads (72.5 %) being a second read on the run behind the issue — its three cases and its eleven
+mutation records, and no suite line: so no suite verdict exists to quote.
+
+The pins the tree holds are `925.1`–`925.11` in `tools/loop/tests/loop-mutations.sh`, whose comment block names what
+each falsifies: the arm that withholds, the counting line, the never-handed guard, the cited earlier result, the
+arm's name, the adapter's export, the fallback, the record read from, the anchor, the null-not-zero rule and the
+trend print.

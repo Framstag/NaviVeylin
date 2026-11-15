@@ -1,0 +1,23 @@
+# #923 — the gate verdict, and what the tree does and does not hold
+
+The three items this change covers landed from an analysis session, not from a loop run, so no run's tally names
+them. Established, in the main worktree:
+
+  $ grep -ho '"issue": *92[345]' /home/tim/projects/NaviVeylin/.pi/issue-loop/runs/*.json | sort | uniq -c
+  (no output — 158 recorded states, none names item 923, 924 or 925)
+
+What the tree does hold is the commit's own suite line, quoted verbatim from `git log -1 --format=%B cdf0648c`:
+
+  Suite: 442 of 444 cases pass. The two reds are `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem`
+  (green when run alone; its 300-tick guard trips under the host's parallel suites) and
+  `phase#oneCallPrintsThePhaseState` (red on the base tree as well — its 4000-character headroom
+  was already short before this diff).
+
+and, in the same message, the sentence this change answers:
+
+  Not done:
+  - the archive was not re-totalled, and no OpenSpec change accompanies this diff.
+
+The two reds are named by that message as one green-alone case and one red-on-base case; this change neither fixes
+them nor claims them. Asserting the suite is green here is beyond what the tree records, so this file states the
+figure the commit reported and no verdict of its own.

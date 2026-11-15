@@ -61,8 +61,11 @@ A capability id that an open change's delta specs introduce SHALL be classified 
 run SHALL read those delta specs from `openspec/changes/<change>/specs/<capability>/spec.md`, SHALL NOT read the
 delta specs of a change under `openspec/changes/archive/`, SHALL report an id they name that the classification does
 not name together with the open change that owes the line, SHALL make the run fail, and SHALL produce no regenerated
-document. A classification entry for such an id SHALL be reported as stale until the capability ships, and SHALL NOT
-by itself produce an error.
+document. A classification entry for such an id SHALL be reported as `pending` — classified ahead of its archive, an
+entry for work the archiving move publishes rather than for something gone — and SHALL NOT by itself produce an error.
+A classification entry naming an id the tree no longer holds SHALL be reported as `stale`, which is an entry of its
+own, and SHALL NOT by itself produce an error either. The run SHALL print the two figures apart, so that an entry for a
+capability on its way cannot be read as an entry for one that has left.
 
 #### Scenario: A new spec id fails the run
 
@@ -88,8 +91,29 @@ by itself produce an error.
 
 - **WHEN** an open change introduces a capability that the classification names, and no shipped spec id is
   unclassified
-- **THEN** the run proceeds, reports nothing unclassified, and reports that entry as stale without failing on it
-- **Case**: `gate: a classified delta passes before it ships`
+- **THEN** the run proceeds, reports nothing unclassified, and reports that entry as pending — classified ahead of its
+  archive — without failing on it
+- **Case**: `gate: a classified delta passes before it ships`, `gate: a delta-only classification is reported as
+  pending, not as stale`
+
+#### Scenario: An entry that is pending is not reported as stale
+
+- **WHEN** the classification names a capability id an open change's delta introduces, and that change has not been
+  archived
+- **THEN** the run counts the id in its pending figure and prints no stale figure for it — `stale: 0` where nothing
+  else has left the tree — and names it in its report as classified ahead of its archive, never as a stale entry
+- **Case**: `gate: a delta-only classification is not a stale entry`, `gate: the pending entry is named as one`,
+  `gate: a pending entry is not reported as stale`
+
+#### Scenario: The two figures are printed apart
+
+- **WHEN** the run's classification check prints what it read
+- **THEN** it prints `stale: <n>` for the entries whose spec id tree no longer holds and
+  `pending (classified ahead of its archive): <n>` for the open changes' deltas, each on a line of its own, and its
+  report names the pending id with the sentence `classified ahead of its archive` and the stale one as a `stale
+  classification entry`
+- **Case**: `gate: a stale entry is reported`, `gate: the stale entry is named`, `gate: the pending entry is named as
+  one`
 
 #### Scenario: An archived change is history
 

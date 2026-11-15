@@ -1,0 +1,33 @@
+$ openspec validate fix-a-base-red-step-is-subtracted-and-named --strict
+Change 'fix-a-base-red-step-is-subtracted-and-named' is valid
+exit: 0
+
+$ openspec validate fix-the-archive-classes-are-derived-and-pending-is-not-stale --strict
+Change 'fix-the-archive-classes-are-derived-and-pending-is-not-stale' is valid
+exit: 0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/os-c
+  OpenSpec root: ok
+
+References
+  (none declared)
+exit: 0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 341 section references resolve, all 7 skill references resolve
+exit: 0
+
+# the two structural checks the change directories themselves are held by
+$ bash tools/check-change-readiness.sh --all
+LOOP-CHANGE-READY: ok fix-a-base-red-step-is-subtracted-and-named
+LOOP-CHANGE-READY: ok fix-the-archive-classes-are-derived-and-pending-is-not-stale
+exit: 0
+
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 2 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit: 0

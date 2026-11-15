@@ -1,0 +1,25 @@
+The case on the tree before the change, and the two assertions it fails
+=====================================================================
+
+The engine delta (`tools/loop/run.sh`) was stashed so the cases ran against base `07694555`; the test delta stayed in
+the tree.
+
+    $ git stash push -- tools/loop/run.sh
+    $ tools/loop/tests/loop-selftest.sh --case 'run#aReviewRoundBoundIsTheItemsStopClass' --jobs 1
+
+    run#aReviewRoundBoundIsTheItemsStopClass|   and carries the class a bound leaves on the item, whichever phase of it the run ended: expected 'bound', got 'null'
+    --- run#aReviewRoundBoundIsTheItemsStopClass[0] (exit 1)
+    FAIL run#aReviewRoundBoundIsTheItemsStopClass
+    loop-selftest: 1 of 1 cases failed
+
+    $ tools/loop/tests/loop-selftest.sh --case 'run#aPreGateReviewEndedAtItsBoundNamesIt' --jobs 1
+
+    run#aPreGateReviewEndedAtItsBoundNamesIt|   and the class a bound leaves on the item, before the gate as much as after it (issue #898): expected 'bound', got 'null'
+    --- run#aPreGateReviewEndedAtItsBoundNamesIt[0] (exit 1)
+    FAIL run#aPreGateReviewEndedAtItsBoundNamesIt
+    loop-selftest: 1 of 1 cases failed
+
+    $ git stash pop
+
+Each red is the missing class and nothing else: the run itself exited 0 in both cases, the item was recorded `cut`,
+and the round's own field was written — the state #898 and #883 were filed with.

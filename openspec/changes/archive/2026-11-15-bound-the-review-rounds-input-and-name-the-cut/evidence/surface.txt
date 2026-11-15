@@ -1,0 +1,18 @@
+change #924 (bound-the-review-rounds-input-and-name-the-cut), landed as 290c3d8c
+
+Every line below is the commit's own diffstat at 929b9e8f; the tree already carries all of it — the delta describes it, and no line of the change's own diff is code.
+
+commit 290c3d8cf21f67544425d4bf7765667c0f21fcf7
+loop: bound what the reviewer round is handed (#924)
+2026-11-15 09:53:00 +0100
+
+ guidelines/Backlog.recipes.md      |  19 ++++
+ tools/loop/loop.conf               |  24 +++++
+ tools/loop/prompts/reviewer.md     |   2 +-
+ tools/loop/report.sh               |   5 +
+ tools/loop/run.sh                  | 209 +++++++++++++++++++++++++++++++++++--
+ tools/loop/shared.tsv              |   2 +
+ tools/loop/state.sh                |  14 ++-
+ tools/loop/tests/loop-cases.sh     |  83 +++++++++++++++
+ tools/loop/tests/loop-mutations.sh |  10 ++
+ 9 files changed, 355 insertions(+), 13 deletions(-)

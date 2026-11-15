@@ -1,0 +1,42 @@
+# #923 — what pins the behaviour, and what it stands in front of
+
+Two cases and two mutation records. A mutation record names the expression it applies, the file, the case that must
+go red under it, and what the record's own sentence says it falsifies. `bash tools/loop/tests/loop-mutations.sh --check`
+confirms an expression applies; `--run` applies it and expects the named case red.
+
+## the cases
+
+  registration   tools/loop/tests/loop-cases.sh:237   'run#aBoundEndedItemRecordsItsBound'
+  registration   tools/loop/tests/loop-cases.sh:238   'run#aRoundTheRunEndedRecordsItsBound'
+  dispatch       tools/loop/tests/loop-cases.sh:982   'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
+  dispatch       tools/loop/tests/loop-cases.sh:983   'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
+  function       tools/loop/tests/loop-cases.sh:7672  case_run_aBoundEndedItemRecordsItsBound() {
+  function       tools/loop/tests/loop-cases.sh:7738  case_run_aRoundTheRunEndedRecordsItsBound() {
+
+The first case sets `LOOP_CHILD_TURNS_MAX_WORKER=3` against a worker fixture that emits three `turn_end` lines, runs
+one item with `--minutes 90`, and reads the item's `result=cut`, `stopReason=bound`, `boundKey`/`boundValue`, the
+state cell and the report line. The second sets `LOOP_CHILD_MAX_SECONDS=3600` and `LOOP_CHILD_TURNS_MAX_REVIEWER=3`
+against a reviewer that writes its fixture and then blocks on a FIFO, and reads `result=cut` beside
+`metrics.roundBound`.
+
+## the mutation records, read from tools/loop/tests/loop-mutations.sh:1165 and :1166
+
+  923.1
+  expression: s|^\( *\)bound_key=.*$|\1bound_key=""
+  file:       tools/loop/run.sh
+  case:       run#aBoundEndedItemRecordsItsBound
+  falsifies:  the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)
+
+  923.2
+  expression: s|^\( *\)round_bound_key=.*$|\1round_bound_key=""
+  file:       tools/loop/run.sh
+  case:       run#aRoundTheRunEndedRecordsItsBound
+  falsifies:  the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)
+
+## the third arm this change states, which no mutation record pins
+
+`spec.md`'s new scenario "A record written before the two fields is read by the bound its note names" describes a
+derivation inside `bound_class_jq` (`tools/loop/lib.sh:326`), which reads a stopped item's own note back to the key
+it names. No case asserts it: `run#aBoundEndedItemRecordsItsBound` writes the fields rather than reading a record that
+predates them, so the derivation is pinned by nothing, and the commit `cdf0648c` records that in its own message
+("No case pins that path yet"). This file names the hole rather than claiming a pin.

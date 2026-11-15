@@ -1,0 +1,48 @@
+The archive's cut records, read in the project tree (read-only), 2026-11-15
+==========================================================================
+
+    $ ls .pi/issue-loop/runs/ | wc -l
+    169
+
+    $ jq -s '
+        [ .[] | .items[]? ] as $it
+        | { items: ($it|length),
+            cut: ([$it[]|select(.result=="cut")]|length),
+            cut_null_stop: ([$it[]|select(.result=="cut" and ((.stopReason//"")==""))]|length),
+            cut_null_stop_round: ([$it[]|select(.result=="cut" and ((.stopReason//"")=="") and (.metrics.roundBound!=null))]|length),
+            cut_null_stop_reviewer: ([$it[]|select(.result=="cut" and ((.stopReason//"")=="") and (((.metrics.reviewVerdict//"")|test("cut-short|deadline")) or ((.note//"")|test("reviewer"))))]|length),
+            cut_bound: ([$it[]|select(.result=="cut" and ((.stopReason//"")=="bound"))]|length),
+            blocked_bound: ([$it[]|select(.result=="blocked" and ((.stopReason//"")=="bound"))]|length) }' \
+      .pi/issue-loop/runs/*.json
+
+    {
+      "items": 511,
+      "cut": 39,
+      "cut_null_stop": 15,
+      "cut_null_stop_round": 0,
+      "cut_null_stop_reviewer": 15,
+      "cut_bound": 24,
+      "blocked_bound": 6
+    }
+
+The fifteen, read one by one (`jq -r '.items[]? | select(.result=="cut" and ((.stopReason//"")=="")) | …'`), each
+names a review round the run ended:
+
+    #787  cut-short  the run ended the reviewer of round 2 at its role's turn bound — …
+    #782  cut-short  the run ended the pre-gate reviewer at its role's turn bound — …
+    #790  cut-short  the run ended the pre-gate reviewer at one of its spend bounds — …
+    #788  cut-short  the run ended the pre-gate reviewer at one of its spend bounds — …
+    #753  cut-short  the run ended the reviewer of round 1 at one of its spend bounds — …
+    #819  cut-short  the run ended the reviewer of round 1 at one of its spend bounds — …
+    #722  cut-short  the run ended the reviewer of round 1 at one of its spend bounds — …
+    #835  cut-short  the run ended the reviewer of round 2 at one of its spend bounds — …
+    #829  cut-short  the run ended the reviewer of round 1 at one of its spend bounds — …
+    #857  cut-short  the run continued the item in the run that cut it — … · the run ended the pre-gate reviewer …
+    #791  cut-short  the run continued the item in the run that cut it — … · the run ended the pre-gate reviewer …
+    #857  cut-short  (the same item, an earlier run's record)
+    #791  cut-short  (the same item, an earlier run's record)
+    #875  cut-short  the run continued the item in the run that reached its context checkpoint — … · the run ended …
+    #861  cut-short  the run continued the item in the run that reached its context checkpoint — … · the run ended …
+
+`metrics.roundBound` is `0` across the archive: the field was added by issue #923 and no run has written one since,
+so the round's own record answers for none of these and the item's record answers for all of them.

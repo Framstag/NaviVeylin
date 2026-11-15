@@ -2964,14 +2964,16 @@ while true; do
   # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
   # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
   empty_tree_reading=""
-  # The bound a **review round** the run ended hit, as the round's own fact and never as the item's stop class (issue
-  # #923). The spec keeps the item's class off a round (`worker`, the gate child, the tail and the rework worker are the
-  # four phases it names bare `bound` for), and the round's ending went nowhere at all: #898 was ended by the reviewer's
-  # turn bound at 110 turns and #883 by the item's context bound in the reviewer phase, and both read `cut` with an
-  # empty `stop` cell — a reader could not tell which bound fired, or that a bound fired at all, without the child's
-  # transcript. The key and the figure are read from the round's own `LOOP-TIMEOUT` line, by the same reader the item's
-  # class uses, so a round ended by the run's deadline (no key: the deadline is a clock, not a value in `loop.conf`)
-  # records no figure and keeps the verdict it already carried.
+  # The bound a **review round** the run ended hit: the round's own fact — its number, its key and the figure — and,
+  # beside it, the item's stop class (issues #923, #898). #923 recorded the round here and left the class off the item,
+  # which is what the spec then asked for, and the two runs it was filed from read `cut` with an empty `stop` cell: #898
+  # was ended by the reviewer's turn bound at 110 turns and #883 by the item's context bound in the reviewer phase, so a
+  # reader could not tell which bound fired, or that a bound fired at all, without the child's transcript. A bound the
+  # run enforces is the run's whichever phase it ended, so the class and its key reach the item's record through the
+  # same path the item's own child uses (`stop_reason`, `bound_key`), and the round keeps its own field beside them.
+  # The key and the figure are read from the round's own `LOOP-TIMEOUT` line, by the same reader the item's class uses,
+  # so a round ended by the run's deadline (no key: the deadline is a clock, not a value in `loop.conf`) records the
+  # class and no figure and keeps the verdict it already carried.
   round_bound_round=""
   round_bound_key=""
   round_bound_value=""
@@ -3461,13 +3463,12 @@ while true; do
   # The pre-gate round comes first because it stopped the item before any gate ran (issue #758): its reason names the
   # round, and an item it ended has no gate result for the arms below to read.
   if [ -n "$pre_gate_refusal" ]; then
-    # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and the class
-    # stays off it — the spec names `bound` on the worker's, the gate child's, the tail's and the rework worker's
-    # results, not on a review round's. Writing a class here would refuse the cut's own state write and leave the item
-    # at whatever it was last written as (issue #865). The round's own ending is not lost to that silence: a bound the
-    # transcript names is recorded as the round's own fact, and counted apart from the item's class (issue #923).
+    # A round the run's own bound ended is not a refusal (issue #790): the item is recorded `cut` below, and it carries
+    # `bound`, the class a bound leaves on the item whichever phase of it the run ended (issue #898). The class is what
+    # the state write below reads, so the round's ending reaches the record through the same field the item's own
+    # child's does, and the round's own field carries the round, its key and its figure beside it (issue #923).
     if [ "$pre_gate_cut" -eq 1 ]; then
-      outcome="blocked"; blocked_reason="$pre_gate_refusal"
+      outcome="blocked"; blocked_reason="$pre_gate_refusal"; stop_reason="bound"
     else
       block refused "$pre_gate_refusal"
     fi
@@ -3525,7 +3526,8 @@ while true; do
   # a bound ended, and no figure for any of them. The key and the figure are read from the same `LOOP-TIMEOUT` line the
   # reason quotes, and an item whose clock, the run's deadline or a vanished writer ended it gets neither: none of the
   # three is a value `loop.conf` records, and a figure guessed from the value it usually sits beside would read as a
-  # measurement. A review round is not read here at all — its ending is `round_bound_*` above.
+  # measurement. A round the run ended before the gate is read here like any other cut — its reason quotes the bound's
+  # own line — and one it ends after the gate is read below, where the round's fields are known (issue #898).
   bound_key=""
   bound_value=""
   if [ "$stop_reason" = bound ]; then
@@ -3679,6 +3681,9 @@ while true; do
         deadline_claim="$reviewer_deadline"
         review_verdict="deadline"
         outcome="cut"
+        # The run's own deadline is a bound it enforces, so the item carries the class a bound leaves on it — and no
+        # key, because a clock is not a value `loop.conf` records (issue #898).
+        stop_reason="bound"
         record_cut_round "$round"
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
@@ -3696,10 +3701,14 @@ while true; do
       if [ -n "$reviewer_timeout_line" ]; then
         review_verdict="cut-short"
         outcome="cut"
+        # The round the run ended is the item's own cut, with the class the bound leaves on it (issue #898): `bound`
+        # reaches the record through the field a child's ending does, and the key is read from the round's fields below
+        # — this write is the class, that one is the figure.
+        stop_reason="bound"
         record_cut_round "$round"
         blocked_reason="the run ended the reviewer of round $round at one of its spend bounds — $reviewer_timeout_line — the round was cut, not refused, so the change is left for the next run"
-        # The round's own ending, recorded where a reader can count it (issue #923): the item carries no class for a
-        # round, so the bound travels in the round's own field — its number, its key and the figure it reached.
+        # The round's own ending, recorded where a reader can count it (issue #923): beside the class the item now
+        # carries, the bound travels in the round's own field — its number, its key and the figure it reached.
         round_bound_round="$round"
         round_bound_line=$(bound_key_value "$reviewer_timeout_line")
         round_bound_key="${round_bound_line%% *}"
@@ -3893,6 +3902,15 @@ while true; do
   # a "positive duration" that rounds to zero would make the metric unassertable (D11).
   wall_ms=$(( $(date +%s%3N) - started ))
   wall="$((wall_ms / 1000)).$(printf '%03d' $((wall_ms % 1000)))"
+  # A bound that ended a review round after the gate is the item's own class, and its key travels beside it (issue
+  # #898): those rounds run after the block above, where the class and its key are derived, so the round's own fields
+  # are read here for the two the record keeps. A round the run's deadline ended carries no key — a clock is not a
+  # value `loop.conf` records — and keeps the class alone, as the item's own child does.
+  if [ "$outcome" = cut ] && [ "$stop_reason" = bound ] && [ -z "$bound_key" ] && [ -n "$round_bound_key" ]; then
+    bound_key="$round_bound_key"
+    bound_value="$round_bound_value"
+    bound_args+=(--bound-key "$bound_key" --bound-value "$bound_value")
+  fi
   closure="no"
   case "$outcome" in
     closed)

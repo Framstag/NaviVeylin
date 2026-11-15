@@ -1164,6 +1164,15 @@ MUTATIONS=(
   # (`boundKey`/`boundValue`) and the round's (`metrics.roundBound`), which never becomes the item's class.
   '923.1@-@tools/loop/run.sh@run#aBoundEndedItemRecordsItsBound@the key a bound-ended item is cut at, read from the child’s own LOOP-TIMEOUT line, so the item records the class `bound` and no figure for what it spent and the archive can be totalled by the class alone (issue #923)@s|^\( *\)bound_key=.*$|\1bound_key=""|'
   '923.2@-@tools/loop/run.sh@run#aRoundTheRunEndedRecordsItsBound@the round’s own ending, so a review round the run ended at its bound is `cut-short` with no record of the round, the key or the figure — the state `#898` and `#883` were filed with (issue #923)@s|^\( *\)round_bound_key=.*$|\1round_bound_key=""|'
+  # 898.x — a bound that ended a review round is the item's class, not only the round's (issues #898, #883). Both runs
+  # read `cut` with an empty `stop` cell: #898 was ended by the reviewer's turn bound at 110 turns and #883 by the
+  # item's context bound inside the reviewer phase, so a reader needed the child's transcript to tell a bound that
+  # ended the item from an arm that recorded nothing. The class is written where the round is ended, before and after
+  # the gate (`898.1`, `898.2`), and the key the item carries is the round's own (`898.3`), read from the round's
+  # `LOOP-TIMEOUT` line by the same reader the item's own child's class uses.
+  '898.1@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the class the bound leaves on an item whose review round it ended, so the state is `cut` with `stopReason: null` however many rounds the bound threw away — the record #898 and #883 were filed with — while the round’s own field still names it (issue #898)@/^      if \[ -n "\$reviewer_timeout_line" \]; then$/,/^      fi$/s|^        stop_reason="bound"$|        stop_reason=""|'
+  '898.2@-@tools/loop/run.sh@run#aPreGateReviewEndedAtItsBoundNamesIt@the class the bound leaves on an item whose round before the gate it ended, so the round is named in the reason and recorded `blocked` then flipped to `cut` with no class at all (issue #898)@s|; stop_reason="bound"$||'
+  '898.3@-@tools/loop/run.sh@run#aReviewRoundBoundIsTheItemsStopClass@the key the item carries beside that class, read from the round’s own `LOOP-TIMEOUT` line, so an item a review bound ended names the bound but not the figure it spent and the archive cannot be totalled by it (issue #898)@s|^  if \[ "\$outcome" = cut \]|  if false && [ "$outcome" = cut ]|'
   # 272.x — the gate is the call that runs it, not every call that names it (issue #830). The report splits an item
   # at its first gate turn, and the engine read every word of a command as a possible program: the five items the
   # item was filed from split at `gate.sh --plan` — the call Phase D asks for first, before it runs anything — and

@@ -236,6 +236,7 @@ LOOP_SHELL_CASES=(
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
   'run#aBoundEndedItemRecordsItsBound'
   'run#aRoundTheRunEndedRecordsItsBound'
+  'run#aReviewRoundBoundIsTheItemsStopClass'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
@@ -975,6 +976,7 @@ loop_run_shell_case() {
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
     'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
     'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
+    'run#aReviewRoundBoundIsTheItemsStopClass') fn=case_run_aReviewRoundBoundIsTheItemsStopClass ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
@@ -7647,11 +7649,10 @@ EOF
   return 0
 }
 
-# The other half of the same figure, and the half the spec keeps off the item (issue #923): #898 was ended by the
-# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
-# `cut` with an empty `stop` cell — the round's ending survived only in the reason's prose, which no figure counts and
-# no reader can total. The round's own held (`metrics.roundBound`) names the round, the key and the figure, and the
-# item's `stopReason` stays null: the class is the item's, the round's ending is the round's.
+# The other half of the same figure (issue #923): the round's own held (`metrics.roundBound`) names the round, the key
+# and the figure, so a reader can count the rounds a bound ended without reading the reason's prose. The item's class
+# travels beside it and is owned by the case below (issue #898) — #898 was ended by the reviewer's turn bound at 110
+# turns and #883 by the item's context bound inside the reviewer phase, and both read `cut` with an empty `stop` cell.
 case_run_aRoundTheRunEndedRecordsItsBound() {
   # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo fixture action pid i status out state
@@ -7702,8 +7703,6 @@ EOF
   state=$(state_file "$p")
   assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
-  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
-    "and carries no class for the round: the spec keeps the item's class off a round the run ended"
   assert_eq "1" "$(jq -r '.items[0].metrics.roundBound.round // ""' "$state")" \
     "the round the run ended records itself under the round's own field"
   assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].metrics.roundBound.key // ""' "$state")" \
@@ -7711,10 +7710,79 @@ EOF
   assert_eq "3" "$(jq -r '.items[0].metrics.roundBound.value // ""' "$state")" "and the figure it reached"
   # The figure is counted apart from the item's class (issue #923): the archive's bound rate answers how many items the
   # run threw away, and this line answers how many rounds it paid for and could not read. Neither figure is folded
-  # into the other — the class the spec keeps off a round is exactly what this line must not need.
+  # into the other — the round's number is what the class cannot carry, and the class is what this line does not need.
   assert_contains "$out" "rounds a bound ended: 1 of 1 item(s) · #21 1 LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
     "the report counts the round the run ended at its bound, beside the class the item does not carry"
   assert_contains "$out" "bound: 1 of 1 items" "and the item's own bound rate counts the cut, as it did before"
+  return 0
+}
+
+# A bound a review round hit is the item's stop class, not only the round's (issue #898): #898 was ended by the
+# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
+# `cut` with an empty `stop` cell, so a reader could not tell a bound that ended the item from an arm that recorded
+# nothing without the child's transcript — the class the run writes for its own child's ending. The class and the key
+# are read by the same reader, from the round's own `LOOP-TIMEOUT` line, and the round keeps the round's own field
+# beside them (issue #923). On the tree before this change the item carries `stopReason: null`.
+case_run_aReviewRoundBoundIsTheItemsStopClass() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
+      -e 's/^LOOP_CHILD_TURNS_MAX_REVIEWER=.*/LOOP_CHILD_TURNS_MAX_REVIEWER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record the two bounds in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=3' "$conf" ||
+    fail "this case could not shorten the reviewer's turn bound in loop.conf"
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turn-reviewer.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  reviewer*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
+    "and carries the class a bound leaves on the item, whichever phase of it the run ended"
+  assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
+    "with the key the bound the round reached is recorded in"
+  assert_eq "3" "$(jq -r '.items[0].boundValue // ""' "$state")" "and the figure it reached"
+  assert_eq "1" "$(jq -r '.items[0].metrics.roundBound.round // ""' "$state")" \
+    "the round keeps its own field beside the class, not instead of it"
+  assert_contains "$(run_state "$p" report)" "bound LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
+    "the report's stop cell names the bound the round hit, so a reader needs no transcript to tell it"
+  assert_contains "$out" "bound: 1 of 1 items" "and the item's bound rate counts it as a bound rather than an arm"
   return 0
 }
 # it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
@@ -9398,6 +9466,10 @@ EOF
 
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
     "a round the run's own bound ended is cut, not blocked"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
+    "and the class a bound leaves on the item, before the gate as much as after it (issue #898)"
+  assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
+    "with the key the bound is recorded in, read from the line the reason quotes"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
     "and its record carries the cut, not a refusal no reviewer made"
   assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound of 3 turns" \

@@ -208,6 +208,7 @@ LOOP_SHELL_CASES=(
   'gate#runsUnderTheWorktreeEnvironment'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
+  'mutation#theFileSetLegScopesByTheCheapestFile'
   'measure#namesTheOwedChecksInOneBlock'
   'measure#printsTheNumbersTheReviewerAsksFor'
   'measure#refusesToGuessWhichChangeItMeasures'
@@ -959,6 +960,7 @@ loop_run_shell_case() {
     'gate#runsUnderTheWorktreeEnvironment') fn=case_gate_runsUnderTheWorktreeEnvironment ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
+    'mutation#theFileSetLegScopesByTheCheapestFile') fn=case_mutation_theFileSetLegScopesByTheCheapestFile ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
     'measure#printsTheNumbersTheReviewerAsksFor') fn=case_measure_printsTheNumbersTheReviewerAsksFor ;;
     'measure#refusesToGuessWhichChangeItMeasures') fn=case_measure_refusesToGuessWhichChangeItMeasures ;;
@@ -15910,6 +15912,33 @@ case_mutation_aStaleRecordIsNamed() {
     *"MUTATION-PATTERN-STALE $label"*"$file"*) ;;
     *) fail "the stale record's file should be named with it: $out" ;;
   esac
+  return 0
+}
+
+# The file-set leg costs what the file it scopes by owns, and #235's bound was pointed at the file the declaration
+# gives nearly all of: `tools/loop/state.sh` owns 39 of the 401 declared records and the harness runs each record
+# twice, so the leg spent its own `timeout 900` before the selection finished and reported a red step on every delta —
+# including one that touches nothing the leg reads (issue #934). The pick is held to the declaration here rather than
+# trusted, so a record that moves off the scoped file reds this case and names the file the leg is to be pointed at,
+# instead of rotting into a leg that spends its bound again.
+case_mutation_theFileSetLegScopesByTheCheapestFile() {
+  # files: tools/loop/tests/loop-mutations-selftest.sh tools/loop/tests/loop-mutations.sh
+  local selftest scoped counts cheapest scoped_count
+  selftest="$LOOP_ENGINE/tests/loop-mutations-selftest.sh"
+  scoped=$(sed -n 's/^scoped_file="\([^"]*\)"$/\1/p' "$selftest")
+  [ -n "$scoped" ] || fail "could not read the file-set leg's scoped file out of $selftest"
+  # The declaration, counted per file it names by the same `@`-separated fields the leg derives its own set from. Only
+  # a file that owns at least two is a candidate — a set of one is no set — and a tie goes to the path that sorts
+  # first, so the answer is the same on every run.
+  counts=$(sed -n '/^MUTATIONS=(/,/^)/p' "$LOOP_ENGINE/tests/loop-mutations.sh" |
+    awk -F'@' 'NF >= 6 && $3 != "" { c[$3]++ } END { for (f in c) if (c[f] >= 2) printf "%d %s\n", c[f], f }' |
+    sort -n -k1,1 -k2,2)
+  cheapest=$(printf '%s\n' "$counts" | head -1 | cut -d' ' -f2)
+  [ -n "$cheapest" ] || fail "could not read the declared set's per-file counts out of $LOOP_ENGINE/tests/loop-mutations.sh"
+  scoped_count=$(printf '%s\n' "$counts" | awk -v f="$scoped" '$2 == f { print $1 }')
+  [ -n "$scoped_count" ] || fail "the file-set leg scopes by $scoped, which the declared set gives no two records to — the cheapest file that owns at least two is $cheapest"
+  assert_eq "$cheapest" "$scoped" \
+    "the file-set leg scopes by the file the declaration gives fewest records to (at least two of them) — $scoped owns $scoped_count of them"
   return 0
 }
 

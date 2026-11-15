@@ -135,9 +135,13 @@ out=$(bash "$harness" --list 2>&1)
 check "the mutation set lists what it declares" "$declared" "$(printf '%s\n' "$out" | grep -c .)"
 
 # 7. a file set is the bound #235 asks for: the records whose file it names, the count against the declared
-# set, those records' REDs and a clean restore. The file is picked for what the *declared set* says it owns, so a
-# record that moves to another file moves the check with it instead of turning it red.
-scoped_file="tools/loop/state.sh"
+# set, those records' REDs and a clean restore. The file is the one the *declared set* gives the fewest records to
+# among the files that own at least two — a set of one is no set — because a file that owns most of the declaration
+# spends this leg's bound before the selection finishes: `tools/loop/state.sh`'s 39 of the 401 declared records ran the
+# leg past `timeout 900` and reddened the step on every delta, for a change that touched nothing it reads (issue #934).
+# `tools/loop/phase.sh` owns 2, and `mutation#theFileSetLegScopesByTheCheapestFile` holds this pick to the declaration,
+# so a record that moves off it names the file to point the leg at instead of leaving the constant to rot.
+scoped_file="tools/loop/phase.sh"
 owned=$(sed -n '/^MUTATIONS=(/,/^)/p' "$root/tools/loop/tests/loop-mutations.sh" |
   awk -F'@' -v f="$scoped_file" '$3 == f { print $1 }' | sed "s/^[[:space:]]*'//; s/'$//" | sort)
 owned_count=$(printf '%s\n' "$owned" | grep -c .)

@@ -1375,6 +1375,16 @@ MUTATIONS=(
   # again, the gate exits 1 and no `LOOP-GATE-BASERED` line names what was subtracted — the case's first half asserts
   # all three, so the record reds it for the right reason rather than for a line that moved.
   '921.1@-@tools/loop/gate.sh@gate#aBaseRedStepIsSubtractedAndNamed@the subtraction of the step-and-case pairs a base already red for, so a carrier the change never wrote goes back into the item tally, the gate exits red on it and no line names what left (issue #921)@s|^    elif \[ -n "$base_red_json" \] && base_red_had "$cmd"; then$|    elif false; then|'
+  # 934.1 — the file-set leg is worth what the file it scopes by owns (issue #934). The leg was pointed at
+  # `tools/loop/state.sh`, which owns 39 of the 401 declared records, and the harness runs each record twice, so the
+  # leg spent its own `timeout 900` before the selection finished and the step was red on every delta. The record
+  # points the leg back at that file, so the case that holds the pick to the declaration reds for the right reason
+  # rather than for a line that moved.
+  '934.1@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed back at the file that owns 39 of the declared records, so the leg spends its own bound proving a selection two records prove as well (issue #934)@s|^scoped_file="tools/loop/phase.sh"$|scoped_file="tools/loop/state.sh"|'
+  # 934.2 — the other arm: a pick the declaration gives one record to is a set of one, and the leg would report a file
+  # set it never proved. The case has to name that rather than read it as a set, so the file it scopes by is pointed at
+  # a file one record names — a green leg over a selection of one is the silent half of the same lie.
+  '934.2@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed at a file the declaration gives one record to, so the leg would run a set of one and the case names that instead of reading it as a set (issue #934)@s|^scoped_file="tools/loop/phase.sh"$|scoped_file="tools/loop/prompts/pre-gate-review.md"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

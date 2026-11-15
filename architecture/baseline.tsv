@@ -20,6 +20,23 @@
 # that the change is filed.
 # ManeuverSymbols.kt and CarSurfaceHost.kt are entries here and not declaration rows: a row addresses a
 # package, both sit in one (com.naviveylin.core), and declaring them `platform` would be a file move.
+# Measured 2026-11-15 by the feature rules of change `package-structure-rules-and-suite` (task 1.6): 23 entries
+# over 11 files — 11 for 'feature imports no Android type', 4 for 'feature imports another feature'
+# (NavigationEngine and NavigationViewModel → com.naviveylin.ui.route; RoutePanel and RoutePanelViewModel →
+# com.naviveylin.core.search, the ViewModel additionally → com.naviveylin.navigation), and 8 for 'feature
+# imports nothing upward' (NavGraph, VoiceGuidance, FavoritePickerDialog, RoutePanel, RoutePanelViewModel and
+# RouteSummary → shell; NavGraph, NavigationEngine, NavigationNotificationController, FavoritePickerDialog,
+# RoutePanel, RoutePanelViewModel and RouteSummary → platform). The `feature` packages are the six rows of
+# architecture/structure.tsv whose kind is feature — com.naviveylin.navigation, com.naviveylin.share,
+# com.naviveylin.ui.route and com.naviveylin.core.{details,mapsource,search} — and the 11 files are the ones
+# that violate at least one of the three rules today.
+# com.naviveylin.ui.navigation is a `platform` row, so its four Android importers are the platform kind holding
+# the UI half of the navigation feature and not feature impurity: the purity figure is 11 files, not the 15 the
+# tracker item measured before that distinction was drawn.
+# The owning change of these entries is the follow-up migration that moves each file into feature/<name> or
+# platform/<name> — the pilot lands one feature per change (design D8), and the name is reserved the way
+# `package-structure-concept-migration` above is: the entry is the ratchet's record, not a claim that the change
+# is filed.
 core/src/main/java/com/naviveylin/core/CarSurfaceHost.kt	concept imports no Android type	package-structure-concept-migration
 core/src/main/java/com/naviveylin/core/DeepLinkParser.kt	concept imports no Android type	package-structure-concept-migration
 core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt	concept imports no Android type	package-structure-concept-migration
@@ -34,3 +51,26 @@ core/src/main/java/com/naviveylin/core/StringResolver.kt	concept imports no Andr
 core/src/main/java/com/naviveylin/core/AutoEntryPoint.kt	concept imports nothing of ours	package-structure-concept-migration
 core/src/main/java/com/naviveylin/core/AutoSearchProvider.kt	concept imports nothing of ours	package-structure-concept-migration
 core/src/main/java/com/naviveylin/core/ResultMarkings.kt	concept imports nothing of ours	package-structure-concept-migration
+app/src/main/java/com/naviveylin/navigation/AndroidVoiceOutput.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavGraph.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavGraph.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt	feature imports another feature	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationViewModel.kt	feature imports another feature	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/NavigationViewModel.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/VoiceGuidance.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/navigation/VoiceGuidance.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/share/SharedLocationParser.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/FavoritePickerDialog.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/FavoritePickerDialog.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RoutePanel.kt	feature imports another feature	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RoutePanel.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RoutePanel.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RoutePanelViewModel.kt	feature imports another feature	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RoutePanelViewModel.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RoutePanelViewModel.kt	feature imports nothing upward	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RouteSummary.kt	feature imports no Android type	package-structure-feature-migration
+app/src/main/java/com/naviveylin/ui/route/RouteSummary.kt	feature imports nothing upward	package-structure-feature-migration

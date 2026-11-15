@@ -244,6 +244,7 @@ LOOP_SHELL_CASES=(
   'run#noProcessOfASignalledRunOutlivesIt'
   'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'
   'run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock'
+  'run#theStopWaitIsDecidedByTheStateTheRunWrites'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
@@ -446,6 +447,7 @@ LOOP_SHELL_CASES=(
   'gate#theStepBoundIsClampedByTheCeilingTheCallerNamed'
   'phase#oneCallPrintsThePhaseState'
   'phase#aResultOverTheBoundIsCutAndNamed'
+  'phase#theIdentitySurvivesTheBoundOnAnyRoot'
   'repeat#aRepeatReadIsNamedNotHandedOverAgain'
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
   'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
@@ -983,6 +985,7 @@ loop_run_shell_case() {
     'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
     'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem') fn=case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem ;;
     'run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock') fn=case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock ;;
+    'run#theStopWaitIsDecidedByTheStateTheRunWrites') fn=case_run_theStopWaitIsDecidedByTheStateTheRunWrites ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
@@ -1182,6 +1185,7 @@ loop_run_shell_case() {
     'gate#theStepBoundIsClampedByTheCeilingTheCallerNamed') fn=case_gate_theStepBoundIsClampedByTheCeilingTheCallerNamed ;;
     'phase#oneCallPrintsThePhaseState') fn=case_phase_oneCallPrintsThePhaseState ;;
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
+    'phase#theIdentitySurvivesTheBoundOnAnyRoot') fn=case_phase_theIdentitySurvivesTheBoundOnAnyRoot ;;
     'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
     'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
@@ -1294,6 +1298,78 @@ wait_for_pid_end() { # wait_for_pid_end <pid> [ticks] → 0 it ended (WAIT_PID_S
     sleep 0.1
   done
   kill -0 "$pid" 2>/dev/null && return 124
+  wait "$pid" 2>/dev/null
+  WAIT_PID_STATUS=$?
+  return 0
+}
+
+# The wait for a run a case signalled is decided by the state that run writes, under a deadline measured off this host
+# (issue #928). The tick ceiling above is a statement about the *run* — thirty times the 1 s grace its trap gives its
+# child — and it was spent as one about the machine: every case creates git repositories and forks a run, and a host
+# carrying four sibling suites stretches those same one-second operations past thirty seconds. Measured 2026-11-15 on
+# this host with 103 sibling suites on it: the staging one HUP case does before it signals — throwaway project,
+# worktree, pre-screen, item start, the child's start — took 16.3 s and 21.5 s, and the run's whole end, from the stop
+# it recorded to the exit that answered the wait, took 3.3 s and 2.0 s, a fifth of the staging. The figure that ran out
+# was the one with nothing left to spend it on. Both halves are taken: the wait asks the state whether the run is
+# ending instead of only how long it has been, and its deadline is the staging *this* case measured times a factor —
+# a host four times slower derives four times the wait, a quiet host (2–3 s of staging) keeps the 30 s it had, and the
+# figure is capped, because a case that holds its slot for minutes is the failure issue #860 bounded and not the
+# repair for a slow host.
+STOP_WAIT_STAGE_FACTOR=10     # × the staging the case measured — fifty times the fifth of it the run's end took
+STOP_WAIT_TICK_FLOOR=300      # 30 s, the ceiling above: what a quiet host needs, and the floor of every derivation
+STOP_WAIT_TICK_CEILING=1200   # 120 s: the most a case may hold its slot for a run that has not ended
+STOP_WAIT_END_TICKS=50        # 5 s: the grace the tail after the run's last state write gets, the case's own figure
+STOP_WAIT_STATE_EVERY=3       # read the state every third tick: two `jq` processes ten times a second is load the host
+                              # this wait exists for cannot spare, and the two facts are written once
+
+# stop_wait_deadline <the ms this case's staging took> → the ticks its wait allows, 0.1 s each
+stop_wait_deadline() {
+  local ticks
+  ticks=$(( ${1:-0} / 100 ))                    # the ticks that staging would take at the step the wait sleeps in
+  ticks=$(( ticks * STOP_WAIT_STAGE_FACTOR ))
+  [ "$ticks" -ge "$STOP_WAIT_TICK_FLOOR" ] || ticks=$STOP_WAIT_TICK_FLOOR
+  [ "$ticks" -le "$STOP_WAIT_TICK_CEILING" ] || ticks=$STOP_WAIT_TICK_CEILING
+  printf '%s' "$ticks"
+}
+
+# The two facts a signalled run's case asserts, read off the state that run writes: the stop it recorded and its item's
+# result. A read that fails answers empty — a state caught mid-replacement is the state of a run still working, and the
+# wait reads it again on its next tick.
+run_stop_reason() { jq -r '.run.stop.reason? // ""' "$1" 2>/dev/null; }
+run_item_result() { jq -r '.items[0].result? // ""' "$1" 2>/dev/null; }
+
+# wait_for_run_stop <state file> <pid> [ticks] → 0 the run ended (WAIT_PID_STATUS is the status it took), 124 it did
+# not inside <ticks>. WAIT_STOP_SEEN and WAIT_ITEM_SEEN hold the last state read either way.
+# The wait is spent on the state, not only on the clock: once both facts are there, the rest of the run's end — the
+# in-progress label's removal, its item's record, the unlock and the exit — gets the small grace above instead of the
+# whole deadline. That is what tells the two loaded-host readings apart: the state carrying both facts at a deadline
+# with the process still standing is a trap that recorded everything and did not end, and the state empty at the same
+# deadline is a trap that never ran. The process's own end still answers the wait, so a trap that ended without
+# recording what it was supposed to end with is left to the caller's assertion to name rather than reported here.
+wait_for_run_stop() {
+  local f="$1" pid="$2" ticks="${3:-$CASE_WAIT_TICKS}" i
+  WAIT_PID_STATUS=124
+  WAIT_STOP_SEEN=""
+  WAIT_ITEM_SEEN=""
+  for i in $(seq 1 "$ticks"); do
+    kill -0 "$pid" 2>/dev/null || break
+    if [ $(( i % STOP_WAIT_STATE_EVERY )) -eq 1 ]; then
+      WAIT_STOP_SEEN=$(run_stop_reason "$f")
+      WAIT_ITEM_SEEN=$(run_item_result "$f")
+      if [ -n "$WAIT_STOP_SEEN" ] && [ -n "$WAIT_ITEM_SEEN" ]; then
+        if wait_for_pid_end "$pid" "$STOP_WAIT_END_TICKS"; then return 0; fi
+        WAIT_STOP_SEEN=$(run_stop_reason "$f")
+        WAIT_ITEM_SEEN=$(run_item_result "$f")
+        return 124
+      fi
+    fi
+    sleep 0.1
+  done
+  # Either it ended or the ticks ran out: the state is read once more, after the last thing the run writes, so what the
+  # caller names is the state at the answer and not the one a tick before it.
+  WAIT_STOP_SEEN=$(run_stop_reason "$f")
+  WAIT_ITEM_SEEN=$(run_item_result "$f")
+  kill -0 "$pid" 2>/dev/null && { WAIT_PID_STATUS=124; return 124; }
   wait "$pid" 2>/dev/null
   WAIT_PID_STATUS=$?
   return 0
@@ -15072,7 +15148,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
 # archived record no stop, 18 of them having worked items (measured 2026-11-07).
 case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p block first status f owner child i alive
+  local d p block first status f owner child i alive stage_started stage_ms deadline
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
@@ -15083,6 +15159,9 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # case's own shell is left with no job killed by a signal — its notice of one is a locale's word on the suite's
   # output. The signal goes to the run's own pid, which the state it writes names (`run.ownerPid`), so the case also
   # reads the field the pre-screen's stale-mark repair would read.
+  # What this case costs before it can signal is the figure its own wait is derived from (issue #928): the staging, not
+  # the run's end, is what a host carrying sibling suites stretches.
+  stage_started=$(now_ms)
   ( export PI_STUB_WAIT="$block"
     run_loop "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
   first=$!
@@ -15108,17 +15187,23 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # it blocks on the fifo (`tools/loop/tests/fixtures/pi:106`, `:114-118`), so both facts read here are stages.
   assert_eq "" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the item has not answered when the HUP is sent"
   kill -HUP "$owner"
-  # The case's own clock, not the suite's (issue #860): a run that does not take the signal leaves this case waiting
-  # on a child nothing releases, and the suite answers that only at `LOOP_CASE_MAX_SECONDS` times the pool's width —
-  # up to four hours in the pool this race was measured in. A run that outlives the ticks is named with what this
-  # case read, then released and ended, so nothing of it holds the case's stream when the case answers.
-  if ! wait_for_pid_end "$first"; then
+  # The case's own clock, not the suite's (issue #860), and that clock measured rather than priced (issue #928): a run
+  # that does not take the signal leaves this case waiting on a child nothing releases, and the suite answers that only
+  # at `LOOP_CASE_MAX_SECONDS` times the pool's width — up to four hours in the pool the race was measured in. The
+  # deadline is ten times the staging this host just made this case's own setup cost, floored at the 30 s a quiet host
+  # needs, and the wait itself ends on the state the run writes: what this case asserts is that the run recorded its
+  # stop and its item's result, so the wait is spent on those and not on a tick count read as a machine's slowness. A
+  # run that outlives the deadline is named with what this case read, then released and ended, so nothing of it holds
+  # the case's stream when the case answers.
+  stage_ms=$(( $(now_ms) - stage_started ))
+  deadline=$(stop_wait_deadline "$stage_ms")
+  if ! wait_for_run_stop "$f" "$first" "$deadline"; then
     status="${WAIT_PID_STATUS:-124}"
     printf 'go\n' >&8 2>/dev/null || true
     loop_end_pid "$owner"
     wait_for_pid_end "$first" 50 || kill -9 "$first" 2>/dev/null
     exec 8>&-
-    fail "a run that took HUP did not end inside $CASE_WAIT_TICKS ticks (status $status) — its stop was '$(jq -r '.run.stop.reason? // ""' "$f" 2>/dev/null)' and its item '$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)'"
+    fail "a run that took HUP did not end inside $deadline ticks derived from $stage_ms ms of staging (status $status) — its stop was '${WAIT_STOP_SEEN:-}' and its item '${WAIT_ITEM_SEEN:-}'"
   fi
   status=$WAIT_PID_STATUS
   assert_eq "129" "$status" "a run ended by HUP reports the signal it took"
@@ -15200,6 +15285,75 @@ case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock() {
   assert_eq "blocked" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the run recorded the item its signal interrupted"
 }
 
+# The wait a signalled run's case is answered with is decided by the state that run writes, under a deadline measured
+# off this host (issue #928). The ceiling it replaces was a fixed 30 s: a statement about the run — thirty times the
+# 1 s grace its trap gives its child — spent as one about the machine, so a host carrying four sibling suites
+# stretched the run's own one-second operations past it and the case reported a trap bug that did not exist. Held
+# still here, in four parts: the derivation (ten times the staging the case measured, floored at the figure a quiet
+# host needs, capped); a run that recorded its stop and its item's result and ended, answered with the status it took
+# as soon as the state carries them; a run that ended without recording them, answered with what it did record so the
+# caller's own assertion names the hole instead of this wait's deadline; and a run that wrote both and stood, which is
+# the reading the loaded host gave — reported as "recorded and did not end" after the tail grace, which is the one
+# thing no tick count could tell from a trap that never ran.
+case_run_theStopWaitIsDecidedByTheStateTheRunWrites() {
+  # files: tools/loop/tests/loop-cases.sh
+  local d f pid status started elapsed
+  d=$(scratch); f="$d/run.json"
+  # The derivation: 30 s on a quiet host, the same on one whose staging stayed under it, ten times a staging past it,
+  # and never more than the cap.
+  assert_eq "300" "$(stop_wait_deadline 0)" "a host with no staging to measure gets the figure a quiet host needs"
+  assert_eq "300" "$(stop_wait_deadline 2900)" "…and so does one whose staging came to 2.9 s"
+  assert_eq "800" "$(stop_wait_deadline 8000)" "a staging of 8 s derives ten times itself, in the ticks the wait sleeps in"
+  assert_eq "1200" "$(stop_wait_deadline 60000)" "and a staging that would derive more than the cap is held at it"
+
+  # A run that records both facts and ends: the wait answers as soon as it has read them, with the status the run took,
+  # so the assertions the caller makes read a state that is complete because the run wrote it and not because the
+  # deadline arrived.
+  printf '{}\n' > "$f"
+  ( printf '{"run":{"stop":{"reason":"interrupted by SIGHUP"}},"items":[{"result":"blocked"}]}\n' > "$f"
+    sleep 0.3; exit 129 ) &
+  pid=$!; started=$(now_ms)
+  if ! wait_for_run_stop "$f" "$pid" 300; then
+    fail "a run that recorded its stop and its item's result and ended did not answer the wait (status $WAIT_PID_STATUS)"
+  fi
+  status=$WAIT_PID_STATUS
+  assert_eq "129" "$status" "the wait answers with the status the run ended with"
+  assert_contains "$WAIT_STOP_SEEN" "SIGHUP" "and names the stop it read off the state"
+  assert_eq "blocked" "$WAIT_ITEM_SEEN" "…and the item's result it read beside it"
+  elapsed=$(( $(now_ms) - started ))
+  [ "$elapsed" -lt 5000 ] || fail "a run that was already ending held the wait ${elapsed} ms — the state decides it, not the deadline"
+
+  # A run that ended without recording either fact: the wait answers with what it read at once, so the caller's own
+  # assertion names the hole and the case does not spend its deadline on a process that is gone.
+  printf '{}\n' > "$f"
+  ( exit 7 ) &
+  pid=$!; started=$(now_ms)
+  if ! wait_for_run_stop "$f" "$pid" 1200; then
+    fail "a run that ended without recording its stop was waited on to the deadline (status $WAIT_PID_STATUS) — the caller's assertion names that hole, not this wait"
+  fi
+  assert_eq "7" "$WAIT_PID_STATUS" "the wait answers with the status a run that recorded nothing ended with"
+  assert_eq "" "$WAIT_STOP_SEEN" "and names the empty state it read rather than a stop the run did not record"
+  elapsed=$(( $(now_ms) - started ))
+  [ "$elapsed" -lt 5000 ] || fail "a run that had already ended held the wait ${elapsed} ms of its deadline"
+
+  # The reading the loaded host gave: the run recorded its stop and its item's result and was still standing. The wait
+  # must answer 124 — nothing was left for it to wait for but the run's end — with the state it read, which is what
+  # tells this apart from a trap that never wrote anything.
+  printf '{}\n' > "$f"
+  ( printf '{"run":{"stop":{"reason":"interrupted by SIGHUP"}},"items":[{"result":"blocked"}]}\n' > "$f"
+    sleep 30; exit 129 ) &
+  pid=$!; started=$(now_ms)
+  if wait_for_run_stop "$f" "$pid" 20; then
+    kill -9 "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+    fail "a run that recorded its stop and stood was reported as ended"
+  fi
+  assert_eq "124" "$WAIT_PID_STATUS" "a run still standing after the tail grace is the deadline's"
+  assert_contains "$WAIT_STOP_SEEN" "SIGHUP" "and the state the deadline names holds the stop the run did record"
+  assert_eq "blocked" "$WAIT_ITEM_SEEN" "…beside the item's result, so 'recorded and did not end' is the reading it gives"
+  elapsed=$(( $(now_ms) - started ))
+  kill -9 "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+  [ "$elapsed" -lt 10000 ] || fail "a run that had recorded everything it asserts held the wait ${elapsed} ms — the tail grace is what it spends, not the deadline"
+}
 
 # A process still standing in a scratch tree is a leftover whatever its tree's state, and the kernel shows a
 # deleted tree with ` (deleted)` appended to the cwd it reports. That suffix is why the leftovers of a killed
@@ -17910,6 +18064,11 @@ case_phase_oneCallPrintsThePhaseState() {
   local phase p wt out status
   phase="$LOOP_PROJECT_ROOT/tools/loop/phase.sh"
   [ -f "$phase" ] || fail "nothing prints the phase state in one call: tools/loop/phase.sh is not in the tree (issue #688)"
+  # This case asserts the shape of the whole answer, so it runs with the bound off — its own answer, not the project's
+  # recorded figure: a cut it did not ask for would leave the verdict to the length of the fixture's root, which is the
+  # defect `phase#theIdentitySurvivesTheBoundOnAnyRoot` owns (issue #927). It is exported here so every invocation
+  # below carries it; the case runs in a subshell, so no other case sees it.
+  export LOOP_TOOL_RESULT_MAX_CHARS=0
   p=$(phase_fixture)
   wt="$p/.pi/worktrees/item"
 
@@ -18037,6 +18196,81 @@ case_phase_aResultOverTheBoundIsCutAndNamed() {
   [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
   assert_contains "$(cat "$p/unbounded.txt")" 'PKG-LINE-300' "with no bound the whole answer is printed"
   assert_not_contains "$(cat "$p/unbounded.txt")" 'PHASE-BOUND' "and nothing is said about a bound it never met"
+  return 0
+}
+
+# The bound may take the tail and never the identity (issue #927). A child handed an answer whose `fingerprint` never
+# printed cannot tell which package it works from, and the answer cannot either: on a deep worktree root the head was
+# absolute paths — the checklist's, the gate's stream, the package and the evidence directory — so the 4 000 the
+# project records ran out inside the `PACKAGE:` line and the fingerprint line never printed. The same case passed on
+# a short project root and was red in every worktree the loop runs in, so the verdict was decided by the length of a
+# root. Two halves are asserted here, on the same fixture at two root depths:
+#
+#   the identity  the phase, the item, the package's fingerprint, provenance and acceptance title, its path, the gate
+#                 line and the paths a phase writes are printed before the two sections a cut may take, so a bound the
+#                 case pins itself leaves them all in the answer.
+#   the root      every path under the root is printed relative to the `ROOT:` line, which is the only line that
+#                 carries the root at all — so a deeper root costs the answer one line and not one prefix per path, and
+#                 the absolute form is that line's value plus any path printed below it.
+#
+# The bound is pinned here rather than inherited from `loop.conf`: a case that reads the recorded figure measures
+# whatever number the project last wrote, which is how this one measured nothing on the short root (issue #915's rule
+# from the other side). 2 000 is 1.7 times the identity's measured head — 872 bytes on a 35-character fixture root —
+# so it is loose enough that a root several times deeper than any this suite creates still leaves the identity inside
+# it, and tight enough that the order cannot be the pre-#927 one: the checklist alone is over 2 600 bytes, so an
+# answer that printed it before the identity has no fingerprint at 2 000 whatever the root.
+case_phase_theIdentitySurvivesTheBoundOnAnyRoot() {
+  # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-gate.md tools/loop/prompts/worker-tail.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
+  local phase pinned deep recorded out
+  phase="$LOOP_ENGINE/phase.sh"
+  [ -f "$phase" ] || fail "nothing prints the phase state in one call: tools/loop/phase.sh is not in the tree (issue #927)"
+  pinned=2000
+
+  # One fixture, one bound: what the answer must carry whatever the root it was asked on is, and what it must not
+  # spend the bound on.
+  identity_at() { # <label> <project root> <bound> → the identity lines, of an answer cut at that bound
+    local label="$1" root="$2" bound="$3" wt out size lines
+    wt="$root/.pi/worktrees/item"
+    out=$( cd "$root" && LOOP_TOOL_RESULT_MAX_CHARS="$bound" LOOP_STATE_FILE="$root/.pi/issue-loop/run.json" \
+      LOOP_WORKTREE="$wt" bash "$phase" A 2>&1 )
+    size=$(printf '%s' "$out" | wc -c)
+    [ "$size" -le "$bound" ] || fail "$label: the answer carried $size characters against the pinned bound of $bound"
+    assert_contains "$out" 'PHASE-BOUND' "$label: an answer this bound cuts says it was cut: $out"
+    assert_contains "$out" 'fingerprint 0123456789abcdef' "$label: the package's fingerprint survives the cut: $out"
+    assert_contains "$out" 'provenance issue #688' "$label: and its provenance: $out"
+    assert_contains "$out" 'ACCEPTANCE: the phase state is three calls away' "$label: and the title it is accepted against: $out"
+    assert_contains "$out" 'PACKAGE: .pi/issue-loop/items/688/work-package.md' "$label: with a path that names the package: $out"
+    assert_contains "$out" 'GATE: green — tests=256 failures=0 errors=0' "$label: the last gate verdict the item's stream records: $out"
+    assert_contains "$out" 'GATE: green — tests=256 failures=0 errors=0 — the last gate line .pi/issue-loop/items/688/events.jsonl records' \
+      "$label: with the stream's own path, relative to the root: $out"
+    assert_contains "$out" 'PATHS: the item evidence copies, always — .pi/issue-loop/items/688' "$label: and the evidence directory: $out"
+    assert_contains "$out" "ROOT: $root · a path under it is printed relative to it" \
+      "$label: beside the root those paths resolve against, which is the absolute form of every one of them: $out"
+    lines=$(printf '%s\n' "$out" | grep -cF -- "$root")
+    assert_eq "1" "$lines" "$label: the root is printed once and no other line carries it, so a deep root costs the answer one line"
+    return 0
+  }
+
+  root=$(phase_fixture)
+  identity_at "on the suite's own fixture root" "$root" "$pinned"
+
+  # The same fixture under a root long enough to have taken the identity from the recorded bound before #927: what the
+  # cut costs must not be a function of how deep the tree sits, so the depth is pinned as the fact this half proves.
+  deep="$LOOP_TMP/deep-root-$(printf 'x%.0s' $(seq 1 80))"
+  mkdir -p "$deep" || fail "could not create a deep root beside the suite's scratch tree"
+  root=$( LOOP_CASE_TMP="$deep" phase_fixture )
+  [ "${#root}" -gt 120 ] || fail "the fixture root is ${#root} characters — too short to stand in for a deep tree"
+  identity_at "on a ${#root}-character fixture root" "$root" "$pinned"
+
+  # …and the recorded bound the project cuts its answers at, which is the one the issue measured: on that deep root
+  # the identity is printed, because it is printed before the checklist rather than after it.
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
+  out=$( cd "$root" && env -u LOOP_TOOL_RESULT_MAX_CHARS LOOP_STATE_FILE="$root/.pi/issue-loop/run.json" \
+    LOOP_WORKTREE="$root/.pi/worktrees/item" bash "$phase" A 2>&1 )
+  assert_contains "$out" 'fingerprint 0123456789abcdef' \
+    "at the recorded $recorded-character bound and on this deep root the fingerprint is still printed: $out"
   return 0
 }
 

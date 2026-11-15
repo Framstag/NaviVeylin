@@ -795,6 +795,26 @@ its `SIGHUP` into a run that had already ended (`expected '129', got '0'`) and, 
 413-case set, held its run, its stub child and the adapter above it for the ten minutes the suite was left running
 before it was ended by hand.
 
+**The clock a case keeps is measured on the host that keeps it** (issue #928). The 30 s was a fact about the *run* —
+thirty times the 1 s `TERM`→`KILL` grace a run's trap gives its child — spent as one about the machine, and a host
+carrying four sibling suites stretches those same one-second operations past it: `/tmp/full925.log` records the HUP
+case red (`a run that took HUP did not end inside 300 ticks (status 124)`) while a focused run of the same tree
+passed, and the state it printed named a stop the run *had* recorded, i.e. the wait ran out while the run was
+ending. So the wait is answered by what the case asserts and not by a count: `wait_for_run_stop` polls
+`.run.stop.reason` and the item's result in the state the run writes every third tick, gives the run's remaining end
+— the label's removal, its item's record, the unlock, the exit — a 5 s grace once both facts are there, and takes
+its deadline from `stop_wait_deadline`: ten times the staging that case itself measured, floored at the 30 s a quiet
+host needs and capped at 120 s, because a case that holds its slot for minutes is what the bound above is for. On
+the deadline the state is read once more, so a trap that never ran and a trap that recorded everything and did not
+end are told apart by what the state says instead of by how many ticks elapsed. Measured 2026-11-15 on this
+repository's measured host with 103 sibling suites on it: the HUP case's staging (throwaway project, worktree,
+pre-screen, item start, the child's start) took 16.3 s and 21.5 s, and the run's whole end took 3.3 s and 2.0 s — a
+fifth of the staging. `run#theStopWaitIsDecidedByTheStateTheRunWrites` holds the derivation and the three readings
+still, `928.1` in `tools/loop/tests/loop-mutations.sh` puts the constant back, which is what reds that case, and
+`928.2` removes the trap a signalled run answers HUP with so the run genuinely never stops — the HUP case still
+reds there, at its derived deadline and with an empty state named, which is the teeth a state-driven wait has to
+keep.
+
 Inside that bound the project's gate is what fills the log, and it streams: each suite's output is read from the
 file the suite writes as the suite writes it, and the summary, the tally and the failure text are read from that
 same file, so a suite that runs for a quarter of an hour shows its own lines instead of a two-line log. Measured

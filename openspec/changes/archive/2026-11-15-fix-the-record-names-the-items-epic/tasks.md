@@ -1,8 +1,8 @@
 # Tasks — the item's record names its epic, and the report groups by it
 
 The items are ticked because the work is in this tree and committed: `574de125` on the base `4227aab7`, merged onto
-`main` `5458bacd` as `2a30065a` (and one mode-only commit, `bcec3429`, that restores a bit the merge lost). Every
-anchor below is a line of this tree.
+`main` `5458bacd` as `2a30065a` (a second merge, `a9f2302a`, took `main` `86718d0c`), and one mode-only commit,
+`bcec3429`, that restores a bit the merge lost. Every anchor below is a line of this tree.
 
 ## 1. Measure before changing code
 
@@ -80,7 +80,8 @@ anchor below is a line of this tree.
 - [x] 8.1 Merged `main` (`5458bacd`) as `2a30065a`: the one conflict, an append to the mutation array both sides made,
   was resolved by keeping both sides' records; the record set stayed green (`all 401 cases passed`).
 - [x] 8.2 `bcec3429` — `tools/loop/tests/loop-mutations.sh` executable again after the landing merge lost the bit; the
-  harness's own selftest calls it without `bash` in front of it.
+  harness's own selftest calls it without `bash` in front of it. The same repair landed on `main` independently as
+  `86718d0c`, and the second merge (`a9f2302a`) keeps one mode bit for the file.
 - [x] 8.3 The review round's corrections as `db591935` (the numeric-only read, the two extra assertions, the run's own
   figure in place of the one the issue quotes). The reviewer's verdict was "OK with notes" and no blocking finding;
   its four notes are addressed by 8.3 and by §9.

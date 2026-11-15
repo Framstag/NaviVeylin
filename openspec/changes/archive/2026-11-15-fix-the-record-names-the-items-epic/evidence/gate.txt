@@ -140,7 +140,9 @@ red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
 
 `loop-mutations-selftest.sh` calls the harness itself, not `bash` around it, and the merge that landed the base-red
 subtraction left `tools/loop/tests/loop-mutations.sh` at mode `100644` (the conflict in that same file was resolved
-there the way this delta's own merge resolved it). Restored by `bcec3429` (mode only, no content), and then:
+there the way this delta's own merge resolved it). Restored here as `bcec3429` (mode only, no content), and on `main`
+independently as `86718d0c` — the same one-file repair made from two windows, and the second merge onto `main`
+(`a9f2302a`) keeps one mode bit for the file. With it:
 
 ```
 $ bash tools/loop/tests/loop-mutations-selftest.sh

@@ -53,9 +53,10 @@ work. The reading that filed the item:
    three hops and the line, with the 2026-11-14 reading.
 8. **The requirement** (`openspec/specs/agent-issue-loop/spec.md`): one `ADDED` requirement with two scenarios, so the
    record and the line are stated rather than implied by the code.
-9. **One mode-only repair** (`bcec3429`): `tools/loop/tests/loop-mutations.sh` lost its executable bit when the merge
-   that landed the base-red subtraction resolved the same conflict this delta's merge did, and
-   `loop-mutations-selftest.sh` calls the harness without `bash` in front of it. Restored, content untouched.
+9. **One mode-only repair** (`bcec3429`, made independently on `main` as `86718d0c`): `tools/loop/tests/loop-mutations.sh`
+   lost its executable bit when the merge that landed the base-red subtraction resolved the same conflict this
+   delta's merge did, and `loop-mutations-selftest.sh` calls the harness without `bash` in front of it. Restored,
+   content untouched.
 
 ## Impact
 
@@ -74,7 +75,8 @@ work. The reading that filed the item:
 ## Evidence
 
 - The implementation: `574de125` on the base `4227aab7`, the review round's corrections `db591935`, the merge onto
-  `main` `5458bacd` (`2a30065a`) and the mode-only repair `bcec3429`.
+  `main` `5458bacd` (`2a30065a`), the mode-only repair `bcec3429` and the archive `41599d78`; then the second merge
+  onto `main` `86718d0c` (`a9f2302a`), where the same mode repair had landed independently.
 - Cases: `prescreen#theScreenRecordsTheItemsEpic`, `report#theRunGroupsItsItemsByEpic`.
 - Mutations: `920.1`, `920.2`, `920.3`, `920.4`, each red on the case it names and green again after its restore.
 - The gate, the anchors this change cites and the mutation log: `evidence/`.

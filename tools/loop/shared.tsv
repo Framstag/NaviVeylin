@@ -20,6 +20,7 @@ bound_class_jq	lib.sh	report.sh state.sh
 branch	run.sh	report.sh lib.sh loop-clean.sh phase.sh prescreen.sh state.sh worktree.sh
 bytes	loop-clean.sh	worktree.sh lib.sh state.sh
 cases	gate.sh	measure.sh
+change_dir	measure.sh	run.sh
 child_check_calls	lib.sh	run.sh
 closed	report.sh	state.sh
 count	prescreen.sh	worktree.sh gate.sh
@@ -42,6 +43,7 @@ loop_base_ref	lib.sh	loop-clean.sh gate.sh labels.sh run.sh state.sh worktree.sh
 loop_bound_under_ceiling	lib.sh	gate.sh
 loop_bytes_of	lib.sh	worktree.sh loop-clean.sh
 loop_change_archive_dir	lib.sh	run.sh
+loop_change_family	lib.sh	run.sh
 loop_change_identity	lib.sh	gate.sh run.sh
 loop_change_restore	lib.sh	run.sh
 LOOP_CHILD_TIMEOUT	lib.sh	run.sh

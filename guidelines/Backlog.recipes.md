@@ -470,6 +470,25 @@ applies is one the header already carried: the token listed five roles while six
 the role added after the token was written — could be ended at a bound the run's own header never printed
 (issue #842). A bound a run cannot be audited for is not a recorded bound.
 
+A third bound bounds the **input** and not the reading of it (issue #924). `LOOP_REVIEW_INPUT_MAX_BYTES` (32 000 in
+`tools/loop/loop.conf`, `0` or absent = no bound) caps each part one review round is handed — the diff
+`{{DIFF_PATH}}` names, the round-before-the-gate report (none before the gate has run), and an inventory of the
+change's own files — and a part over
+the cap is handed as its head, cut at a line boundary and marked `[LOOP-CUT: …]`. Everything the cut left out is named
+by path and line range in `<round>.cut.md`, which the round's prompt names so a `BLOCKING:` finding may still point at
+a range the head did not carry; the figures travel into the prompt and into the item's record
+(`state.sh done --review-input`), where the report prints them on `what the bound cut from a round's input:`. A round
+whose parts are all under the cap writes nothing and its prompt is byte for byte the one the key found. It
+exists because the turn bound answers the wrong question: measured over the eight rounds of the run the item records,
+the reviewer spent **46.1 M tokens — 22.5 % of the run's 204.7 M — 5.8 M a round** for the six that reported, and two
+rounds ended with no verdict at all, one at `LOOP_ITEM_CONTEXT_MAX_REVIEWER` (#883, 250 418) and one at
+`LOOP_CHILD_TURNS_MAX_REVIEWER` (#898, whose diff was 262 411 B). The value is read off the rounds that reported:
+#915's 20 kB diff passed in 5.1 M, #883's 45 kB did not, and 32 000 B is about 8 000 tokens a part at 4 B a token, so
+one bounded round is about 24 000 tokens rather than a paging session. `LOOP_CHILD_TURNS_MAX_REVIEWER` is not touched
+by it: what changed is what a round is handed, not how long it may look. `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
+holds both halves — the round under the cap carries no line about one, and the round over it hands the head and names
+what the cut left out, in the prompt, in the index and in the state the report prints from.
+
 **Where a stop bound sits** (measured 2026-11-06, issue #786; re-read 2026-11-09 for #804 and #842): each value is
 the archive's own p95 or above, per role, and the value a run applies is the one `tools/loop/loop.conf` records —
 the two are stated together, one row per role, because a measurement and the bound it set move apart and a reader has

@@ -319,6 +319,11 @@ printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.
 # from a refusal. A state a tree wrote before `cut` carried a bound keeps its two `blocked` items in the block
 # tally, exactly as that tree counted them. Empty for a run with none, exactly as the other named lists are.
 printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# What the round%ss input bound cut, item by item (issue #924): the figures `run.sh` measured over the three parts
+# it hands a round, recorded at `state.sh done --review-input` and printed here because a cut is the one thing about
+# a round a reader cannot see in its report — the head a round was handed reads like the whole part. A run whose
+# rounds were all under the cap records nothing, and the line says `none` as the ones beside it do.
+printf 'what the bound cut from a round%ss input: %s\n' "'" "$(jq -r '[.items[] | select((.metrics.reviewInput // "") != "") | "#\(.issue) \(.metrics.reviewInput)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the

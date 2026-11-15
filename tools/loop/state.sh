@@ -70,6 +70,7 @@
 #                                        uncommitted|unverified|unanswered|reviewer-wrote|contradicted]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
+#                         [--review-input TEXT]   # the scale of what `LOOP_REVIEW_INPUT_MAX_BYTES` cut from the round
 #   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
 #   state.sh adoption-refused <issue> --reason TEXT
 #                         # an admissible branch the tree, the base or the replay refused: the item's mechanism
@@ -682,7 +683,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -693,6 +694,7 @@ cmd_done() {
       --pi-exit) need_value "$@"; pi_exit="${2:-}"; shift 2 ;;
       --rounds) need_value "$@"; rounds="${2:-}"; shift 2 ;;
       --review-verdict) need_value "$@"; review_verdict="${2:-}"; shift 2 ;;
+      --review-input) need_value "$@"; review_input="${2:-}"; shift 2 ;;
       --gate) need_value "$@"; gate="${2:-}"; shift 2 ;;
       --gate-waived) need_value "$@"; gate_waived="${2:-}"; shift 2 ;;
       --gate-waived-suite) need_value "$@"; gate_waived_suite="${2:-}"; shift 2 ;;
@@ -811,6 +813,13 @@ cmd_done() {
     ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
     *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
   esac
+  # The scale of what the round%ss input bound cut (issue #924): a sentence `run.sh` composes from the three parts it
+  # measured (`bound_review_inputs`), recorded here so `report.sh` can print it beside the item. It is that script%ss
+  # figure and not a second derivation, so nothing is checked beyond its shape — one line, the fields separated by
+  # ` · `. A round with nothing over the cap records nothing, which is a fact and not a missing field.
+  case "$review_input" in
+    *$'\n'*|*$'\r'*) loop_die "done: --review-input is one line" ;;
+  esac
   # Which tree fails the case the tally named is the other half of a red gate's record (issue #853): `delta` a case that
   # fails again when it is run once more, `flaked` one that passes on that second look (issue #861), `base` a case that
   # also fails at the base commit, `unattributable` a red the run could not answer. It is a closed vocabulary rather
@@ -904,6 +913,7 @@ cmd_done() {
                           sha:(if $ms == "" then null else $ms end)},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
+                           reviewInput:(if $ri == "" then null else $ri end),
                            roundBound:(if $rbk == "" then null
                                        else {round:(if $rb == "" then null else $rb end),
                                              key:$rbk, value:($rbv | tonumber)} end),
@@ -938,7 +948,7 @@ cmd_done() {
     --arg bk "$bound_key" --arg bv "$bound_value" \
     --arg rb "$round_bound" --arg rbk "$round_bound_key" --arg rbv "$round_bound_value" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
-    --arg rv "$review_verdict" \
+    --arg rv "$review_verdict" --arg ri "$review_input" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --arg gw "$gate_waived" --arg gws "$gate_waived_suite" --arg ga "$gate_attribution" \
     --argjson usage "$usage" \

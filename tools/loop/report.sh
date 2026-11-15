@@ -258,7 +258,9 @@ cap_named=$(jq -r "[ .items[]
 
 # The archive is the finished runs `state.sh init` kept beside this one — the directory it derives, a project's
 # `LOOP_RUNS_DIR` when it records one — read in one pass over every file it holds, with the run being reported left
-# out so the line does not count it twice.
+# out so the line does not count it twice. The paths it reads are kept under this report's own spelling: `lib.sh`
+# holds a function-local `archived`, and a static reader of the engine that counts the two as one name is refused a
+# row for state no two files share (`driver#theSharedNamesAreDeclared`).
 archive_runs=$(loop_conf_value LOOP_RUNS_DIR)
 case "$archive_runs" in
   "") archive_runs="$(dirname "$state_file")/runs" ;;
@@ -266,19 +268,19 @@ case "$archive_runs" in
   *) archive_runs="$LOOP_ROOT/$archive_runs" ;;
 esac
 archive_hits="" archive_items=""
-archived=()
+archive_files=()
 if [ -d "$archive_runs" ]; then
   for f in "$archive_runs"/*.json; do
     [ -f "$f" ] || continue
     [ "$f" = "$state_file" ] && continue
-    archived[${#archived[@]}]="$f"
+    archive_files[${#archive_files[@]}]="$f"
   done
-  if [ ${#archived[@]} -gt 0 ]; then
+  if [ ${#archive_files[@]} -gt 0 ]; then
     # The archive is read with the run's own selector, over every record rather than over the ones that name a
     # mechanism: the field is the narrower half of the same fact, so an archive counted by it alone would print a rate
     # the run's own side cannot be compared with (`report#theBoundRateIsNamed`).
-    archive_hits=$(jq -rs "[ .[] | .items[]? | $bound_hit_select ] | length" "${archived[@]}" 2>/dev/null)
-    archive_items=$(jq -rs '[ .[] | .items[]? ] | length' "${archived[@]}" 2>/dev/null)
+    archive_hits=$(jq -rs "[ .[] | .items[]? | $bound_hit_select ] | length" "${archive_files[@]}" 2>/dev/null)
+    archive_items=$(jq -rs '[ .[] | .items[]? ] | length' "${archive_files[@]}" 2>/dev/null)
   fi
 fi
 case "$archive_hits" in ''|*[!0-9]*) archive_hits="" ;; esac
@@ -302,7 +304,7 @@ printf '\n'
 # `blocked` and `cut` — because a closed, skipped or falsified item is recorded with no class by design, and a
 # denominator of all 511 records would drown the figure the line exists to print.
 archive_classes="-"
-if [ ${#archived[@]} -gt 0 ]; then
+if [ ${#archive_files[@]} -gt 0 ]; then
   archive_classes=$(jq -rs "$(bound_class_jq)"'
     [ .[] | .items[]? | select(.result == "blocked" or .result == "cut") ] as $ended
     | [ $ended[] | {cls: (stop_class),
@@ -315,7 +317,7 @@ if [ ${#archived[@]} -gt 0 ]; then
             else ($decided | map(.cls) | group_by(.) | map("\(.[0]) \(length)") | join(" · ")) end)
            + " — of \($ended | length) blocked or cut record(s): \($decided | length) decided,"
            + " \($undecided | length) undecidable, \($rounds | length) ended by a review round, not by the item"
-      end' "${archived[@]}" 2>/dev/null)
+      end' "${archive_files[@]}" 2>/dev/null)
 fi
 case "$archive_classes" in '') archive_classes="-" ;; esac
 printf 'archive classes: %s\n' "$archive_classes"

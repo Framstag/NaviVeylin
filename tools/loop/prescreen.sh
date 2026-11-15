@@ -247,10 +247,14 @@ unreadable_count=0
 read_err=$(mktemp) || loop_die "prescreen: could not create the read error file"
 # The trap cleans both temporary files: the label write list and the one candidate's stderr it holds at a time.
 trap 'rm -f "$label_writes" "$read_err" "$comment_writes"' EXIT
-i=0
-while [ "$i" -lt "$count" ]; do
-  number=$(printf '%s' "$candidates_json" | jq -r ".[$i].number")
-  i=$((i + 1))
+# The counter is this screen's own. Every other engine file spells its own index `i`, which a static reader of the
+# engine then sees as one name one file assigns and the others read — state no process ever shares, and the table
+# refuses a row for it (`driver#theSharedNamesAreDeclared`). A spelling only this file uses keeps the screen's counter
+# out of that reading.
+scan_index=0
+while [ "$scan_index" -lt "$count" ]; do
+  number=$(printf '%s' "$candidates_json" | jq -r ".[$scan_index].number")
+  scan_index=$((scan_index + 1))
   # One candidate the tracker did not answer for is *unknown*, never "no" — and never the end of the screen. Until
   # 2026-10-27 a single failed `gh issue view` ended the pre-screen (and the run) on the first flaky answer, so a
   # 321-candidate screen was worth one socket; what killed it was not even recorded, because the seam's retry and

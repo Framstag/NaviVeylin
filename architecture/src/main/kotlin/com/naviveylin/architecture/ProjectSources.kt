@@ -52,16 +52,33 @@ object ProjectSources {
         .readText()
 
     /**
-     * The path from the project root, or `null` when the file is outside the covered source roots.
-     * Konsist reports a path either from the project root or from the filesystem, so both are cut at the
-     * root fragment rather than assumed one shape.
+     * The path from the project root, or `null` when the file is not one of the tree's covered sources.
+     *
+     * Konsist's project scope descends into every directory under the root that carries no `.git`, so a loop
+     * item's scratch tree, a nested checkout and any other copy of `app/src/main/java/…` arrive here as source
+     * files of this project: 2 285 of them in the main checkout on 2026-11-14, which made a green run read
+     * `files=2623` and report a `com/example/data/Basemap.kt` no module of this tree has (case
+     * `aNestedCopyOfASourceRootIsNotTheTree`). A path is therefore cut at the project root first, and only a path
+     * that starts with a covered source root after that cut is the tree's. Konsist reports a path either from the
+     * project root or from the filesystem, so both shapes are read — the second one refused, because an absolute
+     * path outside the root is some other tree.
      */
     internal fun projectRelative(path: String): String? {
         val normalized = path.replace('\\', '/')
-        mainSourceRoots.forEach { root ->
-            val at = normalized.indexOf(root)
-            if (at >= 0) return normalized.substring(at)
+        val relative = when {
+            normalized.startsWith("/") -> projectRootPrefixes()
+                .firstOrNull { normalized.startsWith("$it/") }
+                ?.let { normalized.removePrefix("$it/") }
+                ?: return null
+            else -> normalized
         }
-        return null
+        return mainSourceRoots.firstOrNull { relative.startsWith(it) }?.let { relative }
     }
+
+    /** The project root in both shapes a file system reports it, so a symlinked checkout matches too. */
+    private fun projectRootPrefixes(): List<String> =
+        listOf(ProjectRoot.dir.absolutePath, runCatching { ProjectRoot.dir.canonicalPath }.getOrDefault(""))
+            .map { it.replace('\\', '/').trimEnd('/') }
+            .filter { it.isNotEmpty() && it.startsWith("/") }
+            .distinct()
 }

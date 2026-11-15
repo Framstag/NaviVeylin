@@ -1,6 +1,7 @@
 package com.naviveylin.architecture
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -37,6 +38,42 @@ class StructureReportTest {
         assertTrue(
             "the green run must state its four figures: ${report.summary()}",
             report.summary().contains("rows=27 files=338 exemptions=14 rules=4"),
+        )
+    }
+
+    /**
+     * The figures are the tree's, not those of a copy of the tree: Konsist's project scope descends into every
+     * directory under the root that carries no `.git`, so a loop item's scratch tree and any other nested copy of
+     * `app/src/main/java/…` reach the check as source files of this project. Measured 2026-11-14 in the main
+     * checkout, whose `.pi/issue-loop/items/839/scratch/fx` held 2 285 such files: `files=2623` against the tree's
+     * 338, and `app/src/main/java/com/example/data/Basemap.kt` — a path no module of this tree has — reported as a
+     * default-deny violation, so a baselined tree read red for a file it does not carry.
+     */
+    @Test
+    fun aNestedCopyOfASourceRootIsNotTheTree() {
+        val root = ProjectRoot.dir.absolutePath.replace('\\', '/').trimEnd('/')
+        val treeFile = "app/src/main/java/com/naviveylin/core/MapRenderUtil.kt"
+
+        listOf(
+            ".pi/issue-loop/items/839/scratch/fx",
+            ".pi/worktrees/loop",
+            ".agents/skills/example",
+        ).forEach { copy ->
+            assertNull(
+                "$root/$copy/$treeFile is a copy of the tree's source root, not a file of the tree",
+                ProjectSources.projectRelative("$root/$copy/$treeFile"),
+            )
+        }
+
+        assertEquals(
+            "the tree's own file is a file of the tree",
+            treeFile,
+            ProjectSources.projectRelative("$root/$treeFile"),
+        )
+        assertEquals(
+            "a path Konsist reports relative to the project root is a file of the tree",
+            treeFile,
+            ProjectSources.projectRelative(treeFile),
         )
     }
 }

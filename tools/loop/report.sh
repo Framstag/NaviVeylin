@@ -235,11 +235,13 @@ cap_items=$(jq -r '.items | length' "$state_file")
 # the record answers it in **two** fields, not one (measured 2026-11-10). The fifth result `cut` exists for exactly one
 # reason: a bound the run enforces ended a phase of the item (`state.sh`, `run.sh`: a turn bound, a context bound, the
 # child clock, the run's deadline or a vanished writer), so every item carrying it is a hit. `stopReason: bound` is the
-# narrower field — a spec requirement keeps it off the rounds a review bound ended, because no item child was ended
-# there — and a run whose cuts were all review rounds therefore printed `0 of N` while its items were being thrown
-# away: on 2026-11-10 two of the day's three runs recorded three such cuts and the line named none of them. A record
-# written before `cut` existed carries the same fact as `blocked` + `bound`, so that pair is counted too; counting
-# `cut` alone would lower the archive's rate for the one direction it exists to expose.
+# narrower field and the one a reader checks: #898 and #883 were ended by a bound the run enforced — a review round's
+# turn bound and the item's context bound inside the reviewer phase — and a tree that wrote them before issue #898
+# recorded those cuts with no class, so a run whose cuts were all review rounds printed `0 of N` while its items were
+# being thrown away (2026-11-10: three such cuts in two of the day's three runs, none named). The class is written for
+# a round too since issue #898, so a new record answers in both fields and the result still answers for the old ones.
+# A record written before `cut` existed carries the same fact as `blocked` + `bound`, so that pair is counted too;
+# counting `cut` alone would lower the archive's rate for the one direction it exists to expose.
 #
 # The two halves are named apart so the hit is visibly a disjunction and so the mutation set can drop one of them
 # without a jq program quoted inside a sed expression.
@@ -321,11 +323,12 @@ printf 'archive classes: %s\n' "$archive_classes"
 # The rounds a bound ended are the other half of the same figure (issue #923): the class the line above counts is the
 # **item's**, and the spec keeps it off a review round the run ended (issues #785, #790) — #898 was ended by the
 # reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both printed
-# `cut` with nothing beside it. So a round's ending is its own field (`metrics.roundBound`, written by `run.sh` and
-# `state.sh done`), counted here beside the item's class and never folded into it: the two figures answer two
-# questions — how many items the run threw away, and how many rounds it paid for and could not read. A record written
-# before the field is read from its note by the same reader `state.sh` uses, and one whose note names the reviewer's
-# key while its verdict is a round's (`cut-short`, `deadline`) is that round's, not the item's.
+# `cut` with nothing beside it. Since issue #898 the item carries `bound` and the key like any child the run ended, and
+# the round is recorded as its own field (`metrics.roundBound`, written by `run.sh` and `state.sh done`), counted here
+# beside the item's class and never folded into it: the two figures answer two questions — how many items the run threw
+# away, and how many rounds it paid for and could not read. A record written before the field is read from its note by
+# the same reader `state.sh` uses, and one whose note names the reviewer's key while its verdict is a round's
+# (`cut-short`, `deadline`) is that round's, not the item's.
 round_hits=$(jq -r "$(bound_class_jq)"'
   [ .items[] | select((.metrics.roundBound // null) != null or (bound_round) != null) ] | length' "$state_file")
 round_named=$(jq -r "$(bound_class_jq)"'

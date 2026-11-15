@@ -713,8 +713,8 @@ cmd_done() {
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
       # The bound the class was cut at, and the one that ended a review round (issue #923): the class says a bound
-      # stopped the item and the key says which one, and a round's ending is its own fact because the spec keeps it
-      # off the item's class.
+      # stopped the item and the key says which one. A round the run ended carries both — the class and its key, as the
+      # item's own child does (issue #898) — and the round's field names the round it happened in beside them.
       --bound-key) need_value "$@"; bound_key="${2:-}"; shift 2 ;;
       --bound-value) need_value "$@"; bound_value="${2:-}"; shift 2 ;;
       --round-bound) need_value "$@"; round_bound="${2:-}"; shift 2 ;;
@@ -771,9 +771,9 @@ cmd_done() {
     loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
   # Which bound a mechanism names is a figure beside a class and never on its own (issue #923): the key and the value
   # are `loop.conf`'s own, so they are accepted only beside `bound`, and accepted together — a figure with no key is
-  # unreadable at the report and a key with no figure is the class twice. The round's ending is the other field: the
-  # spec keeps a round it ended off the item's class (issues #785, #790), so it is `roundBound` and never a second
-  # `stopReason`, and its key and value have the same two rules.
+  # unreadable at the report and a key with no figure is the class twice. The round a bound ended is the other field —
+  # `roundBound`, which names the round beside the class the item carries (issues #898, #923) — and its key and value
+  # have the same two rules.
   case "${bound_key}${bound_value}" in
     "") ;;
     *)
@@ -792,9 +792,9 @@ cmd_done() {
     *)
       [ -n "$round_bound" ] && [ -n "$round_bound_key" ] && [ -n "$round_bound_value" ] ||
         loop_die "done: --round-bound names the round a bound ended, with --round-bound-key and --round-bound-value beside it"
-      # No `--stop-reason` is required beside it, and none is refused either: the item's class is the run's to write and
-      # the round's ending is not it — the two travel together on a cut whose round was the round and on a cut whose
-      # child was the child, and neither field is derived from the other.
+      # No `--stop-reason` is required beside it, and none is refused either: `roundBound` names the round a bound
+      # ended and the class names the bound, so a cut the run wrote carries both (issue #898) and a caller that writes
+      # the round alone is a record this writer keeps — the two fields are recorded, and neither is derived here.
       case "$round_bound_key" in
         LOOP_*) ;;
         *) loop_die "done: --round-bound-key names a key loop.conf records (LOOP_…), and this one is $round_bound_key" ;;
@@ -1514,11 +1514,10 @@ cmd_report() {
             elif (.boundKey // null) != null then "bound \(.boundKey)=\(.boundValue)"
             elif $bd != null then "bound \($bd.boundKey)=\($bd.boundValue)"
             else "bound" end) as $stopcol
-       # The round a bound ended is its own column (issue #923): the spec keeps the class off an item whose round was
-       # ended, so such a cut printed `cut` beside `-` — #898 and #883 read exactly that, and a reader could not tell
-       # a round ending from an arm that recorded nothing. A record written since names the round, its key and its
-       # figure; one that predates the field is read from its note. Appended after every column a reader already
-       # quoted, for the reason the band and the calls column were appended.
+       # The round a bound ended is its own column (issue #923): the round is a fact about the item a class cannot
+       # carry — which round it was — so it keeps a column of its own beside `stop`. A record written since names the
+       # round, its key and its figure; one that predates the field is read from its note. Appended after every column
+       # a reader already quoted, for the reason the band and the calls column were appended.
        | ((if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
           | if (.metrics.roundBound // null) != null then "\(.metrics.roundBound.round // "-") \(.metrics.roundBound.key)=\(.metrics.roundBound.value)"
             elif $rb != null then "- \($rb.boundKey)=\($rb.boundValue)"

@@ -454,6 +454,75 @@ export PATH="$LOOP_FIXTURES:$LOOP_ISSUE_FIXTURES:$PATH"
 source "$root/tools/loop/tests/loop-cases.sh"
 shell_cases=$(loop_shell_cases)
 
+# ── the three sets that name a case, compared (issue #929) ──────────────────────────────────────────────────
+# `LOOP_SHELL_CASES` *is* the declared set, so the selection list is the suite: a delta that replaces a row instead of
+# inserting one leaves the case's body and its dispatch arm in place and no name any filter can reach, and every
+# refusal the driver already carries is a filter *over* the declared set — so nothing goes red and the suite simply
+# gets smaller. Measured 2026-11-15: branch 922's `1eddc98c` replaced `'state#aCutRecordsTheFilesItsPatchCarries'`
+# with another row, its body (`tools/loop/tests/loop-cases.sh:13670`) and its arm (`:1239`) stayed, and five merges and
+# every focused run by its author read green.
+#
+# The names are derived from the file that was just sourced, never from a second declaration of them: a body is a
+# `case_<group>_<Name>() {` line, an arm is a `'<group>#<Name>') fn=case_<group>_<Name> ;;` line, and the declared set
+# is what `loop_shell_cases` answered. Three shapes are not this suite's own and are not read: a cases file that
+# defines no body at all dispatches by convention (`loop_run_shell_case` overridden, which is what the suite's own
+# nested fixtures write), a body or an arm inside a heredoc belongs to the nested suite that heredoc writes, and the
+# four `stub#owns*` bodies are inside a nested fixture's own quoted `LOOP_SHELL_CASES` string, so they are exempt by
+# name. A file with bodies but no arm table is held only to the bodies and the rows.
+# `driver#aCaseWithNoSelectionRowIsRefused` is the case that holds the refusal to a cases file whose row was replaced.
+registration=$(awk -v declared="$shell_cases" -v q="'" '
+  BEGIN { n = split(declared, d, " "); for (i = 1; i <= n; i++) selected[d[i]] = 1 }
+  {
+    if (hd != "") { if ($0 == hd) hd = ""; next }
+    if ((p = index($0, "<<")) > 0) {
+      rest = substr($0, p + 2); sub(/^-/, "", rest)
+      if (substr(rest, 1, 1) == q || substr(rest, 1, 1) == "\"") rest = substr(rest, 2)
+      if (match(rest, /^[A-Za-z_][A-Za-z0-9_]*/)) { hd = substr(rest, 1, RLENGTH); next }
+    }
+    if ($0 ~ /^case_[a-z]+_[A-Za-z0-9_]+\(\) \{/) {
+      fn = $0; sub(/\(\) \{.*/, "", fn); sub(/^case_/, "", fn)
+      i = index(fn, "_"); nm = substr(fn, 1, i - 1) "#" substr(fn, i + 1)
+      body[nm] = 1; bname[++nb] = nm; next
+    }
+    if (substr($1, length($1) - 1) == q ")" && $2 ~ /^fn=case_/) {
+      key = substr($1, 2, length($1) - 3); fn = $2; sub(/^fn=/, "", fn)
+      arm[key] = fn; akey[++na] = key; next
+    }
+  }
+  END {
+    if (nb == 0) exit 0
+    for (i = 1; i <= nb; i++) {
+      nm = bname[i]
+      if (nm ~ /^stub#owns/ || (nm in selected)) continue
+      printf "loop-selftest: case %s has a body in loop-cases.sh and no row in LOOP_SHELL_CASES — no selection can reach it (issue #929)\n", nm
+    }
+    if (na == 0) {
+      for (nm in selected)
+        if (!(nm in body))
+          printf "loop-selftest: %s is a row of LOOP_SHELL_CASES with no body case_%s and no dispatch arm (issue #929)\n", nm, nm
+      exit 0
+    }
+    for (i = 1; i <= na; i++) {
+      key = akey[i]
+      want = "case_" substr(key, 1, index(key, "#") - 1) "_" substr(key, index(key, "#") + 1)
+      if (!(key in selected))
+        printf "loop-selftest: %s is a dispatch arm with no row in LOOP_SHELL_CASES — nothing can select it (issue #929)\n", key
+      if (!(key in body))
+        printf "loop-selftest: %s is a dispatch arm whose body %s is not in this file (issue #929)\n", key, want
+      else if (arm[key] != want)
+        printf "loop-selftest: %s is reached by %s, which is not the body its name derives (%s) (issue #929)\n", key, arm[key], want
+    }
+    for (nm in selected)
+      if (!(nm in arm))
+        printf "loop-selftest: %s is a row of LOOP_SHELL_CASES with no dispatch arm — a filter can name it and nothing reaches it (issue #929)\n", nm
+  }
+' "$root/tools/loop/tests/loop-cases.sh")
+if [ -n "$registration" ]; then
+  printf '%s\n' "$registration" >&2
+  printf 'loop-selftest: the cases file names a case in one of its three sets and not in another, and a row a delta replaces instead of inserting shrinks the suite in silence (issue #929)\n' >&2
+  exit 1
+fi
+
 # ── the files each case can be affected by ──────────────────────────────────────────────────────────────────
 # A case declares them in the first line of its body, beside its name:
 #

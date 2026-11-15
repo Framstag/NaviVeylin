@@ -427,6 +427,7 @@ LOOP_SHELL_CASES=(
   'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt'
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
+  'driver#aCaseWithNoSelectionRowIsRefused'
   'driver#everyEngineScriptIsInTheTable'
   'driver#noEngineFileExceedsItsBound'
   'driver#aFileWithoutABoundIsRefused'
@@ -1175,6 +1176,7 @@ loop_run_shell_case() {
     'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt') fn=case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
+    'driver#aCaseWithNoSelectionRowIsRefused') fn=case_driver_aCaseWithNoSelectionRowIsRefused ;;
     'driver#everyEngineScriptIsInTheTable') fn=case_driver_everyEngineScriptIsInTheTable ;;
     'driver#noEngineFileExceedsItsBound') fn=case_driver_noEngineFileExceedsItsBound ;;
     'driver#aFileWithoutABoundIsRefused') fn=case_driver_aFileWithoutABoundIsRefused ;;
@@ -16923,6 +16925,47 @@ case_driver_everyCaseDeclaresTheFilesItCanReach() {
   done <<< "$declared"
 
   [ -z "$missing" ] || fail "a case does not declare what it can be reached by:$missing"
+  return 0
+}
+
+# `LOOP_SHELL_CASES` is the declared set, so a row a delta *replaces* instead of inserting leaves a case that parses,
+# has an arm, has a body and is selectable by nothing — and every refusal the driver carried was a filter over the
+# declared set, so the suite simply got smaller (issue #929: branch 922's `1eddc98c` swapped
+# `state#aCutRecordsTheFilesItsPatchCarries` for another name and five merges read green). The driver now derives the
+# three sets from the cases file it sourced and refuses a file they disagree about; this case holds that refusal to
+# the shape the commit wrote, in a nested suite whose cases file is two bodies, two arms and one row.
+case_driver_aCaseWithNoSelectionRowIsRefused() {
+  # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
+  local d out driver conf status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#kept')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  case "$1" in
+    'stub#kept') fn=case_stub_kept ;;
+    'stub#lost') fn=case_stub_lost ;;
+  esac
+  "$fn"
+}
+case_stub_kept() {
+  # files: tools/loop/gate.sh
+  :
+}
+case_stub_lost() {
+  # files: tools/loop/run.sh
+  :
+}
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+
+  out=$(LOOP_CONF="$conf" bash "$driver" --case 'stub#kept' 2>&1); status=$?
+  assert_eq "1" "$status" "a cases file whose body has no row is refused, never read as a whole suite: $out"
+  assert_contains "$out" 'case stub#lost has a body in loop-cases.sh and no row in LOOP_SHELL_CASES' \
+    "and the refusal names the case no selection reaches: $out"
+  assert_not_contains "$out" 'PASS ' "and no case runs, so the row that survived cannot read as the suite: $out"
   return 0
 }
 

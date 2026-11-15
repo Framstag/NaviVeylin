@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.architecture.FeatureRuleTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-15T07:45:21.087Z" hostname="dingens" time="0.215">
+  <properties/>
+  <testcase name="nestedRowOwnsTheImportItPrefixes" classname="com.naviveylin.architecture.FeatureRuleTest" time="0.178"/>
+  <testcase name="featureImportingPortPasses" classname="com.naviveylin.architecture.FeatureRuleTest" time="0.003"/>
+  <testcase name="featureImportingShellFails" classname="com.naviveylin.architecture.FeatureRuleTest" time="0.004"/>
+  <testcase name="featurePurityViolationNamesTheImport" classname="com.naviveylin.architecture.FeatureRuleTest" time="0.005"/>
+  <testcase name="featureDisjunctionViolationNamesTheImport" classname="com.naviveylin.architecture.FeatureRuleTest" time="0.004"/>
+  <testcase name="violationNamesFileImportAndRule" classname="com.naviveylin.architecture.FeatureRuleTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

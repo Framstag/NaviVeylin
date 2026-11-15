@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="6260" failures="0" errors="0" skipped="0" time="673">
+  <system-out>BUILD SUCCESSFUL in 11m 13s 171 actionable tasks: 21 executed, 150 up-to-date. Tallied from the JUnit XML of every module after the run (app/build/test-results/*, core/build/test-results/*, auto/build/test-results/*, architecture/build/test-results/test/*): tests=6260 skipped=0 failures=0 errors=0. The untouched log is evidence/gate-output-869.log; it names :architecture:test, :core:test and :core:testDebugUnitTest, :auto:test and :auto:testDebugUnitTest, :app:test and :app:testMobileDebugUnitTest and :app:testAutomotiveDebugUnitTest among the tasks it ran.</system-out>
+</testsuite>

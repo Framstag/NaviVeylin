@@ -1507,6 +1507,26 @@ lacks it (#855). A count is not
 an answer, so `none` is printed only when all eight sources were
 read and empty — it never hides a branch that carries work.
 
+Which bound stopped a phase is a recorded figure and not only prose (issue #923). `bound` said the run ended a child
+and never what that child had spent, so the archive could be totalled by the class and not by the key: six items a
+bound ended, and not one of them with a figure. `run.sh` now reads the child's own `LOOP-TIMEOUT` line back
+(`bound_key_value`) and writes the pair beside the class — `boundKey`, `boundValue`, the key naming the value in
+`tools/loop/loop.conf` that fired (`LOOP_CHILD_TURNS_MAX_WORKER`, `LOOP_ITEM_CONTEXT_MAX_REVIEWER`,
+`LOOP_CHILD_CHECKS_MAX`, the role-qualified key included) — for the four phases the spec names: the worker, the gate
+child, the tail and the rework worker. A bound no configuration records a value for gets neither: the wall clock and
+the run's own deadline are read as the class they are and no key is guessed from a neighbour. The review round is
+the other half and is **not** the item's class — the spec keeps `stopReason` off a round the run ended
+(`agent-issue-loop`, "An item the run's own bound cut is recorded `cut`, not `blocked`"; issues #785, #790) — so a
+round's ending travels in the round's own field, `metrics.roundBound: {round, boundKey, boundValue}`; `state.sh`
+prints it in a `round` column beside `stop`, and `report.sh` counts it on a line of its own — `rounds a bound ended:
+N of M item(s) · #issue round KEY=value`. `#898` and `#883` are the records this answers: a reviewer bound ended
+each round, both read `cut` with an empty `stop`, and the bound they were ended at is now a figure. The two are never
+folded into one: the bound rate is how many items the run threw away, the round line is how many rounds it paid for
+and could not read. Both readings are derived on read for a record written before the fields — `lib.sh`'s
+`bound_class_jq`, shared by `state.sh` and `report.sh` so there is one predicate and not two — and a round is told
+from an item's own cut by the reviewer's role in the key or by its `cut-short`/`deadline` verdict, because the
+pre-gate round a record of #857, #791, #875 and #861 names carries the bare `LOOP_ITEM_CONTEXT_MAX` in its note.
+
 A skip's line names the reason the item records, not the arm that took it. The report prints the item's `note`, and
 the skip arm wrote the constant `skipped by the worker` into that note on every skip it took, while the child's own
 sentence travelled beside it as `metrics.rootCause` — so the run of 2026-11-11T11:37:08Z printed `#838 too-wide

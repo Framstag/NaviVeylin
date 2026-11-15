@@ -312,7 +312,7 @@ cmd_show() {
      && ! kill -0 "$owner_pid" 2>/dev/null; then
     gone_stop="the run that wrote this state is gone — its process (pid $owner_pid) is not running and it recorded no reason"
   fi
-  jq -r --arg gone "$gone_stop" '
+  jq -r --arg gone "$gone_stop" "$(bound_class_jq)"'
     (.run) as $r
     | "agent-issue-loop — " + (if .current == null then "no item in progress"
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
@@ -327,7 +327,14 @@ cmd_show() {
       "",
       "items",
       (if (.items | length) == 0 then "  (none yet)"
-       else (.items[] | "  #\(.issue) \(.result)/\(.verdict) \(.change // "-") · \(.metrics.wallSeconds // "-")s · rounds \(.metrics.reviewRounds // "-") · gate \(.metrics.gate // "-")") end)
+       else (.items[] | (stop_class) as $c | (bound_of) as $b
+         | (if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
+         | "  #\(.issue) \(.result)/\(.verdict) \(.change // "-") · \(.metrics.wallSeconds // "-")s · rounds \(.metrics.reviewRounds // "-") · gate \(.metrics.gate // "-")"
+           + (if $c == "" then "" else " · stop " + $c end)
+           + (if $b == null then "" else " \($b.boundKey)=\($b.boundValue)" end)
+           + (if (.metrics.roundBound // null) == null then ""
+              else " · round \(.metrics.roundBound.round // "-") ended at \(.metrics.roundBound.key)=\(.metrics.roundBound.value)" end)
+           + (if $rb == null then "" else " · round ended at \($rb.boundKey)=\($rb.boundValue)" end) ) end)
   ' "$STATE_FILE"
 }
 
@@ -617,7 +624,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -640,6 +647,14 @@ cmd_done() {
       --leftover) need_value "$@"; leftover="${2:-}"; shift 2 ;;
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
+      # The bound the class was cut at, and the one that ended a review round (issue #923): the class says a bound
+      # stopped the item and the key says which one, and a round's ending is its own fact because the spec keeps it
+      # off the item's class.
+      --bound-key) need_value "$@"; bound_key="${2:-}"; shift 2 ;;
+      --bound-value) need_value "$@"; bound_value="${2:-}"; shift 2 ;;
+      --round-bound) need_value "$@"; round_bound="${2:-}"; shift 2 ;;
+      --round-bound-key) need_value "$@"; round_bound_key="${2:-}"; shift 2 ;;
+      --round-bound-value) need_value "$@"; round_bound_value="${2:-}"; shift 2 ;;
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
@@ -683,6 +698,40 @@ cmd_done() {
   # except `bound` on a `cut`, which is the same fact one result over (issue #790).
   [ -z "$stop_reason" ] || [ "$result" = blocked ] || { [ "$result" = cut ] && [ "$stop_reason" = bound ]; } ||
     loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
+  # Which bound a mechanism names is a figure beside a class and never on its own (issue #923): the key and the value
+  # are `loop.conf`'s own, so they are accepted only beside `bound`, and accepted together — a figure with no key is
+  # unreadable at the report and a key with no figure is the class twice. The round's ending is the other field: the
+  # spec keeps a round it ended off the item's class (issues #785, #790), so it is `roundBound` and never a second
+  # `stopReason`, and its key and value have the same two rules.
+  case "${bound_key}${bound_value}" in
+    "") ;;
+    *)
+      [ "$stop_reason" = bound ] || loop_die "done: --bound-key and --bound-value name the bound a `bound` class was cut at, and this item records ${stop_reason:-no mechanism}"
+      [ -n "$bound_key" ] && [ -n "$bound_value" ] || loop_die "done: --bound-key and --bound-value are one figure and are given together"
+      case "$bound_key" in
+        LOOP_*) ;;
+        *) loop_die "done: --bound-key names a key loop.conf records (LOOP_…), and this one is $bound_key" ;;
+      esac
+      case "$bound_value" in
+        *[!0-9]*) loop_die "done: --bound-value is the figure the key holds, and this one is $bound_value" ;;
+      esac ;;
+  esac
+  case "${round_bound}${round_bound_key}${round_bound_value}" in
+    "") ;;
+    *)
+      [ -n "$round_bound" ] && [ -n "$round_bound_key" ] && [ -n "$round_bound_value" ] ||
+        loop_die "done: --round-bound names the round a bound ended, with --round-bound-key and --round-bound-value beside it"
+      # No `--stop-reason` is required beside it, and none is refused either: the item's class is the run's to write and
+      # the round's ending is not it — the two travel together on a cut whose round was the round and on a cut whose
+      # child was the child, and neither field is derived from the other.
+      case "$round_bound_key" in
+        LOOP_*) ;;
+        *) loop_die "done: --round-bound-key names a key loop.conf records (LOOP_…), and this one is $round_bound_key" ;;
+      esac
+      case "$round_bound_value" in
+        *[!0-9]*) loop_die "done: --round-bound-value is the figure the key holds, and this one is $round_bound_value" ;;
+      esac ;;
+  esac
   # A landing's own commit is what attaches it to the pipeline run it caused (issue #709): the field is a commit or
   # nothing, so a value that is not one is refused here rather than stored — the score would otherwise read the
   # runs of a commit nobody landed, and the report would print that as the landing's verdict. 7 is git's shortest
@@ -790,11 +839,16 @@ cmd_done() {
                   note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
                   leftoverFiles:(if $lof == "" then null else ($lof | tonumber) end),
                   stopReason:(if $sr == "" then null else $sr end),
+                  boundKey:(if $bk == "" then null else $bk end),
+                  boundValue:(if $bv == "" then null else ($bv | tonumber) end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me,
                           sha:(if $ms == "" then null else $ms end)},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
+                           roundBound:(if $rbk == "" then null
+                                       else {round:(if $rb == "" then null else $rb end),
+                                             key:$rbk, value:($rbv | tonumber)} end),
                            gate:$gate,
                            gateWaived:(if $gw == "" then null else $gw end),
                            gateWaivedSuite:(if $gws == "" then null else $gws end),
@@ -823,6 +877,8 @@ cmd_done() {
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" --arg lof "$leftover_files" \
+    --arg bk "$bound_key" --arg bv "$bound_value" \
+    --arg rb "$round_bound" --arg rbk "$round_bound_key" --arg rbv "$round_bound_value" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg rv "$review_verdict" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
@@ -1287,12 +1343,12 @@ cmd_report() {
   local tokens_warn
   tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
   case "$tokens_warn" in ''|*[!0-9]*) tokens_warn=0 ;; esac
-  jq -r --argjson over "$tokens_warn" '
+  jq -r --argjson over "$tokens_warn" "$(bound_class_jq)"'
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads | round |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -1314,7 +1370,22 @@ cmd_report() {
        # A record written before the field existed has no `stopReason`, one written since carries `null` when no
        # mechanism is given, and only a mechanism block carries a word: all three print `-`, and `//` alone does
        # not, because it yields the empty string for an empty one (#280, review round 1).
-       | ((.stopReason // "") | if . == "" then "-" else . end) as $stopcol
+       | ((stop_class) as $sc
+          | (bound_of) as $bd
+          | if $sc == "" then "-"
+            elif $sc != "bound" then $sc
+            elif (.boundKey // null) != null then "bound \(.boundKey)=\(.boundValue)"
+            elif $bd != null then "bound \($bd.boundKey)=\($bd.boundValue)"
+            else "bound" end) as $stopcol
+       # The round a bound ended is its own column (issue #923): the spec keeps the class off an item whose round was
+       # ended, so such a cut printed `cut` beside `-` — #898 and #883 read exactly that, and a reader could not tell
+       # a round ending from an arm that recorded nothing. A record written since names the round, its key and its
+       # figure; one that predates the field is read from its note. Appended after every column a reader already
+       # quoted, for the reason the band and the calls column were appended.
+       | ((if (.metrics.roundBound // null) == null then (bound_round) else null end) as $rb
+          | if (.metrics.roundBound // null) != null then "\(.metrics.roundBound.round // "-") \(.metrics.roundBound.key)=\(.metrics.roundBound.value)"
+            elif $rb != null then "- \($rb.boundKey)=\($rb.boundValue)"
+            else "-" end) as $roundcol
        # The band column (issue #662): how far above the recorded bound the spend is, and `-` otherwise — below it,
        # no band recorded, or no spend reported at all, which is the same answer the token cell gives. Appended
        # after the mechanism, so every column the report already had keeps its name and its order.
@@ -1339,7 +1410,7 @@ cmd_report() {
         | ((.metrics.dupReads // null) as $dup
            | (.metrics.reads // null) as $reads
            | if $dup == null or $reads == null or $reads == 0 then "-" else "\($dup)/\($reads)" end) as $dupcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) |") end),
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) | \($roundcol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

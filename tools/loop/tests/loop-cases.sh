@@ -232,6 +232,8 @@ LOOP_SHELL_CASES=(
   'run#aSlowChildIsNotMistakenForAVanishedWriter'
   'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
+  'run#aBoundEndedItemRecordsItsBound'
+  'run#aRoundTheRunEndedRecordsItsBound'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
@@ -964,6 +966,8 @@ loop_run_shell_case() {
     'run#aSlowChildIsNotMistakenForAVanishedWriter') fn=case_run_aSlowChildIsNotMistakenForAVanishedWriter ;;
     'run#reviewerEndedAtTheRunsDeadlineIsNotADecision') fn=case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision ;;
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
+    'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
+    'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
@@ -7390,6 +7394,144 @@ EOF
   assert_contains "$out" "review: - · no round of this run ended in a verdict · 1 undecided · 0 never reviewed" \
     "the run's own rate counts the cut round as undecided, never as a refused round"
 }
+
+# Which bound ended an item was readable only in the prose a reader had to parse (issue #923): `bound` says the run ended
+# the item and not what it had spent, so the archive could be totalled by the class and never by the key — six items a
+# bound ended, and no figure for which of the three it was. The child appends a fixture stream of three turns and then
+# blocks, the recorded worker bound is 3, and the run reads the key and the figure out of the `LOOP-TIMEOUT` line the
+# child's own transcript carries — the same line the reason quotes.
+case_run_aBoundEndedItemRecordsItsBound() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # The wall clock keeps its recorded default, so the only bound this case can reach is the worker's turn one, and the
+  # class it records can only be the turn bound's key.
+  sed -e 's/^LOOP_CHILD_TURNS_MAX_WORKER=.*/LOOP_CHILD_TURNS_MAX_WORKER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record a small turn bound"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" ||
+    fail "this case could not shorten the worker's turn bound in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$state")" "with the run's own bound as its class"
+  assert_eq "LOOP_CHILD_TURNS_MAX_WORKER" "$(jq -r '.items[0].boundKey // ""' "$state")" \
+    "and the key the bound is recorded in, read from the child's own LOOP-TIMEOUT line"
+  assert_eq "3" "$(jq -r '.items[0].boundValue // ""' "$state")" \
+    "with the figure that key holds, so the archive can be totalled by the bound and not only by the class"
+  # The state's own table is where a caller reads an item, so the key travels into its `stop` cell too: `bound` alone
+  # left the figure in the note the table prints as prose.
+  assert_contains "$(run_state "$p" report)" "bound LOOP_CHILD_TURNS_MAX_WORKER=3" \
+    "the run's own table names the bound the item was cut at"
+  # …and the figure is the record's, not a second reading of the note: a mechanism with no key keeps its class and
+  # prints it bare rather than a figure guessed from a neighbouring value.
+  assert_contains "$out" "cut short by the run's own bound: #21" \
+    "the report names the item the run's bound cut"
+  return 0
+}
+
+# The other half of the same figure, and the half the spec keeps off the item (issue #923): #898 was ended by the
+# reviewer's turn bound at 110 turns and #883 by the item's context bound inside the reviewer phase, and both read
+# `cut` with an empty `stop` cell — the round's ending survived only in the reason's prose, which no figure counts and
+# no reader can total. The round's own held (`metrics.roundBound`) names the round, the key and the figure, and the
+# item's `stopReason` stays null: the class is the item's, the round's ending is the round's.
+case_run_aRoundTheRunEndedRecordsItsBound() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
+      -e 's/^LOOP_CHILD_TURNS_MAX_REVIEWER=.*/LOOP_CHILD_TURNS_MAX_REVIEWER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record the two bounds in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=3' "$conf" ||
+    fail "this case could not shorten the reviewer's turn bound in loop.conf"
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turn-reviewer.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  reviewer*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$state")" \
+    "and carries no class for the round: the spec keeps the item's class off a round the run ended"
+  assert_eq "1" "$(jq -r '.items[0].metrics.roundBound.round // ""' "$state")" \
+    "the round the run ended records itself under the round's own field"
+  assert_eq "LOOP_CHILD_TURNS_MAX_REVIEWER" "$(jq -r '.items[0].metrics.roundBound.key // ""' "$state")" \
+    "with the key the bound is recorded in"
+  assert_eq "3" "$(jq -r '.items[0].metrics.roundBound.value // ""' "$state")" "and the figure it reached"
+  # The figure is counted apart from the item's class (issue #923): the archive's bound rate answers how many items the
+  # run threw away, and this line answers how many rounds it paid for and could not read. Neither figure is folded
+  # into the other — the class the spec keeps off a round is exactly what this line must not need.
+  assert_contains "$out" "rounds a bound ended: 1 of 1 item(s) · #21 1 LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
+    "the report counts the round the run ended at its bound, beside the class the item does not carry"
+  assert_contains "$out" "bound: 1 of 1 items" "and the item's own bound rate counts the cut, as it did before"
+  return 0
+}
 # it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
 # and restoring the worktree until 23:55, its last restore being what left that tree dirty, so the next run
 # refused to start (measured 2026-10-22, issue #272). A survivor still names the tree it is working in as its
@@ -12705,15 +12847,16 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
   assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
     "whose reason is its own note, so - in the stop column is not a row without a reason"
-  # Eighteen columns, so nineteen separators: the wall, the reason and the three spend columns were added, then
+  # Nineteen columns, so twenty separators: the wall, the reason and the three spend columns were added, then
   # the block's mechanism, then the band an item's spend is read against (issue #662), then the shape it spent it
-  # in (#757), then the reads it repeated (#814), and nothing was dropped. The row keeps its shape with the new
-  # column, and the block neither mechanism caused has the same shape as the others.
-  assert_eq "19" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its eighteen columns"
-  assert_eq "19" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # in (#757), then the reads it repeated (#814), then the ending of the round the run cut (#923), and nothing was
+  # dropped. The row keeps its shape with the new column, and the block neither mechanism caused has the same shape
+  # as the others.
+  assert_eq "20" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its nineteen columns"
+  assert_eq "20" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
-  assert_eq "19" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "20" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
     "and so does a block no mechanism caused"
 }
 

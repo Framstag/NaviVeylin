@@ -1,0 +1,70 @@
+# The anchors this change cites, and the line each one is
+
+Every line below is the file as this working tree holds it (`git diff` against `4227aab7`). The three that name the
+base's own record say so — the issue quotes the tree before the change, and this file reads it back from the commit.
+
+## `tools/loop/prescreen.sh`
+
+```
+$ sed -n 272p tools/loop/prescreen.sh
+       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false, pinned:false, parent:null,
+$ sed -n 302p tools/loop/prescreen.sh
+  parent=$(printf '%s' "$issue" | jq -r '.parent.number // ""')
+$ sed -n 608p tools/loop/prescreen.sh
+     parent:(if $parent == "" then null else ($parent | tonumber) end),
+```
+
+## `tools/loop/state.sh`
+
+```
+$ sed -n 456p tools/loop/state.sh
+  queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates, pinned, parent}]')
+$ sed -n 465p tools/loop/state.sh
+    | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false), parent}
+$ sed -n 929p tools/loop/state.sh
+  parent=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].parent // "") | tostring' "$STATE_FILE" 2>/dev/null || true)
+$ sed -n 954p tools/loop/state.sh
+                  parent:(if $p == "" then null else ($p | tonumber) end),
+$ sed -n 997p tools/loop/state.sh
+    --arg p "$parent" \
+```
+
+## `tools/loop/report.sh`
+
+```
+$ sed -n 377p tools/loop/report.sh
+printf 'by epic: %s\n' "$(jq -r '
+$ sed -n 390p tools/loop/report.sh
+      ($kids | group_by(.parent)
+```
+
+## `tools/loop/tests/loop-cases.sh`
+
+```
+$ sed -n 14749p tools/loop/tests/loop-cases.sh
+case_prescreen_theScreenRecordsTheItemsEpic() {
+$ sed -n 14778p tools/loop/tests/loop-cases.sh
+case_report_theRunGroupsItsItemsByEpic() {
+```
+
+## `tools/loop/tests/loop-mutations.sh`
+
+```
+$ sed -n 1367,1370p tools/loop/tests/loop-mutations.sh | cut -c1-120
+  '920.1@-@tools/loop/prescreen.sh@prescreen#theScreenRecordsTheItemsEpic@the epic the screen writes beside the class, so the tracker…
+  '920.2@-@tools/loop/state.sh@prescreen#theScreenRecordsTheItemsEpic@the queue projection that keeps the epic beside the class, so a screen…
+  '920.3@-@tools/loop/state.sh@prescreen#theScreenRecordsTheItemsEpic@the field the writer copies out of the queue into the item's record, so…
+  '920.4@-@tools/loop/report.sh@report#theRunGroupsItsItemsByEpic@the grouping the line is, replaced by a group per item, so a run of six ch…
+```
+
+## The base's own two lines, as the issue quotes them
+
+```
+$ git show 4227aab7:tools/loop/state.sh | sed -n 943p
+        .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change,
+$ git show 4227aab7:tools/loop/lib.sh | sed -n 818p
+  local fields="number,title,body,labels,issueType,parent,author,state" errfile status
+```
+
+The first is the record with no `parent` in it; the second is the fetch that has asked the tracker for `parent`
+since the issue-type work and written it into nothing.

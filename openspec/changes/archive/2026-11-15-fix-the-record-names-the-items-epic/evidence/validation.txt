@@ -1,0 +1,9 @@
+$ openspec validate fix-the-record-names-the-items-epic --strict
+Change 'fix-the-record-names-the-items-epic' is valid
+
+$ sed -n "/^### Requirement/,/^#### Scenario/p" openspec/changes/fix-the-record-names-the-items-epic/specs/agent-issue-loop/spec.md | sed -e "/^###/d" -e "/^####/d" -e "/^$/d" | tr "
+" " " | wc -c
+477
+
+$ grep -c "^#### Scenario:" openspec/changes/fix-the-record-names-the-items-epic/specs/agent-issue-loop/spec.md
+2

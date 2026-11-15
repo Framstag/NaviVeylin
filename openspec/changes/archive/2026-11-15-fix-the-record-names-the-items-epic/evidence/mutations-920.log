@@ -1,0 +1,14 @@
+RED    920.1  prescreen#theScreenRecordsTheItemsEpic   (the epic the screen writes beside the class, so the tracker's parent link is read and thrown away and the queue holds no epic for any child (issue #920))
+       2026-11-15T17:37:03Z — the screen records the epic a child belongs to: expected '906', got 'null'
+restore 920.1 prescreen#theScreenRecordsTheItemsEpic green again
+RED    920.2  prescreen#theScreenRecordsTheItemsEpic   (the queue projection that keeps the epic beside the class, so a screen that records it still hands the run a queue without one and the item's own record cannot name its epic (issue #920))
+       2026-11-15T17:37:12Z — the queue keeps the epic beside the class (state.sh queue): expected '906', got 'null'
+restore 920.2 prescreen#theScreenRecordsTheItemsEpic green again
+RED    920.3  prescreen#theScreenRecordsTheItemsEpic   (the field the writer copies out of the queue into the item's record, so the epic is in the queue and in no record the report can group by (issue #920))
+       2026-11-15T17:37:20Z — the item's own record names it, which is what the report groups by: expected '906', got 'null'
+restore 920.3 prescreen#theScreenRecordsTheItemsEpic green again
+RED    920.4  report#theRunGroupsItsItemsByEpic   (the grouping the line is, replaced by a group per item, so a run of six children of one epic prints six groups of one and the epic's spend is never summed (issue #920))
+       2026-11-15T17:37:28Z — the epic's children the run worked are counted with how many it closed: 'epic #906: 1 of 2 children closed' not found in: by epic: epic #906: 1 of 1 child closed · 2.5 Mtok · 25 m 0 s · epic #906: 0 of 1 child closed · 2.5 Mtok · 31 s · epi
+restore 920.4 report#theRunGroupsItsItemsByEpic green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

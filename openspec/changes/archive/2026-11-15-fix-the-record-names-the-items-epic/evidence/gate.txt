@@ -1,0 +1,165 @@
+# The gate this change owes, and what it answered
+
+The profile's gate (`LOOP_GATE_CMD="./tools/loop/gate.sh"`) plans its steps from the delta's paths. This change
+touches `tools/loop/**`, `guidelines/Backlog.recipes.md` and one fixture scenario, so the plan was:
+
+```
+$ bash tools/loop/gate.sh --plan
+tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+tools/loop/tests/loop-selftest.sh --from-git 4227aab739ce67e16d031f03fe94d8b2e0f04063
+bash tools/loop/tests/loop-mutations.sh --check
+tools/loop/tests/loop-mutations-selftest.sh
+tools/check-doc-values.sh
+tools/tests/check-doc-values-selftest.sh
+tools/check-doc-routes.sh
+tools/tests/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
+tools/check-portability.sh
+tools/tests/check-portability-selftest.sh
+tools/tests/mutate-selftest.sh
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+tools/issues/tests/issue-tooling-selftest.sh
+tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+```
+
+## The pooled run
+
+```
+$ bash tools/loop/gate.sh          # 35 m 22.8 s, the profile's pool of 4
+LOOP-GATE: tests=242 failures=0 errors=3 (… ) — failing:
+  tools/loop/tests/loop-selftest.sh --from-git 4227aab739ce67e16d031f03fe94d8b2e0f04063
+  bash tools/loop/tests/loop-mutations.sh --check
+  tools/loop/tests/loop-mutations-selftest.sh
+```
+
+Every other step passed in that run, the issue tooling's suite and the two documentation suites included
+(`tools/issues/tests/issue-tooling-selftest.sh 173s`, `tools/check-doc-values.sh 1s`,
+`tools/check-doc-routes.sh 5s`, `tools/check-portability.sh 3s`). The full gate log is
+`app/build/test-results/loop-gate/gate.log` in the tree this ran in, not retained.
+
+The three steps were then run alone, because two of the three failures named cases no path of this change reaches:
+
+```
+$ tools/loop/tests/loop-selftest.sh --from-git 4227aab73…     # 1893.87 s, all 457 cases selected
+FAIL mutation#everyDeclaredRecordApplies
+FAIL run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+FAIL run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+loop-selftest: 3 of 457 cases failed
+
+$ tools/loop/tests/loop-selftest.sh --case run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+PASS run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+$ tools/loop/tests/loop-selftest.sh --case run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+
+$ tools/loop/tests/loop-mutations-selftest.sh               # 24 m 53.9 s, alone
+FAIL the mutation set lists what it declares: expected [400] got [403]
+FAIL and it says how many of the declared set the file set selects: expected [selected 39 of 400 records] in [selected 39 of 403 records …]
+FAIL the selection line names the count and the declared set: …
+FAIL the empty-selection guard message: expected [names no record of the 400 declared] …
+FAIL and it says the same selection the file set named: …
+```
+
+The two `run#` cases are the load's, not the delta's: each passes alone, and neither path this change touches is
+declared by them. The remaining four failures are **one red the base already carries**:
+
+## The red the base carries (not this delta's)
+
+Three records of the #898 change (`898.1`, `898.2`, `898.3`) carry an apostrophe in their description that is not
+escaped for the array, so each splits into a valid record and a bare `item` element. The listing therefore counts
+three records the parser then cannot file, which is what both steps report:
+
+```
+$ bash tools/loop/tests/loop-mutations.sh --check      # this tree
+MUTATION-PATTERN-NOFILE item   (the record names a file the engine does not have)
+MUTATION-PATTERN-NOFILE item   (the record names a file the engine does not have)
+MUTATION-PATTERN-NOFILE item   (the record names a file the engine does not have)
+loop-mutations: 3 of 400 checked records no longer apply — the set is stale
+```
+
+```
+$ git worktree add .pi/worktrees/base 4227aab7 && cd .../tools/loop/tests && bash loop-mutations.sh --check
+loop-mutations: 3 of 396 checked records no longer apply — the set is stale
+```
+
+The same three `MUTATION-PATTERN-NOFILE item` lines at the base commit, which no path of this change reaches. The
+declared count the selftest derives (400 by `sed`, one line per record the array *declares*) and the count the
+harness lists (403, the three split elements included) differ by exactly those three; a tree that repairs them
+makes both steps green with no change to this delta. Left standing while the delta was written and recorded in
+`tasks.md` §9.3; the change that landed as the merge repaired those records, so the red is gone from the merged tree
+(see "After the merge" below).
+
+## After the merge onto `main` (`5458bacd`, `2a30065a`)
+
+The base moved between the delta and its landing — #921's base-red subtraction and the archived
+`blocked-items-name-their-blocker` change landed, the second of them on the same three engine files this delta
+touches. The conflict was one hunk in `tools/loop/tests/loop-mutations.sh`, where both sides appended records to the
+end of the array; it was resolved by keeping both sides' records, and the record set is now green at the base:
+
+```
+$ bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: all 401 cases passed — every selected record applies to the file it names
+```
+
+That also retires the red recorded above: the #898 records that split into a stray `item` element were repaired by the
+landed change, so `mutation#everyDeclaredRecordApplies` and `loop-mutations-selftest.sh` no longer carry it. The cases
+the merged-in change owns and the two this delta adds, run singly against the merged tree:
+
+```
+PASS prescreen#theScreenRecordsTheItemsEpic
+PASS report#theRunGroupsItsItemsByEpic
+PASS prescreen#aBlockedCandidateWaitsForItsPredecessor
+PASS prescreen#theRunHoldsWhatItsBlockedItemShares
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+```
+
+And the four documentation checks of the plan, on the merged tree:
+
+```
+tools/check-doc-values.sh: ok
+tools/check-doc-routes.sh: ok
+tools/check-todo-references.sh: ok
+tools/check-portability.sh: ok
+```
+
+## This delta's own record
+
+```
+$ bash tools/loop/tests/loop-mutations.sh --only "920.1 920.2 920.3 920.4"
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+```
+
+`evidence/mutations-920.log` is that run's own output, verbatim.
+
+## The two steps the merge's mode loss made red
+
+`loop-mutations-selftest.sh` calls the harness itself, not `bash` around it, and the merge that landed the base-red
+subtraction left `tools/loop/tests/loop-mutations.sh` at mode `100644` (the conflict in that same file was resolved
+there the way this delta's own merge resolved it). Restored by `bcec3429` (mode only, no content), and then:
+
+```
+$ bash tools/loop/tests/loop-mutations-selftest.sh
+loop-mutations-selftest: all 36 cases passed — the harness reports an unapplied mutation, an unnoticed one and a
+real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it
+bounds a run by the files a change touched
+```
+
+14 m 42 s on this host, and the count assertions that were red before the merge (`400` declared against `403` listed)
+agree now that the base's three broken records are repaired.
+
+## After the review round
+
+The reviewer's four notes were taken: the wrong figure in the guideline, the missing numeric guard in the screen, the
+two unasserted halves of the record rule, and the stale wording in these artifacts. Re-run after `db591935`:
+
+```
+PASS prescreen#theScreenRecordsTheItemsEpic
+PASS report#theRunGroupsItsItemsByEpic
+$ bash tools/loop/tests/loop-mutations.sh --only "920.1 920.2 920.3 920.4"
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+```

@@ -1,0 +1,36 @@
+# The delta's own surface, against the base it lands on
+
+```
+$ git diff --stat 5458bacd..HEAD
+ guidelines/Backlog.recipes.md                      |  15 +++
+ tools/loop/prescreen.sh                            |  13 ++-
+ tools/loop/report.sh                               |  33 ++++++
+ tools/loop/state.sh                                |  18 +++-
+ .../loop/tests/fixtures/scenarios/epic/issues.json | 111 +++++++++++++++++++++
+ tools/loop/tests/loop-cases.sh                     | 106 ++++++++++++++++++++
+ tools/loop/tests/loop-mutations.sh                 |   8 ++
+ 7 files changed, 299 insertions(+), 5 deletions(-)
+```
+
+and the change's own base, before `main` moved:
+
+```
+$ git diff --stat 4227aab7 574de125
+ guidelines/Backlog.recipes.md                      |  12 +++
+ tools/loop/prescreen.sh                            |  11 +-
+ tools/loop/report.sh                               |  33 ++++++
+ tools/loop/state.sh                                |  18 +++-
+ .../loop/tests/fixtures/scenarios/epic/issues.json | 111 +++++++++++++++++++++
+ tools/loop/tests/loop-cases.sh                     |  89 +++++++++++++++++
+ tools/loop/tests/loop-mutations.sh                 |   8 ++
+ 7 files changed, 277 insertions(+), 5 deletions(-)
+```
+
+The one new file is the fixture scenario the screen's case reads:
+
+```
+$ git ls-tree -r --name-only HEAD tools/loop/tests/fixtures/scenarios/epic/
+tools/loop/tests/fixtures/scenarios/epic/issues.json
+$ wc -l tools/loop/tests/fixtures/scenarios/epic/issues.json
+111 tools/loop/tests/fixtures/scenarios/epic/issues.json
+```

@@ -1,0 +1,3 @@
+StructureReportTest > greenRunPrintsFigures FAILED
+    stale-exemption: architecture/baseline.tsv:31 core/src/main/java/com/naviveylin/core/StringResolver.kt (concept imports no Android type) exempts the file from 'concept imports no Android type', which it no longer violates — remove the entry, so the baseline can only shrink
+> Task :architecture:test FAILED

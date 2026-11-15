@@ -1,0 +1,9 @@
+::error file=tools/doc-routes.json::the rule "the loop records which tree fails the case its gate named" in BuildEvidence.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "a case that needs a landed map frame drives the production path, and no test-only setter publishes one." in BuildTests.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "a case that renders without reporting a surface size asserts nothing lands, and why." in BuildTests.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "drive the scheduler past the renderer's debounce window." in BuildTests.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the pixels are the fake client's, and the bitmap is the renderer's overrun buffer." in BuildTests.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the car POI result list narrows by name from a filter row." in UICar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the POIs mode narrows by name." in UIPhone.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 7 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match

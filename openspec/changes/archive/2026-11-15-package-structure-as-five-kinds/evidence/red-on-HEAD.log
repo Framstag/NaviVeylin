@@ -1,0 +1,12 @@
+ConceptRuleTest > conceptImportsNoAndroidType FAILED
+ConceptRuleTest > conceptImportsNothingOfOurs FAILED
+PortRuleTest > portImportsNoAndroidType FAILED
+PortRuleTest > portImportsOnlyConcept FAILED
+StructureBaselineTest > suppressionAnnotationDoesNotExempt FAILED
+StructureBaselineTest > baselinedFileIsCountedNotReported FAILED
+StructureBaselineTest > staleExemptionFails FAILED
+StructureBaselineTest > exemptionWithoutChangeFails FAILED
+StructureDeclarationTest > emptyDeclarationFails FAILED
+StructureReportTest > greenRunPrintsFigures FAILED
+14 tests completed, 10 failed
+> Task :architecture:test FAILED

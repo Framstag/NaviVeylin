@@ -1,0 +1,94 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :architecture:compileKotlin UP-TO-DATE
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar UP-TO-DATE
+> Task :architecture:compileTestKotlin UP-TO-DATE
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
+
+> Task :architecture:test
+
+StructureDeclarationTest > structureCheckFailsOnRowWithoutPackage FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureDeclarationTest.<init>(StructureDeclarationTest.kt:14)
+
+StructureDeclarationTest > unknownKindFails FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureDeclarationTest.<init>(StructureDeclarationTest.kt:14)
+
+StructureDeclarationTest > structureCheckFailsOnDuplicateRow FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureDeclarationTest.<init>(StructureDeclarationTest.kt:14)
+
+StructureDeclarationTest > defaultDenyFailsForANewPackage FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureDeclarationTest.<init>(StructureDeclarationTest.kt:14)
+
+StructureDeclarationTest > missingDeclarationFails FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureDeclarationTest.<init>(StructureDeclarationTest.kt:14)
+
+StructureDeclarationTest > structureCheckFailsOnUndeclaredPackage FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureDeclarationTest.<init>(StructureDeclarationTest.kt:14)
+
+StructureHookTest > focusedTestRunOnViolatingTreeFails FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureHookTest.<init>(StructureHookTest.kt:20)
+
+StructureHookTest > satisfyingTreeRunsTestsNormally FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.StructureHookTest.<init>(StructureHookTest.kt:20)
+
+GateSuiteListTest > gateFailsAtStructureCheck FAILED
+    com.naviveylin.architecture.DeclarationParseError: architecture/structure.tsv: the structure declaration is missing — a check that cannot read the declaration reports failure, never a pass
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:30)
+        at app//com.naviveylin.architecture.ProjectRoot.declarationText(ProjectSources.kt:20)
+        at app//com.naviveylin.architecture.GateSuiteListTest.gateFailsAtStructureCheck(GateSuiteListTest.kt:54)
+
+10 tests completed, 9 failed
+
+> Task :architecture:test FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':architecture:test'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/architecture/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 3s
+7 actionable tasks: 1 executed, 6 up-to-date

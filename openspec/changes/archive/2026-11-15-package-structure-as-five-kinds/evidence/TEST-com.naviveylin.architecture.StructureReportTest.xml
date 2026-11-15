@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.architecture.StructureReportTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-14T22:54:51.057Z" hostname="dingens" time="1.873">
+  <properties/>
+  <testcase name="greenRunPrintsFigures" classname="com.naviveylin.architecture.StructureReportTest" time="1.863"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

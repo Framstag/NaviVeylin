@@ -1360,6 +1360,13 @@ MUTATIONS=(
   '883.1@-@tools/loop/report.sh@report#theTrendBlockNamesTheGateShareAndTheOutsideWindow@the window read as the clock since the run started instead of the stop the state recorded, so a run reports a span no record holds and the figure dates itself from the moment the report ran (issue #883)@s|--argjson window "\${window_secs:-null}"|--argjson window "$(( $(date +%s) - ${run_epoch:-0} ))"|'
   '883.2@-@tools/loop/report.sh@report#theRefusedLandingIsReadFromTheRecord@the refused landing read back out of the note the block quoted rather than the refusal the run recorded, so the branch and the paths a caller is handed are a second reading of prose (issue #883)@s|^  if \[ "$refusal_kind" = record \]; then$|  if false; then|'
   '883.3@-@tools/loop/state.sh@report#theRefusedLandingIsReadFromTheRecord@the arm that writes a refusal the run handed to its item, so the branch and the paths a block was given are recorded as no refusal at all and the report re-derives them from the note (issue #883)@s|^  if \[ -n "$merge_refused_branch" \]; then$|  if false; then|'
+  # 921.1 — a red the run's base already carried is not the item's (issue #921). Five items of the run of
+  # 2026-11-14T17:40:09Z (`#867`, `#868`, `#878`, `#881`, `#883`) went red at a step no change of theirs touched, and the
+  # step had been red on `main` since before the run's base, so the run's green rate read as the changes' fault. The
+  # subtraction is the one arm: with it gone the pre-flight's record is read and ignored, the carrier step is counted
+  # again, the gate exits 1 and no `LOOP-GATE-BASERED` line names what was subtracted — the case's first half asserts
+  # all three, so the record reds it for the right reason rather than for a line that moved.
+  '921.1@-@tools/loop/gate.sh@gate#aBaseRedStepIsSubtractedAndNamed@the subtraction of the step-and-case pairs a base already red for, so a carrier the change never wrote goes back into the item tally, the gate exits red on it and no line names what left (issue #921)@s|^    elif \[ -n "$base_red_json" \] && base_red_had "$cmd"; then$|    elif false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

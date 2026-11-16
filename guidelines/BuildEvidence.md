@@ -218,11 +218,6 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
 - **Rule: one mutation per revert check.** A combined mutation masks the other behaviour and the assertion
   becomes vacuously true — mutate one guard, run every case it protects, restore, then force the green run.
 - **Rule: after a semantic change to a shared value, grep the test tree for the observable it moved.**
-- **Rule: re-take the guard census before a cleanup, and quote the command with the date.** `tools/loop/census.sh`
-  prints the guards whose cited issue is closed, whose refusal phrase is in no case body, and whose comment cites no
-  issue, plus the pair a retirement needs. Its numbers are evidence about the engine, not a run's input: the tool
-  writes no state and no run reads it. Record the output with the date and the command, as this change's
-  `evidence/census-2026-11-16.log` does; a number without the command is not a claim a later reader can re-take.
 
 ### Native verification — new methods, hidden visibility
 

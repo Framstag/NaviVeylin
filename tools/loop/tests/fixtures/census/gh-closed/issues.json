@@ -1,4 +1,0 @@
-[
-  {"number": 101, "state": "CLOSED", "title": "a closed patron", "labels": []},
-  {"number": 102, "state": "OPEN", "title": "an open patron", "labels": []}
-]

@@ -348,10 +348,6 @@ lengthens an engine script past its row's bound, shares a name across two files,
 `tools/loop/tests/loop-selftest.sh` and needs the row corrected in the same change, with a reason beside the number
 it moves.
 
-A guard's comment cites the issue that put it there. `tools/loop/census.sh` counts the guards whose cited item is
-closed, whose refusal no case carries, and whose comment cites no issue — the number a person reads before retiring
-one (`guidelines/Backlog.recipes.md` section 7d). No run consults it.
-
 ## 7a. Running one item: the script, the child and the package
 
 The run's script, the child's prompt and the result bound are `guidelines/Backlog.recipes.md` §7a.

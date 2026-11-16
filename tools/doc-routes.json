@@ -65,7 +65,8 @@
         "Structure.md §1",
         "Structure.md §2",
         "Structure.md §3",
-        "Structure.md §4"
+        "Structure.md §4",
+        "UIPhone.md §20"
       ],
       "rules": [
         "MapRendering.md §1 \"the vehicle anchor is applied in exactly one place — the follow render target.\"",
@@ -385,7 +386,14 @@
         "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
         "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
         "Structure.md §4 \"the baseline is the only exemption.\"",
-        "Structure.md §4 \"a green run prints what it verified.\""
+        "Structure.md §4 \"a green run prints what it verified.\"",
+        "UIPhone.md §20 \"the phone's settings are one surface, rendered from one registry.\"",
+        "UIPhone.md §20 \"a topic page is one column of sections.\"",
+        "UIPhone.md §20 \"a row is labelled, may carry one short help line, and marks the surface it belongs to.\"",
+        "UIPhone.md §20 \"both hosts share one writer, and the start screen is a host.\"",
+        "UIPhoneMap.md §10a \"the gear's sheet is bounded, and its last row is the way out of it.\"",
+        "UIPhoneMap.md §10a \"the phone has one settings surface, reachable from three hosts.\"",
+        "UIPhoneMap.md §11 \"the settings surface fills the modal band and is never a destination.\""
       ]
     },
     {
@@ -702,7 +710,8 @@
         "BuildGate.md §2d \"provisioning URLs are vendor endpoints, never index package ids.\"",
         "BuildGate.md §2d \"regeneration is deliberate.\"",
         "BuildGate.md §2e \"pin the first major whose committed `action.yml` declares `runs.using: node24`, or a later one.\"",
-        "BuildGate.md §2e \"a new action is recorded before it is pinned.\""
+        "BuildGate.md §2e \"a new action is recorded before it is pinned.\"",
+        "BuildGate.md §2b \"a case that sends `SIGHUP` is started with a plain `&`, never `nohup`.\""
       ]
     },
     {
@@ -841,7 +850,8 @@
         "BuildEvidence.md §11 \"compare the two verdicts.\"",
         "BuildEvidence.md §11 \"say when a measurement was impossible\"",
         "BuildEvidence.md §11 \"iterate with focused suites and drive the device with one reusable script\"",
-        "BuildEvidence.md §4d \"the loop records which tree fails the case its gate named\""
+        "BuildEvidence.md §4d \"the loop records which tree fails the case its gate named\"",
+        "BuildEvidence.md §4d \"a red the base carried is subtracted from the tally, by pair\""
       ]
     },
     {
@@ -921,7 +931,8 @@
       "glob": "guidelines/UI*.md",
       "sections": [
         "UIPhoneMap.md §8",
-        "UIPhoneMap.md §7b"
+        "UIPhoneMap.md §7b",
+        "UIPhone.md §20"
       ],
       "rules": [
         "UI.md §1 \"same labels and visual style across variants.\"",
@@ -1120,7 +1131,14 @@
         "UIPhone.md §19 \"`Notification.actions` is nullable and its icon is read with `getIcon()`.\"",
         "UICar.md §3c \"a car map that has never drawn a frame states the failure in the host content slot.\"",
         "UIPhone.md §6a \"the POIs mode narrows by name.\"",
-        "UICar.md §6b \"the car POI result list narrows by name from a filter row.\""
+        "UICar.md §6b \"the car POI result list narrows by name from a filter row.\"",
+        "UIPhone.md §20 \"the phone's settings are one surface, rendered from one registry.\"",
+        "UIPhone.md §20 \"a topic page is one column of sections.\"",
+        "UIPhone.md §20 \"a row is labelled, may carry one short help line, and marks the surface it belongs to.\"",
+        "UIPhone.md §20 \"both hosts share one writer, and the start screen is a host.\"",
+        "UIPhoneMap.md §10a \"the gear's sheet is bounded, and its last row is the way out of it.\"",
+        "UIPhoneMap.md §10a \"the phone has one settings surface, reachable from three hosts.\"",
+        "UIPhoneMap.md §11 \"the settings surface fills the modal band and is never a destination.\""
       ]
     },
     {

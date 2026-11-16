@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner output. The tree is the run's base
+     (b865087f2ef95d4105a337f6dc7c8badea44c4bb) with this change's case added and `tools/loop/report.sh` unmodified,
+     so this is the reading the delta is red on. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case run#aSkipIsNoGateToRerun"
+           tests="1" failures="1" errors="0" timestamp="2026-11-16T01:52:04Z">
+  <testcase classname="run" name="aSkipIsNoGateToRerun">
+    <failure message="an item skipped before any change is asked for no gate — the gate such a line names cannot exist: 're-run the gate for #21' should not appear in: actions the caller owes:"/>
+  </testcase>
+</testsuite>

@@ -1,0 +1,11 @@
+run#aSkipIsNoGateToRerun|   an item skipped before any change is asked for no gate — the gate such a line names cannot exist: 're-run the gate for #21' should not appear in: actions the caller owes:
+run#aSkipIsNoGateToRerun|   1. re-run the gate for #21 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TCNpSZ/cases/0/tree/case.mbhmP0/repo/.pi/items/21/worker-report.md
+run#aSkipIsNoGateToRerun|   2. re-run the gate for #23 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TCNpSZ/cases/0/tree/case.mbhmP0/repo/.pi/items/23/worker-report.md
+run#aSkipIsNoGateToRerun|   3. re-run the gate for #22 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TCNpSZ/cases/0/tree/case.mbhmP0/repo/.pi/items/22/worker-report.md
+--- run#aSkipIsNoGateToRerun[0] (exit 1)
+  an item skipped before any change is asked for no gate — the gate such a line names cannot exist: 're-run the gate for #21' should not appear in: actions the caller owes:
+  1. re-run the gate for #21 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TCNpSZ/cases/0/tree/case.mbhmP0/repo/.pi/items/21/worker-report.md
+  2. re-run the gate for #23 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TCNpSZ/cases/0/tree/case.mbhmP0/repo/.pi/items/23/worker-report.md
+  3. re-run the gate for #22 — the run recorded no gate result — transcript /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TCNpSZ/cases/0/tree/case.mbhmP0/repo/.pi/items/22/worker-report.md
+FAIL run#aSkipIsNoGateToRerun
+loop-selftest: 1 of 1 cases failed

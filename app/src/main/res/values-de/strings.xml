@@ -435,4 +435,15 @@
          (Spezifikation: `settings-taxonomy`). -->
     <string name="settings_scope_phone">Nur Telefon</string>
     <string name="settings_scope_car">Android Auto</string>
+    <!-- Die Einstellungsfläche (Spezifikation: `settings-surface`, `settings-taxonomy`). Die
+         Themenamen sind die sechs, die die Spezifikation in ihrer Reihenfolge festlegt. -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_topic_map">Karte</string>
+    <string name="settings_topic_navigation">Navigation &amp; Route</string>
+    <string name="settings_topic_hints">Hinweise &amp; Sprache</string>
+    <string name="settings_topic_maps_data">Karten &amp; Daten</string>
+    <string name="settings_topic_advanced">Erweitert</string>
+    <string name="settings_topic_about">Über NaviVeylin</string>
+    <string name="settings_back">Zurück</string>
+    <string name="settings_open_surface">Alle Einstellungen</string>
 </resources>

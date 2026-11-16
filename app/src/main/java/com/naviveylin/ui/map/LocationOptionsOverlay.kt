@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
@@ -150,6 +151,12 @@ fun LocationOptionsOverlay(
      */
     preferSymbolPoiIcons: Boolean = false,
     onSetPreferSymbolPoiIcons: (Boolean) -> Unit = {},
+    /**
+     * The quick sheet's last row: close this sheet and open the settings surface at its root
+     * (spec: `settings-surface` — "The sheet's entry row opens the surface"). Both steps are one
+     * callback, so a host cannot open the surface with the sheet still under it.
+     */
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showSheet by remember { mutableStateOf(false) }
@@ -228,7 +235,14 @@ fun LocationOptionsOverlay(
                 styleSheet = styleSheet,
                 onSetStyleSheet = onSetStyleSheet,
                 preferSymbolPoiIcons = preferSymbolPoiIcons,
-                onSetPreferSymbolPoiIcons = onSetPreferSymbolPoiIcons
+                onSetPreferSymbolPoiIcons = onSetPreferSymbolPoiIcons,
+                // The sheet closes before the surface opens: the surface is a full-height overlay
+                // and the two are never on screen at once (spec: `settings-surface` — "Three entry
+                // points, one surface at a time").
+                onOpenSettings = {
+                    showSheet = false
+                    onOpenSettings()
+                }
             )
         }
     }
@@ -282,7 +296,8 @@ private fun LocationOptionsSheetContent(
     styleSheet: String,
     onSetStyleSheet: (String) -> Unit,
     preferSymbolPoiIcons: Boolean,
-    onSetPreferSymbolPoiIcons: (Boolean) -> Unit
+    onSetPreferSymbolPoiIcons: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     // Vehicle anchor grid dialog target (spec: location-options-ui — Vehicle
     // anchor position controls): null = no picker open.
@@ -787,6 +802,31 @@ private fun LocationOptionsSheetContent(
                     onSetPreferSymbolPoiIcons(preferSymbols)
                 },
                 modifier = Modifier.testTag("preferSymbolIconsToggle")
+            )
+        }
+
+        // The entry row — the sheet's last row in every mode: the settings the map's own state does
+        // not need live in the surface, never here (spec: `settings-surface` — "The quick sheet holds
+        // only the current mode's live controls").
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clickable { onOpenSettings() }
+                .testTag("openSettingsSurfaceRow")
+        ) {
+            Text(
+                text = stringResource(R.string.settings_open_surface),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null
             )
         }
     }

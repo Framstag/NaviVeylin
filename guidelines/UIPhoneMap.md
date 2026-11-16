@@ -38,6 +38,24 @@ Source: spec `map-modes`.
   FREE_DRIVE and NAVIGATION share the driving section (auto-zoom + driving
   orientation). The sheet is reachable during navigation (gear in the nav
   right column).
+- **Rule: the gear's sheet is bounded, and its last row is the way out of it.** The gear opens the
+  quick sheet; the sheet holds only that state's live controls (auto-zoom and orientation
+  in FREE_DRIVE and NAVIGATION, orientation in BROWSE) plus, in every state, a last row that opens
+  the settings surface — `LocationOptionsOverlay`, row `openSettingsSurfaceRow`
+  (`R.string.settings_open_surface`). Every other setting lives on the surface, never in the sheet
+  (spec `settings-surface` — "The quick sheet holds only the current mode's live controls").
+- **Rule: the phone has one settings surface, reachable from three hosts.** `SettingsSurfaceHost`
+  renders one scrolling column from the registry (`SettingsRegistry.root`, six topics in their fixed
+  order), with section titles, an optional short help line under a row's label, a leading
+  phone/car icon on a surface-specific row and a chevron on a row that leaves the surface. It opens
+  at its root from the map menu's Settings entry (`MapMenu`, between Search and About), from the
+  start screen's overflow menu (`MainScreen`) and from the quick sheet's last row, which closes the
+  sheet as it opens the surface. One surface at a time is `SettingsController.surfaceState`, not a
+  per-host convention; system back leaves a topic page for the root and the root for the map
+  (specs `settings-surface`, `settings-taxonomy`, `map-menu`; cases
+  `SettingsSurfaceTest#theMapMenuOpensTheRoot`, `#theStartScreenMenuOpensTheRoot`,
+  `#theSheetRowClosesTheSheetAndOpensTheSurface`,
+  `SettingsSurfaceBackTest#backLeavesTheTopicThenTheSurface`).
 
 ## 7a. Phone map re-center button (per-mode)
 
@@ -189,6 +207,15 @@ navigation status card (§8b), the overlay controls and their density (§8c), an
 map presentation (§8d). The measurements each bound was arrived at, the palettes' contrast
 derivations and the history of the folds that produced them are `UIPhone.why.md` §8b and §8c, and — for
 the cross-variant presentation — `UI.why.md` §8d.
+
+- **Rule: the settings surface fills the modal band and is never a destination.** It is composed in
+  `MapLayer.MODAL`, above the whole chrome band, as a full-height `Surface` with
+  `statusBarsPadding` and its own scroll — so no compass, zoom control, speed widget or street-name
+  pill is tappable while it is open — and it is not a navigation destination: opening or dismissing
+  it leaves the map band's size, the camera, the mode, follow state and any route session exactly as
+  they were (`SettingsSurfaceHost` in `MapCanvasScreenModalBands.kt`; spec `settings-surface` — "The
+  settings surface is a full-height overlay inside the map screen"; cases
+  `SettingsSurfaceTest#theMapKeepsRenderingWhileTheSurfaceIsOpen`, `#dismissingReturnsTheUntouchedMap`).
 
 ## 8b. Tap targets and the navigation status card
 

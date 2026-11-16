@@ -286,3 +286,33 @@ absence of a car notification shade — is `UIPhone.why.md` §18.
 - **Rule: `Notification.actions` is nullable and its icon is read with `getIcon()`.** Test `actions?.isEmpty() != false`, and read the icon with
   `getIcon()` — the Kotlin `icon` field is deprecated and breaks a warning-free build.
 
+## 20. Phone settings surface
+
+Source: specs `settings-surface`, `settings-taxonomy`; change `settings-taxonomy-and-surface`
+(tasks 2.1–2.6). The map's own rules for the same surface — the gear, the sheet, the full-height
+overlay — are `UIPhoneMap.md` §7 and §8.
+
+- **Rule: the phone's settings are one surface, rendered from one registry.** `SettingsSurfaceHost`
+  draws the six topics and each topic page from `SettingsRegistry.root`; a row is a `SettingSpec`,
+  so adding a setting is one table entry and never a composable. The root shows the six topics and
+  no setting row (`SettingsSurfaceTest#theRootShowsSixTopicsAndNoSettingRow`).
+- **Rule: a topic page is one column of sections.** Its rows are grouped under the section titles
+  that own them, a title is not tappable, a row whose setting does not apply is omitted with its
+  empty section, and a link row leaves the surface for the screen its payload names
+  (`SettingControlPayload.Link`: the Map Manager, and the About dialog the app already shows — the
+  tables that declare those two rows land in tasks.md groups 3-6). Cases
+  `SettingsSurfaceTest#aTopicPageShowsSections`, `#anInapplicableSectionIsOmitted`,
+  `#theMapManagerRowOpensTheMapManager`, `#theAboutRowOpensTheDialog`.
+- **Rule: a row is labelled, may carry one short help line, and marks the surface it belongs to.**
+  The label is the row's own `labelRes` and is never truncated by its help text; a phone-only or
+  car-only row carries a leading phone/car icon whose content description names that surface, and a
+  shared row carries none (spec `settings-taxonomy` — "A surface-specific row is marked, a shared row
+  is not"). Cases `SettingsSurfaceTest#aShortHelpLineSitsUnderTheLabel`,
+  `#aSharedRowCarriesNoSurfaceIcon`.
+- **Rule: both hosts share one writer, and the start screen is a host.** The map screen and the start
+  screen read `SettingsController.settings` and write through the same `update`; the start screen
+  takes `SettingsViewModel` (the controller and a one-shot `load()`), never the map's ViewModel. Its
+  overflow menu carries the Settings entry, so the no-map screen has the settings path it lacked
+  (spec `settings-surface` — "The start screen menu opens the surface"; case
+  `SettingsSurfaceTest#theStartScreenMenuOpensTheRoot`).
+

@@ -13,6 +13,7 @@
 #        their rows beneath `lib.sh`, taking orders 2..n; this table is the one place that changes when it does.
 #
 # file	bound	order	note
+census.sh	252	-	the census is a reader beside the entry: no run sources it
 evidence-check.sh	368	-	-
 gate.sh	840	-	-
 labels.sh	297	-	-

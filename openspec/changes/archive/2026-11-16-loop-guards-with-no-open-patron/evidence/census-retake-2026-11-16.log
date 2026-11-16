@@ -1,0 +1,22 @@
+Re-take of the census, 2026-11-16T07:15Z, by the item's second worker process (the first was ended at its context
+checkpoint and its work applied here unchanged).
+
+Command (from the change root):
+
+  bash tools/loop/census.sh
+
+Output:
+
+  guards: 94
+  closed-patron: 4
+  no-case: 72
+  no-patron: 90
+  unheld: 2
+
+The five lines are the ones `evidence/census-2026-11-16.log` records, taken again on the same tree with the tracker
+readable — so the number the change's stop rule reads reproduces, and 2 of 94 is still 2.1 %, below the 10 %
+threshold in `proposal.md`.
+
+The same invocation is what the tool's own permission carries: `tools/loop/census.sh` is executable (mode 755) in
+this tree, so the direct form the guidelines quote (`guidelines/Backlog.recipes.md` §7d, `tools/loop/census.sh`)
+runs as written; the cases keep calling it as `bash …/census.sh`, which needs no mode.

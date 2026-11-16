@@ -1460,6 +1460,28 @@ shared remote, so the delete is the remote's own `git push origin --delete`, whi
 carries a `--force-with-lease` for the tip the ref was judged at — a ref that moved between the read and the delete
 is kept, not removed with whatever it gained.
 
+### The guard census (issue #893)
+
+A guard is history: the issue number in its comment is the run that failed once, and the refusal text is the rule
+that keeps it from failing that way again. `tools/loop/census.sh` reads that history without writing anything. It
+prints the guards whose cited item is **closed**, the guards whose refusal phrase appears in **no case body**, and
+the guards citing **no issue at all**, plus the one total a retirement uses: a guard whose patron is closed **and**
+whose refusal no case carries. `--json` carries the lists behind the counts. A count the tracker could not answer
+is printed as `unread` with the reason, never as zero; the two offline counts are still printed.
+
+The census refuses nothing, changes no label and is read by no run. A retired guard needs the census's closed patron
+*and* no case carrying its refusal, and a person's read of the diff; a guard whose case carries its phrase stays even
+when its patron is closed, because the rule still has a test. Run it before a cleanup, not on a schedule:
+
+```
+tools/loop/census.sh
+```
+
+The 10 % threshold and the retirement record belong to the change that does the retiring, never to `loop.conf`; a
+profile that could tune the threshold could make a healthy engine look like a cleanup. Measured 2026-11-16 on this
+tree (`tools/loop/census.sh`, before the census was committed in this change): `guards: 94`, `closed-patron: 4`,
+`no-case: 72`, `no-patron: 90`, `unheld: 2` — 2 of 94 is 2.1 %, below the change's 10 % stop rule.
+
 
 ## §7e Leftovers, the report and the queue
 

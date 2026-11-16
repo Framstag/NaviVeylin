@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-case-on-HEAD.log,
+     transcribed from that run's own lines, and it is not the runner output. The tree is the run's base
+     (2807ba611a1430188d8880552d30c68ff2458cdb) with this change's case added and its `tools/loop/run.sh` and
+     `tools/loop/state.sh` hunks taken out, so this is the reading the delta is red on. The stamp is the run's own
+     header line, "agent-issue-loop — 2026-11-16T02:38:18Z". -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case run#aCutRunsItsGateOnTheKeptWork"
+           tests="1" failures="1" errors="0" timestamp="2026-11-16T02:38:18Z">
+  <testcase classname="run" name="aCutRunsItsGateOnTheKeptWork">
+    <failure message="the run recorded no gate on the work its cut kept: &lt;the run's own output follows the assertion in the log&gt;"/>
+  </testcase>
+</testsuite>

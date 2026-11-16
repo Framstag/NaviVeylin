@@ -1,0 +1,126 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=8f84a8b8cef90ba18fa70caaab89df2f0f763b48 paths=95 insertions=12396 deletions=74
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/affected-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/declaration-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/gate-attribution-934.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/green-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/mutation-934-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/mutation-934.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/per-file-counts.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/prior-red-aHup-2026-11-13.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/prior-red-aHup-2026-11-13.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/self-test-leg.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/set-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-15-fix-the-file-set-leg-runs-the-cheapest-file/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/base-red-record.json
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/focused-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/gate-attribution-930.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/gate-from-git.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/measure-block.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/prior-red-aHup-2026-11-13.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/prior-red-aHup-2026-11-13.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/revert-checks-local-and-quoted.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/revert-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/shared-rows.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-local-is-not-a-shared-name/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/case-adapter-bound-probe-fresh-ledger.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/check-doc-routes.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/check-doc-values.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/check-openspec-hygiene.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/declaration-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/fixture-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/gate-attribution-881.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/gate-loop-selftest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/green-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/green-case.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/ledger-items-881.tsv
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/prior-red-adapter-gate-916-2026-11-14.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/realigned-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-fix-a-skip-is-no-gate-to-rerun/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/case-adapter-bound-probe-fresh-ledger.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/gate-attribution-878.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/gate-run-r2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/gate-selftest-from-git-b307bf13.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/ledger-items-878.tsv
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/prior-red-adapter-gate-916-2026-11-14.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/prior-red-aHup-2026-11-13.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/quota-selftest-green-r2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/quota-selftest-red-on-head-r2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/evidence/session-floor-history-r2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-16-quota-reader-thresholds-and-cases/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-quota.sh
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/shared.tsv
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/tests/loop-quota-selftest.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git 8f84a8b8cef90ba18fa70caaab89df2f0f763b48
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop/tests/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-quota-selftest.sh
+LOOP-MEASURE-SUITE cases=465 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-cut-gates-the-work-it-keeps scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 engine files edited (tools/loop/run.sh, tools/loop/state.sh), 1 case added, 1 existing case realigned,
+LOOP-MEASURE-END

@@ -2,6 +2,12 @@
 local.properties
 mise.local.toml
 
+# Local Android SDK checkout: `mise.toml` points ANDROID_SDK_ROOT at
+# `{{ config_root }}/.android-sdk`, which is a symlink to the machine's SDK (or a
+# `mise run android:setup` target). Either way it is machine-local, never source.
+.android-sdk
+.android/
+
 # Release signing secrets (never commit)
 app/keystore.properties
 app/release.keystore

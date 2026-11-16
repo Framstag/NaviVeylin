@@ -1,0 +1,238 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+LOOP_TOOL_RESULT_TRIM_RECORD=/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/tool-result-trims.log
+[pi-permission-system] Denied by policy: 'external_directory_read' for tool 'ctx_shell' for path '/dev/zero' (rule '*'): outside working directory '/home/tim/projects/NaviVeylin'.
+  let text;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    return ledger; // no ledger yet: this read is the item's first
+  }
+  for (const line of text.split("\n")) {
+    const parts = line.split("\t");
+    if (parts.length < 5 || !parts[0]) continue;
+    ledger.set(parts.slice(4).join("\t"), {
+      sha: parts[0],
+      turn: Number.parseInt(parts[1], 10) || 0,
+      size: Number.parseInt(parts[2], 10) || 0,
+      session: parts[3],
+    });
+  }
+  return ledger;
+}
+
+/** A ledger that cannot be written costs a repeat, never the result it was being kept for. */
+export function writeLedger(file, ledger) {
+  const lines = [];
+  for (const [path, entry] of ledger) {
+    lines.push(`${entry.sha}\t${entry.turn}\t${entry.size}\t${entry.session || ""}\t${path}`);
+  }
+  try {
+    writeFileSync(file, lines.length ? `${lines.join("\n")}\n` : "");
+  } catch {
+    // the next read of that path is handed over whole: the side that keeps the child working
+  }
+}
+
+/**
+ * The content array the hook returns, with every repeat replaced by its one line and every oversized text block cut.
+ * A changed result drops `structuredContent`: it no longer describes what the child is reading, and the agent's own
+ * contract says so.
+ */
+6000
+exit=0
+6000
+--- out
+# tools/loop/loop.conf — the loop's recorded run defaults, and the three keys that are this project's.
+#
+# The loop's engine is portable: the queue, the worktree, the phases, the gate discipline, the stop
+# conditions and the report name no skill, 
+--- err
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+39:d30e8b7448a86985ff87ab85ecc62705	1	5830	worker-prompt-round2	items/816/gate.log
+discards the tree, and the start is retried, while an owner this run has not recorded keeps today's path to the end
+— escalate, record `blocked`, stop naming the item and the files. Measured on the run of 2026-11-10T08:19:24Z: #807
+was recorded at 11:27:56Z and the start of #100 was refused 3 s later over #807's own leftovers, so the run stopped
+at 11:58Z having spent 218 of its 480 minutes. Over the archive ten runs ended on this refusal and **five** of them
+had leftovers belonging to an item they had recorded themselves — 433, 117, 299, 234, 354 and 262 minutes unspent,
+**1 699** in all, which is the largest waste this tree has paid for a distinction it did not make.
+
+The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
+identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
+an invented one, because a fresh container or CI runner has neither and the item would block on its own
+commit (`fix-loop-git-identity`, issue #167).
+
+A close over a gate that did not pass is a judgement, and the record keeps it as one: the item may still close when
+the red belongs to work the change does not touch, and then the clause it was waived with is `metrics.gateWaived`
+beside the tally it waived, with the suite it names in `metrics.gateWaivedSuite`. The clause is not optional and not
+prose. A tally carrying a nonzero `failures=` or `errors=` is a gate that did not pass (`gate_tally_state` in
+`tools/loop/lib.sh`), and a close over it without the clause is refused twice: `tools/loop/state.sh done` will not
+record it, and `tools/loop/run.sh` turns the outcome into `blocked` before it merges the branch or tells the tracker
+the item closed — so the judgement is never lost between the child that made it and the record. The report counts
+them: its `waived:` line prints the waived closes out of the run's closed items with each suite and its count,
+because the same flake waived twice in one run and counted zero times is evidence that fixes nothing. Measured
+2026-11-06: 3 of the 7 items one run closed carried `errors=1` or `failures=1` beside `verdict: closed`, each waived
+in the prose of its closing child's transcript — "file untouched by this diff", "green in the automotive run" —
+and the report counted all seven alike (#811). The cases are
+`state#aCloseOverARedGateWithoutAWaiverIsRefused`, `state#aCloseOverARedGateRecordsWhyItWasWaived` and
+`run#aCloseOverARedGateIsWaivedOrBlocked`; the mutations are `tools/loop/tests/loop-mutations.sh` 98.1–98.3.
+exit=0
+PASS adapter#theResultBoundExemptsGateEvidence
+bash tools/loop/tests/loop-selftest.sh --case   0,93s user 1,06s system 102% cpu 1,953 total
+--- ledger after probe
+d30e8b7448a86985ff87ab85ecc62705	1	5830	worker-prompt-round2	items/816/gate.log
+  - `childUsage` — red on HEAD 2026-11-02
+  - `aHup` — red 2026-11-13T22:52:39Z + hup change's own `--from-git` gate `tests=428 failures=2`, run before this gate
+- Copies written to change `evidence/` + item dir: failing-step XML, full `gate.log`, 5 prior-red files, `gate-attribution-916.md`.
+- Writes: only inside change `evidence/` + item dir. No git, no tracker, no second gate, no `evidence-check.sh`.
+
+**Files:**
+- `/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/gate-attribution-916.md` (+ 7 copies)
+- `/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/worker-tail-report.md` — marker lines last, `LOOP-GATE-WAIVED` + `LOOP-GATE-WAIVED-SUITE` present, no `LOOP-DECISION`.
+named in the attribution.
+
+## The red gate, attributed
+
+- Change's own paths green: `gate.log:460` `PASS gate#aTestFailureIsAFailureNotAnError`; no `FAIL gate#` anywhere
+  in `gate.log`. The gate's delta line (`gate.log:8`) names the change's files: `guidelines/Backlog.recipes.md`,
+  `openspec/specs/agent-issue-loop/spec.md`, `tools/loop/gate.sh`, `tools/loop/tests/loop-cases.sh`,
+  `tools/loop/tests/loop-mutations.sh`, the change directory — none of them is what the three `run#` cases assert
+  (`tools/loop/run.sh`, `tools/loop/report.sh`, `tools/pi-child-events.sh`, fixtures, prompts).
+- Red before this work, in versioned evidence predating the first process (red test 2026-11-14T19:12:18Z):
+  - `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced` — same message 2026-11-05
+    (`prior-red-run-theWorkersOwnShellWrite-2026-11-05.log`, that gate `tests=772 failures=2`, failing
+    `--from-git 122cc2f9`);
+  - `run#childUsageIsRecordedPerItem` — red on HEAD 2026-11-02 (`prior-red-run-childUsage-2026-11-02.log`);
+  - `run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock` — signal case staged red on purpose (issue #860,
+    comment above the case in `tools/loop/tests/loop-cases.sh`), red-on-HEAD 2026-11-13T22:52:39Z
+    (`prior-red-run-aHup-2026-11-13.log`/`.xml`), and the archived gate of the hup change itself — run before
+    this item's gate — was red on the same selection with `tests="428" failures="2"`
+    (`prior-gate-aHup-change-from-git-2026-11-14.xml`).
+- Stays red after the work: this gate is the measurement above.
+
+Waived with one clause, recorded below and in the change's `gate-attribution-916.md`.
+
+```
+LOOP-VERDICT: closed
+LOOP-CHANGE: fix-a-failing-test-is-a-failure
+LOOP-ROOT-CAUSE: finish_step derived a step's failure count only from the shell suites' `<name>: M of N cases failed` summary (tools/loop/gate.sh:597 at the base), so a JVM test task's per-case `<class> > <case> FAILED` lines were tallied failures=0 errors=1`
+LOOP-RED-TEST: gate#aTestFailureIsAFailureNotAnError fails on HEAD — XML tests=1 failures=1 (2026-11-14T19:12:18Z)
+LOOP-GATE: tests=1100 failures=3 errors=0 (loop suite 443 cases + mutation lists + doc/spec/portability/todo/issue-tooling checks; failing: loop-selftest --from-git 4c4e6819, three run# cases)
+LOOP-GATE-WAIVED: the three failing run# cases assert paths this change's delta does not touch — run.sh, report.sh, pi-child-events.sh, fixtures and prompts versus the gate's own delta of Backlog.recipes.md, the agent-issue-loop spec, gate.sh, the gate# hunks of loop-cases.sh and loop-mutations.sh — the change's own case passed (gate.log:460 PASS gate#aTestFailureIsAFailureNotAnError), and each was red before this work in versioned evidence copied into this change's evidence/ (theWorkersOwnShellWrite with the same LOOP-OUTSIDE-WRITE-ALIVE message on 2026-11-05, childUsage on HEAD 2026-11-02, aHup at 2026-11-13T22:52:39Z plus the hup change's own --from-git gate tests=428 failures=2 run before this item's gate) while this gate keeps it red after the work
+LOOP-GATE-WAIVED-SUITE: tools/loop/tests/loop-selftest.sh --from-git 4c4e681967c30eedc0cdd874a900562ab7f8b32b
+```
+cp: der Aufruf von stat für 'app/build/test-results/loop-gate/tools_loop_tests_loop-selftest.sh_--from-git_4c4e6819.xml' ist nicht möglich: Datei oder Verzeichnis nicht gefunden
+-rw-r--r-- 1 tim tim    852 14. Nov 20:59 mutation-916.1-round2.log
+-rw-r--r-- 1 tim tim    370 14. Nov 20:47 prior-gate-aHup-change-from-git-2026-11-14.xml
+-rw-r--r-- 1 tim tim   1246 14. Nov 20:47 prior-red-run-aHup-2026-11-13.log
+-rw-r--r-- 1 tim tim   1060 14. Nov 20:47 prior-red-run-aHup-2026-11-13.xml
+-rw-r--r-- 1 tim tim   2287 14. Nov 20:47 prior-red-run-childUsage-2026-11-02.log
+-rw-r--r-- 1 tim tim 111786 14. Nov 20:47 prior-red-run-theWorkersOwnShellWrite-2026-11-05.log
+-rw-r--r-- 1 tim tim     43 14. Nov 20:21 red-case-green.log
+-rw-r--r-- 1 tim tim    724 14. Nov 20:23 red-on-HEAD-gate-tally.xml
+-rw-r--r-- 1 tim tim  10157 14. Nov 20:21 red-on-HEAD.log
+-rw-r--r-- 1 tim tim   1011 14. Nov 20:21 red-on-HEAD.xml
+-rw-r--r-- 1 tim tim  16498 14. Nov 20:59 review-round-1-refused.md
+-rw-r--r-- 1 tim tim    343 14. Nov 20:48 review-round-1-requested.md
+=== evidence-check
+DRIFT C2 tests=181 failures=0 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+DRIFT C2 tests=46 failures=0 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+DRIFT C2 tests=46 failures=0 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+DRIFT C2 tests=1100 failures=3 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+DRIFT C2 tests=46 failures=0 is carried by no XML on disk today — a later run overwrote it (why the live rule is: copy the cited XML into <change>/evidence/ before archive)
+ok   C2 test tallies: 20 pairs confirmed, 5 exempted (not retained), 1 unparsable, 8 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 381 resolved and in range, 41 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0
+tools_loop_tests_loop-selftest.sh_--from-git_4c4e681967c30eedc0cdd874a900562ab7f.xml
+--- copied
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --from-git 4c4e681967c30eedc0cdd874a900562ab7f8b32b" tests="443" failures="3" errors="0" time="971" run="733318">
+  <system-out>loop-selftest: phase 2 cases 24.68 s loop-selftest: repeat 7 cases 72.34 s loop-selftest: 3 of 443 cases failed — 969.51 s</system-out>
+</testsuite>
+=== gate line (this round)
+1783:LOOP-GATE: tests=1100 failures=3 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git 4c4e681967c30eedc0cdd874a900562ab7f8b32b 971s, bash tools/loop/tests/loop-mutations.sh --check 11s, tools/loop/tests/loop-mutations-selftest.sh 1096s, bash tools/gen-feature-list.sh --check-classification 12s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 33s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 122s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 4c4e681967c30eedc0cdd874a900562ab7f8b32b
+=== identity
+1:LOOP-GATE-TALLY: app/build/test-results/loop-gate run=733318
+=== the change's own case
+461:PASS gate#aTestFailureIsAFailureNotAnError
+=== the three failures
+622:FAIL run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+928:FAIL run#childUsageIsRecordedPerItem
+985:FAIL adapter#theResultBoundExemptsGateEvidence
+=== diff stat
+ .../design.md                                      |  9 +++--
+ .../evidence/evidence-check.log                    | 17 +++++++--
+ .../proposal.md                                    |  9 +++--
+ .../tasks.md                                       | 43 ++++++++++++++++++----
+ tools/loop/gate.sh                                 | 15 ++++----
+ tools/loop/tests/loop-cases.sh                     |  5 ++-
+ 6 files changed, 70 insertions(+), 28 deletions(-)
+=== project tree status
+=== change root status
+ M openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/design.md
+ M openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/evidence-check.log
+ M openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/proposal.md
+ M openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/tasks.md
+ M tools/loop/gate.sh
+ M tools/loop/tests/loop-cases.sh
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/case-adapter-bound-probe-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/case-adapter-bound-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/case-green-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/doc-checks-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/gate-group-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/gate-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/gate-selftest-from-git-4c4e6819-round2.xml
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/ledger-items-816-gate.log-round2.tsv
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/mutation-916.1-round2.log
+?? openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/evidence/review-round-1-refused.md
+=== the gate's own line and identity (this round)
+4:LOOP-GATE-BASE: 4c4e681967c30eedc0cdd874a900562ab7f8b32b (from the base branch main)
+5:LOOP-GATE-TREE: head=42bc858128c2acb7adec06d442d9f968c4941081 diff=352bd459857f57ae
+6:LOOP-GATE-TALLY: app/build/test-results/loop-gate run=733318
+1788:LOOP-GATE: tests=1100 failures=3 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-s
+=== the three failures in this gate
+627:FAIL run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+933:FAIL run#childUsageIsRecordedPerItem
+990:FAIL adapter#theResultBoundExemptsGateEvidence
+=== the change's own case in this gate
+466:PASS gate#aTestFailureIsAFailureNotAnError
+
+# the gate child's own closing answer
+Round 2 done. Corrections applied, gate run once, evidence in place.
+
+**Blocking correction (a) — the `AssertionError` fallback is gone**
+
+- `tools/loop/gate.sh` (`finish_step`): the second arm (`grep -c '^[[:space:]]*\(java\.lang\.\)\?AssertionError…'`) and the comment clause naming "the two `grep` arms" are deleted. The engine now counts only the per-test lines a step named; a step that named none keeps #268's error (`tests="0" failures="0" errors="1"`) — what the shipped requirement and `Backlog.recipes.md` §7c already say.
+- `design.md`: the elimination is recorded beside alternative 4 (the fallback arm, its date, and why it contradicted the contract). Blast radius recount: `14 lines added, 2 rewritten` (`git diff --numstat 4c4e6819 -- tools/loop/gate.sh`).
+
+**Notes fixed**
+
+- `proposal.md` Surface: post-change numbers with the repeatable command — `tools/look.sh 'cases failed' --path tools/loop --files` → 18 matches in 5 files (`gate.sh` 4, `loop-cases.sh` 9); `tools/look.sh 'errors=' --path tools/loop --files` → 95 in 14 files.
+- `loop-cases.sh`: `tests=46 failures=0 errors=2` marked as the issue text's own number, not a measurement of this record.
+- `tasks.md`: 4.1 names the **archived** path the pointer check ran against; 4.2 marked done (archived + gate run); §5 added for this round.
+- `evidence-check.sh` re-run against the archived path → `evidence-check: PASS`, `exit=0` (C1/C2 report-only for an archived change; 8 drift lines are the tallies a later run overwrote). New `evidence/doc-checks-round2.log` carries each doc check's exit status.
+
+**Verification** — case `PASS gate#aTestFailureIsAFailureNotAnError`; `all 38 cases passed` (`--group gate`); mutation `916.1` → `RED … restore … green again`, `not-noticed: 0`; doc checks exit 0; evidence-check PASS.
+
+**The gate** — `./tools/loop/gate.sh`, once: `LOOP-GATE: tests=1100 failures=3 errors=0`, `LOOP-GATE-TREE: head=42bc858128c2acb7adec06d442d9f968c4941081 diff=352bd459857f57ae`, base `4c4e6819…` (from the base branch main). The change's own case passes inside it (`gate-round2.log:466`).
+
+**The red gate, attributed** (evidence in the change's `evidence/` and the item dir)
+
+- `run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock` — red before this work (`prior-red-run-aHup-2026-11-13.log`).
+- `run#childUsageIsRecordedPerItem` — red on HEAD 2026-11-02 (`prior-red-run-childUsage-2026-11-02.log`).
+- `adapter#theResultBoundExemptsGateEvidence` — **this item's own ledger**, not the change: the case drives `tools/pi-trim-result.mjs` over a made-up path `items/816/gate.log`, and the item's ledger holds that path from the case's first run in this item, so the repeat rule replaces the result with the already-read notice (`ledger-items-816-gate.log-round2.tsv`). The same case **passes** with a fresh ledger (`case-adapter-bound-probe-round2.log`: `PASS adapter#theResultBoundExemptsGateEvidence`), and the delta touches neither the trimmer nor that case.
+- Round 1's third failure (`run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`) is green in this gate: the red set shifts between runs, and all of these assert paths outside the delta (`run.sh`, `report.sh`, `pi-child-events.sh`, fixtures, prompts).
+
+**NOTE (outside this item, not fixed here)** — `adapter#theResultBoundExemptsGateEvidence` is not idempotent under an item's ledger: it must drive the trimmer with its own scratch ledger (`--ledger`) so the item's ledger cannot decide its outcome. Fixing it would be an unrelated change to a case this item does not own.
+
+Files changed: `tools/loop/gate.sh`, `tools/loop/tests/loop-cases.sh`, and the archived change's `design.md`, `proposal.md`, `tasks.md`, `evidence/evidence-check.log` — plus new evidence files under the change's `evidence/` and the item dir. Nothing was written outside the change root and the item's evidence/scratch dirs (the project's own tree is clean).
+
+```
+LOOP-CHANGE: fix-a-failing-test-is-a-failure
+LOOP-ROOT-CAUSE: finish_step filled a failing step's failure count from one summary shape only (`<name>: M of N cases failed`), so a JVM test task's per-case `<class> > <case> FAILED` lines were tallied failures=0 errors=1 and a broken test read as a fallen JVM
+LOOP-RED-TEST: gate#aTestFailureIsAFailureNotAnError fails on HEAD — XML tests=1 failures=1 (2026-11-14T19:12:18Z)
+LOOP-GATE: tests=1100 failures=3 errors=0 (loop suite 443 cases + mutation lists + doc/spec/portability/todo/issue-tooling checks; failing: loop-selftest --from-git 4c4e6819, three cases outside this delta — two run# cases red before this work, and adapter#theResultBoundExemptsGateEvidence, which passes with a fresh ledger)
+```

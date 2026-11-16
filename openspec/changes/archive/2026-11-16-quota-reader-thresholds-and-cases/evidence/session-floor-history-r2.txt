@@ -1,0 +1,5 @@
+07c3612c chore: the loop's short-window floor is 5 percent
+07c3612c chore: the loop's short-window floor is 5 percent
+53dc0b50 feat: the loop pauses on a spent quota instead of ending on it
+07c3612c chore: the loop's short-window floor is 5 percent
+53dc0b50 feat: the loop pauses on a spent quota instead of ending on it

@@ -1,0 +1,8 @@
+  ok   quota#aWindowUnderItsFloorHoldsUntilItResets
+  ok   quota#thePacingLineIsTheElapsedShareLessTheReserve
+  ok   quota#aHoldOnTheLineNamesWhenTheLineArrives
+  ok   quota#anInstantItCannotParseIsNamedNotDropped
+  ok   quota#aBalanceItCannotReadIsAGoWithANote
+  ok   quota#theRecordedValuesAreTheOnesTheseCasesAssume
+
+loop-quota-selftest: all 6 cases passed

@@ -1,0 +1,14 @@
+  ok   quota#aWindowUnderItsFloorHoldsUntilItResets
+  ok   quota#thePacingLineIsTheElapsedShareLessTheReserve
+  ok   quota#aHoldOnTheLineNamesWhenTheLineArrives
+  FAIL quota#anInstantItCannotParseIsNamedNotDropped
+         expected: 0|1|quota: the weekly reset instant "2026-11-14T00:00:00+00:00" is not the shape this reader parses (YYYY-MM-DDTHH:MM:SSZ) — the pacing line is not compared|0|1|quota: the weekly reset instant "2026-11-14T00:00:00.500Z" is not the shape this reader parses (YYYY-MM-DDTHH:MM:SSZ) — the pacing line is not compared|0|1|quota: the weekly reset instant is absent — the pacing line is not compared|3|quota: the weekly quota has 4% left, below the 5% floor|0|false|true|none|3|false|false|weekly
+         actual:   0|0||0|0||0|0||3|quota: the weekly quota has 4% left, below the 5% floor|0|false|true|none|3|false|false|weekly
+  FAIL quota#aBalanceItCannotReadIsAGoWithANote
+         expected: 0|1|quota: the reading at /tmp/tmp.57mBmqj1GL/absent.json is empty or absent — the check is not a refusal|0|1|quota: the reading at /tmp/tmp.57mBmqj1GL/not-a-file.json is empty or absent — the check is not a refusal|0|1|quota: the balance is not the JSON this reader knows — the check is not a refusal|0|1|quota: the balance carries no session and weekly percentage — nothing was compared
+         actual:   0|1|quota: the reading at /tmp/tmp.57mBmqj1GL/absent.json is empty or absent — the check is not a refusal|0|1|quota: the reading at /tmp/tmp.57mBmqj1GL/not-a-file.json is empty or absent — the check is not a refusal|0|1|quota: the balance is not the JSON this reader knows — the check is not a refusal|0|0|
+  FAIL quota#theRecordedValuesAreTheOnesTheseCasesAssume
+         expected: session=5 weekly=5 reserve=5
+         actual:   session=5 weekly=5 reserve=10
+
+loop-quota-selftest: 3 of 6 cases failed

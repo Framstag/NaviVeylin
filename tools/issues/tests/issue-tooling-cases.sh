@@ -95,6 +95,10 @@ ISSUES_SHELL_CASES=(
   'decisions#aReadThatCannotCoverTheSetIsRefused'
   'decisions#theCountIsReportedWithoutReadingTheSet'
   'decisions#theAnswerShapeIsPinnedInTheReader'
+  'decisions#everyOptionSaysWhatTheOwnerGetsAndWhatItRisks'
+  'decisions#theSheetLeadsWithTheVerdict'
+  'decisions#theSheetIsTheFirstThingAfterTheReads'
+  'decisions#theListingIsTheAnswerToWhichAreWaiting'
   'shaping#theQueuePrintsTheVerdictAndClause'
   'shaping#anItemWithNoStatementIsNamed'
   'shaping#anEmptyQueueExitsZero'
@@ -261,6 +265,10 @@ issues_run_shell_case() {
     'decisions#aReadThatCannotCoverTheSetIsRefused') case_decisions_aReadThatCannotCoverTheSetIsRefused ;;
     'decisions#theCountIsReportedWithoutReadingTheSet') case_decisions_theCountIsReportedWithoutReadingTheSet ;;
     'decisions#theAnswerShapeIsPinnedInTheReader') case_decisions_theAnswerShapeIsPinnedInTheReader ;;
+    'decisions#everyOptionSaysWhatTheOwnerGetsAndWhatItRisks') case_decisions_everyOptionSaysWhatTheOwnerGetsAndWhatItRisks ;;
+    'decisions#theSheetLeadsWithTheVerdict') case_decisions_theSheetLeadsWithTheVerdict ;;
+    'decisions#theSheetIsTheFirstThingAfterTheReads') case_decisions_theSheetIsTheFirstThingAfterTheReads ;;
+    'decisions#theListingIsTheAnswerToWhichAreWaiting') case_decisions_theListingIsTheAnswerToWhichAreWaiting ;;
     'shaping#theQueuePrintsTheVerdictAndClause') case_shaping_theQueuePrintsTheVerdictAndClause ;;
     'shaping#anItemWithNoStatementIsNamed') case_shaping_anItemWithNoStatementIsNamed ;;
     'shaping#anEmptyQueueExitsZero') case_shaping_anEmptyQueueExitsZero ;;
@@ -1261,6 +1269,82 @@ case_decisions_theAnswerShapeIsPinnedInTheReader() {
   assert_contains "$text" "**Strategic**" "the strategic view, kept apart from it"
   assert_contains "$text" "rounds to land" "the loop's own unit sits beside gate minutes"
   assert_contains "$text" "decisions.sh --count" "the cheap count route is named, not re-derived"
+}
+
+# Three defects the owner reported on 2026-11-16, each pinned where it happens: the option never said what the owner
+# gets or what it risks, the sheet arrived in pieces because turns narrated their progress, and "which decisions are
+# waiting" cost an extra question. Each case reads the document that carries its rule — the skill for the shape's
+# rules, `references/answer-shape.md` for the order the skeleton puts them in — so a rule stated in one and dropped from
+# the other is a failure rather than a second copy that hides it.
+
+case_decisions_everyOptionSaysWhatTheOwnerGetsAndWhatItRisks() {
+  local body shape got arch
+  body=$(decision_reader_body)
+  shape=$(cat "$ISSUES_REPO_ROOT/.pi/skills/answer-decision/references/answer-shape.md")
+  assert_contains "$body" "**What you get**" "every option states the deliverable, not the mechanism"
+  assert_contains "$body" "**Does it solve it**" "and whether it closes the stated observation"
+  assert_contains "$body" "*full*, *partial* or *no*" "in those three terms, so a residue cannot go unnamed"
+  assert_contains "$body" "and then the residue in the same line: what is still broken" \
+    "with the residue named in the option, since a partial option otherwise reads as a complete one"
+  assert_contains "$body" "**How you'll know**" "and the observable that would show it worked"
+  assert_contains "$body" "**Risk** — the level" \
+    "the risk is a level with the clause that sets it, never a colour on its own"
+  assert_contains "$body" "clause that sets it" "the clause being named, not implied by the level"
+  assert_contains "$body" "*if it is wrong and nobody notices*" "with the four fields the owner asks about"
+  assert_contains "$body" "*who it would hit*" "the blast radius"
+  assert_contains "$body" "*can it be undone*" "the reversibility"
+  assert_contains "$body" "*what would catch it*" "and what would detect it — the field most often left blank"
+  assert_contains "$body" "do nothing" "and the fourth option is priced beside the others"
+  assert_contains "$body" "No file path, no identifier, no tool name" \
+    "the owner's lane admits no code token"
+  # The order is the shape: design D1 rejected "append three lines and keep the mechanism first", and presence alone
+  # cannot tell the two apart — the fields exist in both.
+  got=$(grep -n '^- \*\*What you get\*\*' <<< "$body" | head -1 | cut -d: -f1)
+  arch=$(grep -n '^- \*\*For the architect\*\*' <<< "$body" | head -1 | cut -d: -f1)
+  [ -n "$got" ] && [ -n "$arch" ] || fail "the option's first and last lines are not both labelled: got=$got arch=$arch"
+  [ "$got" -lt "$arch" ] || fail "what the owner gets must precede the mechanism ($got vs $arch), or the shape is the one the design rejected"
+  assert_contains "$shape" "| do nothing |" "the skeleton prices deciding nothing as a column beside the options"
+}
+
+case_decisions_theSheetLeadsWithTheVerdict() {
+  local shape shape_file choice rec solved states options
+  shape_file="$ISSUES_REPO_ROOT/.pi/skills/answer-decision/references/answer-shape.md"
+  [ -f "$shape_file" ] || fail "the answer's skeleton is not at ${shape_file#$ISSUES_REPO_ROOT/}"
+  shape=$(cat "$shape_file")
+  choice=$(grep -n '^\*\*What you are choosing\*\*' <<< "$shape" | head -1 | cut -d: -f1)
+  rec=$(grep -n '^\*\*Recommendation: <option>\*\*' <<< "$shape" | head -1 | cut -d: -f1)
+  solved=$(grep -n '^\*\*Solved means\*\*' <<< "$shape" | head -1 | cut -d: -f1)
+  states=$(grep -n '^## What the item states' <<< "$shape" | head -1 | cut -d: -f1)
+  options=$(grep -n '^## Options' <<< "$shape" | head -1 | cut -d: -f1)
+  for n in "$choice" "$rec" "$solved" "$states" "$options"; do
+    [ -n "$n" ] || fail "a block the owner reads first is missing from the skeleton: choice=$choice rec=$rec solved=$solved states=$states options=$options"
+  done
+  [ "$choice" -lt "$rec" ] || fail "the fork is named before the recommendation ($choice vs $rec)"
+  [ "$rec" -lt "$solved" ] || fail "the recommendation sits above what would prove it solved ($rec vs $solved)"
+  [ "$solved" -lt "$states" ] || fail "the three verdict lines sit above the detail ($solved vs $states)"
+  [ "$states" -lt "$options" ] || fail "the item's state is stated before its options ($states vs $options)"
+}
+
+case_decisions_theSheetIsTheFirstThingAfterTheReads() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "One pass, one message" "the reads are batched into one turn"
+  assert_contains "$body" "the first thing the owner sees after the reads is the sheet" \
+    "and nothing is reported before it"
+  assert_contains "$body" "spends a roundtrip and buys nothing" \
+    "with the narrated turn named as the cost, because that is what the owner pays"
+}
+
+case_decisions_theListingIsTheAnswerToWhichAreWaiting() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "The listing is the whole answer" \
+    "a queue question is answered by the queue, not by an extra question about which item"
+  assert_contains "$body" "no \`ask_user\`, no" "and the case says the reader stops there"
+  assert_contains "$body" "A one-option choice is not a choice" \
+    "a single waiting item needs no selection step at all"
+  assert_contains "$body" "the full sheet, so the owner knows what the wait buys" \
+    "and the one question it must ask says what the wait buys"
 }
 
 # --- the shaping inbox: what a run handed back to a person, and the queue that shows it -----------------------

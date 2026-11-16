@@ -225,27 +225,40 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 
 **The queue's reader is a skill, and it answers the owner's questions rather than the item's.** An item carrying the
 decision label is read by `.pi/skills/answer-decision`, which takes its URL, its number or a pre-migration `§N` — or,
-with nothing named, lists `tools/issues/decisions.sh` and asks which item — and then lays the fork out in the order a
-decider asks for it: what the item states, every option with at least one worked example, and a pro/contra in two
-views kept apart, the short-term one priced in this tree's own numbers (files touched, gate minutes, the loop's rounds,
-decisions still parked) and the strategic one in what recurs (the cause removed or re-counted, and what the next items
-hitting the same mechanism would do to it). The recommendation then states which view decided, because an average of
-the two is exactly the judgement this split exists to prevent. It writes nothing before the owner chooses, and the
-answer leaves through `answer.sh` — the same writer every other answer leaves through, so a skill that wrote its own
-comment would be a second writer.
+with nothing named, prints `tools/issues/decisions.sh` (that listing *is* the answer to "which decisions are waiting",
+and ends the turn) and offers the items as one choice when one is wanted — and then lays the fork out **once**, in the
+order a decider asks for it: what the item states, every option with at least one worked example, a criteria table, the
+risk of each option beside the risk of deciding nothing, and a pro/contra in two views kept apart, the short-term one
+priced in this tree's own numbers (files touched, gate minutes, the loop's rounds, decisions still parked) and the
+strategic one in what recurs (the cause removed or re-counted, and what the next items hitting the same mechanism would
+do to it). The recommendation then states which view decided, because an average of the two is exactly the judgement
+this split exists to prevent. It writes nothing before the owner chooses, and the answer leaves through `answer.sh` —
+the same writer every other answer leaves through, so a skill that wrote its own comment would be a second writer.
 
-**Two of the answer's lines carry no code, and they are the ones a product owner decides from.** The contents state
-what the user sees (today → after, and who is affected) and what is already settled and not to be reopened beside the
-observed, evidenced, why-it-matters and asked lines — because a decider signs the outcome, not the mechanism, and a
-line left out is a decider translating for the reader. Three consequences are part of the shape rather than of a
-reviewer's memory: the escalation's option list is a **starting** list, re-priced and completed by whoever reads the
-tree, since a run may pre-reject an option on a checkable ground or miss one the tree offers (#725); each figure is
-marked measured or claimed, because a number the run wrote is not a number the tree produced; and the cheap calls are
-named — `tools/issues/decisions.sh --count` for a number rather than the 13 kB listing, and the item's own reviewer
-report's findings block rather than the whole report. `tools/issues/tests/issue-tooling-cases.sh` holds a case for
-each of the two: `decisions#theAnswerShapeIsPinnedInTheReader` for the shape, and
-`decisions#theCountIsReportedWithoutReadingTheSet` for the count. A shape stated in prose only drifts silently — that
-is why the two lines arrived late and why a case now reads them.
+**The answer's shape is the owner's, and it is one message.** Four consequences are part of the shape rather than of a
+reviewer's memory. **Two lanes:** the owner's lane carries outcomes in product language and admits no path, identifier
+or tool name — a code token there is a defect of the sheet, not a detail of the mechanism, and a name that cannot be
+avoided is glossed where it first appears — while the mechanism lives under the one heading that names it
+(`.pi/skills/answer-decision/references/answer-shape.md` is the skeleton). **Each
+option says what the owner gets, whether it closes the stated problem and at what residue, how it would be known to
+have worked, and its risk as a level with the clause that sets it plus the four fields** (if it is wrong and unnoticed,
+who it hits, whether it can be undone, what would catch it) — the two no-code contents lines, what the user sees (today
+→ after, and who is affected) and what is already settled and not to be reopened, sit beside them, because a decider
+signs the outcome, not the mechanism. **The risk is compared, not listed:** a table of the options beside a row for
+deciding nothing, since a candidate — the decision label with the loop's own opt-in — spends a slot and the symptom
+continues while it waits, and the recommended option states its own risk as plainly as the rejected ones'. **One pass:** the reads of one turn are batched and the
+first thing the owner sees after them is the sheet — a turn that narrates progress costs a roundtrip and buys nothing
+— and the owner is asked once — one call, a clarifier riding inside it rather than a second turn — in a question whose
+choices carry what each option gets and whose context repeats the recommendation. The escalation's option list is a **starting** list, re-priced and completed by whoever reads the tree,
+since a run may pre-reject an option on a checkable ground or miss one the tree offers (#725); each figure is marked
+measured or claimed, because a number the run wrote is not a number the tree produced; and the cheap calls are named —
+`tools/issues/decisions.sh --count` for a number rather than the 13 kB listing, and the item's own reviewer report's
+findings block rather than the whole report. `tools/issues/tests/issue-tooling-cases.sh` holds a case for each: the
+shape (`decisions#theAnswerShapeIsPinnedInTheReader`), the count (`decisions#theCountIsReportedWithoutReadingTheSet`),
+the option's three questions and its risk (`decisions#everyOptionSaysWhatTheOwnerGetsAndWhatItRisks`), the verdict
+first (`decisions#theSheetLeadsWithTheVerdict`), the one pass (`decisions#theSheetIsTheFirstThingAfterTheReads`) and
+the listing as an answer (`decisions#theListingIsTheAnswerToWhichAreWaiting`). A shape stated in prose only drifts
+silently — that is why the two no-code lines arrived late and why a case now reads them.
 
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Three of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `unspecifiable`, `too-wide` and

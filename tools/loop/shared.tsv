@@ -6,38 +6,37 @@
 #
 # assigned by  the file whose column-0 definition assigns the name — `NAME=…`, `export NAME=…`, `readonly NAME=…`
 #              or `name() {`. A `local`, and an assignment inside a body, is not state a second file reads, so
-#              a name only those assign needs no row. Harvested once from the scripts and never generated from
-#              them: a generator that parsed bash would agree with whatever the code does, including the defect
+#              a name only those assign needs no row. Harvested by reading the scripts and never written by the
+#              suite: a generator that parsed bash would agree with whatever the code does, including the defect
 #              this table exists to catch.
 # read by      the files whose code reads it — a variable as `$name` or `${name…}`, a function at a command
 #              position. A word in a comment, a flag that spells the name, and a jq field are none of these.
+#              A mention inside the function that declares the name `local`, or binds it as the variable of its
+#              `for` loop, is that file's own state and not a read of another file's assignment — which is also
+#              what a value handed across a process boundary on a command line is: the receiver's `local`.
+#              A single-quoted run is carried across lines (a jq program is one), so a name on a line inside it
+#              is not a read either.
 #
 # name	assigned by	read by
-apply	loop-clean.sh	worktree.sh lib.sh
 body	phase.sh	prescreen.sh
-bound	phase.sh	lib.sh run.sh
 bound_class_jq	lib.sh	report.sh state.sh
 blocked	report.sh	prescreen.sh
-branch	run.sh	report.sh lib.sh loop-clean.sh phase.sh prescreen.sh state.sh worktree.sh
-bytes	loop-clean.sh	worktree.sh lib.sh state.sh
+branch	run.sh	report.sh loop-clean.sh phase.sh
 cases	gate.sh	measure.sh
-change_dir	measure.sh	run.sh
 child_check_calls	lib.sh	run.sh
-closed	report.sh	state.sh
-count	prescreen.sh	worktree.sh gate.sh
+count	prescreen.sh	gate.sh
 deadline_at	report.sh	run.sh
 deadline_epoch	report.sh	run.sh
-errors	gate.sh	lib.sh phase.sh
-evidence	labels.sh	evidence-check.sh prescreen.sh worktree.sh
-failures	gate.sh	phase.sh lib.sh
+errors	gate.sh	phase.sh
+evidence	labels.sh	prescreen.sh
+failures	gate.sh	phase.sh
 fmt_elapsed	lib.sh	run.sh
 gate_check_programs	lib.sh	state.sh
 gate_command_jq	lib.sh	state.sh
 gate_program	lib.sh	state.sh
 gate_tally_state	lib.sh	state.sh run.sh
-issue	labels.sh	prescreen.sh phase.sh report.sh run.sh state.sh worktree.sh
+issue	labels.sh	prescreen.sh phase.sh report.sh run.sh
 item	measure.sh	report.sh
-kept	loop-clean.sh	state.sh worktree.sh
 LOOP_AUTHORISATION_LABEL	lib.sh	prescreen.sh
 loop_base_ref	lib.sh	loop-clean.sh gate.sh labels.sh run.sh state.sh worktree.sh
 loop_bound_under_ceiling	lib.sh	gate.sh
@@ -90,21 +89,11 @@ loop_unlanded_commits	lib.sh	prescreen.sh loop-clean.sh report.sh worktree.sh
 LOOP_USAGE	lib.sh	phase.sh state.sh
 loop_worktree_branches	lib.sh	worktree.sh loop-clean.sh
 LOOP_WORKTREE	lib.sh	run.sh loop-clean.sh phase.sh report.sh worktree.sh
-max_decisions	run.sh	state.sh
-max_review_rounds	run.sh	state.sh
-merge_refused_branch	run.sh	state.sh
-merge_refused_paths	run.sh	state.sh
-owner_pid	report.sh	state.sh
 path_count	measure.sh	report.sh
-phase	phase.sh	lib.sh run.sh state.sh
 progress	lib.sh	run.sh
-prompt	phase.sh	run.sh
-push	run.sh	state.sh
 read_err	prescreen.sh	run.sh
-reason	labels.sh	prescreen.sh report.sh state.sh worktree.sh
-record_dir	run.sh	worktree.sh
-review	run.sh	state.sh report.sh
-size	phase.sh	loop-clean.sh gate.sh run.sh
-stop_reason	report.sh	run.sh state.sh
-tree	loop-clean.sh	gate.sh lib.sh
-verdict	labels.sh	lib.sh phase.sh prescreen.sh state.sh
+reason	labels.sh	prescreen.sh report.sh state.sh
+size	phase.sh	loop-clean.sh
+stop_reason	report.sh	run.sh
+tree	loop-clean.sh	gate.sh
+verdict	labels.sh	phase.sh prescreen.sh

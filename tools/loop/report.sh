@@ -258,9 +258,7 @@ cap_named=$(jq -r "[ .items[]
 
 # The archive is the finished runs `state.sh init` kept beside this one — the directory it derives, a project's
 # `LOOP_RUNS_DIR` when it records one — read in one pass over every file it holds, with the run being reported left
-# out so the line does not count it twice. The paths it reads are kept under this report's own spelling: `lib.sh`
-# holds a function-local `archived`, and a static reader of the engine that counts the two as one name is refused a
-# row for state no two files share (`driver#theSharedNamesAreDeclared`).
+# out so the line does not count it twice.
 archive_runs=$(loop_conf_value LOOP_RUNS_DIR)
 case "$archive_runs" in
   "") archive_runs="$(dirname "$state_file")/runs" ;;

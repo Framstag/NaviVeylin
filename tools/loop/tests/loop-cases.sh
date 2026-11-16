@@ -432,6 +432,8 @@ LOOP_SHELL_CASES=(
   'driver#aFileWithoutABoundIsRefused'
   'driver#aNameAssignedTwiceIsRefused'
   'driver#anUndeclaredReadIsRefused'
+  'driver#aLocalIsNotAShareOfAnotherFilesName'
+  'driver#aQuotedProgramIsNotAShellRead'
   'driver#theSharedNamesAreDeclared'
   'driver#theSourceOrderIsDeclared'
   'driver#aCallToALaterFilesFunctionFails'
@@ -1180,6 +1182,8 @@ loop_run_shell_case() {
     'driver#aFileWithoutABoundIsRefused') fn=case_driver_aFileWithoutABoundIsRefused ;;
     'driver#aNameAssignedTwiceIsRefused') fn=case_driver_aNameAssignedTwiceIsRefused ;;
     'driver#anUndeclaredReadIsRefused') fn=case_driver_anUndeclaredReadIsRefused ;;
+    'driver#aLocalIsNotAShareOfAnotherFilesName') fn=case_driver_aLocalIsNotAShareOfAnotherFilesName ;;
+    'driver#aQuotedProgramIsNotAShellRead') fn=case_driver_aQuotedProgramIsNotAShellRead ;;
     'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
     'driver#theSourceOrderIsDeclared') fn=case_driver_theSourceOrderIsDeclared ;;
     'driver#aCallToALaterFilesFunctionFails') fn=case_driver_aCallToALaterFilesFunctionFails ;;
@@ -16938,11 +16942,16 @@ case_driver_everyCaseDeclaresTheFilesItCanReach() {
 # The words the refusals rest on are stated once, here, because a table is worth nothing if the rule behind it lives
 # only inside a case body:
 #   assigned   a line at column 0 defines the name — `NAME=…`, `export NAME=…`, `readonly NAME=…`, or `name() {`. A
-#              `local`, and an assignment inside a body, is not state a second file can read, so it needs no row.
+#              `local`, and an assignment inside a body, is not state a second file can read, so it needs no row: the
+#              function a mention sits in is what decides whether the mention is a read of another file's name.
 #   read       the file's code uses the name as what the definition says it is: a variable as `$name` or `${name…}`, a
 #              function at a command position (`; name`, `| name`, `$(name`, `if name`). A comment is cut before the
-#              test, and so is text a shell never scans — a single-quoted string, and a double-quoted one with no
-#              command substitution in it — so a word in prose, a flag that spells the name and a jq field are not reads.
+#              test, and so is text a shell never scans — a single-quoted run, however many lines it spans, and a
+#              double-quoted one with no command substitution in it — so a word in prose, a flag that spells the name
+#              and a jq field are not reads.
+#   own        a name the mention's own function declares `local`, or binds as the variable of its `for` loop, is that
+#              file's state and not a read of another file's assignment: a value handed across a process boundary on a
+#              command line is the receiving function's `local`, so a handoff needs no row.
 #   shared     exactly one file assigns the name and a different file reads it.
 #
 # The approximation is deliberate and it is the same reader on both sides of every comparison: a name it reads as shared
@@ -16963,13 +16972,101 @@ BEGIN {
   count = ARGC - 1
   for (i = 1; i <= count; i++) ARGV[ARGC++] = ARGV[i]
 }
-FNR == 1 { pass++ }
+# A single-quoted run outlives the line it was opened on — a jq program is one — so its state is carried, and the
+# function a line belongs to is reset, at the head of every file and of every pass over it.
+FNR == 1 { pass++; sq = 0; fn = "" }
 
-# What a shell scans for a name: the line without its comment, without its single-quoted text, and — for a function —
+# The position of the `#` that opens a comment — at the head of a line, or after whitespace — or 0 when the line has
+# none. An apostrophe in a comment is not a quote, which is why the comment goes before the runs are read.
+function comment_at(line,   pos, from) {
+  from = 1
+  while ((pos = index(substr(line, from), "#")) > 0) {
+    pos = from + pos - 1
+    if (pos == 1 || substr(line, pos - 1, 1) ~ /^[ \t]$/) return pos
+    from = pos + 1
+  }
+  return 0
+}
+
+# How many double quotes a run of text holds — an escaped one is not a quote — because an apostrophe inside one of them
+# is not the start of a single-quoted run (`"the author's"` is a string, not a run).
+function quotes_before(s,   n, i) {
+  n = 0
+  while (s != "") {
+    i = index(s, "\"")
+    if (i == 0) break
+    if (i == 1 || substr(s, i - 1, 1) != "\\") n++
+    s = substr(s, i + 1)
+  }
+  return n
+}
+
+# A run opens where a word can begin; an apostrophe in the middle of one (`don't`) is a letter, not a quote.
+function opens_run(head) {
+  if (head == "") return 1
+  return substr(head, length(head), 1) ~ /^[ \t=(|;&<>]$/
+}
+
+# The line with everything a shell never scans dropped: the comment, and the single-quoted runs, wherever they open and
+# close. `''` stands in for a dropped run so two words never merge into one.
+function drop_single_quoted(line,   out, cut, head, dq) {
+  out = ""
+  dq = 0
+  while (line != "") {
+    if (sq) {
+      cut = index(line, "'")
+      if (cut == 0) return out
+      line = substr(line, cut + 1)
+      sq = 0
+    } else {
+      cut = index(line, "'")
+      if (cut == 0) return out line
+      head = substr(line, 1, cut - 1)
+      dq += quotes_before(head)
+      out = out head
+      line = substr(line, cut + 1)
+      if (dq % 2 || !opens_run(head)) { out = out "'"; continue }
+      out = out "''"
+      sq = 1
+    }
+  }
+  return out
+}
+
+# The line as the mention pass reads it: a comment cut first, and again after the runs are dropped, because a line can
+# hold a run and a comment on either side of it.
+function line_for_scan(line,   h, q) {
+  if (!sq) {
+    h = comment_at(line); q = index(line, "'")
+    if (h && (q == 0 || h < q)) line = substr(line, 1, h - 1)
+  }
+  line = drop_single_quoted(line)
+  if (!sq) { h = comment_at(line); if (h) line = substr(line, 1, h - 1) }
+  return line
+}
+
+# The names a function declares its own: `local`'s words without its flags, and the variable its `for` loop binds.
+function own_names(rest, f,   n, w, i, v) {
+  n = split(rest, w, /[ \t]+/)
+  for (i = 1; i <= n; i++) {
+    v = w[i]
+    if (v ~ /^-/) continue
+    sub(/=.*/, "", v)
+    if (v ~ /^[A-Za-z_][A-Za-z0-9_]*$/) own[f, v] = 1
+  }
+}
+
+function own_counter(line, f,   rest) {
+  rest = line
+  sub(/^[ \t]*for[ \t]+/, "", rest)
+  sub(/^\(\([ \t]*/, "", rest)
+  if (match(rest, /^[A-Za-z_][A-Za-z0-9_]*/)) own[f, substr(rest, 1, RLENGTH)] = 1
+}
+
+# What a shell scans for a name: the line without its single-quoted text (already dropped), and — for a function —
 # without the part of a double-quoted run that holds no command substitution.
 function scanned(line, unquoted,   out, head, tail, quote, pos) {
   sub(/[ \t]#.*/, "", line)
-  gsub(/'[^']*'/, "''", line)
   if (!unquoted) return line
   out = ""
   while ((head = index(line, "\"")) > 0) {
@@ -17007,7 +17104,14 @@ function is_call(line, name,   n, w, i, prev) {
 }
 
 pass <= count { # the assignment pass
-  line = $0
+  line = line_for_scan($0)
+  # The function this line belongs to, and the names it declares its own: the engine opens a body with `name() {` at
+  # column 0 and closes it with `}`.
+  if (line ~ /^[A-Za-z_][A-Za-z0-9_]*\(\)/) { fn = line; sub(/\(\).*/, "", fn) }
+  if (line ~ /^}/) fn = ""
+  if (fn != "" && line ~ /^[ \t]*local[ \t]/) own_names(substr(line, index(line, "local") + 5), fn)
+  else if (fn != "" && line ~ /^[ \t]*for[ \t]/) own_counter(line, fn)
+
   if (match(line, /^export[ \t]+[A-Za-z_][A-Za-z0-9_]*=/)) {
     s = substr(line, 8, RLENGTH - 8); sub(/=.*/, "", s); kind[s] = "var"
   } else if (match(line, /^readonly[ \t]+[A-Za-z_][A-Za-z0-9_]*=/)) {
@@ -17025,9 +17129,13 @@ pass <= count { # the assignment pass
 }
 
 { # the mention pass
-  if ($0 ~ /^[ \t]*#/) next
-  line = $0
+  line = line_for_scan($0)
+  if (line ~ /^[ \t]*#/) next
+  if (line ~ /^[A-Za-z_][A-Za-z0-9_]*\(\)/) { fn = line; sub(/\(\).*/, "", fn) }
+  else if (line ~ /^}/) fn = ""
   for (name in kind) {
+    # A name the function this line is inside declares its own is that file's state, not a read of another file's.
+    if (fn != "" && ((fn, name) in own)) continue
     # `index` is the cheap guard the regex would otherwise pay for on every line: a name this line does not spell is
     # not a read of it, so the engine is read in about a second instead of in twenty.
     if (kind[name] == "var") {
@@ -17363,6 +17471,43 @@ case_driver_anUndeclaredReadIsRefused() {
   out=$(layout_shared_refusals "$d")
   assert_contains "$out" "gone is declared and no file a second one reads assigns it" \
     "a stale row is refused, by name: $out"
+  return 0
+}
+
+case_driver_aLocalIsNotAShareOfAnotherFilesName() {
+  # files: tools/loop/ tools/loop/shared.tsv
+  local out d
+  d=$(scratch)
+  # One file assigns the name; the other reads its own `local` of the same spelling. The two are not one name, so the
+  # declaration owes no row — the rule the header states and the mention pass used to miss.
+  printf 'shared_thing=1\n' > "$d/a.sh"
+  printf 'reader() {\n  local shared_thing=""\n  printf "%%s\\n" "$shared_thing"\n}\n' > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "" "$out" "a read inside the function that declares the name local is not a share: $out"
+
+  # …and a file's own loop counter is its own, whatever another file calls its column-0 assignment.
+  printf 'counted=1\n' > "$d/a.sh"
+  printf 'walk() {\n  for counted in one two; do printf "%%s\\n" "$counted"; done\n}\n' > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "" "$out" "a for-loop variable is the file's own counter, not a share: $out"
+  return 0
+}
+
+case_driver_aQuotedProgramIsNotAShellRead() {
+  # files: tools/loop/ tools/loop/shared.tsv
+  local out d
+  d=$(scratch)
+  printf 'col=1\n' > "$d/a.sh"
+  # A jq program opened on one line and closed on the next: the name is spelled on the second line, inside the run, so
+  # the shell never scans it and it is not a read.
+  {
+    printf 'render() {\n'
+    printf "  jq 'select(.issue == 1)\n"
+    printf "    | select(.count == \$col)' \"\$1\"\n"
+    printf '}\n'
+  } > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "" "$out" "a name inside a single-quoted run is not read, on any line of the run: $out"
   return 0
 }
 

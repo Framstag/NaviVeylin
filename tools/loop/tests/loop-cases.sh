@@ -495,6 +495,14 @@ LOOP_SHELL_CASES=(
   'run#aQuotaHoldPausesTheRunAndResumesIt'
   'run#theQuotaSwitchIsExplicit'
   'report#theSpendIsWorkNotWaiting'
+  'census#theCensusIsANumber'
+  'census#aClosedPatronWithNoCaseIsCounted'
+  'census#anUnreadCountIsNamed'
+  'census#everyGuardNamesItsPatron'
+  'census#aGuardWithoutAPatronIsCounted'
+  'census#theCitationFormIsRead'
+  'census#theCensusRefusesNothing'
+  'census#aRunDoesNotConsultTheCensus'
 )
 
 loop_shell_cases() {
@@ -1245,6 +1253,14 @@ loop_run_shell_case() {
     'report#theBoundRateIsNamed') fn=case_report_theBoundRateIsNamed ;;
     'report#theArchivesClassesAreDerivedNotInvented') fn=case_report_theArchivesClassesAreDerivedNotInvented ;;
     'state#aCutRecordsTheFilesItsPatchCarries') fn=case_state_aCutRecordsTheFilesItsPatchCarries ;;
+    'census#theCensusIsANumber') fn=case_census_theCensusIsANumber ;;
+    'census#aClosedPatronWithNoCaseIsCounted') fn=case_census_aClosedPatronWithNoCaseIsCounted ;;
+    'census#anUnreadCountIsNamed') fn=case_census_anUnreadCountIsNamed ;;
+    'census#everyGuardNamesItsPatron') fn=case_census_everyGuardNamesItsPatron ;;
+    'census#aGuardWithoutAPatronIsCounted') fn=case_census_aGuardWithoutAPatronIsCounted ;;
+    'census#theCitationFormIsRead') fn=case_census_theCitationFormIsRead ;;
+    'census#theCensusRefusesNothing') fn=case_census_theCensusRefusesNothing ;;
+    'census#aRunDoesNotConsultTheCensus') fn=case_census_aRunDoesNotConsultTheCensus ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -20690,4 +20706,129 @@ case_prescreen_aContainerTypeIsNotWork() {
   out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || fail "the screen failed with no container role"
   assert_eq "2" "$(jq -r '.queue | length' "$(state_file "$p")")" \
     "with no container declared, every typed item is work"
+}
+
+# --------------------------------------------------------------------------- the guard census (issue #893)
+# The census is a reader over the engine's own guard comments and the suite's own case text. These cases use a
+# fixture engine and a fixture cases file, so they need no tracker credential and no network; the one tracker
+# question is answered by the same stub `gh` the issue tooling uses.
+
+census_fixture() { printf '%s/%s' "$LOOP_FIXTURES/census" "$1"; }
+
+case_census_theCensusIsANumber() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local d out
+  d=$(scratch)
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" \
+    --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census refused a readable tracker and a fixture engine: $out"
+  assert_contains "$out" 'guards: 3' "the census counts the guards it read: $out"
+  assert_contains "$out" 'closed-patron: 1' "one guard's patron is closed: $out"
+  assert_contains "$out" 'no-case: 2' "two guards' phrases are in no case body: $out"
+  assert_contains "$out" 'no-patron: 1' "one guard cites no issue: $out"
+  assert_contains "$out" 'unheld: 1' "the closed guard with no case is the total: $out"
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" --json \
+    --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census's --json refused a readable tracker: $out"
+  assert_eq "3" "$(printf '%s' "$out" | jq -r '.guards')" "the JSON carries the guard count"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.closed_patron | length')" "…and the closed list"
+  assert_eq "2" "$(printf '%s' "$out" | jq -r '.no_case | length')" "…and the no-case list"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.no_patron | length')" "…and the no-patron list"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.unheld | length')" "…and the pair"
+  assert_eq "read" "$(printf '%s' "$out" | jq -r '.patron.state')" "a readable tracker is named as read"
+}
+
+case_census_aClosedPatronWithNoCaseIsCounted() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local out line
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" --json \
+    --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census failed on the closed-patron fixture: $out"
+  line=$(printf '%s' "$out" | jq -r '.closed_patron[0].line')
+  assert_eq "6" "$line" "the closed guard is the one the fixture put under issue #101"
+  assert_eq "1" "$(printf '%s' "$out" | jq '[.no_case[] | select(.line == 6)] | length')" \
+    "the same guard is in the no-case count"
+  assert_eq "1" "$(printf '%s' "$out" | jq '[.unheld[] | select(.line == 6)] | length')" \
+    "and the total holds it once, not twice"
+  assert_eq "101" "$(printf '%s' "$out" | jq -r '.closed_patron[0].issues[0]')" \
+    "the closed list names the patron it read"
+}
+
+case_census_anUnreadCountIsNamed() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local out status
+  out=$(GH_STUB_DIR=$(census_fixture gh-fail) bash "$LOOP_ENGINE/census.sh" \
+    --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)" 2>&1); status=$?
+  assert_eq "0" "$status" "a tracker that cannot be read is not the census's refusal: $out"
+  assert_contains "$out" 'closed-patron: unread —' "the patron count is named unread with its reason: $out"
+  assert_not_contains "$out" 'closed-patron: 0' "a count it could not take is not printed as zero: $out"
+  assert_contains "$out" 'no-case: 2' "the two offline counts are still printed: $out"
+  assert_contains "$out" 'no-patron: 1' "…including the one that needs no tracker: $out"
+  out=$(GH_STUB_DIR=$(census_fixture gh-fail) bash "$LOOP_ENGINE/census.sh" --json \
+    --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the JSON path refused an unread tracker: $out"
+  assert_eq "unread" "$(printf '%s' "$out" | jq -r '.patron.state')" "the JSON names the patron count unread"
+  [ -n "$(printf '%s' "$out" | jq -r '.patron.reason')" ] || fail "the unread count carries no reason: $out"
+}
+
+case_census_everyGuardNamesItsPatron() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local out
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" --json \
+    --engine "$(census_fixture every-guard-engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census failed on the every-guard fixture: $out"
+  assert_eq "2" "$(printf '%s' "$out" | jq -r '.guards')" "both guards were read"
+  assert_eq "0" "$(printf '%s' "$out" | jq -r '.no_patron | length')" "a guard whose comment cites its issue is held"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.closed_patron | length')" "and the census reads the closed citation it was given"
+}
+
+case_census_aGuardWithoutAPatronIsCounted() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local out
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" --json \
+    --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census failed on the no-patron fixture: $out"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.no_patron | length')" "the uncited guard is its own bucket"
+  assert_eq "11" "$(printf '%s' "$out" | jq -r '.no_patron[0].line')" "the bucket names the guard's line"
+  assert_eq "0" "$(printf '%s' "$out" | jq -r '.no_patron[0].issues | length')" "and carries no invented patron"
+}
+
+case_census_theCitationFormIsRead() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local out
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" --json \
+    --engine "$(census_fixture citation-engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census failed on the citation fixture: $out"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.closed_patron | length')" "the parenthesised/bare engine form is read"
+  assert_eq "101" "$(printf '%s' "$out" | jq -r '.closed_patron[0].issues[0]')" "the cited number is the patron"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.no_patron | length')" "a bare #102 in prose is not a patron"
+  assert_not_contains "$(printf '%s' "$out" | jq -c '.closed_patron + .no_patron')" '"102"' \
+    "the prose number never reaches a patron list"
+}
+
+case_census_theCensusRefusesNothing() {
+  # files: tools/loop/census.sh tools/loop/tests/fixtures/census/ tools/loop/tests/loop-cases.sh
+  local d out
+  d=$(scratch)
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) GH_STUB_RECORD="$d/gh.log" LOOP_STATE_FILE="$d/state.json" \
+    bash "$LOOP_ENGINE/census.sh" --engine "$(census_fixture engine.sh)" --cases "$(census_fixture cases.sh)") \
+    || fail "the census failed: $out"
+  [ ! -e "$d/gh.log" ] || fail "the census wrote to the tracker: $(cat "$d/gh.log")"
+  [ ! -e "$d/state.json" ] || fail "the census wrote a state file"
+  assert_eq "3" "$(printf '%s' "$out" | sed -n 's/^guards: //p')" "the ordinary run still prints its number"
+}
+
+case_census_aRunDoesNotConsultTheCensus() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json tools/loop/tests/loop-cases.sh tools/loop/tests/fixtures/scenarios/
+  local d n p out
+  d=$(scratch); n=$(nested_tree "$d")
+  # Make the census in the copy of the engine fail. A run that reads it would stop; a run that does not is unaffected.
+  rm -f "$n/tools/loop/census.sh"
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$n/tools/loop/census.sh"
+  chmod +x "$n/tools/loop/census.sh"
+  p=$(new_project); init_state "$p" 1 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(LOOP_ENGINE="$n/tools/loop" run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1) \
+    || fail "a census that fails changed the run's answer: $out"
+  assert_not_contains "$out" 'census' "the run mentions no census in its own path: $out"
 }

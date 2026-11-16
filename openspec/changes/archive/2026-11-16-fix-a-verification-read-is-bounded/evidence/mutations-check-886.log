@@ -1,0 +1,3 @@
+loop-mutations: selected 15 of 405 records (files: ../pi-trim-result.mjs)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.ilcFMv
+loop-mutations: all 15 cases passed — every selected record applies to the file it names

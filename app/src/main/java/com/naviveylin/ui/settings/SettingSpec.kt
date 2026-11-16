@@ -44,8 +44,8 @@ enum class SettingsLinkTarget {
 
 /** The payload a control kind needs beside its key; [SettingControl.SWITCH] carries none. */
 sealed interface SettingControlPayload {
-    /** A link's destination: the row leaves the surface instead of editing a value. */
-    data class Link(val target: SettingsLinkTarget) : SettingControlPayload
+    /** A row that leaves the surface for its target instead of editing a value here. */
+    data class Open(val target: SettingsLinkTarget) : SettingControlPayload
     /** A slider's endpoints and step, in the value's own unit. */
     data class Slider(val min: Int, val max: Int, val step: Int) : SettingControlPayload
 

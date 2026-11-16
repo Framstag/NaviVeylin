@@ -305,7 +305,7 @@ class SettingsSurfaceTest {
                             control = SettingControl.LINK,
                             // A link row carries its destination rather than a write, so the row
                             // leaves the surface for the screen its payload names.
-                            payload = SettingControlPayload.Link(SettingsLinkTarget.MAP_MANAGER),
+                            payload = SettingControlPayload.Open(SettingsLinkTarget.MAP_MANAGER),
                             write = null
                         )
                     )
@@ -336,7 +336,7 @@ class SettingsSurfaceTest {
                             section = SettingsSection(SettingsTopic.ABOUT, android.R.string.ok),
                             labelRes = android.R.string.copy,
                             control = SettingControl.LINK,
-                            payload = SettingControlPayload.Link(SettingsLinkTarget.ABOUT),
+                            payload = SettingControlPayload.Open(SettingsLinkTarget.ABOUT),
                             write = null
                         )
                     )

@@ -256,7 +256,7 @@ private fun SettingRow(
     onOpenAbout: () -> Unit
 ) {
     val value = row.read(settings)
-    val linkTarget = (row.payload as? SettingControlPayload.Link)?.target
+    val linkTarget = (row.payload as? SettingControlPayload.Open)?.target
     val rowModifier = Modifier
         .fillMaxWidth()
         .testTag(SETTINGS_ROW_TAG_PREFIX + row.key)

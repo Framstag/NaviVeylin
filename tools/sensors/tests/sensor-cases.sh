@@ -2019,11 +2019,15 @@ case_hotspot_theBoundIsAboveOneChangedFile() {
   assert_eq "greater-than" "$comparison" "the row fires above its bound"
 
   # Two paths: one is merely present (6 000 bytes, changed once, so its score is its own size), the other is
-  # churned (200 000 bytes, changed seven times).
+  # churned (400 000 bytes, changed seven times, so its score is 2 800 378). The churned size is not decoration:
+  # the property the second half of this case asserts is that the bound sits above the largest file the row
+  # watches, so the fixture's own score has to clear that file too — at 200 000 bytes it no longer did once
+  # `tools/loop/tests/loop-cases.sh` passed 1 400 378 bytes, and the two assertions became unsatisfiable
+  # together (measured 2026-11-16).
   dir=$(scratch)
   cd "$dir" || fail "cannot enter the fixture repository"
   head -c 6000 /dev/zero | tr '\0' x > once.txt
-  head -c 200000 /dev/zero | tr '\0' y > churned.txt
+  head -c 400000 /dev/zero | tr '\0' y > churned.txt
   git init -q -b main . >/dev/null 2>&1
   git add -A >/dev/null 2>&1
   git -c user.email=selftest@example.invalid -c user.name=selftest commit -qm one >/dev/null 2>&1

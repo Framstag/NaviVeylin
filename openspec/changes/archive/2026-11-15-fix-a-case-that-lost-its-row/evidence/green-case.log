@@ -1,0 +1,4 @@
+2026-11-15T22:37:43Z
+# bash tools/loop/tests/loop-selftest.sh --case driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#aCaseWithNoSelectionRowIsRefused
+exit=0

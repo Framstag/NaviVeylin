@@ -1,0 +1,10 @@
+2026-11-15T22:37:50Z
+# registration-probe.sh: one nested suite (2 bodies, 2 arms, 1 row) driven by the base driver and by this tree
+=== base driven by d794277ba7506e287ea94f22223e76926f20bf18:tools/loop/tests/loop-selftest.sh: exit 0
+PASS stub#kept
+
+=== this tree driven by /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-selftest.sh: exit 1
+loop-selftest: case stub#lost has a body in loop-cases.sh and no row in LOOP_SHELL_CASES — no selection can reach it (issue #929)
+loop-selftest: stub#lost is a dispatch arm with no row in LOOP_SHELL_CASES — nothing can select it (issue #929)
+loop-selftest: the cases file names a case in one of its three sets and not in another, and a row a delta replaces instead of inserting shrinks the suite in silence (issue #929)
+

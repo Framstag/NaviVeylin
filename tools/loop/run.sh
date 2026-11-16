@@ -666,6 +666,11 @@ active_hb=""
 # The patch the leftovers of an ended child were written to, set by `keep_leftovers` and named in the transcript a
 # reader of the blocked item is handed.
 leftover_patch=""
+# The gate that ran on the work a cut keeps, and the log its result was read from (issue #885): set by
+# `gate_the_kept_work` and recorded beside the item's `cut`, so the next run resumes onto a measured tree instead of
+# re-deriving one. Empty on every cut that had no work to gate, which is what the record's own null says.
+cut_gate_result=""
+cut_gate_log=""
 # Whether the run's own deadline has ended a child (issue #674). It is the run's budget that ran out rather than a
 # finding about the item, so the run takes no further pass over the queue: a second pre-screen after it excluded the
 # item whose branch the cut run had just made, and the report named a decision the clock — not the item — had asked.
@@ -739,6 +744,64 @@ keep_leftovers() { # keep_leftovers <item> → sets $leftover_patch (+ the file 
   } > "$patch" 2>/dev/null || { rm -f "$patch"; return 0; }
   [ -s "$patch" ] || { rm -f "$patch"; return 0; }
   leftover_patch="$patch"
+}
+
+# The gate on the work a cut keeps (issue #885). An item the run's own bound ends keeps what its child left — the patch
+# `keep_leftovers` writes and the tree exactly as it stands — and until this, the caller was owed a resume action and
+# nothing else: the run of 2026-11-13T05:47:11Z cut #862 at 200 297 tokens and #875 at 205 503 (38.0 Mtok), recorded no
+# gate result for either, and the recorded precedent for a patch applied one run later is that it fails on a base that
+# has moved (2 of 2). So the gate runs **on the tree the cut left**, before the item ends, while that work is still in
+# the one tree it was taken from — and the item still ends `cut`: the result is recorded beside the cut and is not a
+# verdict, so the ceiling that keeps the loop finite is untouched and incomplete work is not manufactured into
+# `blocked`.
+#
+# Three things it must not do. It must not start after the run's own deadline, for the reason the continuation above is
+# refused there: a phase started past the clock is ended on its first second, replacing the cut's own reason with the
+# deadline's. It must not run over work there is none of — a patch carrying no file is `keep_leftovers`' own preamble.
+# And it must not invent a gate where the change root carries none: a profile that names a gate a tree does not hold has
+# no gate to run, and a `failed` recorded for a command that never existed is a finding about the work nobody made.
+gate_the_kept_work() { # <item> <item directory> → sets $cut_gate_result (+ the log it was read from)
+  local item="$1" dir="$2" prog="" files=0 now=0 deadline_epoch=0 bound=0 left=0
+  cut_gate_result=""
+  cut_gate_log=""
+  case "$item" in ''|*[!0-9]*) return 0 ;; esac
+  [ -n "$LOOP_GATE_CMD" ] && [ -d "$LOOP_WORKTREE" ] || return 0
+  # The work there is, counted from the patch the cut left rather than from a second reading of the tree: the patch is
+  # the record of what the child wrote, and `state.sh` counts its files from the same line.
+  if [ -n "$leftover_patch" ] && [ -r "$leftover_patch" ]; then
+    files=$(grep -c '^+++ ' "$leftover_patch" 2>/dev/null)
+    case "$files" in ''|*[!0-9]*) files=0 ;; esac
+  fi
+  [ "$files" -gt 0 ] || return 0
+  # The gate the profile names, resolved from the change root the children run in (a command that is a path) or as the
+  # path it already is: absent everywhere means the tree has no gate, and this run measured none.
+  prog=${LOOP_GATE_CMD%% *}
+  case "$prog" in
+    /*) [ -x "$prog" ] || return 0 ;;
+    *) [ -x "$LOOP_WORKTREE/$prog" ] || return 0 ;;
+  esac
+  now=$(date +%s)
+  deadline_epoch=$(jq -r '.run.deadlineEpoch // 0' "$LOOP_STATE_FILE" 2>/dev/null)
+  case "$deadline_epoch" in ''|*[!0-9]*) deadline_epoch=0 ;; esac
+  if [ "$deadline_epoch" -gt 0 ] && [ "$now" -ge "$deadline_epoch" ]; then return 0; fi
+  # Bounded by what the run has left and by the profile's own step bound, whichever runs out first: a gate given the
+  # step bound with two minutes to the deadline is a gate the deadline ends mid-step, and one given the deadline alone
+  # has no bound on a host whose step hangs.
+  bound="$LOOP_GATE_STEP_MAX_SECONDS"
+  case "$bound" in ''|*[!0-9]*) bound=1800 ;; esac
+  if [ "$deadline_epoch" -gt 0 ]; then
+    left=$(( deadline_epoch - now ))
+    if [ "$left" -lt "$bound" ]; then bound="$left"; fi
+  fi
+  [ "$bound" -gt 0 ] || return 0
+  cut_gate_log="$dir/cut-gate.log"
+  ( cd "$LOOP_WORKTREE" && timeout "$bound" bash -c "$LOOP_GATE_CMD" ) > "$cut_gate_log" 2>&1
+  case "$?" in
+    0) cut_gate_result="passed" ;;
+    124) cut_gate_result="bound" ;;
+    *) cut_gate_result="failed" ;;
+  esac
+  return 0
 }
 
 on_exit() {
@@ -4075,11 +4138,22 @@ $review_notes_text"
       if [ -n "$round_bound_key" ]; then
         bound_args+=(--round-bound "$round_bound_round" --round-bound-key "$round_bound_key" --round-bound-value "$round_bound_value")
       fi
+      # The work this cut keeps is gated before the item ends (issue #885): the tree is still the one the ended child
+      # wrote to, so this is the only moment the gate can measure that work on the base it was made against, and the
+      # caller's resume action then carries a result instead of a patch nobody has run anything against.
+      gate_the_kept_work "$issue" "$item_dir"
+      cut_gate_args=()
+      if [ -n "$cut_gate_result" ]; then
+        cut_note="$cut_note · the gate ran on the work it kept and $cut_gate_result — $cut_gate_log"
+        cut_gate_args+=(--cut-gate "$cut_gate_log" --cut-gate-result "$cut_gate_result")
+        progress note "#${issue} is cut with its work kept, so its gate ran on that tree before the item ends: $cut_gate_result — $cut_gate_log"
+      fi
       loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --gate "$gate_field" ${attribution_args[@]+"${attribution_args[@]}"} \
         --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
         --events "$events_file" --leftover "$leftover_patch" \
+        ${cut_gate_args[@]+"${cut_gate_args[@]}"} \
         --stop-reason "$stop_reason" ${bound_args[@]+"${bound_args[@]}"} \
         --label-failures "$label_failures" \
         --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null

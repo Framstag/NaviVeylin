@@ -686,7 +686,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" merge_refused_branch="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" merge_refused_branch="" events="" stop_reason="" review_verdict="" review_input="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value="" cut_gate="" cut_gate_result=""
   # A landing that was refused names its branch and the paths its refusal read (issue #883), read as the array the
   # report counts: the branch alone is the shape of a refusal that named no path (a base that moved, a branch this
   # tree does not hold), and no path is accepted without it.
@@ -713,6 +713,11 @@ cmd_done() {
       --red-test) need_value "$@"; red_test="${2:-}"; shift 2 ;;
       --decision-label) need_value "$@"; decision_label="${2:-}"; shift 2 ;;
       --leftover) need_value "$@"; leftover="${2:-}"; shift 2 ;;
+      # The gate that ran on the work a cut kept, and the result that gate gave (issue #885): recorded beside the cut
+      # so the next run resumes onto a measured tree. A result is `passed`, `failed` or `bound`, and neither field is
+      # written by any arm that ran no gate, which is what the record's own null says.
+      --cut-gate) need_value "$@"; cut_gate="${2:-}"; shift 2 ;;
+      --cut-gate-result) need_value "$@"; cut_gate_result="${2:-}"; shift 2 ;;
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
       # The bound the class was cut at, and the one that ended a review round (issue #923): the class says a bound
@@ -954,6 +959,8 @@ cmd_done() {
                   parent:(if $p == "" then null else ($p | tonumber) end),
                   note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
                   leftoverFiles:(if $lof == "" then null else ($lof | tonumber) end),
+                  cutGate:(if $cg == "" then null
+                          else {result:(if $cgr == "" then null else $cgr end), log:$cg} end),
                   stopReason:(if $sr == "" then null else $sr end),
                   boundKey:(if $bk == "" then null else $bk end),
                   boundValue:(if $bv == "" then null else ($bv | tonumber) end),
@@ -986,6 +993,8 @@ cmd_done() {
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
           | .leftover = (if $lo == "" then .leftover else $lo end)
           | .leftoverFiles = (if $lof == "" then .leftoverFiles else ($lof | tonumber) end)
+          | .cutGate = (if $cg == "" then .cutGate
+                       else {result:(if $cgr == "" then null else $cgr end), log:$cg} end)
           | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
           | .labelFailures = (((.labelFailures // []) + ($lf | split(" ") | map(select(length > 0)))) | unique)
         else . end)
@@ -997,6 +1006,7 @@ cmd_done() {
     --arg p "$parent" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" --arg lof "$leftover_files" \
+    --arg cg "$cut_gate" --arg cgr "$cut_gate_result" \
     --arg bk "$bound_key" --arg bv "$bound_value" \
     --arg rb "$round_bound" --arg rbk "$round_bound_key" --arg rbv "$round_bound_value" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \

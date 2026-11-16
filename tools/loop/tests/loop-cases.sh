@@ -486,6 +486,7 @@ LOOP_SHELL_CASES=(
   'run#aWorkerBelowItsCheckpointIsNotSplit'
   'run#aWorkerAtTheCheckpointWithNoWorkRunsOn'
   'run#aCutWhosePatchDoesNotApplyIsLeftCut'
+  'run#aCutRunsItsGateOnTheKeptWork'
   'run#theRecordedZeroKeepsTheContextBoundOff'
   'state#aQuotaWindowIsAHoldNotAStop'
   'state#aQuotaCheckThatCannotBeMadeIsNotARefusal'
@@ -1232,6 +1233,7 @@ loop_run_shell_case() {
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
     'run#aWorkerAtTheCheckpointWithNoWorkRunsOn') fn=case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn ;;
     'run#aCutWhosePatchDoesNotApplyIsLeftCut') fn=case_run_aCutWhosePatchDoesNotApplyIsLeftCut ;;
+    'run#aCutRunsItsGateOnTheKeptWork') fn=case_run_aCutRunsItsGateOnTheKeptWork ;;
     'run#theRecordedZeroKeepsTheContextBoundOff') fn=case_run_theRecordedZeroKeepsTheContextBoundOff ;;
     'state#aQuotaWindowIsAHoldNotAStop') fn=case_state_aQuotaWindowIsAHoldNotAStop ;;
     'run#theQuotaSwitchIsExplicit') fn=case_run_theQuotaSwitchIsExplicit ;;
@@ -20300,8 +20302,110 @@ EOF
     "and the applier's answer is recorded, not swallowed"
   assert_contains "$(jq -r '.items[0].note' "$f")" "does not apply onto the branch's HEAD" \
     "the item's note says why it was not continued"
+  assert_eq "null" "$(jq -r '.items[0].cutGate // "null"' "$f")" \
+    "a patch that carries no file leaves no tree to measure, so the run records no gate result for it (issue #885)"
   assert_contains "$out" "the work its ended worker left does not apply onto the branch's HEAD" \
     "and so does the run's own output, so a reader of the console is not left with a silent cut"
+  return 0
+}
+
+# A cut that keeps work is gated before the item ends (issue #885). The run of 2026-11-13T05:47:11Z cut #862 at
+# 200 297 tokens and #875 at 205 503 — 38.0 Mtok with no verdict — kept both patches and recorded no gate result for
+# either, so the caller owed two resume actions and nothing measured about the work that exists; the recorded precedent
+# for a patch applied one run later is that it fails on a base that has moved (2 of 2). The gate therefore runs on the
+# tree the cut left, **before** the item ends, and the item still ends `cut`: a gate result is recorded beside the cut
+# and is not a verdict, so incomplete work is not manufactured into `blocked`. This case reaches the #851 ceiling — the
+# worker is cut at the context bound and its one continuation is cut the same way — and holds the run's own gate as a
+# stub, which is what makes the two facts it asserts measurable: the gate ran in the change root the child wrote to,
+# and the item's record carries its result beside the cut.
+case_run_aCutRunsItsGateOnTheKeptWork() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out f log gate
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
+  # The run's own gate, as the stub the profile names: it records the tree it was started in and the work that tree
+  # holds, and it is the only thing in this case that can say the gate was run at all — the item ends `cut` whether it
+  # ran or not, which is exactly the shape the change is about.
+  gate="$d/cut-gate.sh"
+  cat > "$gate" <<'GATE'
+#!/usr/bin/env bash
+{ printf 'cut-gate cwd=%s\n' "$PWD"; git status --porcelain -uall; } > "$CUT_GATE_MARK"
+exit "${CUT_GATE_STATUS:-0}"
+GATE
+  chmod +x "$gate" || fail "this case could not write the gate stub"
+  printf 'LOOP_GATE_CMD=%s\n' "$gate" >> "$conf"
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+JSON
+  # Both sessions cross the bound: the worker, and the one continuation the #851 ceiling allows it. Neither is released
+  # by the case, so the bound is the only thing that can end them, and no third child exists for the item to loop into.
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    printf 'the work the bound ended\n' > demo-fix.txt
+    ;;
+  worker-prompt-continuation.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    printf 'and the work the continuation added\n' > demo-fix-2.txt
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  export CUT_GATE_MARK="$d/cut-gate-mark.txt"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  # The case's own margin: two children ended at the bound and one gate started between them, on a host that need not be
+  # free (issue #308).
+  for i in $(seq 1 900); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 90 s on an item whose two children had both crossed the recorded bound"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a cut gated on its kept work is not a failed run: $out"
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "the item still reaches the one continuation the ceiling allows: $out"
+  assert_eq "2" "$(grep -cE '^prompt: worker-(prompt|prompt-continuation)\.md$' <<<"$log" || true)" \
+    "and no third child starts, so gating the kept work did not spend the ceiling that keeps an item finite"
+  [ -f "$CUT_GATE_MARK" ] || fail "the run recorded no gate on the work its cut kept: $out"
+  assert_contains "$(cat "$CUT_GATE_MARK")" "demo-fix.txt" \
+    "the gate ran on the tree the cut child left, not on the base"
+  assert_contains "$(cat "$CUT_GATE_MARK")" "demo-fix-2.txt" \
+    "and on the work the continuation added beside it, because that is the tree the item ends on"
+  f=$(state_file "$p")
+  assert_eq "cut" "$(jq -r '.items[0].result' "$f")" "the item is still cut — a gate result is not a verdict"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$f")" "and still names the bound that ended it"
+  assert_eq "passed" "$(jq -r '.items[0].cutGate.result // ""' "$f")" \
+    "with the gate's result recorded beside the cut, where the next run reads it: $out"
+  assert_contains "$(jq -r '.items[0].cutGate.log // ""' "$f")" "cut-gate.log" \
+    "and the log that result was read from, inside the item's own directory"
+  [ -f "$p/.pi/issue-loop/items/21/cut-gate.log" ] || fail "the gate's log was recorded but not kept beside the item"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "the gate ran on the work it kept and passed" \
+    "the item's note says so, which is the line the caller's resume action carries"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "a cut closes nothing"
   return 0
 }
 

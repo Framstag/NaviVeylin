@@ -645,6 +645,22 @@ does not resolve records nothing rather than `0 files`. It is a **measurement, n
 and no item's outcome reads it — and what a rate over the bound should then change is the item's question, not this
 line's (`run#childPastItsContextBoundIsCut` pins the stop, `report#theBoundRateIsNamed` the line).
 
+**The work a cut keeps is gated before the item ends** (issue #885). The run of 2026-11-13T05:47:11Z cut #862 at
+200 297 tokens and #875 at 205 503 — 38.0 Mtok with no verdict — kept both patches, recorded no gate result for either,
+and owed the caller two resume actions and nothing measured about the work that exists; the recorded precedent for a
+patch applied one run later is that it fails on a base that has moved (2 of 2). So the cut arm runs the profile's gate
+(`LOOP_GATE_CMD`) on the tree the ended child left, **before** the item ends, and records the result in the item's
+record as `cutGate: {result, log}` (`state.sh done --cut-gate <log> --cut-gate-result passed|failed|bound`) with the
+log at `<item dir>/cut-gate.log`; the note the caller's `resume #N` line carries says which result it was. The item
+still ends `cut` and its `stopReason` still names the bound: a gate result is not a verdict, so the ceiling that keeps
+an item finite is untouched and incomplete work is never manufactured into `blocked`. Three guards keep that ceiling
+honest — the gate is not started past the run's own `deadlineEpoch` (a phase started past the clock is ended on its
+first second, which is why the continuation is refused there too), not started over a patch that carries no file
+(`keep_leftovers`' preamble is not a tree to measure), and not started where the change root carries no gate at all (a
+`failed` recorded for a command that never existed is a finding nobody made). Its clock is `LOOP_GATE_STEP_MAX_SECONDS`
+or what the run has left, whichever runs out first. `run#aCutRunsItsGateOnTheKeptWork` pins the gate and the record,
+`run#aCutWhosePatchDoesNotApplyIsLeftCut` the empty case, and `885.1` in `loop-mutations.sh` the arm itself.
+
 The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
 second — the deadline is a whole-second clock, and reading it on every look would spend the finer granularity's
 saving on two forks — and a child still running when the deadline passes is ended exactly as the cap ends one — its

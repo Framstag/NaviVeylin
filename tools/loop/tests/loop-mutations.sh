@@ -1385,6 +1385,12 @@ MUTATIONS=(
   # set it never proved. The case has to name that rather than read it as a set, so the file it scopes by is pointed at
   # a file one record names — a green leg over a selection of one is the silent half of the same lie.
   '934.2@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed at a file the declaration gives one record to, so the leg would run a set of one and the case names that instead of reading it as a set (issue #934)@s|^scoped_file="tools/loop/phase.sh"$|scoped_file="tools/loop/prompts/pre-gate-review.md"|'
+  # 885.1 — the gate a cut runs on the work it keeps (issue #885). The arm is the whole of the change: a cut that keeps
+  # work ends with the gate's result beside it only because the run starts that gate on the tree the ended child left,
+  # and a cut that skips it is the defect the item was filed from — a resume action on 38.0 Mtok of work nobody had run
+  # anything against. The case holds the run's own gate as a stub, so the mutation's line removes the only thing that can
+  # have started it.
+  '885.1@-@tools/loop/run.sh@run#aCutRunsItsGateOnTheKeptWork@the gate the cut arm runs on the work it keeps, so a cut ends with no result measured about the tree it keeps (issue #885)@s|^      gate_the_kept_work "\$issue" "\$item_dir"$|      : # the mutation gates nothing|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

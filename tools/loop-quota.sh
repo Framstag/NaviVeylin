@@ -14,6 +14,11 @@
 #   exit 2  usage.
 #   Any other status, and an unreadable balance, are **go**: a check that cannot be made is not a refusal — the
 #   rule the run already follows for its memory floor and for a tracker that answers nothing.
+#   A comparison the balance made impossible is a note, never a silence: a reset instant that is absent, or
+#   spelled other than the one shape `fromdateiso8601` takes, prints a `quota: …` line naming it (the pacing line it
+#   feeds is then not compared, while both floors still are). The note travels on the exit-0 path only — the one the
+#   protocol above already relays — so it never displaces a hold's reason or `resume-at`, and a hold taken with an
+#   unreadable instant prints that hold's own reason alone. `--json` prints its decision object without the notes.
 #
 # **The evidence this reader was written against** (measured 2026-11-08, issue #811's neighbourhood):
 #   `GET https://ollama.com/api/balance` with `Authorization: Bearer $OLLAMA_API_KEY` answers
@@ -64,7 +69,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --json) json_out=1; shift ;;
     --verbose) verbose=1; shift ;;
-    -h|--help) sed -n '2,55p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,60p' "$0"; exit 0 ;;
     *) printf 'loop-quota: unknown argument %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -97,12 +102,26 @@ read_balance() {
 # the one language both halves of this repository already use for it (`state.sh`'s floor, `fetch-build-inputs.sh`).
 program='
   .included as $in
-  | (($in.session.resets_at // "") | if . == "" then 0 else (try fromdateiso8601 catch 0) end) as $sr
-  | (($in.weekly.resets_at  // "") | if . == "" then 0 else (try fromdateiso8601 catch 0) end) as $wr
+  | (($in.session.resets_at // "")) as $sraw
+  | (($in.weekly.resets_at  // "")) as $wraw
+  | ($sraw | if . == "" then 0 else (try fromdateiso8601 catch 0) end) as $sr
+  | ($wraw | if . == "" then 0 else (try fromdateiso8601 catch 0) end) as $wr
   | ($in.session.remaining_percent // null) as $sl
   | ($in.weekly.remaining_percent  // null) as $wl
+  # An instant this reader cannot read is a comparison it cannot make, and one that disappears in silence spends a
+  # week unpaced: `fromdateiso8601` accepts exactly one shape, so an offset, a fractional second or an absent field
+  # became 0 above and the `$wr > 0` guard then turned the pacing line off with no line anywhere (issue #878).
+  | [ (if $sr > 0 then empty
+       else ((if $sraw == "" then "the session reset instant is absent"
+              else "the session reset instant \"\($sraw)\" is not the shape this reader parses (YYYY-MM-DDTHH:MM:SSZ)" end)
+             + " — a hold on its floor cannot name its reset") end),
+      (if $wr > 0 then empty
+       else ((if $wraw == "" then "the weekly reset instant is absent"
+              else "the weekly reset instant \"\($wraw)\" is not the shape this reader parses (YYYY-MM-DDTHH:MM:SSZ)" end)
+             + " — the pacing line is not compared") end) ] as $notes
   | if ($sl | type) != "number" or ($wl | type) != "number" then
-      {go: true, why: "the balance carries no session and weekly percentage — nothing was compared"}
+      {go: true, why: "the balance carries no session and weekly percentage — nothing was compared",
+       notes: ["the balance carries no session and weekly percentage — nothing was compared"]}
     else
       ($wr - $weekSeconds) as $weekStart
       | ([($now - $weekStart), 0] | max) as $elapsed0
@@ -123,7 +142,7 @@ program='
                 + "\(($allow * 10 | floor) / 10)% (\(($elapsed / $weekSeconds * 1000 | floor) / 10)% of the week "
                 + "elapsed, \($reserve)% kept back for other consumers)"}
         else
-          {go: true, window: "none",
+          {go: true, window: "none", notes: $notes,
            why: "session \($sl)% (floor \($sessionMin)%) · weekly \($wl)% (floor \($weeklyMin)%) · "
                 + "\(($used * 10 | floor) / 10)% burned against a pacing line of \(($allow * 10 | floor) / 10)%"}
         end
@@ -152,9 +171,15 @@ fi
 
 if [ "$(printf '%s' "$decision" | jq -r '.go')" = "true" ]; then
   if [ "$json_out" -eq 1 ]; then
-    printf '%s\n' "$decision"
+    # The note is the run's, not the self-test's: the structured reading stays the decision object it always was.
+    printf '%s\n' "$decision" | jq -c 'del(.notes)'
     exit 0
   fi
+  # A comparison the balance made impossible is a line, not a silence: the run relays a zero-exit reader's stdout
+  # (`state.sh cmd_next` passes it to `loop_note`), so a reader that could not read an instant still names it while
+  # the floors below are compared exactly as they were. Only this path prints it — a hold's stdout stays its reason
+  # and `resume-at`, which is the pair `run.sh` reads (`hold_reason` is the first line that is not `resume-at `).
+  printf '%s\n' "$decision" | jq -r '.notes[]? | "quota: " + .' 2>/dev/null || true
   [ "$verbose" -eq 1 ] && printf 'quota: go — %s\n' "$(printf '%s' "$decision" | jq -r '.why')"
   exit 0
 fi

@@ -359,9 +359,13 @@ it — without that a window returning in six hours would be waited for past the
 read `deadline passed` and end — and the wait is kept in `run.holds[]`, so a run that took nine hours over three
 items can say how much of that was waiting. The reader is the project's (`tools/loop-quota.sh`, outside the engine
 because a URL, a provider and a percentage are project values): it compares the balance against a floor per window
-(15 % of the short one, 5 % of the weekly one) and against a pacing line drawn from the fraction of the week
-elapsed less a 10 % reserve. A window is a rate over its period, not a pot — a run that spends the week flat out
-on day one buys nothing for the six days after it — and the reserve is every *other* consumer's share of the same
+(5 % of each — the short one's was 15 % until `07c3612c`, `evidence/session-floor-history-r2.txt`) and against a
+pacing line drawn from the fraction of the week elapsed less a 5 % reserve, so the line ends at 95 % burned, which
+is exactly the weekly floor's 5 % remaining, so no weekly point is unreachable by construction (issue #878). Falsified
+by a profile whose reserve and weekly floor are not the same number — `loop.conf` holds them apart, so moving one and
+not the other breaks the pairing, and `quota#theRecordedValuesAreTheOnesTheseCasesAssume` reads both. A window is a
+rate over its period, not a pot — a run that spends the week flat out on day one buys nothing for the six days after
+it — and the reserve is every *other* consumer's share of the same
 quota. Two answers are not a hold: a command that fails is a check that cannot be made, which is not a refusal, and
 a project that records no command asks nothing at all. What an item costs *in percent* is not known when it starts,
 so an item that overshoots the pacing line lengthens the next wait instead of leaving a window exhausted mid-item.

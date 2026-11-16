@@ -18,14 +18,14 @@ set -uo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd "$here/../.." && pwd)
 engine="$root/tools/loop/run.sh"
-cases="$root/tools/loop/tests/loop-cases.sh"
+cases_file="$root/tools/loop/tests/loop-cases.sh"
 json=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
-    --engine) engine="${2:-}"; shift 2 ;;
-    --cases) cases="${2:-}"; shift 2 ;;
+    --engine) [ $# -ge 2 ] || { printf 'census: --engine needs a value\n' >&2; exit 2; }; engine="$2"; shift 2 ;;
+    --cases) [ $# -ge 2 ] || { printf 'census: --cases needs a value\n' >&2; exit 2; }; cases_file="$2"; shift 2 ;;
     -h|--help)
       sed -n '2,15p' "$0"
       exit 0
@@ -35,7 +35,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ -f "$engine" ] || { printf 'census: no engine at %s\n' "$engine" >&2; exit 2; }
-[ -f "$cases" ] || { printf 'census: no cases at %s\n' "$cases" >&2; exit 2; }
+[ -f "$cases_file" ] || { printf 'census: no cases at %s\n' "$cases_file" >&2; exit 2; }
 
 # The refusal mechanisms a guard is made of. Word boundaries keep `blocked` out; a full-line comment is not a
 # site (the comments are where the patron is written, not where the guard stands).
@@ -57,10 +57,10 @@ phrase_of() { # phrase_of <code line>
 
 declare -a g_line=() g_phrase=() g_patrons=()
 mapfile -t lines < "$engine"
-i=0
-while [ "$i" -lt "${#lines[@]}" ]; do
-  line="${lines[$i]}"
-  i=$((i + 1))
+scan_i=0
+while [ "$scan_i" -lt "${#lines[@]}" ]; do
+  line="${lines[$scan_i]}"
+  scan_i=$((scan_i + 1))
   if [[ $line =~ ^[[:space:]]*# ]]; then continue; fi
   [ -n "$line" ] || continue
   [[ $line =~ $guard_re ]] || continue
@@ -68,7 +68,7 @@ while [ "$i" -lt "${#lines[@]}" ]; do
   # The comment block directly above the guard, plus a trailing comment on its own line. That is where the engine
   # writes the issue that put the rule there.
   comment=""
-  j=$((i - 2))
+  j=$((scan_i - 2))
   while [ "$j" -ge 0 ]; do
     prev="${lines[$j]}"
     if [[ $prev =~ ^[[:space:]]*# ]]; then
@@ -85,7 +85,7 @@ while [ "$i" -lt "${#lines[@]}" ]; do
     patrons=$(printf '%s\n' "$comment" | grep -oE "$patron_re" | grep -oE '[0-9]+' | awk '!seen[$0]++' | paste -sd, -)
   fi
 
-  g_line[${#g_line[@]}]="$i"
+  g_line[${#g_line[@]}]="$scan_i"
   g_phrase[${#g_phrase[@]}]="$(phrase_of "$line")"
   g_patrons[${#g_patrons[@]}]="$patrons"
 done
@@ -94,13 +94,13 @@ done
 declare -A state_of=()
 patron_state="read"
 patron_reason=""
-cited=""
+cited_list=""
 for p in ${g_patrons[@]+"${g_patrons[@]}"}; do
   [ -n "$p" ] || continue
-  cited="$cited,$p"
+  cited_list="$cited_list,$p"
 done
-cited=$(printf '%s' "${cited#,}" | tr ',' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)
-if [ -n "$cited" ]; then
+cited_list=$(printf '%s' "${cited_list#,}" | tr ',' '\n' | awk 'NF && !seen[$0]++' | paste -sd, -)
+if [ -n "$cited_list" ]; then
   out=$(gh issue list --state all --limit 1000 --json number,state 2>&1)
   status=$?
   if [ "$status" -ne 0 ]; then
@@ -117,7 +117,7 @@ if [ -n "$cited" ]; then
   fi
 fi
 
-case_text=$(cat "$cases")
+case_text=$(cat "$cases_file")
 
 entry_json() { # entry_json <line> <phrase> <comma-separated patrons>
   local issues_json
@@ -134,7 +134,7 @@ for idx in "${!g_line[@]}"; do
   patrons="${g_patrons[$idx]}"
   entry=$(entry_json "$ln" "$phrase" "$patrons")
 
-  closed=0
+  closed_patron=0
   if [ -n "$patrons" ]; then
     if [ "$patron_state" = read ]; then
       all_closed=1
@@ -142,23 +142,23 @@ for idx in "${!g_line[@]}"; do
       for n in "${pnums[@]}"; do
         [ "${state_of[$n]:-}" = "CLOSED" ] || all_closed=0
       done
-      [ "$all_closed" -eq 1 ] && closed=1
+      [ "$all_closed" -eq 1 ] && closed_patron=1
     fi
   fi
 
   nocase=0
-  if [ -n "$phrase" ] && ! grep -Fq -- "$phrase" "$cases"; then
+  if [ -n "$phrase" ] && ! grep -Fq -- "$phrase" "$cases_file"; then
     nocase=1
   fi
   nopatron=0
   [ -z "$patrons" ] && nopatron=1
 
-  [ "$closed" -eq 1 ] && closed_entries[${#closed_entries[@]}]="$entry"
+  [ "$closed_patron" -eq 1 ] && closed_entries[${#closed_entries[@]}]="$entry"
   [ "$nocase" -eq 1 ] && nocase_entries[${#nocase_entries[@]}]="$entry"
   [ "$nopatron" -eq 1 ] && nopatron_entries[${#nopatron_entries[@]}]="$entry"
   # The total is the retirement's own pair: a closed patron *and* no case carrying its refusal. The no-patron
   # bucket is a finding of its own, not a retirement candidate.
-  if [ "$closed" -eq 1 ] && [ "$nocase" -eq 1 ]; then
+  if [ "$closed_patron" -eq 1 ] && [ "$nocase" -eq 1 ]; then
     unheld_entries[${#unheld_entries[@]}]="$entry"
   fi
 done

@@ -305,6 +305,7 @@ LOOP_SHELL_CASES=(
   'run#workPackageCarriesTheRecordedDecision'
   'run#claimedGateWithoutEvidenceIsBlocked'
   'run#theGateColumnNamesThisItemsGateResult'
+  'run#aSkipIsNoGateToRerun'
   'run#citedEvidenceMustTravelWithTheChange'
   'run#needsDecisionIsEscalatedWithTheWork'
   'run#noGateStillRuns'
@@ -1059,6 +1060,7 @@ loop_run_shell_case() {
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
     'run#theGateColumnNamesThisItemsGateResult') fn=case_run_theGateColumnNamesThisItemsGateResult ;;
+    'run#aSkipIsNoGateToRerun') fn=case_run_aSkipIsNoGateToRerun ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
     'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
     'run#noGateStillRuns') fn=case_run_noGateStillRuns ;;
@@ -8311,8 +8313,9 @@ case_report_anActionNamesAnItemPathThatExists() {
   run_state "$p" done 21 --result cut --verdict cut --stop-reason bound --leftover "$patch" \
     --note "the child reached the recorded context bound of 200000 tokens at 200174 tokens · its work is kept at $patch" \
     >/dev/null || fail "the state refused the record of a bound-cut item that kept a patch"
-  # #22 is the item whose gate never completed, which is the arm that names a file inside the item directory.
-  run_state "$p" done 22 --result blocked --verdict blocked >/dev/null || fail "the state refused a block with no gate"
+  # #22 is the item whose gate never completed, which is the arm that names a file inside the item directory. It
+  # carries a change, because the arm reads one (issue #881: an item that recorded no change is asked for no gate).
+  run_state "$p" done 22 --result blocked --verdict blocked --change fix-demo >/dev/null || fail "the state refused a block with no gate"
   started=$(run_state "$p" get run.startedAt)
   # The report of the state in place, before a later run replaces it.
   out=$(run_report "$p") || fail "the report failed"
@@ -10768,14 +10771,56 @@ case_run_theGateColumnNamesThisItemsGateResult() {
     "and that item closes on the tally its own gate wrote"
   assert_contains "$(cat "$d/gh.log")" "app/build/test-results/loop-gate/TEST-demo.xml" \
     "the closure names the tally its own gate wrote as its evidence"
-  # The empty field is what the report reads: the item the run recorded no gate result for is the work a caller asks
-  # for a gate of, and a constant the tree's own XMLs keep from ever being empty is what hid it (issue #827).
+  # The empty field is what the report reads, and since #881 it reads it beside the change the item recorded: an item
+  # that claimed no gate and left no tally is `skipped` with no change, so the report asks for no gate of it — the line
+  # #21 carried here until #881 named a gate that could not exist (`run#aSkipIsNoGateToRerun` is the arm's own case).
+  # The second item's record carries a gate result, so it is not named either (issue #827).
   out=$(run_report "$p") || fail "the report failed"
   actions=$(actions_block "$out")
-  assert_contains "$actions" "re-run the gate for #21" \
-    "the report names the item whose record carries no gate result"
+  assert_not_contains "$actions" "re-run the gate for #21" \
+    "the skipped item recorded no change, so no gate of it is asked for (issue #881)"
   assert_not_contains "$actions" "re-run the gate for #22" \
-    "and does not ask for a gate the second item's record carries"
+    "and the item whose record carries a gate result is not named"
+}
+
+# A gate is asked for only of an item that recorded a change (issue #881). The arm took every item whose record
+# carries no gate result, and a `skipped` item is one of those by construction: the skip arm records no `--change`
+# (`tools/loop/run.sh`, the `--result skipped` record), while the closed arm and the blocked arm both carry it. So a
+# worker that answered at the eligibility gate — nothing planned, nothing changed, no red test — was handed back a
+# gate to re-run, which is work that cannot exist. Measured on the run of 2026-11-13T05:47:11Z: #860
+# (`skipped/needs-decision`), #706 (`skipped/too-wide`) and #861 (`skipped/needs-diagnosis`) each carried an empty
+# `metrics.gate` and an empty `change` — the arm's own selection takes all three.
+# The arm's other half is kept, and is asserted here: an item that recorded a change and no gate result is still
+# named, because its gate is owed.
+case_run_aSkipIsNoGateToRerun() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out actions
+  d=$(scratch); p=$(new_project)
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' \
+    | run_state "$p" queue >/dev/null
+  # #21 and #23 ended before any change existed: the worker answered at the eligibility gate, and that arm records no
+  # change — the shape every skip of the measured run carries.
+  run_state "$p" done 21 --result skipped --verdict needs-decision \
+    --note "the item names a fork the recorded decision does not settle" >/dev/null ||
+    fail "the state refused a skipped item"
+  run_state "$p" done 23 --result skipped --verdict too-wide \
+    --note "the item names two capabilities" >/dev/null ||
+    fail "the state refused a second skipped item"
+  # #22 reached a change and recorded no gate result: the gate result a caller is owed.
+  run_state "$p" done 22 --result blocked --verdict blocked --change fix-demo \
+    --note "the gate child left no tally" >/dev/null ||
+    fail "the state refused a blocked item that carries a change"
+  out=$(run_report "$p") || fail "the report failed"
+  actions=$(actions_block "$out")
+  assert_not_contains "$actions" "re-run the gate for #21" \
+    "an item skipped before any change is asked for no gate — the gate such a line names cannot exist"
+  assert_not_contains "$actions" "re-run the gate for #23" \
+    "and the second skip is not named either, whichever verdict it carries"
+  assert_contains "$actions" "re-run the gate for #22" \
+    "while an item that recorded a change and no gate result is still named: $actions"
+  assert_contains "$actions" "items/22/worker-report.md" \
+    "and the line still hands the caller the transcript to read: $actions"
 }
 
 case_run_citedEvidenceMustTravelWithTheChange() {

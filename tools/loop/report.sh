@@ -961,10 +961,15 @@ done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
 # An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
 # the transcript beside its id says how far the item got. A `cut` is not that (issue #788): a gate of its own was
 # never owed, because the run ended its child first, and the block below names it as the item to take up again.
+# Neither is an item that recorded no change (issue #881): the skip arm records none (`run.sh`, the `--result skipped`
+# record), so a `skipped` item carried an empty `metrics.gate` and was handed a gate to re-run that cannot exist —
+# measured on the run of 2026-11-13T05:47:11Z, where #860, #706 and #861 each carried an empty `change` and an empty
+# `metrics.gate`. The change is the field that says the item reached work a gate can measure: the closed arm and the
+# blocked arm both carry one.
 while IFS=$'\t' read -r issue; do
   [ -n "${issue:-}" ] || continue
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $item_root/$issue/worker-report.md"
-done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select(.result != "cut") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
+done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select(.result != "cut") | select((.change // "") != "") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
 # The item the run's own bound ended is work and not a question (issue #788): it carries no decision label, so this is
 # where a caller learns it is waiting — with the phase that was cut and the branch the attempt left, which the next

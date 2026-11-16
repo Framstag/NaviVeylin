@@ -924,8 +924,12 @@ over one tree was the defect: the sweep before every worker removes `*/build/tes
 directory, while the reading matched `*test-results*`. An item that claims no gate and leaves no tally in that
 directory carries no gate result at all — the field is empty rather than a count of something the tree already had —
 and `tools/loop/report.sh` reads that empty field as the gate a caller is owed, so the item appears on the report's
-`re-run the gate for #N` line. Measured 2026-11-11 (the owner's decision on #849, over the run of 11:37:08Z): four
-skipped items carried `gate: "0 xml"` and none of them was named.
+`re-run the gate for #N` line — beside the change the record carries, because the line is owed only for an item that
+had something to gate: a worker's `skipped` answer records no change, so naming that item asks for a gate that cannot
+exist (issue #881). Measured 2026-11-11 (the owner's decision on #849, over the run of 11:37:08Z): four skipped items
+carried `gate: "0 xml"` and none of them was named. Measured 2026-11-13T05:47:11Z (issue #881): the three items the
+run recorded `skipped` — #860, #706, #861 — each carried an empty `change` and an empty `metrics.gate`; what that arm
+read was the empty `change` and the empty `metrics.gate`, and not the steps.
 
 A gate reads the profile beside its own engine — the tree whose paths it measures — and its log says which file that
 was: `LOOP-GATE-PROFILE: <path>` is the first line of a gate that runs something, and a profile read from outside

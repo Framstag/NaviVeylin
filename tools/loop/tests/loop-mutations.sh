@@ -989,6 +989,13 @@ MUTATIONS=(
   '858.5@-@../pi-trim-result.mjs@repeat#theHookWritesTheItemsLedger@the hook opening the item’s ledger, so the child that follows the worker meets every earlier read as a first read and is handed the text its worker already paid for (issue #858)@0,/^  const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();$/s|^  const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();$|  const ledger = new Map();|'
   '858.6@-@../pi-trim-result.mjs@repeat#theHookWritesTheItemsLedger@the hook writing back what the item read, so the ledger the adapter names stays empty and the child that follows meets every read as a first read (issue #858)@s|^      if (read.path && ledgerFile) writeLedger(ledgerFile, ledger);$|      if (read.path \&\& ledgerFile) writeLedger(ledgerFile + ".mutation", ledger);|'
 
+  # 886.x — the read that follows the session's own edit is its head, not the file (issue #886). The repeat rule's
+  # sha-difference branch returned the whole text, so a verification read re-injected the file the child had just
+  # edited: 604 of 1 281 file reads in the run behind the issue (47 %) were a second read of a path the session already
+  # held, their results carrying 2 838 881 characters against 200 379 withheld. The bound is what the branch owes, and
+  # the case drives it through the CLI — the same file the child's hook loads.
+  '886.1@-@../pi-trim-result.mjs@repeat#aVerificationReadIsBoundedNotHandedOverWhole@the bound on the read that follows the session’s own edit, so the branch hands the whole file back and the child is injected again with what it just edited (issue #886)@s|if (earlier.sha !== sha) return verificationResult(text, read, earlier, tool, record);|if (earlier.sha !== sha) return text;|'
+
   # 97.x — the gate an item ran and the round that read its diff reach the item's record whichever arm it ended on
   # (issue #813). `gate_field` was computed 448 lines before the `falsified` arm and passed by the `closed` arm alone, so
   # a blocked item — the arm most gates end in — recorded `metrics.gate: ""` and `report.sh` ordered a re-run of a gate

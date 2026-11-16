@@ -1,0 +1,21 @@
+The guard census on this tree, taken 2026-11-16 before the census was committed in this change.
+
+Command (from the change root):
+
+  tools/loop/census.sh
+
+Output:
+
+  guards: 94
+  closed-patron: 4
+  no-case: 72
+  no-patron: 90
+  unheld: 2
+
+The total the retirement uses is the pair: a guard whose cited item is closed *and* whose refusal phrase appears in
+no case body. 2 of 94 guards is 2.1 %, below the 10 % stop rule in `proposal.md`. This change therefore stops with the
+census as its deliverable; the retirements belong to `the-unheld-guards-are-retired`, which has nothing to start from
+this number.
+
+The patron count was read from the tracker; the two offline counts need no credential. A tracker that cannot be read
+is printed as `unread` with its reason, never as zero (`census#anUnreadCountIsNamed`).

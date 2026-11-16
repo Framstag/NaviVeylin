@@ -1,0 +1,7 @@
+census#theCitationFormIsRead|   a bare #102 in prose is not a patron: expected '1', got '0'
+--- census#theCitationFormIsRead[0] (exit 1)
+  a bare #102 in prose is not a patron: expected '1', got '0'
+FAIL census#theCitationFormIsRead
+loop-selftest: 1 of 1 cases failed
+mutation-exit=1
+PASS census#theCitationFormIsRead

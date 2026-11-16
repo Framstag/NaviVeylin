@@ -1,0 +1,11 @@
+PASS census#theCensusIsANumber
+PASS census#aClosedPatronWithNoCaseIsCounted
+PASS census#anUnreadCountIsNamed
+PASS census#everyGuardNamesItsPatron
+PASS census#aGuardWithoutAPatronIsCounted
+PASS census#theCitationFormIsRead
+PASS census#theCensusRefusesNothing
+PASS census#aRunDoesNotConsultTheCensus
+PASS driver#everyEngineScriptIsInTheTable
+PASS driver#noEngineFileExceedsItsBound
+PASS driver#everyCaseDeclaresTheFilesItCanReach

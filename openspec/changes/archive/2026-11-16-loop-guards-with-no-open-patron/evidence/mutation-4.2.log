@@ -1,0 +1,23 @@
+census#anUnreadCountIsNamed|   the patron count is named unread with its reason: guards: 3
+census#anUnreadCountIsNamed| closed-patron: 0
+census#anUnreadCountIsNamed| no-case: 2
+census#anUnreadCountIsNamed| no-patron: 1
+census#anUnreadCountIsNamed| unheld: unread — jq: parse error: Invalid literal at line 1, column 5: 'closed-patron: unread —' not found in: guards: 3
+census#anUnreadCountIsNamed| closed-patron: 0
+census#anUnreadCountIsNamed| no-case: 2
+census#anUnreadCountIsNamed| no-patron: 1
+census#anUnreadCountIsNamed| unheld: unread — jq: parse error: Invalid literal at line 1, column 5
+--- census#anUnreadCountIsNamed[0] (exit 1)
+  the patron count is named unread with its reason: guards: 3
+closed-patron: 0
+no-case: 2
+no-patron: 1
+unheld: unread — jq: parse error: Invalid literal at line 1, column 5: 'closed-patron: unread —' not found in: guards: 3
+closed-patron: 0
+no-case: 2
+no-patron: 1
+unheld: unread — jq: parse error: Invalid literal at line 1, column 5
+FAIL census#anUnreadCountIsNamed
+loop-selftest: 1 of 1 cases failed
+mutation-exit=1
+PASS census#anUnreadCountIsNamed

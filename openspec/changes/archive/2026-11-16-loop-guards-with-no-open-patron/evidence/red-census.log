@@ -1,0 +1,8 @@
+census#theCensusIsANumber| bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/census.sh: Datei oder Verzeichnis nicht gefunden
+census#theCensusIsANumber|   the census refused a readable tracker and a fixture engine: 
+--- census#theCensusIsANumber[0] (exit 1)
+bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/census.sh: Datei oder Verzeichnis nicht gefunden
+  the census refused a readable tracker and a fixture engine: 
+FAIL census#theCensusIsANumber
+loop-selftest: 1 of 1 cases failed
+exit=1

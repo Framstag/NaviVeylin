@@ -964,8 +964,9 @@ done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
 # Neither is an item that recorded no change (issue #881): the skip arm records none (`run.sh`, the `--result skipped`
 # record), so a `skipped` item carried an empty `metrics.gate` and was handed a gate to re-run that cannot exist —
 # measured on the run of 2026-11-13T05:47:11Z, where #860, #706 and #861 each carried an empty `change` and an empty
-# `metrics.gate`. The change is the field that says the item reached work a gate can measure: the closed arm and the
-# blocked arm both carry one.
+# `metrics.gate`. The change is the field that says the item reached work a gate can measure, and the skip arm writes
+# none; the closed arm carries one, the blocked arm usually does — over the 158 states in `.pi/issue-loop/runs/`, 46
+# blocked items (90 records) hold an empty `change` beside an empty `gate`, a shape this line stops naming too.
 while IFS=$'\t' read -r issue; do
   [ -n "${issue:-}" ] || continue
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $item_root/$issue/worker-report.md"

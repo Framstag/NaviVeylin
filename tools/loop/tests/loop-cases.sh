@@ -10785,7 +10785,9 @@ case_run_theGateColumnNamesThisItemsGateResult() {
 
 # A gate is asked for only of an item that recorded a change (issue #881). The arm took every item whose record
 # carries no gate result, and a `skipped` item is one of those by construction: the skip arm records no `--change`
-# (`tools/loop/run.sh`, the `--result skipped` record), while the closed arm and the blocked arm both carry it. So a
+# (`tools/loop/run.sh`, the `--result skipped` record), while the closed arm carries one and the blocked arm usually
+# does — 46 blocked items (90 records) of the 158 states in `.pi/issue-loop/runs/` hold an empty `change` beside an
+# empty `gate`. So a
 # worker that answered at the eligibility gate — nothing planned, nothing changed, no red test — was handed back a
 # gate to re-run, which is work that cannot exist. Measured on the run of 2026-11-13T05:47:11Z: #860
 # (`skipped/needs-decision`), #706 (`skipped/too-wide`) and #861 (`skipped/needs-diagnosis`) each carried an empty

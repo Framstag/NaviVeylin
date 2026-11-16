@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 405 records (labels: 886.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.NeZ7YK
+RED    886.1  repeat#aVerificationReadIsBoundedNotHandedOverWhole   (the bound on the read that follows the session’s own edit, so the branch hands the whole file back and the child is injected again with what it just edited (issue #886))
+       2026-11-16T03:59:23Z — the read after the edit is not the whole file again: 'LAST-LINE' should not appear in: FIRST-LINE
+restore 886.1 repeat#aVerificationReadIsBoundedNotHandedOverWhole green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

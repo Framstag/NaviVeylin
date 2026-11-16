@@ -1,0 +1,12 @@
+2026-11-13T22:52:39Z
+run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh: Zeile 18012: wait_for_pid_end: Kommando nicht gefunden
+run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh: Zeile 18021: wait_for_pid_end: Kommando nicht gefunden
+run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock|   the case's own wait answered '' for a run the HUP never reached (pid 2231749, stop '', item '') — expected the bound's 124 inside its own ticks
+--- run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock[0] (exit 1)
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh: Zeile 18012: wait_for_pid_end: Kommando nicht gefunden
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh: Zeile 18021: wait_for_pid_end: Kommando nicht gefunden
+  the case's own wait answered '' for a run the HUP never reached (pid 2231749, stop '', item '') — expected the bound's 124 inside its own ticks
+FAIL run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+loop-selftest: run 1 cases 4.13 s
+loop-selftest: 1 of 1 cases failed — 4.77 s
+2026-11-13T22:52:45Z

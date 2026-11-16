@@ -200,14 +200,25 @@ results carried, 0.3 %; the two items that read most were #848 (31 of 83 reads) 
 line a repeat is replaced by names the session that read the path — `LOOP_CHILD_SESSION`, the name of the prompt the
 run handed that child — because "this session" is false for every child after the first. A ledger line carries
 `sha`, turn, size and session ahead of the path, and a line of the older four-column shape is dropped rather than
-misread, so a stale entry costs one read and never a stale one. The two figures are therefore not one number's halves:
+misread, so a stale entry costs one read and never a stale one. The read after the session's own edit is the one
+repeat a content test cannot answer with its notice — the child is checking what its edit did, so withholding it costs
+a turn or a wrong edit — and that branch used to hand the read over whole: 604 of 1 281 file reads over the run behind
+issue #886 (47 %) were a second read of a path the session already held, their results carrying 2 838 881 characters
+against 200 379 withheld. It is now the file's head at `VERIFICATION_READ_BOUND` (2 000 characters, a size the
+archive's median result, 825, fits inside) and one line `[LOOP-REPEAT-EDIT: <path> changed since turn <n>; …]` naming
+the edit, the size the file now has, the turn the item read it at and the call that reads the rest
+(`verificationResult`) — because the edit a session makes is small and the file it lands in is not. What the cut
+withheld is the same `LOOP-TOOL-RESULT-REPEAT: <tool> chars=<n> kept=<k>` line, so `withheld` counts it and no reader
+has to guess; a text that fits the bound, and the class the 8 000-bound exempts — a gate log, a suite XML, which §4d
+reads whole for the `timestamp` order a red run is attributed in — are handed over as they stand. The two figures are therefore not one number's halves:
 a repeat across two children is in `withheld` and in no `dupReads`. The figure is a **warning, never a stop**: it bounds
 nothing and no outcome reads it — and an item whose stream
 measured no read records `null`, which the row and the trend print as `-` with their own reasons (a record that
 predates the field is told apart from one that met a run of items which opened no file).
 `report#anItemRecordsItsRepeatReads` and `repeat#aRepeatIsRecordedAsWhatItWithheld` are the cases of the count and the
 record, `repeat#anItemsLedgerSpansItsChildren`, `repeat#theHookWritesTheItemsLedger` and
-`adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger, and mutation records `96.1`–`96.3` and `858.1`–`858.6`
+`adapter#theChildIsStartedWithTheItemsLedger` of the item's ledger, `repeat#aVerificationReadIsBoundedNotHandedOverWhole`
+of the bound the read after an edit is held to, and mutation records `96.1`–`96.3`, `858.1`–`858.6` and `886.1`
 are what prove they notice each half go.
 
 The rule the prompt stated is a measured bound with a refusal arm since #925, because the prompt lost: over the run

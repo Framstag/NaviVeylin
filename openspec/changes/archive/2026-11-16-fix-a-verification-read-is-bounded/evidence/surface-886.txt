@@ -1,0 +1,24 @@
+LOOK: 19 matches in 4 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'verificationResult|VERIFICATION_READ_BOUND|LOOP-REPEAT-EDIT'
+LOOK-FILE: tools/loop/tests/loop-cases.sh 4
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 1
+LOOK-FILE: tools/pi-trim-result.mjs 11
+LOOK-FILE: guidelines/Backlog.recipes.md 3
+tools/loop/tests/loop-cases.sh:19006:  # volume for it: what that read withholds, when it is over `VERIFICATION_READ_BOUND`, is its own cut (issue #886).
+tools/loop/tests/loop-cases.sh:19052:  # head, and whole here only because this file fits `VERIFICATION_READ_BOUND` (issue #886).
+tools/loop/tests/loop-cases.sh:19193:# file's head — `VERIFICATION_READ_BOUND`, 2 000 characters — with one line naming the edit and the range that reads the
+tools/loop/tests/loop-cases.sh:19216:  assert_contains "$(cat "$out")" 'LOOP-REPEAT-EDIT' "and one line says the path changed since it was read"
+tools/loop/tests/loop-mutations.sh:997:  '886.1@-@../pi-trim-result.mjs@repeat#aVerificationReadIsBoundedNotHandedOverWhole@the bound on the read that follows the session’s own edit, so the branch hands the whole file back and the child is injected again with what it just edited (issue #886)@s|if (earlier.sha !== sha) return verificationResult(text, read, earlier, tool, record);|if (earlier.sha !== sha) return text;|'
+tools/pi-trim-result.mjs:32:// and that read is a verification, so it is answered with the file's head, bounded at `VERIFICATION_READ_BOUND`
+tools/pi-trim-result.mjs:138:export const VERIFICATION_READ_BOUND = 2000;
+tools/pi-trim-result.mjs:145:export function verificationNotice(path, total, turn, bound = VERIFICATION_READ_BOUND) {
+tools/pi-trim-result.mjs:146:  return `\n[LOOP-REPEAT-EDIT: ${path} changed since turn ${turn}; the first ${bound} of ${total} characters are shown`
+tools/pi-trim-result.mjs:281: * it is a verification: it is answered with the file's head bounded at `VERIFICATION_READ_BOUND` and one line naming
+tools/pi-trim-result.mjs:282: * the edit (`verificationResult`, issue #886) — not the whole file, which is what the rule exists to keep out — and it
+tools/pi-trim-result.mjs:294:    if (earlier.sha !== sha) return verificationResult(text, read, earlier, tool, record);
+tools/pi-trim-result.mjs:310: * The read that follows the session's own edit (issue #886): the file's head at `VERIFICATION_READ_BOUND` and one line
+tools/pi-trim-result.mjs:316:export function verificationResult(text, read, earlier, tool = "?", record = "") {
+tools/pi-trim-result.mjs:318:  if (typeof text !== "string" || text.length <= VERIFICATION_READ_BOUND) return text;
+tools/pi-trim-result.mjs:320:  const kept = boundedHead(text, VERIFICATION_READ_BOUND) + notice;
+guidelines/Backlog.recipes.md:207:against 200 379 withheld. It is now the file's head at `VERIFICATION_READ_BOUND` (2 000 characters, a size the
+guidelines/Backlog.recipes.md:208:archive's median result, 825, fits inside) and one line `[LOOP-REPEAT-EDIT: <path> changed since turn <n>; …]` naming
+guidelines/Backlog.recipes.md:210:(`verificationResult`) — because the edit a session makes is small and the file it lands in is not. What the cut

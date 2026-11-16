@@ -29,7 +29,10 @@
 // the earlier read is replaced by one line naming the turn it was read at, its size and the range syntax, because a
 // reader that wants part of that text again asks for the range and not for the file. A repeat whose sha differs is
 // the session's own edit coming back — 728 of the archive's 2 042 per-session repeats follow an edit of that path —
-// and that read is a verification, so it is handed over whole and becomes what the next repeat is measured against.
+// and that read is a verification, so it is answered with the file's head, bounded at `VERIFICATION_READ_BOUND`
+// (issue #886), and one line naming the edit: the edit a session makes is small and the file it lands in is not, so
+// handing the whole of it over paid for the volume the rule exists to keep out. It becomes what the next repeat is
+// measured against, gate/evidence output excepted, because `guidelines/BuildEvidence.md` §4d reads such a log whole.
 // What a repeat must never do is withhold what the child asked for silently: the line names the path, the size, the
 // turn and the tool call that takes a range, and `LOOP_TOOL_RESULT_MAX_CHARS` recording `0` keeps both rules off. What
 // it withheld is written down too (issue #831): the rule appends `LOOP-TOOL-RESULT-REPEAT: <tool> chars=<n> kept=<k>` to
@@ -127,6 +130,35 @@ export function repeatReadRecordLine(tool, turn, arm) {
 export const GATE_EVIDENCE_BOUND = 8000;
 
 /**
+ * The bound a **verification** read is held to (issue #886): a repeat whose content changed is the session's own edit
+ * coming back, and the file it lands in is not what changed. It is 2 000 characters — a result the archive's median
+ * (825) fits inside, and a quarter of the recorded result bound — so a read that hands back what it just edited costs
+ * the edit and its neighbourhood rather than the whole file it sits in.
+ */
+export const VERIFICATION_READ_BOUND = 2000;
+
+/**
+ * The line a verification read carries (issue #886): the path, that it changed since the turn the item read it at, the
+ * bound and the size the file now has, and the call that reads the rest. It is the repeat notice's shape one question
+ * further, so a child that has learned either has learned both.
+ */
+export function verificationNotice(path, total, turn, bound = VERIFICATION_READ_BOUND) {
+  return `\n[LOOP-REPEAT-EDIT: ${path} changed since turn ${turn}; the first ${bound} of ${total} characters are shown`
+    + ` — read the rest in ranges (ctx_read mode="lines:N-M")]\n`;
+}
+
+/**
+ * The first `bound` characters of a text, never cut in the middle of a surrogate pair: both rules that hand over a head
+ * cut at a character count, and half a pair is a result a reader sees as a broken one.
+ */
+export function boundedHead(text, bound) {
+  let cut = text.slice(0, bound);
+  const last = cut.charCodeAt(cut.length - 1);
+  if (last >= 0xd800 && last <= 0xdbff) cut = cut.slice(0, -1);
+  return cut;
+}
+
+/**
  * What makes a result gate/evidence: a gate log or suite XML by path, or their marks in the text — the `LOOP-GATE`
  * line family a gate log and `tools/gate-attribute.sh` end with, and a `<testsuite` root. Both seams are the ones a
  * caller can see: a read tool carries its path, every other tool carries only its text.
@@ -154,9 +186,7 @@ export function trimResult(text, bound, tool, record, path = "") {
   if (isGateEvidence(text, path)) bound = Math.max(bound, GATE_EVIDENCE_BOUND);
   if (text.length <= bound) return text;
   const total = text.length;
-  let cut = text.slice(0, bound);
-  const last = cut.charCodeAt(cut.length - 1);
-  if (last >= 0xd800 && last <= 0xdbff) cut = cut.slice(0, -1);
+  const cut = boundedHead(text, bound);
   if (record) {
     try {
       appendFileSync(record, trimRecordLine(tool, total, bound));
@@ -248,9 +278,11 @@ export function repeatReadResult(text, read, tool = "?", record = "") {
 /**
  * The repeat rule: the text of a read, or the one line naming the earlier read when the item already holds the
  * same content at the same path. A read whose sha differs from the ledger's is the session's own edit coming back, so
- * it is handed over whole — that read is a verification — and becomes what the next repeat is measured against. A
- * replacement is recorded beside the trims (`repeatRecordLine`), because what the child was not handed is a fact only
- * this rule knows (issue #831). The rule never throws: an error hands the text over as the tool returned it.
+ * it is a verification: it is answered with the file's head bounded at `VERIFICATION_READ_BOUND` and one line naming
+ * the edit (`verificationResult`, issue #886) — not the whole file, which is what the rule exists to keep out — and it
+ * becomes what the next repeat is measured against. A replacement is recorded beside the trims (`repeatRecordLine`),
+ * because what the child was not handed is a fact only this rule knows (issue #831). The rule never throws: an error
+ * hands the text over as the tool returned it.
  */
 export function repeatResult(text, read, bound, tool = "?", record = "") {
   try {
@@ -258,7 +290,8 @@ export function repeatResult(text, read, bound, tool = "?", record = "") {
     const sha = contentSha(text);
     const earlier = read.ledger.get(read.path);
     read.ledger.set(read.path, { sha, turn: read.turn, size: text.length, session: read.session || "" });
-    if (!earlier || earlier.sha !== sha) return text;
+    if (!earlier) return text;
+    if (earlier.sha !== sha) return verificationResult(text, read, earlier, tool, record);
     const notice = alreadyReadNotice(read.path, earlier.size, earlier.turn, earlier.session || "");
     if (record) {
       try {
@@ -271,6 +304,28 @@ export function repeatResult(text, read, bound, tool = "?", record = "") {
   } catch {
     return text; // a rule that could not be applied is not a reason to fail the read it was asked about
   }
+}
+
+/**
+ * The read that follows the session's own edit (issue #886): the file's head at `VERIFICATION_READ_BOUND` and one line
+ * naming the edit, the size the file now has, the turn the item read it at and the call that reads the rest. A text
+ * that fits the bound is handed over whole, and the class the 8 000-bound exempts — a gate log, a suite XML — is
+ * handed over whole too, because §4d reads such a file for the `timestamp` order a red run is attributed in. What the
+ * cut withheld is the record line the repeat writes, so `withheld` counts it and no reader has to guess.
+ */
+export function verificationResult(text, read, earlier, tool = "?", record = "") {
+  if (isGateEvidence(text, read.path)) return text;
+  if (typeof text !== "string" || text.length <= VERIFICATION_READ_BOUND) return text;
+  const notice = verificationNotice(read.path, text.length, earlier.turn);
+  const kept = boundedHead(text, VERIFICATION_READ_BOUND) + notice;
+  if (record) {
+    try {
+      appendFileSync(record, repeatRecordLine(tool, text.length, kept.length));
+    } catch {
+      // A record that cannot be written costs the figure, never the read the child asked for.
+    }
+  }
+  return kept;
 }
 
 /**

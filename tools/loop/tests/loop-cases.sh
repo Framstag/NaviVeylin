@@ -461,7 +461,7 @@ LOOP_SHELL_CASES=(
   'phase#aResultOverTheBoundIsCutAndNamed'
   'phase#theIdentitySurvivesTheBoundOnAnyRoot'
   'repeat#aRepeatReadIsNamedNotHandedOverAgain'
-  'repeat#aRepeatAfterAnEditIsHandedOverWhole'
+  'repeat#aVerificationReadIsBoundedNotHandedOverWhole'
   'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt'
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
@@ -1213,7 +1213,7 @@ loop_run_shell_case() {
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
     'phase#theIdentitySurvivesTheBoundOnAnyRoot') fn=case_phase_theIdentitySurvivesTheBoundOnAnyRoot ;;
     'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
-    'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
+    'repeat#aVerificationReadIsBoundedNotHandedOverWhole') fn=case_repeat_aVerificationReadIsBoundedNotHandedOverWhole ;;
     'repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt') fn=case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt ;;
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
@@ -19002,8 +19002,9 @@ case_repeat_aRepeatIsRecordedAsWhatItWithheld() {
   assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "the text replaced is the one line the child is handed"
   assert_not_contains "$(cat "$d/trims.log")" "$file" \
     "and the record names no path — the notice the child reads is where the path is kept"
-  # A read whose content changed is a verification and not a repeat (issue #685), so it records nothing: the record
-  # counts what the rule replaced, not what a session happened to read twice.
+  # A read whose content changed is a verification and not a repeat (issue #685), so the repeat line counts no withheld
+  # volume for it: what that read withholds, when it is over `VERIFICATION_READ_BOUND`, is its own cut (issue #886).
+  # This file fits the bound, so the read is whole and the record stays empty either way.
   printf 'EDITED-LINE\n' >> "$file"
   node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
     --path "$file" --turn 6 --ledger "$d/ledger.txt" --record "$d/edits.log" < "$file" > "$d/edited.txt" \
@@ -19047,14 +19048,15 @@ case_repeat_anItemsLedgerSpansItsChildren() {
     "naming the session that read it, not the one reading it now"
   assert_contains "$(cat "$d/gate.txt")" 'turn 3' "and the turn that session read it at"
   [ -s "$ledger" ] || fail "the ledger the environment named was not written: $ledger holds nothing"
-  # A path the worker edited no longer holds the sha the ledger recorded, so the read is a verification: whole.
+  # A path the worker edited no longer holds the sha the ledger recorded, so the read is a verification: the file's
+  # head, and whole here only because this file fits `VERIFICATION_READ_BOUND` (issue #886).
   printf 'EDITED-LINE\n' >> "$file"
   LOOP_TOOL_RESULT_LEDGER="$ledger" LOOP_CHILD_SESSION='worker-gate-prompt' \
     node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
       --path "$file" --turn 2 < "$file" > "$d/edited.txt" \
     || fail "the result rule exited non-zero on the read after an edit: $(head -3 "$d/edited.txt")"
   assert_contains "$(cat "$d/edited.txt")" 'EDITED-LINE' \
-    "a path whose content changed comes back whole, whoever read it last"
+    "a path whose content changed comes back as it stands, whoever read it last"
   assert_not_contains "$(cat "$d/edited.txt")" 'LOOP-ALREADY-READ' \
     "and nothing says the item holds what it no longer does"
   return 0
@@ -19182,38 +19184,81 @@ case_adapter_theChildIsStartedWithTheItemsLedger() {
   return 0
 }
 
-# …and a repeat whose content changed is not a repeat (issue #685): 728 of the archive's 2 042 per-session repeats
-# follow an edit of that path, and that read is a verification — the child is checking what its own edit did, so
-# withholding it would cost a turn or a wrong edit. The rule therefore compares the content and not the path: a read
-# whose sha differs is handed over whole, and it becomes the content the next repeat is measured against, which the
-# third read of this case asserts by the size and the turn it names.
-case_repeat_aRepeatAfterAnEditIsHandedOverWhole() {
+# …and a repeat whose content changed is bounded, not handed over whole (issue #886). A read after the session's own
+# edit is a verification — the child is checking what its own edit did, so withholding it would cost a turn or a wrong
+# edit — and the rule therefore compares the content and not the path. But the branch that compares it returned the
+# whole text, so the file a child had just edited was injected again in full: 604 of 1 281 file reads in the run behind
+# the issue (47 %) were a second read of a path the session already held, their results carrying 2 838 881 characters
+# against 200 379 withheld. The edit a session makes is small and the file it lands in is not, so the read is handed the
+# file's head — `VERIFICATION_READ_BOUND`, 2 000 characters — with one line naming the edit and the range that reads the
+# rest, and what it withheld is the record line the bound already writes.
+case_repeat_aVerificationReadIsBoundedNotHandedOverWhole() {
   # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
-  local d file out size
+  local d file out size kept
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
-    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #685)"
+    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #886)"
   d=$(scratch)
   file="$d/section.md"
-  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'y'; printf '\nLAST-LINE\n'; } > "$file"
+  { printf 'FIRST-LINE\n'; head -c 6000 /dev/zero | tr '\0' 'y'; printf '\nLAST-LINE\n'; } > "$file"
   node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
     --path "$file" --turn 3 --ledger "$d/ledger.txt" < "$file" > "$d/first.txt" \
     || fail "the result rule exited non-zero on the first read: $(head -3 "$d/first.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/first.txt")" "the item's first read is handed over whole"
   # the session's own edit of the path it has already read
   printf 'EDITED-LINE\n' >> "$file"
+  size=$(wc -c < "$file" | tr -d ' ')
   out="$d/after-edit.txt"
   node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
-    --path "$file" --turn 4 --ledger "$d/ledger.txt" < "$file" > "$out" \
+    --path "$file" --turn 4 --ledger "$d/ledger.txt" --record "$d/repeats.log" < "$file" > "$out" \
     || fail "the result rule exited non-zero on the read after an edit: $(head -3 "$out")"
-  assert_eq "$(cat "$file")" "$(cat "$out")" "a read after the session edited the path is handed over whole"
-  assert_contains "$(cat "$out")" 'EDITED-LINE' "so the edit is what the child reads"
-  size=$(wc -c < "$file" | tr -d ' ')
+  assert_not_contains "$(cat "$out")" 'LAST-LINE' "the read after the edit is not the whole file again"
+  assert_contains "$(cat "$out")" 'FIRST-LINE' "it is the file's head, the part a verification reads"
+  assert_contains "$(cat "$out")" 'LOOP-REPEAT-EDIT' "and one line says the path changed since it was read"
+  assert_contains "$(cat "$out")" "$file" "naming the path the item holds"
+  assert_contains "$(cat "$out")" 'turn 3' "and the turn that read came in at"
+  assert_contains "$(cat "$out")" "first 2000 of $size characters" \
+    "and the bound it was held to beside the size the file now has"
+  assert_contains "$(cat "$out")" 'ctx_read mode="lines:N-M"' "and the call that reads the rest"
+  kept=$(wc -c < "$out" | tr -d ' ')
+  [ "$kept" -lt "$size" ] || fail "the read after the edit carried $kept of the file's $size characters"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT: ctx_read chars=' "$d/repeats.log" 2>/dev/null || true)" \
+    "and the volume it withheld is the record line beside the child's stream"
+  assert_not_contains "$(cat "$d/repeats.log")" "$file" \
+    "which names no path — the notice the child reads is where the path is kept"
+  # …and the bounded read becomes what the next repeat is measured against, its own size and turn.
   out="$d/after-edit-repeat.txt"
   node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
     --path "$file" --turn 6 --ledger "$d/ledger.txt" < "$file" > "$out" \
     || fail "the result rule exited non-zero on the repeat of the edited text: $(head -3 "$out")"
   assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "the unchanged read after it is a repeat again"
-  assert_contains "$(cat "$out")" "$size characters" "measured against the content the edit left, not the first read"
+  assert_contains "$(cat "$out")" "$size characters" "measured against the content the edit left"
   assert_contains "$(cat "$out")" 'turn 4' "at the turn that content came in"
+  # …and the class the bound exempts stays whole: a suite XML is read whole for the `timestamp` order a red run is
+  # attributed in (`guidelines/BuildEvidence.md` §4d), and a verification read of one is no exception.
+  file="$d/gate.xml"
+  { printf '<testsuite name="x">\n'; head -c 6000 /dev/zero | tr '\0' 'q'; printf '\n</testsuite>\n'; } > "$file"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/xml-ledger.txt" < "$file" > "$d/xml-first.txt" \
+    || fail "the result rule exited non-zero on the first read of gate evidence: $(head -3 "$d/xml-first.txt")"
+  printf 'EDITED-LINE\n' >> "$file"
+  out="$d/xml-after-edit.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 4 --ledger "$d/xml-ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on the read of gate evidence after an edit: $(head -3 "$out")"
+  assert_eq "$(cat "$file")" "$(cat "$out")" "gate evidence is handed over whole after an edit too"
+  # …and a text that fits the bound is handed over whole, which is the shape most verification reads have: the archive's
+  # median result is 825 characters, so this change costs nothing on the reads it does not need to bound.
+  file="$d/small.md"
+  { printf 'SMALL-FIRST\n'; head -c 600 /dev/zero | tr '\0' 'w'; printf '\nSMALL-LAST\n'; } > "$file"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/small-ledger.txt" < "$file" > "$d/small-first.txt" \
+    || fail "the result rule exited non-zero on the first read of a small file: $(head -3 "$d/small-first.txt")"
+  printf 'EDITED-LINE\n' >> "$file"
+  out="$d/small-after-edit.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 4 --ledger "$d/small-ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on the read of a small file after an edit: $(head -3 "$out")"
+  assert_eq "$(cat "$file")" "$(cat "$out")" "a text that fits the bound is handed over whole"
   return 0
 }
 

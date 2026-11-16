@@ -71,6 +71,14 @@ Source: `DetailsResolver` in `:core` (specs `auto-destination-details`,
 Source: specs `smooth-follow`, `auto-map-layout`, `location-options-ui`, `reroute-trigger`,
 `current-road-info`, `route-appearance`.
 
+The parity this section states is a symmetry between the two variants' **platform** packages: under the five
+kinds each surface's packages are `platform/<feature>` rows of `architecture/structure.tsv`, whose `feature`
+column names the one feature that package serves (`Structure.md` §1). The symmetry is therefore declared rather
+than assumed, and `Structure.md` §2 "The rule set" states the mirror rule — a platform package mirrors a feature
+by name — that `package-structure-rules-and-suite` lands as a check (task 1.7, case `platformWithoutFeatureFails`).
+Until that check lands, a phone-only surface placed in the car's package, or the reverse, is a contradicted
+row of the declaration a reader points at, not a review note and not a suite failure.
+
 - **Rule: anchors are per-surface; labels and hierarchy are shared.** The two surfaces SHARE the same
   15-position grid, the same labels and the same hierarchy, but each SHALL store its **own** routing
   and free-driving anchor: the covered regions differ (phone: turn card, routing-status card, widget

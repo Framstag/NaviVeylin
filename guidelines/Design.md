@@ -22,19 +22,20 @@ the same change; the supersession itself is recorded in `guidelines/Design.why.m
 
 ## 1. Module layering
 
-- **Rule: placement is declared in `architecture/structure.tsv`, a word's meaning in `tools/glossary/`** **MUST**: which kind a package is, and which imports that kind's rules allow, is the structure declaration (change `package-structure-as-five-kinds`); what one of the domain's words means and how it is spelt is the glossary (`guidelines/Glossary.md`, change `domain-vocabulary-is-declared`). The bullets below state the behaviour this layering makes possible; none of them restates a placement.
+- **Rule: placement is declared in `architecture/structure.tsv`, a word's meaning in `tools/glossary/`** **MUST**: which kind a package is, and which imports that kind's rules allow, is the structure declaration (change `package-structure-as-five-kinds`), and the rules the five kinds obey are `Structure.md` §1 "The five kinds, and what each holds" and §2 "The rule set"; what one of the domain's words means and how it is spelt is the glossary (`guidelines/Glossary.md`, change `domain-vocabulary-is-declared`). This section enumerates no package, because the declaration is the only machine-readable copy of the structure, and routes there for every question of placement. The bullets below state the module edges and the behaviour those edges make possible.
 
 - **Rule: only `:app` touches the JNI layer and Android context-bound storage** **MUST**: `:app` is the only module that touches the JNI layer and Android
   context-bound storage.
-- **Rule: `:core` holds the shared, Android-lean logic both variants use** `:core` = shared, Android-lean logic used by both `:app` and `:auto`
-  (resolution, formatting, projection, prediction, mappers). `:auto` depends
-  on `:core` + the JNI jar, **never** on `:app`.
-- **Rule: a shared behaviour lives once, in `:core` beside the state it reads** Shared **behaviour** lives in `:core` next to the state it reads, so a rule
-  cannot exist twice: `Manoeuvre`/`manoeuvreFromStep`, `turnTypeFor`,
-  `ManoeuvreLabels`, `ManeuverSymbols`, `RouteStepGuidance` and the route-row
+- **Rule: the variant edges are `:auto` → `:core` + the JNI jar, and `:app` → `:auto` and `:core`** `:auto` never depends on `:app`. Which packages
+  those modules hold, and what may reach them, is `architecture/structure.tsv`; this rule is the module
+  graph alone.
+- **Rule: a shared behaviour lives once, beside the state it reads** Shared **behaviour** lives once, in the
+  package that holds the state it reads, so a rule cannot exist twice: `Manoeuvre`/`manoeuvreFromStep`,
+  `turnTypeFor`, `ManoeuvreLabels`, `ManeuverSymbols`, `RouteStepGuidance` and the route-row
   policy (`RouteRows.routeRows`, `RouteRow`) are read by both variants. A
   surface that needs a rule the other one already applies imports it — it does
-  not derive a second version (change `share-route-rows-in-core`).
+  not derive a second version (change `share-route-rows-in-core`); which kind that package is, and which edges
+  reach it, is the declaration's row.
 - **Rule: `:auto` consumes app functionality through `:core` provider interfaces** `:auto` consumes app functionality through provider interfaces defined in
   `:core`, implemented in `:app` with Hilt. Keep providers focused; split when
   they grow.

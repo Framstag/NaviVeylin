@@ -1398,6 +1398,12 @@ MUTATIONS=(
   # anything against. The case holds the run's own gate as a stub, so the mutation's line removes the only thing that can
   # have started it.
   '885.1@-@tools/loop/run.sh@run#aCutRunsItsGateOnTheKeptWork@the gate the cut arm runs on the work it keeps, so a cut ends with no result measured about the tree it keeps (issue #885)@s|^      gate_the_kept_work "\$issue" "\$item_dir"$|      : # the mutation gates nothing|'
+  # 916.1 — a step that names its failing tests reports a failure, not an environment fault (issue #916). The gate
+  # read a suite's numbers out of the summary shape this tree's own shell suites print, so a JVM test task — which
+  # prints `<class> > <case> FAILED` per failing case and no summary at all — was tallied as one error whatever it
+  # had broken. The record removes the reading of those lines, so the two cases the step named are none again and the
+  # case's own numbers are the only thing that can notice it.
+  '916.1@-@tools/loop/gate.sh@gate#aTestFailureIsAFailureNotAnError@the failing cases a step names, read as its failures where it printed no summary, so a change that broke a test reads as an error again@s|^  if \[ "\$rc" -ne 0 \] && \[ "\$f" -eq 0 \] && .*; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

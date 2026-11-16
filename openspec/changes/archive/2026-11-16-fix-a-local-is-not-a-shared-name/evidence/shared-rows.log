@@ -1,0 +1,102 @@
+driver#theSharedNamesAreDeclared|   the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: branch is read by report.sh, loop-clean.sh, phase.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: count is read by gate.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: errors is read by phase.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: evidence is read by prescreen.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: failures is read by phase.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: issue is read by prescreen.sh, phase.sh, report.sh, run.sh, state.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_bytes_of is read by loop-clean.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: LOOP_CONF_PATH is read by state.sh, gate.sh, measure.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_resolve is read by prescreen.sh, gate.sh, labels.sh, loop-clean.sh, measure.sh, report.sh, run.sh, state.sh, worktree.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: LOOP_STOP is read by run.sh, prescreen.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_unlanded_commits is read by prescreen.sh, loop-clean.sh, worktree.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_worktree_branches is read by loop-clean.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: reason is read by prescreen.sh, report.sh, state.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: size is read by loop-clean.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: state_file is read by phase.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: tree is read by gate.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: verdict is read by state.sh, phase.sh, prescreen.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: apply is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: blocked is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: bound is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: branch is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: bytes is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: cases is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: change_dir is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: count is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: errors is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: evidence is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: failures is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: gate_program is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: issue is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: kept is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_bytes_of is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: LOOP_CONF_PATH is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_resolve is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: LOOP_STOP is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_unlanded_commits is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_worktree_branches is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: max_decisions is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: max_review_rounds is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: owner_pid is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: phase is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: prompt is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: push is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: reason is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: record_dir is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: review is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: size is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: tree is declared and no file a second one reads assigns it
+driver#theSharedNamesAreDeclared| shared.tsv: verdict is declared and no file a second one reads assigns it'
+--- driver#theSharedNamesAreDeclared[0] (exit 1)
+  the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: branch is read by report.sh, loop-clean.sh, phase.sh and no row declares it
+shared.tsv: count is read by gate.sh and no row declares it
+shared.tsv: errors is read by phase.sh and no row declares it
+shared.tsv: evidence is read by prescreen.sh and no row declares it
+shared.tsv: failures is read by phase.sh and no row declares it
+shared.tsv: issue is read by prescreen.sh, phase.sh, report.sh, run.sh, state.sh and no row declares it
+shared.tsv: loop_bytes_of is read by loop-clean.sh and no row declares it
+shared.tsv: LOOP_CONF_PATH is read by state.sh, gate.sh, measure.sh and no row declares it
+shared.tsv: loop_resolve is read by prescreen.sh, gate.sh, labels.sh, loop-clean.sh, measure.sh, report.sh, run.sh, state.sh, worktree.sh and no row declares it
+shared.tsv: LOOP_STOP is read by run.sh, prescreen.sh and no row declares it
+shared.tsv: loop_unlanded_commits is read by prescreen.sh, loop-clean.sh, worktree.sh and no row declares it
+shared.tsv: loop_worktree_branches is read by loop-clean.sh and no row declares it
+shared.tsv: reason is read by prescreen.sh, report.sh, state.sh and no row declares it
+shared.tsv: size is read by loop-clean.sh and no row declares it
+shared.tsv: state_file is read by phase.sh and no row declares it
+shared.tsv: tree is read by gate.sh and no row declares it
+shared.tsv: verdict is read by state.sh, phase.sh, prescreen.sh and no row declares it
+shared.tsv: apply is declared and no file a second one reads assigns it
+shared.tsv: blocked is declared and no file a second one reads assigns it
+shared.tsv: bound is declared and no file a second one reads assigns it
+shared.tsv: branch is declared and no file a second one reads assigns it
+shared.tsv: bytes is declared and no file a second one reads assigns it
+shared.tsv: cases is declared and no file a second one reads assigns it
+shared.tsv: change_dir is declared and no file a second one reads assigns it
+shared.tsv: count is declared and no file a second one reads assigns it
+shared.tsv: errors is declared and no file a second one reads assigns it
+shared.tsv: evidence is declared and no file a second one reads assigns it
+shared.tsv: failures is declared and no file a second one reads assigns it
+shared.tsv: gate_program is declared and no file a second one reads assigns it
+shared.tsv: issue is declared and no file a second one reads assigns it
+shared.tsv: kept is declared and no file a second one reads assigns it
+shared.tsv: loop_bytes_of is declared and no file a second one reads assigns it
+shared.tsv: LOOP_CONF_PATH is declared and no file a second one reads assigns it
+shared.tsv: loop_resolve is declared and no file a second one reads assigns it
+shared.tsv: LOOP_STOP is declared and no file a second one reads assigns it
+shared.tsv: loop_unlanded_commits is declared and no file a second one reads assigns it
+shared.tsv: loop_worktree_branches is declared and no file a second one reads assigns it
+shared.tsv: max_decisions is declared and no file a second one reads assigns it
+shared.tsv: max_review_rounds is declared and no file a second one reads assigns it
+shared.tsv: owner_pid is declared and no file a second one reads assigns it
+shared.tsv: phase is declared and no file a second one reads assigns it
+shared.tsv: prompt is declared and no file a second one reads assigns it
+shared.tsv: push is declared and no file a second one reads assigns it
+shared.tsv: reason is declared and no file a second one reads assigns it
+shared.tsv: record_dir is declared and no file a second one reads assigns it
+shared.tsv: review is declared and no file a second one reads assigns it
+shared.tsv: size is declared and no file a second one reads assigns it
+shared.tsv: tree is declared and no file a second one reads assigns it
+shared.tsv: verdict is declared and no file a second one reads assigns it'
+FAIL driver#theSharedNamesAreDeclared
+loop-selftest: 1 of 1 cases failed
+PASS driver#theSharedNamesAreDeclared

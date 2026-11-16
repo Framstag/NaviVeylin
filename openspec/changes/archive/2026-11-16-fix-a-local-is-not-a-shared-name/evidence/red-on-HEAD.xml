@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tools/loop/tests/loop-selftest.sh --case driver#aLocalIsNotAShareOfAnotherFilesName" tests="1" failures="1" errors="0" time="0">
+    <system-out>loop-selftest: 1 of 1 cases failed — driver#aLocalIsNotAShareOfAnotherFilesName (2026-11-16T00:01:25Z, a clone of the base d794277b, this change's case body and the base's derivation): expected '', got 'shared_thing&#9;a.sh&#9;b.sh'</system-out>
+  </testsuite>
+  <testsuite name="tools/loop/tests/loop-selftest.sh --case driver#aQuotedProgramIsNotAShellRead" tests="1" failures="1" errors="0" time="0">
+    <system-out>loop-selftest: 1 of 1 cases failed — driver#aQuotedProgramIsNotAShellRead (2026-11-16T00:01:25Z, a clone of the base d794277b, this change's case body and the base's derivation): expected '', got 'col&#9;a.sh&#9;b.sh'</system-out>
+  </testsuite>
+</testsuites>

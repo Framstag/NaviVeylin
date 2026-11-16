@@ -1,0 +1,8 @@
+# revert-check: a row deleted from shared.tsv reddens driver#theSharedNamesAreDeclared, 2026-11-15T23:56:39Z
+$ awk drop the issue row → run the case
+--- driver#theSharedNamesAreDeclared[0] (exit 1)
+  the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: issue is read by prescreen.sh, phase.sh, report.sh, run.sh and no row declares it'
+FAIL driver#theSharedNamesAreDeclared
+loop-selftest: 1 of 1 cases failed
+$ row restored → run the case
+PASS driver#theSharedNamesAreDeclared

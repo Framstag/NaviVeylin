@@ -1,0 +1,15 @@
+# driver#aLocalIsNotAShareOfAnotherFilesName and driver#aQuotedProgramIsNotAShellRead — run in a clone of the base d794277b with this change's two case bodies and the base's derivation, 2026-11-16T00:01:25Z
+== driver#aLocalIsNotAShareOfAnotherFilesName
+driver#aLocalIsNotAShareOfAnotherFilesName|   a read inside the function that declares the name local is not a share: shared_thing	a.sh	b.sh: expected '', got 'shared_thing	a.sh	b.sh'
+--- driver#aLocalIsNotAShareOfAnotherFilesName[0] (exit 1)
+  a read inside the function that declares the name local is not a share: shared_thing	a.sh	b.sh: expected '', got 'shared_thing	a.sh	b.sh'
+FAIL driver#aLocalIsNotAShareOfAnotherFilesName
+loop-selftest: 1 of 1 cases failed
+  exit 1
+== driver#aQuotedProgramIsNotAShellRead
+driver#aQuotedProgramIsNotAShellRead|   a name inside a single-quoted run is not read, on any line of the run: col	a.sh	b.sh: expected '', got 'col	a.sh	b.sh'
+--- driver#aQuotedProgramIsNotAShellRead[0] (exit 1)
+  a name inside a single-quoted run is not read, on any line of the run: col	a.sh	b.sh: expected '', got 'col	a.sh	b.sh'
+FAIL driver#aQuotedProgramIsNotAShellRead
+loop-selftest: 1 of 1 cases failed
+  exit 1

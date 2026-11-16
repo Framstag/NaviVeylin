@@ -1,0 +1,25 @@
+# revert-checks — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh, 2026-11-16T00:00:58Z
+
+== 5.1 the function-scope guard removed (one mutation, the skip line deleted)
+driver#aLocalIsNotAShareOfAnotherFilesName|   a read inside the function that declares the name local is not a share: shared_thing	a.sh	b.sh: expected '', got 'shared_thing	a.sh	b.sh'
+--- driver#aLocalIsNotAShareOfAnotherFilesName[0] (exit 1)
+  a read inside the function that declares the name local is not a share: shared_thing	a.sh	b.sh: expected '', got 'shared_thing	a.sh	b.sh'
+FAIL driver#aLocalIsNotAShareOfAnotherFilesName
+loop-selftest: 1 of 1 cases failed
+  exit 1
+  restore: byte-identical
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+  exit 0 (after restore)
+
+== 5.2 the run's state reset per line (one mutation, the carry removed)
+driver#aQuotedProgramIsNotAShellRead|   a name inside a single-quoted run is not read, on any line of the run: col	a.sh	b.sh: expected '', got 'col	a.sh	b.sh'
+--- driver#aQuotedProgramIsNotAShellRead[0] (exit 1)
+  a name inside a single-quoted run is not read, on any line of the run: col	a.sh	b.sh: expected '', got 'col	a.sh	b.sh'
+FAIL driver#aQuotedProgramIsNotAShellRead
+loop-selftest: 1 of 1 cases failed
+  exit 1
+  restore: byte-identical
+PASS driver#aQuotedProgramIsNotAShellRead
+  exit 0 (after restore)
+
+# no mutation left in the file; the two cases are green on the restored tree

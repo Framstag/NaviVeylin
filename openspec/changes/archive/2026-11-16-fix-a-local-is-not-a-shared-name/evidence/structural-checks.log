@@ -1,0 +1,8 @@
+# structural checks — the files this delta edits, 2026-11-15T23:59:38Z
+$ bash -n tools/loop/report.sh
+  ok (exit 0)
+$ bash -n tools/loop/tests/loop-cases.sh
+  ok (exit 0)
+$ openspec validate fix-a-local-is-not-a-shared-name --strict
+Change 'fix-a-local-is-not-a-shared-name' is valid
+  exit 0

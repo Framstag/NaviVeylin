@@ -1,0 +1,13 @@
+# the cases this change owns, run one after the other — 2026-11-16T00:02:12Z
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+  exit 0  case=driver#aLocalIsNotAShareOfAnotherFilesName
+PASS driver#aQuotedProgramIsNotAShellRead
+  exit 0  case=driver#aQuotedProgramIsNotAShellRead
+PASS driver#theSharedNamesAreDeclared
+  exit 0  case=driver#theSharedNamesAreDeclared
+PASS driver#anUndeclaredReadIsRefused
+  exit 0  case=driver#anUndeclaredReadIsRefused
+PASS driver#aNameAssignedTwiceIsRefused
+  exit 0  case=driver#aNameAssignedTwiceIsRefused
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+  exit 0  case=driver#everyCaseDeclaresTheFilesItCanReach

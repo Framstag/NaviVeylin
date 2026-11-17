@@ -281,6 +281,7 @@ MUTATIONS=(
   '29.1@-@tools/loop/run.sh@run#blockedItemAsksItsOwnQuestion@the question a block asks when the reviewer wrote none (issue #225)@s|^\*\*The decision:\*\* retry the item, or abandon it.*$|:|'
   '29.2@-@../issues/close.sh@labels#closeRemovesTheDecisionLabel@the closure taking the decision label off the item it ends (issue #225)@s|^    remove_args=(--remove-label "\$decision_label_closed")$|    remove_args=()|'
   '29.3@-@tools/loop/run.sh@run#aBlockedItemCarriesTheWorkersDecision@the worker decision read beside the reviewer one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      :#'
+  '29.6@-@tools/loop/run.sh@run#aReviewersDecisionOutranksTheWorkers@the reviewer decision kept ahead of the worker one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      decision_field="$worker_decision"#'
   # 30.x — a falsified skip is a finding, not a question (openspec change `falsified-items-close-in-the-loop`):
   # without the verdict the item goes back to the escalation it used to take.
   '30.1@-@tools/loop/run.sh@run#falsifiedSkipClosesWithItsMeasurement@the verdict that tells a measured falsification from an ordinary skip@s|^    outcome="falsified"$|    outcome="skipped"|'

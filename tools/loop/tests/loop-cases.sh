@@ -163,6 +163,7 @@ LOOP_SHELL_CASES=(
   'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen'
   'run#blockedItemAsksItsOwnQuestion'
   'run#aBlockedItemCarriesTheWorkersDecision'
+  'run#aReviewersDecisionOutranksTheWorkers'
   'run#falsifiedSkipClosesWithItsMeasurement'
   'run#falsificationWithoutAMeasurementIsEscalated'
   'run#mayCloseNoKeepsAFalsificationOpen'
@@ -934,6 +935,7 @@ loop_run_shell_case() {
     'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen') fn=case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
     'run#aBlockedItemCarriesTheWorkersDecision') fn=case_run_aBlockedItemCarriesTheWorkersDecision ;;
+    'run#aReviewersDecisionOutranksTheWorkers') fn=case_run_aReviewersDecisionOutranksTheWorkers ;;
     'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
     'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
@@ -11688,6 +11690,33 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
   # The run's own retry/abandon sentence belongs to the block with no reviewer decision, and the two are
   # mutually exclusive: appending it here would put two questions on one item (issues #225, #194).
   assert_not_contains "$log" "retry the item, or abandon it" "and not the run's own question beside it"
+}
+
+# Both sources can answer, and the reviewer's answer is the one that counts (#960): the round read the diff the block
+# is about, so its options name what it refused, where the worker's name what the worker found. A reading of "the
+# worker's decision is the fallback" as "the worker's decision wins" would pass every other case in this family and
+# hand the owner the older question — that is what this case is for, and mutation `29.6` is its red proof.
+case_run_aReviewersDecisionOutranksTheWorkers() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" 'LOOP-VERDICT: closed
+LOOP-CHANGE: fix-demo
+LOOP-ROOT-CAUSE: the fixture has exactly one cause
+LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)
+LOOP-GATE: tests=1 failures=0 (fixture)
+LOOP-DECISION: the workers fork: ship it as it stands, or rework the surface | recommended: rework the surface' \
+    'VERDICT: FAIL
+LOOP-CORRECTIONS-ONLY: no
+LOOP-DECISION: the reviewers fork: apply the corrections, or abandon the item | recommended: apply the corrections'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" 'apply the corrections, or abandon the item' \
+    "the escalation quotes the decision the review round worked out"
+  assert_not_contains "$log" "the workers fork" \
+    "and not the older one the worker wrote before the round read the diff"
+  assert_not_contains "$log" "retry the item, or abandon it" "nor the run's own sentence beside two real questions"
 }
 
 case_run_mayCloseNoLeavesTheIssueOpen() {

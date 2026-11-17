@@ -509,6 +509,14 @@ LOOP_SHELL_CASES=(
   'census#theCitationFormIsRead'
   'census#theCensusRefusesNothing'
   'census#aRunDoesNotConsultTheCensus'
+  'run#anUndeclaredKindStopsTheRun'
+  'run#aDeclaredKindMissingAFieldStopsTheRun'
+  'run#aFullRecordRotatesAndSaysSo'
+  'run#theRotationKeepsTheOlderFile'
+  'run#theBoundIsARecordedValue'
+  'run#anEventNamesAnIssueAndAPhaseNeverAPosition'
+  'driver#noEventCarriesACoordinate'
+  'run#aFactPrintedOnceIsRecordedOnce'
 )
 
 loop_shell_cases() {
@@ -538,6 +546,7 @@ loop_case_helper_files() {
     'init_state|tools/loop/state.sh' \
     'new_project|tools/pi-child-events.sh tools/tooling.json' \
     'phase_fixture|tools/loop/state.sh' \
+    'emit_driver|tools/loop/lib.sh' \
 
 }
 
@@ -1273,6 +1282,14 @@ loop_run_shell_case() {
     'census#theCitationFormIsRead') fn=case_census_theCitationFormIsRead ;;
     'census#theCensusRefusesNothing') fn=case_census_theCensusRefusesNothing ;;
     'census#aRunDoesNotConsultTheCensus') fn=case_census_aRunDoesNotConsultTheCensus ;;
+    'run#anUndeclaredKindStopsTheRun') fn=case_run_anUndeclaredKindStopsTheRun ;;
+    'run#aDeclaredKindMissingAFieldStopsTheRun') fn=case_run_aDeclaredKindMissingAFieldStopsTheRun ;;
+    'run#aFullRecordRotatesAndSaysSo') fn=case_run_aFullRecordRotatesAndSaysSo ;;
+    'run#theRotationKeepsTheOlderFile') fn=case_run_theRotationKeepsTheOlderFile ;;
+    'run#theBoundIsARecordedValue') fn=case_run_theBoundIsARecordedValue ;;
+    'run#anEventNamesAnIssueAndAPhaseNeverAPosition') fn=case_run_anEventNamesAnIssueAndAPhaseNeverAPosition ;;
+    'driver#noEventCarriesACoordinate') fn=case_driver_noEventCarriesACoordinate ;;
+    'run#aFactPrintedOnceIsRecordedOnce') fn=case_run_aFactPrintedOnceIsRecordedOnce ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -21299,4 +21316,151 @@ case_census_aRunDoesNotConsultTheCensus() {
   out=$(LOOP_ENGINE="$n/tools/loop" run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1) \
     || fail "a census that fails changed the run's answer: $out"
   assert_not_contains "$out" 'census' "the run mentions no census in its own path: $out"
+}
+
+# ── the run's own record: one writer, one vocabulary (issue #894) ─────────────────────────────────────────
+
+# The writer is `lib.sh`'s, so a case drives it from a script written into the throwaway project that sources the
+# engine the case is selected on — a copy of the writer would prove nothing about the writer. The record path and the
+# bound come from the environment, the way a caller of `run.sh` hands them over, so a case can bound the file small
+# enough to rotate it in three events instead of four megabytes of them.
+emit_driver() { # <project> <record path> — `.pi/emit.sh` in the project, calling `loop_emit` with the arguments it is
+  local p="$1" rec="$2"
+  cat > "$p/.pi/emit.sh" <<EOF
+#!/usr/bin/env bash
+set -uo pipefail
+source "$LOOP_ENGINE/lib.sh"
+LOOP_RUN_EVENTS="$rec"
+LOOP_RUN_EVENTS_MAX_BYTES="\${LOOP_RUN_EVENTS_MAX_BYTES:-4194304}"
+loop_emit "\$@"
+EOF
+}
+
+# An undeclared kind is not a typo the run prints past: the record would be missing an observation while the run
+# reported success, which is the whole defect this change is about, so the writer stops the run (exit 3, design D4)
+# and names the kind it was handed.
+case_run_anUndeclaredKindStopsTheRun() {
+  # files: tools/loop/lib.sh tools/loop/events.tsv tools/pi-child-events.sh tools/tooling.json
+  local p d rec out status
+  p=$(new_project); d=$(scratch); rec="$d/run-events.jsonl"
+  emit_driver "$p" "$rec"
+  status=0
+  out=$( ( cd "$p" && bash "$p/.pi/emit.sh" no-such-kind issue=7 ) 2>&1 ) || status=$?
+  assert_eq "3" "$status" "an undeclared kind stops the run"
+  assert_contains "$out" "no-such-kind" "the refusal names the kind: $out"
+  [ ! -s "$rec" ] || fail "a refused kind still wrote a line into the record"
+}
+
+# The other half of the same rule: a kind the vocabulary declares, handed without a field it declares, is not
+# recordable either — a row whose field is missing renders `%s` for a value nobody handed.
+case_run_aDeclaredKindMissingAFieldStopsTheRun() {
+  # files: tools/loop/lib.sh tools/loop/events.tsv tools/pi-child-events.sh tools/tooling.json
+  local p d rec out status
+  p=$(new_project); d=$(scratch); rec="$d/run-events.jsonl"
+  emit_driver "$p" "$rec"
+  status=0
+  out=$( ( cd "$p" && bash "$p/.pi/emit.sh" pause reason=quota ) 2>&1 ) || status=$?
+  assert_eq "3" "$status" "a declared kind missing a field stops the run"
+  assert_contains "$out" "pause" "the refusal names the kind: $out"
+  assert_contains "$out" "seconds" "and the field that was not handed: $out"
+  [ ! -s "$rec" ] || fail "a refused field still wrote a line into the record"
+}
+
+# Three events past a 50-byte bound: the third emit finds the file already past it, keeps the older events and opens
+# the new file with the event that says the record it now holds is a lower bound.
+case_run_aFullRecordRotatesAndSaysSo() {
+  # files: tools/loop/lib.sh tools/loop/events.tsv tools/pi-child-events.sh tools/tooling.json
+  local p d rec
+  p=$(new_project); d=$(scratch); rec="$d/run-events.jsonl"
+  emit_driver "$p" "$rec"
+  ( cd "$p" && LOOP_RUN_EVENTS_MAX_BYTES=50 bash "$p/.pi/emit.sh" pause reason=one seconds=1 ) >/dev/null
+  ( cd "$p" && LOOP_RUN_EVENTS_MAX_BYTES=50 bash "$p/.pi/emit.sh" pause reason=two seconds=2 ) >/dev/null
+  [ ! -e "$rec.1" ] || fail "the record rotated before it passed its bound"
+  ( cd "$p" && LOOP_RUN_EVENTS_MAX_BYTES=50 bash "$p/.pi/emit.sh" pause reason=three seconds=3 ) >/dev/null
+  [ -s "$rec.1" ] || fail "the record passed its bound of 50 bytes and was not rotated"
+  assert_eq "record-rotated" "$(head -1 "$rec" | jq -r .kind)" \
+    "the new file opens with the event that says it is not the run's first fact"
+  assert_contains "$(head -1 "$rec")" '"bound":50' "the rotation names the bound it fired at"
+}
+
+# The events the rotation replaced are kept, not dropped: a reader that finds `<file>.1` reads what the new file no
+# longer holds, and the newest fact is in the new file and in neither of the older places.
+case_run_theRotationKeepsTheOlderFile() {
+  # files: tools/loop/lib.sh tools/loop/events.tsv tools/pi-child-events.sh tools/tooling.json
+  local p d rec kept
+  p=$(new_project); d=$(scratch); rec="$d/run-events.jsonl"
+  emit_driver "$p" "$rec"
+  ( cd "$p" && LOOP_RUN_EVENTS_MAX_BYTES=50 bash "$p/.pi/emit.sh" pause reason=one seconds=1 ) >/dev/null
+  ( cd "$p" && LOOP_RUN_EVENTS_MAX_BYTES=50 bash "$p/.pi/emit.sh" pause reason=two seconds=2 ) >/dev/null
+  ( cd "$p" && LOOP_RUN_EVENTS_MAX_BYTES=50 bash "$p/.pi/emit.sh" pause reason=three seconds=3 ) >/dev/null
+  kept=$(cat "$rec.1")
+  assert_contains "$kept" '"reason":"one"' "the file the rotation kept holds the first event"
+  assert_contains "$kept" '"reason":"two"' "and the one before the rotation"
+  assert_not_contains "$kept" '"reason":"three"' "the event that caused the rotation is in the new file: $kept"
+  assert_contains "$(cat "$rec")" '"reason":"three"' "and the new file holds it"
+}
+
+# The bound is a recorded value and not a constant buried in the writer: `loop.conf` carries it, and the writer's own
+# fallback — what a caller that records nothing gets — is the same number, so the two cannot drift into "the bound the
+# project set" and "the bound the writer used".
+case_run_theBoundIsARecordedValue() {
+  # files: tools/loop/lib.sh tools/loop/loop.conf tools/loop/events.tsv
+  local conf default
+  conf=$(sed -n 's/^LOOP_RUN_EVENTS_MAX_BYTES=\([0-9][0-9]*\).*/\1/p' "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$conf" ] || fail "loop.conf records no LOOP_RUN_EVENTS_MAX_BYTES"
+  default=$(sed -n 's/^LOOP_EVENT_DEFAULT_MAX_BYTES=\([0-9][0-9]*\)$/\1/p' "$LOOP_ENGINE/lib.sh" | head -1)
+  assert_eq "$conf" "$default" \
+    "an unset key falls back to the default the writer names, and that default is the recorded one"
+}
+
+# No event carries a position (guidelines/Logging.md §2): an item and a phase are what a fact is about, and a value
+# that looks like a coordinate pair is refused at the call site, so the rule holds for a caller the vocabulary cannot
+# check ahead of time.
+case_run_anEventNamesAnIssueAndAPhaseNeverAPosition() {
+  # files: tools/loop/lib.sh tools/loop/events.tsv tools/pi-child-events.sh tools/tooling.json
+  local p d rec out status
+  p=$(new_project); d=$(scratch); rec="$d/run-events.jsonl"
+  emit_driver "$p" "$rec"
+  ( cd "$p" && bash "$p/.pi/emit.sh" progress phase=item elapsed=37s what="item #894 selected" ) >/dev/null
+  assert_contains "$(tail -1 "$rec")" '"phase":"item"' "the phase is what the event names"
+  ( cd "$p" && bash "$p/.pi/emit.sh" item-result issue=894 result=closed detail=landed wall=42 rounds=1 ) >/dev/null
+  assert_contains "$(tail -1 "$rec")" '"issue":894' "and an item fact names the issue, as a number"
+  status=0
+  out=$( ( cd "$p" && bash "$p/.pi/emit.sh" item-result issue=894 result=closed detail="52.5200,13.4050" wall=42 rounds=1 ) 2>&1 ) || status=$?
+  assert_eq "3" "$status" "a value shaped like a position is refused"
+  assert_contains "$out" "position" "and the refusal says which rule it broke: $out"
+}
+
+# The rule has two surfaces, and the vocabulary is the one a reviewer cannot read at a glance: a row declaring a
+# latitude-, longitude-, pixel-, magnification-, accuracy- or bearing-shaped field is a position in the record before
+# any call site can hand it one.
+case_driver_noEventCarriesACoordinate() {
+  # files: tools/loop/events.tsv
+  local out
+  out=$(sed -n 's/^[^#][^\t]*\t\([^\t]*\)\t.*/\1/p' "$LOOP_ENGINE/events.tsv" | tr '+' '\n' |
+    grep -E ':(lat|latitude|lon|long|longitude|lng|pixel|pixels|px|magnification|zoom|accuracy|bearing)$')
+  assert_eq "" "$out" "no vocabulary row declares a position-shaped field"
+}
+
+# The header is a fact, so it is printed once and recorded once, from one call (issue #894, D3). A run that printed
+# its flags and recorded something else is the defect the change is about, so the case compares the line a reader
+# greps against the record the report counts: the same `items`, the same bound, and the path of the file it wrote.
+case_run_aFactPrintedOnceIsRecordedOnce() {
+  # files: tools/loop/lib.sh tools/loop/run.sh tools/loop/events.tsv tools/loop/loop.conf tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out rec recorded
+  p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  init_state "$p" 1 90
+  out=$(run_loop "$p" --items 0 --minutes 0 --review off --dry-run 2>&1) || fail "the run failed: $out"
+  rec="$p/.pi/issue-loop/run-events.jsonl"
+  [ -s "$rec" ] || fail "the run printed its header and wrote no record at $rec"
+  assert_eq "1" "$(jq -s '[.[] | select(.kind == "run-start")] | length' "$rec")" \
+    "the header is one event and not a line per flag"
+  assert_contains "$out" "items=0 " "the line a reader greps still carries its flags: $out"
+  assert_contains "$out" "record=$rec" "and it names the record it wrote: $out"
+  assert_eq "0" "$(jq -r 'select(.kind == "run-start") | .items' "$rec" | head -1)" \
+    "the record's items is the number the line printed"
+  recorded=$(sed -n 's/^LOOP_RUN_EVENTS_MAX_BYTES=\([0-9][0-9]*\).*/\1/p' "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  assert_eq "$recorded" "$(jq -r 'select(.kind == "run-start") | .record_max' "$rec" | head -1)" \
+    "and the bound it names is the recorded one"
 }

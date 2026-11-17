@@ -87,7 +87,7 @@ fmt_elapsed() { # <seconds> -> `37s`, `4m12s`
 
 progress() { # progress <phase> <what> — one line wherever the run crosses a boundary it can observe itself
   local phase="$1"; shift
-  printf 'loop: %s · %s · %s\n' "$phase" "$(fmt_elapsed $(( $(date +%s) - LOOP_PROGRESS_STARTED )))" "$*"
+  loop_emit progress phase="$phase" elapsed="$(fmt_elapsed $(( $(date +%s) - LOOP_PROGRESS_STARTED )))" what="$*"
 }
 
 loop_die() {
@@ -151,11 +151,17 @@ loop_resolve() {
   # above carries the measurement and the reason (issue #214).
   if loop_path_outside_tree "$LOOP_STATE_FILE" "$LOOP_ROOT"; then LOOP_STATE_FILE=""; fi
   if loop_path_outside_tree "$LOOP_WORKTREE" "$LOOP_ROOT"; then LOOP_WORKTREE=""; fi
+  if loop_path_outside_tree "${LOOP_RUN_EVENTS:-}" "$LOOP_ROOT"; then LOOP_RUN_EVENTS=""; fi
   LOOP_STATE_FILE="${LOOP_STATE_FILE:-$LOOP_ROOT/.pi/issue-loop/run.json}"
   LOOP_WORKTREE="${LOOP_WORKTREE:-$LOOP_ROOT/.pi/worktrees/loop}"
   # A relative override is relative to the project, not to whatever the caller's cwd happened to be.
   case "$LOOP_STATE_FILE" in /*) ;; *) LOOP_STATE_FILE="$LOOP_ROOT/$LOOP_STATE_FILE" ;; esac
   case "$LOOP_WORKTREE" in /*) ;; *) LOOP_WORKTREE="$LOOP_ROOT/$LOOP_WORKTREE" ;; esac
+  # The run's own record sits beside the state file, one file per run: `run.json` → `run-events.jsonl`. Its path is
+  # derived from the state file's, so the two cannot drift into different directories, and `LOOP_RUN_EVENTS`
+  # overrides it for a caller that reports on a record an earlier run left elsewhere.
+  LOOP_RUN_EVENTS="${LOOP_RUN_EVENTS:-${LOOP_STATE_FILE%.json}-events.jsonl}"
+  case "$LOOP_RUN_EVENTS" in /*) ;; *) LOOP_RUN_EVENTS="$LOOP_ROOT/$LOOP_RUN_EVENTS" ;; esac
   loop_tmp_resolve
 }
 
@@ -241,6 +247,139 @@ loop_same_dir() { # <a> <b> → 0 when both name the same existing directory
 loop_conf_value() { # print one configuration key's value by name
   local key="$1"
   eval "printf '%s' \"\${$key:-}\""
+}
+
+# The run's own record (issue #894): one fact, one write. Every line `run.sh` makes visible is rendered from a row of
+# `tools/loop/events.tsv` and appended to `$LOOP_RUN_EVENTS` in the same call, so the line a person watches and the
+# record a reader counts cannot disagree. The vocabulary is read once, into the three arrays below; a row is the whole
+# cost of a new observation. Four things end the run with `LOOP_REFUSE` instead of printing a line the record does not
+# carry — an undeclared kind, a missing declared field, a field the row does not declare, and a value shaped like a
+# position (`guidelines/Logging.md` §2): a warning here is a record that is incomplete while the run reports success.
+declare -gA LOOP_EVENT_FIELDS=() LOOP_EVENT_FORMAT=() LOOP_EVENT_ORDER=()
+LOOP_EVENTS_LOADED=""
+LOOP_EVENT_ROTATING=""
+LOOP_EVENT_DEFAULT_MAX_BYTES=4194304
+
+loop_event_refuse() { # <kind> <field> <why> — one line on stderr, then the run's own stop status
+  if [ -n "${2:-}" ]; then
+    printf 'LOOP-EMIT-REFUSED: %s · field %s — %s\n' "${1:-<none>}" "$2" "$3" >&2
+  else
+    printf 'LOOP-EMIT-REFUSED: %s — %s\n' "${1:-<none>}" "$3" >&2
+  fi
+  # `LOOP_STOP` and not `LOOP_REFUSE`: the fact the run was about to print is not one the record carries, so the
+  # run stops instead of continuing with a transcript that is missing an observation (D4).
+  exit "$LOOP_STOP"
+}
+
+loop_events_load() { # read the vocabulary once: kind → declared fields, format, and the field order it renders
+  [ -n "$LOOP_EVENTS_LOADED" ] && return 0
+  local vocab="${LOOP_EVENTS_VOCAB:-$LOOP_DIR/events.tsv}" kind fields fmt rest count name
+  local -a declared=()
+  [ -f "$vocab" ] || loop_event_refuse "" "" "no vocabulary at $vocab — the record has no kind it could render"
+  while IFS=$'\t' read -r kind fields fmt; do
+    case "$kind" in ''|'#'*|kind) continue ;; esac
+    [ "$fields" = "-" ] && fields=""
+    declared=()
+    if [ -n "$fields" ]; then for name in ${fields//+/ }; do declared+=("${name%%:*}"); done; fi
+    # The format's placeholders and the row's fields are one list in two spellings, so a row that disagrees with
+    # itself is refused here rather than printing a line with a `%s` left in it or a value nobody renders.
+    count=0
+    rest="${fmt//%%/}"
+    while [ "${rest#*%[sd]}" != "$rest" ]; do rest="${rest#*%[sd]}"; count=$((count + 1)); done
+    if [ "$count" -ne "${#declared[@]}" ]; then
+      loop_event_refuse "$kind" "" "the row declares ${#declared[@]} field(s) and its format carries $count placeholder(s)"
+    fi
+    LOOP_EVENT_FIELDS[$kind]="$fields"
+    LOOP_EVENT_FORMAT[$kind]="$fmt"
+    LOOP_EVENT_ORDER[$kind]="${declared[*]}"
+  done < "$vocab"
+  LOOP_EVENTS_LOADED=1
+}
+
+loop_event_bound() { # → the record's bound in bytes: the recorded value, or the default this file names
+  local bound
+  bound=$(loop_conf_value LOOP_RUN_EVENTS_MAX_BYTES)
+  printf '%s' "${bound:-$LOOP_EVENT_DEFAULT_MAX_BYTES}"
+}
+
+loop_event_rotate() { # at the bound the record becomes `<file>.1` and the new file opens with the event that says so
+  [ -n "$LOOP_EVENT_ROTATING" ] && return 0
+  [ -f "$LOOP_RUN_EVENTS" ] || return 0
+  local bound size
+  bound=$(loop_event_bound)
+  size=$(stat -c %s "$LOOP_RUN_EVENTS" 2>/dev/null) || return 0
+  [ "${size:-0}" -ge "${bound:-0}" ] 2>/dev/null || return 0
+  mv -f "$LOOP_RUN_EVENTS" "$LOOP_RUN_EVENTS.1" \
+    || loop_event_refuse "record-rotated" "" "the record at $LOOP_RUN_EVENTS could not be rotated to $LOOP_RUN_EVENTS.1"
+  LOOP_EVENT_ROTATING=1
+  loop_emit record-rotated bound="$bound" kept="$LOOP_RUN_EVENTS.1" --stderr
+  LOOP_EVENT_ROTATING=""
+}
+
+loop_emit() { # loop_emit <kind> [<field>=<value>]… [--stderr] — the record's line, and the rendered one, from one call
+  local kind="${1:-}" stream=out arg name value fmt escaped
+  local -a handed=() order=() values=()
+  local -A got=()
+  [ -n "$kind" ] || loop_event_refuse "" "" "no kind was named — a fact with no kind is not one the record can carry"
+  shift
+  for arg in "$@"; do
+    if [ "$arg" = "--stderr" ]; then stream=err; else handed+=("$arg"); fi
+  done
+  [ -n "${LOOP_RUN_EVENTS:-}" ] \
+    || loop_event_refuse "$kind" "" "no record path — LOOP_RUN_EVENTS is empty, so the run cannot write the fact it prints"
+  loop_events_load
+  [ -n "${LOOP_EVENT_ORDER[$kind]+set}" ] || loop_event_refuse "$kind" "" "the vocabulary declares no such kind"
+  order=(${LOOP_EVENT_ORDER[$kind]})
+  for arg in "${handed[@]}"; do
+    case "$arg" in *=*) ;; *) loop_event_refuse "$kind" "$arg" "a value was handed without its field name" ;; esac
+    name="${arg%%=*}"
+    value="${arg#*=}"
+    case " ${LOOP_EVENT_ORDER[$kind]} " in
+      *" $name "*) ;;
+      *) loop_event_refuse "$kind" "$name" "the row declares no such field" ;;
+    esac
+    got[$name]="$value"
+  done
+  for name in "${order[@]}"; do
+    [ -n "${got[$name]+set}" ] \
+      || loop_event_refuse "$kind" "$name" "the row declares this field and no value was handed"
+    case "$name" in
+      lat|latitude|lon|long|longitude|lng|pixel|pixels|px|magnification|zoom|accuracy|bearing)
+        loop_event_refuse "$kind" "$name" "a field shaped like a position — an event names an identity, never a position (guidelines/Logging.md §2)" ;;
+    esac
+    if [[ "${got[$name]}" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]; then
+      loop_event_refuse "$kind" "$name" "a value shaped like a position — an event names an identity, never a position (guidelines/Logging.md §2)"
+    fi
+    case " ${LOOP_EVENT_FIELDS[$kind]//+/ } " in
+      *" $name:num "*)
+        if ! [[ "${got[$name]}" =~ ^-?[0-9]+$ ]]; then
+          loop_event_refuse "$kind" "$name" "declared \`num\` and handed \`${got[$name]}\` — a count, a size or a duration is a whole number"
+        fi ;;
+    esac
+  done
+  local json="{\"kind\":\"$kind\""
+  for name in "${order[@]}"; do
+    value="${got[$name]}"
+    case " ${LOOP_EVENT_FIELDS[$kind]//+/ } " in
+      *" $name:num "*) json="$json,\"$name\":$value" ;;
+      *)
+        escaped="${value//\\/\\\\}"
+        escaped="${escaped//\"/\\\"}"
+        escaped="${escaped//$'\t'/\\t}"
+        escaped="${escaped//$'\n'/\\n}"
+        json="$json,\"$name\":\"$escaped\"" ;;
+    esac
+  done
+  json="$json}"
+  loop_event_rotate
+  mkdir -p "$(dirname "$LOOP_RUN_EVENTS")" 2>/dev/null || true
+  printf '%s\n' "$json" >> "$LOOP_RUN_EVENTS" \
+    || loop_event_refuse "$kind" "" "the record at $LOOP_RUN_EVENTS could not be written"
+  fmt="${LOOP_EVENT_FORMAT[$kind]}"
+  if [ -n "$fmt" ]; then
+    for name in "${order[@]}"; do values+=("${got[$name]}"); done
+    if [ "$stream" = err ]; then printf "$fmt" "${values[@]}" >&2; else printf "$fmt" "${values[@]}"; fi
+  fi
 }
 
 # The gate's own program, as a child's tool call names it (issue #830): the first word of `LOOP_GATE_CMD` that names

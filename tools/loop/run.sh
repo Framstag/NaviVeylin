@@ -358,9 +358,24 @@ if [ -n "${LOOP_QUOTA_CMD:-}" ]; then
   quota_reader="${LOOP_QUOTA_CMD##* }"
   quota_reader="${quota_reader##*/}"
 fi
-printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s child-checks-max=%s item-context-warn=%s item-context-max=%s item-context-bounds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s\n' \
-  "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$child_checks_bound" "$item_context_warn" "$item_context_max" "$child_context_bounds" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles" "$quota_reader"
+# The bound the record keeps itself inside, named beside the path so that a reader who finds `<file>.1` knows what
+# made it (D6). It is the recorded value and the writer's own fallback is the same number, so this is what the writer
+# used and not a second reading of the configuration.
+record_max=$(loop_conf_value LOOP_RUN_EVENTS_MAX_BYTES)
+record_max="${record_max:-$LOOP_EVENT_DEFAULT_MAX_BYTES}"
+# The run's start is one fact, and the header line is that fact rendered: the values a reader greps out of this line
+# and the values the report's cross-check counts come from one call, so the two cannot drift apart (issue #894, D3).
+# The state file stays the authority for the arithmetic — this is the run's own statement of the flags it started
+# with, and the record is where a later reader finds it without the transcript.
+loop_emit run-start items="$items" minutes="$minutes" review="$review" pre_gate="$pre_gate" \
+  may_close="$may_close" push="$push" max_decisions="$max_decisions" \
+  max_review_rounds="$max_review_rounds" read_only="$read_only" \
+  strict_outside_write="$strict_outside_write" child_max="$child_max" \
+  child_turns="$child_turn_bounds" child_checks="$child_checks_bound" \
+  item_context_warn="$item_context_warn" item_context_max="$item_context_max" \
+  item_context_bounds="$child_context_bounds" min_free_mib="$min_free_mib" \
+  free_mib="${free_mib:-unknown}" dry_run="$dry_run" reset_worktree="$reset_worktree" \
+  agent_roles="$agent_roles" quota="$quota_reader" record="$LOOP_RUN_EVENTS" record_max="$record_max"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day

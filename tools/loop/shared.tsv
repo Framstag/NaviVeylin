@@ -24,6 +24,8 @@ blocked	report.sh	prescreen.sh
 branch	run.sh	report.sh loop-clean.sh phase.sh
 cases	gate.sh	measure.sh
 child_check_calls	lib.sh	run.sh
+loop_emit	lib.sh	run.sh
+LOOP_EVENT_DEFAULT_MAX_BYTES	lib.sh	run.sh
 count	prescreen.sh	gate.sh
 deadline_at	report.sh	run.sh
 deadline_epoch	report.sh	run.sh

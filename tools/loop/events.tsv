@@ -1,0 +1,105 @@
+# tools/loop/events.tsv — the run's event vocabulary: one row per kind, and the whole cost of a new observation.
+#
+# `run.sh` no longer composes a line it makes visible. It calls `loop_emit <kind> <field>=<value>…`, which appends one
+# JSON object to the run's record (`$LOOP_RUN_EVENTS`, beside the state file) and *renders* the format column of this
+# row into the stream the line went to before (`--stderr` for a line that went to stderr). One call site, one fact,
+# one source: a line and its record cannot disagree, because the line is made from the record's own values.
+#
+# Columns, tab-separated:
+#   kind     the event's name, and what `loop_emit` is handed. An emit of a kind no row declares ends the run (exit 3)
+#            naming the kind, because a fallback is how a vocabulary stops being one.
+#   fields   the values the kind must carry, `name:type` joined by `+`, or `-` for a kind that carries none. A missing
+#            field ends the run the same way, naming kind and field; a field the row does not declare is refused too,
+#            so a call site cannot hand the record a column the vocabulary has not declared. Types are `text` (escaped
+#            in the JSON), `num` (a count, a size, a duration), `ident` (a name the run works with) and `path` (a path
+#            inside the project). Every field is rendered into the format's placeholders in the order declared, so the
+#            format's placeholder count equals the field count — a field printed twice is declared twice.
+#   format   the human line, `printf`-style, in this row and nowhere else. `''` renders nothing (a fact the record
+#            carries and no line does).
+#
+# Two rules stand *outside* this table, and both are refused by the writer rather than by a reviewer's reading: an
+# event names an identity and never a position (`LOOP-EMIT-REFUSED: … carries a position`, guidelines/Logging.md §2),
+# and no kind declares a latitude-, longitude-, pixel-, magnification-, accuracy- or bearing-shaped field
+# (`driver#noEventCarriesACoordinate` reads this column for exactly those words).
+#
+# `# composers` below is the other half of `driver#everyPrintOnlySiteIsConverted`: a `printf` in one of those
+# functions composes a *file's* content or a value handed back to its caller (a prompt, an index, a report line, a
+# token), so it is not a line the run makes visible and the record owes nothing for it. Every other composed print in
+# `run.sh` is an `emit` call.
+#
+# composers	keep_leftovers tail_after_gate retry_delay_at review_correction_scope review_restart_scope
+# composers	review_restart_note bound_review_inputs review_input_mark review_input_head write_review_diff
+# composers	outside_write_line outside_write_pids bound_key_value project_state child_context child_turns
+# composers	loop_tree_pids review_input_scale_of attribute_red_gate
+#
+# `# outcomes` is the kinds an item's recorded outcome is read from, and the spelling the state file uses for it: the
+# report's cross-check counts these and maps `closed` to the state's `done`, which is the one word the two files spell
+# differently (the line has always read `closed` and the state has always recorded `done`).
+#
+# outcomes	item-result item-blocked item-closed
+kind	fields	format
+run-start	items:num+minutes:num+review:ident+pre_gate:ident+may_close:ident+push:ident+max_decisions:num+max_review_rounds:num+read_only:ident+strict_outside_write:ident+child_max:num+child_turns:ident+child_checks:num+item_context_warn:num+item_context_max:num+item_context_bounds:ident+min_free_mib:num+free_mib:text+dry_run:num+reset_worktree:num+agent_roles:text+quota:ident+record:path+record_max:num	agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s child-checks-max=%s item-context-warn=%s item-context-max=%s item-context-bounds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s quota=%s record=%s record-max=%s\n
+run-live-view	state_dir:path	run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory %s\n
+run-end	reason:text	stop: %s\n
+item-closed	issue:num+result:ident+branch:ident+rounds:num	item #%s: %s (merged %s — a finished attempt the base did not have) · %s review round(s)\n
+item-blocked	issue:num+result:ident+reason:text	item #%s: %s (%s)\n
+item-result	issue:num+result:ident+detail:text+wall:num+rounds:num	item #%s: %s (%s) · %ss · %s review round(s)\n
+adoption-unrecorded	issue:num	run: #%s — the adoption refusal could not be recorded, so its exclusion stands as the pre-screen read it\n
+worktree-kept	worktree:path	worktree kept for the next run: %s\n
+stop-unauthorised	detail:text	%s\nstop: the identity this run acts as is not authorised — nothing was created\n
+refuse-tree-on-branch	ref:ident	refusing to start: the project tree is on %s, and the landing step merges into it\n
+refuse-switch-to-base	base:ident	the base branch is %s — switch this tree to it and run again:\n
+refuse-switch-command	root:path+base:ident	  git -C %s switch %s\n
+base-red-off	-	base-red: off (LOOP_BASE_RED=off) — a step red on this run's base will be charged to the item that carries it\n
+base-red-measured	-	base-red: measured by the gate that first needs a step — no pre-flight runs at the start\n
+leftover-kept	issue:num+patch:path	keeping the work #%s left after this run recorded it: %s\n
+reset-cannot-discard	label:ident+worktree:path	%s: the reset cannot discard what is left in %s:\n
+reset-clean	label:ident+worktree:path	%s: %s is clean again — the commits on its branches are left alone\n
+reset-discarding	worktree:path	reset-worktree: discarding what a previous run left in %s:\n
+kept-worktree-no-work	-	the kept worktree held no work — only the module on another pin, and the pin its base records is placed\n
+kept-worktree-dirty	worktree:path	refusing to start: the kept worktree %s is not clean — a previous run left work behind\n
+leftovers-owner	issue:num+branch:ident	the leftovers belong to #%s (branch %s)\n
+leftovers-owner-unknown	marker:ident	the worktree is on %s, which names no item — nothing is attributed\n
+leftovers-repair	-	repair: run.sh --reset-worktree discards them, and names them before it does; nothing is committed or discarded without that flag\n
+project-dirty	-	refusing to start: the project tree carries uncommitted work, and the landing step merges into it\n
+project-dirty-cannot-tell	-	the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded here\n
+project-dirty-list	-	commit or discard these paths and run again — the list:\n
+project-dirty-command	root:path	  git -C %s status --porcelain\n
+decisions-cap	open:num+labelled:num+max:num	refusing to start: %s of the %s item(s) that await a decision are candidates, and the cap is %s\n
+decisions-accumulate	-	nothing new is produced while decisions accumulate — decide these first\n
+nothing-eligible-empty-budget	-	nothing eligible: the run was started with --items 0 (an empty budget is not a failure)\n
+nothing-eligible-queue	-	nothing eligible: the pre-screen found no candidate this run may work\n
+dry-run-head	-	\ndry run: what would happen, and nothing else\n
+dry-run-end	-	dry run: no worktree, no label and no agent process was created or started\n
+worktree-started	worktree:path+branch:ident+base:ident	worktree: %s on %s from %s\n
+publish-nothing	branch:ident	run: nothing to publish for %s — the run merged it and released the branch, so its work is in the base\n
+publish-failed	branch:ident	run: the push of %s failed — its commits stay in the run tree, not on the remote\n
+review-no-note	report:path	no NOTE: finding — the report is %s\n
+outside-write-first	clause:text+read_at:text	LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: %s — read while the child was alive at %s\n
+outside-write-alive	alive:text+attributed:ident	LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n
+tests-cleared	cleared:text	run: cleared %s from the worktree before this child — test results an earlier child wrote, which its gate would have counted\n
+child-started	phase:ident+log:path	loop: %s started (log %s)\n
+heartbeat	phase:ident+elapsed:text+log_bytes:num+changed:num+commits:num	loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n
+context-warn	ctx:num+warn:num	LOOP-CONTEXT: the child's context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a fresh session at this reading is the cheaper half of the bound below\n
+child-finished	phase:ident+elapsed:text+exit:num+log_bytes:num	loop: %s finished in %s (exit %s, log %s B)\n
+change-ready-no-key	-	LOOP-CHANGE-READY: refused gate-not-configured — the profile declares no checks.changeReady\n
+change-ready-missing	gate:path	LOOP-CHANGE-READY: refused gate-not-configured — checks.changeReady names %s and no file is there\n
+cut-unrecorded	round:num+change:ident	run: the cut of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n
+rework-cut-unrecorded	round:num+change:ident	run: the cut of the rework of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n
+pause	reason:text+seconds:num	pause: %s — waiting %ss, then asking again\n
+tracker-unreadable	issue:num+error:text	run: the tracker could not be read for #%s — %s (recorded as unreadable, the run continues)\n
+leftover-discarded	issue:num+patch:path+starts:num	discarding the work #%s left after this run recorded it — %s, so #%s starts on a clean tree\n
+gitlink-pin-placed	issue:num	the tree was dirty only in the module's gitlink — the pin the base records is placed, so #%s starts\n
+progress-mark-failed	issue:num	run: could not mark #%s in progress\n
+progress-record-failed	issue:num	run: could not record #%s as the item in progress\n
+pre-gate-cut-retry	last:text	run: the pre-gate answer was cut short (%s) — retrying the round once\n
+gate-not-answer-retry	last:text	run: the gate answer is not an answer (%s) — retrying the phase once\n
+answer-empty-retry	child:ident+retry:num+of:num+delay:num+retry_max:num+retry_delays:text	run: the %s answered nothing (answer-empty, retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before asking the same question again\n
+answer-empty-retry-ended	child:ident+exit:num+bytes:num	run: the answer-empty retry of the %s ended with exit %s and %s B\n
+child-start-retry	child:ident+retry:num+of:num+delay:num+retry_max:num+retry_delays:text+issue:num	run: the %s could not start (retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before retrying #%s\n
+review-announce-unrecorded	round:num+change:ident	run: review round %s could not be announced on the branch — a later run may adopt %s as if no review had been asked for\n
+review-answer-cut-retry	round:num+last:text	run: the round %s answer was cut short (%s) — retrying the round once\n
+review-answer-unrecorded	round:num+change:ident	run: the round %s answer could not be recorded on the branch — a later run reads %s as never answered\n
+review-failed-unrecorded	-	run: the failed review could not be recorded on the branch — a later run may adopt it\n
+record-rotated	bound:num+kept:path	run: the record passed %s bytes and is rotated — the file it replaced is kept at %s\n
+progress	phase:ident+elapsed:text+what:text	loop: %s · %s · %s\n

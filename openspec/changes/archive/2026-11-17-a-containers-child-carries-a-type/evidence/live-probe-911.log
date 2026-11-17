@@ -1,0 +1,36 @@
+# the type axis on this tracker through `--live`, before and after the sixth invariant (#911)
+
+command (run from `.pi/worktrees/loop`, 2026-11-17):
+  bash tools/issues/check-metadata.sh --live
+
+before the invariant — `scratch/probe/before.sh`, a copy of the tree's script at HEAD 6b0e01a7:
+  check-metadata: 400 issue(s) checked · 0 violation(s)
+  wall 40.9 s   (`scratch/probe/before.time`, `time` around the run)
+
+after the invariant — `scratch/probe/after.sh`, the patched script:
+  check-metadata: 400 issue(s) checked · 0 violation(s)
+  wall 44.6 s   (`scratch/probe/after.time`)
+
+why neither run reports anything: the nine children of #895 that carried `issueType: null` on 2026-11-14 — the
+item's own measurement, `#895 children 890..909 all issueType = null` — carry `Task` today, so the tracker holds no
+untyped child of a container inside the read's window. The check reports what the tracker holds now, and what it
+holds now is typed.
+
+  $ gh issue list --state all --limit 400 --json number,issueType,parent > scratch/live.json
+  $ jq -r '[.[] | select(.parent.number == 895)] | length' scratch/live.json                 → 9
+  $ jq -r '[.[] | select(.parent.number == 895 and (.issueType.name // "") == "")] | length' scratch/live.json → 0
+  $ jq -r '[.[] | select(.parent.number == 895) | .issueType.name] | unique | join(",")'    scratch/live.json → Task
+
+the window's one known unknown: the only other untyped child in the read is #887, whose parent is #36 — an issue
+outside `--limit 400`'s window, so its type is not in the document and the check says nothing about the child
+rather than guessing (design, Risks / Trade-offs). Nothing in the read is silently passed over: 32 items carry a
+parent and 9 of them sit under a container.
+
+the cost claim: one more field on the read the pass already makes — no second call. The difference of the two wall
+times is 3.7 s over 400 items, and `metadata#bothPerItemModesCheckIt` pins the call count on the stub tracker
+(`grep -c 'issue list'` = 1).
+
+the mode proven against a tracker that *has* an untyped child: `metadata#bothPerItemModesCheckIt` drives `--live`
+through the stub `gh` over `tools/issues/tests/fixtures/metadata/children.json` and gets `#43 untyped-child`
+(`issue-tooling-selftest-911.log`). The real tracker cannot be made to carry one without writing to it, which is
+not this child's to do.

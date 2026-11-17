@@ -1,0 +1,13 @@
+# the change's own cases against HEAD's tools/issues/check-metadata.sh (git show HEAD:tools/issues/check-metadata.sh), 2026-11-17
+measured 2026-11-17T15:02:57Z
+1c30a5e59d473b1512cc148e0406e88d0ebd68c5be8c29c8c1f1233753a0054b  tools/issues/check-metadata.sh
+PASS metadata#aTypedChildIsConsistent
+  an untyped child of a container exits non-zero: expected '1', got '0'
+FAIL metadata#anUntypedChildIsAViolation
+PASS metadata#aChildOfAnOrdinaryIssueIsOutOfScope
+  the offline mode reports the untyped child: expected '1', got '0'
+FAIL metadata#bothPerItemModesCheckIt
+  the JSON run exits non-zero: expected '1', got '0'
+FAIL metadata#theJsonCarriesTheViolation
+  a document with no type field is not a clean tracker: expected '1', got '0'
+FAIL metadata#anUnreadableFieldIsNamed

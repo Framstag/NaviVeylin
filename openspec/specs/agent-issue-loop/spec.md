@@ -5252,19 +5252,35 @@ whichever arm answers.
 
 ### Requirement: A step red on the run's base is subtracted from the item's tally and named
 
-A run SHALL measure, before it works anything, which of the gate's steps the base it starts from is already red at,
-and record the failing step-and-case pairs. A gate SHALL subtract exactly the pairs that record holds — a case it
-fails now and the base failed leaves the tally, a case it fails only now stays — print `LOOP-GATE-BASERED:<step>:<n>`
-on its console, log and verdict, and write the pairs to the run's record. A pre-flight it cannot take SHALL leave
-every red with the item.
+A run SHALL measure a gate step's state on the base the run starts from when an item's gate first needs it, and
+record the failing case names it found there. A gate SHALL subtract exactly the pairs that record holds — a case it
+fails now and the base failed leaves the tally, a case it fails only now stays — name what left as
+`LOOP-GATE-BASERED:<step>:<n>`, and write the pairs to the run's record. A step whose base state no measurement could
+take SHALL leave its red with the item.
 
 #### Scenario: The pre-flight names each red step and the case that failed there, and writes no tally
 
-- **WHEN** the run takes the pre-flight over a base whose steps are red, on a step set the profile owes
+- **WHEN** a base-red measurement is taken over a step set of the base whose steps are red
 - **THEN** it prints one `LOOP-BASERED-STEP:<step>|<n>` line and one `LOOP-BASERED-CASE:<step>|<case>` line per red
   step and failing case, writes nothing into the gate's tally directory, holds no tally lock, and records the pairs
   as the run's own base-red record
 - **Case**: `gate#aBaseRedStepIsSubtractedAndNamed`
+
+#### Scenario: The measurement is narrowed to the step the gate found red
+
+- **WHEN** a gate over an item's delta finds a step red and the run's record holds no state for that step
+- **THEN** it measures that one step on the base in a clean tree at the base commit, prints one
+  `LOOP-GATE-BASERED-MEASURE:<step>` line naming the tree and the output it keeps, writes nothing into the gate's tally
+  directory, holds no tally lock, spends no `runs_max`, and records the failing step-and-case pairs as the run's
+  base-red record with the commit it measured as that record's base — measuring none of the profile's other steps
+- **Case**: `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt`
+
+#### Scenario: A step the record already holds costs no step
+
+- **WHEN** a later gate finds red a step the run's base-red record holds
+- **THEN** nothing is measured, no `LOOP-GATE-BASERED-MEASURE` line is printed, and the pairs the record holds are
+  subtracted as they are for the gate that took the measurement
+- **Case**: `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt`
 
 #### Scenario: A step red on the base and red for no new case is subtracted and named
 
@@ -5283,10 +5299,12 @@ every red with the item.
 
 #### Scenario: A red no pre-flight measured is charged to the item
 
-- **WHEN** the run takes no pre-flight — the switch is off, the run records no base, the base is not a commit the tree
-  can read, or the tree carries uncommitted work — and the base could not be measured
-- **THEN** no step and no case is subtracted, and every red the gate reports stays charged to the item
-- **Case**: `gate#aBaseRedStepIsSubtractedAndNamed`
+- **WHEN** no measurement of a step's base state could be taken or written — the switch is off, the run records no base,
+  the base is not a commit the tree can read, no clean tree at the base commit exists, the measurement failed to run, or
+  it could not be written into the run's record
+- **THEN** no step and no case is subtracted, where the measurement was attempted an
+  `LOOP-GATE-BASERED-UNMEASURED:<step>` line names why, and every red the gate reports stays charged to the item
+- **Case**: `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt`
 
 ### Requirement: The archive's classes are derived from the record, not from a field's absence
 
@@ -5586,3 +5604,23 @@ leaving the gate silent for the step's whole bound.
   that summary — the step is neither ended at its bound nor stopped by the terminal, and its command has not consumed
   anything the gate's caller handed the gate
 - **Case**: `gate#aStepCannotReadTheCallersStdin`
+
+### Requirement: A worktree of the run's own repository carries the run's identity
+
+The loop SHALL honour an inherited run state path that lies inside the main worktree of the repository the process
+resolved, and SHALL ignore one outside it. A gate run in the run's own kept worktree SHALL read and write the run's
+record.
+
+#### Scenario: A gate in the item's worktree writes the run's record
+
+- **WHEN** a gate run in a linked worktree of the project subtracts a base-red pair
+- **THEN** the pair is written to the run's own record at the project's state path, and the record it read is the one the
+  project holds
+- **Case**: `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt`
+
+#### Scenario: A state path another tree names is still ignored
+
+- **WHEN** a process inside a tree is handed a state path that lies outside that tree and outside the main worktree of
+  the repository it resolved
+- **THEN** the path is not written and the tree resolves a state file of its own
+- **Case**: `state#inheritedStatePathOutsideTheTreeIsIgnored`

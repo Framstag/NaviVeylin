@@ -1072,9 +1072,13 @@ answered with `LOOP-SELFTEST: no case declares the delta` beside the file set it
 selected against, nothing run and exit 0, so the step's log says which delta was covered by nothing rather than
 saying nothing. The flag states the intersection and nothing else: without it, a path the tree has and no case
 declares is the refusal it was, and CI's own step passes it (`--allow-empty --from-git <base>`, the pull request's
-base else the pushed branch's `before`, the whole set when that value is the all-zeros SHA). A delta to the library, the profile, the case file or the driver itself
+base else the pushed branch's `before`, the whole set when that value is the all-zeros SHA). A delta to the library, the profile or the driver itself
 owes the whole set, and so does the archive: a case reaches behaviour through the scripts it starts, and only a
-hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
+hand-run of all of them covers that. The case file is the one path whose own hunks are read instead of its name
+(issue #917): a hunk inside one `case_<group>_<name>() {` … `^}` span owes that case, and a hunk no case body holds
+— a shared helper, the top level — still owes the whole set, so a delta that adds two cases and rewrites nothing
+stopped paying the whole suite to prove them (853 s, #890). Measured
+2026-10-23 (issue #276): 190 cases and 723 s were owed for every
 `tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to
 `tools/loop/run.sh` by 110 — the end-to-end `run#*` cases are the half that cannot narrow. Measured the same day:
 the declaration was generated once from the case bodies and is kept honest by

@@ -507,7 +507,7 @@ MUTATIONS=(
   # names nothing gets, 53.9 drops the rule that a core file owes the whole set, and 53.10 removes one token from a
   # case's declaration so the declaration is narrower than the case that carries it.
   '53.6@-@tools/loop/gate.sh@gate#theDeltaHandsASuiteTheBaseItMeasured@the base substituted into the suite the delta owes (issue #276)@s|^    cmd=\${cmd//\\{base\\}/\$base}$|    : # the mutation substitutes no base|'
-  '53.7@-@tools/loop/tests/loop-selftest.sh@driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns@the file set narrowing the selection instead of selecting everything (issue #276)@s|^  if ! files_select "\$case_name"; then continue; fi$|  : # the mutation selects every case|'
+  '53.7@-@tools/loop/tests/loop-selftest.sh@driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns@the file set narrowing the selection instead of selecting everything (issue #276)@s|^  if ! delta_select "\$case_name"; then continue; fi$|  : # the mutation selects every case|'
   '53.8@-@tools/loop/tests/loop-selftest.sh@driver#aFileSetThatNamesNoCaseIsRefused@a file set that names no case refused rather than read as an empty suite (issue #276)@s|^if \[ "\$only_files" != " " \] && \[ "\$(count_files_matching)" -eq 0 \]; then$|if false; then|'
   '53.9@-@tools/loop/tests/loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
   '53.10@-@tools/loop/tests/loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
@@ -1455,6 +1455,13 @@ MUTATIONS=(
   # record re-opens the permission the clause removes, which is the reading the round had before it landed; the
   # pre-gate round inherits the same file, so one record stands for both rounds' clause.
   '954.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerCarriesTheEightItems@the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954)@s|never ask a question|feel free to ask a question|'
+  # 917.x — the cases file's own hunks name the cases they sit in (issue #917). Two invariants, one per record: a
+  # hunk inside a case body owes that case and not the 853-883 s whole set (#890, #861), and a hunk no case body
+  # holds — a shared helper — still owes the whole set. 917.1 puts the leg back whole, so both stub cases run where
+  # the case body's hunk names one; 917.2 removes the guard that keeps a narrowing with no declared case whole, so
+  # the delta resolves to no case at all and the driver refuses it (exit 2) where the whole set was owed.
+  '917.1@-@tools/loop/tests/loop-selftest.sh@driver#aHunkInACaseBodySelectsThatCaseOnly@the case file'"'"'s hunks narrowing the leg to the cases they sit in, so a delta that adds a case pays the whole suite from the base again (issue #917)@s|^      from_git_narrowed=1$|      from_git_narrowed=0|'
+  '917.2@-@tools/loop/tests/loop-selftest.sh@driver#aHunkOutsideEveryCaseBodyOwesEveryCase@the guard that keeps a leg whole when no hunk of the cases file lands in a declared case, so a hunk in a shared helper narrows the selection to nothing and the driver refuses it instead of owing every case (issue #917)@s|^    if \[ -n "\$kept" \]; then$|    if true; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

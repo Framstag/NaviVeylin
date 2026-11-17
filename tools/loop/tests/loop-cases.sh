@@ -26,6 +26,8 @@
 # is what lets the gate of a `tools/loop/**` delta run a handful of the 190 cases instead of all of them (723 s,
 # measured 2026-10-23; issue #276). The declaration is over-approximated on purpose — a case costs seconds, a
 # missed red case costs a landing — and a case that names nothing is declared `*`, so it is owed for any delta.
+# This file is the one path a hunk is placed in rather than named (issue #917): a hunk inside a case body owes that
+# case, and a hunk outside every body owes the whole set, so adding two cases no longer pays the suite from the base.
 # `driver#everyCaseDeclaresTheFilesItCanReach` is what keeps a new case from arriving without one.
 set -uo pipefail
 
@@ -437,6 +439,8 @@ LOOP_SHELL_CASES=(
   'driver#aFileSetThatNamesNoCaseIsRefused'
   'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt'
   'driver#aCoreFileOwesEveryCase'
+  'driver#aHunkInACaseBodySelectsThatCaseOnly'
+  'driver#aHunkOutsideEveryCaseBodyOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#aCaseWithNoSelectionRowIsRefused'
   'driver#everyEngineScriptIsInTheTable'
@@ -1208,6 +1212,8 @@ loop_run_shell_case() {
     'driver#aFileSetThatNamesNoCaseIsRefused') fn=case_driver_aFileSetThatNamesNoCaseIsRefused ;;
     'driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt') fn=case_driver_anEmptyDeltaIsStatedWhenTheCallerAllowsIt ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
+    'driver#aHunkInACaseBodySelectsThatCaseOnly') fn=case_driver_aHunkInACaseBodySelectsThatCaseOnly ;;
+    'driver#aHunkOutsideEveryCaseBodyOwesEveryCase') fn=case_driver_aHunkOutsideEveryCaseBodyOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#aCaseWithNoSelectionRowIsRefused') fn=case_driver_aCaseWithNoSelectionRowIsRefused ;;
     'driver#everyEngineScriptIsInTheTable') fn=case_driver_everyEngineScriptIsInTheTable ;;
@@ -17400,6 +17406,26 @@ case_stub_ownsNothing() {
 }
 loop_run_shell_case() { "case_${1%%#*}_${1#*#}"; }'
 
+# Two stub cases and the helper both of them call, for a delta whose case-file hunk sits inside one case body and one
+# whose hunk sits in the helper beside them (issue #917). The cases file is a core file here, as it is in this
+# project's own profile, so both answers are observable: the whole set a case-file delta owed until the narrowing,
+# and the one case its hunk names after it.
+STUB_HUNK_CASES='LOOP_SHELL_CASES=("stub#ownsGate" "stub#ownsRun")
+loop_shell_cases() { printf "%s\n" "${LOOP_SHELL_CASES[@]}"; }
+loop_case_core_files() { printf "%s\n" "tools/loop/lib.sh tools/loop/tests/loop-cases.sh"; }
+stub_ran() {
+  printf "%s\n" "$1" >> "$STUB_RUN_LOG"
+}
+case_stub_ownsGate() {
+  # files: tools/loop/gate.sh
+  stub_ran "stub#ownsGate"
+}
+case_stub_ownsRun() {
+  # files: tools/loop/run.sh
+  stub_ran "stub#ownsRun"
+}
+loop_run_shell_case() { "case_${1%%#*}_${1#*#}"; }'
+
 case_driver_aFileFilterRunsOnlyTheCasesTheDeltaOwns() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d driver conf ran out status
@@ -17508,6 +17534,69 @@ case_driver_aCoreFileOwesEveryCase() {
   assert_eq "0" "$status" "a core file runs the suite: $out"
   assert_eq "4" "$(wc -l < "$STUB_RUN_LOG")" "every declared case ran for a core file: $(cat "$STUB_RUN_LOG")"
   assert_contains "$out" "selected 4 of 4 cases" "and the statement says the whole set: $out"
+  return 0
+}
+
+# A hunk a delta adds inside one case body is that case's and no other's (issue #917). The cases file is a core file,
+# so the whole set it owed is the suite's longest leg — 853 s (#890) and 883 s (#861) of a gate whose other legs are
+# seconds — paid to prove two added cases. The delta here is one line inside `case_stub_ownsGate`'s body, against the
+# commit the nested tree was staged in, and what it owes is that case alone.
+case_driver_aHunkInACaseBodySelectsThatCaseOnly() {
+  # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
+  local d driver conf nest base ran out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_HUNK_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  nest="$d/nested"
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+  git -C "$nest" add -A >/dev/null 2>&1 || fail "could not stage the nested tree"
+  git -C "$nest" -c user.email=case@example.invalid -c user.name=case commit -qm base >/dev/null 2>&1 \
+    || fail "could not commit the nested tree's base"
+  base=$(git -C "$nest" rev-parse HEAD)
+
+  # One line added inside a case body, and nothing else in the tree: the delta is that case's and no other's.
+  sed '/^case_stub_ownsGate() {$/a\  # a line the delta adds inside one case body' \
+    "$nest/tools/loop/tests/loop-cases.sh" > "$d/cases.sh" || fail "could not edit the nested cases file"
+  mv "$d/cases.sh" "$nest/tools/loop/tests/loop-cases.sh"
+
+  out=$( cd "$nest" && LOOP_CONF="$conf" bash "$driver" --from-git "$base" 2>&1 ); status=$?
+  ran=$(sort "$STUB_RUN_LOG")
+  assert_eq "0" "$status" "a delta inside a case body runs: $out"
+  assert_eq "stub#ownsGate" "$ran" "only the case the hunk sits in ran, not the whole set: $(cat "$STUB_RUN_LOG")"
+  assert_contains "$out" "the case file's hunks name 1 case(s): stub#ownsGate" \
+    "and the selection names the case the hunk sits in: $out"
+  return 0
+}
+
+# The other half of the same rule: a hunk no case body holds owes the whole set, because nothing says which cases
+# reach that line — a shared helper, or the top level of the file. The delta here adds one line to `stub_ran`, which
+# both stub cases call, and the answer is the one this leg gave before the narrowing.
+case_driver_aHunkOutsideEveryCaseBodyOwesEveryCase() {
+  # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
+  local d driver conf nest base ran out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_HUNK_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  nest="$d/nested"
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+  git -C "$nest" add -A >/dev/null 2>&1 || fail "could not stage the nested tree"
+  git -C "$nest" -c user.email=case@example.invalid -c user.name=case commit -qm base >/dev/null 2>&1 \
+    || fail "could not commit the nested tree's base"
+  base=$(git -C "$nest" rev-parse HEAD)
+
+  # One line added to the helper both cases call: it sits in no case body, so the leg stays whole.
+  sed '/^stub_ran() {$/a\  # a line the delta adds to the helper both cases call' \
+    "$nest/tools/loop/tests/loop-cases.sh" > "$d/cases.sh" || fail "could not edit the nested cases file"
+  mv "$d/cases.sh" "$nest/tools/loop/tests/loop-cases.sh"
+
+  out=$( cd "$nest" && LOOP_CONF="$conf" bash "$driver" --from-git "$base" 2>&1 ); status=$?
+  ran=$(sort "$STUB_RUN_LOG")
+  assert_eq "0" "$status" "a delta in shared code runs the suite: $out"
+  assert_eq "stub#ownsGate
+stub#ownsRun" "$ran" "a hunk outside every case body owes every case: $(cat "$STUB_RUN_LOG")"
+  assert_contains "$out" "selected 2 of 2 cases" "and the statement says the whole set: $out"
   return 0
 }
 

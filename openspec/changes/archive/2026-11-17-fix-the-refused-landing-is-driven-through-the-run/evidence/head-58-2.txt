@@ -1,0 +1,17 @@
+Red on HEAD, taken by the continuation worker of #883 after the first process was ended.
+
+The tree under test is a clean clone of the run's base (`git clone` of the change root, whose HEAD is
+7ecab8e64749b410eabff058ee964c493fb41c28 and whose own change was uncommitted, so the clone is the base tree):
+
+$ ./tools/loop/tests/loop-mutations.sh --only 58.2
+loop-mutations: selected 1 of 412 records (labels: 58.2)
+loop-mutations: scratch <clone>/.pi/tmp/loop-mutations.2ugvkW
+RED    58.2  run#doesNotCloseOnAMergeTheBaseCannotTake   (a base that would not take the branch named as the other mechanism (issue #280))
+       2026-11-17T12:30:45Z —
+RESTORE-FAILED 58.2 run#doesNotCloseOnAMergeTheBaseCannotTake stayed red after the restore
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 1
+
+The record names a case the base does not hold — `a30a3305` (#862) deleted
+`case_run_doesNotCloseOnAMergeTheBaseCannotTake` — so the mutation lands, nothing notices it, and the restore
+cannot turn a case that is not there green again.

@@ -1,0 +1,8 @@
+RED    58.2  run#doesNotCloseOnAMergeTheBaseCannotTake   (a base that would not take the branch named as the other mechanism (issue #280))
+       2026-11-17T12:29:51Z — a closure whose merge the base cannot take is blocked, not settled: expected 'blocked', got 'done'
+restore 58.2 run#doesNotCloseOnAMergeTheBaseCannotTake green again
+RED    883.4  run#doesNotCloseOnAMergeTheBaseCannotTake   (the guard that hands the refused landing to the item record, so the block still says `unmergeable` and nothing the merge refused travels into the record the report prints (issue #883))
+       2026-11-17T12:30:24Z — the refused landing did not record the branch the run asked the merge for: ''
+restore 883.4 run#doesNotCloseOnAMergeTheBaseCannotTake green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

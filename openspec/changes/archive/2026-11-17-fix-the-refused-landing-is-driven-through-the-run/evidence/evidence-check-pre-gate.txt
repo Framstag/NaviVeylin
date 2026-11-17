@@ -1,0 +1,22 @@
+command: bash tools/loop/evidence-check.sh openspec/changes/fix-the-refused-landing-is-driven-through-the-run --root .  (run from change root, pre-archive, 2026-11-17)
+
+first run (FAIL, 4):
+FAIL C1 dangling §7 in openspec/changes/fix-the-refused-landing-is-driven-through-the-run (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)   x4 (proposal.md:46, proposal.md:64, design.md:36, tasks.md:30 — each cited `guidelines/Backlog.recipes.md` §7d, a guideline section, not a backlog §id)
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 240 resolved and in range, 14 unresolved or ambiguous
+----
+evidence-check: FAIL (4)
+
+fix: four `§7d` -> `section 7d` (the sibling live change cites "sections 7a–7e" the same way)
+
+rerun after fix (PASS):
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 240 resolved and in range, 14 unresolved or ambiguous
+----
+evidence-check: PASS
+EXIT=0

@@ -1,0 +1,24 @@
+# The revert-check this change owes: one mutation per invariant, the named case red, the restore green
+
+$ tools/loop/tests/loop-mutations.sh --only 918.1
+RED    918.1  run#aBoundCutRoundIsRestartedWithItsFindings   (the guard that decides whether a round the bound ended is restarted, so the item is handed to the next run again and the reading the bound ended stays the item%ss question (issue #918))
+       2026-11-17T09:59:36Z — the item closes on the restarted round's answer, not on the bound that ended the reading before it: expected 'done', got 'cut'
+restore 918.1 run#aBoundCutRoundIsRestartedWithItsFindings green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+$ tools/loop/tests/loop-mutations.sh --only 918.2
+RED    918.2  run#aBoundCutRoundIsRestartedWithItsFindings   (the findings the cut round wrote, so the restarted round is handed the bound and none of what the ended reading had already decided (issue #918))
+       2026-11-17T10:00:02Z — the findings the cut round wrote are handed to the restart, not left in its own report: 'BLOCKING: item 4 names no case' not found in: # Reviewer — the fixed contract
+restore 918.2 run#aBoundCutRoundIsRestartedWithItsFindings green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+$ tools/loop/tests/loop-mutations.sh --only 918.3
+RED    918.3  run#aBoundCutRoundIsRestartedWithItsFindings   (the line the item keeps of a restart, so a round that answered after one reads in the record exactly as a round that answered first time (issue #918))
+       2026-11-17T10:00:28Z — the item names the round, the bound and the file the cut round had written: 'round 1 · LOOP_CHILD_TURNS_MAX_REVIEWER=3 · reviewer-report-1.md' not found in: 
+restore 918.3 run#aBoundCutRoundIsRestartedWithItsFindings green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+$ tools/loop/tests/loop-mutations.sh --check --only 918.1 (and 918.2, 918.3)
+loop-mutations: all 1 cases passed — every selected record applies to the file it names
+loop-mutations: all 1 cases passed — every selected record applies to the file it names
+loop-mutations: all 1 cases passed — every selected record applies to the file it names

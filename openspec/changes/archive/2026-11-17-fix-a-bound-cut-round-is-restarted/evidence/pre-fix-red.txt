@@ -1,0 +1,6 @@
+# The new case on the tree before this change: HEAD's tools/loop/run.sh, the change's case and configuration beside it
+# command: bash tools/loop/tests/loop-selftest.sh --case 'run#aBoundCutRoundIsRestartedWithItsFindings'
+run#aBoundCutRoundIsRestartedWithItsFindings|   the item closes on the restarted round's answer, not on the bound that ended the reading before it: expected 'done', got 'cut'
+  the item closes on the restarted round's answer, not on the bound that ended the reading before it: expected 'done', got 'cut'
+FAIL run#aBoundCutRoundIsRestartedWithItsFindings
+loop-selftest: 1 of 1 cases failed

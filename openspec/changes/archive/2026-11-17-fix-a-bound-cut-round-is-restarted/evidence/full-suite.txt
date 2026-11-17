@@ -1,0 +1,24 @@
+# The full self-test suite, owed because this change owns tools/loop/** — guidelines/BuildGate.md §2a
+$ bash tools/loop/tests/loop-selftest.sh
+loop-selftest: state 38 cases 527.32 s
+loop-selftest: prescreen 41 cases 495.56 s
+loop-selftest: worktree 26 cases 418.45 s
+loop-selftest: evidence 1 cases 11.39 s
+loop-selftest: prompt 20 cases 522.41 s
+loop-selftest: run 162 cases 4858.14 s
+loop-selftest: clean 13 cases 227.11 s
+loop-selftest: labels 9 cases 180.35 s
+loop-selftest: gate 41 cases 378.56 s
+loop-selftest: driver 34 cases 464.64 s
+loop-selftest: mutation 3 cases 24.91 s
+loop-selftest: measure 5 cases 68.15 s
+loop-selftest: adapter 12 cases 107.15 s
+loop-selftest: trim 3 cases 33.19 s
+loop-selftest: look 3 cases 14.09 s
+loop-selftest: policy 1 cases 8.54 s
+loop-selftest: report 43 cases 503.68 s
+loop-selftest: usage 4 cases 41.03 s
+loop-selftest: phase 3 cases 30.13 s
+loop-selftest: repeat 8 cases 80.28 s
+loop-selftest: census 8 cases 82.08 s
+loop-selftest: all 478 cases passed (JDK 21, offline, no token, no sandbox) — 819.09 s

@@ -1,0 +1,38 @@
+# The cases this change owns, focused, on the change's tree
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#*Bound*'
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+PASS run#childPastItsCheckBoundIsCut
+PASS run#theRecordedZeroKeepsTheTurnBoundOff
+PASS run#eachChildIsBoundedByItsOwnRolesTurns
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+PASS run#childPastItsContextBoundIsCut
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+PASS run#everyPhaseBoundaryIsPrinted
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#aBoundEndedItemRecordsItsBound
+PASS run#aRoundTheRunEndedRecordsItsBound
+PASS run#aBoundCutRoundIsRestartedWithItsFindings
+PASS run#aReviewRoundBoundIsTheItemsStopClass
+PASS run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart
+PASS run#childPastItsTurnBoundIsCut
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+PASS run#eachRoleIsBoundedByItsOwnContext
+loop-selftest: run 17 cases 590.57 s
+loop-selftest: all 17 cases passed (JDK 21, offline, no token, no sandbox) — 87.59 s, selection: --case run#*Bound*
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#aPreGateReview*'
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+loop-selftest: run 2 cases 12.37 s
+loop-selftest: all 2 cases passed (JDK 21, offline, no token, no sandbox) — 7.58 s, selection: --case run#aPreGateReview*
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'prompt#reviewer*'
+PASS prompt#reviewerCarriesTheEightItems
+PASS prompt#reviewerIsBoundedToReading
+PASS prompt#reviewerInputsAreBoundedAndTheCutIsNamed
+loop-selftest: prompt 3 cases 41.06 s
+loop-selftest: all 3 cases passed (JDK 21, offline, no token, no sandbox) — 19.50 s, selection: --case prompt#reviewer*
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#eachChildIsBoundedByItsOwnRolesTurns'
+PASS run#eachChildIsBoundedByItsOwnRolesTurns

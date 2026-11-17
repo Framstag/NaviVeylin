@@ -185,6 +185,7 @@ LOOP_SHELL_CASES=(
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
   'gate#aTestFailureIsAFailureNotAnError'
+  'gate#aLoneAssertionErrorIsNotACase'
   'gate#aRedGateWritesTheLogItIsAttributedFrom'
   'gate#theSummaryNamesWhatEachSuiteCost'
   'gate#independentStepsRunTogether'
@@ -954,6 +955,7 @@ loop_run_shell_case() {
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
     'gate#aTestFailureIsAFailureNotAnError') fn=case_gate_aTestFailureIsAFailureNotAnError ;;
+    'gate#aLoneAssertionErrorIsNotACase') fn=case_gate_aLoneAssertionErrorIsNotACase ;;
     'gate#aRedGateWritesTheLogItIsAttributedFrom') fn=case_gate_aRedGateWritesTheLogItIsAttributedFrom ;;
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
@@ -6330,6 +6332,49 @@ SUITE
     "the failing case's own line is on the console, which is where an operator reads the failure"
   assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'com.example.SpecTest > theSecondCase FAILED' \
     "and the tally keeps the failing cases' own lines as its failure text"
+  return 0
+}
+
+# A step that named no failing case is the error #268 made it, whatever text it printed (issue #916). The failures
+# `finish_step` reads are the `<class> > <case> FAILED` lines the step itself named, and a second arm counted any
+# `AssertionError` text as a failing case — so a stream that carried a test task's own `FAILED` header and the
+# throwable under it, and no per-test line, was tallied `failures=1`: a case the step never reported, in the record
+# the run's own check reads for a red claim. Measured 2026-11-17 (item #916, base 7ecab8e6): the shape below tallies
+# `LOOP-GATE: tests=0 failures=1 errors=0` (`scratch/measured-lone-assertion-gate.log` in the item's evidence
+# directory), and a change that broke nothing but its environment reads as one that broke a test.
+case_gate_aLoneAssertionErrorIsNotACase() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A test task whose failure the stream reports without naming the case it was for: the task's own header, the
+  # throwable under it, and no `<class> > <case> FAILED` line anywhere in the stream.
+  cat > "$d/suite.sh" <<'SUITE'
+printf '> Task :app:testMobileDebugUnitTest FAILED\n'
+printf '    java.lang.AssertionError: expected:<1> but was:<2>\n'
+exit 1
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a step that failed without naming a case still fails the gate: $out"
+  assert_contains "$out" "LOOP-GATE: tests=0 failures=0 errors=1" \
+    "the step named no case, so it contributes the error and no failure: $out"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="0" failures="0" errors="1"' \
+    "the tally the run's own check reads states no case, no failure and one error: $(cat "$d"/tally/*.xml 2>/dev/null)"
+  assert_contains "$out" "failing: bash $d/suite.sh" \
+    "and the step is still named as the one that failed: $out"
   return 0
 }
 

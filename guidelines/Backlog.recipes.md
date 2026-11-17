@@ -962,7 +962,10 @@ environment error and the run could not tell "my change broke a test" from "the 
 reads those per-test lines as the step's failures (the task's own line begins with `>`, which is what keeps its
 header from being read as a case); a step the bound ended, and a step that named no case, keep the error above.
 The case is
-`gate#aTestFailureIsAFailureNotAnError`, and `tools/loop/tests/loop-mutations.sh` 916.1 the record that keeps it.
+`gate#aTestFailureIsAFailureNotAnError`, and `tools/loop/tests/loop-mutations.sh` 916.1 the record that keeps it. The
+other half — a step that named no per-test line while printing the throwable — is
+`gate#aLoneAssertionErrorIsNotACase`, kept by record 916.2: an `AssertionError` text in the stream is not a case, and
+counting it as one is the reading the elimination retired.
 
 A tally's name is the command that wrote it, and it is never a dotfile: the profile's compiled command runs as
 `./gradlew`, and the `./` is dropped before the name is built, so `ls` and a `*.xml` glob find the one tally that

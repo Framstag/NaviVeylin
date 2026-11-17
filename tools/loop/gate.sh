@@ -787,12 +787,11 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
   # `AssertionError` that ended it, and never the `<name>: M of N cases failed` line this tree's own shell suites
   # print — so a change that broke two tests was tallied `failures=0 errors=2`, and the run read "my change broke a
   # test" as "the JVM fell over". The per-test line is a case the task named (the task's own line begins with `>`,
-  # which is what keeps that header from being read as one). A step the bound ended, and a step that named no case
-  # at all, keep #268's error: `n` stays the case count the suite reported, which is none of them here. The two
-  # `grep` arms below count the lines the step itself named; the per-test line is the one this change measures.
+  # which is what keeps that header from being read as one), and it is the one reading taken here: the throwable a
+  # case failed on is not a case, so a stream that named no per-test line keeps #268's error — `n` stays the case
+  # count the suite reported, which is none of them here.
   if [ "$rc" -ne 0 ] && [ "$f" -eq 0 ] && [ "${st_overran[slot]}" -eq 0 ]; then
     f=$(printf '%s\n' "$out" | grep -c '^[^[:space:]>][^>]* > .* FAILED[[:space:]]*$')
-    [ "$f" -gt 0 ] || f=$(printf '%s\n' "$out" | grep -c '^[[:space:]]*\(java\.lang\.\)\?AssertionError\(:\|[[:space:]]\)')
   fi
   case "$f" in ''|*[!0-9]*) f=0 ;; esac
   # A failed suite's *absence of a summary* is not a failing case: `n` and `f` stay the suite's own numbers, and the

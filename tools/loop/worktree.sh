@@ -650,20 +650,22 @@ landing_args() { # <option>… → sets `landing_decides` and `landing_note`
 # over where the run placed the difference in nothing of its own, refused where it did or where nothing was read.
 landing_refuses_the_dirt() { # <dirty> → prints the record or exits 5 with the refusal
   local clause
+  # The clause is built before either arm because both print one: `-uall` makes an untracked build tree one line per
+  # file, and a refusal that carried thousands of them would put every one into the item's record and the report.
+  clause=$(printf '%s\n' "$1" | cut -c1-120 |
+    awk -v cap=10 'NF { n++; if (n <= cap) printf "%s%s", (n > 1 ? "; " : ""), $0 }
+                   END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }')
   if [ "$landing_decides" = "no" ]; then
     # The paths are the ones this step read, bounded as every note the run prints is (`run.sh`'s
     # `outside_write_clause`): a damaged tree carries thousands of `git status` lines and a note is a sentence a
     # person reads on the tracker. The reading the run handed in follows it, so a reader has both what changed and
     # what the run made of it.
-    clause=$(printf '%s\n' "$1" | cut -c1-120 |
-      awk -v cap=10 'NF { n++; if (n <= cap) printf "%s%s", (n > 1 ? "; " : ""), $0 }
-                     END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }')
     printf 'LOOP-OUTSIDE-WRITE: the landing merges over a difference no process of this run was tied to: %s%s\n' \
       "$clause" "${landing_note:+ — $landing_note}" >&2
     return 0
   fi
   loop_refuse "the project tree is not clean — refusing to merge onto the base:
-$1"
+$clause"
 }
 
 # The branch of a finished attempt is merged onto the run's base and the item is closed by the run's own

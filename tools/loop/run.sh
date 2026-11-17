@@ -1468,7 +1468,10 @@ project_state() {
   # and commit in it is refused (#241). Compared before and after a child, the two lines disagree, and that
   # disagreement is the report.
   printf 'work-tree=%s\n' "$(git -C "$LOOP_ROOT" rev-parse --is-inside-work-tree 2>/dev/null | head -1)"
-  git -C "$LOOP_ROOT" status --porcelain 2>/dev/null
+  # `-uall` because `git status` otherwise collapses an untracked directory to its root (`?? architecture/`), and a
+  # build directory is exactly that shape: the pattern that names it (`*/bin`) then has nothing to match, and the very
+  # write #958 measured would still stop an item. The landing reads its own tree the same way (issue #962).
+  git -C "$LOOP_ROOT" status --porcelain -uall 2>/dev/null
 }
 # …and the base it recorded, so a child that commits on the project's own branch without touching a file is
 # still a change of the tree the run promised to build on. `project_state` is read before and after every child,

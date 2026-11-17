@@ -987,8 +987,9 @@ LOOP_WRITE_IGNORE_DEFAULT='*.swp *.swo *.tmp *~ .#* .DS_Store */bin */bin/*'
 
 loop_write_ignore() { # → the patterns, one per line
   # The key is a project's own (`loop.conf`, sourced by `loop_resolve`), and a project that has not widened it yet gets
-  # the list this item ships — which is what makes the default a fact of the engine rather than of one profile.
-  printf '%s\n' "${LOOP_WRITE_IGNORE:-$LOOP_WRITE_IGNORE_DEFAULT}" | tr ' ' '\n'
+  # the list this item ships. An explicitly empty value means no patterns at all — the raw reading — so the substitution
+  # is `-` and not `:-`: a profile that turns the rule off has to be able to say so.
+  printf '%s\n' "${LOOP_WRITE_IGNORE-$LOOP_WRITE_IGNORE_DEFAULT}" | tr ' ' '\n'
 }
 
 loop_is_ignorable_write() { # <path> → 0 when no child of the run could have written it

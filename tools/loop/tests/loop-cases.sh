@@ -243,6 +243,7 @@ LOOP_SHELL_CASES=(
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
   'run#aBoundEndedItemRecordsItsBound'
   'run#aRoundTheRunEndedRecordsItsBound'
+  'run#aBoundCutRoundIsRestartedWithItsFindings'
   'run#aReviewRoundBoundIsTheItemsStopClass'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
@@ -1011,6 +1012,7 @@ loop_run_shell_case() {
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
     'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
     'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
+    'run#aBoundCutRoundIsRestartedWithItsFindings') fn=case_run_aBoundCutRoundIsRestartedWithItsFindings ;;
     'run#aReviewRoundBoundIsTheItemsStopClass') fn=case_run_aReviewRoundBoundIsTheItemsStopClass ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
@@ -8204,6 +8206,101 @@ EOF
   assert_contains "$out" "bound: 1 of 1 items" "and the item's bound rate counts it as a bound rather than an arm"
   return 0
 }
+
+# A round the run's own bound ended is **restarted in this run**, in a fresh session, with what the cut round had
+# written handed to it (issue #918). A cut was right about the item and wrong about the round: measured on the run the
+# item cites, #861's round ended at `LOOP_CHILD_TURNS_MAX_REVIEWER=110` turns with **no refusal in any of the 110**, and
+# the item then became a person's round — 21.08 M of that run's 65.21 M cache-read (32.3 %) and 70 m 26 s of its 209
+# item minutes (33.7 %) for no verdict. The restart reads the same bounded input again, so the bound ends a reading
+# rather than the round's question: the item closes on the restart's answer, its record names the round the bound
+# ended and the file it had written, and the prompt the restart is handed carries the cut round's findings.
+case_run_aBoundCutRoundIsRestartedWithItsFindings() {
+  # files: tools/loop/tests/fixtures/ tools/loop/prompts/ tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fixture fifo action pid i status out state cut_report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
+      -e 's/^LOOP_CHILD_TURNS_MAX_REVIEWER=.*/LOOP_CHILD_TURNS_MAX_REVIEWER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record the two bounds in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=3' "$conf" ||
+    fail "this case could not shorten the reviewer's turn bound in loop.conf"
+  grep -qx 'LOOP_REVIEW_RESTART_MAX=1' "$conf" ||
+    fail "this case needs the one restart the shipped configuration records (LOOP_REVIEW_RESTART_MAX)"
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  cut_report='BLOCKING: item 4 names no case
+LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role) after 3 turn(s) — the run ended it and everything it started'
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turn-reviewer.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  reviewer-prompt-1.md)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    # What the round had written when the run ended it: the child's own stream, which is the report the run reads.
+    # The stub prints its report at the end of its run and the run ends this child first, so the findings a real
+    # reviewer would have written turn by turn are written here, before the child blocks.
+    printf '%s\\n' $(printf '%q' "$cut_report") >&2
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
+  assert_eq "done" "$(jq -r '.items[0].result' "$state")" \
+    "the item closes on the restarted round's answer, not on the bound that ended the reading before it"
+  assert_eq "PASS" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" "and the round's verdict is the one it reached"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$state")" \
+    "a restart is the same round: the round count stays 1 and the review budget is not spent twice"
+  assert_eq "null" "$(jq -r '.items[0].metrics.roundBound // "null"' "$state")" \
+    "and no round carries a bound's ending, because the ending was answered"
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-prompt-1-restart.md" ] ||
+    fail "the round the bound ended was not restarted in a fresh session"
+  [ ! -f "$p/.pi/issue-loop/items/21/reviewer-prompt-1-retry.md" ] ||
+    fail "the restart was written as a transport retry, which says the answer was cut on its way to the file"
+  # What the restart is handed: the round it continues, the bound that ended it and the findings that round wrote.
+  assert_contains "$(cat "$p/.pi/issue-loop/items/21/reviewer-prompt-1-restart.md")" \
+    "BLOCKING: item 4 names no case" \
+    "the findings the cut round wrote are handed to the restart, not left in its own report"
+  assert_contains "$(cat "$p/.pi/issue-loop/items/21/reviewer-prompt-1-restart.md")" \
+    "LOOP_CHILD_TURNS_MAX_REVIEWER" "beside the bound that ended the reading, quoted from its own line"
+  assert_contains "$(cat "$p/.pi/issue-loop/items/21/reviewer-prompt-1-restart.md")" "pre-gate-review.md" \
+    "and the round before the gate, whose findings are an input to this one"
+  # …and the record says so, because a round that answered after a restart must not read as one that answered first.
+  assert_contains "$(jq -r '.items[0].metrics.reviewRestart // ""' "$state")" \
+    "round 1 · LOOP_CHILD_TURNS_MAX_REVIEWER=3 · reviewer-report-1.md" \
+    "the item names the round, the bound and the file the cut round had written"
+  assert_contains "$out" \
+    "rounds a bound cut and the run restarted: #21 round 1 · LOOP_CHILD_TURNS_MAX_REVIEWER=3 · reviewer-report-1.md" \
+    "and the report prints the restart beside the item"
+  return 0
+}
 # it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
 # and restoring the worktree until 23:55, its last restore being what left that tree dirty, so the next run
 # refused to start (measured 2026-10-22, issue #272). A survivor still names the tree it is working in as its
@@ -9900,6 +9997,15 @@ EOF
     "and the round it names is the one before the gate"
   [ ! -f "$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt-retry.md" ] ||
     fail "a round a bound ended was retried as if the transport had cut it"
+  # …and the round was restarted in this run before it was given up on (issue #918), so the stub's bound line is
+  # written for every pre-gate prompt: a second bound is what makes the item's cut, and the restart is the round's
+  # own fact rather than the item's.
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt-restart.md" ] ||
+    fail "the round before the gate was not restarted after the bound ended it"
+  assert_contains "$(jq -r '.items[0].metrics.reviewRestart // ""' "$state")" "the round before the gate · LOOP_CHILD_TURNS_MAX_REVIEWER=3" \
+    "and the record names the round the bound ended, beside the file it had written"
+  assert_not_contains "$(cat "$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt-restart.md")" "{{REVIEW_RESTART}}" \
+    "the restart's own section is substituted into its prompt, not left as a placeholder"
   assert_eq "0" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
     "no gate child is started on a diff nobody read"
   assert_eq "0" "$(grep -c '^prompt: reviewer-prompt-1' "$PI_STUB_LOG" || true)" \
@@ -20025,7 +20131,7 @@ case "\${1##*/}" in
     [ -n "\$ev" ] || exit 1
     cat "$worker_fixture" >> "\$ev"
     ;;
-  reviewer-prompt-1.md)
+  reviewer-prompt-*)
     ev="\${LOOP_CHILD_EVENTS:-}"
     [ -n "\$ev" ] || exit 1
     cat "$reviewer_fixture" >> "\$ev"
@@ -20084,6 +20190,12 @@ EOF
   assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
     "and its round is recorded as cut, not as a refusal no reviewer made"
+  # …and the round the bound ended is restarted once in this run (issue #918), so the stub ends every reviewer
+  # prompt at the same bound: a second bound is what makes the item's cut, and the restart is the round's own fact.
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-report-1-restart.md" ] ||
+    fail "the round the bound ended was not restarted in this run"
+  assert_contains "$(jq -r '.items[0].metrics.reviewRestart // ""' "$state")" "round 1 · LOOP_CHILD_TURNS_MAX_REVIEWER=8" \
+    "and the record names the round the bound ended, the figure it reached and the file it had written"
   return 0
 }
 

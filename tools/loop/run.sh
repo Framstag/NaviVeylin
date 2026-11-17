@@ -1844,6 +1844,92 @@ review_input_scale_of() { # <diff file> → the recorded scale, or nothing
   if [ -f "$label.scale" ]; then cat "$label.scale" 2>/dev/null || true; fi
 }
 
+# ── the round a bound ended is restarted in this run (issue #918) ───────────────────────────────────────────────
+#
+# A round the run's own bound ended is `cut`, and the item is left for the next run — right about the item, and wrong
+# about the round. Measured on the run item #918 cites: #861's round ended at `LOOP_CHILD_TURNS_MAX_REVIEWER=110`
+# turns with **no refusal in any of the 110**, so what the bound ended was an unfinished reading and not an
+# objection, and the round had taken 21.08 M of that run's 65.21 M cache-read (32.3 %) and 70 m 26 s of its 209 item
+# minutes (33.7 %) on a diff its own worker had spent 329 turns and 461 calls making. `review-1.diff` is there
+# afterwards and no report is.
+#
+# So the run restarts the **reading**: one restart per round (`LOOP_REVIEW_RESTART_MAX`), in a fresh session on the
+# input `LOOP_REVIEW_INPUT_MAX_BYTES` already bounded, with what the cut round had written handed to it. That is the
+# half #851 already buys for the item's own worker at the context bound — a new session re-reads a bounded input
+# instead of the conversation the ended one had paged — and it is why the restart is not simply "the same round,
+# longer": a turn bound raised to cover a reading that never converged pays for the same pages twice.
+#
+# The item's other arm — deriving the bound from the diff the round must read — is recorded in `loop.conf` beside the
+# key and not taken here: a derivation needs a measured reading rate per turn, which this archive does not carry,
+# and the input cap above already fixes what there is to read.
+
+# How many restarts one round may take, read once for the run: `0` or an unrecorded key is the pre-#918 shape.
+review_restart_max=$(loop_conf_value LOOP_REVIEW_RESTART_MAX)
+case "$review_restart_max" in ''|*[!0-9]*) review_restart_max=0 ;; esac
+
+# Whether the run may start another child at all. A restart begun past the run's own deadline is ended on its first
+# second, and its `LOOP-DEADLINE` reason would replace the bound's — the distinction #829 and #785 paid for — so a
+# clock that has run out is a cut and never a restart.
+review_restart_before_deadline() {
+  local deadline_epoch
+  deadline_epoch=$(jq -r '.run.deadlineEpoch // 0' "${LOOP_STATE_FILE:-}" 2>/dev/null)
+  case "$deadline_epoch" in ''|*[!0-9]*) deadline_epoch=0 ;; esac
+  [ "$deadline_epoch" -le 0 ] || [ "$(date +%s)" -lt "$deadline_epoch" ]
+}
+
+# The section a restarted round reads: what the cut round wrote before the run ended it, and the finding that this is
+# the same round. It is a **placeholder value** (`prompts/reviewer.md`'s `{{REVIEW_RESTART}}`) rather than a block
+# appended to the prompt, because the prompt is rendered per attempt: the first attempt's carries nothing, the
+# restart's carries this, and an appended block would be in both or in neither.
+review_restart_scope() { # <the cut report> <its LOOP-TIMEOUT line> <which round it is> [<the round before the gate's report>]
+  local report="$1" bound="$2" what="$3" earlier="${4:-}" cap findings
+  cap=$(loop_conf_value LOOP_REVIEW_INPUT_MAX_BYTES)
+  case "$cap" in ''|*[!0-9]*) cap=0 ;; esac
+  printf '## This round continues a round the run%ss own bound ended\n\n' "'"
+  printf 'The %s was ended by a bound the run enforces, before it answered: `%s`.\n' "$what" "$bound"
+  printf 'This is the same round read again in a fresh session, and not a second one: it is the round the run'
+  printf "%ss\n" "'"
+  printf 'review budget counts, its announcement on the branch stands, and what it answers is what the item is read\n'
+  printf 'from. It is handed to you because the reading it was doing is the reading it still owes.\n\n'
+  printf -- '- what that round wrote before the run ended it: `%s`\n' "$report"
+  findings=$(grep -E '^(BLOCKING|NOTE):' "$report" 2>/dev/null || true)
+  if [ -z "$findings" ]; then
+    printf '  It wrote no `BLOCKING:` or `NOTE:` line down, so there is nothing to decide first: read the diff the\n'
+    printf '  way this task asks and grade it.\n'
+  else
+    printf '  Its findings are the first thing this round decides — a finding nobody answered is the one a person\n'
+    printf '  would be asked about:\n\n'
+    if [ "$cap" -gt 0 ]; then
+      printf '%s\n' "$findings" | head -c "$cap"
+    else
+      printf '%s\n' "$findings"
+    fi
+    printf '\n\n  A finding the tree still carries is a `BLOCKING:` finding, and one the change answers is recorded as\n'
+    printf '  closed. Then grade the change as this task asks: the findings are the start of the round, not all of it.\n'
+  fi
+  if [ -n "$earlier" ] && [ -f "$earlier" ]; then
+    printf -- '- the round that read this diff before the gate: `%s` — what it found is an input to this round,\n' "$earlier"
+    printf '  never a substitute for it.\n'
+  fi
+  printf '\nDo not page past a `[LOOP-CUT:` marker to recover what the input bound cut: the index names what this\n'
+  printf 'round was handed instead of those lines.\n'
+}
+
+# What the restart did, in one line for the item%ss record (`state.sh done --review-restart`): the round, the bound
+# that ended it and the file it had written, because a round that answered after a restart must not read in the
+# record as a round that answered first time.
+review_restart_line=""
+review_restart_note() { # <which round it is> <its LOOP-TIMEOUT line> <the cut report>
+  local line
+  line="$(bound_key_value "$2")"
+  line="$1 · ${line%% *}=${line##* } · ${3##*/}"
+  if [ -n "$review_restart_line" ]; then
+    review_restart_line="$review_restart_line; $line"
+  else
+    review_restart_line="$line"
+  fi
+}
+
 # Test results are the gate's evidence, and the run reads them out of the worktree after a worker — so a
 # directory an earlier item wrote is indistinguishable from this item's own gate. The kept worktree carries them
 # across items, and a child the round cap ends leaves the half-written state of its own gate behind (issue #253:
@@ -2484,13 +2570,15 @@ change_readiness_of() { # <change dir> → the checker's one-line verdict
 
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
-# `CORRECTION_SCOPE` and `PRE_GATE` are substituted **first**, not last: `loop_render` replaces one pair at a time on the
-# template it has accumulated so far, and both sections name `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` themselves. A
+# `CORRECTION_SCOPE`, `PRE_GATE` and `REVIEW_RESTART` are substituted **first**, not last: `loop_render` replaces
+# one pair at a time on the template it has accumulated so far, and both sections name `{{DIFF_PATH}}` and
+# `{{CHANGE_ROOT}}` themselves. A
 # section inserted after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the
 # round that exists to verify corrections pointing at a placeholder (item #245's round-1 review).
-render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope] [the pre-gate section] [the bounded-input section]
+render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope] [the pre-gate section] [the bounded-input section] [the restart section]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
     "CORRECTION_SCOPE=${2:-}" "PRE_GATE=${3:-}" \
+    "REVIEW_RESTART=${5:-}" \
     "REVIEW_INPUTS=${4:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "DIFF_RANGE=$diff_base" "EVIDENCE_DIR=$item_dir" \
     "WORK_PACKAGE=${package:-}" \
@@ -3007,6 +3095,14 @@ while true; do
   # What the round%ss input bound cut, in the words `bound_review_inputs` composed (issue #924): empty when every
   # part of this item%ss rounds was under the cap, and the figures the pre-gate round read when it was the one over it.
   review_input_cut_scale=""
+  # How many restarts of a bound-ended round have been spent, against `LOOP_REVIEW_RESTART_MAX` (issue #918), and
+  # the line the item%ss record keeps of one that happened. The count is **per round** and is reset where a round
+  # starts: what the key bounds is what a run pays to finish one round it cannot answer, so a round-2 cut after a
+  # round-1 restart still gets its one, and a round that takes two restarts is the item%ss cut.
+  review_restarts_used=0
+  # …and the line a restart puts in the record, reset with it: the run may work several items, and an item that took
+  # no restart must not inherit the one before it.
+  review_restart_line=""
   # What the round answered, when it answered and refused nothing (issue #813). The refusal verdicts above are what
   # the run's outcome reads; this is what the item's record keeps, and it is the round's own answer — `PASS` or `FAIL`,
   # the two the prompt asks for — so that an item which read a round and then ended on its gate does not record
@@ -3101,6 +3197,25 @@ while true; do
           render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-retry.md" "" \
             "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs"
           run_child "$item_dir/reviewer-pre-gate-prompt-retry.md" "$pre_gate_report"
+          pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
+        fi
+        # ── a bound ended this round: the run restarts it rather than handing the item forward (issue #918) ────────
+        #
+        # The restart reads the same bounded input in a fresh session and is handed the findings the cut round had
+        # written; `LOOP_REVIEW_RESTART_MAX` bounds how many times one round may take it, and a restart begun past the
+        # run's deadline is not started at all. The **final** report is the one the guards and the arms below read, so
+        # only a second bound is the item's cut — the pre-#918 shape, kept for the round that cannot be answered.
+        pre_gate_timeout_line=$(report_field "$pre_gate_report" LOOP-TIMEOUT)
+        if [ -n "$pre_gate_timeout_line" ] && [ -z "$pre_gate_deadline" ] &&
+          [ "$review_restarts_used" -lt "$review_restart_max" ] && review_restart_before_deadline; then
+          review_restarts_used=$((review_restarts_used + 1))
+          review_restart_note "the round before the gate" "$pre_gate_timeout_line" "$pre_gate_report"
+          render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-restart.md" "" \
+            "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs" \
+            "$(review_restart_scope "$pre_gate_report" "$pre_gate_timeout_line" "round before the gate" "")"
+          pre_gate_report="$item_dir/pre-gate-review-restart.md"
+          progress note "#${issue} restarts the round before the gate in a fresh session: the run ended it at $pre_gate_timeout_line, and the findings it had written are handed to the restart"
+          run_child "$item_dir/reviewer-pre-gate-prompt-restart.md" "$pre_gate_report"
           pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
         fi
         after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
@@ -3671,7 +3786,19 @@ while true; do
       before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       reviewer_report="$item_dir/reviewer-report-$round.md"
-      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope" "" "$review_inputs"
+      reviewer_prompt="$item_dir/reviewer-prompt-$round.md"
+      # ── the round, and the round a bound cut restarted in this run (issue #918) ─────────────────────────────────
+      #
+      # The child below is started, read and then possibly started again, and only the three things a round's
+      # attempts share are hoisted out of the loop: the attempt's own prompt and report names (`<round>.md`,
+      # `<round>-retry.md`, `<round>-restart.md`, `<round>-restart-retry.md`, so `child_role` reads every one of them
+      # as the reviewer's), the restart section the second reading is handed, and the flag that says the round has
+      # nothing to carry below. The digest `before` is taken before the first attempt and read after the last, so a
+      # write by any of them is the round's write and not only the final child's.
+      review_attempt=""
+      review_restart_section=""
+      review_cut_twice=0
+      review_restarts_used=0
       # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
       # fact a later run reads (#262): with only the answer written, a reviewer killed mid-answer left a branch
       # that read exactly like a passed one, and the next run adopted it. A round that cannot be announced stays
@@ -3681,34 +3808,59 @@ while true; do
           printf 'run: review round %s could not be announced on the branch — a later run may adopt %s as if no review had been asked for\n' \
             "$round" "$change" >&2
       fi
-      run_child "$item_dir/reviewer-prompt-$round.md" "$reviewer_report"
-      # A reviewer is a child too, and the run's own deadline can end it as it can end the item's worker (issue
-      # #674): the clock is the run's budget, so the round was cut rather than refused, and the item waits for
-      # the next run instead of being asked about. Read here, before the retry, because a retry started past the
-      # deadline is a second child the same clock would only have to end.
-      reviewer_deadline=$(report_field "$reviewer_report" LOOP-DEADLINE 2>/dev/null || true)
-      # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
-      # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
-      # A round the run itself ended already says so in its report (`LOOP-TIMEOUT`), so only a silent cut is
-      # retried — a timeout is read exactly as it was.
-      if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
-        ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
-        printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
-          "$round" "$(last_line "$reviewer_report")" >&2
-        reviewer_report="$item_dir/reviewer-report-$round-retry.md"
-        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md" "$correction_scope" "" "$review_inputs"
-        run_child "$item_dir/reviewer-prompt-$round-retry.md" "$reviewer_report"
+      while :; do
+        render_reviewer_prompt "$reviewer_prompt" "$correction_scope" "" "$review_inputs" "$review_restart_section"
+        run_child "$reviewer_prompt" "$reviewer_report"
+        # A reviewer is a child too, and the run's own deadline can end it as it can end the item's worker (issue
+        # #674): the clock is the run's budget, so the round was cut rather than refused, and the item waits for
+        # the next run instead of being asked about. Read here, before the retry, because a retry started past the
+        # deadline is a second child the same clock would only have to end.
         reviewer_deadline=$(report_field "$reviewer_report" LOOP-DEADLINE 2>/dev/null || true)
+        # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
+        # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
+        # A round the run itself ended already says so in its report (`LOOP-TIMEOUT`), so only a silent cut is
+        # retried — a timeout is read exactly as it was.
         if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
-          # Twice is not a hiccup the run can wait out: the round has no verdict at all, so the block says that
-          # instead of naming a refusal no reviewer made, and it records no failed review on the branch — a
-          # later run must not be told the reviewer refused this change.
-          review_verdict="cut-short"
-          block unanswered "the reviewer's report was cut short twice — the round $round answer never arrived, so no reviewer refused this change"
-          break
+          printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
+            "$round" "$(last_line "$reviewer_report")" >&2
+          reviewer_report="$item_dir/reviewer-report-$round$review_attempt-retry.md"
+          render_reviewer_prompt "$item_dir/reviewer-prompt-$round$review_attempt-retry.md" "$correction_scope" "" \
+            "$review_inputs" "$review_restart_section"
+          run_child "$item_dir/reviewer-prompt-$round$review_attempt-retry.md" "$reviewer_report"
+          reviewer_deadline=$(report_field "$reviewer_report" LOOP-DEADLINE 2>/dev/null || true)
+          if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
+            ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
+            # Twice is not a hiccup the run can wait out: the round has no verdict at all, so the block says that
+            # instead of naming a refusal no reviewer made, and it records no failed review on the branch — a
+            # later run must not be told the reviewer refused this change.
+            review_verdict="cut-short"
+            block unanswered "the reviewer's report was cut short twice — the round $round answer never arrived, so no reviewer refused this change"
+            review_cut_twice=1
+            break
+          fi
         fi
-      fi
+        # A **bound** ended this round, and the round is what the bound ended — not the item (issue #918). The run
+        # restarts the reading in a fresh session on the input the cap already bounded, hands it what the cut round
+        # wrote, and only a second bound is the item's cut. `LOOP_REVIEW_RESTART_MAX` is the ceiling and the run's
+        # own deadline is the other: a restart begun past the clock is ended on its first second and the reason a
+        # reader gets would be the clock's rather than the bound's.
+        reviewer_timeout_line=$(report_field "$reviewer_report" LOOP-TIMEOUT)
+        if [ -n "$reviewer_timeout_line" ] && [ -z "$reviewer_deadline" ] &&
+          [ "$review_restarts_used" -lt "$review_restart_max" ] && review_restart_before_deadline; then
+          review_restarts_used=$((review_restarts_used + 1))
+          review_restart_note "round $round" "$reviewer_timeout_line" "$reviewer_report"
+          review_restart_section=$(review_restart_scope "$reviewer_report" "$reviewer_timeout_line" \
+            "round $round after the gate" "${pre_gate_report:-}")
+          progress note "#${issue} restarts review round $round in a fresh session: the run ended it at $reviewer_timeout_line, and the findings it had written are handed to the restart"
+          reviewer_report="$item_dir/reviewer-report-$round-restart.md"
+          reviewer_prompt="$item_dir/reviewer-prompt-$round-restart.md"
+          review_attempt="-restart"
+          continue
+        fi
+        break
+      done
+      if [ "$review_cut_twice" -eq 1 ]; then break; fi
       after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       if [ "$read_only" = "on" ] && [ "$before" != "$after" ]; then
@@ -3999,7 +4151,7 @@ $review_notes_text"
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
         --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-sha "$merged_sha" \
         --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" \
-        --review-input "$review_input_cut_scale" >/dev/null
+        --review-input "$review_input_cut_scale" --review-restart "$review_restart_line" >/dev/null
       score_landings
       ;;
     falsified)
@@ -4026,7 +4178,7 @@ $review_notes_text"
         --gate "$gate_field" \
         --root-cause "$falsified_mechanism" --red-test "$falsified_measurement" \
         --events "$events_file" --note "the premise does not hold" --review-verdict "$review_verdict" \
-        --review-input "$review_input_cut_scale" >/dev/null
+        --review-input "$review_input_cut_scale" --review-restart "$review_restart_line" >/dev/null
       ;;
     skipped)
       # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no
@@ -4077,7 +4229,7 @@ $review_notes_text"
         --gate "$gate_field" \
         --root-cause "$root_cause" --red-test "$red_test" --note "${root_cause:-skipped by the worker}" \
         --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" \
-        --review-input "$review_input_cut_scale" >/dev/null
+        --review-input "$review_input_cut_scale" --review-restart "$review_restart_line" >/dev/null
       ;;
     cut)
       # The round the run's own bound ended (issue #785): the item's work finished — its change is archived, its gate
@@ -4125,7 +4277,7 @@ $review_notes_text"
         ${cut_gate_args[@]+"${cut_gate_args[@]}"} \
         --stop-reason "$stop_reason" ${bound_args[@]+"${bound_args[@]}"} \
         --label-failures "$label_failures" \
-        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
+        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" --review-restart "$review_restart_line" >/dev/null
       ;;
     *)
       # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
@@ -4201,7 +4353,7 @@ question the item asked; a retry costs another attempt, and an abandonment remov
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
         --label-failures "$label_failures" --stop-reason "$stop_reason" \
-        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" >/dev/null
+        --review-verdict "$review_verdict" --review-input "$review_input_cut_scale" --review-restart "$review_restart_line" >/dev/null
       # The refusal belongs to the item it refused: cleared here so the next item's block cannot record a landing that
       # was never asked of it.
       merge_refused_branch=""

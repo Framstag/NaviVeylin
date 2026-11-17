@@ -363,6 +363,11 @@ printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | selec
 # a round a reader cannot see in its report — the head a round was handed reads like the whole part. A run whose
 # rounds were all under the cap records nothing, and the line says `none` as the ones beside it do.
 printf 'what the bound cut from a round%ss input: %s\n' "'" "$(jq -r '[.items[] | select((.metrics.reviewInput // "") != "") | "#\(.issue) \(.metrics.reviewInput)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# The rounds a bound cut and the run restarted in a fresh session (issue #918): a round that answered after a restart
+# and one that answered first time read the same in every line above — the verdict, the round count and the spend are
+# the round%ss own either way — so the restart is named here, with the bound that ended the round it replaced and the
+# file it had written. `none` is a run whose rounds no bound cut.
+printf 'rounds a bound cut and the run restarted: %s\n' "$(jq -r '[.items[] | select((.metrics.reviewRestart // "") != "") | "#\(.issue) \(.metrics.reviewRestart)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # Which epic a group of the run's items belongs to is the fact the record did not hold (issue #920): the item named
 # its class, its change and its spend, and the epic itself is never worked — a container is refused by the screen — so
 # a run that worked six children of one epic printed six rows and nothing said they were one epic's work, and the

@@ -43,6 +43,8 @@ last line arrives, and quote or grade only a window that arrived whole: a scenar
 
 {{PRE_GATE}}
 
+{{REVIEW_RESTART}}
+
 **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
 the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one
 command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh

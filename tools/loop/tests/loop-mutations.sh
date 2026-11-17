@@ -288,7 +288,7 @@ MUTATIONS=(
   '30.2@-@tools/loop/run.sh@run#falsificationWithAChangedTreeIsBlocked@the second read of the tree after the review of a falsification@s|^    if \[ "\$head_now" != "\$base" \]; then$|    if false; then|'
   # Without the retry, an answer cut on its way to the file is read as a refusal again: the round buys a second
   # worker and the item is blocked and escalated although every scenario in the report passed (issue #224).
-  '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^      if \[ -z "$reviewer_deadline" \] && \[ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
+  '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^ *if \[ -z "$reviewer_deadline" \] && \[ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
   # 32.1 — a base that moved under the run stops it with a reason; the silent exit is what the case catches.
   '32.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "|      *"base moved"*) : "|'
   # 33.x — a branch is decided by what it *carries* (issue #232). 33.1 is the credit: without it an archived
@@ -702,7 +702,7 @@ MUTATIONS=(
   # excused is recorded by the result the record 82.1 mutates.
   '68.1@-@tools/loop/state.sh@state#floorIsDerivedFromTheFinishedItemsWallTimes@the floor following the cheapest measured item rather than the most expensive one (issue #674)@s|^      \| (\$w \| min) as \$cheapest$|      \| ($w \| max) as $cheapest|'
   '68.3@-@tools/loop/state.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch path the item'"'"'s record carries, so the report can name the work an ended child left (issue #674)@s|leftover:(if \$lo == "" then null else \$lo end)|leftover:null|'
-  '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so the clock the run ended the round with is read as the turn bound run_child wrote beside it, and the reason names the wrong bound (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
+  '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so the clock the run ended the round with is read as the turn bound run_child wrote beside it, and the reason names the wrong bound (issue #674)@s|^ *reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
   '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
 
   # 69.x — the pre-screen asks the item's text where its fix lands, and the answer is the author's own claim: a
@@ -1318,6 +1318,16 @@ MUTATIONS=(
   '861.1@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
   '861.2@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861)@s|^    && \[ "\$gate_attribution" != "flaked" \]; then$|    && true; then|'
   '861.3@-@tools/loop/state.sh@run#aFlakedCaseIsOffTheBlockedPath@the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861)@s|^  elif \[ "\$result" = done \] && \[ "\$(gate_tally_state "\$gate")" = red \] && \[ "\$gate_attribution" != flaked \]; then$|  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then|'
+  # 918.x — a round the run%ss bound ended is restarted in this run, in a fresh session on the input the cap already
+  # bounded and with what the cut round had written (issue #918). One record per half: the guard that decides whether a
+  # restart is started at all (`918.1`, and it is the same guard before the gate and after it), the findings the
+  # restart is handed (`918.2`), and the line the item%ss record keeps of the round (`918.3`). A fourth half — the
+  # restart%ss own report name — is asserted by the case and left out of the set: with the name reverted to the cut
+  # report%ss, the round still answers and every assertion the case makes still holds, so a record there would be one
+  # the case cannot notice, which this harness reports as a failure of the harness rather than a pass.
+  '918.1@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the guard that decides whether a round the bound ended is restarted, so the item is handed to the next run again and the reading the bound ended stays the item%ss question (issue #918)@s|&& review_restart_before_deadline; then$|\&\& false; then|'
+  '918.2@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the findings the cut round wrote, so the restarted round is handed the bound and none of what the ended reading had already decided (issue #918)@s|^  findings=.*$|  findings=""|'
+  '918.3@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the line the item keeps of a restart, so a round that answered after one reads in the record exactly as a round that answered first time (issue #918)@s|^    review_restart_line="\$line"$|    review_restart_line=""|'
   # 924.x — the round the reviewer is handed is bounded (issue #924), and the cap is the half a case sees from the
   # outside: with it removed the bounded round hands the whole part again, the item's state records no cut and the
   # report prints the constant for a run nothing was cut from. One record, one invariant.

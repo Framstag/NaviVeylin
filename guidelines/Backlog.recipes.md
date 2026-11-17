@@ -526,6 +526,28 @@ by it: what changed is what a round is handed, not how long it may look. `prompt
 holds both halves — the round under the cap carries no line about one, and the round over it hands the head and names
 what the cut left out, in the prompt, in the index and in the state the report prints from.
 
+**A round a bound ended is restarted in the same run, not handed forward** (issue #918). `LOOP_REVIEW_RESTART_MAX`
+(`1` in `tools/loop/loop.conf`, `0` or absent = no restart) is how many times one round may be restarted after a bound
+of the run's own ended it; the restart is a fresh session on the same bounded input, and it is handed what the cut
+round had written — its `BLOCKING:`/`NOTE:` lines, the path they were written to, and the report of the round before
+the gate when there was one. The item's record keeps it (`state.sh done --review-restart`, printed by the report as
+`rounds a bound cut and the run restarted:`), because a round that answered after a restart must not read in the
+record as a round that answered first time, and only a **second** bound is the `cut` the next run resumes. Three
+things are not the restart's: the round number (`metrics.reviewRounds` stays where it was — one round, read twice), the
+announcement on the branch (`record-review-round … requested` stands), and the run's own deadline, which is what
+stops a restart from being started at all, since a child begun past the clock is ended on its first second and the
+reason a reader then gets is the clock's rather than the bound's. It exists because a cut is right about the item and
+was wrong about the round: on the run the item cites (#861) the round ended at `LOOP_CHILD_TURNS_MAX_REVIEWER=110`
+turns with **no refusal in any of the 110** — an unfinished reading, not an objection — after 21.08 M of that run's
+65.21 M cache-read (32.3 %) and 70 m 26 s of its 209 item minutes (33.7 %), on a diff its own worker had spent 329
+turns and 461 calls making, and the item became a person's round. A fresh session is also the cheaper half of the two:
+it re-reads the capped input rather than the conversation the ended reading had paged for 110 turns, which is the half
+`LOOP_ITEM_CONTEXT_MAX`'s continuation already buys for the item's own worker. Deriving the bound from the diff
+instead — the item's other arm — is recorded beside the key in `loop.conf` and not taken: it needs a measured reading
+rate per turn, which this archive does not carry, and the input cap fixes what there is to read anyway.
+`run#aBoundCutRoundIsRestartedWithItsFindings` holds the round after the gate and `run#aPreGateReviewEndedAtItsBoundNamesIt`
+the one before it.
+
 **Where a stop bound sits** (measured 2026-11-06, issue #786; re-read 2026-11-09 for #804 and #842): each value is
 the archive's own p95 or above, per role, and the value a run applies is the one `tools/loop/loop.conf` records —
 the two are stated together, one row per role, because a measurement and the bound it set move apart and a reader has
@@ -1554,7 +1576,9 @@ round once more (same prompt and same diff, the answer kept beside the cut attem
 `reviewer-report-<n>-retry.md`) and decides on the answer that arrived. A
 round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is not retried; two cut answers
 in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
-review-failure marker, because no reviewer refused that change.
+review-failure marker, because no reviewer refused that change. A round the run's own **bound** ended is not that
+case: the round is restarted once in the same run, in a fresh session on the input the cap bounded and with the
+findings it had written, and only a second bound is the cut above (§7b, issue #918).
 
 What a bound cut is, and what it is not: a round the run's own bound ended — the run's deadline, or the role's
 turn bound — carries `LOOP-TIMEOUT`/`LOOP-DEADLINE` and no `VERDICT:`, and reading that as a refusal named a

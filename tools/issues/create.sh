@@ -56,9 +56,10 @@ extra_labels=()
 extra_status=""
 sensor_id=""
 import_path=0
-# The tracker's own classification (`guidelines/Backlog.md` §3, capability `issue-types`): an issue type and the
-# container the item sits under. Neither is a label — a type is account-scoped and the parent is an issue — so they
-# travel as CLI flags of their own rather than through the vocabulary gate.
+# The tracker's own classification (`guidelines/Backlog.md` §3, capability `issue-backlog`, "The tracker's own
+# classification is a second axis"): an issue type and the container the item sits under. Neither is a label —
+# a type is account-scoped and the parent is an issue — so they travel as CLI flags of their own rather than
+# through the vocabulary gate.
 type_name=""
 parent_number=""
 # What must land before this item can be worked (#919): the tracker's own dependency edge, not a line of prose in

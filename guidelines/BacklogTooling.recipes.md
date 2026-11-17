@@ -71,7 +71,11 @@ item whose body keeps a settled state of its own (`roles.settledRecordMarker`) w
 one of `roles.settledStatuses` — the drift a citation park left behind, which made a tombstone read as work
 (#683). It reports and
 repairs nothing: which half of a drifted pair is the wrong one is a judgement, so dropping a stale label or
-rewriting both halves together stays a person's edit. The row is the answer the owner recorded on #292
+rewriting both halves together stays a person's edit. The row carries the pass's sixth invariant with the same
+lifecycle: a child of a `roles.containerType` item that carries no issue type is a condition under the child's own
+number, naming its container and the type it lacks — the shape that left nine children of one epic invisible under it
+while every link was correct (issue #911) — and a client that cannot answer the type field reaches the row as a
+condition of the document rather than as a clean tracker. The row is the answer the owner recorded on #292
 (2026-10-25, option 1 of three); the prevention it was weighed against — the refusal of a band label in
 `update.sh` — landed later as the other half of the same root cause (issue #671): a call that names a
 `prio/<band>` label carries the `--body` that leaves the pair intact — the band it adds is the band the

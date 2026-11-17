@@ -61,7 +61,7 @@ displace_settled=0
 body_file=""
 comment=""
 comment_file=""
-# The tracker's own classification (`guidelines/Backlog.md` §3, capability `issue-types`): the issue type, and the
+# The tracker's own classification (`guidelines/Backlog.md` §3, capability `issue-backlog`): the issue type, and the
 # container the item sits under. Retyping an item is a write of its own — it is how an item a person decided to
 # carry as a container becomes one — so it must count as "something to change" below.
 type_name=""

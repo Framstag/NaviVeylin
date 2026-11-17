@@ -21147,7 +21147,7 @@ case_gate_runsUnderTheWorktreeEnvironment() {
   assert_eq "unset" "$(cat "$d/canary" 2>/dev/null)" "a tree without the file still gates ($out)"
 }
 
-# The tracker's own classification is an axis of its own (`guidelines/Backlog.md` §3, capability `issue-types`):
+# The tracker's own classification is an axis of its own (`guidelines/Backlog.md` §3, capability `issue-backlog`):
 # an item whose issue type the profile declares a container is a real, open, authorised item that is never *work*,
 # because its children carry the work and are selected on their own labels. The guard is the reader's half of the
 # pair whose writer is `create.sh --type` / `update.sh --type`; the type it compares against is

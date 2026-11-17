@@ -100,6 +100,14 @@ body's `tier:` record: `tier` says whether an item is worked as a cause or as a 
 what the tracker calls it, and an item may be either tier under any type — an Epic is a container whatever the
 shape of its children.
 
+**Rule: a container's child carries a type of its own.** GitHub groups a container's sub-issues by type, so a child
+that carries none does not appear under its container at all — nine children of a finished epic read as an empty epic
+although `parent` and `subIssues.totalCount` were both correct (measured 2026-11-14, issue #911). Any type the account
+declares satisfies the rule: what an item *is* stays the filer's judgement, so the tooling defaults none.
+`tools/issues/check-metadata.sh` is the pass that reports a child of a `roles.containerType` item carrying no type,
+naming the child, its container and the type it lacks — and the `metadata-invariant` row runs that pass once a day
+(`BacklogTooling.recipes.md` §9).
+
 **The analysis's three rows are one area, and one rule is one item.** `sonar-reliability`,
 `sonar-maintainability` and `sonar-duplication` declare `category/code-quality` with their own
 `lifecycle: file+close`, and their identity is the rule a finding breaks: every finding of that rule lands in

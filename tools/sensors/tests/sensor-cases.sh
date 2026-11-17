@@ -309,7 +309,13 @@ scenario() { # <name> → the path, created empty
 }
 
 issues_fixture() { # <scenario-dir> <issues-json>
-  printf '%s' "$2" > "$1/issues.json"
+  # The stub tracker answers the fields the real one does: `gh issue list --json` carries an item's type and
+  # parent, and the metadata pass reads both to say whether a container's child carries a type (#911). A
+  # fixture item carries the key with no type unless the case gives it one, so a fixture models a tracker whose
+  # client can answer the axis without pretending any of these items is typed.
+  printf '%s' "$2" |
+    jq 'if type == "array" then map(if has("issueType") then . else . + {issueType: null} end) else . end' \
+      > "$1/issues.json"
 }
 
 issue_record() { # <number> <state> <stateReason> <sensor-id> <body> [comments-json] [createdAt]

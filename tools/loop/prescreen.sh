@@ -107,7 +107,7 @@ hold_status=$(loop_role holdStatus)
 decision_label="agent${separator}${decision_verdict}"
 settled_statuses="$(loop_role settledStatuses)"
 # The tracker's own classification, and the one value of it this project treats as a container (`guidelines/Backlog.md`
-# §3, capability `issue-types`). Empty is a tracker in which no type is a container: the guard below then never
+# §3, capability `issue-backlog`). Empty is a tracker in which no type is a container: the guard below then never
 # fires, which is why the key is optional and why a project whose account has no such type behaves as before.
 container_type=$(loop_role containerType)
 container_verdict="container"
@@ -367,7 +367,7 @@ while [ "$scan_index" -lt "$count" ]; do
   # A container is refused before any other judgement, because no label can make an Epic work: its children carry
   # the work and are selected on their own labels. The verdict is the engine's own word — like `unreadable`, it is
   # not a profile role, because it names no judgement about a value of the project's vocabulary but about the
-  # tracker's shape (`guidelines/Backlog.md` §3, capability `issue-types`).
+  # tracker's shape (`guidelines/Backlog.md` §3, capability `issue-backlog`).
   if [ -n "$container_type" ] && [ "$issue_type" = "$container_type" ]; then
     verdict="$container_verdict"
     reason="the item's issue type is '$issue_type', which this project declares a container — its children carry the work, so nothing is worked here"

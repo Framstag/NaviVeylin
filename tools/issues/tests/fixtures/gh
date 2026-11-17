@@ -195,7 +195,7 @@ case "$group" in
           *) refuse "api graphql $*" ;;
         esac
       done
-      # The account's declared issue types (`issues_declared_types`, capability `issue-types`): the one graphql
+      # The account's declared issue types (`issues_declared_types`, capability `issue-backlog`): the one graphql
       # question here that is not a count. It is answered from its own fixture, so a writer is tested against a
       # set it does not spell, and that fixture carries a disabled type because the reader selects the enabled ones.
       case "$query" in

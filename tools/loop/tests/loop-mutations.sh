@@ -1386,6 +1386,12 @@ MUTATIONS=(
   '883.1@-@tools/loop/report.sh@report#theTrendBlockNamesTheGateShareAndTheOutsideWindow@the window read as the clock since the run started instead of the stop the state recorded, so a run reports a span no record holds and the figure dates itself from the moment the report ran (issue #883)@s|--argjson window "\${window_secs:-null}"|--argjson window "$(( $(date +%s) - ${run_epoch:-0} ))"|'
   '883.2@-@tools/loop/report.sh@report#theRefusedLandingIsReadFromTheRecord@the refused landing read back out of the note the block quoted rather than the refusal the run recorded, so the branch and the paths a caller is handed are a second reading of prose (issue #883)@s|^  if \[ "$refusal_kind" = record \]; then$|  if false; then|'
   '883.3@-@tools/loop/state.sh@report#theRefusedLandingIsReadFromTheRecord@the arm that writes a refusal the run handed to its item, so the branch and the paths a block was given are recorded as no refusal at all and the report re-derives them from the note (issue #883)@s|^  if \[ -n "$merge_refused_branch" \]; then$|  if false; then|'
+  # 883.4 — the production side of the same record (issue #883): the block hands the refusal to `state.sh done` only
+  # through this guard, so removing it leaves the item `unmergeable` with no `mergeRefused` at all and the report
+  # re-deriving a landing from the note. 883.2 and 883.3 pin the two reading ends; this one pins the run's own merge
+  # attempt, which no case drove until `run#doesNotCloseOnAMergeTheBaseCannotTake` — record 58.2's case, whose name
+  # the tree had lost with the case #862 replaced.
+  '883.4@-@tools/loop/run.sh@run#doesNotCloseOnAMergeTheBaseCannotTake@the guard that hands the refused landing to the item record, so the block still says `unmergeable` and nothing the merge refused travels into the record the report prints (issue #883)@s|^      if \[ -n "$merge_refused_branch" \]; then$|      if false; then|'
   # 920.x — the epic a run's items belong to, one record per hop the fact takes (issue #920): the screen's own record,
   # the queue the writer reads it out of, the item's record, and the line the report groups by. Each is a place a
   # later edit can drop the field while every other figure the record carries stays intact — which is exactly the

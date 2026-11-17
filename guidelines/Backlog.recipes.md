@@ -1373,9 +1373,12 @@ that field, because the note the block quotes is prose the run composed and a re
 branch and a path list the run never recorded: a state written before the field existed still falls back to the note,
 and its line then says the branch and the paths are re-derived rather than read (the note holds those newlines as `\n`,
 so the fallback converts them before it takes the lines). The cases are
-`report#theRefusedLandingIsReadFromTheRecord` and `report#anUnmergeableItemNamesItsLanding`; the mutation is
-`tools/loop/tests/loop-mutations.sh` 883.2. A hand analysis reads the same field and must not re-parse a note or a
-transcript for a figure the record already holds.
+`report#theRefusedLandingIsReadFromTheRecord` and `report#anUnmergeableItemNamesItsLanding` — the record's reading
+ends — and `run#doesNotCloseOnAMergeTheBaseCannotTake`, which drives the run's own merge attempt through a real
+refusal to that record rather than building one with `state.sh done`. The mutations are
+`tools/loop/tests/loop-mutations.sh` 883.2, 883.4 (the guard that hands the refusal to `state.sh done`) and 58.2,
+whose case is that `run#` one and whose line is the `block unmergeable` that names the mechanism. A hand analysis
+reads the same field and must not re-parse a note or a transcript for a figure the record already holds.
 The merge lands in the project's **own** tree, and what a merge there moves is the branch that tree holds — so
 the landing step reads the checkout instead of assuming it, and refuses a tree switched off the base branch
 while the run is open, naming both branches (the start's own guard covers only the tree a run is *opened* on,

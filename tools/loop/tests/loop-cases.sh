@@ -272,6 +272,7 @@ LOOP_SHELL_CASES=(
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
   'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced'
   'run#mergesOverADifferenceItCannotPlace'
+  'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#strictOutsideWriteBlocksTheItem'
   'run#strictOutsideWriteDiscardsTheReviewRound'
   'run#leftoverBranchIsRecordedNotDropped'
@@ -1041,6 +1042,7 @@ loop_run_shell_case() {
     'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
     'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced') fn=case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced ;;
     'run#mergesOverADifferenceItCannotPlace') fn=case_run_mergesOverADifferenceItCannotPlace ;;
+    'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
@@ -9690,6 +9692,77 @@ case_run_mergesOverADifferenceItCannotPlace() {
     "the difference stays in the tree the owner left it in, and is in no commit of the merge"
   assert_contains "$(cat "$GH_STUB_RECORD")" "merged $branch" \
     "the closure's evidence names the merge, so the tracker's fixed-by claim carries what backs it"
+}
+
+# The arm that *produces* a refused landing, driven through the run's own merge attempt (issue #883). Both halves of
+# the record were pinned at the ends and this one in between was not: `report#theRefusedLandingIsReadFromTheRecord`
+# reads what `state.sh done --merge-refused-branch/--merge-refused-path` writes, and builds that record by calling
+# `run_state done` itself — a record the run never wrote. `run.sh`'s `merge_committed_branch` records the branch at
+# `:516` and the paths at `:520`, and `run.sh:4343` hands both to the state, and no case drove any of it, so the run
+# could stop recording a refused landing and every case stayed green while the report printed a landing the run never
+# saw.
+#
+# The difference the landing refuses is the one no reading of *this* item can see. A child that dirties the project's
+# tree is a difference the run places in nothing of its own, and since #862 the landing is handed that reading and
+# merges over it (`run#mergesOverADifferenceItCannotPlace`); a run that declared the tree exclusive, and one whose
+# write a process of the child's own tree made, block the item at `run.sh:3657` with `outside-write` before the merge is
+# asked (`run#strictOutsideWriteBlocksTheItem`). So the tree is dirtied by the first item of a two-item run, whose own
+# landing merges over it: the second item's readings open on a tree that already carries the paths,
+# `project_state_diff` of two equal readings is empty, no reading is handed to its landing, and `merge-item` refuses
+# with every path it read.
+case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p branch paths log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    change="openspec/changes/archive/2026-01-01-fix-item$n"
+    mkdir -p "$change/evidence" app/build/test-results/loop-gate
+    printf "archived\n" > "$change/proposal.md"
+    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/loop-gate/TEST-demo.xml
+    cp app/build/test-results/loop-gate/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+    printf "the fix for item %s\n" "$n" > "item$n-fix.txt"
+    if [ "$n" -eq 1 ]; then
+      printf "work in progress\n" > "$LOOP_CHILD_ROOT/uncommitted.txt"
+      printf "left behind\n" > "$LOOP_CHILD_ROOT/left-behind.txt"
+    fi'
+  run_loop "$p" --items 2 --minutes 90 --review on >"$d/run.txt" 2>&1 ||
+    fail "the run itself failed: $(tail -25 "$d/run.txt")"
+  # The first item's landing merged over the difference it could not place, which is what leaves the paths standing in
+  # the tree the second item works in: without the second clause there is nothing for the second landing to refuse.
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "the first item closes over the difference the run placed in nothing of its own"
+  assert_eq "?? uncommitted.txt" "$(git -C "$p" status --porcelain -- uncommitted.txt)" \
+    "and the path it merged over is still uncommitted in the project's own tree"
+  # The refusal the run reached, and the record it wrote from its own two values rather than from the note's prose.
+  assert_eq "blocked" "$(jq -r '.items[1].result' "$(state_file "$p")")" \
+    "a closure whose merge the base cannot take is blocked, not settled"
+  assert_eq "unmergeable" "$(jq -r '.items[1].stopReason' "$(state_file "$p")")" \
+    "and the record names the base's refusal as the mechanism that stopped it"
+  branch=$(jq -r '.items[1].mergeRefused.branch // ""' "$(state_file "$p")")
+  case "$branch" in
+    fix/issue-22-*) ;;
+    *) fail "the refused landing did not record the branch the run asked the merge for: '$branch'" ;;
+  esac
+  assert_contains "$(jq -r '.items[1].note' "$(state_file "$p")")" "$branch" \
+    "the branch the record carries is the branch the block's own note names"
+  paths=$(jq -r '.items[1].mergeRefused.paths // [] | .[]' "$(state_file "$p")")
+  assert_contains "$paths" "?? uncommitted.txt" "the path the refusal named is recorded"
+  assert_contains "$paths" "?? left-behind.txt" "every path it named, not the first"
+  assert_eq "2" "$(jq -r '.items[1].mergeRefused.paths | length' "$(state_file "$p")")" \
+    "and exactly the paths it printed after onto the base:, no more"
+  assert_contains "$(jq -r '.items[1].note' "$(state_file "$p")")" "not clean" \
+    "the reason names the tree the merge would have landed in"
+  # A refused landing is not a landing: nothing of the item is in the base, and no merge is recorded beside the
+  # refusal.
+  assert_eq "" "$(jq -r '.items[1].merged.branch // ""' "$(state_file "$p")")" \
+    "no merge is recorded for an item whose landing was refused"
+  [ ! -f "$p/item2-fix.txt" ] || fail "the second item's fix reached the base although its merge was refused"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_eq "0" "$(grep -c 'issue close 22' "$GH_STUB_RECORD" || true)" \
+    "the item is not closed on a fix the base does not have"
+  assert_contains "$log" "agent/needs-decision" "it is escalated instead"
+  assert_contains "$log" "$branch" "and the escalation names the branch a person must merge"
 }
 
 case_run_strictOutsideWriteBlocksTheItem() {

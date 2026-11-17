@@ -1535,9 +1535,19 @@ pid_stands_outside_worktree() { # <pid> <project root> <worktree> → 0 when it 
 }
 
 # The parent of a pid, read from `/proc/<pid>/stat` and not from `ps`: the attribution asks it for every ancestor
-# of every candidate, and a fork per question would cost what the reading cannot pay (issue #288).
+# of every candidate, and a fork per question would cost what the reading cannot pay (issue #288) — so it reads
+# the file with the shell's own `read` and parses the fields in the shell (issue #950). The command name is the
+# one field that can carry spaces and parentheses, so the fields are taken after the **last** `") "`: the
+# reading's cost is charged to the reader that names who stood in the project, and a `sed` per hop is one more
+# process on a host the pool has already filled.
 pid_ppid() { # <pid> → its parent, or nothing when the process is gone
-  sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$1/stat" 2>/dev/null
+  local line rest
+  read -r line < "/proc/$1/stat" 2>/dev/null || return 0
+  case "$line" in *') '*) ;; *) return 0 ;; esac
+  line=${line##*) }
+  rest=${line#* }
+  case "$rest" in ''|"$line") return 0 ;; esac
+  printf '%s\n' "${rest%% *}"
 }
 
 # Whether a process got into the project's own tree *from* the worktree: an ancestor of it worked in the worktree,
@@ -1545,18 +1555,41 @@ pid_ppid() { # <pid> → its parent, or nothing when the process is gone
 # writer from the run's own child chain, which `run_child` starts **in the project** — the child itself and every
 # shell it was started through stand there for the whole item, so marking those would make every difference in
 # the project's tree decide every item, which is the verdict #274 and #286 refused (issue #288).
-pid_left_the_worktree() { # <pid> <worktree> → 0 when an ancestor of this pid worked in the worktree
-  local p wt="$2" hops=0 cwd
+#
+# The ancestors' working directories are not asked of the kernel one hop at a time: the reading walks that chain
+# for every candidate of the child's tree, so a `readlink` per hop was one fork per ancestor of every candidate,
+# on a host the pool has already filled (issue #950). The standers of the worktree are read **once**, in the same
+# one pass the sweep makes, and handed in; an ancestor that is already gone is not among them, which is the answer
+# the kernel gave for it before.
+pid_left_the_worktree() { # <pid> <the pids standing in the worktree, space-delimited> → 0 when an ancestor is one
+  local p hops=0 set=" $2 "
   p=$(pid_ppid "$1")
   while [ -n "$p" ] && [ "$p" != "0" ] && [ "$p" != "1" ] && [ "$hops" -lt 64 ]; do
-    # An ancestor that is already gone answers nothing; the walk continues, because what it stands for is the
-    # chain, not that one process.
-    cwd=$(readlink "/proc/$p/cwd" 2>/dev/null) || cwd=""
-    case "${cwd% (deleted)}" in "$wt"|"$wt"/*) return 0 ;; esac
+    case "$set" in *" $p "*) return 0 ;; esac
     p=$(pid_ppid "$p")
     hops=$((hops + 1))
   done
   return 1
+}
+
+# Milliseconds since the epoch, for the cost the reading states about itself (issue #950): `date`'s sub-second
+# field is a GNU extension, so a host whose `date` prints something else answers in whole seconds — a coarse
+# figure rather than a wrong one.
+loop_now_ms() {
+  local t
+  t=$(date +%s%3N 2>/dev/null)
+  case "$t" in ''|*[!0-9]*) t=$(( $(date +%s) * 1000 )) ;; esac
+  printf '%s' "$t"
+}
+
+# How many processes the host carries, which is the number a walk of `/proc` pays for. The glob is expanded by
+# the shell itself, so the figure costs one `readdir` and no process: a count taken by forking per entry would be
+# the defect it exists to report (issue #950).
+loop_proc_count() {
+  local entries
+  entries=(/proc/[0-9]*)
+  [ -d "${entries[0]}" ] || { printf '0'; return 0; }
+  printf '%s' "${#entries[@]}"
 }
 
 # The processes the project shows that no phase may be working in: a survivor still names the tree it works in as
@@ -1605,18 +1638,32 @@ outside_write_decides() { # → 0 when the recorded difference decides the phase
 # writer that was alive when the difference was read is gone by the time it ends, so an attribution read after it
 # records a difference the run *can* place as one it cannot. The sweep answers who *else* stands in the project,
 # which is context for a reader of the transcript and may cost what it costs; it must not be what decides.
-outside_write_seen() { # <before> <now> <child> <own pid> → two `LOOP-OUTSIDE-WRITE-*` lines
-  local before="$1" now="$2" child="$3" own="$4" alive attributed="" pid
+#
+# What both halves cost is a fact about the host, and it is the *reader's* fact: the writer a difference names is
+# standing while the reading runs, so a reading that takes seconds answers about a moment that has passed. The
+# figures are measured here and printed with the answer (issue #950): a transcript that prints `(none)` states
+# beside it how many processes were walked and what each half cost, so a reader can tell a reading taken inside
+# the second from one taken fifteen seconds later — measured at a pool of forty instances, the reading states
+# `attributed_ms` 3 823 to 4 691 and `standers_ms` 409 to 832 for 1 176 to 1 272 processes, against a writer that
+# stands eight seconds (`.pi/issue-loop/items/950/pool-after-40.txt`).
+outside_write_seen() { # <before> <now> <child> <own pid> → the `LOOP-OUTSIDE-WRITE-*` lines
+  local before="$1" now="$2" child="$3" own="$4" alive attributed="" pid t0 t1 t2 in_worktree
+  t0=$(loop_now_ms)
+  in_worktree=$( cd / && loop_pids_under "$LOOP_WORKTREE" | tr '\n' ' ' )
   for pid in $(loop_tree_pids "$child"); do
     [ "$pid" = "$own" ] && continue
     pid_stands_outside_worktree "$pid" "$LOOP_ROOT" "$LOOP_WORKTREE" || continue
-    pid_left_the_worktree "$pid" "$LOOP_WORKTREE" || continue
+    pid_left_the_worktree "$pid" "$in_worktree" || continue
     attributed="${attributed:+$attributed,}$pid"
   done
+  t1=$(loop_now_ms)
   alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
+  t2=$(loop_now_ms)
   printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: %s — read while the child was alive at %s\n' \
     "$(outside_write_clause_of "$before" "$now")" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf 'LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n' "${alive:-(none)}" "${attributed:-none}"
+  printf 'LOOP-OUTSIDE-WRITE-COST: procs=%s attributed_ms=%s standers_ms=%s\n' \
+    "$(loop_proc_count)" "$((t1 - t0))" "$((t2 - t1))"
 }
 
 # The diff a review round is handed is the change, not the generated output a change is archived beside:

@@ -714,24 +714,48 @@ loop_end_pid() {
 # the test that finds a loop a *suite* or a *killed run* left behind: the tree is gone from the caller's view,
 # but the process that still polls it names it as its cwd (issue #213), and the same test serves
 # `loop-clean.sh`'s report and the self-test's own postcondition (issue #233).
+#
+# The answer is **one pass** over `/proc` and not a `readlink` per process on the host (issue #950). The walk is
+# taken while a child runs and answers a difference read a moment earlier, so whatever it costs is charged to the
+# reader that names who stood in the project: measured at a pool of forty instances on this repository's host,
+# 821 to 966 processes carried, a `readlink` per process cost 12 206 ms to 14 968 ms and one pass of `find`
+# 163 ms to 428 ms (`.pi/issue-loop/items/950/reader-cost-at-pool40.txt`), and the writer the difference named
+# had left before the walk reached it — the reading then printed `(none)` while a shell stood there for eight
+# seconds, 40 of 40 instances of the case red on the tree before the fix and 40 of 40 green after it
+# (`.pi/issue-loop/items/950/pool-HEAD-40.txt`, `pool-after-40.txt`). `find` asks
+# the same question in one process: it matches each `<pid>/cwd` link by its target, which is the string
+# `readlink` would have printed, for the directory itself, a path under it, and both of those as a tree that is
+# already gone prints them (the kernel appends ` (deleted)`).
 loop_pids_under() { # <dir> → one pid per line
-  local dir="${1:-}" entry pid cwd
+  local dir="${1:-}" pattern line pid
   [ -n "$dir" ] || return 0
   [ -d /proc/self ] || return 0
-  for entry in /proc/[0-9]*; do
-    pid="${entry#/proc/}"
+  pattern=$(loop_glob_escaped "$dir")
+  while IFS= read -r line; do
+    pid=${line#/proc/}
+    pid=${pid%/cwd}
     case "$pid" in ''|*[!0-9]*) continue ;; esac
     [ "$pid" = "$$" ] && continue
     [ "$pid" = "$PPID" ] && continue
-    cwd=$(readlink "$entry/cwd" 2>/dev/null) || continue
-    [ -n "$cwd" ] || continue
-    # A process whose tree is already gone still names it, with the kernel's ` (deleted)` appended — the
-    # leftovers a killed suite leaves behind are exactly those, so the suffix is stripped before the match.
-    cwd=${cwd% (deleted)}
-    case "$cwd" in
-      "$dir"|"$dir"/*) printf '%s\n' "$pid" ;;
+    printf '%s\n' "$pid"
+  done <<< "$(find /proc -maxdepth 2 -name cwd \
+    \( -lname "$pattern" -o -lname "$pattern/*" \
+       -o -lname "$pattern (deleted)" -o -lname "$pattern/* (deleted)" \) -print 2>/dev/null | sort)"
+}
+
+# A path as a `find -lname` pattern matches it literally: `*`, `?`, `[`, `]` and `\` are the pattern's own
+# metacharacters, and a directory that carries one of them — a suite's case tree is named after the case — would
+# otherwise stop matching and the directory's processes would be reported by nothing (issue #950).
+loop_glob_escaped() { # <string> → the same string, escaped for a `find -lname` pattern
+  local s="$1" out="" c i
+  for ((i = 0; i < ${#s}; i++)); do
+    c=${s:i:1}
+    case "$c" in
+      '*'|'?'|'['|']'|'\') out="$out\\$c" ;;
+      *) out="$out$c" ;;
     esac
   done
+  printf '%s' "$out"
 }
 
 # …and ending them: the loop's leftovers under one directory, reported by pid, ended with the same signal

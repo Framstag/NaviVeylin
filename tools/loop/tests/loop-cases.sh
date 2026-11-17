@@ -9560,7 +9560,7 @@ case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
 
 case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced() {
   # files: tools/loop/tests/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p note transcript alive shell_pid
+  local d p note transcript alive shell_pid bracket stood found i
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The narrow rule marks a process only when an ancestor of it worked in the worktree (`pid_left_the_worktree`), so
@@ -9608,6 +9608,32 @@ EOF
     "the reading names the shell that wrote among the processes standing in the project — the shape was found"
   assert_contains "$(cat "$transcript")" "attributed=none" \
     "and places no process of the child's own tree, so the difference does not decide the item"
+  # …and the reading states what it cost, which is the half this case could not see (issue #950): the writer above
+  # stands for eight seconds, and a sweep that answered in twelve to fifteen — 821 to 966 processes walked with a
+  # `readlink` each, measured at a pool of forty instances (`.pi/issue-loop/items/950/reader-cost-at-pool40.txt`) —
+  # prints `(none)` about a moment that has passed, honestly and uselessly. One figure per half, with the count the
+  # walk paid for, so the transcript says how far from the difference its own answer arrived. The case itself is the
+  # measurement: 40 of 40 instances red on the tree before the fix, 40 of 40 green after it
+  # (`.pi/issue-loop/items/950/pool-HEAD-40.txt`, `pool-after-40.txt`).
+  assert_line_count "$(cat "$transcript")" \
+    '^LOOP-OUTSIDE-WRITE-COST: procs=[0-9]+ attributed_ms=[0-9]+ standers_ms=[0-9]+$' 1 \
+    "the reading states the processes it walked and what each of its two halves cost"
+  # …and the one walk matches a directory by its literal name rather than as a pattern (issue #950): `find`'s
+  # `-lname` reads `*`, `?`, `[`, `]` and `\` as its own, and a case tree or a checkout whose path carries one of
+  # them would be answered by no process at all — the same `(none)` this case exists to refuse, arrived at by a
+  # second route. The reader is asked directly, because no staged write carries such a path.
+  bracket="$d/a[1]*x"; mkdir -p "$bracket" || fail "the case could not stage a directory whose name carries a pattern"
+  ( cd "$bracket" && exec sleep 20 ) &
+  stood=$!
+  found=""
+  for i in $(seq 1 50); do
+    found=$(loop_pids_under "$bracket" | head -1)
+    [ -n "$found" ] && break
+    sleep 0.1
+  done
+  kill "$stood" 2>/dev/null; wait "$stood" 2>/dev/null
+  assert_eq "$stood" "$found" \
+    "the reader names a process standing in a directory whose name carries a pattern metacharacter"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {

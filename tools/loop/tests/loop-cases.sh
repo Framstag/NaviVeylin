@@ -10290,7 +10290,7 @@ case_worktree_theLandingDecidesByTheReadingItIsHanded() {
 # while the extension recreated the directory inside the same command. The item's work is on the base, and the tree the
 # IDE is writing in is left exactly as it was.
 case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge() {
-  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p w base branch tip out
   p=$(new_project); w="$p/.pi/worktrees/loop"
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10314,7 +10314,7 @@ case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge() {
 # …and the filter is not a licence: a tracked file a child modified is a write whatever its name, so the landing still
 # refuses, with the reason it always gave (issue #962).
 case_worktree_aTrackedEditStillBlocksTheMerge() {
-  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p w base branch out status
   p=$(new_project); w="$p/.pi/worktrees/loop"
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)

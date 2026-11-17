@@ -59,6 +59,6 @@ after it), so the last two tasks are that child's.
       the gate tally transcribed from the red run's lines (`red-on-HEAD-gate-tally.xml`) — and run the mechanical
       pointer check over it: `bash tools/loop/evidence-check.sh <change dir> --root .` → `evidence-check: PASS`
       (`evidence/evidence-check.log`).
-- [ ] 4.2 Archive the change under `openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/` and run
+- [x] 4.2 Archive the change under `openspec/changes/archive/2026-11-14-fix-a-failing-test-is-a-failure/` and run
       `./tools/loop/gate.sh --base 4c4e681967c30eedc0cdd874a900562ab7f8b32b` over the completed tree, recording its
       line.

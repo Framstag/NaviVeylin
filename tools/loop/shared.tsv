@@ -62,6 +62,7 @@ loop_issue_tool	lib.sh	labels.sh prescreen.sh run.sh
 loop_labels	lib.sh	prescreen.sh run.sh
 loop_landed_on_base	lib.sh	labels.sh
 loop_leftover_patch_of	lib.sh	worktree.sh run.sh
+loop_main_worktree	lib.sh	gate.sh
 loop_note	lib.sh	worktree.sh run.sh state.sh
 LOOP_OK	lib.sh	run.sh prescreen.sh report.sh
 loop_open_pull_request_heads	lib.sh	worktree.sh

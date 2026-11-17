@@ -893,52 +893,21 @@ if [ "$checkout_ref" != "$(loop_base_ref)" ]; then
   exit "$LOOP_REFUSE"
 fi
 
-# 4b. the base-red pre-flight (issue #921). Five items of one run went red at a step no change of theirs touched, each
-#     owed a gate re-run it could not earn, and the run's green rate read as their fault. So the run measures the red
-#     its base already carries once, before it works anything: `gate.sh --base-red` runs the profile's whole step set
-#     (at the run's start no delta is known, so the whole set is the one a delta touching every path owes), prints the
-#     step and the case names that failed there, and `state.sh base-red` records them as `run.baseRed` — the pairs a
-#     later gate subtracts from its own tally.
-#
-#     It runs here, after the checkout guard (a run on the wrong branch is refused before it spends thirteen minutes)
-#     and only when it can read a base: a tree with uncommitted work is not the base the run starts from, and a step
-#     set that cannot be measured must not be read as a base that was green. `LOOP_BASE_RED=off` takes none.
-base_red=$(loop_conf_value LOOP_BASE_RED)
-case "$base_red" in off|no|0) base_red=off ;; *) base_red=on ;; esac
-take_base_red() { # → `run.baseRed` holds the pre-flight's record, or this records none and returns non-zero
-  local dir log status recorded red_steps
-  dir=$(dirname "$LOOP_STATE_FILE")
-  log="$dir/base-red.log"
-  mkdir -p "$dir" 2>/dev/null || true
-  progress base-red "measuring the profile's own steps on ${base:0:12} — its output is kept in $log"
-  status=0
-  ( cd "$LOOP_ROOT" && bash "$here/gate.sh" --base-red --base "$base" ) > "$log" 2>&1 || status=$?
-  # 0 is a base with nothing red on it and 1 is one that carries red: both are a measurement. Any other status is the
-  # pre-flight failing to run at all, and a set it could not measure would subtract every red as if the base had it.
-  case "$status" in
-    0|1) ;;
-    *) printf 'base-red: the pre-flight could not be taken (gate exit %s) — its output is at %s\n' "$status" "$log"; return 1 ;;
-  esac
-  recorded=$(loop_state base-red --from "$log" --base "$base" 2>&1) || {
-    printf 'base-red: the pre-flight output at %s could not be written into the state — a gate will charge its reds to the item\n' "$log"
-    [ -z "$recorded" ] || printf '%s\n' "$recorded"
-    return 1
-  }
-  red_steps=$(loop_state get run.baseRed 2>/dev/null | jq -r 'if type == "object" then length else 0 end' 2>/dev/null || printf 0)
-  printf 'base-red: %s step(s) of the profile were already red at %s — kept in %s, and a gate subtracts exactly them\n' \
-    "${red_steps:-0}" "${base:0:12}" "$log"
-}
-if [ "$base_red" = "off" ]; then
-  printf 'base-red: off (LOOP_BASE_RED=off) — a step red on this run%s base will be charged to the item that carries it\n' "'"
-elif [ -z "$base" ]; then
-  printf 'base-red: not taken — the run records no base to measure\n'
-elif ! git -C "$LOOP_ROOT" cat-file -e "$base^{commit}" 2>/dev/null; then
-  printf 'base-red: not taken — %s is not a commit this tree can read\n' "$base"
-elif [ -n "$(git -C "$LOOP_ROOT" status --porcelain 2>/dev/null)" ]; then
-  printf 'base-red: not taken — this tree carries uncommitted work, so it is not the base the run starts from\n'
-else
-  take_base_red || printf 'base-red: no record was taken — every step a gate reds will be charged to the item\n'
-fi
+# 4b. the base-red measurement is the gate's, not the run's (issue #944). The run used to take one pre-flight here, over
+#     the profile's whole step set, before it worked anything (issue #921): measured 2026-11-16 on `gate.sh --base-red`
+#     that cost 1 772 s of step time, of which 1 540 s were five steps and 1 251 s were steps no item of the night would
+#     consult — 29 minutes of a 600-minute budget spent before the first item, and invisible in every item's wall
+#     because it was no item's step. A step's base state is now measured by the first gate that needs it, one step at a
+#     time, inside the item whose gate went red at it, and cached in `run.baseRed` for the rest of the run
+#     (`gate.sh`'s `measure_step_base`). Nothing is measured here, and this block only says which mode the run is in.
+case "$(loop_conf_value LOOP_BASE_RED)" in
+  off|no|0)
+    printf 'base-red: off (LOOP_BASE_RED=off) — a step red on this run%s base will be charged to the item that carries it\n' "'"
+    ;;
+  *)
+    printf 'base-red: measured by the gate that first needs a step — no pre-flight runs at the start\n'
+    ;;
+esac
 
 # 5. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
 #    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no

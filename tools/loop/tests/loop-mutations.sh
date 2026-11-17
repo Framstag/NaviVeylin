@@ -1390,7 +1390,14 @@ MUTATIONS=(
   # subtraction is the one arm: with it gone the pre-flight's record is read and ignored, the carrier step is counted
   # again, the gate exits 1 and no `LOOP-GATE-BASERED` line names what was subtracted — the case's first half asserts
   # all three, so the record reds it for the right reason rather than for a line that moved.
-  '921.1@-@tools/loop/gate.sh@gate#aBaseRedStepIsSubtractedAndNamed@the subtraction of the step-and-case pairs a base already red for, so a carrier the change never wrote goes back into the item tally, the gate exits red on it and no line names what left (issue #921)@s|^    elif \[ -n "$base_red_json" \] && base_red_had "$cmd"; then$|    elif false; then|'
+  '921.1@-@tools/loop/gate.sh@gate#aBaseRedStepIsSubtractedAndNamed@the subtraction of the step-and-case pairs a base already red for, so a carrier the change never wrote goes back into the item tally, the gate exits red on it and no line names what left (issue #921)@s|^      if \[ -n "$base_red_json" \] && base_red_had "$cmd"; then$|      if false; then|'
+  # 944.x — the step's base state is measured when the gate first needs it (issue #944). Two halves, one per invariant:
+  # a gate that no longer measures the step leaves the base's red in the item's tally, and a gate whose record cannot be
+  # read from the worktree it works in measures nothing — the second is the half that made #921's subtraction a no-op
+  # for every gate ever run (the live run's record held `run.baseRedUsed: null`). Each record removes only its own arm,
+  # so the case reds on the assertion that arm is about.
+  '944.1@-@tools/loop/gate.sh@gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt@the measurement a gate takes of the step it has just found red, so a red the base already carried is charged to the item again, no `LOOP-GATE-BASERED-MEASURE` line names the step and no record is written for the next gate (issue #944)@s,measure_step_base "$cmd" || true,:,'
+  '944.2@-@tools/loop/lib.sh@gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt@a worktree of the run'"'"'s own repository as a tree the run'"'"'s state belongs to, so a gate run in the item'"'"'s worktree resolves no record and measures nothing — the state the gate writes and the next gate reads is gone (issue #944)@s|^  case "$1" in "$main"/[*]) return 1 |  case "$1" in "$main"/[*]) return 0 |'
   # 934.1 — the file-set leg is worth what the file it scopes by owns (issue #934). The leg was pointed at
   # `tools/loop/state.sh`, which owns 39 of the 401 declared records, and the harness runs each record twice, so the
   # leg spent its own `timeout 900` before the selection finished and the step was red on every delta. The record

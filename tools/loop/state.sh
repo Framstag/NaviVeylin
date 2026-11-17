@@ -39,9 +39,14 @@
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
 #   state.sh base-red --from <file> [--base <sha>]
-#                         # the red the run's base already carried, as the pre-flight measured it (issue #921):
+#                         # the red the run's base already carried, as a gate measured it (issue #921):
 #                         # a JSON object of step → the case names that failed there, which `gate.sh` subtracts
-#                         # from its own tally so a carrier is charged to no item
+#                         # from its own tally so a carrier is charged to no item. One reader of the shape serves
+#                         # this call and `base-red-step`.
+#   state.sh base-red-step --from <file> --base <sha> [--step <command>]
+#                         # one step's base state, measured by the gate that first needed it (issue #944): the
+#                         # measurement is merged into `run.baseRed` and `run.baseRedBase` names the commit it was
+#                         # taken on, so a record taken after the run started is dated like the one the start took
 #   state.sh base-red-used --step <command> --count <n> [--step … --count …]
 #                         # what a gate subtracted because the base already had it, so the record says which reds
 #                         # were carried instead of charged (issue #921)
@@ -579,7 +584,23 @@ cmd_set_base() {
   printf 'state: base advanced to %s\n' "${sha:0:12}"
 }
 
-cmd_base_red() { # the red the run's base already carried, from the pre-flight's own output (issue #921)
+# The pre-flight's output is the record's source, read the way `run.sh` read it before issue #944: a step is entered by
+# its `LOOP-BASERED-STEP:<command>|<n>` line and each case that failed there follows as
+# `LOOP-BASERED-CASE:<command>|<name>`. One reader, so a change to the shape is one change and not two that must agree
+# — and the two writers below, the whole set and one step of it, read it through this one function.
+base_red_read() { # <file> → `{step: [case names]}` as the measurement's own lines name them
+  jq -Rn '
+    reduce inputs as $line ({};
+      if ($line | test("^LOOP-BASERED-STEP:")) then
+        .[($line | capture("^LOOP-BASERED-STEP:(?<step>.*)\\|[0-9]+$") | .step)] = []
+      elif ($line | test("^LOOP-BASERED-CASE:")) then
+        ($line | capture("^LOOP-BASERED-CASE:(?<step>.*)\\|(?<case>.+)$")) as $c
+        | .[$c.step] += [$c.case]
+      else . end)
+  ' < "$1"
+}
+
+cmd_base_red() { # the red the run's base already carried, from the measurement's own output (issue #921)
   require_state
   local from="" base="" red
   while [ $# -gt 0 ]; do
@@ -591,23 +612,49 @@ cmd_base_red() { # the red the run's base already carried, from the pre-flight's
   done
   [ -n "$from" ] || loop_die "base-red: usage: state.sh base-red --from <the pre-flight's output> [--base <sha>]"
   [ -r "$from" ] || loop_die "base-red: cannot read $from"
-  # The pre-flight's output is the record's source, read the way `run.sh` reads it: a step is entered by its
-  # `LOOP-BASERED-STEP:<command>|<n>` line and each case that failed there follows as `LOOP-BASERED-CASE:<command>|<name>`.
-  # One reader, so a change to the shape is one change and not two that must agree.
-  red=$(jq -Rn '
-    reduce inputs as $line ({};
-      if ($line | test("^LOOP-BASERED-STEP:")) then
-        .[($line | capture("^LOOP-BASERED-STEP:(?<step>.*)\\|[0-9]+$") | .step)] = []
-      elif ($line | test("^LOOP-BASERED-CASE:")) then
-        ($line | capture("^LOOP-BASERED-CASE:(?<step>.*)\\|(?<case>.+)$")) as $c
-        | .[$c.step] += [$c.case]
-      else . end)
-  ' < "$from") || loop_die "base-red: cannot read the pre-flight's output at $from"
+  red=$(base_red_read "$from") || loop_die "base-red: cannot read the pre-flight's output at $from"
   printf '%s' "$red" | jq -e 'type == "object"' >/dev/null 2>&1 ||
     loop_die "base-red: $from is not a pre-flight's output"
   patch_state '.run.baseRed = $red | .run.baseRedBase = $base' --argjson red "$red" --arg base "$base"
   printf 'state: base red recorded — %s step(s) already red at %s\n' \
     "$(printf '%s' "$red" | jq -r 'length')" "${base:0:12}"
+}
+
+# One step's base state, as the gate that first needed it measured it (issue #944). The run no longer takes a pre-flight
+# over the whole profile before it works anything: 1 251 of the 1 772 s a measured base-red cost were steps no item of
+# the night would consult, and the run paid them before its first item. So a gate measures the one step it has just
+# found red, on the same base tree the pre-flight measured in, and records it here — merged into the record the run
+# already holds, so a second item's gate reads what the first one measured. A step the base is **green** at names no
+# line here and records nothing: absence is what "the base carried no red at this step" already means to the gate,
+# and a record written from a call that measured nothing is the one thing this must never produce.
+cmd_base_red_step() { # <the measurement's output> → the record, one step wider (issue #944)
+  require_state
+  local from="" base="" step="" red others
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --from) need_value "$@"; from="${2:-}"; shift 2 ;;
+      --base) need_value "$@"; base="${2:-}"; shift 2 ;;
+      --step) need_value "$@"; step="${2:-}"; shift 2 ;;
+      *) loop_die "base-red-step: unknown argument $1" ;;
+    esac
+  done
+  [ -n "$from" ] || loop_die "base-red-step: usage: state.sh base-red-step --from <the measurement's output> [--base <sha>] [--step <command>]"
+  [ -r "$from" ] || loop_die "base-red-step: cannot read $from"
+  red=$(base_red_read "$from") || loop_die "base-red-step: cannot read the measurement's output at $from"
+  printf '%s' "$red" | jq -e 'type == "object"' >/dev/null 2>&1 ||
+    loop_die "base-red-step: $from is not a gate's base-red output"
+  # The step a caller names is the step the record gains: an output that names another command is a measurement of
+  # something else, and merging it would date a red the gate never asked about to the base it did.
+  if [ -n "$step" ]; then
+    others=$(printf '%s' "$red" | jq -r --arg c "$step" '[keys[] | select(. != $c)] | join(", ")') || others=""
+    [ -z "$others" ] ||
+      loop_die "base-red-step: the output at $from names $others, and this call measures $step"
+  fi
+  patch_state '.run.baseRed = ((.run.baseRed // {}) + $red) | .run.baseRedBase = $base' \
+    --argjson red "$red" --arg base "$base"
+  printf 'state: base state of %s recorded — %s case(s) red at %s\n' \
+    "${step:-the measured step}" \
+    "$(printf '%s' "$red" | jq -r '[.[] | length] | add // 0')" "${base:0:12}"
 }
 
 cmd_base_red_used() { # what a gate subtracted because the base already had it (issue #921)
@@ -1653,6 +1700,7 @@ case "$cmd" in
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
   base-red) cmd_base_red "$@" ;;
+  base-red-step) cmd_base_red_step "$@" ;;
   base-red-used) cmd_base_red_used "$@" ;;
   stop) cmd_stop "$@" ;;
   hold) cmd_hold "$@" ;;

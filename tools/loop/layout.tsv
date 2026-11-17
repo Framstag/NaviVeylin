@@ -15,7 +15,7 @@
 # file	bound	order	note
 census.sh	252	-	the census is a reader beside the entry: no run sources it
 evidence-check.sh	368	-	-
-gate.sh	840	-	-
+gate.sh	1169	-	the base-red measurement the gate now takes (issue #944) added 103 lines to a 832-line file; the split in `run-sh-is-split-along-the-stream` takes them out again with the rest of the entry's halves
 labels.sh	297	-	-
 lib.sh	1130	1	the split's files follow this row, at orders 2..n
 loop-clean.sh	482	-	-

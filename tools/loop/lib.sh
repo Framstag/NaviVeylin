@@ -159,22 +159,45 @@ loop_resolve() {
   loop_tmp_resolve
 }
 
-# `LOOP_TMP_DIR` as recorded, resolved against the project root — a relative value is relative to the
-# project, exactly like the state file and the worktree. Idempotent, so the self-test can call it itself.
-# `loop_path_outside_tree <path> <root>` — true when <path> is absolute and lies outside <root>. `run_child`
+# The main worktree of the repository a tree belongs to: the first entry `git worktree list` prints, which is the tree
+# the base branch is checked out in. `loop_path_outside_tree` reads it to tell a worktree of this repository from a tree
+# that is another repository; `gate.sh` reads it to find a clean tree at the base (issue #944).
+loop_main_worktree() { # <tree> → the main worktree of the repository <tree> belongs to
+  local tree="${1:-}" main
+  [ -n "$tree" ] || return 1
+  main=$(git -C "$tree" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
+  [ -n "$main" ] || return 1
+  printf '%s\n' "$main"
+}
+# `loop_path_outside_tree <path> <root>` — true when <path> is absolute and lies outside <root> and outside the main
+# worktree of the repository <root> belongs to. `run_child`
 # hands the run's identity to every child so all of them agree on the run, and a child that runs the loop's own
 # tooling in another tree — a scratch repository, a fixture, the self-test of the loop itself — would otherwise
 # write the *running* run's state and point its worktree operations at the run's tree. Measured 2026-10-20
 # (issue #214): a live run's state was replaced five times, each time with a fixture's base, queue and budget,
 # while its worker was still working the item; the run then walked the fixture's queue. A relative value, and
 # an absolute one inside this tree (two loops in one repository, deliberately), are not affected.
-loop_path_outside_tree() { # <path> <root> → 0 outside
+# A **worktree of this repository is not another tree** (issue #944). The run's own kept worktree is a linked worktree
+# of the project, and the gate of an item is run in it (the child's working directory is the project, and the prompts
+# tell it to `cd` into the change root), so the rule above dropped the run's identity for exactly the process that
+# needs it: measured 2026-11-17, `state.sh get run.baseRed` from `.pi/worktrees/loop` answered "no run state at
+# .pi/worktrees/loop/.pi/issue-loop/run.json", and the live run's record held `run.baseRedUsed: null` although its
+# base carried a red step — the subtraction #921 added had never fired for a gate. The state belongs to this process
+# when it lies inside the main worktree, which is what tells the run's own tree apart from the scratch repositories and
+# trees under a temporary root that #214 measured.
+loop_path_outside_tree() { # <path> <root> → 0 outside the tree this process resolved
+  local main
   case "$1" in
-    /*) case "$1" in "$2"/*) return 1 ;; *) return 0 ;; esac ;;
+    /*) case "$1" in "$2"/*) return 1 ;; *) ;; esac ;;
     *) return 1 ;;
   esac
+  main=$(loop_main_worktree "$2") || return 0
+  case "$1" in "$main"/*) return 1 ;; esac
+  return 0
 }
 
+# `LOOP_TMP_DIR` as recorded, resolved against the project root — a relative value is relative to the
+# project, exactly like the state file and the worktree. Idempotent, so the self-test can call it itself.
 loop_tmp_resolve() {
   case "$LOOP_TMP_DIR" in
     "") LOOP_TMP_DIR="$LOOP_ROOT/.pi/tmp" ;;

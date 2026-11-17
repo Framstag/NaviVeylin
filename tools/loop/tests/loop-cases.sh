@@ -190,6 +190,7 @@ LOOP_SHELL_CASES=(
   'gate#independentStepsRunTogether'
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
   'gate#aBaseRedStepIsSubtractedAndNamed'
+  'gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt'
   'gate#aPooledWavePrintsEachStepWholeWhenItEnds'
   'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes'
   'gate#aSecondGateRefusesWhileOneRuns'
@@ -957,6 +958,7 @@ loop_run_shell_case() {
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
     'gate#aBaseRedStepIsSubtractedAndNamed') fn=case_gate_aBaseRedStepIsSubtractedAndNamed ;;
+    'gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt') fn=case_gate_theBaseStateIsMeasuredWhenTheGateFirstNeedsIt ;;
     'gate#aPooledWavePrintsEachStepWholeWhenItEnds') fn=case_gate_aPooledWavePrintsEachStepWholeWhenItEnds ;;
     'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes') fn=case_gate_aCarrierAnotherRunWroteIsNotReadAsThisOnes ;;
     'gate#aSecondGateRefusesWhileOneRuns') fn=case_gate_aSecondGateRefusesWhileOneRuns ;;
@@ -6477,11 +6479,15 @@ SUITE
 # the serial engine could afford (issue #801) — it is the guard the item asks for beside the timing case, and it is
 # green on the base by construction, because one step at a time shares nothing either.
 # A gate step that was already red on the base the run started from is a carrier, not the delta's fault (issue #921).
-# The run measures the base once (`gate.sh --base-red`, recorded by `state.sh base-red` as `run.baseRed`) and every
-# gate subtracts exactly the step-and-case pairs that record holds — naming what it subtracted on its console, in its
-# log and in the run's record (`run.baseRedUsed`), and quoting it in the verdict so a green carrier is not read as a
-# clean step. Both halves are one rule: a step red on the base *and* red for a case the base never had is still red, so
-# the subtraction is case by case and never by step alone.
+# A measurement of the step on that base is recorded as `run.baseRed` and every gate subtracts exactly the step-and-case
+# pairs that record holds — naming what it subtracted on its console, in its log and in the run's record
+# (`run.baseRedUsed`), and quoting it in the verdict so a green carrier is not read as a clean step. Both halves are one
+# rule: a step red on the base *and* red for a case the base never had is still red, so the subtraction is case by case
+# and never by step alone. Since issue #944 the run takes no pre-flight at its start — the gate measures the one step it
+# has just found red (`gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt`) — so what this case takes by hand is the
+# record's whole-set writer, `gate.sh --base-red` over a profile's step set, which `state.sh base-red` records: the
+# reading of the shape both writers share, and the subtraction these two halves assert is unchanged by where the record
+# came from.
 case_gate_aBaseRedStepIsSubtractedAndNamed() {
   # files: tools/loop/gate.sh tools/loop/state.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf state base log out rc
@@ -6567,6 +6573,89 @@ SUITE
   case "$out" in *'LOOP-GATE-BASERED:./suite-two:2'*)
     fail "a step red for a new case had all of its red subtracted as the base's: $out" ;; esac
   assert_contains "$out" 'tests=5 failures=1' "the new case is counted and the base's pair is not: $out"
+  return 0
+}
+
+# A step's base state is measured the first time a gate needs it, not for every step of the profile at the run's start
+# (issue #944). Measured 2026-11-16: `gate.sh --base-red` over the profile's whole set cost 1 772 s of step time, and
+# 1 251 s of that were steps no item of the night would consult — the run paid both giants before its first item,
+# whether or not a delta touched `tools/loop/tests/loop-cases.sh` or a compiled path. What the case holds is the trade
+# the change makes: a step that is red is measured on the base *by the gate that found it red*, that measurement is
+# recorded against the commit it was taken on, and the next gate reads it instead of measuring again. The item's tree
+# is a worktree of the project (as the run's own worktree is), so the measurement has to find the base tree, and the
+# record it writes is the run's — which is the half that did not work before this change: a gate in the worktree
+# resolved no run state at all, so the subtraction #921 added never fired for a gate (measured 2026-11-17: the live
+# run's record held `run.baseRedUsed: null` while its base carried a red step).
+case_gate_theBaseStateIsMeasuredWhenTheGateFirstNeedsIt() {
+  # files: tools/loop/gate.sh tools/loop/state.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf state base wt out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  state="$p/.pi/issue-loop/run.json"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_FIRST_STEPS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|./suite-one;notes/*|./suite-two"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=1\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  # `suite-one` is red on the base, `suite-two` is green there: only the step the gate finds red may be measured.
+  cat > "$p/suite-one" <<'SUITE'
+printf 'FAIL notes#aCaseThatWasRed\n'
+printf 'notes: 1 of 2 cases failed\n'
+exit 1
+SUITE
+  cat > "$p/suite-two" <<'SUITE'
+printf 'notes: all 1 cases passed\n'
+SUITE
+  chmod +x "$p/suite-one" "$p/suite-two"
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the base' >/dev/null 2>&1 \
+    || fail "could not commit the base in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD)
+  # The item's tree is a worktree of the project, and the project stays at the base — the layout a run works in, where
+  # the gate measures the item's delta and the base state has to be measured somewhere the delta is not.
+  wt="$d/wt"
+  git -C "$p" worktree add -q "$wt" -b item "$base" >/dev/null 2>&1 \
+    || fail "could not create the item's worktree"
+  printf 'a changed note\n' > "$wt/notes/a.md"
+  git -C "$wt" add -A >/dev/null 2>&1 && git -C "$wt" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the item's worktree"
+  ( cd "$p" && LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/state.sh" init --items 1 --minutes 1 --review off --may-close no --base "$base" ) \
+    >/dev/null 2>&1 || fail "could not initialize the run state"
+  # Nothing measured the base before the gate ran: the run has no pre-flight left to take.
+  assert_eq "null" "$(jq -r '.run.baseRed // "null"' "$state")" \
+    "the run records no base state before a gate asks for one: $(jq -c '.run' "$state")"
+  # ── the gate finds the step red, measures it on the base itself, and subtracts what it measured ──────────────────
+  out=$( cd "$wt" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "0" "$rc" "the gate measured the step's base state and carried the red it found: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED-MEASURE:./suite-one' \
+    "the gate names the step it goes to measure: $out"
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "and subtracts the pair the base carried: $out"
+  assert_contains "$out" 'tests=3 failures=0 errors=0' "leaving a tally with no red of its own: $out"
+  assert_eq "$(printf '%s' "{\"./suite-one\":[\"notes#aCaseThatWasRed\"]}")" \
+    "$(jq -c '.run.baseRed' "$state")" \
+    "the run's record holds the step it measured, and only that step: $(jq -c '.run.baseRed' "$state")"
+  assert_eq "$base" "$(jq -r '.run.baseRedBase' "$state")" \
+    "and names the commit the measurement was taken on: $(jq -c '.run.baseRedBase' "$state")"
+  assert_contains "$(jq -c '.run.baseRedUsed.steps' "$state")" '"./suite-one":1' \
+    "the gate in the worktree wrote the run's own record: $(jq -c '.run.baseRedUsed' "$state")"
+  assert_contains "$(cat "$(dirname "$state")/base-red.log" 2>/dev/null)" 'LOOP-BASERED-STEP:./suite-one|1' \
+    "the measurement's own output is kept beside the run: $(cat "$(dirname "$state")/base-red.log" 2>/dev/null)"
+  # ── the second gate reads what the first measured, and measures nothing ──────────────────────────────────────────
+  out=$( cd "$wt" && LOOP_CONF="$conf" LOOP_STATE_FILE="$state" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "0" "$rc" "the second gate carries the red the record already holds: $out"
+  case "$out" in *'LOOP-GATE-BASERED-MEASURE:'*)
+    fail "the second gate measured a step the run's record already held: $out" ;; esac
+  assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "and subtracts the same pair from the record: $out"
+  case "$out" in *'LOOP-GATE-BASERED-UNMEASURED:'*)
+    fail "a step the record holds was reported as unmeasured: $out" ;; esac
   return 0
 }
 

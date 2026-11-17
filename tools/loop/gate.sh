@@ -33,15 +33,18 @@
 # A gate is a measurement, and a measurement is taken once: see `runs_max` below and the refusal it arms.
 #
 # The red the run's base already carried is not the delta's (issue #921). Measured 2026-11-14: five items of one run
-# went red at a step no change of theirs touched, each owed a gate re-run it could not earn, and the run's green rate
-# read as the changes' fault. So the run takes one pre-flight of the profile's whole step set on the base it starts
-# from and records it as `run.baseRed` — step to the case names that failed there (`--base-red` below, taken by
-# `run.sh`). A step's red whose case names the record already holds as red is subtracted from this gate's tally and
-# named (`LOOP-GATE-BASERED:<step>:<n>`), so a carrier is quoted instead of dropped, and a step red on the base *and*
-# red for a case the base did not have stays red. The pre-flight names the whole set because at the run's start no
-# delta is known; it is switchable by `LOOP_BASE_RED`, and a tree that can read no base takes none.
+# went red at a step no change of theirs touched, and the run's green rate read as the changes' fault. So a step's red is
+# subtracted from this gate's tally and named (`LOOP-GATE-BASERED:<step>:<n>`), pair by pair, against a record of what
+# the base failed at that step. Since issue #944 that record is measured **when a gate first needs it**, one step at a
+# time, and cached for the rest of the run: measured 2026-11-16, a pre-flight over the profile's whole step set cost
+# 1 772 s at the run's start, of which 1 540 s were five steps and 1 251 s were steps no item of the night would
+# consult. The measurement the gate takes runs in a clean tree at the base (`base_tree` below), writes no tally, holds
+# no tally lock and spends no `runs_max`, and `state.sh base-red-step` merges it into `run.baseRed` with
+# `run.baseRedBase` naming the commit it was taken on. It is switchable by `LOOP_BASE_RED`; a step whose base state no
+# measurement could take is charged to the item, because a set that could not be measured must never stand as a base
+# that was green.
 #
-# Usage: gate.sh [--base <sha>] [--plan] [--quiet] [--base-red]
+# Usage: gate.sh [--base <sha>] [--plan] [--quiet] [--base-red [--step <command>]]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -56,12 +59,14 @@ base=""
 plan=0
 quiet=0
 base_red_mode=0
+base_red_step=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --plan) plan=1; shift ;;
     --quiet) quiet=1; shift ;;
     --base-red) base_red_mode=1; shift ;;
+    --step) need_value "$@"; base_red_step="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) loop_die "gate: unknown argument $1" ;;
   esac
@@ -80,7 +85,14 @@ if [ "$base_red_mode" -eq 1 ]; then
   # inside one would take a second pre-flight of its own (issue #921). The switch is the profile's, and this one line
   # is the only place the engine overrides it.
   export LOOP_BASE_RED=off
+else
+  [ -z "$base_red_step" ] || loop_die "gate: --step narrows a --base-red measurement; an item's gate names no step of its own"
 fi
+# Whether this gate may take a step's base state itself (issue #944). Read after the override above, so the measurement
+# a gate starts never starts one of its own: `off` charges every red to the item, and it is also what the measurement's
+# own steps run under.
+base_red_on=0
+case "$(loop_conf_value LOOP_BASE_RED)" in off|no|0) ;; *) base_red_on=1 ;; esac
 
 # The environment a kept worktree carries is the gate's own, not only its children's (issue #267). `worktree.sh`
 # writes the machine-local values into `<worktree>/.pi/loop-env.sh` — a file rather than a `vcpkg` symlink, because a
@@ -357,6 +369,16 @@ fi
 fi
 # One step per command, and the first list that named it owns how it runs: a command two pairs owe is one step and not
 # two, so the dedupe is on the command alone.
+#
+# A measurement a gate takes for one step is this same call narrowed to it (issue #944): `--step` keeps the pairs whose
+# command is exactly that one, so the command it measures is the byte-identical one the gate named, `{base}`
+# substituted the same way. A command no pair of the profile owes is a refusal — a measurement of nothing would leave a
+# record that reads as a base that was green.
+if [ "$base_red_mode" -eq 1 ] && [ -n "$base_red_step" ]; then
+  owed=$(printf '%s' "$owed" | awk -F'\t' -v c="$base_red_step" '$2 == c')
+  [ -n "$owed" ] ||
+    loop_die "gate: --step names a command no pair of this profile owes, so nothing would be measured: $base_red_step"
+fi
 owed=$(printf '%s' "$owed" | sed '/^$/d' | awk -F'\t' '!seen[$2]++')
 
 owed_kind=()
@@ -415,8 +437,8 @@ failures=0
 errors=0
 failed_suites=""
 ran_entries=""
-# What the run's base already carried, as the pre-flight recorded it (`run.baseRed`), and what this gate subtracted
-# from its own tally because of it — named in the verdict so a green carrier is not read as a clean step.
+# What the run's base already carried, as a measurement recorded it (`run.baseRed`), and what this gate subtracted
+# because of it — named in the verdict so a green carrier is not read as a clean step.
 base_red_json=""
 base_red_named=""
 base_red_used_args=()
@@ -546,6 +568,80 @@ if [ "$base_red_mode" -eq 0 ] && [ -n "${LOOP_STATE_FILE:-}" ] && [ -r "$LOOP_ST
   case "$base_red_json" in ''|null) base_red_json="" ;; esac
   printf '%s' "$base_red_json" | jq -e 'type == "object"' >/dev/null 2>&1 || base_red_json=""
 fi
+
+# ── The step's base state, measured the first time this gate needs it (issue #944) ─────────────────────────────
+# The measurement runs in a tree at the base, not in the tree the gate measures: a step re-run on the item's own delta
+# fails exactly as it failed a moment ago, and subtracting that is the one outcome this must never have — every red
+# would read as the base's. The tree is therefore one that is **clean and at the base commit**: the current tree when
+# the gate is run on the base itself, otherwise the repository's main worktree, which is where the run keeps the base
+# branch checked out and where a pre-flight measured before issue #944 (so the compiled step finds the build output
+# the base already has, and pays a compile rather than a cold native build in a fresh checkout).
+base_tree() { # → the path of a clean tree at $base, or nothing
+  local tree head
+  for tree in "$(git rev-parse --show-toplevel 2>/dev/null)" \
+              "$(loop_main_worktree "$LOOP_ROOT" 2>/dev/null)"; do
+    [ -n "$tree" ] && [ -d "$tree" ] || continue
+    head=$(git -C "$tree" rev-parse HEAD 2>/dev/null) || continue
+    [ "$head" = "$base" ] || continue
+    [ -z "$(git -C "$tree" status --porcelain 2>/dev/null)" ] || continue
+    printf '%s\n' "$tree"
+    return 0
+  done
+  return 1
+}
+# The record is written from the measurement's own output, and `state.sh base-red-step` merges it: the record a run
+# already holds stays, one step wider, and `run.baseRedBase` names the commit this measurement was taken on. A step the
+# base is green at records nothing (its absence is what the gate already reads as "the base carried no red here"), and
+# a measurement that could not be taken, could not be read or could not be written leaves the step's red with the item.
+measure_step_base() { # <command> → 0 when the run's record now holds this step's base state
+  local cmd=$1 tree dir log status recorded
+  [ "$base_red_mode" -eq 0 ] || return 1
+  [ "$base_red_on" -eq 1 ] || return 1
+  [ -n "${LOOP_STATE_FILE:-}" ] && [ -f "$LOOP_STATE_FILE" ] || return 1
+  if ! tree=$(base_tree); then
+    say "LOOP-GATE-BASERED-UNMEASURED:$cmd — no clean tree at ${base:0:12} to measure it in, so its red stays with the item"
+    return 1
+  fi
+  dir=$(dirname "$LOOP_STATE_FILE")
+  log="$dir/base-red.log"
+  mkdir -p "$dir" 2>/dev/null || true
+  say "LOOP-GATE-BASERED-MEASURE:$cmd — measuring this step on ${base:0:12} in $tree; its output joins $log"
+  status=0
+  # The profile is the one this gate read, passed explicitly: the step list that named the command is what makes the
+  # measured command byte-identical to the one the gate ran, and a child that resolved a different profile would
+  # measure a step of another rule. Its own steps run with the measurement switched off (`--base-red` above), so no
+  # run is started inside one.
+  ( cd "$tree" && LOOP_CONF="$LOOP_CONF_PATH" bash "$here/gate.sh" --base-red --step "$cmd" --base "$base" ) \
+    > "$log.step" 2>&1 || status=$?
+  # 0 is a base the step is green at and 1 is one it carries red at: both are a measurement. Any other status is a
+  # measurement that did not run, and a record written from it would claim a base state nothing measured.
+  case "$status" in
+    0|1) ;;
+    *)
+      say "LOOP-GATE-BASERED-UNMEASURED:$cmd — the measurement could not be taken (exit $status), so its red stays with the item"
+      ;;
+  esac
+  if [ "$status" = 0 ] || [ "$status" = 1 ]; then
+    recorded=$(loop_state base-red-step --step "$cmd" --from "$log.step" --base "$base" 2>&1) || {
+      say "LOOP-GATE-BASERED-UNMEASURED:$cmd — the measurement could not be written into the run's record, so its red stays with the item"
+      [ -z "$recorded" ] || say "$recorded"
+      status=2
+    }
+  fi
+  # Kept either way: the output is what a reader attributes the measurement from, and a run whose record write failed
+  # is the one whose log is read by hand.
+  {
+    printf '\n# %s — %s on %s, gate exit %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$cmd" "${base:0:12}" "$status"
+    cat "$log.step" 2>/dev/null || true
+  } >> "$log" 2>/dev/null || true
+  rm -f "$log.step" 2>/dev/null || true
+  [ "$status" = 0 ] || [ "$status" = 1 ] || return 1
+  base_red_json=$(loop_state get run.baseRed 2>/dev/null || true)
+  case "$base_red_json" in ''|null) base_red_json="" ;; esac
+  printf '%s' "$base_red_json" | jq -e 'type == "object"' >/dev/null 2>&1 || base_red_json=""
+  [ -z "$recorded" ] || say "$recorded"
+  return 0
+}
 if [ "$base_red_mode" -eq 1 ]; then
   say "LOOP-BASERED: measuring the profile's ${#owed_cmd[@]} step(s) on ${base:-the tree as it stands} — this pre-flight writes no tally"
 fi
@@ -738,28 +834,34 @@ finish_step() { # <slot> → the step's block on the console and its numbers in 
         [ -n "$case_name" ] || continue
         say "LOOP-BASERED-CASE:${cmd}|${case_name}"
       done <<< "$now_cases"
-    elif [ -n "$base_red_json" ] && base_red_had "$cmd"; then
-      step_base_red=$(base_red_of "$cmd")
-      now_count=$(printf '%s\n' "$now_cases" | grep -c . || true)
-      case "$now_count" in ''|*[!0-9]*) now_count=0 ;; esac
-      shared=$(shared_cases "$now_cases" "$step_base_red")
-      shared_count=$(printf '%s\n' "$shared" | grep -c . || true)
-      case "$shared_count" in ''|*[!0-9]*) shared_count=0 ;; esac
-      subtracted=0
-      if [ "$now_count" -eq 0 ] && [ -z "$step_base_red" ]; then
-        # The step names no case and the base named none: the red is the base's own failure, error and all.
-        base_red_taken=1
-        errors=$((errors - err))
-        subtracted=$((f + err))
-      elif [ "$shared_count" -gt 0 ]; then
-        failures=$((failures - shared_count))
-        subtracted=$shared_count
-        [ "$shared_count" -eq "$now_count" ] && base_red_taken=1
-      fi
-      if [ "$subtracted" -gt 0 ]; then
-        base_red_named="${base_red_named}${base_red_named:+, }${cmd}:${subtracted}"
-        base_red_used_args+=(--step "$cmd" --count "$subtracted")
-        say "LOOP-GATE-BASERED:${cmd}:${subtracted}"
+    else
+      # The step's base state is measured here, the first time a gate needs it (issue #944): only a step that is red
+      # needs it, so a night whose steps are green measures nothing, and the run pays for a step's measurement only in
+      # the item whose gate hit it. A step the record already holds costs one `jq` and no step at all.
+      if [ -n "$base_red_json" ] && base_red_had "$cmd"; then :; else measure_step_base "$cmd" || true; fi
+      if [ -n "$base_red_json" ] && base_red_had "$cmd"; then
+        step_base_red=$(base_red_of "$cmd")
+        now_count=$(printf '%s\n' "$now_cases" | grep -c . || true)
+        case "$now_count" in ''|*[!0-9]*) now_count=0 ;; esac
+        shared=$(shared_cases "$now_cases" "$step_base_red")
+        shared_count=$(printf '%s\n' "$shared" | grep -c . || true)
+        case "$shared_count" in ''|*[!0-9]*) shared_count=0 ;; esac
+        subtracted=0
+        if [ "$now_count" -eq 0 ] && [ -z "$step_base_red" ]; then
+          # The step names no case and the base named none: the red is the base's own failure, error and all.
+          base_red_taken=1
+          errors=$((errors - err))
+          subtracted=$((f + err))
+        elif [ "$shared_count" -gt 0 ]; then
+          failures=$((failures - shared_count))
+          subtracted=$shared_count
+          [ "$shared_count" -eq "$now_count" ] && base_red_taken=1
+        fi
+        if [ "$subtracted" -gt 0 ]; then
+          base_red_named="${base_red_named}${base_red_named:+, }${cmd}:${subtracted}"
+          base_red_used_args+=(--step "$cmd" --count "$subtracted")
+          say "LOOP-GATE-BASERED:${cmd}:${subtracted}"
+        fi
       fi
     fi
   fi

@@ -1,0 +1,25 @@
+$ LOOP_ENGINE=<copy of tools/loop with ` < /dev/null` removed from the step-start line> bash tools/loop/tests/loop-selftest.sh --case gate#aStepCannotReadTheCallersStdin
+(taken 2026-11-17, on the tree that carries the fix minus this one redirect — the state the issue describes)
+gate#aStepCannotReadTheCallersStdin|   the gate ran the step that reads its stdin to completion: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/tmp/red-on-head-947b/tools/loop/loop.conf)
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE-STEP-BOUND: 10s per step — a step that reaches it is ended, named and counted as an error
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE-BASE: 203a2b20a3faa12c0f5c8e2e3856f9d667cbf8e9 (from --base)
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE-TREE: head=f42592967ecb2f9992951c52d1f1d3fd7d9acf23 diff=3d96e1b9a404715b
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/tally run=2027619
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/tally/gate.log
+gate#aStepCannotReadTheCallersStdin| gate: bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh
+gate#aStepCannotReadTheCallersStdin| gate: bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh — 10s — the step overran its bound of 10s and was ended
+gate#aStepCannotReadTheCallersStdin| LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh 10s) — failing: bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh: expected '0', got '1'
+--- gate#aStepCannotReadTheCallersStdin[0] (exit 1)
+  the gate ran the step that reads its stdin to completion: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/tmp/red-on-head-947b/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 10s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 203a2b20a3faa12c0f5c8e2e3856f9d667cbf8e9 (from --base)
+LOOP-GATE-TREE: head=f42592967ecb2f9992951c52d1f1d3fd7d9acf23 diff=3d96e1b9a404715b
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/tally run=2027619
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/tally/gate.log
+gate: bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh
+gate: bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh — 10s — the step overran its bound of 10s and was ended
+LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh 10s) — failing: bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.V2LSyw/cases/0/tree/case.ZY7kok/suite.sh: expected '0', got '1'
+FAIL gate#aStepCannotReadTheCallersStdin
+loop-selftest: 1 of 1 cases failed

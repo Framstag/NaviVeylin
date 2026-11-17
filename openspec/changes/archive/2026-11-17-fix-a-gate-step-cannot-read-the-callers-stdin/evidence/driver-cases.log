@@ -1,0 +1,2 @@
+PASS driver#everyCaseDeclaresTheFilesItCanReach (13.12 s)
+PASS driver#noFixtureFifoIsOpenedWriteOnly (0.06 s)

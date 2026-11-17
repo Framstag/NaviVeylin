@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 407 records (labels: 63.1 947.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.zepj5m
+RED    63.1  gate#aStepEndsWithItsCommandNotWithItsWatchers   (the step ending with the command it started, not with the pipe that command wrote into (issue #315))
+       2026-11-17T07:15:21Z — the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind
+restore 63.1 gate#aStepEndsWithItsCommandNotWithItsWatchers green again
+RED    947.1  gate#aStepCannotReadTheCallersStdin   (the step started with an empty stdin of its own, so no child reads the caller's and is stopped by SIGTTIN (issue #947))
+       2026-11-17T07:15:34Z — the gate ran the step that reads its stdin to completion: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.UONZbK/cases/0/tree/case.8jva5X/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/Navi
+restore 947.1 gate#aStepCannotReadTheCallersStdin green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

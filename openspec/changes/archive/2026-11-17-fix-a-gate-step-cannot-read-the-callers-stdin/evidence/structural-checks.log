@@ -1,0 +1,10 @@
+$ bash -n tools/loop/gate.sh tools/loop/tests/loop-cases.sh tools/loop/tests/loop-mutations.sh
+clean, exit 0
+
+$ openspec validate fix-a-gate-step-cannot-read-the-callers-stdin --strict
+Change 'fix-a-gate-step-cannot-read-the-callers-stdin' is valid
+exit 0
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 356 section references resolve, all 7 skill references resolve
+exit 0

@@ -571,8 +571,15 @@ start_step() { # <slot> <command> → the step is running, its own files written
   # control is its own process group, which is what gives the bound a handle on everything the step started — a suite
   # leaves its own watchers and workers behind, and those are the processes that held the gate open. Two steps of a
   # wave are two groups, so a step that reaches its bound is ended without ending its neighbours.
+  #
+  # The step's stdin is the empty device, never the gate's (issue #947). Every step inherited whatever the gate
+  # inherited — a terminal, for a run started from a shell — and the group `set -m` gives it is a *background* group
+  # there, so a read from it raises `SIGTTIN` and stops the child: measured 2026-11-16, the pre-flight's base-red step
+  # was found in state `T` with its whole subtree, `kill -CONT` twice and `stty -tostop` did not resume it, and the
+  # step was ended by its bound 30 minutes later — 75 minutes of a 600-minute budget, with the run looking like a slow
+  # step because a stopped child prints nothing.
   set -m
-  ( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 &
+  ( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 < /dev/null &
   st_pid[i]=$!
   set +m
 }

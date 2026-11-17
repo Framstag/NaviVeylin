@@ -623,10 +623,18 @@ MUTATIONS=(
   # whole match, so the round-1 record rewrote the line into a corrupted one instead of restoring the pipeline, and
   # the case it reddened did so for a reason that was not the invariant's (issue #315, its round-1 review).
   # The pattern reads the step's two halves as `.*` (issue #311): the launch line now writes the step's completion
-  # record beside the stream (`( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 &`), and a record that
-  # quoted the `printf` would have to carry a `\n` through `sed`'s own escaping. What the mutation restores is the
-  # shape, not the line.
-  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  ( \$cmd;.*>"\$stream" 2>&1 &$|  \$cmd 2>\&1 \| tee "\$stream" \&|'
+  # record beside the stream (`( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 < /dev/null &`), and a
+  # record that quoted the `printf` would have to carry a `\n` through `sed`'s own escaping. What the mutation restores
+  # is the shape, not the line.
+  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  ( \$cmd;.*>"\$stream" 2>&1 < /dev/null &$|  \$cmd 2>\&1 \| tee "\$stream" \&|'
+
+  # 947.1 — the step's stdin is the empty device (issue #947). A step inherited the gate's stdin, which for a run
+  # started from a shell is a terminal, and the group `set -m` gives the step is a *background* group there: measured
+  # 2026-11-16, one child that read it was stopped by `SIGTTIN` and the whole pre-flight froze for its bound — 75
+  # minutes of a 600-minute budget, and `kill -CONT` twice followed by `stty -tostop` left it in `do_signal_stop`
+  # within two seconds. The mutation drops the redirect, so the step reads the caller's stdin again and
+  # `gate#aStepCannotReadTheCallersStdin` reads a step that is still inside the gate at its bound.
+  '947.1@-@tools/loop/gate.sh@gate#aStepCannotReadTheCallersStdin@the step started with an empty stdin of its own, so no child reads the caller'"'"'s and is stopped by SIGTTIN (issue #947)@s|2>&1 < /dev/null &$|2>\&1 \&|'
 
   # 63.2 — the step's own bound (issue #311). The gate bounded a child through the run's `LOOP_CHILD_MAX_SECONDS` and
   # a case through the suite's `LOOP_CASE_MAX_SECONDS`, and a step through nothing: measured 2026-10-25, one

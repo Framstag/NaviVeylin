@@ -179,6 +179,7 @@ LOOP_SHELL_CASES=(
   'gate#anEnginePathOwesTheRecordCheck'
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
   'gate#aStepEndsWithItsCommandNotWithItsWatchers'
+  'gate#aStepCannotReadTheCallersStdin'
   'gate#aStepIsBoundedAndTheOverrunNamesIt'
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
@@ -945,6 +946,7 @@ loop_run_shell_case() {
     'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
     'gate#aStepEndsWithItsCommandNotWithItsWatchers') fn=case_gate_aStepEndsWithItsCommandNotWithItsWatchers ;;
+    'gate#aStepCannotReadTheCallersStdin') fn=case_gate_aStepCannotReadTheCallersStdin ;;
     'gate#aStepIsBoundedAndTheOverrunNamesIt') fn=case_gate_aStepIsBoundedAndTheOverrunNamesIt ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
@@ -6011,6 +6013,77 @@ SUITE
     "and the verdict is still read from the stream the step wrote: $out"
   assert_contains "$out" "notes: all 1 cases passed" \
     "and the console carries the suite's own line, so the step loses nothing to the writer it left behind: $out"
+  return 0
+}
+
+# A step is given a stdin of its own (issue #947). Every step inherits whatever the gate inherited, and for a run
+# started from a shell that is the terminal. The gate starts a step as its own process group (`set -m`), so on a
+# terminal with job control that group is a *background* group, and a read from it raises `SIGTTIN`: measured
+# 2026-11-16, the pre-flight's base-red step `tools/tests/check-dex-gate-graph-selftest.sh` was found in state `T`
+# (`do_signal_stop`) with its whole subtree, and `kill -CONT` twice, then `stty -tostop`, left all three stopped
+# within two seconds — the stop was the read, not the terminal's write rule. The step was ended only by its bound
+# 30 minutes later, 75 minutes of a 600-minute budget, and nothing in the engine diagnosed it: a step whose child is
+# stopped prints nothing, so the run looked like a slow step. The case below is that shape and nothing about a
+# terminal: a caller whose stdin delivers nothing, and a suite whose first act is a read.
+case_gate_aStepCannotReadTheCallersStdin() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out fifo rc pid i start took
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=10\n'
+  } >> "$conf"
+  # A suite whose first act is a read of its own stdin, then its own verdict. A step given an empty stdin gets
+  # end-of-file at once and goes on to the summary; a step that inherited the caller's waits on that read.
+  cat > "$d/suite.sh" <<'SUITE'
+if read -r line; then
+  printf 'notes: the step read %s\n' "$line"
+else
+  printf 'notes: the step read nothing\n'
+fi
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  # A stdin that delivers nothing: the fifo's writer side is held read-write for the case's whole life, so the open
+  # never waits on a reader that may never come (issue #774) and no byte ever arrives — a read blocks exactly as a
+  # read of the terminal does.
+  fifo="$d/stdin.fifo"; mkfifo "$fifo"
+  exec 8<> "$fifo"
+  log="$d/gate.log"
+  start=$SECONDS
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) < "$fifo" > "$log" 2>&1 &
+  pid=$!
+  # Bounded, not `wait`: on HEAD the step waits on that read until its own ten-second bound, and a case that waited
+  # would report the defect as its own wall clock. Thirty seconds is three times the bound the profile names here.
+  for ((i = 0; i < 300; i++)); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  took=$((SECONDS - start))
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the gate never returned: still inside a step whose command reads its stdin after ${took}s"
+  fi
+  wait "$pid"
+  rc=$?
+  exec 8>&-
+  out=$(cat "$log")
+  assert_eq "0" "$rc" "the gate ran the step that reads its stdin to completion: $out"
+  assert_contains "$out" "notes: the step read nothing" \
+    "the step's read returned end-of-file instead of reaching the caller's stdin: $out"
+  assert_contains "$out" "LOOP-GATE: tests=1 failures=0" \
+    "and the suite's own summary is the gate's verdict: $out"
   return 0
 }
 

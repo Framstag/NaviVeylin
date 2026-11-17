@@ -23,9 +23,9 @@ container**. The axis that decides whether an item is work at all (the pre-scree
 ## What Changes
 
 - **`tools/issues/check-metadata.sh`** gains a sixth per-item invariant, in both of its per-item modes (`--live` and
-  `--issues`): an item whose `.parent` is set SHALL carry a declared issue type, and an item whose type is the
-  profile's `containerType` SHALL be a container others point at — a violation is named with the child, its container
-  and the type it lacks.
+  `--issues`): an item whose `.parent` is an issue of the profile's `containerType` SHALL carry a declared issue type
+  — a violation is named with the child, its container and the type it lacks. A child of an ordinary issue is out of
+  scope, and nothing requires a container-type item to be pointed at.
 - **The rule is "carries a type", not "carries a particular type"**: a child may be any type the account declares.
   The failure being fixed is *no* type, which is what made the children invisible.
 - **The comments that cite a non-existent capability are corrected**: nine sites in eight files named `issue-types` as
@@ -47,9 +47,9 @@ capability would create a second home for one rule (and owe a row in `tools/feat
 
 ### Modified Capabilities
 
-None. `issue-backlog` gains two requirements, both new: a container's child carries a type, and the metadata pass
-reports one that does not. The shipped "second axis" requirement is untouched — it says how a type is written and read,
-not that a child must have one.
+`issue-backlog` — two requirements added: "A container's child carries an issue type", and "The type axis has a
+reader in every mode that sees an issue". Both are new requirement blocks; the shipped "second axis" requirement is
+untouched — it says how a type is written and read, not that a child must have one.
 
 ## Impact
 

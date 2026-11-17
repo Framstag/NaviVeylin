@@ -5006,6 +5006,15 @@ fall back to the note, and it SHALL say on the line that what it printed is re-d
   written before the field existed prints the note's refusal with the line saying it was re-derived from the note
 - **Case**: `report#theRefusedLandingIsReadFromTheRecord`
 
+#### Scenario: The refusal the record carries is the run's own merge attempt
+
+- **WHEN** a run finishes an item whose merge the base cannot take — `merge-item` refuses the project's own tree,
+  because it carries paths no reading of *that* item differs on — and the run blocks the item
+- **THEN** the item's record carries `result: blocked` with `stopReason: unmergeable`, `mergeRefused.branch` is the
+  branch the run asked the merge for, and `mergeRefused.paths` holds every path the refusal printed after
+  `onto the base:` — not the first of them — with no `merged` record beside it, the item closed nowhere and escalated
+- **Case**: `run#doesNotCloseOnAMergeTheBaseCannotTake`
+
 ### Requirement: The checks a child runs by hand are bounded while it runs
 
 A child's hand-run checks SHALL be counted while it runs, from the lines its stream has gained, and SHALL end it at

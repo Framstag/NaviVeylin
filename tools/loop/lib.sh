@@ -975,3 +975,53 @@ loop_render() { # loop_render <template> [KEY=VALUE]…
   done
   printf '%s\n' "$tpl"
 }
+
+# ── a write no child made ────────────────────────────────────────────────────────────────
+# The run reads the project tree more than once — the outside-write comparison beside a child, and the landing's dirty
+# check in `worktree.sh` — and each answer is "the tree changed" without asking whether a child of this run could have
+# written what changed. An editor's swap file and a language server's `bin/` are the two that were measured: #950 ended
+# `outside-write` after 61 minutes on `?? .mise.local.toml.swp` (15.9 Mtok), and a landing refused to merge #960 on
+# `?? architecture/bin/` while the IDE was still writing it. The list is the loop's own configuration, so a project can
+# widen or narrow it, and the rule it encodes is one: a path no child wrote is not a write (issues #958, #962).
+LOOP_WRITE_IGNORE_DEFAULT='*.swp *.swo *.tmp *~ .#* .DS_Store */bin */bin/*'
+
+loop_write_ignore() { # → the patterns, one per line
+  # The key is a project's own (`loop.conf`, sourced by `loop_resolve`), and a project that has not widened it yet gets
+  # the list this item ships — which is what makes the default a fact of the engine rather than of one profile.
+  printf '%s\n' "${LOOP_WRITE_IGNORE:-$LOOP_WRITE_IGNORE_DEFAULT}" | tr ' ' '\n'
+}
+
+loop_is_ignorable_write() { # <path> → 0 when no child of the run could have written it
+  local path pattern
+  path="${1%/}"
+  [ -n "$path" ] || return 1
+  while IFS= read -r pattern; do
+    [ -n "$pattern" ] || continue
+    case "$path" in $pattern) return 0 ;; esac
+    case "${path##*/}" in $pattern) return 0 ;; esac
+  done < <(loop_write_ignore)
+  return 1
+}
+
+# The same filter over a `git status --porcelain` reading. `untracked` is the landing's rule: a tracked file that
+# changed is a write whatever its name, so the two landings pass it and the run's own comparison does not.
+loop_drop_ignorable_writes() { # [untracked] — stdin: porcelain lines → the ones that are a write of some kind
+  local only_untracked="${1:-}" line path
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    path="${line:3}"
+    if [ -n "$only_untracked" ] && [ "${line:0:2}" != "??" ]; then
+      printf '%s\n' "$line"
+      continue
+    fi
+    loop_is_ignorable_write "$path" || printf '%s\n' "$line"
+  done
+}
+
+# The two readings compared as the filter leaves them: an editor that writes into the project tree changes them without
+# changing anything a child of this run could have written, and a reader that compares the raw pair decides the phase
+# on that difference alone (issues #958, #962).
+project_state_differs() { # <before> <after> → 0 when a path some child could have written differs
+  [ "$(printf '%s\n' "$1" | sed '/^[[:space:]]*$/d' | loop_drop_ignorable_writes | sort)" != \
+    "$(printf '%s\n' "$2" | sed '/^[[:space:]]*$/d' | loop_drop_ignorable_writes | sort)" ]
+}

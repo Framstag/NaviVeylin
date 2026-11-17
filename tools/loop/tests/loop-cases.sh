@@ -120,6 +120,8 @@ LOOP_SHELL_CASES=(
   'worktree#aMissingChangeRefusesTheItem'
   'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved'
   'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved'
+  'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
+  'worktree#aTrackedEditStillBlocksTheMerge'
   'prescreen#aTierAItemPassesUnchanged'
   'prescreen#aChangeThatIsNoLongerReadyIsRefused'
   'prescreen#aClosedItemIsNotSelected'
@@ -164,6 +166,7 @@ LOOP_SHELL_CASES=(
   'run#blockedItemAsksItsOwnQuestion'
   'run#aBlockedItemCarriesTheWorkersDecision'
   'run#aReviewersDecisionOutranksTheWorkers'
+  'run#anEditorSwapFileIsNotAChildsWrite'
   'run#falsifiedSkipClosesWithItsMeasurement'
   'run#falsificationWithoutAMeasurementIsEscalated'
   'run#mayCloseNoKeepsAFalsificationOpen'
@@ -891,6 +894,8 @@ loop_run_shell_case() {
     'worktree#aMissingChangeRefusesTheItem') fn=case_worktree_aMissingChangeRefusesTheItem ;;
     'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved') fn=case_worktree_aSetAsideBranchWhosePatchesLandedIsRemoved ;;
     'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved') fn=case_worktree_aSetAsideBranchThatCarriesWorkIsNamedNotRemoved ;;
+    'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
+    'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
     'prescreen#aClosedItemIsNotSelected') fn=case_prescreen_aClosedItemIsNotSelected ;;
@@ -936,6 +941,7 @@ loop_run_shell_case() {
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
     'run#aBlockedItemCarriesTheWorkersDecision') fn=case_run_aBlockedItemCarriesTheWorkersDecision ;;
     'run#aReviewersDecisionOutranksTheWorkers') fn=case_run_aReviewersDecisionOutranksTheWorkers ;;
+    'run#anEditorSwapFileIsNotAChildsWrite') fn=case_run_anEditorSwapFileIsNotAChildsWrite ;;
     'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
     'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
@@ -9828,6 +9834,25 @@ case_run_strictOutsideWriteBlocksTheItem() {
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
 }
 
+# A swap file in the project tree is not a write the child made (issue #958): the outside-write comparison read every
+# difference between two status readings, so an open editor's `*.swp` stopped an item — #950 ended `outside-write` after
+# 61 minutes and 15.9 Mtok on `?? .mise.local.toml.swp`. The paths no child could have written are the loop's own
+# configuration (`LOOP_WRITE_IGNORE`), and with them the strict run judges the tree as it did before the file appeared.
+case_run_anEditorSwapFileIsNotAChildsWrite() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker*) printf "swap\n" > "$LOOP_CHILD_ROOT/.mise.local.toml.swp" ;; esac'
+  run_loop "$p" --items 1 --minutes 90 --review off --strict-outside-write yes >/dev/null 2>&1 ||
+    fail "the run itself failed"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a swap file in the project tree does not stop the item"
+  assert_not_contains "$note" "outside the worktree" "and no difference is recorded for it: $note"
+}
+
 case_run_strictOutsideWriteDiscardsTheReviewRound() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p note
@@ -10259,6 +10284,56 @@ case_worktree_theLandingDecidesByTheReadingItIsHanded() {
 # The refusal's other arm: a branch whose commits are not on top of the base the run recorded is a tree nobody
 # reviewed. The recorded base is what decides, so a base that moved under the branch — a person's commit, a
 # hand-merged attempt — refuses it instead of replaying the change onto the moved tree (issue #229).
+# A path no child of the run could have written is not a write, and the landing has to read that too (issue #962): a
+# language server compiles into `bin/` at a module root, `.gitignore` does not cover it, and `git status --porcelain`
+# calls the tree dirty for as long as the IDE is open — so `merge-item` refused a landing on `?? architecture/bin/`
+# while the extension recreated the directory inside the same command. The item's work is on the base, and the tree the
+# IDE is writing in is left exactly as it was.
+case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge() {
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p w base branch tip out
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  tip=$(git -C "$p" rev-parse "$branch")
+  mkdir -p "$p/architecture/bin" && printf 'class\n' > "$p/architecture/bin/Thing.class"
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1) || fail "the merge was refused on a build directory: $out"
+  assert_eq "$tip" "$(git -C "$p" rev-parse main)" "the base is the branch, fast-forwarded over the IDE's output"
+  assert_eq "?? architecture/" "$(git -C "$p" status --porcelain -- architecture)" \
+    "and the directory the editor wrote is still there, in no commit of the merge"
+}
+
+# …and the filter is not a licence: a tracked file a child modified is a write whatever its name, so the landing still
+# refuses, with the reason it always gave (issue #962).
+case_worktree_aTrackedEditStillBlocksTheMerge() {
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p w base branch out status
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  printf 'a tracked edit\n' >> "$p/README.md"
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a tracked edit still refuses the merge, whatever the ignore list says: $out"
+  assert_contains "$out" "not clean" "with the landing's own reason"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "and the base did not move"
+}
+
 case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
   # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w moved out status branch tip

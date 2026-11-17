@@ -282,6 +282,10 @@ MUTATIONS=(
   '29.2@-@../issues/close.sh@labels#closeRemovesTheDecisionLabel@the closure taking the decision label off the item it ends (issue #225)@s|^    remove_args=(--remove-label "\$decision_label_closed")$|    remove_args=()|'
   '29.3@-@tools/loop/run.sh@run#aBlockedItemCarriesTheWorkersDecision@the worker decision read beside the reviewer one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      :#'
   '29.6@-@tools/loop/run.sh@run#aReviewersDecisionOutranksTheWorkers@the reviewer decision kept ahead of the worker one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      decision_field="$worker_decision"#'
+  # 29.7–29.8 — a path no child of the run could have written is not a write (issues #958, #962): the filter is read at
+  # the source of each reading, so removing it where the readings differ decides the phase on an editor's swap file.
+  '29.7@-@tools/loop/run.sh@run#anEditorSwapFileIsNotAChildsWrite@the filter applied where the two project-tree readings differ (issue #958)@s#^  if project_state_differs "$before" "$after"; then$#  if [ "$before" != "$after" ]; then#'
+  '29.8@-@tools/loop/worktree.sh@worktree#anIdeBuildDirectoryDoesNotBlockTheMerge@the landing reading the tree as the filter leaves it (issue #962)@s#^  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes untracked)$#  dirty=$(gitr status --porcelain -uall)#'
   # 30.x — a falsified skip is a finding, not a question (openspec change `falsified-items-close-in-the-loop`):
   # without the verdict the item goes back to the escalation it used to take.
   '30.1@-@tools/loop/run.sh@run#falsifiedSkipClosesWithItsMeasurement@the verdict that tells a measured falsification from an ordinary skip@s|^    outcome="falsified"$|    outcome="skipped"|'

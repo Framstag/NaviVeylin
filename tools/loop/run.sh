@@ -1480,7 +1480,7 @@ project_state() {
 # item could tell which path to restore — or whether a path had changed at all, since the tree's own answer to
 # "am I a work tree" travels in the same reading (issue #285).
 project_state_diff() { # project_state_diff <before> <after> → the lines only one of the two readings carries
-  { printf '%s\n' "$1"; printf '%s\n' "$2"; } | sed '/^[[:space:]]*$/d' | sort | uniq -u
+  { printf '%s\n' "$1"; printf '%s\n' "$2"; } | sed '/^[[:space:]]*$/d' | loop_drop_ignorable_writes | sort | uniq -u
 }
 
 # One clause out of a list of lines, quoted as it was read and bounded: a damaged tree carries thousands of
@@ -1614,8 +1614,14 @@ outside_write_seen() { # <before> <now> <child> <own pid> → two `LOOP-OUTSIDE-
     attributed="${attributed:+$attributed,}$pid"
   done
   alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
-  printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: %s — read while the child was alive at %s\n' \
-    "$(outside_write_clause_of "$before" "$now")" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  # The FIRST line is printed only when a path no child could have written is not the whole difference (issues #958,
+  # #962): the readings differ whenever an editor writes into the project tree, and a line saying so is what decides
+  # the phase (`outside_write_decides`), so the filter has to be applied where the difference is read and not only
+  # where it is described.
+  if project_state_differs "$before" "$now"; then
+    printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: %s — read while the child was alive at %s\n' \
+      "$(outside_write_clause_of "$before" "$now")" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  fi
   printf 'LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n' "${alive:-(none)}" "${attributed:-none}"
 }
 
@@ -2458,7 +2464,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     case "$outside_write_attributed" in none|'') outside_write_attributed="" ;; esac
     cat "$2.outside-write" >> "$2"
   fi
-  if [ "$before" != "$after" ]; then
+  if project_state_differs "$before" "$after"; then
     outside_write_line "$before" "$after" >> "$2"
     [ -n "$outside_write_note" ] ||
       outside_write_note="the project tree changed while this process ran: $(outside_write_clause_of "$before" "$after")"

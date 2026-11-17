@@ -706,7 +706,7 @@ cmd_adopt_item() {
   # attribute that work to the merge, which is the rule `create` already refuses for. What that dirt *is* decides it
   # (#862): a difference the run placed in no process of its own is recorded and merged over, exactly as it decides
   # nothing anywhere else (#286).
-  dirty=$(gitr status --porcelain)
+  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes untracked)
   [ -z "$dirty" ] || landing_refuses_the_dirt "$dirty"
   if gitr merge-base --is-ancestor "$base" "$branch"; then
     gitr merge --ff-only "$branch" >&2 || loop_die "adopt-item: the fast-forward failed"
@@ -749,7 +749,7 @@ cmd_merge_item() { # <issue> <branch>
   # Over uncommitted work the merge would attribute that work to itself, which `create` already refuses for — and a
   # difference the run tied to no process of its own is recorded and merged over instead of ending the item (#862),
   # which is what `run.sh`'s own `outside_write_decides` says about that same reading (#286).
-  dirty=$(gitr status --porcelain)
+  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes untracked)
   [ -z "$dirty" ] || landing_refuses_the_dirt "$dirty"
   gitr merge --ff-only "$branch" >&2 || loop_die "merge-item: the fast-forward failed"
   printf 'merged: branch %s -> %s · commits %s\n' \

@@ -843,25 +843,39 @@ its `SIGHUP` into a run that had already ended (`expected '129', got '0'`) and, 
 413-case set, held its run, its stub child and the adapter above it for the ten minutes the suite was left running
 before it was ended by hand.
 
-**The clock a case keeps is measured on the host that keeps it** (issue #928). The 30 s was a fact about the *run* —
-thirty times the 1 s `TERM`→`KILL` grace a run's trap gives its child — spent as one about the machine, and a host
-carrying four sibling suites stretches those same one-second operations past it: `/tmp/full925.log` records the HUP
-case red (`a run that took HUP did not end inside 300 ticks (status 124)`) while a focused run of the same tree
-passed, and the state it printed named a stop the run *had* recorded, i.e. the wait ran out while the run was
-ending. So the wait is answered by what the case asserts and not by a count: `wait_for_run_stop` polls
-`.run.stop.reason` and the item's result in the state the run writes every third tick, gives the run's remaining end
-— the label's removal, its item's record, the unlock, the exit — a 5 s grace once both facts are there, and takes
-its deadline from `stop_wait_deadline`: ten times the staging that case itself measured, floored at the 30 s a quiet
-host needs and capped at 120 s, because a case that holds its slot for minutes is what the bound above is for. On
-the deadline the state is read once more, so a trap that never ran and a trap that recorded everything and did not
-end are told apart by what the state says instead of by how many ticks elapsed. Measured 2026-11-15 on this
-repository's measured host with 103 sibling suites on it: the HUP case's staging (throwaway project, worktree,
-pre-screen, item start, the child's start) took 16.3 s and 21.5 s, and the run's whole end took 3.3 s and 2.0 s — a
-fifth of the staging. `run#theStopWaitIsDecidedByTheStateTheRunWrites` holds the derivation and the three readings
-still, `928.1` in `tools/loop/tests/loop-mutations.sh` puts the constant back, which is what reds that case, and
-`928.2` removes the trap a signalled run answers HUP with so the run genuinely never stops — the HUP case still
-reds there, at its derived deadline and with an empty state named, which is the teeth a state-driven wait has to
-keep.
+**The clock a case keeps is the pool's width, not a duration the host measured** (issues #928, #949). The 30 s was a
+fact about the *run* — thirty times the 1 s `TERM`→`KILL` grace a run's trap gives its child — spent as one about the
+machine, and a host carrying four sibling suites stretches those same one-second operations past it:
+`/tmp/full925.log` records the HUP case red (`a run that took HUP did not end inside 300 ticks (status 124)`) while a
+focused run of the same tree passed, and the state it printed named a stop the run *had* recorded, i.e. the wait ran
+out while the run was ending. So the wait is answered by what the case asserts and not by a count: `wait_for_run_stop`
+polls `.run.stop.reason` and the item's result in the state the run writes every third tick, gives the run's remaining
+end — the label's removal, its item's record, the unlock, the exit — a 5 s grace once both facts are there, and on the
+deadline reads the state once more, so a trap that never ran and a trap that recorded everything and did not end are
+told apart by what the state says instead of by how many ticks elapsed.
+
+#928 gave that wait a deadline of ten times the staging the case itself measured, floored at 30 s and capped at 120 s.
+That derivation is a factor of a duration the load has already stretched, and it ran out on 2026-11-17: the
+`--from-git 5330313b` leg of a base-red whose gate pool carried four steps (`./gradlew test`,
+`loop-mutations --check`, `mutations-selftest`) recorded the HUP case's staging at **10 286 ms**, so the wait allowed
+**1 020 ticks**, and at that deadline the run's stop and its item were still empty
+(`.pi/issue-loop/base-red.log:1029`) while the same case passed alone on the same tree. Nothing in that figure said by
+how much the host would stretch the *end* — and the end is what the wait is for. What the load cannot stretch is how
+many cases the suite starts beside the one that waits, so `stop_wait_deadline` derives the ceiling from the pool's
+**width**: 30 s for every case the pool starts beside this one, read off `LOOP_SELFTEST_WORKERS` (exported by
+`tools/loop/tests/loop-selftest.sh`), a pool of one when nothing names it, 120 s in a four-case pool and 480 s in the
+sixteen-case pool this host runs. The cap is gone with the multiplication — a cap is another figure the host cannot
+answer for — and it is not needed: at 30 s against `LOOP_CASE_MAX_SECONDS` times the pool, the wait spends a thirtieth
+of the slot the suite gives the case, so it can never be red for a reason the case's own bound would not also report.
+`run#theStopWaitIsDecidedByTheStateTheRunWrites` holds the ceiling (a pool of one, of four, of sixteen, none of them a
+function of a measured duration, and each inside the case's own bound) and the three readings still, and its red on
+HEAD is `a pool of four allows 30 s per slot … expected '1200', got '300'`. The same defect had a second site in the
+sibling case: its cleanup ended the run through `loop_end_pid`, whose 2 s `TERM`→`KILL` grace a sixteen-case pool
+outlasts, so 14 of 16 concurrent runs of that case read an empty item; it sends the signal itself and waits for the
+state under the same clock now, and 16 of 16 pass. `928.1` in `tools/loop/tests/loop-mutations.sh` removes the pool's
+width so every host waits the quiet figure again, which is what reds the guard case in a four-case pool; `928.2`
+removes the trap a signalled run answers HUP with so the run genuinely never stops — the HUP case still reds there, at
+its ceiling and with an empty state named, which is the teeth a state-driven wait has to keep.
 
 Inside that bound the project's gate is what fills the log, and it streams: each suite's output is read from the
 file the suite writes as the suite writes it, and the summary, the tally and the failure text are read from that

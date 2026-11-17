@@ -1351,33 +1351,36 @@ wait_for_pid_end() { # wait_for_pid_end <pid> [ticks] → 0 it ended (WAIT_PID_S
   return 0
 }
 
-# The wait for a run a case signalled is decided by the state that run writes, under a deadline measured off this host
-# (issue #928). The tick ceiling above is a statement about the *run* — thirty times the 1 s grace its trap gives its
-# child — and it was spent as one about the machine: every case creates git repositories and forks a run, and a host
-# carrying four sibling suites stretches those same one-second operations past thirty seconds. Measured 2026-11-15 on
-# this host with 103 sibling suites on it: the staging one HUP case does before it signals — throwaway project,
-# worktree, pre-screen, item start, the child's start — took 16.3 s and 21.5 s, and the run's whole end, from the stop
-# it recorded to the exit that answered the wait, took 3.3 s and 2.0 s, a fifth of the staging. The figure that ran out
-# was the one with nothing left to spend it on. Both halves are taken: the wait asks the state whether the run is
-# ending instead of only how long it has been, and its deadline is the staging *this* case measured times a factor —
-# a host four times slower derives four times the wait, a quiet host (2–3 s of staging) keeps the 30 s it had, and the
-# figure is capped, because a case that holds its slot for minutes is the failure issue #860 bounded and not the
-# repair for a slow host.
-STOP_WAIT_STAGE_FACTOR=10     # × the staging the case measured — fifty times the fifth of it the run's end took
-STOP_WAIT_TICK_FLOOR=300      # 30 s, the ceiling above: what a quiet host needs, and the floor of every derivation
-STOP_WAIT_TICK_CEILING=1200   # 120 s: the most a case may hold its slot for a run that has not ended
+# The wait for a run a case signalled is decided by the state that run writes, under a ceiling that is the pool's
+# width and no duration this host measured (issues #928, #949). The tick ceiling above is a statement about the *run*
+# — thirty times the 1 s grace its trap gives its child — spent as one about the machine: every case creates git
+# repositories and forks a run, and a host carrying four sibling suites stretches those same one-second operations
+# past thirty seconds. #928 answered that by measuring the staging a case pays before it signals and taking ten times
+# it. Measured 2026-11-17, that derivation ran out anyway: in the `--from-git 5330313b` leg of a base-red whose gate
+# pool carried four steps (`./gradlew test`, `loop-mutations --check`, `mutations-selftest`), the HUP case's staging
+# came to 10 286 ms, the wait therefore allowed 1 020 ticks, and at that deadline the run's stop and its item were
+# still empty (`.pi/issue-loop/base-red.log:1029`) while the same case passed alone on the same tree. A factor of a
+# duration the load has already stretched is not a bound: the host that stretched 10.3 s of staging stretches the
+# run's end by however much it likes, and the figure says nothing about by how much.
+#
+# What the load cannot stretch is *how many cases the suite starts beside this one* — the pool's width is the number
+# of runs that can sit in front of this one's, and it is the same multiplier the suite's own case bound uses
+# (`tools/loop/tests/loop-selftest.sh`: `LOOP_CASE_MAX_SECONDS` times the pool). So the ceiling is the 30 s a quiet
+# host needs for every case the pool starts beside this one, read off `LOOP_SELFTEST_WORKERS`, which the suite
+# exports; a case that runs with no pool named keeps the 30 s. The wait itself still ends on the state the run
+# writes, so a run that recorded its stop and its item and ended answers at once; the ceiling only bounds a hang. At
+# 30 s against the suite's 900 s per pool slot, such a wait has spent a thirtieth of the slot the suite would have
+# given the case anyway, so it can never be red for a reason the case's own bound would not also report.
+STOP_WAIT_TICK_FLOOR=300      # 30 s: what a quiet host needs, and what each case the pool starts beside this one adds
 STOP_WAIT_END_TICKS=50        # 5 s: the grace the tail after the run's last state write gets, the case's own figure
 STOP_WAIT_STATE_EVERY=3       # read the state every third tick: two `jq` processes ten times a second is load the host
                               # this wait exists for cannot spare, and the two facts are written once
 
-# stop_wait_deadline <the ms this case's staging took> → the ticks its wait allows, 0.1 s each
+# stop_wait_deadline → the ticks its wait allows, 0.1 s each: 30 s for every case the pool starts beside this one
 stop_wait_deadline() {
-  local ticks
-  ticks=$(( ${1:-0} / 100 ))                    # the ticks that staging would take at the step the wait sleeps in
-  ticks=$(( ticks * STOP_WAIT_STAGE_FACTOR ))
-  [ "$ticks" -ge "$STOP_WAIT_TICK_FLOOR" ] || ticks=$STOP_WAIT_TICK_FLOOR
-  [ "$ticks" -le "$STOP_WAIT_TICK_CEILING" ] || ticks=$STOP_WAIT_TICK_CEILING
-  printf '%s' "$ticks"
+  local workers="${LOOP_SELFTEST_WORKERS:-1}"
+  case "$workers" in ''|*[!0-9]*|0) workers=1 ;; esac
+  printf '%s' $(( STOP_WAIT_TICK_FLOOR * workers ))
 }
 
 # The two facts a signalled run's case asserts, read off the state that run writes: the stop it recorded and its item's
@@ -1387,7 +1390,8 @@ run_stop_reason() { jq -r '.run.stop.reason? // ""' "$1" 2>/dev/null; }
 run_item_result() { jq -r '.items[0].result? // ""' "$1" 2>/dev/null; }
 
 # wait_for_run_stop <state file> <pid> [ticks] → 0 the run ended (WAIT_PID_STATUS is the status it took), 124 it did
-# not inside <ticks>. WAIT_STOP_SEEN and WAIT_ITEM_SEEN hold the last state read either way.
+# not inside <ticks>, which defaults to `stop_wait_deadline`'s ceiling. WAIT_STOP_SEEN and WAIT_ITEM_SEEN hold the last
+# state read either way.
 # The wait is spent on the state, not only on the clock: once both facts are there, the rest of the run's end — the
 # in-progress label's removal, its item's record, the unlock and the exit — gets the small grace above instead of the
 # whole deadline. That is what tells the two loaded-host readings apart: the state carrying both facts at a deadline
@@ -1395,7 +1399,7 @@ run_item_result() { jq -r '.items[0].result? // ""' "$1" 2>/dev/null; }
 # deadline is a trap that never ran. The process's own end still answers the wait, so a trap that ended without
 # recording what it was supposed to end with is left to the caller's assertion to name rather than reported here.
 wait_for_run_stop() {
-  local f="$1" pid="$2" ticks="${3:-$CASE_WAIT_TICKS}" i
+  local f="$1" pid="$2" ticks="${3:-$(stop_wait_deadline)}" i
   WAIT_PID_STATUS=124
   WAIT_STOP_SEEN=""
   WAIT_ITEM_SEEN=""
@@ -15705,7 +15709,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
 # archived record no stop, 18 of them having worked items (measured 2026-11-07).
 case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p block first status f owner child i alive stage_started stage_ms deadline
+  local d p block first status f owner child i alive deadline
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
@@ -15716,9 +15720,10 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # case's own shell is left with no job killed by a signal — its notice of one is a locale's word on the suite's
   # output. The signal goes to the run's own pid, which the state it writes names (`run.ownerPid`), so the case also
   # reads the field the pre-screen's stale-mark repair would read.
-  # What this case costs before it can signal is the figure its own wait is derived from (issue #928): the staging, not
-  # the run's end, is what a host carrying sibling suites stretches.
-  stage_started=$(now_ms)
+  #
+  # How long the wait after the signal allows is not measured here (issue #949): the staging this case pays is a
+  # duration this host already stretched while it carried the pool, and #928's ten-times-that deadline ran out at
+  # 102 s with nothing recorded. The ceiling is the pool's width instead, which is `stop_wait_deadline`'s.
   ( export PI_STUB_WAIT="$block"
     run_loop "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
   first=$!
@@ -15744,23 +15749,23 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # it blocks on the fifo (`tools/loop/tests/fixtures/pi:106`, `:114-118`), so both facts read here are stages.
   assert_eq "" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the item has not answered when the HUP is sent"
   kill -HUP "$owner"
-  # The case's own clock, not the suite's (issue #860), and that clock measured rather than priced (issue #928): a run
-  # that does not take the signal leaves this case waiting on a child nothing releases, and the suite answers that only
-  # at `LOOP_CASE_MAX_SECONDS` times the pool's width — up to four hours in the pool the race was measured in. The
-  # deadline is ten times the staging this host just made this case's own setup cost, floored at the 30 s a quiet host
-  # needs, and the wait itself ends on the state the run writes: what this case asserts is that the run recorded its
-  # stop and its item's result, so the wait is spent on those and not on a tick count read as a machine's slowness. A
-  # run that outlives the deadline is named with what this case read, then released and ended, so nothing of it holds
-  # the case's stream when the case answers.
-  stage_ms=$(( $(now_ms) - stage_started ))
-  deadline=$(stop_wait_deadline "$stage_ms")
+  # The case's own clock, not the suite's (issue #860), under a ceiling that is the pool's width and no duration this
+  # host measured (issues #928, #949): a run that does not take the signal leaves this case waiting on a child nothing
+  # releases, and the suite answers that only at `LOOP_CASE_MAX_SECONDS` times the pool's width — up to four hours in
+  # the pool the race was measured in. The deadline is `stop_wait_deadline`: 30 s for every case the pool starts
+  # beside this one, a thirtieth of the slot the suite gives this case, and independent of how slow this host was
+  # while the case staged. The wait itself ends on the state the run writes: what this case asserts is that the run
+  # recorded its stop and its item's result, so the wait is spent on those and not on a tick count read as a machine's
+  # slowness. A run that outlives the deadline is named with what this case read, then released and ended, so nothing
+  # of it holds the case's stream when the case answers.
+  deadline=$(stop_wait_deadline)
   if ! wait_for_run_stop "$f" "$first" "$deadline"; then
     status="${WAIT_PID_STATUS:-124}"
     printf 'go\n' >&8 2>/dev/null || true
     loop_end_pid "$owner"
     wait_for_pid_end "$first" 50 || kill -9 "$first" 2>/dev/null
     exec 8>&-
-    fail "a run that took HUP did not end inside $deadline ticks derived from $stage_ms ms of staging (status $status) — its stop was '${WAIT_STOP_SEEN:-}' and its item '${WAIT_ITEM_SEEN:-}'"
+    fail "a run that took HUP did not end inside $deadline ticks (30 s for each of the ${LOOP_SELFTEST_WORKERS:-1} case(s) the pool starts beside this one; status $status) — its stop was '${WAIT_STOP_SEEN:-}' and its item '${WAIT_ITEM_SEEN:-}'"
   fi
   status=$WAIT_PID_STATUS
   assert_eq "129" "$status" "a run ended by HUP reports the signal it took"
@@ -15830,11 +15835,21 @@ case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock() {
   # than one that took it and ended: the record the HUP case reads is still empty.
   assert_eq "" "$stop_seen" "the run the case waited on took no signal"
   # …and the case ends what it held: the child is released, the run is told to end, and its own wait reaps it — so no
-  # process of it is left holding the case's stream when the case answers.
+  # process of it is left holding the case's stream when the case answers. The signal is sent here and the end waited
+  # for under the same clock the case's own wait uses (issue #949): the `TERM`→`KILL` grace inside `loop_end_pid` is
+  # 2 s, and a host carrying a sixteen-case pool spends longer than that ending the child it started and writing the
+  # item, so a run killed at that grace records no stop and no result — measured 2026-11-17, 14 of 16 concurrent runs
+  # of this case failed on the empty item below. The bounded kill stays as the last resort for a run that ignores the
+  # signal altogether.
   printf 'go\n' >&8 2>/dev/null || true
-  loop_end_pid "$owner"
+  kill -s TERM "$owner" 2>/dev/null || true
   ended=0
-  wait_for_pid_end "$first" 100 && ended=1
+  if wait_for_run_stop "$f" "$first" "$(stop_wait_deadline)"; then
+    ended=1
+  else
+    loop_end_pid "$owner"
+    wait_for_pid_end "$first" 100 && ended=1
+  fi
   exec 8>&-
   [ "$ended" -eq 1 ] || { kill -9 "$first" 2>/dev/null; fail "the run did not end after its child was released and it was told to"; }
   # …and it ended through its own trap, which is the path that ends the child it started (`run.sh`'s `on_exit`), so the
@@ -15842,26 +15857,38 @@ case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock() {
   assert_eq "blocked" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the run recorded the item its signal interrupted"
 }
 
-# The wait a signalled run's case is answered with is decided by the state that run writes, under a deadline measured
-# off this host (issue #928). The ceiling it replaces was a fixed 30 s: a statement about the run — thirty times the
-# 1 s grace its trap gives its child — spent as one about the machine, so a host carrying four sibling suites
-# stretched the run's own one-second operations past it and the case reported a trap bug that did not exist. Held
-# still here, in four parts: the derivation (ten times the staging the case measured, floored at the figure a quiet
-# host needs, capped); a run that recorded its stop and its item's result and ended, answered with the status it took
-# as soon as the state carries them; a run that ended without recording them, answered with what it did record so the
-# caller's own assertion names the hole instead of this wait's deadline; and a run that wrote both and stood, which is
-# the reading the loaded host gave — reported as "recorded and did not end" after the tail grace, which is the one
-# thing no tick count could tell from a trap that never ran.
+# The wait a signalled run's case is answered with is decided by the state that run writes, under a ceiling that is
+# the pool's width (issues #928, #949). The ceiling it replaces was a fixed 30 s — a statement about the *run*, thirty
+# times the 1 s grace its trap gives its child, spent as one about the machine — and #928 replaced it with ten times
+# the staging the case itself measured, which a loaded host had already stretched and which then ran out anyway: 1 020
+# ticks allowed, the stop and the item still empty (`.pi/issue-loop/base-red.log:1029`). Held still here, in four
+# parts: the ceiling, which is 30 s for every case the pool starts beside this one, is no function of any duration
+# this host measured, and stays inside the case's own bound; a run that recorded its stop and its item's result and
+# ended, answered with the status it took as soon as the state carries them; a run that ended without recording them,
+# answered with what it did record so the caller's own assertion names the hole instead of this wait's deadline; and a
+# run that wrote both and stood, which is the reading the loaded host gave — reported as "recorded and did not end"
+# after the tail grace, which is the one thing no tick count could tell from a trap that never ran.
 case_run_theStopWaitIsDecidedByTheStateTheRunWrites() {
   # files: tools/loop/tests/loop-cases.sh
-  local d f pid status started elapsed
+  local d f pid status started elapsed slot
   d=$(scratch); f="$d/run.json"
-  # The derivation: 30 s on a quiet host, the same on one whose staging stayed under it, ten times a staging past it,
-  # and never more than the cap.
-  assert_eq "300" "$(stop_wait_deadline 0)" "a host with no staging to measure gets the figure a quiet host needs"
-  assert_eq "300" "$(stop_wait_deadline 2900)" "…and so does one whose staging came to 2.9 s"
-  assert_eq "800" "$(stop_wait_deadline 8000)" "a staging of 8 s derives ten times itself, in the ticks the wait sleeps in"
-  assert_eq "1200" "$(stop_wait_deadline 60000)" "and a staging that would derive more than the cap is held at it"
+  # The ceiling: the figure a quiet host needs, one per case the pool starts beside this one, and no argument through
+  # which a duration this host measured could reach it (issue #949). The 16-slot figure is what #928's 120 s cap made
+  # impossible, and that capped figure is the one that ran out.
+  assert_eq "300" "$( unset LOOP_SELFTEST_WORKERS; stop_wait_deadline )" \
+    "a case outside a pool keeps the 30 s a quiet host needs"
+  assert_eq "300" "$( export LOOP_SELFTEST_WORKERS=0; stop_wait_deadline )" \
+    "…and so does a pool reported as zero, which is a suite that cannot answer the question"
+  assert_eq "1200" "$( export LOOP_SELFTEST_WORKERS=4; stop_wait_deadline )" \
+    "a pool of four allows 30 s per slot, in the ticks the wait sleeps in"
+  assert_eq "4800" "$( export LOOP_SELFTEST_WORKERS=16; stop_wait_deadline )" \
+    "a pool of sixteen allows sixteen of them — the 120 s cap #928 priced is gone, because it is the figure that ran out"
+  # …and the ceiling stays inside the slot the suite gives the case, which is why it may scale and need no cap: the
+  # suite bounds one case at `LOOP_CASE_MAX_SECONDS` (default 900) seconds per pool slot.
+  slot=$(loop_conf_value LOOP_CASE_MAX_SECONDS)
+  case "$slot" in ''|*[!0-9]*|0) slot=900 ;; esac
+  [ $(( $(stop_wait_deadline) / 10 )) -lt "$(( slot * ${LOOP_SELFTEST_WORKERS:-1} ))" ] \
+    || fail "the wait's ceiling is $(($(stop_wait_deadline) / 10)) s, which is not inside the $((slot * ${LOOP_SELFTEST_WORKERS:-1})) s slot the suite gives a case in a pool of ${LOOP_SELFTEST_WORKERS:-1}"
 
   # A run that records both facts and ends: the wait answers as soon as it has read them, with the status the run took,
   # so the assertions the caller makes read a state that is complete because the run wrote it and not because the

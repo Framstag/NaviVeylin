@@ -1348,13 +1348,14 @@ MUTATIONS=(
   # carries the root once per path and spends the bound on a prefix every reader of it already holds.
   '927.1@-@tools/loop/phase.sh@phase#theIdentitySurvivesTheBoundOnAnyRoot@the order that prints the package'"'"'s identity before the checklist, so a cut takes the fingerprint and the path that names the package and the answer names no work package (issue #927)@s|^  printf '"'"'ROOT: %s · a path under it is printed relative to it\\n'"'"' "\$LOOP_ROOT"$|  printf '"'"'%s\\n'"'"' "$section"|'
   '927.2@-@tools/loop/phase.sh@phase#theIdentitySurvivesTheBoundOnAnyRoot@the relative form of a path under the root, so every path carries the root again and the bound is spent on a prefix the reader already holds (issue #927)@s|\${1#"$LOOP_ROOT"/}|$1|'
-  # 928.x — a case's wait for the run it signalled is derived from the staging that case measured, not priced on a quiet
-  # host (issue #928): the 300-tick ceiling was a fact about the run, spent as one about the machine, so a host carrying
-  # sibling suites stretched the run's own one-second operations past it and the HUP case reported a trap bug that did
-  # not exist. Two records, one per invariant: the factor that makes the deadline the host's is what is removed, so
-  # every host waits the constant again and the case that derives the deadline from a staging it was handed reads the
-  # same figure whatever staging it measures.
-  '928.1@-@tools/loop/tests/loop-cases.sh@run#theStopWaitIsDecidedByTheStateTheRunWrites@the floor that lets the derived figure through, so the derivation is gone and every host waits the 30 s priced on a quiet one — a staging of 8 s included, which is the loaded host this issue is about (issue #928)@s#^  \[ "\$ticks" -ge "\$STOP_WAIT_TICK_FLOOR" \] || ticks=\$STOP_WAIT_TICK_FLOOR$#  ticks=\$STOP_WAIT_TICK_FLOOR#'
+  # 928.x — a case's wait for the run it signalled is derived from the pool's width and not from the host (issues #928,
+  # #949): the 300-tick ceiling was a fact about the run, spent as one about the machine, so a host carrying sibling
+  # suites stretched the run's own one-second operations past it and the HUP case reported a trap bug that did not
+  # exist; and #928's answer — ten times the staging the case itself measured — multiplied a figure the load had already
+  # stretched and ran out at 102 s with nothing recorded. Two records, one per invariant: the pool's width is what is
+  # removed, so every host waits the figure a quiet host needs whatever the suite's pool; the state-driven wait itself
+  # is what 928.2 keeps.
+  '928.1@-@tools/loop/tests/loop-cases.sh@run#theStopWaitIsDecidedByTheStateTheRunWrites@the pool width, so a case in a pool of sixteen waits the 30 s priced on a quiet host and the run end is answered before the host has finished it — the loaded host this issue is about (issue #949)@s#^  printf '"'"'%s'"'"' \$(( STOP_WAIT_TICK_FLOOR \* workers ))$#  printf '"'"'%s'"'"' $STOP_WAIT_TICK_FLOOR#'
   # 928.2 is the teeth the wait must keep: the trap the case's signal reaches is removed, so the run genuinely never
   # stops and the case must still red — with a wait that answered 0 without waiting (or a deadline that never
   # arrived) it would go green over a run that took no signal at all.

@@ -196,6 +196,11 @@ workers=$(selftest_workers "${only_jobs:-${LOOP_SELFTEST_JOBS:-}}")
 case_max="${LOOP_CASE_MAX_SECONDS:-900}"
 case "$case_max" in ''|*[!0-9]*|0) case_max=900 ;; esac
 case_max=$((case_max * workers))
+# …and the pool's width is what a case's own waits are scaled by, the same multiplier and for the same reason (issue
+# #949): `tools/loop/tests/loop-cases.sh`'s `stop_wait_deadline` reads it to derive how long a wait for a run the case
+# signalled may take — 30 s for every case this pool starts beside that one. It is the one figure in a case's clock
+# that the host's load cannot stretch, so it is exported rather than measured there.
+export LOOP_SELFTEST_WORKERS="$workers"
 # …and the run says which bound it applied only when asked: the line is on stderr and `--list` output is parsed by the
 # pipeline and by the suite's own cases, so a run that always printed it would put a line into a list nobody expected
 # (`driver#theListIsFilteredTheSameWayASuiteRunIs`). `--print-bound` is what `driver#theCaseBoundScalesWithThePool`

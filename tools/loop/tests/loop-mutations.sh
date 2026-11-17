@@ -280,6 +280,7 @@ MUTATIONS=(
   # and a closure takes the label that asked for a decision off the item it ends.
   '29.1@-@tools/loop/run.sh@run#blockedItemAsksItsOwnQuestion@the question a block asks when the reviewer wrote none (issue #225)@s|^\*\*The decision:\*\* retry the item, or abandon it.*$|:|'
   '29.2@-@../issues/close.sh@labels#closeRemovesTheDecisionLabel@the closure taking the decision label off the item it ends (issue #225)@s|^    remove_args=(--remove-label "\$decision_label_closed")$|    remove_args=()|'
+  '29.3@-@tools/loop/run.sh@run#aBlockedItemCarriesTheWorkersDecision@the worker decision read beside the reviewer one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      :#'
   # 30.x — a falsified skip is a finding, not a question (openspec change `falsified-items-close-in-the-loop`):
   # without the verdict the item goes back to the escalation it used to take.
   '30.1@-@tools/loop/run.sh@run#falsifiedSkipClosesWithItsMeasurement@the verdict that tells a measured falsification from an ordinary skip@s|^    outcome="falsified"$|    outcome="skipped"|'
@@ -1436,6 +1437,13 @@ MUTATIONS=(
   # had broken. The record removes the reading of those lines, so the two cases the step named are none again and the
   # case's own numbers are the only thing that can notice it.
   '916.1@-@tools/loop/gate.sh@gate#aTestFailureIsAFailureNotAnError@the failing cases a step names, read as its failures where it printed no summary, so a change that broke a test reads as an error again@s|^  if \[ "\$rc" -ne 0 \] && \[ "\$f" -eq 0 \] && .*; then$|  if false; then|'
+  # 954.1 — the clause that says the round is one process with nobody to ask (issue #954). The contract stated the
+  # answer's tail and nothing about the round being non-interactive, so a child read `reviewer.md` as a document to
+  # summarise and answered `Pick: (1) run review, (2) summary done, (3) edit prompt. Awaiting answer.` — four rounds of
+  # the run of 2026-11-17T10:58Z did, twice per item, and the byte-identical retry asked the same question again. The
+  # record re-opens the permission the clause removes, which is the reading the round had before it landed; the
+  # pre-gate round inherits the same file, so one record stands for both rounds' clause.
+  '954.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerCarriesTheEightItems@the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954)@s|never ask a question|feel free to ask a question|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

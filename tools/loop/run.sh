@@ -4302,16 +4302,22 @@ $review_notes_text"
       # #786, #790), so a block nobody asked about was the one thing this arm could still produce.
       escalation_reason="${blocked_reason:-the item was blocked}"
       decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
+      # A block that ended before any review round has no reviewer to quote, and the fork is not therefore absent: the
+      # worker writes it in `LOOP-DECISION` for exactly this verdict (`prompts/worker.md`, "…or a blocked item"), and
+      # it is read here beside the reviewer's. Measured on #894 (2026-11-17): three options and a recommendation sat in
+      # the child's report while the item asked "retry the item, or abandon it" — and the fork was readable only by
+      # opening an evidence directory a person does not have. The run's own sentence is the last resort, not the rule.
+      [ -n "$decision_field" ] || decision_field="$worker_decision"
       if [ -n "$decision_field" ]; then
         escalation_reason="$escalation_reason
 
 **The decision:** $decision_field"
       else
-        # A block that never reached a review round asked the item no question — most often because the cause is
-        # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
-        # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
-        # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
-        # states it, with the reason it holds as the ground for either answer.
+        # A block that holds no question at all — no reviewer's, no worker's — is most often the run's own child
+        # rather than the item (a claim with no commit, a timeout, a child that could not start). Escalating the reason
+        # alone put an entry in the decision queue that nobody can answer, and the ceiling counts labels (issues #194,
+        # #225). The block leaves exactly one two-way choice, so the run states it, with the reason it holds as the
+        # ground for either answer.
         escalation_reason="$escalation_reason
 
 **The decision:** retry the item, or abandon it — $blocked_reason. The reason above is the run's finding, not a

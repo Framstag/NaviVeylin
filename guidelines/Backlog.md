@@ -202,8 +202,14 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   prints the question its own marker binds (`ISSUES_ANSWER_BOUND_JQ`), because the fork that answer names is still open
   (issue #859; cases `decisions#aParkedItemIsListedAsParked`, `decisions#anAnsweredCreationIsNotAParkedItem` and
   `create#theAnswerShapeIsWrittenFromTheConstants`).
-- **Rule: a block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
-  choice a block leaves — retry the item, or abandon it — because a reason is not something a person can answer.
+- **Rule: a block asks its own question.** A block carries the question the run actually holds: the reviewer's
+  `LOOP-DECISION` when a round ran, and the worker's when the block ended before any round — the worker is required to
+  write one for a blocked verdict (`prompts/worker.md`), and a run that held it and asked the owner something else was
+  the defect measured on #894 (2026-11-17): three options and a recommendation sat in the child's evidence directory
+  while the item asked "retry the item, or abandon it". Only when the run holds no question at all does it state the
+  one two-way choice a block leaves — retry the item, or abandon it — because a reason alone is not something a person
+  can answer (issue #225, filed as #960; cases `run#aBlockedItemCarriesTheWorkersDecision` and
+  `run#blockedItemAsksItsOwnQuestion`).
 - **Rule: a stale skip asks its own question, and is never parked on a bare hold.** The verdict says the item's
   claim no longer holds in the tree, which the run cannot close on: the falsification closure owes a measurement
   and a review that a stale skip does not carry. The run writes the decision label, the hold and the one comment

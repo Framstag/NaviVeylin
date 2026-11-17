@@ -162,6 +162,7 @@ LOOP_SHELL_CASES=(
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
   'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen'
   'run#blockedItemAsksItsOwnQuestion'
+  'run#aBlockedItemCarriesTheWorkersDecision'
   'run#falsifiedSkipClosesWithItsMeasurement'
   'run#falsificationWithoutAMeasurementIsEscalated'
   'run#mayCloseNoKeepsAFalsificationOpen'
@@ -932,6 +933,7 @@ loop_run_shell_case() {
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
     'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen') fn=case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
+    'run#aBlockedItemCarriesTheWorkersDecision') fn=case_run_aBlockedItemCarriesTheWorkersDecision ;;
     'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
     'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
@@ -4661,7 +4663,7 @@ case_prompt_workerTreatsARecordedDecisionAsSettled() {
 }
 
 case_prompt_reviewerCarriesTheEightItems() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4681,6 +4683,15 @@ case_prompt_reviewerCarriesTheEightItems() {
   # A falsification reaches the review with an empty diff, and the reviewer is told it is read like a change
   # (openspec change `falsified-items-close-in-the-loop`).
   assert_contains "$(cat "$prompt")" "falsification" "the reviewer is told how a falsification is read"
+  # Issue #954: the contract stated the answer's tail and nothing about the round being one process with no one to
+  # ask, so a child read the file as a document to summarise and replied `Pick: (1) run review, (2) summary done,
+  # (3) edit prompt. Awaiting answer.` — four rounds of the run of 2026-11-17T10:58Z did, twice per item, and the
+  # retry prompt is byte-identical, so the retry asked the same question again. A question is not an answer, and the
+  # clause that says so sits beside the output contract so the round before the gate inherits it too.
+  assert_contains "$(cat "$prompt")" "non-interactive" "the reviewer is told the round is non-interactive"
+  assert_contains "$(cat "$prompt")" "never ask a question" "and that a question is not an answer"
+  assert_contains "$(cat "$prompt")" "an answer that is a question is a cut-short answer" \
+    "and what the run reads such an answer as"
 }
 
 # Issue #236: the reviewer's task said what to judge and nothing about what it may run, so the natural-looking
@@ -5256,9 +5267,10 @@ LOOP-DECISION: split the item into the two mechanisms, or retire it?' 'VERDICT: 
     "the item carries exactly the labels roles.shapingVerdicts names for a needs-diagnosis skip (issue #738)"
 }
 
-# A block whose cause is the run's own child is not a question the item asked. Rather than escalate a reason
-# and call it a decision, the run states the only choice a block leaves — retry the item, or abandon it — so
-# the queue holds something a person can answer (issues #225, #194).
+# A blocked verdict that carries no question of its own leaves the run one two-way choice to state — retry the item,
+# or abandon it — so the queue holds something a person can answer rather than a reason nobody can act on (issues
+# #225, #194). The run's own sentence is the last resort: a worker that wrote `LOOP-DECISION` is quoted instead
+# (`run#aBlockedItemCarriesTheWorkersDecision`, #960).
 case_run_blockedItemAsksItsOwnQuestion() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out body
@@ -5271,6 +5283,30 @@ case_run_blockedItemAsksItsOwnQuestion() {
   assert_contains "$body" 'The decision:' "the escalation carries a decision field, not only a reason"
   assert_contains "$body" 'retry' "the question names the first option"
   assert_contains "$body" 'abandon' "and the second"
+}
+
+# The run's own sentence is the fallback, not the rule: a worker that reached a fork writes it in `LOOP-DECISION`,
+# and a block that ends before any review round has no reviewer to quote — so the escalation carries the worker's
+# question. Measured on #894 (2026-11-17): the child's report held three options and a recommendation, the item was
+# escalated with "retry the item, or abandon it", and the fork was only findable by reading the child's evidence
+# directory — the state a person cannot answer, which is the defect #194/#225 closed from the other side (filed as
+# #960).
+case_run_aBlockedItemCarriesTheWorkersDecision() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out body
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" 'LOOP-VERDICT: blocked
+LOOP-ROOT-CAUSE: the conversion is 170 sites and one child cannot finish them
+LOOP-DECISION: land the writer alone and file the conversion, or chain a child per phase | recommended: land the writer' \
+    'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run failed: $out"
+  body=$(grep 'issue comment' "$GH_STUB_RECORD" 2>/dev/null || true)
+  assert_contains "$body" 'land the writer alone and file the conversion' \
+    "the escalation carries the question the worker wrote"
+  assert_not_contains "$body" 'retry the item, or abandon it' \
+    "and not the run's own sentence, which is the fallback for a block that holds no question"
 }
 
 # One item the tracker will not answer for is *unknown*: not a verdict about that item, and not the end of the run.
@@ -7057,7 +7093,7 @@ case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite() {
 # the change child back to run the selection the gate owns. The prompt rendered here is the one the run hands that
 # round, so the section `pre-gate-review.md` is the text under test.
 case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt text
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7077,6 +7113,12 @@ case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
     "and what it may refuse instead"
   assert_contains "$text" "the measuring command's block" \
     "citing the measuring command's block as the line such a verdict stands on"
+  # The round before the gate is the same reviewer handed one more section, so the clause issue #954 added beside the
+  # output contract reaches it too: it is the round of the two that ran twice per item asking whether to start.
+  assert_contains "$text" 'non-interactive' \
+    "and that this round is non-interactive like the round that follows the gate (issue #954)"
+  assert_contains "$text" 'never ask a question' \
+    "because neither round has a person to answer one"
   return 0
 }
 

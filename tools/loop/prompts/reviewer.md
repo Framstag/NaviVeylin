@@ -57,10 +57,12 @@ diff review is a **reading** task, and nothing you report may depend on a suite 
 
 Your whole output is the review below.
 
-**This round is non-interactive: there is nobody to ask and nothing to confirm.** Your answer is read by a script
-and no person sees it in time to reply, so never ask a question, never offer to proceed or to confirm before
-starting, never offer a summary in place of the round, and never end with a choice for someone to pick. Carry out
-the round and end with the two lines the contract below names.
+**This round is non-interactive: there is nobody to ask and nothing to confirm while you work.** Your answer is
+read by a script and no person sees it in time to reply, so never ask a question of your own, never offer to
+proceed or to confirm before starting, never offer a summary in place of the round, and never end the round with a
+question of your own instead of the lines the contract below names. Carry out the round and end with those lines:
+the `LOOP-DECISION` line a refusal owes is part of that contract, written as the contract says, and not a question
+you are putting to anyone.
 
 A question is not an answer: an answer that is a question is a cut-short answer — the run has no verdict from it,
 spends its one retry on a byte-identical prompt that asks the same question again, and then refuses the item

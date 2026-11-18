@@ -74,7 +74,8 @@
 #                         [--stop-reason refused|unmergeable|bound|child-blocked|child-failed|outside-write|
 #                                        uncommitted|unverified|unanswered|reviewer-wrote|contradicted]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
-#                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
+#                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write|
+#                                                  unanswered]
 #                         [--review-input TEXT]   # the scale of what `LOOP_REVIEW_INPUT_MAX_BYTES` cut from the round
 #                         [--review-restart TEXT] # the round a bound ended and the run restarted, and what the
 #                                                 # restart was handed (issue #918)
@@ -896,9 +897,11 @@ cmd_done() {
   # round 1 refused and then blocked records `1` exactly as one whose round 1 passed. `run.sh` already decides these
   # values; recording them here is what lets a report tell a pass from a refusal from a round that ended without a
   # verdict. The vocabulary is that script's, so a value this list does not hold is a programming fault, not data.
+  # `unanswered` is the round before the gate whose answer never arrived, twice (issue #953): the round refused nothing
+  # and the gate child decided the item, so the record keeps the round's own shape rather than a refusal nobody made.
   case "$review_verdict" in
-    ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
-    *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
+    ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write|unanswered) ;;
+    *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write|unanswered" ;;
   esac
   # The scale of what the round%ss input bound cut (issue #924): a sentence `run.sh` composes from the three parts it
   # measured (`bound_review_inputs`), recorded here so `report.sh` can print it beside the item. It is that script%ss

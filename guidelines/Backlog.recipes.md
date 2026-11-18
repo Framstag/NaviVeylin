@@ -1582,10 +1582,12 @@ reviewer having refused the change). The run says so, asks the same
 round once more (same prompt and same diff, the answer kept beside the cut attempt as
 `reviewer-report-<n>-retry.md`) and decides on the answer that arrived. A
 round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is not retried; two cut answers
-in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
-review-failure marker, because no reviewer refused that change. A round the run's own **bound** ended is not that
-case: the round is restarted once in the same run, in a fresh session on the input the cap bounded and with the
-findings it had written, and only a second bound is the cut above (§7b, issue #918).
+in one round **after** the gate block the item with *the reviewer's report was cut short twice*, and the branch
+carries no review-failure marker, because no reviewer refused that change. The round **before** the gate is not
+that case: it refuses nothing by its own contract, so its second cut is recorded `unanswered` and the gate child
+supplies the item's verdict (issue #953). A round the run's own **bound** ended is neither: the round is restarted
+once in the same run, in a fresh session on the input the cap bounded and with the findings it had written, and
+only a second bound is the cut above (§7b, issue #918).
 
 What a bound cut is, and what it is not: a round the run's own bound ended — the run's deadline, or the role's
 turn bound — carries `LOOP-TIMEOUT`/`LOOP-DEADLINE` and no `VERDICT:`, and reading that as a refusal named a

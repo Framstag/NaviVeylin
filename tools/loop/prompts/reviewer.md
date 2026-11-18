@@ -65,8 +65,8 @@ the `LOOP-DECISION` line a refusal owes is part of that contract, written as the
 you are putting to anyone.
 
 A question is not an answer: an answer that is a question is a cut-short answer — the run has no verdict from it,
-spends its one retry on a byte-identical prompt that asks the same question again, and then refuses the item
-(issue #954).
+spends its one retry on a byte-identical prompt that asks the same question again, and records the round as
+unanswered: nothing you write after it reaches the run (issues #954, #953).
 
 Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed
 first in practice.

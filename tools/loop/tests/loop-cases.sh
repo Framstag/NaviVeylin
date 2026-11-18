@@ -297,7 +297,7 @@ LOOP_SHELL_CASES=(
   'run#recordsAFailedReviewOnTheBranch'
   'run#announcesAndRecordsTheReviewRound'
   'run#thePreGateReviewRunsBeforeTheGate'
-  'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun'
+  'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides'
   'run#aPreGateReviewEndedAtItsBoundNamesIt'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
@@ -1074,7 +1074,7 @@ loop_run_shell_case() {
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#thePreGateReviewRunsBeforeTheGate') fn=case_run_thePreGateReviewRunsBeforeTheGate ;;
-    'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun') fn=case_run_aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun ;;
+    'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides') fn=case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides ;;
     'run#aPreGateReviewEndedAtItsBoundNamesIt') fn=case_run_aPreGateReviewEndedAtItsBoundNamesIt ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
@@ -10080,37 +10080,65 @@ EOF
     "the round before the gate is not a round of the review budget"
 }
 
-# A round that never answered decided nothing, and the gate has not run yet, so the change is left for the next run
-# exactly as a round the run's own clock cuts is left after a gate: recorded, not refused, and with no gate child
-# started on an unread diff (issue #758).
-case_run_aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun() {
+# The round before the gate is advisory by its own words (`prompts/pre-gate-review.md`): what it may do is hand
+# findings to the child that runs the gate, and it is not a round of the review budget. An answer that never arrived
+# is therefore not a refusal (issue #953): measured on the run of 2026-11-17T10:58Z, two items (#916 and #917) saw
+# their reviewer answer the run with a question (`Want me to execute review against diff?`), the byte-identical retry
+# asked the same question, and the second cut refused an item whose gate had never been started — 20.4 Mtok and 3
+# commits handed to a person. The round is recorded `unanswered` and the gate child runs: the gate supplies the item's
+# only verdict, which is what it was going to do anyway.
+case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides() {
   # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out state
+  local d p out state interrupted extra gate_prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  # An answer that arrives without its closing verdict line, twice: the transport cut it, no reviewer refused it.
-  stub_write "$d" "$STUB_CHANGE_REPORT" 'the round was interrupted before it graded anything'
-  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
-  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  # An answer that arrives without its closing verdict line, twice: the transport cut it, no reviewer refused it. Only
+  # the round before the gate answers that way, so the case measures the round under test rather than a reviewer that
+  # never writes a verdict.
+  interrupted="$d/interrupted.txt"
+  printf 'the round was interrupted before it graded anything\n' > "$interrupted"
+  extra=$(cat <<EOF
+case "\$1" in
+  reviewer-pre-gate-prompt*) cp $(printf '%q' "$interrupted") "\$PI_STUB_REPORT_REVIEWER" ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  # The item ends on the gate child's answer, which is the point: the run let the gate supply the verdict the round
+  # never reached. The child blocks the item for a reason of its own rather than for a red tally, so the case pays no
+  # base-red attribution it is not about.
+  printf 'LOOP-VERDICT: blocked\nLOOP-ROOT-CAUSE: the gate child could not settle the evidence pointer\nLOOP-GATE: tests=1 failures=0 (fixture)\n' \
+    > "$d/gate-report.txt"
+  export PI_STUB_REPORT_GATE="$d/gate-report.txt"
   out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
   state=$(state_file "$p")
 
   assert_eq "1" "$(grep -c '^prompt: reviewer-pre-gate-prompt-retry.md$' "$PI_STUB_LOG" || true)" \
     "a round cut on its way to the file is asked once more"
-  assert_eq "0" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
-    "a diff nobody read is not gated: the gate child is never started"
+  assert_eq "1" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "and the diff it never answered is gated: the gate child is started"
+  gate_prompt="$p/.pi/issue-loop/items/21/worker-gate-prompt.md"
+  [ -f "$gate_prompt" ] || fail "the run started no gate child: no prompt at $gate_prompt"
+  assert_contains "$(cat "$gate_prompt")" "the round before the gate never answered" \
+    "and the gate child is told the round handed nothing forward, not that it found nothing"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
-  assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
-    "and its record carries the cut, not a refusal no reviewer made"
-  assert_contains "$(jq -r '.items[0].note' "$state")" "the pre-gate reviewer's report was cut short twice" \
-    "the reason names the round that never answered, and names it as the one before the gate"
-  # …and the round after the gate is not asked about a change its gate never ran on: an item whose pre-gate round was
-  # cut is left for the next run, not reviewed again on a diff no gate touched.
+  assert_eq "child-blocked" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "on the gate child's own answer, not on the round that answered nothing"
+  assert_eq "unanswered" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
+    "the round that never answered is recorded as unanswered"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$state")" \
+    "and the round the run paid for is counted"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "pre-gate-review")] | .[0].note' "$state")" "unanswered" \
+    "and the step names the round as unanswered on the item"
+  assert_not_contains "$(jq -r '.items[0].note' "$state")" "cut short twice" \
+    "no reason says a reviewer refused a change nobody read"
+  # The round after the gate is not asked: the gate child's own block ended the item, which is the arm a block has
+  # always taken.
   assert_eq "0" "$(grep -c '^prompt: reviewer-prompt-1' "$PI_STUB_LOG" || true)" \
-    "no review round after the gate was started"
-  # The change the change child left is committed before the round reads it, which is what a later run adopts.
+    "no review round after the gate was started on a blocked item"
+  # The change the change child left is committed before the round reads it, and the gate child measured that tree.
   assert_contains "$(git -C "$p" ls-tree -r --name-only "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)")" \
-    "demo-fix.txt" "the change is on the branch for the next run"
+    "demo-fix.txt" "the change the round never read is on the branch, and the gate child measured it"
 }
 
 case_run_aPreGateReviewEndedAtItsBoundNamesIt() {

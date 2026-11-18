@@ -989,11 +989,12 @@ answer whose tail was lost outright.
 
 #### Scenario: Two cut answers in one round block it as the transport's fault
 
-- **WHEN** the retried answer is cut as well
+- **WHEN** the retried answer is cut as well, in a round **after** the gate
 - **THEN** the item is recorded `blocked` with the reason that the reviewer's report was cut short twice — that
   round produced no verdict at all, so no reviewer refused the change — no worker round is taken for it, and no
   review-failure marker is written into the change on the branch, because a later run must not refuse to adopt a
-  change no reviewer refused
+  change no reviewer refused. The round **before** the gate is not this case: it may refuse nothing, so its second
+  cut is recorded `unanswered` and the gate child supplies the item's verdict (issue #953)
 - **Case**: `run#aReportCutTwiceBlocksAsTheTransportsFault`
 
 ### Requirement: A run's state outlives the run that replaces it
@@ -3502,14 +3503,24 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 
 #### Scenario: A round the run cut before the gate is left for the next run
 
-- **WHEN** the round before the gate never answers — cut by the deadline, cut twice on its way to the file, or ended
-  at its role's turn bound or at the item's context bound both before **and** after the one restart this run gives it
-- **THEN** the item is recorded `cut` when a bound the run enforces ended that round and `blocked` when the transport
-  did, with that round named as the one before the gate, no gate child is started on a diff nobody read, and the
-  round after the gate is not asked either — while a round the bound ended once is restarted first, in a fresh
-  session with the findings it had written, and its answer is the round's
-- **Case**: `run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun`,
-  `run#aPreGateReviewEndedAtItsBoundNamesIt`
+- **WHEN** the round before the gate never answers because a bound the run enforces ended it — the run's deadline, or
+  its role's turn bound or the item's context bound both before **and** after the one restart this run gives it
+- **THEN** the item is recorded `cut` with that round named as the one before the gate, no gate child is started on a
+  diff nobody read, and the round after the gate is not asked either — while a round the bound ended once is
+  restarted first, in a fresh session with the findings it had written, and its answer is the round's
+- **Case**: `run#aPreGateReviewEndedAtItsBoundNamesIt`
+
+#### Scenario: A round the transport cut twice is unanswered, and the gate child decides
+
+- **WHEN** the round before the gate answers nothing at all — its report arrives without the closing `VERDICT:` line
+  twice, and no bound the run enforces ended either attempt (as two reviewer children of the run of
+  2026-11-17T10:58Z did, answering the run with a question)
+- **THEN** the round is recorded `unanswered` — neither a pass nor a refusal, and not the `cut-short` a bound leaves —
+  its count is recorded, the step on the item says the round answered nothing, the gate child is started on the diff
+  it never read and told the round handed nothing forward, and the item's outcome becomes the gate child's, which is
+  the item's only verdict: no reason names a reviewer that refused a change nobody read, and no round after the gate
+  is asked on an item the gate blocked
+- **Case**: `run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides`
 
 #### Scenario: A change child that ran the gate itself is read as it always was
 
@@ -3563,8 +3574,8 @@ The round a review bound ended SHALL be written on the branch as a cut with its 
 named in the item's own record as its own fact — the round, the key and the figure — beside the class it now shares
 with the item. A state a
 tree wrote before `cut` carried a bound keeps that `blocked` + `bound` pair out of the streak, while a pre-mechanism
-pair with no stop reason still stops the run, and an answer the *transport* cut twice is not this case: no bound
-ended it, so it stays a block with its reason.
+pair with no stop reason still stops the run, and an answer the *transport* cut twice is not this case either: no bound
+ended it, so it is recorded `unanswered` and the gate child supplies the item's verdict (issue #953).
 The reason a bound-ended round leaves on the item SHALL name the bound that ended it and the figure it reached,
 quoted from the child's own `LOOP-TIMEOUT` line, and SHALL NOT offer the two bounds in general as the answer: a
 person reading the item tells the turn bound from the context bound, and how far past it the child ran, without
@@ -5670,8 +5681,11 @@ the bound and the cut round's report.
 
 - **WHEN** a reviewer's report arrives cut on its way to the file twice and no bound ended that round
 - **THEN** the round is asked once more under its `-retry` name and is never given a `-restart` prompt, and the item
-  is recorded `blocked` with that reason, because no bound ended it and nothing about it says the item is converging
-- **Case**: `run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun`
+  is recorded on that round's own shape rather than on a bound's: a round **after** the gate blocks it as the
+  transport's fault, and the round **before** it is recorded `unanswered` with the gate child supplying the verdict,
+  because nothing a bound enforces ended either attempt (issue #953)
+- **Case**: `run#aReportCutTwiceBlocksAsTheTransportsFault`,
+  `run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides`
 
 ### Requirement: The question a block carries is the one the run holds
 
@@ -5720,10 +5734,10 @@ A reading of the project tree the run takes for its outside-write comparison, an
 ### Requirement: A review round is non-interactive, and a question is a cut-short answer
 
 The reviewer prompt SHALL state, beside the output contract, that the round runs with nobody to ask: never ask a
-question of its own, never offer to proceed or to confirm, and never offer a summary instead of the round. It SHALL
+question, never offer to proceed or to confirm, and never offer a summary instead of the round. It SHALL
 name an answer that is a question a cut-short answer — no verdict is read, the retry spends the byte-identical
-prompt, the item is refused — and leave a refusal's `LOOP-DECISION` line to the contract it points at. The clause
-SHALL stand in both rounds' text.
+prompt, and the round is recorded `unanswered` — and leave a refusal's
+`LOOP-DECISION` line to the contract it points at. The clause SHALL stand in both rounds' text.
 
 #### Scenario: Both rounds are told the round is non-interactive
 
@@ -5736,5 +5750,5 @@ SHALL stand in both rounds' text.
 
 - **WHEN** the reviewer prompt is rendered
 - **THEN** it names an answer that is a question a cut-short answer and states what such an answer costs — the one
-  retry spends a byte-identical prompt that asks the same question again, and the item is then refused
+  retry spends a byte-identical prompt that asks the same question again, and the round is recorded as unanswered
 - **Case**: `prompt#reviewerCarriesTheEightItems`

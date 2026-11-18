@@ -10324,6 +10324,14 @@ case_worktree_aTrackedEditStillBlocksTheMerge() {
   local p w base branch out status
   p=$(new_project); w="$p/.pi/worktrees/loop"
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # A *tracked* file whose name the ignore list covers: only an untracked entry may be dropped, so a modification of
+  # this one still refuses. It is committed before the run starts, so `init_state` records a base that carries it and
+  # the edit below reads as ` M`, not `??` (round 3, 2026-11-18).
+  printf 'tracked\n' > "$p/keep.tmp"
+  git -C "$p" add keep.tmp >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid \
+    commit -qm "chore: a tracked file the ignore list would match" >/dev/null 2>&1 ||
+    fail "could not commit the tracked file"
   init_state "$p" 1 90
   base=$(run_state "$p" get run.base)
   run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
@@ -10333,7 +10341,10 @@ case_worktree_aTrackedEditStillBlocksTheMerge() {
   git -C "$w" add -A >/dev/null 2>&1
   git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
     fail "could not commit the fix"
-  printf 'a tracked edit\n' >> "$p/README.md"
+  assert_eq "keep.tmp" "$(git -C "$p" ls-files keep.tmp)" "the file this case edits is tracked, not created by it"
+  printf 'a tracked edit\n' >> "$p/keep.tmp"
+  assert_eq " M keep.tmp" "$(git -C "$p" status --porcelain -- keep.tmp)" \
+    "and the edit reads as a modification of a tracked file"
   out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
   assert_eq "5" "$status" "a tracked edit still refuses the merge, whatever the ignore list says: $out"
   assert_contains "$out" "not clean" "with the landing's own reason"

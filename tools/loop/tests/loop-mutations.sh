@@ -289,6 +289,9 @@ MUTATIONS=(
   # 29.9 — the run's own reading without `-uall`: an untracked directory collapses to `?? newmodule/`, no pattern
   # matches that name, and a language server's build output stops the item again (issue #958).
   '29.9@-@tools/loop/run.sh@run#anEditorSwapFileIsNotAChildsWrite@the run reading its own tree file by file, so a build directory an untracked parent hides is not a difference (issue #958)@s@^  git -C "\$LOOP_ROOT" status --porcelain -uall 2>/dev/null$@  git -C "\$LOOP_ROOT" status --porcelain 2>/dev/null@'
+  # 29.10 — the landing dropping a *tracked* entry too: the filter becomes a licence to merge over a tracked edit whose
+  # name it covers, which `worktree#aTrackedEditStillBlocksTheMerge` refuses (issue #962).
+  '29.10@-@tools/loop/worktree.sh@worktree#aTrackedEditStillBlocksTheMerge@the landing dropping only untracked entries, so a modified tracked file the pattern covers still refuses (issue #962)@s#^  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes untracked)$#  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes)#'
   # 30.x — a falsified skip is a finding, not a question (openspec change `falsified-items-close-in-the-loop`):
   # without the verdict the item goes back to the escalation it used to take.
   '30.1@-@tools/loop/run.sh@run#falsifiedSkipClosesWithItsMeasurement@the verdict that tells a measured falsification from an ordinary skip@s|^    outcome="falsified"$|    outcome="skipped"|'

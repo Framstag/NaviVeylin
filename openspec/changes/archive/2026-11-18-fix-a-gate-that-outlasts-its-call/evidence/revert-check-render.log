@@ -1,0 +1,7 @@
+2026-11-18T20:56:11Z
+cb6ec689b3b305151de85e6c973e247a5513e356356249c77da8962019897dcc  tools/loop/lib.sh
+prompt#aValueArrivesAsTheTextItWasHanded|   a value arrives as the text it was handed, its ampersands included: expected 'start cd x && nohup ./gate.sh > gate.log 2>&1 & end /e/d', got 'start cd x {{CMD}}{{CMD}} nohup ./gate.sh > gate.log 2>{{CMD}}1 {{CMD}} end /e/d'
+  a value arrives as the text it was handed, its ampersands included: expected 'start cd x && nohup ./gate.sh > gate.log 2>&1 & end /e/d', got 'start cd x {{CMD}}{{CMD}} nohup ./gate.sh > gate.log 2>{{CMD}}1 {{CMD}} end /e/d'
+FAIL prompt#aValueArrivesAsTheTextItWasHanded
+cb6ec689b3b305151de85e6c973e247a5513e356356249c77da8962019897dcc  tools/loop/lib.sh
+PASS prompt#aValueArrivesAsTheTextItWasHanded

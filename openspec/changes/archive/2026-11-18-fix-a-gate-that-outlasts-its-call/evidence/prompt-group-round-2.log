@@ -1,0 +1,24 @@
+2026-11-18T21:49:20Z
+PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
+PASS prompt#iterationProtocolNamesTheChangeSurface
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+PASS prompt#theGatePromptNamesTheWallAndTheWayThrough
+PASS prompt#aValueArrivesAsTheTextItWasHanded
+PASS prompt#workerTreatsARecordedDecisionAsSettled
+PASS prompt#reviewerCarriesTheEightItems
+PASS prompt#reviewerIsBoundedToReading
+PASS prompt#thePhasePromptNamesWhatItsShellRefuses
+PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan
+PASS prompt#workerIsHandedTheMeasureBlock
+PASS prompt#packageIsAFileAndNotInlined
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition
+PASS prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite
+PASS prompt#thePackageCarriesTheChange
+PASS prompt#aTierAItemSaysSo
+PASS prompt#workerNamesEveryPhaseAndSkill
+PASS prompt#workerCarriesTheFeaturePath
+PASS prompt#workerNamesTheDecisionField
+PASS prompt#workerGradesItsOwnDiffBeforeItReports
+PASS prompt#reviewerInputsAreBoundedAndTheCutIsNamed
+PASS prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle
+loop-selftest: all 22 cases passed (JDK 21, offline, no token, no sandbox) — 47.51 s, selection: --group prompt

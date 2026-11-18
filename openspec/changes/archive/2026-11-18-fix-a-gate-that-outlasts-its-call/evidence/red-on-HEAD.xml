@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tools/loop/tests/loop-selftest.sh --case prompt#theGatePromptNamesTheWallAndTheWayThrough" tests="1" failures="1" errors="0" time="0">
+    <system-out>loop-selftest: 1 of 1 cases failed — prompt#theGatePromptNamesTheWallAndTheWayThrough (2026-11-18T20:08:30Z, the base 8b59ce84's two prompt skeletons with this change's case body): worker-gate.md names the call a gate can outlast: 'tool call' not found in: # Gate child — phase E, the item's one gate</system-out>
+  </testsuite>
+</testsuites>

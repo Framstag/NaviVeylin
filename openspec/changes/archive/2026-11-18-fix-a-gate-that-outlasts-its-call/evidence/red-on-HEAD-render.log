@@ -1,0 +1,4 @@
+2026-11-18T20:56:22Z
+prompt#aValueArrivesAsTheTextItWasHanded|   a value arrives as the text it was handed, its ampersands included: expected 'start cd x && nohup ./gate.sh > gate.log 2>&1 & end /e/d', got 'start cd x {{CMD}}{{CMD}} nohup ./gate.sh > gate.log 2>{{CMD}}1 {{CMD}} end /e/d'
+  a value arrives as the text it was handed, its ampersands included: expected 'start cd x && nohup ./gate.sh > gate.log 2>&1 & end /e/d', got 'start cd x {{CMD}}{{CMD}} nohup ./gate.sh > gate.log 2>{{CMD}}1 {{CMD}} end /e/d'
+FAIL prompt#aValueArrivesAsTheTextItWasHanded

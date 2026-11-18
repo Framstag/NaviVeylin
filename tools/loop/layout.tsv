@@ -1,28 +1,37 @@
-# The engine's layout: one row per script under `tools/loop/`, the bound the suite compares its length against, and the
-# position the entry sources it at. Nothing is moved by this table — it describes the engine as it stands, so growth
-# against a number someone argued for is a red case instead of a fact nobody measures (issue #890).
+# The engine's layout: one row per script under `tools/loop/`, the bound the suite compares its length against, the
+# position the entry sources it at, and the functions it owns. Nothing is described twice — the file a behaviour
+# lives in is a row a person can find, not prose a reviewer remembers (issue #890, issue #892).
 #
 # `driver#everyEngineScriptIsInTheTable` reads the file column against the scripts themselves in both directions,
-# `driver#noEngineFileExceedsItsBound` reads the bound, and `driver#theSourceOrderIsDeclared` reads the order.
+# `driver#noEngineFileExceedsItsBound` reads the bound, `driver#theSourceOrderIsDeclared` and
+# `driver#aCallToALaterFilesFunctionFails` read the order, and `driver#anOwnedFunctionIsInItsOwnersFile` reads the
+# owner column against the definitions. A column is read by position, so the order below is the format: `file`,
+# `bound`, `order`, `owner`, `note` (issue #892).
 #
-# bound  the file's length when this table was written plus a quarter, rounded up: it records today's size and refuses
+# bound  the file's length when this row was written plus a quarter, rounded up: it records today's size and refuses
 #        growth only, so raising one is a one-line diff with a reason beside it rather than a refactor.
-# order  the position the entry sources the file at, or `-` when the entry does not source it. Every engine script
-#        sources `lib.sh`, which is the whole of the order today.
-# note   the order the move will use. `run-sh-is-split-along-the-stream` splits `run.sh` into owner files and adds
-#        their rows beneath `lib.sh`, taking orders 2..n; this table is the one place that changes when it does.
+# order  the position the entry sources the file at, or `-` when the entry does not source it. A file with an order
+#        is part of the chain the entry loads: `lib.sh` first, then the file that records the evidence, then the
+#        leftovers, then the child's supervision.
+# owner  the functions the file defines, space separated, or `-` for a script that is an entry of its own — its
+#        functions are words its own process runs and no other file may call. A function belongs to exactly one
+#        file, so a definition in a file other than its owner's is a red case.
+# note   why the row is what it is: the number a bound was raised from, or what the file holds.
 #
-# file	bound	order	note
-census.sh	252	-	the census is a reader beside the entry: no run sources it
-evidence-check.sh	368	-	-
-gate.sh	1169	-	the base-red measurement the gate now takes (issue #944) added 103 lines to a 832-line file; the split in `run-sh-is-split-along-the-stream` takes them out again with the rest of the entry's halves
-labels.sh	297	-	-
-lib.sh	1130	1	the split's files follow this row, at orders 2..n
-loop-clean.sh	482	-	-
-measure.sh	268	-	-
-phase.sh	265	-	-
-prescreen.sh	860	-	-
-report.sh	1038	-	-
-run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
-state.sh	1788	-	-
-worktree.sh	1414	-	-
+# file	bound	order	owner	note
+census.sh	252	-	-	the census is a reader beside the entry: no run sources it
+child.sh	922	4	child_cap child_turn_bound child_context_bound_key child_context_bound child_ended_by_context_bound host_free_mib child_agent_cmd_key stop_run child_turns child_context child_refusal child_role run_child tail_after_gate record_cut_round record_rework_cut retry_delay_at	the child's supervision: the bounds, the role and the command, `run_child`, the tail that follows the gate, and the stop arms a child's own end runs
+evidence-check.sh	368	-	-	-
+evidence.sh	924	2	block report_lines report_field bound_key_value report_verdict last_line answer_complete gate_answered change_answered flake_probe attribute_red_gate blocking_count review_notes slugify project_state project_state_diff outside_write_clause outside_write_clause_of loop_tree_pids pid_stands_outside_worktree pid_ppid pid_left_the_worktree outside_write_pids outside_write_line outside_write_decides outside_write_seen write_review_diff review_correction_scope review_input_bytes review_input_head review_input_mark bound_review_inputs review_input_scale_of review_restart_before_deadline review_restart_scope review_restart_note clear_stale_test_results render_prompt gate_step_text change_readiness_of render_reviewer_prompt	what the run records and reads back: the report vocabulary, the outside-write rule, the pids, the review's scope and its input bound, and the gate's attribution
+gate.sh	1169	-	-	the base-red measurement the gate now takes (issue #944) added 103 lines to a 832-line file
+labels.sh	297	-	-	-
+leftovers.sh	509	3	adopt_finished_attempt merge_committed_branch score_landings adopt_finished_exclusions keep_leftovers gate_the_kept_work worktree_is_dirty owner_of_marker own_leftovers_of recorded_here recorded_leftovers_of submodule_only_dirt place_submodule_pin retry_start_item discard_kept_worktree	what the run keeps, adopts, merges and discards: the held worktree, the landed branch, the recorded markers and the retry that follows a dirty tree
+lib.sh	1300	1	-	the shared library every engine file sources: the project, the configuration, and the issue tooling
+loop-clean.sh	482	-	-	-
+measure.sh	268	-	-	-
+phase.sh	265	-	-	-
+prescreen.sh	860	-	-	-
+report.sh	1038	-	-	-
+run.sh	3335	-	escalate_prescreen_decisions end_run on_exit on_signal push_branch	the entry: it sources the declared order and is sourced by nothing, and it owns the flags, the header, the item loop and the stop arms
+state.sh	1788	-	-	-
+worktree.sh	1414	-	-	-

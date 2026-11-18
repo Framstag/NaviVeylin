@@ -18,84 +18,151 @@
 #              is not a read either.
 #
 # name	assigned by	read by
+
+adopt_finished_attempt	leftovers.sh	run.sh
+adopt_finished_exclusions	leftovers.sh	run.sh
+adoption_refusal	run.sh	leftovers.sh
+answer_complete	evidence.sh	run.sh
+attribute_red_gate	evidence.sh	run.sh
+blocked	report.sh	prescreen.sh
+block	evidence.sh	run.sh
+blocking_count	evidence.sh	run.sh
 body	phase.sh	prescreen.sh
 bound_class_jq	lib.sh	report.sh state.sh
-project_state_differs	lib.sh	run.sh
-blocked	report.sh	prescreen.sh
+bound_key_value	evidence.sh	run.sh
+bound_review_inputs	evidence.sh	run.sh
 branch	run.sh	report.sh loop-clean.sh phase.sh
 cases	gate.sh	measure.sh
-child_check_calls	lib.sh	run.sh
+change_answered	evidence.sh	run.sh
+change_readiness_of	evidence.sh	run.sh
+child_agent_cmd_key	child.sh	run.sh
+child_cap	child.sh	run.sh
+child_check_calls	lib.sh	child.sh
+child_checks_bound	run.sh	child.sh
+child_context_bound	child.sh	run.sh
+child_max	run.sh	child.sh evidence.sh
+child_refusal	child.sh	run.sh
+child_turn_bound	child.sh	run.sh
 count	prescreen.sh	gate.sh
-deadline_at	report.sh	run.sh
+cut_gate_log	run.sh	leftovers.sh
+deadline_at	report.sh	child.sh
 deadline_epoch	report.sh	run.sh
+decision_agent	run.sh	leftovers.sh
+discard_kept_worktree	leftovers.sh	run.sh
+dry_run	run.sh	leftovers.sh
 errors	gate.sh	phase.sh
 evidence	labels.sh	prescreen.sh
 failures	gate.sh	phase.sh
-fmt_elapsed	lib.sh	run.sh
+fmt_elapsed	lib.sh	child.sh
+gate_answered	evidence.sh	run.sh
 gate_check_programs	lib.sh	state.sh
 gate_command_jq	lib.sh	state.sh
 gate_program	lib.sh	state.sh
-gate_tally_state	lib.sh	state.sh run.sh
-issue	labels.sh	prescreen.sh phase.sh report.sh run.sh
+gate_step_text	evidence.sh	run.sh
+gate_tally_state	lib.sh	evidence.sh run.sh state.sh
+gate_the_kept_work	leftovers.sh	run.sh
+host_free_mib	child.sh	run.sh
+issue	labels.sh	prescreen.sh child.sh evidence.sh leftovers.sh phase.sh report.sh run.sh
+item_context_max	run.sh	child.sh
+item_context_warn	run.sh	child.sh
 item	measure.sh	report.sh
+keep_leftovers	leftovers.sh	child.sh
+last_line	evidence.sh	run.sh
+leftover_patch	run.sh	child.sh leftovers.sh
 LOOP_AUTHORISATION_LABEL	lib.sh	prescreen.sh
-loop_base_ref	lib.sh	loop-clean.sh gate.sh labels.sh run.sh state.sh worktree.sh
+loop_base_ref	lib.sh	loop-clean.sh gate.sh labels.sh leftovers.sh run.sh state.sh worktree.sh
 loop_bound_under_ceiling	lib.sh	gate.sh
 loop_bytes_of	lib.sh	worktree.sh loop-clean.sh
-loop_change_archive_dir	lib.sh	run.sh
-loop_change_family	lib.sh	run.sh
-loop_change_identity	lib.sh	gate.sh run.sh
+loop_change_archive_dir	lib.sh	child.sh evidence.sh run.sh
+loop_change_family	lib.sh	evidence.sh
+loop_change_identity	lib.sh	gate.sh evidence.sh
 loop_change_restore	lib.sh	run.sh
-LOOP_CHILD_TIMEOUT	lib.sh	run.sh
+LOOP_CHILD_TIMEOUT	lib.sh	run.sh child.sh
 loop_commit_identity	lib.sh	worktree.sh
 loop_compat_profile_value	lib.sh	labels.sh prescreen.sh run.sh
 LOOP_CONF_PATH	lib.sh	run.sh gate.sh measure.sh state.sh
-loop_conf_value	lib.sh	state.sh gate.sh loop-clean.sh measure.sh phase.sh prescreen.sh report.sh run.sh worktree.sh
+loop_conf_value	lib.sh	state.sh child.sh evidence.sh gate.sh leftovers.sh loop-clean.sh measure.sh phase.sh prescreen.sh report.sh run.sh worktree.sh
 loop_die	lib.sh	prescreen.sh gate.sh labels.sh run.sh state.sh worktree.sh
-LOOP_DIR	lib.sh	run.sh prescreen.sh report.sh worktree.sh
+LOOP_DIR	lib.sh	child.sh evidence.sh leftovers.sh prescreen.sh report.sh run.sh worktree.sh
 loop_end_group	lib.sh	gate.sh run.sh
-loop_end_pid	lib.sh	gate.sh loop-clean.sh run.sh
-loop_end_pids_under	lib.sh	run.sh
+loop_end_pid	lib.sh	gate.sh child.sh loop-clean.sh run.sh
+loop_end_pids_under	lib.sh	child.sh
 LOOP_HOLD	lib.sh	run.sh state.sh
 LOOP_HOLD_READ	lib.sh	state.sh
 loop_issue_json	lib.sh	run.sh prescreen.sh
 loop_issue_tool	lib.sh	labels.sh prescreen.sh run.sh
-loop_labels	lib.sh	prescreen.sh run.sh
+loop_labels	lib.sh	prescreen.sh leftovers.sh run.sh
 loop_landed_on_base	lib.sh	labels.sh
-loop_leftover_patch_of	lib.sh	worktree.sh run.sh
+loop_leftover_patch_of	lib.sh	leftovers.sh run.sh worktree.sh
 loop_main_worktree	lib.sh	gate.sh
-loop_note	lib.sh	worktree.sh run.sh state.sh
+loop_note	lib.sh	leftovers.sh run.sh state.sh worktree.sh
 LOOP_OK	lib.sh	run.sh prescreen.sh report.sh
 loop_open_pull_request_heads	lib.sh	worktree.sh
 loop_own_branches	lib.sh	loop-clean.sh worktree.sh
-loop_pids_under	lib.sh	run.sh
-loop_profile	lib.sh	run.sh prescreen.sh
-LOOP_REFUSE	lib.sh	run.sh state.sh worktree.sh
+loop_pids_under	lib.sh	evidence.sh
+loop_profile	lib.sh	run.sh evidence.sh prescreen.sh
+LOOP_REFUSE	lib.sh	run.sh leftovers.sh state.sh worktree.sh
 loop_refuse	lib.sh	state.sh worktree.sh
 loop_remote_branches	lib.sh	worktree.sh
-loop_render	lib.sh	run.sh
+loop_render	lib.sh	evidence.sh
 loop_resolve	lib.sh	prescreen.sh gate.sh labels.sh loop-clean.sh measure.sh phase.sh report.sh run.sh state.sh worktree.sh
 loop_role	lib.sh	prescreen.sh labels.sh report.sh run.sh state.sh
 loop_roles_load	lib.sh	report.sh labels.sh prescreen.sh run.sh state.sh
-LOOP_ROOT	lib.sh	prescreen.sh gate.sh loop-clean.sh phase.sh report.sh run.sh state.sh worktree.sh
+LOOP_ROOT	lib.sh	prescreen.sh child.sh evidence.sh gate.sh leftovers.sh loop-clean.sh phase.sh report.sh run.sh state.sh worktree.sh
 loop_same_dir	lib.sh	loop-clean.sh
 LOOP_SCRATCH_LINE	lib.sh	worktree.sh loop-clean.sh
 loop_scratch_paths	lib.sh	loop-clean.sh worktree.sh
-loop_scratch_remove	lib.sh	worktree.sh loop-clean.sh run.sh
+loop_scratch_remove	lib.sh	worktree.sh evidence.sh loop-clean.sh
 LOOP_SELFTEST_PREFIX	lib.sh	loop-clean.sh
-loop_state	lib.sh	prescreen.sh gate.sh run.sh
+loop_state	lib.sh	prescreen.sh child.sh gate.sh leftovers.sh run.sh
 LOOP_STOP	lib.sh	state.sh prescreen.sh run.sh
 loop_tmp_dir_for	lib.sh	loop-clean.sh
 LOOP_TMP_DIR	lib.sh	loop-clean.sh
 loop_unlanded_commits	lib.sh	prescreen.sh loop-clean.sh report.sh worktree.sh
 LOOP_USAGE	lib.sh	phase.sh state.sh
 loop_worktree_branches	lib.sh	worktree.sh loop-clean.sh
-LOOP_WORKTREE	lib.sh	run.sh loop-clean.sh phase.sh report.sh worktree.sh
+LOOP_WORKTREE	lib.sh	evidence.sh child.sh leftovers.sh loop-clean.sh phase.sh report.sh run.sh worktree.sh
+merge_committed_branch	leftovers.sh	run.sh
+merge_refusal	run.sh	leftovers.sh
+outside_write_clause_of	evidence.sh	child.sh
+outside_write_decides	evidence.sh	run.sh leftovers.sh
+outside_write_line	evidence.sh	child.sh
+outside_write_seen	evidence.sh	child.sh
+owner_of_marker	leftovers.sh	run.sh
+own_leftovers_of	leftovers.sh	run.sh
+own_leftovers	run.sh	child.sh leftovers.sh
 path_count	measure.sh	report.sh
-progress	lib.sh	run.sh
+progress	lib.sh	leftovers.sh run.sh
+project_state_differs	lib.sh	child.sh evidence.sh
+project_state	evidence.sh	child.sh
 read_err	prescreen.sh	run.sh
 reason	labels.sh	prescreen.sh report.sh state.sh
+record_cut_round	child.sh	run.sh
+record_dir	run.sh	leftovers.sh
+recorded_leftovers_of	leftovers.sh	run.sh
+record_rework_cut	child.sh	run.sh
+render_prompt	evidence.sh	child.sh run.sh
+render_reviewer_prompt	evidence.sh	run.sh
+report_field	evidence.sh	child.sh run.sh
+report_verdict	evidence.sh	run.sh
+retry_delay_at	child.sh	run.sh
+retry_start_item	leftovers.sh	run.sh
+review_correction_scope	evidence.sh	run.sh
+review_input_cut_scale	run.sh	evidence.sh
+review_input_scale_of	evidence.sh	run.sh
+review_notes	evidence.sh	run.sh
+review_restart_line	run.sh	evidence.sh
+review_restart_note	evidence.sh	run.sh
+review_restart_scope	evidence.sh	run.sh
+run_child	child.sh	run.sh
+score_landings	leftovers.sh	run.sh
 size	phase.sh	loop-clean.sh
+slugify	evidence.sh	run.sh
 stop_reason	report.sh	run.sh
+stop_run	child.sh	run.sh
+strict_outside_write	run.sh	evidence.sh leftovers.sh
+submodule_only_dirt	leftovers.sh	run.sh
+tail_after_gate	child.sh	run.sh
 tree	loop-clean.sh	gate.sh
 verdict	labels.sh	phase.sh prescreen.sh
+write_review_diff	evidence.sh	run.sh

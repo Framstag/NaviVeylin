@@ -455,6 +455,7 @@ LOOP_SHELL_CASES=(
   'driver#theSharedNamesAreDeclared'
   'driver#theSourceOrderIsDeclared'
   'driver#aCallToALaterFilesFunctionFails'
+  'driver#anOwnedFunctionIsInItsOwnersFile'
   'driver#theSuiteRunsItsCasesInAPool'
   'driver#theCaseBoundScalesWithThePool'
   'driver#aCaseThatBlocksIsEndedByItsOwnBound'
@@ -1230,6 +1231,7 @@ loop_run_shell_case() {
     'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
     'driver#theSourceOrderIsDeclared') fn=case_driver_theSourceOrderIsDeclared ;;
     'driver#aCallToALaterFilesFunctionFails') fn=case_driver_aCallToALaterFilesFunctionFails ;;
+    'driver#anOwnedFunctionIsInItsOwnersFile') fn=case_driver_anOwnedFunctionIsInItsOwnersFile ;;
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
     'driver#theCaseBoundScalesWithThePool') fn=case_driver_theCaseBoundScalesWithThePool ;;
     'driver#aCaseThatBlocksIsEndedByItsOwnBound') fn=case_driver_aCaseThatBlocksIsEndedByItsOwnBound ;;
@@ -1990,7 +1992,7 @@ case_state_floorWithNoHistoryIsTheConfiguredMinimum() {
 }
 
 case_state_secondRunRefusesWithExit5() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p block first second status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2029,7 +2031,7 @@ case_state_secondRunRefusesWithExit5() {
 # merged that run's unfinished item into main, closed it, and was refused at the lock two minutes into a
 # 240-minute budget).
 case_state_aRefusedRunLeavesTheLiveStateAlone() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p block first second status live_started live_sum sf
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2270,7 +2272,7 @@ case_state_defaultsComeFromLoopConf() {
 }
 
 case_state_projectKeysAreReadFromLoopConf() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf prompt
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -2291,7 +2293,7 @@ case_state_projectKeysAreReadFromLoopConf() {
 }
 
 case_state_agentCommandIsTheOnlyIndirection() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p wrapper out
   d=$(scratch); p=$(new_project)
   wrapper="$d/my-agent.sh"
@@ -2329,7 +2331,7 @@ EOF
 # changed with issue #821: it names the roles that do not run on the project's command, and the round before the gate
 # is one of them, because it inherits the reviewer's key rather than falling to the project's one.
 case_state_aRolesOwnCommandStartsOnlyThatRolesChild() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out
   d=$(scratch); p=$(new_project)
   cat > "$d/worker-agent.sh" <<EOF
@@ -2363,7 +2365,7 @@ EOF
 }
 
 case_state_agentCommandRefusesAnEmptyValue() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out status
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -2383,7 +2385,7 @@ case_state_agentCommandRefusesAnEmptyValue() {
 # header names it, because a run that spends a different command on part of its work is not the same run as one that
 # does not.
 case_state_aRolesChildInheritsTheCommandOfTheRoleItBelongsTo() {
-  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out
   d=$(scratch); p=$(new_project)
   # Each command writes the prompt it was handed, because `run_child` starts a child as `$cmd <prompt-file>`: the log
@@ -2428,7 +2430,7 @@ EOF
 # second pass (issue #821): it is started on `LOOP_AGENT_CMD_WORKER_REWORK` and ended at
 # `LOOP_CHILD_TURNS_MAX_WORKER_REWORK`, both read through the same `child_role` indirection the other roles use.
 case_state_theReworkRoundIsARoleOfItsOwn() {
-  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out action rework
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2495,7 +2497,7 @@ VERDICT: FAIL' "$action"
 # price a feature's worker pass apart from a bug's (issue #821): the class refines the key of the role it is spelled
 # after, and a role's own key still wins over its head's class key.
 case_state_anItemsClassSelectsTheWorkerCommand() {
-  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out s
   d=$(scratch); p=$(new_project)
   # Two items of different classes: the fixture's two-item scenario with the second item's class changed.
@@ -3580,7 +3582,7 @@ case_prescreen_itemAwaitingADecisionIsNotQueued() {
 # held item was escalated with a boilerplate sentence and counted against `--max-decisions` until the cap
 # stopped every future run (measured 2026-10-20: 12 items against a cap of 3).
 case_prescreen_aHoldWithNoDecisionIsNotADecision() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status log
   d=$(scratch); p=$(new_project)
   init_state "$p" 1 90
@@ -4229,7 +4231,7 @@ case_worktree_refusesWhenMainAdvanced() {
 }
 
 case_worktree_keepsByDefaultAndRemovesOnRequest() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4252,7 +4254,7 @@ case_worktree_keepsByDefaultAndRemovesOnRequest() {
 # of which `app/build` alone was 1.9 GB, and nothing removed it. The removal is confined to the tree: a
 # recorded path that is a symlink out of it is left exactly where it is, and so is everything git holds.
 case_worktree_keepsSourcesNotBuildOutput() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p w outside out bytes branch
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   outside="$d/outside"; mkdir -p "$outside"
@@ -4491,7 +4493,7 @@ case_labels_holdCarriesItsReason() {
 }
 
 case_labels_trapRemovesInProgressOnSignal() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p block first waited
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4553,7 +4555,7 @@ case_labels_neverWritesReservedLabel() {
 }
 
 case_labels_writesOnlyBetweenChildren() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p before after n i b a
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4574,7 +4576,7 @@ case_labels_writesOnlyBetweenChildren() {
 # ----------------------------------------------------------------------------- cases: prompts
 
 case_prompt_workerNamesEveryPhaseAndSkill() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker-tail.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker-tail.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt skills skill tail_prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4599,7 +4601,7 @@ case_prompt_workerNamesEveryPhaseAndSkill() {
 # A feature is work too, and its prompt says how it enters: the run hands the item's class to the child, the
 # child plans `add-<slug>` before production code, and the acceptance scenario is its red case.
 case_prompt_workerCarriesTheFeaturePath() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4612,7 +4614,7 @@ case_prompt_workerCarriesTheFeaturePath() {
 }
 
 case_prompt_workerNamesTheDecisionField() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4635,7 +4637,7 @@ case_prompt_workerNamesTheDecisionField() {
 # dominantly a scenario clause the case that names it does not exercise, or a `design.md`/`tasks.md` claim the
 # diff contradicts — both readable by the writer, who holds the diff before anybody else does.
 case_prompt_workerGradesItsOwnDiffBeforeItReports() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt text
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4651,7 +4653,7 @@ case_prompt_workerGradesItsOwnDiffBeforeItReports() {
 }
 
 case_run_skipEscalationCarriesTheDecision() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p skip_report out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4669,7 +4671,7 @@ case_run_skipEscalationCarriesTheDecision() {
 # A recorded decision is the owner's policy, not a claim to re-verify (issue #196: a fresh worker spent a run
 # re-deriving a fork a person had already answered, and asked it again with a different option list).
 case_prompt_workerTreatsARecordedDecisionAsSettled() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4681,7 +4683,7 @@ case_prompt_workerTreatsARecordedDecisionAsSettled() {
 }
 
 case_prompt_reviewerCarriesTheEightItems() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4717,7 +4719,7 @@ case_prompt_reviewerCarriesTheEightItems() {
 # 4 h 40 m change and the parent had to steer it back to reading. The case asserts the bound the task states,
 # because "read-only" alone was not enough to stop it: the gate and the suite have to be named.
 case_prompt_reviewerIsBoundedToReading() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf prompt text cap
   d=$(scratch); p=$(new_project)
   # The bound in the text is the run's own recorded value, so the case writes a value of its own: a template
@@ -4765,7 +4767,7 @@ case_prompt_reviewerIsBoundedToReading() {
 # Two runs: the recorded cap, which the stub item's round is far under, and a cap small enough that the round's parts
 # are over it. The under-cap run is the one that says a round nobody cut is byte for byte the round it always was.
 case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/loop.conf tools/loop/state.sh tools/loop/report.sh tools/loop/prompts/reviewer.md tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/loop.conf tools/loop/state.sh tools/loop/report.sh tools/loop/prompts/reviewer.md tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf sf prompt diff cut text out recorded
   # The key and its default are recorded in the configuration the run reads. The value is not pinned here for the
   # reason the neighbour case states: both runs set their own, so a template that hardcoded today's number would
@@ -4862,7 +4864,7 @@ case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
 # the iteration levers, never the surface of the change itself, so this case holds the rule to the two surfaces
 # it needs: the worker prompt a run renders, and the guideline that owns the text.
 case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/look.sh
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/look.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt text
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4894,7 +4896,7 @@ case_prompt_iterationProtocolNamesTheChangeSurface() {
 }
 
 case_prompt_packageIsAFileAndNotInlined() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt package expected
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4916,7 +4918,7 @@ case_prompt_packageIsAFileAndNotInlined() {
 }
 
 case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p package prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario injection)
@@ -5001,7 +5003,7 @@ case_prompt_thePhasePromptsCarryTheirOwnRoute() {
 # names are the policy's own list, read out of `REFUSED_VERBS`, so a verb the policy gains is a case that fails rather
 # than a child that learns it by being refused (#687 is that policy, #796 the recipe one section up).
 case_prompt_thePhasePromptNamesWhatItsShellRefuses() {
-  # files: tools/loop/prompts/ tools/pi-shell-refusal.mjs tools/look.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/prompts/ tools/pi-shell-refusal.mjs tools/look.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt text f rule probe verbs v
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -5089,7 +5091,7 @@ case_prompt_aValueArrivesAsTheTextItWasHanded() {
 # answered. The item's body still says "bounds to settle", because nothing amends it — the package is where a
 # settled question has to be readable.
 case_run_workPackageCarriesTheRecordedDecision() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p package
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decided)
@@ -5284,7 +5286,7 @@ case_run_aVerdictOutsideTheListWritesNoLabel() {
 # item carrying the shaping label must therefore not count against it, or a run refuses for a queue it cannot
 # fill (capability `shaping-inbox`, Non-Goals).
 case_run_theShapingInboxDoesNotCountAgainstTheCeiling() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/prescreen.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/prescreen.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario shaping)
@@ -5303,7 +5305,7 @@ case_run_theShapingInboxDoesNotCountAgainstTheCeiling() {
 # run's skipped arm escalates it, so the item landed in the decision queue carrying no shaping label at all, and
 # nothing said the two artifacts were meant to be one answer.
 case_run_aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log expected adds
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5333,7 +5335,7 @@ LOOP-DECISION: split the item into the two mechanisms, or retire it?' 'VERDICT: 
 # #225, #194). The run's own sentence is the last resort: a worker that wrote `LOOP-DECISION` is quoted instead
 # (`run#aBlockedItemCarriesTheWorkersDecision`, #960).
 case_run_blockedItemAsksItsOwnQuestion() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out body
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5353,7 +5355,7 @@ case_run_blockedItemAsksItsOwnQuestion() {
 # directory — the state a person cannot answer, which is the defect #194/#225 closed from the other side (filed as
 # #960).
 case_run_aBlockedItemCarriesTheWorkersDecision() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out body
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5379,7 +5381,7 @@ LOOP-DECISION: land the writer alone and file the conversion, or chain a child p
 # reaches the run is the failure the seam handed back: a refusal it passes through without retrying, or a transport
 # failure it retried and reported as `tracker-unreachable`.
 case_run_anUnreadableItemIsNotTheEndOfTheRun() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local p out reason note
   p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -5409,7 +5411,7 @@ case_run_anUnreadableItemIsNotTheEndOfTheRun() {
 # item, so closing it as mis-diagnosed is the same two artifacts a fix closure posts (openspec change
 # `falsified-items-close-in-the-loop`).
 case_run_falsifiedSkipClosesWithItsMeasurement() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5434,7 +5436,7 @@ case_run_falsifiedSkipClosesWithItsMeasurement() {
 
 # Without the number the claim is a question again: two of the three halves is an escalation, not a finding.
 case_run_falsificationWithoutAMeasurementIsEscalated() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5451,7 +5453,7 @@ case_run_falsificationWithoutAMeasurementIsEscalated() {
 # Closure disabled: the evidence is posted and the item stays open — the run does not reopen the question it
 # already answered.
 case_run_mayCloseNoKeepsAFalsificationOpen() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5471,7 +5473,7 @@ case_run_mayCloseNoKeepsAFalsificationOpen() {
 # so the claim is read again after the review: a falsified item whose tree moved is a change, and closing it as
 # mis-diagnosed would close on evidence nobody reviewed.
 case_run_falsificationWithAChangedTreeIsBlocked() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5505,7 +5507,7 @@ ACTION
 # ----------------------------------------------------------------------------- cases: run
 
 case_run_preflightRefusalStopsBeforeAnyWork() {
-  # files: tools/issues/tests/fixtures/scenarios/outsider/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/issues/tests/fixtures/scenarios/outsider/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR="$LOOP_ISSUE_FIXTURES/scenarios/outsider"
@@ -5525,7 +5527,7 @@ case_run_preflightRefusalStopsBeforeAnyWork() {
 # fast-forwards to the item's branch closes the item with its fix never on the base (issue #301's review,
 # 2026-10-24).
 case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen() {
-  # files: tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status f reason
   d=$(scratch); p=$(new_project)
   git -C "$p" switch -c fix/issue-44-a-feature-branch >/dev/null 2>&1 ||
@@ -5553,7 +5555,7 @@ case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen() {
 # and not a cleanup: the run's own leftovers are already kept as the item's own patch, and what is left in this tree
 # may be an edit its owner made while no run was live — which is why `--reset-worktree` is not offered here.
 case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen() {
-  # files: tools/loop/run.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/run.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status f reason
   d=$(scratch); p=$(new_project)
   printf 'wip\n' > "$p/tools/wip-notes.txt"
@@ -5577,7 +5579,7 @@ case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen() {
 }
 
 case_run_decisionCapRefusesToStart() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -5596,7 +5598,7 @@ case_run_decisionCapRefusesToStart() {
 # slot of the cap that stops work on the items a person can answer. Measured 2026-11-02 on the live tracker —
 # 13 items carried the decision label, 9 of them were candidates, and the recorded cap of 10 refused every run.
 case_run_decisionCapCountsOnlyCandidates() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario parked-decisions)
@@ -5629,7 +5631,7 @@ case_run_decisionCapCountsOnlyCandidates() {
 # (#787). The reason carries the two counts the refusal compared and the decisions it printed, because the
 # record is the only thing a later reader of a refusal has.
 case_run_theDecisionCapRecordsItsStopReason() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status f reason
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -5658,7 +5660,7 @@ case_run_theDecisionCapRecordsItsStopReason() {
 # `run.stop` stayed empty, so the state file then read "the run that wrote this state is gone — its process is not
 # running and it recorded no reason", which is the shape of a crash rather than of a refusal.
 case_run_aFailedPreScreenRecordsItsStopReason() {
-  # files: tools/loop/run.sh tools/loop/prescreen.sh tools/loop/state.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json tools/issues/tests/fixtures/gh
+  # files: tools/loop/run.sh tools/loop/prescreen.sh tools/loop/state.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json tools/issues/tests/fixtures/gh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status reason
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -5680,7 +5682,7 @@ case_run_aFailedPreScreenRecordsItsStopReason() {
 # not take (issue #241, measured 2026-10-21: five refused fast-forwards in the project tree, `core.bare` → `true`,
 # `rev-parse --is-inside-work-tree` → `false`). The run refuses before it writes, and says what repairs it.
 case_run_refusesARepositoryThatIsNotAWorkTree() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -6590,7 +6592,7 @@ SUITE
 # reading of the shape both writers share, and the subtraction these two halves assert is unchanged by where the record
 # came from.
 case_gate_aBaseRedStepIsSubtractedAndNamed() {
-  # files: tools/loop/gate.sh tools/loop/state.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/gate.sh tools/loop/state.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf state base log out rc
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -7087,7 +7089,7 @@ case_measure_printsTheSuiteCountAndTheGateTiming() {
 }
 
 case_prompt_workerIsHandedTheMeasureBlock() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt text measure conf
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -7122,7 +7124,7 @@ case_prompt_workerIsHandedTheMeasureBlock() {
 # graded the four checks it had not run `UNPROVEN` for want of a carried log (`items/798/pre-gate-review.md:83`) — the
 # same round the gate child then answered by running both selections again.
 case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt text
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -7154,7 +7156,7 @@ case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite() {
 # the change child back to run the selection the gate owns. The prompt rendered here is the one the run hands that
 # round, so the section `pre-gate-review.md` is the text under test.
 case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt text
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7184,7 +7186,7 @@ case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
 }
 
 case_run_oneItemOrderIsFixed() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompts
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -7205,7 +7207,7 @@ case_run_oneItemOrderIsFixed() {
 }
 
 case_run_childClaimWithoutCommitIsBlocked() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7227,7 +7229,7 @@ case_run_childClaimWithoutCommitIsBlocked() {
 # child starts, so an answer that claims a change beside a tree still at the base is refused there: no reviewer, no gate
 # child, no tail, and the item blocked on the reason that arm writes anyway.
 case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out prompts item state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7271,7 +7273,7 @@ case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
 }
 
 case_run_blockedItemIsEscalatedWithItsReason() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7299,7 +7301,7 @@ case_run_blockedItemIsEscalatedWithItsReason() {
 # the tracker diverged silently, and the decision cap never counted it (issue #279). A write that failed is a fact
 # of the run, so the run records it with the item and its report names the item nobody can find on the tracker.
 case_run_aFailedEscalationWriteIsNamed() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7327,7 +7329,7 @@ case_run_aFailedEscalationWriteIsNamed() {
 # tracker shows an item being worked while nothing holds it. The run clears its own `in_progress` variable on that
 # path, so no later step retries the write — the record is what a person acts on (issue #279).
 case_run_aFailedUnpickIsNamed() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7351,7 +7353,7 @@ case_run_aFailedUnpickIsNamed() {
 }
 
 case_run_childStartsInTheProjectRoot() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p logs prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -7371,7 +7373,7 @@ case_run_childStartsInTheProjectRoot() {
 }
 
 case_run_childReportsWhileItWaits() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7402,7 +7404,7 @@ case_run_childReportsWhileItWaits() {
 # 2026-10-22 on the item: a copy of the engine whose `sleep 1` became `sleep 0.05` ran
 # `run#recordsAFailedReviewOnTheBranch` in 9 s instead of 15 s, i.e. 40 % of that case was the sleep.
 case_run_theWaitEndsWhenTheChildDoes() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p stamp t0 t1 ms exit_line
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7437,7 +7439,7 @@ case_run_theWaitEndsWhenTheChildDoes() {
 # have made `LOOP_PROGRESS_SECONDS` mean "this many looks" — a line every 1.5 s for a configured 30 once the poll was
 # 0.05 s — so the interval is read as seconds lived and the case pins that it still prints one line per interval.
 case_run_theProgressLineKeepsItsInterval() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out n
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7458,7 +7460,7 @@ case_run_theProgressLineKeepsItsInterval() {
 # nothing on the console said where a person could look meanwhile (issue #191). The header therefore names the
 # step that follows it, the state directory, and the command that shows what the run is doing.
 case_run_headerNamesTheLiveView() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7549,7 +7551,7 @@ case_run_prescreenAnnouncesItselfBeforeItReturns() {
 # with an elapsed field, one line per crossing, and terminal output only — a line that leaked into the state
 # file or into the report would make a heartbeated run a different run from a quiet one.
 case_run_everyPhaseBoundaryIsPrinted() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out sf report
   d=$(scratch); p=$(new_project)
   out=$(run_one_item "$p" "$d" --review off 2>&1) || fail "the run failed"
@@ -7580,7 +7582,7 @@ case_run_everyPhaseBoundaryIsPrinted() {
 # measurement, and the run gives the child what the gate owes rather than the floor — three dry runs, because the
 # bound is printed in the header before anything is started.
 case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out cap owes
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7647,7 +7649,7 @@ case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes() {
 # (issue #203). The result is `cut`, not `blocked` (issue #790): the cap is a bound the run enforces on its own
 # child, so what it leaves is a phase the next run resumes rather than a finding about the item.
 case_run_childOutlastingTheWallClockIsCut() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7727,7 +7729,7 @@ case_run_childOutlastingTheWallClockIsCut() {
 # recorded. The wait reads the run's own deadline from the state it wrote, ends the child and everything it
 # started when the deadline passes, names the clock that ended it in the transcript, and records the stop.
 case_run_childIsEndedAtTheRunsDeadline() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out report state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7802,7 +7804,7 @@ case_run_childIsEndedAtTheRunsDeadline() {
 # cap would have blocked the item for a dead child and the lock would have refused every run after it. The wait
 # reads the pid of its own writer as **one more** condition, and only while the record is absent.
 case_run_aVanishedWriterEndsTheWait() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out report state pgid
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7877,7 +7879,7 @@ case_run_aVanishedWriterEndsTheWait() {
 # here is alive and has written nothing, which is what a worker reading its package looks like; the run keeps
 # waiting, and the case releases it and lets the run finish.
 case_run_aSlowChildIsNotMistakenForAVanishedWriter() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -7938,7 +7940,7 @@ case_run_aSlowChildIsNotMistakenForAVanishedWriter() {
 # ended was cut rather than answered — so the run asks the tracker no question about the item, retries no round and
 # starts no rework worker for a verdict nobody wrote, and leaves the item for the next run.
 case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out state retry rework review_report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8011,7 +8013,7 @@ case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
 # branch is a **cut** round, not an announcement nobody answered, so `branch-state` reads the attempt as work the
 # loop finishes rather than as `review-unanswered`, a question only its owner can answer.
 case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out state review_report retry rework branch tree actions
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8114,7 +8116,7 @@ EOF
 # blocks, the recorded worker bound is 3, and the run reads the key and the figure out of the `LOOP-TIMEOUT` line the
 # child's own transcript carries — the same line the reason quotes.
 case_run_aBoundEndedItemRecordsItsBound() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8180,7 +8182,7 @@ EOF
 # travels beside it and is owned by the case below (the run's item #898) — #898 was ended by the reviewer's turn bound at 110
 # turns and #883 by the item's context bound inside the reviewer phase, and both read `cut` with an empty `stop` cell.
 case_run_aRoundTheRunEndedRecordsItsBound() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8250,7 +8252,7 @@ EOF
 # are read by the same reader, from the round's own `LOOP-TIMEOUT` line, and the round keeps the round's own field
 # beside them (issue #923). On the tree before this change the item carries `stopReason: null`.
 case_run_aReviewRoundBoundIsTheItemsStopClass() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8320,7 +8322,7 @@ EOF
 # rather than the round's question: the item closes on the restart's answer, its record names the round the bound
 # ended and the file it had written, and the prompt the restart is handed carries the cut round's findings.
 case_run_aBoundCutRoundIsRestartedWithItsFindings() {
-  # files: tools/loop/tests/fixtures/ tools/loop/prompts/ tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/prompts/ tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fixture fifo action pid i status out state cut_report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8413,7 +8415,7 @@ EOF
 # writer in the worktree and leaves it in a session of its own. On the tree before the fix that writer outlives
 # the run, with the fix it is ended and named before the item's outcome is written.
 case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status report tree writer alive out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8489,7 +8491,7 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
 # defect, and the tree the child left is kept rather than discarded (nothing is discarded without
 # `--reset-worktree`, `run.sh`'s own rule for the kept worktree).
 case_run_treeOfAChildTheCapEndedIsNotCommitted() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out tree base report files
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8568,7 +8570,7 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
 # next afternoon. What the case asserts is the run's own promise: after the signal, nothing that names the case's
 # tree as its working directory is left.
 case_run_noProcessOfASignalledRunOutlivesIt() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p block first waited left i
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8605,7 +8607,7 @@ case_run_noProcessOfASignalledRunOutlivesIt() {
 # change the child left and the untracked files beside it, written into the item's own evidence directory before the
 # run moves on, and named in the transcript a reader of the blocked item is handed.
 case_run_treeOfACapEndedChildIsKeptAsAPatch() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out tree report patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8799,7 +8801,7 @@ case_report_anActionNamesAnItemPathThatExists() {
 # branch `start-item` cuts from the base and before a worker exists: the item is worked on what it had already done,
 # and still nothing the child did not claim is committed.
 case_run_aBoundEndedItemsKeptWorkIsResumedByTheNextStart() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out tree base patch started
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8894,7 +8896,7 @@ case_run_aBoundEndedItemsKeptWorkIsResumedByTheNextStart() {
 # on the base — including the part `--3way` may already have staged — the item is worked from the base, and the
 # non-apply is recorded in the item's note rather than discarded unrecorded.
 case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status out tree base patch started
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -8978,7 +8980,7 @@ case_run_aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase() {
 # skipped there too, the item is blocked with the round's own transcript, and the tree stays as the child left it.
 # Measured 2026-10-23: the shipped requirement was universal while this call site was left as it stood.
 case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf status out tree report files branch carried
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9057,7 +9059,7 @@ esac"
 # the tree at the base never read the item: that is the run's own fault, recorded once as its stop, and the
 # item stays exactly as its owner set it.
 case_run_childThatNeverStartedIsTheRunsFault() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status log sf conf
   d=$(scratch); p=$(new_project)
   # The retry budget is turned off here (issue #752): this case is about the stop the shape earns, and the
@@ -9103,7 +9105,7 @@ case_run_childThatNeverStartedIsTheRunsFault() {
 # run now spends a recorded, capped retry on the class before it stops. This case stages the refusal-then-work
 # shape: the first worker child leaves an empty answer and the tree at the base, the second does the item's work.
 case_run_aChildThatNeverStartedIsRetriedBeforeTheRunStops() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status log sf conf
   d=$(scratch); p=$(new_project)
   # The recorded delays are named in the retry line the run prints, so the case reads them back from there.
@@ -9156,7 +9158,7 @@ ACT
 # The other half (issue #752): the cap is a cap. A class that fails `LOOP_RETRY_MAX` times is an answer about the
 # run, so the retries stop rather than loop, and the stop reason names the retries it spent and the keys it read.
 case_run_theRetryCapIsSpentAndTheRunStops() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status log sf conf
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -9192,7 +9194,7 @@ case_run_theRetryCapIsSpentAndTheRunStops() {
 # kinds of child; the answer is: a tree at the base beside an answer that carries no closing verdict line is "no
 # part of it was read" whatever status the child ended with.
 case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status log sf report reason conf
   d=$(scratch); p=$(new_project)
   # The retry budget is off here, like its sibling: this case is about the stop the shape earns (issue #752).
@@ -9257,7 +9259,7 @@ JSONL
 # change appears in the run's diff" — 0 review rounds, no gate step, while the run's other empty answer (#95) was its
 # own stop. One silence, two readings, and the wrong one is the reason a person reads.
 case_run_anEmptyAnswerOverACommitIsTheChangePhasesFailure() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out f note branch
   d=$(scratch); p=$(new_project)
   # The retry budget is off: this case reads the shape the answer earns, not the retry above it (issue #752).
@@ -9326,7 +9328,7 @@ ACT
 # gate. The rule the review rounds already follow (#224) is asked of the phase here: an answer that is not complete
 # is asked once more, and the second silence is that phase's failure — named as such, never read as the item's tree.
 case_run_aPhaseThatAnswersNothingIsThatPhasesFailure() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9370,7 +9372,7 @@ case_run_aPhaseThatAnswersNothingIsThatPhasesFailure() {
 # Mtok were lost. The empty answer now spends one retry of the same budget, and the item's record names the class
 # `answer-empty` beside the step that spent it.
 case_run_anEmptyAnswerOverWorkIsRetriedBeforeTheStop() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out conf
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9418,7 +9420,7 @@ ACTION
 # suite happens to have, and the third one can point the reading at a file that does not exist.
 
 case_run_hostBelowTheFloorBlocksTheItemAndStops() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9453,7 +9455,7 @@ case_run_hostBelowTheFloorBlocksTheItemAndStops() {
 }
 
 case_run_hostAboveTheFloorRunsTheItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9475,7 +9477,7 @@ case_run_hostAboveTheFloorRunsTheItem() {
 }
 
 case_run_hostWithoutTheReadingPasses() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9506,7 +9508,7 @@ case_run_hostWithoutTheReadingPasses() {
 # The host is simulated with a PATH of symlinks: every executable the current PATH reaches is linked into one
 # directory except `pgrep`, so what is missing is exactly the one tool the suite requires and the run now does too.
 case_run_aHostWithoutThePlacementReadingIsRefused() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p farm dir entry name out status
   local -a dirs
   d=$(scratch); p=$(new_project)
@@ -9543,7 +9545,7 @@ case_run_aHostWithoutThePlacementReadingIsRefused() {
 # the item keeps the outcome its work earned; `--strict-outside-write yes` restores the verdict for a tree that is
 # exclusive, and the two strict cases pin it.
 case_run_aWriterTheRunCanPlaceBlocksTheItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p note item
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9594,7 +9596,7 @@ case_run_aWriterTheRunCanPlaceBlocksTheItem() {
 # what a child writes there is inside the item's own directory, so it is no difference in the project's tree and the
 # item keeps the outcome its work earned.
 case_run_aChildIsGivenOneScratchDirectory() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-gate.md tools/loop/prompts/worker-tail.md tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-gate.md tools/loop/prompts/worker-tail.md tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p item scratch prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9624,7 +9626,7 @@ EOF
 }
 
 case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9664,7 +9666,7 @@ case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
 }
 
 case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced() {
-  # files: tools/loop/tests/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p note transcript alive shell_pid
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9716,7 +9718,7 @@ EOF
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9759,7 +9761,7 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
 # too and land anyway. Issue #862's count over this loop's archive: 5 of 145 states carry `stopReason: unmergeable`,
 # the oldest of them #229's, and what each refused was a path no child of the run had been tied to.
 case_run_mergesOverADifferenceItCannotPlace() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out base branch note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9814,7 +9816,7 @@ case_run_mergesOverADifferenceItCannotPlace() {
 # `project_state_diff` of two equal readings is empty, no reading is handed to its landing, and `merge-item` refuses
 # with every path it read.
 case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p branch paths log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -9869,7 +9871,7 @@ case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
 }
 
 case_run_strictOutsideWriteBlocksTheItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9892,7 +9894,7 @@ case_run_strictOutsideWriteBlocksTheItem() {
 # 61 minutes and 15.9 Mtok on `?? .mise.local.toml.swp`. The paths no child could have written are the loop's own
 # configuration (`LOOP_WRITE_IGNORE`), and with them the strict run judges the tree as it did before the file appeared.
 case_run_anEditorSwapFileIsNotAChildsWrite() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9913,7 +9915,7 @@ case_run_anEditorSwapFileIsNotAChildsWrite() {
 }
 
 case_run_strictOutsideWriteDiscardsTheReviewRound() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9931,7 +9933,7 @@ case_run_strictOutsideWriteDiscardsTheReviewRound() {
 }
 
 case_run_leftoverBranchIsRecordedNotDropped() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p log branch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9979,7 +9981,7 @@ ACTION
 # attempt (commits, no archived change of its own) is renamed aside and the item worked, so an attempt that
 # appears while the run is open cannot park the item on a decision nobody stated (#232).
 case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -10029,7 +10031,7 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
 # A branch is a later run's only view of an earlier attempt, so the verdict a reviewer reached has to live on
 # it: the run commits the refusal into the change's own evidence directory, on the item's branch (#185).
 case_run_recordsAFailedReviewOnTheBranch() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p branch files out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10051,7 +10053,7 @@ case_run_recordsAFailedReviewOnTheBranch() {
 # (issue #262). Without the announcement the only record of a round is its refusal or its pass, so a reviewer
 # killed mid-answer left a branch that read exactly like a passed one.
 case_run_announcesAndRecordsTheReviewRound() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p evidence commits
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10075,7 +10077,7 @@ case_run_announcesAndRecordsTheReviewRound() {
 # What it asserts that the older order cannot produce: the reviewer's round is logged before the gate command is
 # reached, the findings are in the gate child's prompt, and the item still spends exactly one gate.
 case_run_thePreGateReviewRunsBeforeTheGate() {
-  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p order extra out state pre_prompt gate_prompt refuse
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10135,7 +10137,7 @@ EOF
 # commits handed to a person. The round is recorded `unanswered` and the gate child runs: the gate supplies the item's
 # only verdict, which is what it was going to do anyway.
 case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides() {
-  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out state interrupted extra gate_prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10189,7 +10191,7 @@ EOF
 }
 
 case_run_aPreGateReviewEndedAtItsBoundNamesIt() {
-  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out state bound_line extra
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10242,7 +10244,7 @@ EOF
 }
 
 case_run_mergesAFinishedAttemptAndClosesTheItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status branch base log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10478,7 +10480,7 @@ case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
 # tree, so its refusal is this one and is taken before the evidence it would check the branch for. A detached HEAD
 # is the same refusal with no branch to name: the guard reads the checkout, so the state is named instead.
 case_worktree_refusesToMergeIntoATreeOffTheBaseBranch() {
-  # files: tools/loop/state.sh tools/loop/worktree.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local p w base branch tip out status off
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -10572,7 +10574,7 @@ case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry() {
 # #201, whose two commits a person fast-forwarded onto `main` by hand 35 minutes later (issue #229). The run
 # merges the branch it committed before it closes the item.
 case_run_mergesItsCommittedBranchBeforeClosing() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p runlog branch commits c log
   d=$(scratch); p=$(new_project)
   runlog="$d/run.txt"
@@ -10622,7 +10624,7 @@ case_run_mergesItsCommittedBranchBeforeClosing() {
 # falsification was recorded `skipped` because the tree was compared with a base several merges old. Two items
 # closed by merge in one run — the second one's prompt and diff carry nothing of the first.
 case_run_theBaseAdvancesWithEveryMerge() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p run_log first_merge prompt diff run_start
   d=$(scratch); p=$(new_project)
   run_start=$(git -C "$p" rev-parse main)
@@ -10662,7 +10664,7 @@ case_run_theBaseAdvancesWithEveryMerge() {
 # next item's gate — and the refusal it owes could not fire against it. The first item here leaves a green tally in
 # the gate's directory; the second writes a change and claims a gate, but no tally of its own.
 case_run_staleTestResultsAreNotThisChildsGate() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p run_log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -10694,7 +10696,7 @@ case_run_staleTestResultsAreNotThisChildsGate() {
 # verification record — a blocked attempt carries only the red-on-HEAD XML — keeps its refusal, its escalation
 # and the person who owns the decision, and nothing is merged (issue #176).
 case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status branch base log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10748,7 +10750,7 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
 # else — the item's work finished, was verified and was reviewed, and it is not dropped for a path its own attempt
 # never wrote (issue #862's count: 5 of the 145 archived states carry `unmergeable`).
 case_run_anAdoptionLandsOverADifferenceItCannotPlace() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/issues/tests/fixtures/gh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/issues/tests/fixtures/gh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status branch base tip log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10852,7 +10854,7 @@ case_run_anAdoptionLandsOverADifferenceItCannotPlace() {
 # that ends a run with an exit code and no item is the "nothing processed and no reason" outcome the report
 # exists to prevent, on the path where it is most likely — a killed or crashed run.
 case_run_dirtyKeptWorktreeIsARecordedRefusal() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status log head_before
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
@@ -10886,7 +10888,7 @@ case_run_dirtyKeptWorktreeIsARecordedRefusal() {
 # it, it takes neither the commits on the previous branches nor the tracker with it, and it is never
 # implied — without the flag the leftovers stay and the run refuses (issue #173).
 case_run_resetWorktreeDiscardsWhatItNames() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
@@ -10910,7 +10912,7 @@ case_run_resetWorktreeDiscardsWhatItNames() {
 # and placing the pin the base records loses nothing. The run repairs it and goes on where it used to refuse — and
 # `--reset-worktree`, the only repair the refusal named, ran the same update that had already failed (measured 2026-10-28).
 case_run_placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p wt out status
   d=$(scratch); p=$(new_project); wt="$p/.pi/worktrees/loop"
   submodule_fixture "$p" "$d"
@@ -10936,7 +10938,7 @@ case_run_placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin() {
 # run used to spend its whole start-up and then stop under no item, naming no pin and no repair (the second half of
 # the measurement above).
 case_run_aPinNoCloneHoldsIsRefusedBeforeThePrescreen() {
-  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status bogus
   d=$(scratch); p=$(new_project)
   submodule_fixture "$p" "$d"
@@ -10999,7 +11001,7 @@ submodule_in_worktree() { # <worktree> <commit>
 # modified, while `git submodule update --init --checkout <path>` made the status empty and left the module on the
 # pin the base records (issue #310).
 case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status wt
   d=$(scratch); p=$(new_project)
   submodule_fixture "$p" "$d"
@@ -11022,7 +11024,7 @@ case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard() {
 # carries a file of its own is dirt `reset --hard`, `clean -fd` and the checkout all leave in place, so the run names it
 # and refuses to start rather than printing the "clean again" line the next start would contradict (issue #310).
 case_run_resetWorktreeNamesTheDirtItCannotDiscard() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status wt
   d=$(scratch); p=$(new_project)
   submodule_fixture "$p" "$d"
@@ -11058,7 +11060,7 @@ case_run_resetWorktreeNamesTheDirtItCannotDiscard() {
 # leftovers belonging to an item they had recorded themselves — 1 699 minutes unspent — which is why the rule is not
 # "a dirty tree ends the run" but "work nothing records may not be discarded".
 case_run_aRecordedItemsLeftoversAreKeptAndTheStartGoesOn() {
-  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out f reason log tree patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -11104,7 +11106,7 @@ case_run_aRecordedItemsLeftoversAreKeptAndTheStartGoesOn() {
 # minutes — 234 minutes and the one queued item unspent. The branch marker names the item, the patch is the record,
 # so nothing the refusal protects is in the tree any more: the run discards it and starts its next item.
 case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out reason f tree patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -11144,7 +11146,7 @@ case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused() {
 # leftovers are #21's … : " with an empty list of files, on a tree the run had just cleaned itself, and the item's
 # record said the same. The reason recorded is the retry's, and the record the discard relied on is not replaced.
 case_run_aRetriedStartStopsWithItsOwnReason() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out reason tree patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -11185,7 +11187,7 @@ case_run_aRetriedStartStopsWithItsOwnReason() {
 }
 
 case_run_aSkipClearsTheInProgressMark() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p skip_report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11208,7 +11210,7 @@ case_run_aSkipClearsTheInProgressMark() {
 # decision — for good (issue #682, measured on #147, 2026-10-27T17:11:06Z). A stale claim leaves one two-way
 # choice, so the item must carry it and the decision label that makes it visible to the queue.
 case_run_staleSkipAsksItsQuestion() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11230,7 +11232,7 @@ case_run_staleSkipAsksItsQuestion() {
 # The worker's own question is the one the item carries: a stale skip that states its fork must not get the run's
 # fallback sentence beside it, exactly as a block with a reviewer decision does not (issues #194, #225).
 case_run_staleSkipKeepsTheWorkersQuestion() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11249,7 +11251,7 @@ case_run_staleSkipKeepsTheWorkersQuestion() {
 # #844's inside `LOOP-DECISION` prose, which no field of the record holds — so 441 s and 5.2 Mtok of that run had to
 # be re-opened by hand to answer `decide #838` and `decide #844`.
 case_run_aSkipPrintsTheReasonTheChildGave() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out reason
   # the shape the report printed with no reason at all
   reason="one item of 35 tasks, a new Gradle module and 20 case names would have to land together"
@@ -11283,7 +11285,7 @@ case_run_aSkipPrintsTheReasonTheChildGave() {
 # from the worktree's branch marker, a file the state does not point at (issue #263). The case reads the state
 # *while the child is blocked*, which is the state a killed run leaves behind, and again once the item ended.
 case_run_stateNamesTheItemInProgress() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/state.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/state.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p sf fifo pid i
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11317,7 +11319,7 @@ case_run_stateNamesTheItemInProgress() {
 }
 
 case_run_claimedGateWithoutEvidenceIsBlocked() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11355,7 +11357,7 @@ ACTION
 # an empty field, not `0 xml` — and `tools/loop/report.sh` reads an empty field as the gate result it has to ask for,
 # so the item appears on the report's "re-run the gate for #N" line.
 case_run_theGateColumnNamesThisItemsGateResult() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p run_log out actions
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -11459,7 +11461,7 @@ case_run_aSkipIsNoGateToRerun() {
 }
 
 case_run_citedEvidenceMustTravelWithTheChange() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11482,7 +11484,7 @@ ACTION
 }
 
 case_run_needsDecisionIsEscalatedWithTheWork() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p skip_report log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11501,7 +11503,7 @@ case_run_needsDecisionIsEscalatedWithTheWork() {
 }
 
 case_run_noGateStillRuns() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf
   d=$(scratch); p=$(new_project)
   # a project with no build system: the phases still run, and the report says the gate was skipped
@@ -11516,7 +11518,7 @@ case_run_noGateStillRuns() {
 }
 
 case_run_dryRunTouchesNothing() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11538,7 +11540,7 @@ case_run_dryRunTouchesNothing() {
 }
 
 case_run_reviewRoundsCapAtTwo() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11559,7 +11561,7 @@ case_run_reviewRoundsCapAtTwo() {
 # The round budget was the literal `2` in the loop, so a project that reviews harder could not raise it and a
 # reviewer that asked only for corrections still ended the run's work on the item (#187).
 case_run_reviewBudgetIsARecordedValue() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11575,7 +11577,7 @@ case_run_reviewBudgetIsARecordedValue() {
 # Zero rounds is not a cheap review: the item would be blocked on a round that never ran, and the branch would
 # carry a `review-failed-round-0` that refuses it for ever (review of #187).
 case_run_aZeroRoundBudgetIsRefused() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11589,7 +11591,7 @@ case_run_aZeroRoundBudgetIsRefused() {
 # answer it — so a corrective refusal at the cap earns exactly one more round, and a second refusal blocks
 # (#187). The extension is `LOOP-CORRECTIONS-ONLY: yes` in the reviewer's report, which the prompt asks for.
 case_run_aCorrectiveRefusalEarnsOneMoreRound() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11610,7 +11612,7 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
 # The assertions are the absences that make it so: the round-3 diff carries the correction's hunk and not the
 # line it replaced, and the round-3 prompt carries the finding the round exists to decide.
 case_run_aCorrectiveRoundIsHandedTheCorrections() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f diff prompt first
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11687,7 +11689,7 @@ esac"
 # round was spent, and the notes travel to the item instead of buying a second reviewer process (#205). The
 # report also asks for corrections, which is the shape of a refusal: there is none here, so no round is bought.
 case_run_aZeroBlockingRefusalClosesWithItsNotes() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f notes log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11717,7 +11719,7 @@ VERDICT: FAIL'
 # The other half of the same line: a report that counts blocking findings refuses exactly as the loop has always
 # refused — the change goes back for a second round, and a second refusal blocks the item (#205).
 case_run_aBlockingRefusalStillTakesTheRoundTwoPath() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11743,7 +11745,7 @@ VERDICT: FAIL'
 # answer decides it, not its content: a cut answer ends mid-word and lacks the line the prompt asks for last, so
 # the round is retried once, the item closes on the answer that arrived, and the cut attempt stays as evidence.
 case_run_aCutReportIsRetriedInsteadOfRefused() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11786,7 +11788,7 @@ ACTION
 # leaves — "the change failed its last review round" — and the branch must carry no review-failure marker, or a
 # later run refuses to adopt a change no reviewer ever refused (#224).
 case_run_aReportCutTwiceBlocksAsTheTransportsFault() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11820,7 +11822,7 @@ ACTION
 # carried three blocking findings. So the closing line is read where it stands, fence or no fence: the answer is
 # complete, and the count inside the fence is the count the round is decided by.
 case_run_aFencedClosingBlockIsACompleteAnswer() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11849,7 +11851,7 @@ NOTE: the design cites the guideline section by paragraph rather than by its hea
 # question, the options and the recommendation (#186). The reason alone ("a decision is needed") is what the
 # owner had to reconstruct.
 case_run_escalationCarriesTheDecision() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11870,7 +11872,7 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
 # worker's decision is the fallback" as "the worker's decision wins" would pass every other case in this family and
 # hand the owner the older question — that is what this case is for, and mutation `29.6` is its red proof.
 case_run_aReviewersDecisionOutranksTheWorkers() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -11893,7 +11895,7 @@ LOOP-DECISION: the reviewers fork: apply the corrections, or abandon the item | 
 }
 
 case_run_mayCloseNoLeavesTheIssueOpen() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" --may-close no >/dev/null || fail "the run failed"
@@ -11905,7 +11907,7 @@ case_run_mayCloseNoLeavesTheIssueOpen() {
 }
 
 case_run_metricsRecordedPerItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -11926,7 +11928,7 @@ case_run_metricsRecordedPerItem() {
 # `run.sh` keeps the stream beside the item's reports and records the sums with the wall time; the table prints
 # them. The fixture is a hand-written event stream: no model, no network, and every number below is asserted.
 case_run_childUsageIsRecordedPerItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/prompts/worker-tail.md tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/prompts/worker-tail.md tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f row
   d=$(scratch); p=$(new_project)
   cat > "$d/events.jsonl" <<'JSONL'
@@ -12057,7 +12059,7 @@ LOOP-GATE: tests=1 failures=0 from the first child' \
 # arm for it, and without that arm the item was recorded with the opposite of what the tail said — "reported success
 # but no archived change appears in the run's diff" — dropping the gate's own numbers from the reason a person reads.
 case_run_aRedGateIsBlockedByTheTail() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f note out actions
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -12103,7 +12105,7 @@ case_run_aRedGateIsBlockedByTheTail() {
 # two halves here are the two the fix decides — a waiver closes the item and reaches the record beside the tally, and
 # the same red tally without one is blocked **before** the branch is merged and the item closed on the tracker.
 case_run_aCloseOverARedGateIsWaivedOrBlocked() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d d2 p p2 f f2 out clause suite d3 p3 f3 d4 p4 f4
   clause='the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path'
   suite='MapManagerSourceSwitchPlanTest#aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered'
@@ -12175,7 +12177,7 @@ case_run_aCloseOverARedGateIsWaivedOrBlocked() {
 }
 
 case_run_aRedGateIsAttributedToTheTreeThatFailsIt() {
-  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/loop/gate.sh tools/gate-attribute.sh tools/loop/loop.conf tools/tooling.json tools/pi-child-events.sh
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/loop/gate.sh tools/gate-attribute.sh tools/loop/loop.conf tools/tooling.json tools/pi-child-events.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   # A red gate is the item's only verdict, and the record it left could not say whether the case it named was the
   # delta's or the base's (issue #853). Three runs, one per answer the field can carry, and the base tree the
   # second one pays for is the only one of the three that is asked to exist.
@@ -12267,7 +12269,7 @@ LOOP-GATE: tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s) — failing: 
 # at #849's own gate head. The second look is the item's own worktree — the tree its work already warmed, which a fresh
 # detached tree is not — and the two halves here are the two answers it can give.
 case_run_aFlakedCaseIsOffTheBlockedPath() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/gate-attribute.sh tools/tooling.json tools/pi-child-events.sh
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/loop/state.sh tools/gate-attribute.sh tools/tooling.json tools/pi-child-events.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out d2 p2 f2 marker marker2 tally
   tally='tests=2 failures=1 errors=0 (tools/demo-selftest.sh 7s)'
   # The gate log `tools/gate-attribute.sh` derives the case and the rerun command from: one failing case, which the
@@ -12343,7 +12345,7 @@ LOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#aCaseThe
 # round's own spend in `metrics.roles.reviewer` — and `report.sh` printed it as an item whose rounds never ended in a
 # verdict, and as never reviewed.
 case_run_aBlockedItemRecordsTheRoundThatReadIt() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p f out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -12372,7 +12374,7 @@ case_run_aBlockedItemRecordsTheRoundThatReadIt() {
 # did: nothing about the run may depend on the stream. The item is worked, recorded and reported, and the three
 # new columns say `-` rather than a zero nobody measured.
 case_run_plainTextChildStillReports() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf f row
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -12388,7 +12390,7 @@ case_run_plainTextChildStillReports() {
 }
 
 case_run_commitsWithoutAnAmbientIdentity() {
-  # files: tools/issues/tests/fixtures/login.txt tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/issues/tests/fixtures/login.txt tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
   # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
   # identity is removed as well, so the case is the runner's environment and not the developer's.
@@ -12419,7 +12421,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
 }
 
 case_run_emptyQueueIsNotAFailure() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
@@ -12436,7 +12438,7 @@ case_run_emptyQueueIsNotAFailure() {
 }
 
 case_run_reviewerWriteInvalidatesTheRound() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -12449,7 +12451,7 @@ case_run_reviewerWriteInvalidatesTheRound() {
 }
 
 case_run_reviewReadOnlyOffOnlyForDiagnosis() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -12467,7 +12469,7 @@ case_run_reviewReadOnlyOffOnlyForDiagnosis() {
 # diff where an extension filter would have dropped it, and the prompt names the exclusion so the reviewer
 # reads neither the absence nor a missing artefact.
 case_run_reviewDiffExcludesTheEvidenceArchive() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p diff prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -12509,7 +12511,7 @@ esac'
 # say so (`openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md` §5.6, whose
 # `evidence/gate/` XMLs are stamped 12:23–12:26 against the round-2 runs at 12:42–12:43).
 case_run_aReviewDiffNamesTheTreeItWasWrittenFrom() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p diff identity prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -12545,7 +12547,7 @@ esac'
 }
 
 case_run_engineNamesNoProjectFact() {
-  # files: tools/check-portability.sh tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/check-portability.sh tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local hits sbxdir newpath d p
   hits=$(grep -rn 'pi --print' "$LOOP_ENGINE"/*.sh 2>/dev/null || true)
   [ -z "$hits" ] || fail "a script names the agent command instead of reading it: $hits"
@@ -12578,7 +12580,7 @@ case_run_engineNamesNoProjectFact() {
 # parser that hangs again fails this case instead of taking the suite with it. Each assertion names the flag
 # too: `needs a value` alone would also pass if the refusal named the *next* flag.
 case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError() {
-  # files: tools/issues/create.sh tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/mutate.sh
+  # files: tools/issues/create.sh tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/mutate.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local line flag out status
   for line in \
     'tools/loop/run.sh --items 100 --minutes 480 --push' \
@@ -12597,7 +12599,7 @@ case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError() {
 }
 
 case_usage_bareValueFlagDoesNotSwallowTheNextFlag() {
-  # files: tools/issues/create.sh tools/loop/tests/loop-selftest.sh tools/loop/run.sh tools/sensors/tests/sensor-selftest.sh
+  # files: tools/issues/create.sh tools/loop/tests/loop-selftest.sh tools/loop/run.sh tools/sensors/tests/sensor-selftest.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local pair flag line out status
   for pair in \
     '--push:tools/loop/run.sh --items 100 --push --dry-run' \
@@ -13329,7 +13331,7 @@ case_adapter_theResultBoundExemptsGateEvidence() {
 # for a reason nothing recorded (#184). The assertion is that the three readers agree: the run's own output,
 # the state file, and the report printed afterwards.
 case_run_stopReasonIsPrintedAndReported() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out f run_part stop_line recorded
   d=$(scratch); p=$(new_project)
   out=$(run_one_item "$p" "$d" 2>&1) || fail "the run itself failed"
@@ -13351,7 +13353,7 @@ case_run_stopReasonIsPrintedAndReported() {
 # then the report reads "ended without recording a reason" while its counters belong to a run nobody can name
 # (#184). Measured 2026-10-20 on a live run whose base advanced while it worked.
 case_run_staleBaseStopsTheRunWithItsReason() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out f base tip reason
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
@@ -13378,7 +13380,7 @@ case_run_staleBaseStopsTheRunWithItsReason() {
 # an item that already carries the escalation label is not a new decision: escalating it again posts a second
 # identical comment, which is what #110 collected three of (#183).
 case_run_awaitingDecisionIsNotEscalatedAgain() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -13413,7 +13415,7 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
 # itself is the run's own leftover. Measured 2026-10-22: 43 of the 53 local branches were already merged
 # into the base, and nothing removed them — the run creates a branch per item and never took one away.
 case_run_aMergedBranchIsRemoved() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p w branch head out report_branches
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   out=$(run_one_item "$p" "$d" 2>&1) || fail "the run failed"
@@ -13444,7 +13446,7 @@ case_run_aMergedBranchIsRemoved() {
 # manual landing left behind, stayed for ever (issue #239). The sweep is the run's, and it keeps what still
 # carries work, what a worktree holds, and the branch whose change a reviewer refused.
 case_run_theEndSweepsTheLandedBranchesItMade() {
-  # files: tools/loop/worktree.sh tools/loop/run.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/worktree.sh tools/loop/run.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local p out
   p=$(new_project)
   # A branch whose patch is in the base: it was merged, so it carries nothing.
@@ -13736,7 +13738,7 @@ case_report_landedBranchesAreNamedAsRemovable() {
 
 # A run's report of what it did is the run's product, and a branch it made is part of it.
 case_report_headerAndTableShape() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out rows
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -13793,7 +13795,7 @@ case_report_misdiagnosedIsCountedApart() {
 decisions_line() { printf '%s\n' "$1" | sed -n 's/^decisions the owner owes: //p'; }
 
 case_report_escalatedSkipNamesTheLabelWritten() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out line log named escalated
   d=$(scratch); p=$(new_project)
   # Two candidates, one budget slot: the queue never empties, so the run's own second pre-screen pass —
@@ -13818,7 +13820,7 @@ LOOP-RED-TEST: Demo#case was never reached' 'VERDICT: PASS'
 }
 
 case_report_failedReviewEscalationIsNamed() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p out line
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -15687,7 +15689,7 @@ CASES
 # without removing, removes with `--apply`, removes only the recorded build paths and only scratch trees old
 # enough that no suite can be writing into them, and finds nothing on a second run (issue #210).
 case_clean_reportsWithoutApplyAndRemovesWithIt() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p w tmp conf out n1 n2
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -15919,7 +15921,7 @@ case_prescreen_aClosedItemIsNotSelected() {
 # The change reaches the child as a block of its own, never in an instruction position, and the recorded decision
 # travels inside it.
 case_prompt_thePackageCarriesTheChange() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p package
   d=$(scratch); p=$(new_project)
   tier_b_change "$p" add-prepared-change
@@ -15942,7 +15944,7 @@ case_prompt_thePackageCarriesTheChange() {
 # A tier-A item's package says so, because an absent block is a half-prepared package a reader cannot tell from a
 # missing one.
 case_prompt_aTierAItemSaysSo() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p package
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -15956,7 +15958,7 @@ case_prompt_aTierAItemSaysSo() {
 
 # A worker handed a change verifies it and applies it; it creates no second change directory for the item.
 case_run_aTierBItemWritesNoSecondChange() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p w prompt package
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   tier_b_change "$p" add-prepared-change
@@ -15979,7 +15981,7 @@ case_run_aTierBItemWritesNoSecondChange() {
 # A fork the change's declaration does not settle is a decision naming that fork and the change's line — never a
 # re-derived option list, which is how a recorded `2` comes to mean a different option.
 case_run_aForkTheChangeDoesNotAnswerIsNamed() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt report
   d=$(scratch); p=$(new_project)
   tier_b_change "$p" add-prepared-change
@@ -16004,7 +16006,7 @@ LOOP-DECISION: the bound the change leaves open at design.md:5 — options in or
 
 # A change whose premise moved is a diagnosis naming the path that moved, and never a replacement plan.
 case_run_aChangeWhosePremiseMovedIsNotRePlanned() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p prompt report
   d=$(scratch); p=$(new_project)
   tier_b_change "$p" add-prepared-change
@@ -16028,7 +16030,7 @@ LOOP-DECISION: the change cites tools/loop/worktree.sh:216, which no longer show
 
 # The source a landed item consumed is reported by the clean command, with its size, and removed only by `--apply`.
 case_clean_aConsumedChangeIsReported() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p src out
   d=$(scratch); p=$(new_project)
   tier_b_change "$p" add-prepared-change
@@ -16045,7 +16047,7 @@ case_clean_aConsumedChangeIsReported() {
 }
 
 case_clean_aSecondRunFindsNothing() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p src out
   d=$(scratch); p=$(new_project)
   tier_b_change "$p" add-prepared-change
@@ -16231,7 +16233,7 @@ case_clean_worktreeDotSweepsTheOneRootOnce() {
 # person's `kill` takes mid-item — used to end the run and leave the child working. The stub child blocks on a
 # fifo, which is a child in the middle of its phase, and both the run and the child must be gone afterwards.
 case_run_interruptedRunEndsTheChildItStarted() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo pid i status child alive
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -16293,7 +16295,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
 # `run.stop` is the reason a report read after this process is gone prints, and 50 of the 105 runs this repository has
 # archived record no stop, 18 of them having worked items (measured 2026-11-07).
 case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p block first status f owner child i alive deadline
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -16377,7 +16379,7 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
 # and a case that waits on it with no clock of its own waits for the suite's bound (minutes times the pool's width).
 # A case that bounds its own wait answers here, naming what it read, and leaves nothing holding its stream.
 case_run_aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p block first status f owner gone ended stop_seen item_seen
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -17198,7 +17200,7 @@ case_gate_aThirdFullRunInOneSessionIsRefused() {
 # (found in the round-1 review of this change, `openspec/changes/fix-a-gate-record-names-the-tree-it-measured`).
 # One derivation, `loop_change_identity`, both callers, over the paths the round's diff carries.
 case_gate_theGateAndTheRoundNameOneTree() {
-  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf base events out gate_diff round_diff corrected
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -17242,8 +17244,8 @@ case_gate_theGateAndTheRoundNameOneTree() {
   # One derivation, and not a copy of it at either moment: a second path set cannot be constructed at one caller only.
   assert_contains "$(cat "$LOOP_ENGINE/gate.sh")" 'loop_change_identity "$LOOP_ROOT" "$base"' \
     "the gate derives the identity the one derivation gives"
-  assert_contains "$(cat "$LOOP_ENGINE/run.sh")" 'loop_change_identity "$worktree"' \
-    "and so does the round's diff"
+  assert_contains "$(cat "$LOOP_ENGINE/evidence.sh")" 'loop_change_identity "$worktree"' \
+    "and so does the round's diff, in the file that records the review"
   return 0
 }
 
@@ -17325,7 +17327,7 @@ case_gate_aMovedChangeNamesTheSameTree() {
 # gate** and that a red gate **restores it to its unarchived name** — so the restore is the run's, not a child's
 # prose, and it is one helper a case can call.
 case_gate_aRedGateRestoresTheChangeToItsUnarchivedName() {
-  # files: tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf out status
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -17468,7 +17470,7 @@ case_stub_ownsGate() {
   stub_ran "stub#ownsGate"
 }
 case_stub_ownsRun() {
-  # files: tools/loop/run.sh
+  # files: tools/loop/run.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   stub_ran "stub#ownsRun"
 }
 case_stub_ownsFixtureDir() {
@@ -17496,7 +17498,7 @@ case_stub_ownsGate() {
   stub_ran "stub#ownsGate"
 }
 case_stub_ownsRun() {
-  # files: tools/loop/run.sh
+  # files: tools/loop/run.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   stub_ran "stub#ownsRun"
 }
 loop_run_shell_case() { "case_${1%%#*}_${1#*#}"; }'
@@ -17768,7 +17770,7 @@ case_stub_kept() {
   :
 }
 case_stub_lost() {
-  # files: tools/loop/run.sh
+  # files: tools/loop/run.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   :
 }
 CASES
@@ -18204,6 +18206,34 @@ layout_table_refusals() { # <engine dir> → one line per row without a script, 
   done
 }
 
+layout_owner_refusals() { # <engine dir> → one line per function the file it is defined in does not own
+  local dir=$1
+  awk -F'\t' -v table="$1/layout.tsv" '
+    FNR == 1 { fn = FILENAME; sub(/^.*\//, "", fn) }
+    FILENAME == table {
+      if ($0 !~ /^#/ && $1 != "") {
+        if ($4 != "" && $4 != "-") chain[$1] = 1
+        n = split($4, w, " ")
+        for (i = 1; i <= n; i++) if (w[i] != "-") owned[w[i]] = $1
+      }
+      next
+    }
+    /^[A-Za-z_][A-Za-z0-9_]*\(\) *\{/ {
+      d = $0; sub(/\(\).*/, "", d); defined[d] = fn
+    }
+    END {
+      for (d in defined) {
+        if (!(d in owned)) {
+          # A file with no owner column is an entry of its own: its words are its own process\047s.
+          if (defined[d] in chain) print "layout.tsv: " defined[d] " defines " d ", which no row assigns"
+          continue
+        }
+        if (owned[d] != defined[d]) print "layout.tsv: " d " is defined in " defined[d] " and the table assigns it to " owned[d]
+      }
+      for (d in owned) if (!(d in defined)) print "layout.tsv: " d " is assigned to " owned[d] " and no file defines it"
+    }' "$dir/layout.tsv" "$dir"/*.sh | sort
+}
+
 layout_bound_refusals() { # <engine dir> → one line per row whose bound is unusable, or already passed
   local dir=$1 table f bound rest row n
   table="$dir/layout.tsv"
@@ -18390,6 +18420,38 @@ case_driver_theSourceOrderIsDeclared() {
   out=$(layout_order_refusals "$d")
   assert_contains "$out" 'run.sh sources "b.sh a.sh" and the table declares "a.sh b.sh"' \
     "an entry that sources them in another order is refused: $out"
+  return 0
+}
+
+case_driver_anOwnedFunctionIsInItsOwnersFile() {
+  # files: tools/loop/ tools/loop/layout.tsv
+  local out d
+  out=$(layout_owner_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "every function is defined in the file the table assigns it to"
+
+  d=$(scratch)
+  printf 'child_fn() { :; }\n' > "$d/child.sh"
+  printf 'run.sh\t100\t-\t-\tthe entry\nchild.sh\t100\t1\tchild_fn\tthe child\n' > "$d/layout.tsv"
+  out=$(layout_owner_refusals "$d")
+  assert_eq "" "$out" "a function in the file its row assigns is accepted"
+
+  printf 'child_fn() { :; }\nstray_fn() { :; }\n' > "$d/child.sh"
+  out=$(layout_owner_refusals "$d")
+  assert_contains "$out" 'child.sh defines stray_fn, which no row assigns' \
+    "a function the owner file defines and its row does not list is refused: $out"
+
+  printf 'child_fn() { :; }\n' > "$d/child.sh"
+  printf 'stray_fn() { :; }\n' > "$d/run.sh"
+  printf 'run.sh\t100\t-\t-\tthe entry\nchild.sh\t100\t1\tchild_fn stray_fn\tthe child\n' > "$d/layout.tsv"
+  out=$(layout_owner_refusals "$d")
+  assert_contains "$out" 'stray_fn is defined in run.sh and the table assigns it to child.sh' \
+    "a function defined outside its owner's file is refused: $out"
+
+  printf 'child_fn() { :; }\n' > "$d/child.sh"
+  printf 'run.sh\t100\t-\t-\tthe entry\nchild.sh\t100\t1\tchild_fn owned_elsewhere\tthe child\n' > "$d/layout.tsv"
+  out=$(layout_owner_refusals "$d")
+  assert_contains "$out" 'owned_elsewhere is assigned to child.sh and no file defines it' \
+    "a row that assigns a function no file defines is refused: $out"
   return 0
 }
 
@@ -20223,7 +20285,7 @@ case_repeat_aBrokenLedgerLeavesTheResultAsReturned() {
 # tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it. The item
 # is recorded `cut`, not `blocked` (issue #790): the bound is the run's own and ends a phase, not the item.
 case_run_childPastItsTurnBoundIsCut() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20316,7 +20378,7 @@ EOF
 # at 2. A tree that counts nothing waits on that child for ever; a tree that counts every call names more than the two
 # checks it counted in the line it writes.
 case_run_childPastItsCheckBoundIsCut() {
-  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/loop/tests/fixtures/pi tools/loop/tests/loop-mutations.sh tools/loop/tests/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop/run.sh tools/loop/tests/fixtures/pi tools/loop/tests/loop-mutations.sh tools/loop/tests/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20392,7 +20454,7 @@ EOF
 # `turn_end` line and a record that says two were dropped: a bound of three is reached, and on the tree before the
 # fix the run waits on a child that has taken one turn for ever.
 case_run_aRotatedStreamStillCountsTheTurnsItDropped() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20451,7 +20513,7 @@ EOF
 # two-second wall clock this case records, so which bound ended it is readable in the transcript: the clock's, never
 # a turn bound that is off.
 case_run_theRecordedZeroKeepsTheTurnBoundOff() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fixture action out status report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20501,7 +20563,7 @@ EOF
 # `child-turns-max=` string is asserted, which is why this case fails when a role is dropped from that loop as well as
 # when a figure moves.
 case_run_eachChildIsBoundedByItsOwnRolesTurns() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo worker_fixture reviewer_fixture extra action pid i status out state reviewer_report worker_report shipped
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20606,7 +20668,7 @@ EOF
 # the tree before this change reads and this one does not: the child takes its three turns, the item closes, and the
 # state and the report carry the total of three.
 case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fixture action out status state report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20658,7 +20720,7 @@ EOF
 # wait for it: the child appends a fixture stream whose context grows past the recorded value and then blocks, so a
 # tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it.
 case_run_childPastItsContextBoundIsCut() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out report log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20768,7 +20830,7 @@ EOF
 # min before its deadline with both patches in hand — and the next run applied neither (2 of 2, the base had moved). A
 # child that is continued in the run that cut it is a phase of that run; the same patch one run later is a coin toss.
 case_run_aContextCutWorkerIsContinuedByItsOwnRun() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out f log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20871,7 +20933,7 @@ EOF
 # 44.1 % of its 75 442 305 tokens — and both had crossed the recorded 143 124 well before that. This case holds the
 # worker below the stop and above the checkpoint, so the split is the only reason the run can continue it.
 case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out f log report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -20979,7 +21041,7 @@ EOF
 # session. Without this case the split could be made unconditional at every reading and the case above would still
 # pass, which is the shape a mutation on the comparison would find.
 case_run_aWorkerBelowItsCheckpointIsNotSplit() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fixture action status out f log report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -21036,7 +21098,7 @@ EOF
 # recorded stop of 200 000, which is the bound #836 refused to lower. The case holds the child past its crossing, so
 # a tree that splits on the reading alone ends it and the assertions read that as the cut it is.
 case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out f log report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -21103,7 +21165,7 @@ EOF
 # run (#754), so a worker the bound ended before it wrote anything — the patch is then the header `keep_leftovers`
 # always writes and no hunk at all — costs the item its continuation and not its record.
 case_run_aCutWhosePatchDoesNotApplyIsLeftCut() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out f log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -21175,7 +21237,7 @@ EOF
 # stub, which is what makes the two facts it asserts measurable: the gate ran in the change root the child wrote to,
 # and the item's record carries its result beside the cut.
 case_run_aCutRunsItsGateOnTheKeptWork() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fifo fixture action pid i status out f log gate
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -21274,7 +21336,7 @@ EOF
 # leaves the reviewer's shipped key above it: the round must answer, where the tree before this change ended it at the
 # item's number and recorded the cut.
 case_run_eachRoleIsBoundedByItsOwnContext() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf action out status state reviewer_report over over_fifo over_pid i
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -21379,7 +21441,7 @@ EOF
 # outlives the two-second wall clock this case records, so which bound ended it is readable in the transcript: the
 # clock's, never a context bound that is off.
 case_run_theRecordedZeroKeepsTheContextBoundOff() {
-  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/child.sh
   local d p conf fixture action out status report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)

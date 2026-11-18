@@ -17,6 +17,12 @@
 # Usage: `source lib.sh` — then `loop_resolve` once, at the top of the script, before anything else.
 set -uo pipefail
 
+# Every engine script sources this file and so does each owner file the entry sources, so a second read has to cost
+# nothing: without the guard a re-read would re-assign the configuration defaults over a run's own state (issue #892,
+# change `run-sh-is-split-along-the-stream`).
+[ -n "${LOOP_LIB_LOADED:-}" ] && return 0
+LOOP_LIB_LOADED=1
+
 LOOP_OK=0
 LOOP_USAGE=2
 LOOP_STOP=3

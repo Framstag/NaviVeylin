@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The gate's own line from the red run recorded in red-on-HEAD-lone-assertion.log, transcribed here because the
+     runner writes no XML of its own and the line is the number the case reads. The step it tallied is the one the
+     case's throwaway suite wrote: a task header, the AssertionError under it, no per-test FAILED line, exit 1. The
+     engine is the base (7aea9b5d7999f4a8c1689d39aa66247386dc3728), run 2026-11-18T22:58:00Z. -->
+<testsuite name="gate: bash suite.sh" tests="0" failures="1" errors="0" timestamp="2026-11-18T22:58:00Z">
+  <testcase name="LOOP-GATE: tests=0 failures=1 errors=0" classname="gate">
+    <failure message="the base's gate line counts the throwable as one failing case, which is the reading this change deletes"/>
+  </testcase>
+</testsuite>

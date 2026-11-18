@@ -1,0 +1,5 @@
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+PASS gate#aFailingSuitesTallyIsUnchangedByItsNeighbours
+loop-selftest: gate 3 cases 2.90 s
+loop-selftest: all 3 cases passed (JDK 21, offline, no token, no sandbox) — 2.36 s, selection: --case gate#aFailingSuite*

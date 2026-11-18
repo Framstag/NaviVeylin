@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The gate's own line from the green run recorded in red-case-green.log, transcribed here for the same reason:
+     the runner writes no XML and the case asserts the line. Same shape, same throwaway suite, run against this
+     change's engine at 2026-11-18T22:58:05Z — the throwable names no case, so the step carries the error #268's rule
+     gives it. -->
+<testsuite name="gate: bash suite.sh" tests="0" failures="0" errors="1" timestamp="2026-11-18T22:58:05Z">
+  <testcase name="LOOP-GATE: tests=0 failures=0 errors=1" classname="gate"/>
+</testsuite>

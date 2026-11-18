@@ -1,0 +1,49 @@
+gate#aLoneAssertionErrorIsNotACase|   the step named no case, so it contributes the error and no failure: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/base-engine-916/tools/loop/loop.conf)
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-BASE: 7bb2db427584795127fd9f2db678fcf1de38e565 (from --base)
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-TREE: head=3a1bb6c5cee5edb9c6a31d7ce7fa6448f52b9ec3 diff=3d96e1b9a404715b
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally run=3655301
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally/gate.log
+gate#aLoneAssertionErrorIsNotACase| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh
+gate#aLoneAssertionErrorIsNotACase| > Task :app:testMobileDebugUnitTest FAILED
+gate#aLoneAssertionErrorIsNotACase|     java.lang.AssertionError: expected:<1> but was:<2>
+gate#aLoneAssertionErrorIsNotACase| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh — 0s
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE: tests=0 failures=1 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh: 'LOOP-GATE: tests=0 failures=0 errors=1' not found in: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/base-engine-916/tools/loop/loop.conf)
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-BASE: 7bb2db427584795127fd9f2db678fcf1de38e565 (from --base)
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-TREE: head=3a1bb6c5cee5edb9c6a31d7ce7fa6448f52b9ec3 diff=3d96e1b9a404715b
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally run=3655301
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally/gate.log
+gate#aLoneAssertionErrorIsNotACase| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh
+gate#aLoneAssertionErrorIsNotACase| > Task :app:testMobileDebugUnitTest FAILED
+gate#aLoneAssertionErrorIsNotACase|     java.lang.AssertionError: expected:<1> but was:<2>
+gate#aLoneAssertionErrorIsNotACase| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh — 0s
+gate#aLoneAssertionErrorIsNotACase| LOOP-GATE: tests=0 failures=1 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh
+--- gate#aLoneAssertionErrorIsNotACase[0] (exit 1)
+  the step named no case, so it contributes the error and no failure: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/base-engine-916/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 7bb2db427584795127fd9f2db678fcf1de38e565 (from --base)
+LOOP-GATE-TREE: head=3a1bb6c5cee5edb9c6a31d7ce7fa6448f52b9ec3 diff=3d96e1b9a404715b
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally run=3655301
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally/gate.log
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh
+> Task :app:testMobileDebugUnitTest FAILED
+    java.lang.AssertionError: expected:<1> but was:<2>
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh — 0s
+LOOP-GATE: tests=0 failures=1 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh: 'LOOP-GATE: tests=0 failures=0 errors=1' not found in: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/916/scratch/base-engine-916/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 7bb2db427584795127fd9f2db678fcf1de38e565 (from --base)
+LOOP-GATE-TREE: head=3a1bb6c5cee5edb9c6a31d7ce7fa6448f52b9ec3 diff=3d96e1b9a404715b
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally run=3655301
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/tally/gate.log
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh
+> Task :app:testMobileDebugUnitTest FAILED
+    java.lang.AssertionError: expected:<1> but was:<2>
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh — 0s
+LOOP-GATE: tests=0 failures=1 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh 0s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K8h7gw/cases/0/tree/case.AsZoYa/suite.sh
+FAIL gate#aLoneAssertionErrorIsNotACase
+loop-selftest: 1 of 1 cases failed

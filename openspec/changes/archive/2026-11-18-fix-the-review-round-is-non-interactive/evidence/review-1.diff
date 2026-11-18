@@ -1,0 +1,72 @@
+# The #954 delta alone (base 6b0e01a7). The prompt file landed as 41dc62e3; the two shared test files'
+# #954 hunks landed inside b08c26b7 (#960) — see
+# openspec/changes/fix-the-review-round-is-non-interactive/tasks.md §6.2, and
+# `git log --oneline 6b0e01a7..41dc62e3 --stat` for the split.
+
+diff --git a/tools/loop/tests/loop-cases.sh b/tools/loop/tests/loop-cases.sh
+--- a/tools/loop/tests/loop-cases.sh
++++ b/tools/loop/tests/loop-cases.sh
+@@ -4664 +4666 @@ case_prompt_reviewerCarriesTheEightItems() {
+-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
++  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+diff --git a/tools/loop/tests/loop-cases.sh b/tools/loop/tests/loop-cases.sh
+--- a/tools/loop/tests/loop-cases.sh
++++ b/tools/loop/tests/loop-cases.sh
+@@ -4683,0 +4686,9 @@ case_prompt_reviewerCarriesTheEightItems() {
++  # Issue #954: the contract stated the answer's tail and nothing about the round being one process with no one to
++  # ask, so a child read the file as a document to summarise and replied `Pick: (1) run review, (2) summary done,
++  # (3) edit prompt. Awaiting answer.` — four rounds of the run of 2026-11-17T10:58Z did, twice per item, and the
++  # retry prompt is byte-identical, so the retry asked the same question again. A question is not an answer, and the
++  # clause that says so sits beside the output contract so the round before the gate inherits it too.
++  assert_contains "$(cat "$prompt")" "non-interactive" "the reviewer is told the round is non-interactive"
++  assert_contains "$(cat "$prompt")" "never ask a question" "and that a question is not an answer"
++  assert_contains "$(cat "$prompt")" "an answer that is a question is a cut-short answer" \
++    "and what the run reads such an answer as"
+diff --git a/tools/loop/tests/loop-cases.sh b/tools/loop/tests/loop-cases.sh
+--- a/tools/loop/tests/loop-cases.sh
++++ b/tools/loop/tests/loop-cases.sh
+@@ -7060 +7096 @@ case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
+-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
++  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/pre-gate-review.md tools/loop/prompts/reviewer.md tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+diff --git a/tools/loop/tests/loop-cases.sh b/tools/loop/tests/loop-cases.sh
+--- a/tools/loop/tests/loop-cases.sh
++++ b/tools/loop/tests/loop-cases.sh
+@@ -7079,0 +7116,6 @@ case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle() {
++  # The round before the gate is the same reviewer handed one more section, so the clause issue #954 added beside the
++  # output contract reaches it too: it is the round of the two that ran twice per item asking whether to start.
++  assert_contains "$text" 'non-interactive' \
++    "and that this round is non-interactive like the round that follows the gate (issue #954)"
++  assert_contains "$text" 'never ask a question' \
++    "because neither round has a person to answer one"
+diff --git a/tools/loop/tests/loop-mutations.sh b/tools/loop/tests/loop-mutations.sh
+--- a/tools/loop/tests/loop-mutations.sh
++++ b/tools/loop/tests/loop-mutations.sh
+@@ -1438,0 +1440,7 @@ MUTATIONS=(
++  # 954.1 — the clause that says the round is one process with nobody to ask (issue #954). The contract stated the
++  # answer's tail and nothing about the round being non-interactive, so a child read `reviewer.md` as a document to
++  # summarise and answered `Pick: (1) run review, (2) summary done, (3) edit prompt. Awaiting answer.` — four rounds of
++  # the run of 2026-11-17T10:58Z did, twice per item, and the byte-identical retry asked the same question again. The
++  # record re-opens the permission the clause removes, which is the reading the round had before it landed; the
++  # pre-gate round inherits the same file, so one record stands for both rounds' clause.
++  '954.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerCarriesTheEightItems@the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954)@s|never ask a question|feel free to ask a question|'
+diff --git a/tools/loop/prompts/reviewer.md b/tools/loop/prompts/reviewer.md
+index f29c5ff4..2eb97a82 100644
+--- a/tools/loop/prompts/reviewer.md
++++ b/tools/loop/prompts/reviewer.md
+@@ -57,6 +57,15 @@ diff review is a **reading** task, and nothing you report may depend on a suite
+ 
+ Your whole output is the review below.
+ 
++**This round is non-interactive: there is nobody to ask and nothing to confirm.** Your answer is read by a script
++and no person sees it in time to reply, so never ask a question, never offer to proceed or to confirm before
++starting, never offer a summary in place of the round, and never end with a choice for someone to pick. Carry out
++the round and end with the two lines the contract below names.
++
++A question is not an answer: an answer that is a question is a cut-short answer — the run has no verdict from it,
++spends its one retry on a byte-identical prompt that asks the same question again, and then refuses the item
++(issue #954).
++
+ Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed
+ first in practice.
+ 
+

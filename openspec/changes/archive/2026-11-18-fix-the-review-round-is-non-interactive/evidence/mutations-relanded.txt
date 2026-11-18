@@ -1,0 +1,26 @@
+2026-11-18T06:00:16Z
+### selection
+61.4	prompt#reviewerIsBoundedToReading	the reviewer told that a number no command produced is a correction, not a refusal (issue #244)
+258.1	prompt#thePhasePromptsCarryTheirOwnRoute	the sentence that names the marker a cut read carries, so a reviewer that holds a window grades it as the file (issue #818)
+954.1	prompt#reviewerCarriesTheEightItems	the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954)
+### red+restore
+loop-mutations: selected 5 of 420 records (files: tools/loop/prompts/reviewer.md osmscout-client-java/bin/)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.9OgQmm
+RED    37.1  prompt#reviewerIsBoundedToReading   (the gate named in the read-only list the reviewer is given (issue #236))
+       2026-11-18T06:00:27Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-060020')
+restore 37.1 prompt#reviewerIsBoundedToReading green again
+RED    37.2  prompt#reviewerIsBoundedToReading   (item 3 asking for the tally the evidence carries instead of a second execution (issue #236))
+       2026-11-18T06:00:53Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-060044')
+restore 37.2 prompt#reviewerIsBoundedToReading green again
+RED    61.4  prompt#reviewerIsBoundedToReading   (the reviewer told that a number no command produced is a correction, not a refusal (issue #244))
+       2026-11-18T06:01:19Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-060110')
+restore 61.4 prompt#reviewerIsBoundedToReading green again
+RED    258.1  prompt#thePhasePromptsCarryTheirOwnRoute   (the sentence that names the marker a cut read carries, so a reviewer that holds a window grades it as the file (issue #818))
+       2026-11-18T06:01:34Z — reviewer.md names the marker a cut result carries (issue #818): 'LOOP-TRIMMED' not found in: # Reviewer — the fixed contract
+restore 258.1 prompt#thePhasePromptsCarryTheirOwnRoute green again
+RED    954.1  prompt#reviewerCarriesTheEightItems   (the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954))
+       2026-11-18T06:01:49Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-060141')
+restore 954.1 prompt#reviewerCarriesTheEightItems green again
+
+red-when-mutated: 5 · not-noticed: 0 · restore-failures: 0
+exit=0

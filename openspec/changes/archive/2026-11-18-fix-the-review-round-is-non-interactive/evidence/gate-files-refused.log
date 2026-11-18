@@ -1,0 +1,2 @@
+loop-selftest: another suite holds /home/tim/projects/NaviVeylin/.pi/tmp/.loop-selftest.lock (owner 1678210 2026-11-17T17:53:46Z) — one suite per repository: two suites in one repository make the failing set of each depend on the other (issue #295)
+loop-selftest: wait for it, run this suite in another worktree, or remove /home/tim/projects/NaviVeylin/.pi/tmp/.loop-selftest.lock if that process is not a suite

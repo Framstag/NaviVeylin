@@ -1,0 +1,280 @@
+2026-11-18T05:58:10Z
+### selection
+loop-selftest: selected 67 of 484 cases (files: tools/loop/prompts/reviewer.md)
+state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo
+evidence#scansWhatTheProfileNames
+worktree#noPushWithoutTheFlag
+labels#neverWritesReservedLabel
+prompt#reviewerCarriesTheEightItems
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed
+prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
+prompt#thePhasePromptsCarryTheirOwnRoute
+prompt#thePhasePromptNamesWhatItsShellRefuses
+gate#aPathACheckReadsOwesThatStepsCommandSet
+gate#anEnginePathOwesTheRecordCheck
+driver#aGroupFilterRunsOnlyItsOwnCases
+driver#aFilterThatNamesNoCaseRefuses
+driver#theListIsFilteredTheSameWayASuiteRunIs
+driver#theSummaryNamesWhatEachGroupCost
+driver#theTimesFigureIsAskedForNotAssumed
+gate#theChildReadsTheProfileOfTheTreeItWorksIn
+gate#theGateCompletesTheChangeBeforeTheGate
+measure#namesTheOwedChecksInOneBlock
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle
+run#prescreenAnnouncesItselfBeforeItReturns
+run#aBoundCutRoundIsRestartedWithItsFindings
+run#thePreGateReviewRunsBeforeTheGate
+run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+run#aPreGateReviewEndedAtItsBoundNamesIt
+run#aReviewDiffNamesTheTreeItWasWrittenFrom
+run#engineNamesNoProjectFact
+clean#interruptedSuiteRemovesItsScratchTree
+clean#interruptedSuiteEndsItsProcessGroup
+clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+driver#theCoreIsCompiledOncePerSuite
+driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+driver#aFileSetThatNamesNoCaseIsRefused
+driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+driver#aCoreFileOwesEveryCase
+driver#aCaseWithNoSelectionRowIsRefused
+driver#everyEngineScriptIsInTheTable
+driver#noEngineFileExceedsItsBound
+driver#aFileWithoutABoundIsRefused
+driver#aNameAssignedTwiceIsRefused
+driver#anUndeclaredReadIsRefused
+driver#aLocalIsNotAShareOfAnotherFilesName
+driver#aQuotedProgramIsNotAShellRead
+driver#theSharedNamesAreDeclared
+driver#theSourceOrderIsDeclared
+driver#aCallToALaterFilesFunctionFails
+driver#theSuiteRunsItsCasesInAPool
+driver#theCaseBoundScalesWithThePool
+driver#aCaseThatBlocksIsEndedByItsOwnBound
+driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+driver#aCeilingTheSuiteFitsInsideChangesNothing
+driver#aRunningCasePrintsItsOwnLines
+driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+driver#aSecondSuiteInOneRepositoryIsRefused
+gate#theDeltaHandsASuiteTheBaseItMeasured
+run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+run#aWorkerBelowItsCheckpointIsNotSplit
+run#aWorkerAtTheCheckpointWithNoWorkRunsOn
+state#aQuotaWindowIsAHoldNotAStop
+state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+state#noQuotaCommandAsksNothing
+state#aHoldMovesTheDeadlineWithIt
+run#aQuotaHoldPausesTheRunAndResumesIt
+run#theQuotaSwitchIsExplicit
+census#aRunDoesNotConsultTheCensus
+### suite
+loop-selftest: selected 67 of 484 cases (files: tools/loop/prompts/reviewer.md)
+PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+prompt#thePhasePromptNamesWhatItsShellRefuses| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055818')
+prompt#thePhasePromptNamesWhatItsShellRefuses| HEAD ist jetzt bei 25229ed init
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055818')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei 25229ed init
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055818')
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei 25229ed init
+prompt#reviewerCarriesTheEightItems| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055818')
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei 25229ed init
+prompt#thePhasePromptNamesWhatItsShellRefuses| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerCarriesTheEightItems| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+prompt#thePhasePromptNamesWhatItsShellRefuses| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+PASS gate#anEnginePathOwesTheRecordCheck
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0e8c32a)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0e8c32a)
+prompt#thePhasePromptNamesWhatItsShellRefuses| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0e8c32a)
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (95be9d0)
+PASS driver#aFilterThatNamesNoCaseRefuses
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b0514f9)
+prompt#thePhasePromptNamesWhatItsShellRefuses| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b0514f9)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b0514f9)
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1f05ac3)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei b0514f9 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b0514f9).
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#thePhasePromptNamesWhatItsShellRefuses| HEAD ist jetzt bei b0514f9 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#thePhasePromptNamesWhatItsShellRefuses| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b0514f9).
+prompt#thePhasePromptNamesWhatItsShellRefuses| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei b0514f9 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b0514f9).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei 1f05ac3 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerCarriesTheEightItems| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1f05ac3).
+prompt#reviewerCarriesTheEightItems| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#thePhasePromptNamesWhatItsShellRefuses| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+prompt#thePhasePromptNamesWhatItsShellRefuses| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+prompt#thePhasePromptNamesWhatItsShellRefuses| closed #21 (completed)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| closed #21 (completed)
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| closed #21 (completed)
+worktree#noPushWithoutTheFlag|   landing #21 b0514f915a77cb0f0344ad3acb185a19c8c319d4: unscored — the pipeline runs of this commit could not be read
+prompt#thePhasePromptNamesWhatItsShellRefuses|   landing #21 b0514f915a77cb0f0344ad3acb185a19c8c319d4: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   landing #21 b0514f915a77cb0f0344ad3acb185a19c8c319d4: unscored — the pipeline runs of this commit could not be read
+PASS driver#theSummaryNamesWhatEachGroupCost
+prompt#reviewerCarriesTheEightItems|   landing #21 1f05ac3c9b9a58607eb4dacd471a8849626645d1: unscored — the pipeline runs of this commit could not be read
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#thePhasePromptNamesWhatItsShellRefuses| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#thePhasePromptNamesWhatItsShellRefuses|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerCarriesTheEightItems| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerCarriesTheEightItems|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS driver#theTimesFigureIsAskedForNotAssumed
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#thePhasePromptNamesWhatItsShellRefuses| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#reviewerCarriesTheEightItems| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS evidence#scansWhatTheProfileNames
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055837')
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| HEAD ist jetzt bei 8798c2f init
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055837')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 39d199d an engine of its own
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS worktree#noPushWithoutTheFlag
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055839')
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei ac5a786 init
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS labels#neverWritesReservedLabel
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (2b4dd61)
+PASS prompt#reviewerCarriesTheEightItems
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f0a1404)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (0cbaa93)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (138e061)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| HEAD ist jetzt bei 0cbaa93 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 0cbaa93).
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei 138e061 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 138e061).
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS gate#theGateCompletesTheChangeBeforeTheGate
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (73ad591)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2d44091)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 2d44091 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2d44091).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| closed #21 (completed)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| closed #21 (completed)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   landing #21 0cbaa93674f9301e8f8ea579595ebd1defdd6da9: unscored — the pipeline runs of this commit could not be read
+PASS prompt#thePhasePromptNamesWhatItsShellRefuses
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   landing #21 138e0617d5b5ebe4ffb7ab0f635f9ddb68984f69: unscored — the pipeline runs of this commit could not be read
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS measure#namesTheOwedChecksInOneBlock
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 2d4409112fd4669953562c277eeed63b19bda725: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#thePreGateReviewRunsBeforeTheGate
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+PASS state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo
+run#engineNamesNoProjectFact| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-055901')
+run#engineNamesNoProjectFact| HEAD ist jetzt bei 5331ded init
+run#engineNamesNoProjectFact| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS clean#interruptedSuiteRemovesItsScratchTree
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+PASS prompt#reviewerInputsAreBoundedAndTheCutIsNamed
+run#engineNamesNoProjectFact| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6bbe25f)
+run#engineNamesNoProjectFact| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (326e1b2)
+run#engineNamesNoProjectFact| HEAD ist jetzt bei 326e1b2 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#engineNamesNoProjectFact| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 326e1b2).
+run#engineNamesNoProjectFact| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+PASS clean#interruptedSuiteEndsItsProcessGroup
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+run#engineNamesNoProjectFact| closed #21 (completed)
+run#engineNamesNoProjectFact|   landing #21 326e1b2b9d7a5cec91a2fe09f676c969bc049476: unscored — the pipeline runs of this commit could not be read
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+run#engineNamesNoProjectFact| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#engineNamesNoProjectFact|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#engineNamesNoProjectFact| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS run#aBoundCutRoundIsRestartedWithItsFindings
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+PASS run#aReviewDiffNamesTheTreeItWasWrittenFrom
+PASS run#engineNamesNoProjectFact
+PASS driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#everyEngineScriptIsInTheTable
+PASS driver#noEngineFileExceedsItsBound
+PASS driver#aFileWithoutABoundIsRefused
+PASS driver#aNameAssignedTwiceIsRefused
+PASS driver#anUndeclaredReadIsRefused
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+PASS driver#aQuotedProgramIsNotAShellRead
+PASS driver#theSharedNamesAreDeclared
+PASS driver#theSourceOrderIsDeclared
+PASS driver#aCallToALaterFilesFunctionFails
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS driver#aCoreFileOwesEveryCase
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+PASS state#aQuotaWindowIsAHoldNotAStop
+PASS state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+PASS state#noQuotaCommandAsksNothing
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+PASS run#aWorkerBelowItsCheckpointIsNotSplit
+PASS run#aWorkerAtTheCheckpointWithNoWorkRunsOn
+PASS census#aRunDoesNotConsultTheCensus
+PASS state#aHoldMovesTheDeadlineWithIt
+PASS driver#theCaseBoundScalesWithThePool
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS run#theQuotaSwitchIsExplicit
+loop-selftest: state 5 cases 87.68 s
+loop-selftest: evidence 1 cases 21.73 s
+loop-selftest: worktree 1 cases 24.85 s
+loop-selftest: labels 1 cases 27.49 s
+loop-selftest: prompt 6 cases 158.37 s
+loop-selftest: gate 5 cases 58.80 s
+loop-selftest: driver 31 cases 491.07 s
+loop-selftest: measure 1 cases 16.34 s
+loop-selftest: run 12 cases 300.63 s
+loop-selftest: clean 3 cases 28.86 s
+loop-selftest: census 1 cases 14.37 s
+loop-selftest: all 67 cases passed (JDK 21, offline, no token, no sandbox) — 122.66 s, selection: --files tools/loop/prompts/reviewer.md 
+exit=0

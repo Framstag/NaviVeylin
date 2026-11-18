@@ -5716,3 +5716,25 @@ A reading of the project tree the run takes for its outside-write comparison, an
 - **WHEN** a tracked file in the project tree carries a modification the run did not make
 - **THEN** the landing refuses exactly as before, because the filter drops only untracked entries
 - **Case**: `worktree#aTrackedEditStillBlocksTheMerge`
+
+### Requirement: A review round is non-interactive, and a question is a cut-short answer
+
+The reviewer prompt SHALL state, beside the output contract, that the round runs with nobody to ask: never ask a
+question of its own, never offer to proceed or to confirm, and never offer a summary instead of the round. It SHALL
+name an answer that is a question a cut-short answer — no verdict is read, the retry spends the byte-identical
+prompt, the item is refused — and leave a refusal's `LOOP-DECISION` line to the contract it points at. The clause
+SHALL stand in both rounds' text.
+
+#### Scenario: Both rounds are told the round is non-interactive
+
+- **WHEN** the run renders the reviewer prompt, once for the round before the gate and once for the round after it
+- **THEN** each carries the clause beside its output contract, the round before the gate carrying it because that
+  round is the same prompt with its own section substituted rather than a prompt of its own
+- **Case**: `prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle`
+
+#### Scenario: A question is named a cut-short answer, and the cost is stated
+
+- **WHEN** the reviewer prompt is rendered
+- **THEN** it names an answer that is a question a cut-short answer and states what such an answer costs — the one
+  retry spends a byte-identical prompt that asks the same question again, and the item is then refused
+- **Case**: `prompt#reviewerCarriesTheEightItems`

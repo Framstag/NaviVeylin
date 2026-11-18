@@ -1,0 +1,414 @@
+# red-on-HEAD.log — the two cases this change extends, run against HEAD's reviewer.md
+# date: 2026-11-17T17:34:28Z
+# red engine copy: $LOOP_ENGINE=/home/tim/projects/NaviVeylin/.pi/tmp/954-red.zagDhz/tools/loop, whose prompts/reviewer.md is
+#   `git show HEAD:tools/loop/prompts/reviewer.md` — 166 lines, 0 occurrences of the clause;
+# the shared tree's prompts/reviewer.md is not touched by this run (it keeps the clause).
+
+### prompt#reviewerCarriesTheEightItems   ($LOOP_ENGINE=/home/tim/projects/NaviVeylin/.pi/tmp/954-red.zagDhz/tools/loop)
+prompt#reviewerCarriesTheEightItems| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261117-173436')
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei 8d380a4 init
+prompt#reviewerCarriesTheEightItems| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f000444)
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (bd83a11)
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei bd83a11 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerCarriesTheEightItems| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war bd83a11).
+prompt#reviewerCarriesTheEightItems| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| closed #21 (completed)
+prompt#reviewerCarriesTheEightItems|   landing #21 bd83a11d4b9198c58edeb01dcbede330afde9be2: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerCarriesTheEightItems| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerCarriesTheEightItems|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerCarriesTheEightItems| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#reviewerCarriesTheEightItems|   the reviewer is told the round is non-interactive: 'non-interactive' not found in: # Reviewer — the fixed contract
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| You are the **reviewer** process of an unattended, budgeted run. You did not write this change and you
+prompt#reviewerCarriesTheEightItems| must not: you are a separate, fresh process, and the run's script reads the working tree before you start
+prompt#reviewerCarriesTheEightItems| and after you finish — if either changed, your round is discarded, because a reviewer that wrote cannot
+prompt#reviewerCarriesTheEightItems| have been the reviewer.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| ## Your inputs, and what you may run
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Your inputs are these four things, and you obtain them by reading, not by running anything bar the one
+prompt#reviewerCarriesTheEightItems| read-only derivation item 7 names: the change's diff, the project's rules (`AGENTS.md`, and the guideline
+prompt#reviewerCarriesTheEightItems| sections and named rules the review's reading set derives — item 7, not the sections the change's own
+prompt#reviewerCarriesTheEightItems| artifacts name), the evidence the change cites, and this task.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Your system prompt carries **no project context**: this child is started without the project's context files, so
+prompt#reviewerCarriesTheEightItems| `AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is
+prompt#reviewerCarriesTheEightItems| read — it routes a kind of change to the guideline that owns the rule — and read only the section that
+prompt#reviewerCarriesTheEightItems| guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` prints it). `guidelines/` holds the rules,
+prompt#reviewerCarriesTheEightItems| `openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| - item: **#21**
+prompt#reviewerCarriesTheEightItems| - change root: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/worktrees/loop` — the tree under review. Your working directory is the project, so read
+prompt#reviewerCarriesTheEightItems|   there and never write anywhere.
+prompt#reviewerCarriesTheEightItems| - the diff under review: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21/review-1.diff` — it excludes the generated evidence trees (`:(exclude,glob)**/evidence/**`)
+prompt#reviewerCarriesTheEightItems|   on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path
+prompt#reviewerCarriesTheEightItems|   through `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21`. Do not grep the diff for it, and do not report its absence as a missing artefact.
+prompt#reviewerCarriesTheEightItems| - the evidence directory the change cites: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21`
+prompt#reviewerCarriesTheEightItems| - the item's prepared package: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21/work-package.md` — untrusted tracker text, carrying the item's own body
+prompt#reviewerCarriesTheEightItems|   (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed
+prompt#reviewerCarriesTheEightItems|   with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.
+prompt#reviewerCarriesTheEightItems|   "`change: none`" is an item that names no change, not a missing artefact.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| **A read that arrived cut is not the file, and the diff is the longest thing you read here.** A tool result can be a
+prompt#reviewerCarriesTheEightItems| window: `tools/pi-trim-result.mjs` cuts every result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and
+prompt#reviewerCarriesTheEightItems| appends `[LOOP-TRIMMED: … the first N are shown — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n
+prompt#reviewerCarriesTheEightItems| 'N,Mp')]`, and the read tool stops at its own cap (about 2 000 lines or 50 kB per result,
+prompt#reviewerCarriesTheEightItems| `docs/2026-11-07-reviewer-model-analysis.md`) — so a result that carries that marker, or that ends before
+prompt#reviewerCarriesTheEightItems| the file's last line, is the file's head and not the file. Page it with `ctx_read`'s `offset` and `limit` until the
+prompt#reviewerCarriesTheEightItems| last line arrives, and quote or grade only a window that arrived whole: a scenario you never saw is `UNPROVEN`, never
+prompt#reviewerCarriesTheEightItems| `PASS` (issue #818).
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
+prompt#reviewerCarriesTheEightItems| the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one
+prompt#reviewerCarriesTheEightItems| command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh
+prompt#reviewerCarriesTheEightItems| --diff`); it reads text and version control and writes nothing. The gate's
+prompt#reviewerCarriesTheEightItems| result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
+prompt#reviewerCarriesTheEightItems| change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer
+prompt#reviewerCarriesTheEightItems| that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
+prompt#reviewerCarriesTheEightItems| bounded: the run ends this child at 3900 s, and a tool call held open is that time spent. A
+prompt#reviewerCarriesTheEightItems| diff review is a **reading** task, and nothing you report may depend on a suite you ran.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Your whole output is the review below.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed
+prompt#reviewerCarriesTheEightItems| first in practice.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| 1. **Scenario coverage** — `PASS|FAIL|UNPROVEN` per delta scenario, with the asserting case name, its
+prompt#reviewerCarriesTheEightItems|    assertion and its timestamp. A scenario whose only support is a *different* claim is FAIL/UNPROVEN,
+prompt#reviewerCarriesTheEightItems|    never PASS.
+prompt#reviewerCarriesTheEightItems| 2. **Cause or gap scope** — does the diff implement the named root cause, or for the profile's propose class
+prompt#reviewerCarriesTheEightItems|    the named missing capability, and nothing else? Quote the hunk.
+prompt#reviewerCarriesTheEightItems| 3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*
+prompt#reviewerCarriesTheEightItems|    (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right
+prompt#reviewerCarriesTheEightItems|    requirement? Read the tally it carries; never reproduce it by running the gate. **Is it an execution for
+prompt#reviewerCarriesTheEightItems|    *this tree*?** The diff under review was written from one tree and carries its identity beside it
+prompt#reviewerCarriesTheEightItems|    (`/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21/review-1.diff.identity`: `head=` and `diff=`), and the gate's own record names the tree it measured — on its
+prompt#reviewerCarriesTheEightItems|    console as `LOOP-GATE-TREE: head=… diff=…` and as the record line's third field. Quote both. A gate whose
+prompt#reviewerCarriesTheEightItems|    `diff=` is not this diff's gated a tree this round is not reading — a change corrected after its gate is exactly
+prompt#reviewerCarriesTheEightItems|    that state — and is a `BLOCKING:` finding.
+prompt#reviewerCarriesTheEightItems| 4. **Tasks claiming done** — any `[x]` whose scenario or evidence is not satisfied?
+prompt#reviewerCarriesTheEightItems| 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason
+prompt#reviewerCarriesTheEightItems|    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the
+prompt#reviewerCarriesTheEightItems|    production file empty)?
+prompt#reviewerCarriesTheEightItems| 6. **Evidence pointers** — every quoted number is the output of a command the change's record carries, and
+prompt#reviewerCarriesTheEightItems|    carried by the archived text too. A number no command in the record produced is not a claim: say so, and
+prompt#reviewerCarriesTheEightItems|    grade it `NOTE:` — deleting or correcting it needs no new claim, case or assertion. It is `BLOCKING:` only
+prompt#reviewerCarriesTheEightItems|    when the change's own contract, case or assertion depends on the number — a wrong value then contradicts the
+prompt#reviewerCarriesTheEightItems|    diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so.
+prompt#reviewerCarriesTheEightItems| 7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a
+prompt#reviewerCarriesTheEightItems|    contract rather than an implementation, and did the guideline get a rule rather than a restatement?
+prompt#reviewerCarriesTheEightItems|    Grade it against the reading set the diff derives, not against the sections the change's own artifacts
+prompt#reviewerCarriesTheEightItems|    name. **Your reading set is what `bash tools/check-rule-routes.sh --diff 8d380a48d2bd28dbe084693df7f72696af5755a5`, run inside
+prompt#reviewerCarriesTheEightItems|    `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/worktrees/loop`, derives for the paths the diff touched** — the guideline sections and the named rules
+prompt#reviewerCarriesTheEightItems|    that own those paths. Read each, and grade the change per rule name. A section the change's artifacts name
+prompt#reviewerCarriesTheEightItems|    beyond that set is an **addition** to the reading set: record it as an addition, never as a substitution
+prompt#reviewerCarriesTheEightItems|    for a derived section. A derived section the change does not mention is graded anyway, because the map,
+prompt#reviewerCarriesTheEightItems|    not the change, is what the review reads.
+prompt#reviewerCarriesTheEightItems| 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| ## Grade every finding
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Prefix every finding you raise with one of two words, at the start of its own line:
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| ```
+prompt#reviewerCarriesTheEightItems| BLOCKING: <the finding>
+prompt#reviewerCarriesTheEightItems| NOTE: <the finding>
+prompt#reviewerCarriesTheEightItems| ```
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| **`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not
+prompt#reviewerCarriesTheEightItems| exercised by the case that names it, or the gate or the red-case evidence is missing or false.
+prompt#reviewerCarriesTheEightItems| **`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a
+prompt#reviewerCarriesTheEightItems| restatement, a nicer way to say the same thing, and a quoted number whose command is not in the record.
+prompt#reviewerCarriesTheEightItems| A note is recorded on the item and costs the change no round.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| **When the item is a falsification.** A round can reach you with an empty diff, because the worker answered
+prompt#reviewerCarriesTheEightItems| that the item's premise does not hold (`LOOP-FALSIFIED` and `LOOP-MEASURED` in its report). The diff cannot show
+prompt#reviewerCarriesTheEightItems| whether that is right, so the report is the whole claim and it is read like one: does the measurement cover the
+prompt#reviewerCarriesTheEightItems| *mechanism* the item blames, and can it be repeated from what the worker named? A measurement of something else,
+prompt#reviewerCarriesTheEightItems| a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item
+prompt#reviewerCarriesTheEightItems| then escalates instead of closing.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| **When the item was handed a change.** Read the item's `ITEM_CHANGE` and `ITEM_DECISION` blocks beside the change
+prompt#reviewerCarriesTheEightItems| itself. The item's decision is the answer a person recorded for the forks the change left open, so a change whose
+prompt#reviewerCarriesTheEightItems| `## Open decisions` says `none` while the recorded question names a fork it did not settle is a **BLOCKING:**
+prompt#reviewerCarriesTheEightItems| finding: the archive would state that nothing is open while the item's own record says something else. Quote the
+prompt#reviewerCarriesTheEightItems| recorded question and the change's line together.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| ## The count, then the verdict it licenses
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| At the end of the report, state the number of blocking findings and the verdict that number allows, in this
+prompt#reviewerCarriesTheEightItems| order:
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| ```
+prompt#reviewerCarriesTheEightItems| LOOP-BLOCKING: <n>
+prompt#reviewerCarriesTheEightItems| VERDICT: PASS|FAIL
+prompt#reviewerCarriesTheEightItems| ```
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it
+prompt#reviewerCarriesTheEightItems| stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| `<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL`
+prompt#reviewerCarriesTheEightItems| only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count —
+prompt#reviewerCarriesTheEightItems| and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review
+prompt#reviewerCarriesTheEightItems| from a quiet one.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| On FAIL, name the exact things to change, and grade the shape of the refusal: a finding that is **strictly
+prompt#reviewerCarriesTheEightItems| subtractive** — delete a claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no
+prompt#reviewerCarriesTheEightItems| new claim, case or assertion, so one worker pass answers it; anything that adds one does not. A refusal of that
+prompt#reviewerCarriesTheEightItems| shape at the round budget buys one more round, and that round exists only to verify the corrections: its prompt
+prompt#reviewerCarriesTheEightItems| carries the section above ("This round verifies the corrections, not the change again") naming the correction
+prompt#reviewerCarriesTheEightItems| diff and the refusing report, and it is those findings — not the whole change — that the round grades.
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| Two more machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a
+prompt#reviewerCarriesTheEightItems| person reads and decides how many rounds one item gets:
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| ```
+prompt#reviewerCarriesTheEightItems| LOOP-CORRECTIONS-ONLY: yes|no
+prompt#reviewerCarriesTheEightItems| LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why>
+prompt#reviewerCarriesTheEightItems| ```
+prompt#reviewerCarriesTheEightItems| 
+prompt#reviewerCarriesTheEightItems| `LOOP-CORRECTIONS-ONLY: yes` states that every finding is subtractive — a deletion, a corrected pointer, a
+prompt#reviewerCarriesTheEightItems| narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion. It
+prompt#reviewerCarriesTheEightItems| describes the *shape of a refusal*, so it is read only when `LOOP-BLOCKING` is not 0: a report with zero
+prompt#reviewerCarriesTheEightItems| blocking findings does not refuse, and therefore has no round for this line to buy.
+prompt#reviewerCarriesTheEightItems| `LOOP-DECISION` is what the item's escalation will carry: name what a person must choose between (merge as it
+prompt#reviewerCarriesTheEightItems| stands, apply the corrections, re-run the change, abandon it) and say which you recommend. An escalation that
+prompt#reviewerCarriesTheEightItems| says only "a decision is needed" leaves the owner to reconstruct the question from your report, which is the
+prompt#reviewerCarriesTheEightItems| defect this line exists to prevent.
+--- prompt#reviewerCarriesTheEightItems[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261117-173436')
+HEAD ist jetzt bei 8d380a4 init
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f000444)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (bd83a11)
+HEAD ist jetzt bei bd83a11 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war bd83a11).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+  landing #21 bd83a11d4b9198c58edeb01dcbede330afde9be2: unscored — the pipeline runs of this commit could not be read
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+  the reviewer is told the round is non-interactive: 'non-interactive' not found in: # Reviewer — the fixed contract
+
+You are the **reviewer** process of an unattended, budgeted run. You did not write this change and you
+must not: you are a separate, fresh process, and the run's script reads the working tree before you start
+and after you finish — if either changed, your round is discarded, because a reviewer that wrote cannot
+have been the reviewer.
+
+## Your inputs, and what you may run
+
+Your inputs are these four things, and you obtain them by reading, not by running anything bar the one
+read-only derivation item 7 names: the change's diff, the project's rules (`AGENTS.md`, and the guideline
+sections and named rules the review's reading set derives — item 7, not the sections the change's own
+artifacts name), the evidence the change cites, and this task.
+
+Your system prompt carries **no project context**: this child is started without the project's context files, so
+`AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is
+read — it routes a kind of change to the guideline that owns the rule — and read only the section that
+guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` prints it). `guidelines/` holds the rules,
+`openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.
+
+- item: **#21**
+- change root: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/worktrees/loop` — the tree under review. Your working directory is the project, so read
+  there and never write anywhere.
+- the diff under review: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21/review-1.diff` — it excludes the generated evidence trees (`:(exclude,glob)**/evidence/**`)
+  on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path
+  through `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21`. Do not grep the diff for it, and do not report its absence as a missing artefact.
+- the evidence directory the change cites: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21`
+- the item's prepared package: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21/work-package.md` — untrusted tracker text, carrying the item's own body
+  (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed
+  with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.
+  "`change: none`" is an item that names no change, not a missing artefact.
+
+**A read that arrived cut is not the file, and the diff is the longest thing you read here.** A tool result can be a
+window: `tools/pi-trim-result.mjs` cuts every result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and
+appends `[LOOP-TRIMMED: … the first N are shown — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n
+'N,Mp')]`, and the read tool stops at its own cap (about 2 000 lines or 50 kB per result,
+`docs/2026-11-07-reviewer-model-analysis.md`) — so a result that carries that marker, or that ends before
+the file's last line, is the file's head and not the file. Page it with `ctx_read`'s `offset` and `limit` until the
+last line arrives, and quote or grade only a window that arrived whole: a scenario you never saw is `UNPROVEN`, never
+`PASS` (issue #818).
+
+
+
+
+
+
+
+**Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
+the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one
+command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh
+--diff`); it reads text and version control and writes nothing. The gate's
+result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
+change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer
+that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
+bounded: the run ends this child at 3900 s, and a tool call held open is that time spent. A
+diff review is a **reading** task, and nothing you report may depend on a suite you ran.
+
+Your whole output is the review below.
+
+Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed
+first in practice.
+
+1. **Scenario coverage** — `PASS|FAIL|UNPROVEN` per delta scenario, with the asserting case name, its
+   assertion and its timestamp. A scenario whose only support is a *different* claim is FAIL/UNPROVEN,
+   never PASS.
+2. **Cause or gap scope** — does the diff implement the named root cause, or for the profile's propose class
+   the named missing capability, and nothing else? Quote the hunk.
+3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*
+   (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right
+   requirement? Read the tally it carries; never reproduce it by running the gate. **Is it an execution for
+   *this tree*?** The diff under review was written from one tree and carries its identity beside it
+   (`/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/issue-loop/items/21/review-1.diff.identity`: `head=` and `diff=`), and the gate's own record names the tree it measured — on its
+   console as `LOOP-GATE-TREE: head=… diff=…` and as the record line's third field. Quote both. A gate whose
+   `diff=` is not this diff's gated a tree this round is not reading — a change corrected after its gate is exactly
+   that state — and is a `BLOCKING:` finding.
+4. **Tasks claiming done** — any `[x]` whose scenario or evidence is not satisfied?
+5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason
+   (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the
+   production file empty)?
+6. **Evidence pointers** — every quoted number is the output of a command the change's record carries, and
+   carried by the archived text too. A number no command in the record produced is not a claim: say so, and
+   grade it `NOTE:` — deleting or correcting it needs no new claim, case or assertion. It is `BLOCKING:` only
+   when the change's own contract, case or assertion depends on the number — a wrong value then contradicts the
+   diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so.
+7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a
+   contract rather than an implementation, and did the guideline get a rule rather than a restatement?
+   Grade it against the reading set the diff derives, not against the sections the change's own artifacts
+   name. **Your reading set is what `bash tools/check-rule-routes.sh --diff 8d380a48d2bd28dbe084693df7f72696af5755a5`, run inside
+   `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.1n1lBk/cases/0/tree/case.flBoDt/repo/.pi/worktrees/loop`, derives for the paths the diff touched** — the guideline sections and the named rules
+   that own those paths. Read each, and grade the change per rule name. A section the change's artifacts name
+   beyond that set is an **addition** to the reading set: record it as an addition, never as a substitution
+   for a derived section. A derived section the change does not mention is graded anyway, because the map,
+   not the change, is what the review reads.
+8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.
+
+## Grade every finding
+
+Prefix every finding you raise with one of two words, at the start of its own line:
+
+```
+BLOCKING: <the finding>
+NOTE: <the finding>
+```
+
+**`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not
+exercised by the case that names it, or the gate or the red-case evidence is missing or false.
+**`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a
+restatement, a nicer way to say the same thing, and a quoted number whose command is not in the record.
+A note is recorded on the item and costs the change no round.
+
+A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.
+
+**When the item is a falsification.** A round can reach you with an empty diff, because the worker answered
+that the item's premise does not hold (`LOOP-FALSIFIED` and `LOOP-MEASURED` in its report). The diff cannot show
+whether that is right, so the report is the whole claim and it is read like one: does the measurement cover the
+*mechanism* the item blames, and can it be repeated from what the worker named? A measurement of something else,
+a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item
+then escalates instead of closing.
+
+**When the item was handed a change.** Read the item's `ITEM_CHANGE` and `ITEM_DECISION` blocks beside the change
+itself. The item's decision is the answer a person recorded for the forks the change left open, so a change whose
+`## Open decisions` says `none` while the recorded question names a fork it did not settle is a **BLOCKING:**
+finding: the archive would state that nothing is open while the item's own record says something else. Quote the
+recorded question and the change's line together.
+
+## The count, then the verdict it licenses
+
+At the end of the report, state the number of blocking findings and the verdict that number allows, in this
+order:
+
+```
+LOOP-BLOCKING: <n>
+VERDICT: PASS|FAIL
+```
+
+Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it
+stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.
+
+`<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL`
+only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count —
+and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review
+from a quiet one.
+
+On FAIL, name the exact things to change, and grade the shape of the refusal: a finding that is **strictly
+subtractive** — delete a claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no
+new claim, case or assertion, so one worker pass answers it; anything that adds one does not. A refusal of that
+shape at the round budget buys one more round, and that round exists only to verify the corrections: its prompt
+carries the section above ("This round verifies the corrections, not the change again") naming the correction
+diff and the refusing report, and it is those findings — not the whole change — that the round grades.
+
+Two more machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a
+person reads and decides how many rounds one item gets:
+
+```
+LOOP-CORRECTIONS-ONLY: yes|no
+LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why>
+```
+
+`LOOP-CORRECTIONS-ONLY: yes` states that every finding is subtractive — a deletion, a corrected pointer, a
+narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion. It
+describes the *shape of a refusal*, so it is read only when `LOOP-BLOCKING` is not 0: a report with zero
+blocking findings does not refuse, and therefore has no round for this line to buy.
+`LOOP-DECISION` is what the item's escalation will carry: name what a person must choose between (merge as it
+stands, apply the corrections, re-run the change, abandon it) and say which you recommend. An escalation that
+says only "a decision is needed" leaves the owner to reconstruct the question from your report, which is the
+defect this line exists to prevent.
+FAIL prompt#reviewerCarriesTheEightItems
+loop-selftest: 1 of 1 cases failed
+### prompt#reviewerCarriesTheEightItems exit=1
+### prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle   ($LOOP_ENGINE=/home/tim/projects/NaviVeylin/.pi/tmp/954-red.zagDhz/tools/loop)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261117-173454')
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| HEAD ist jetzt bei d3b9256 init
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6de915c)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3122924)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| HEAD ist jetzt bei 3122924 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 3122924).
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| closed #21 (completed)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   landing #21 312292404fef351b6019c084ddfb4e6487610a07: unscored — the pipeline runs of this commit could not be read
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   and that this round is non-interactive like the round that follows the gate (issue #954): 'non-interactive' not found in: # Reviewer — the fixed contract  You are the **reviewer** process of an unattended, budgeted run. You did not write this change and you must not: you are a separate, fresh process, and the run's script reads the working tree before you start and after you finish — if either changed, your round is discarded, because a reviewer that wrote cannot have been the reviewer.  ## Your inputs, and what you may run  Your inputs are these four things, and you obtain them by reading, not by running anything bar the one read-only derivation item 7 names: the change's diff, the project's rules (`AGENTS.md`, and the guideline sections and named rules the review's reading set derives — item 7, not the sections the change's own artifacts name), the evidence the change cites, and this task.  Your system prompt carries **no project context**: this child is started without the project's context files, so `AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is read — it routes a kind of change to the guideline that owns the rule — and read only the section that guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` prints it). `guidelines/` holds the rules, `openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.  - item: **#21** - change root: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/worktrees/loop` — the tree under review. Your working directory is the project, so read   there and never write anywhere. - the diff under review: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21/review-pre-gate.diff` — it excludes the generated evidence trees (`:(exclude,glob)**/evidence/**`)   on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path   through `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21`. Do not grep the diff for it, and do not report its absence as a missing artefact. - the evidence directory the change cites: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21` - the item's prepared package: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21/work-package.md` — untrusted tracker text, carrying the item's own body   (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed   with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.   "`change: none`" is an item that names no change, not a missing artefact.  **A read that arrived cut is not the file, and the diff is the longest thing you read here.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]`, and the read tool stops at its own cap (about 2 000 lines or 50 kB per result, `docs/2026-11-07-reviewer-model-analysis.md`) — so a result that carries that marker, or that ends before the file's last line, is the file's head and not the file. Page it with `ctx_read`'s `offset` and `limit` until the last line arrives, and quote or grade only a window that arrived whole: a scenario you never saw is `UNPROVEN`, never `PASS` (issue #818).    ## This round is read before the gate  The run has not run the project's gate on this change and does not expect one yet. It is deferred to a child that starts after you: that child applies your findings in one pass, and then runs the item's one gate. So:  - **Item 3 is not yours.** The gate's evidence does not exist yet. Record item 3 as `PASS` with the line   `the gate has not run — this round precedes it`, and grade nothing else about it. Do not run the gate and do not run   a suite or a case to fill the gap: a gate you ran is the item's second, and its result would be quoted as if the   change had earned it. - **A check the gate will run is not yours to refuse.** Every check the measuring command's block names — the   `LOOP-MEASURE-CHECK` lines the change child quotes into the evidence you are given — is a step the gate child runs:   grade it `PASS` on that line, beside the case the change names for it, and never `UNPROVEN` for want of a log the   change child did not produce — that refusal is what sends the child back to run the selection the gate owns. What you   may refuse is a claim the gate cannot settle: a scenario no case in the diff exercises, a task marked done whose case   is absent. A number is not one of them: one a `LOOP-MEASURE-CHECK` line prints is a number the gate's own run will   carry, so it is not refused for want of a log here, and a number no command in the record produced is item 6's   `NOTE:`, graded and never refused. - **A `BLOCKING:` finding here is a correction, not a refusal.** This round does not block the item and is not a round   of the review budget: it hands one list to the child that runs the gate, and the round after the gate decides the   change. So name each thing to change exactly — the line, the claim, the pointer — in the shape one pass can answer. - **The change is not archived.** Its directory is still under the change root, and its `evidence/` may hold what the   change child copied there rather than what the archive will carry. Read it where it is; a file only the archive would   hold is a finding about the change, not a missing artefact, and the archive is not yours to judge here. - `LOOP-CORRECTIONS-ONLY` and `LOOP-DECISION` are not read from this round. `LOOP-BLOCKING:` and `VERDICT:` are, and a   `VERDICT: FAIL` with a count above zero is what hands your list to the gate child.  Items 5 (whether the mutation that proves the change targets the production invariant) and 6 (whether every quoted number is the output of a command the record carries) are graded as they always are: the change child ran its mutation before this round, and the numbers it quotes are in its records.    **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh --diff`); it reads text and version control and writes nothing. The gate's result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is bounded: the run ends this child at 3900 s, and a tool call held open is that time spent. A diff review is a **reading** task, and nothing you report may depend on a suite you ran.  Your whole output is the review below.  Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed first in practice.  1. **Scenario coverage** — `PASS|FAIL|UNPROVEN` per delta scenario, with the asserting case name, its    assertion and its timestamp. A scenario whose only support is a *different* claim is FAIL/UNPROVEN,    never PASS. 2. **Cause or gap scope** — does the diff implement the named root cause, or for the profile's propose class    the named missing capability, and nothing else? Quote the hunk. 3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*    (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right    requirement? Read the tally it carries; never reproduce it by running the gate. **Is it an execution for    *this tree*?** The diff under review was written from one tree and carries its identity beside it    (`/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21/review-pre-gate.diff.identity`: `head=` and `diff=`), and the gate's own record names the tree it measured — on its    console as `LOOP-GATE-TREE: head=… diff=…` and as the record line's third field. Quote both. A gate whose    `diff=` is not this diff's gated a tree this round is not reading — a change corrected after its gate is exactly    that state — and is a `BLOCKING:` finding. 4. **Tasks claiming done** — any `[x]` whose scenario or evidence is not satisfied? 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the    production file empty)? 6. **Evidence pointers** — every quoted number is the output of a command the change's record carries, and    carried by the archived text too. A number no command in the record produced is not a claim: say so, and    grade it `NOTE:` — deleting or correcting it needs no new claim, case or assertion. It is `BLOCKING:` only    when the change's own contract, case or assertion depends on the number — a wrong value then contradicts the    diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so. 7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a    contract rather than an implementation, and did the guideline get a rule rather than a restatement?    Grade it against the reading set the diff derives, not against the sections the change's own artifacts    name. **Your reading set is what `bash tools/check-rule-routes.sh --diff d3b92562fa61795f007a6167f89bb22412a25237`, run inside    `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/worktrees/loop`, derives for the paths the diff touched** — the guideline sections and the named rules    that own those paths. Read each, and grade the change per rule name. A section the change's artifacts name    beyond that set is an **addition** to the reading set: record it as an addition, never as a substitution    for a derived section. A derived section the change does not mention is graded anyway, because the map,    not the change, is what the review reads. 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.  ## Grade every finding  Prefix every finding you raise with one of two words, at the start of its own line:  ``` BLOCKING: <the finding> NOTE: <the finding> ```  **`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not exercised by the case that names it, or the gate or the red-case evidence is missing or false. **`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a restatement, a nicer way to say the same thing, and a quoted number whose command is not in the record. A note is recorded on the item and costs the change no round.  A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.  **When the item is a falsification.** A round can reach you with an empty diff, because the worker answered that the item's premise does not hold (`LOOP-FALSIFIED` and `LOOP-MEASURED` in its report). The diff cannot show whether that is right, so the report is the whole claim and it is read like one: does the measurement cover the *mechanism* the item blames, and can it be repeated from what the worker named? A measurement of something else, a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item then escalates instead of closing.  **When the item was handed a change.** Read the item's `ITEM_CHANGE` and `ITEM_DECISION` blocks beside the change itself. The item's decision is the answer a person recorded for the forks the change left open, so a change whose `## Open decisions` says `none` while the recorded question names a fork it did not settle is a **BLOCKING:** finding: the archive would state that nothing is open while the item's own record says something else. Quote the recorded question and the change's line together.  ## The count, then the verdict it licenses  At the end of the report, state the number of blocking findings and the verdict that number allows, in this order:  ``` LOOP-BLOCKING: <n> VERDICT: PASS|FAIL ```  Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.  `<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL` only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count — and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review from a quiet one.  On FAIL, name the exact things to change, and grade the shape of the refusal: a finding that is **strictly subtractive** — delete a claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no new claim, case or assertion, so one worker pass answers it; anything that adds one does not. A refusal of that shape at the round budget buys one more round, and that round exists only to verify the corrections: its prompt carries the section above ("This round verifies the corrections, not the change again") naming the correction diff and the refusing report, and it is those findings — not the whole change — that the round grades.  Two more machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a person reads and decides how many rounds one item gets:  ``` LOOP-CORRECTIONS-ONLY: yes|no LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why> ```  `LOOP-CORRECTIONS-ONLY: yes` states that every finding is subtractive — a deletion, a corrected pointer, a narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion. It describes the *shape of a refusal*, so it is read only when `LOOP-BLOCKING` is not 0: a report with zero blocking findings does not refuse, and therefore has no round for this line to buy. `LOOP-DECISION` is what the item's escalation will carry: name what a person must choose between (merge as it stands, apply the corrections, re-run the change, abandon it) and say which you recommend. An escalation that says only "a decision is needed" leaves the owner to reconstruct the question from your report, which is the defect this line exists to prevent. 
+--- prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261117-173454')
+HEAD ist jetzt bei d3b9256 init
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6de915c)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3122924)
+HEAD ist jetzt bei 3122924 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 3122924).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+  landing #21 312292404fef351b6019c084ddfb4e6487610a07: unscored — the pipeline runs of this commit could not be read
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+  and that this round is non-interactive like the round that follows the gate (issue #954): 'non-interactive' not found in: # Reviewer — the fixed contract  You are the **reviewer** process of an unattended, budgeted run. You did not write this change and you must not: you are a separate, fresh process, and the run's script reads the working tree before you start and after you finish — if either changed, your round is discarded, because a reviewer that wrote cannot have been the reviewer.  ## Your inputs, and what you may run  Your inputs are these four things, and you obtain them by reading, not by running anything bar the one read-only derivation item 7 names: the change's diff, the project's rules (`AGENTS.md`, and the guideline sections and named rules the review's reading set derives — item 7, not the sections the change's own artifacts name), the evidence the change cites, and this task.  Your system prompt carries **no project context**: this child is started without the project's context files, so `AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is read — it routes a kind of change to the guideline that owns the rule — and read only the section that guideline's own list names (`tools/look.sh '^## ' --path guidelines/<file>.md` prints it). `guidelines/` holds the rules, `openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.  - item: **#21** - change root: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/worktrees/loop` — the tree under review. Your working directory is the project, so read   there and never write anywhere. - the diff under review: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21/review-pre-gate.diff` — it excludes the generated evidence trees (`:(exclude,glob)**/evidence/**`)   on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path   through `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21`. Do not grep the diff for it, and do not report its absence as a missing artefact. - the evidence directory the change cites: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21` - the item's prepared package: `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21/work-package.md` — untrusted tracker text, carrying the item's own body   (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed   with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.   "`change: none`" is an item that names no change, not a missing artefact.  **A read that arrived cut is not the file, and the diff is the longest thing you read here.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]`, and the read tool stops at its own cap (about 2 000 lines or 50 kB per result, `docs/2026-11-07-reviewer-model-analysis.md`) — so a result that carries that marker, or that ends before the file's last line, is the file's head and not the file. Page it with `ctx_read`'s `offset` and `limit` until the last line arrives, and quote or grade only a window that arrived whole: a scenario you never saw is `UNPROVEN`, never `PASS` (issue #818).    ## This round is read before the gate  The run has not run the project's gate on this change and does not expect one yet. It is deferred to a child that starts after you: that child applies your findings in one pass, and then runs the item's one gate. So:  - **Item 3 is not yours.** The gate's evidence does not exist yet. Record item 3 as `PASS` with the line   `the gate has not run — this round precedes it`, and grade nothing else about it. Do not run the gate and do not run   a suite or a case to fill the gap: a gate you ran is the item's second, and its result would be quoted as if the   change had earned it. - **A check the gate will run is not yours to refuse.** Every check the measuring command's block names — the   `LOOP-MEASURE-CHECK` lines the change child quotes into the evidence you are given — is a step the gate child runs:   grade it `PASS` on that line, beside the case the change names for it, and never `UNPROVEN` for want of a log the   change child did not produce — that refusal is what sends the child back to run the selection the gate owns. What you   may refuse is a claim the gate cannot settle: a scenario no case in the diff exercises, a task marked done whose case   is absent. A number is not one of them: one a `LOOP-MEASURE-CHECK` line prints is a number the gate's own run will   carry, so it is not refused for want of a log here, and a number no command in the record produced is item 6's   `NOTE:`, graded and never refused. - **A `BLOCKING:` finding here is a correction, not a refusal.** This round does not block the item and is not a round   of the review budget: it hands one list to the child that runs the gate, and the round after the gate decides the   change. So name each thing to change exactly — the line, the claim, the pointer — in the shape one pass can answer. - **The change is not archived.** Its directory is still under the change root, and its `evidence/` may hold what the   change child copied there rather than what the archive will carry. Read it where it is; a file only the archive would   hold is a finding about the change, not a missing artefact, and the archive is not yours to judge here. - `LOOP-CORRECTIONS-ONLY` and `LOOP-DECISION` are not read from this round. `LOOP-BLOCKING:` and `VERDICT:` are, and a   `VERDICT: FAIL` with a count above zero is what hands your list to the gate child.  Items 5 (whether the mutation that proves the change targets the production invariant) and 6 (whether every quoted number is the output of a command the record carries) are graded as they always are: the change child ran its mutation before this round, and the numbers it quotes are in its records.    **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh --diff`); it reads text and version control and writes nothing. The gate's result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is bounded: the run ends this child at 3900 s, and a tool call held open is that time spent. A diff review is a **reading** task, and nothing you report may depend on a suite you ran.  Your whole output is the review below.  Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed first in practice.  1. **Scenario coverage** — `PASS|FAIL|UNPROVEN` per delta scenario, with the asserting case name, its    assertion and its timestamp. A scenario whose only support is a *different* claim is FAIL/UNPROVEN,    never PASS. 2. **Cause or gap scope** — does the diff implement the named root cause, or for the profile's propose class    the named missing capability, and nothing else? Quote the hunk. 3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*    (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right    requirement? Read the tally it carries; never reproduce it by running the gate. **Is it an execution for    *this tree*?** The diff under review was written from one tree and carries its identity beside it    (`/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/issue-loop/items/21/review-pre-gate.diff.identity`: `head=` and `diff=`), and the gate's own record names the tree it measured — on its    console as `LOOP-GATE-TREE: head=… diff=…` and as the record line's third field. Quote both. A gate whose    `diff=` is not this diff's gated a tree this round is not reading — a change corrected after its gate is exactly    that state — and is a `BLOCKING:` finding. 4. **Tasks claiming done** — any `[x]` whose scenario or evidence is not satisfied? 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the    production file empty)? 6. **Evidence pointers** — every quoted number is the output of a command the change's record carries, and    carried by the archived text too. A number no command in the record produced is not a claim: say so, and    grade it `NOTE:` — deleting or correcting it needs no new claim, case or assertion. It is `BLOCKING:` only    when the change's own contract, case or assertion depends on the number — a wrong value then contradicts the    diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so. 7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a    contract rather than an implementation, and did the guideline get a rule rather than a restatement?    Grade it against the reading set the diff derives, not against the sections the change's own artifacts    name. **Your reading set is what `bash tools/check-rule-routes.sh --diff d3b92562fa61795f007a6167f89bb22412a25237`, run inside    `/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.cfer8J/cases/0/tree/case.JtWwLe/repo/.pi/worktrees/loop`, derives for the paths the diff touched** — the guideline sections and the named rules    that own those paths. Read each, and grade the change per rule name. A section the change's artifacts name    beyond that set is an **addition** to the reading set: record it as an addition, never as a substitution    for a derived section. A derived section the change does not mention is graded anyway, because the map,    not the change, is what the review reads. 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.  ## Grade every finding  Prefix every finding you raise with one of two words, at the start of its own line:  ``` BLOCKING: <the finding> NOTE: <the finding> ```  **`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not exercised by the case that names it, or the gate or the red-case evidence is missing or false. **`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a restatement, a nicer way to say the same thing, and a quoted number whose command is not in the record. A note is recorded on the item and costs the change no round.  A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.  **When the item is a falsification.** A round can reach you with an empty diff, because the worker answered that the item's premise does not hold (`LOOP-FALSIFIED` and `LOOP-MEASURED` in its report). The diff cannot show whether that is right, so the report is the whole claim and it is read like one: does the measurement cover the *mechanism* the item blames, and can it be repeated from what the worker named? A measurement of something else, a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item then escalates instead of closing.  **When the item was handed a change.** Read the item's `ITEM_CHANGE` and `ITEM_DECISION` blocks beside the change itself. The item's decision is the answer a person recorded for the forks the change left open, so a change whose `## Open decisions` says `none` while the recorded question names a fork it did not settle is a **BLOCKING:** finding: the archive would state that nothing is open while the item's own record says something else. Quote the recorded question and the change's line together.  ## The count, then the verdict it licenses  At the end of the report, state the number of blocking findings and the verdict that number allows, in this order:  ``` LOOP-BLOCKING: <n> VERDICT: PASS|FAIL ```  Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.  `<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL` only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count — and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review from a quiet one.  On FAIL, name the exact things to change, and grade the shape of the refusal: a finding that is **strictly subtractive** — delete a claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no new claim, case or assertion, so one worker pass answers it; anything that adds one does not. A refusal of that shape at the round budget buys one more round, and that round exists only to verify the corrections: its prompt carries the section above ("This round verifies the corrections, not the change again") naming the correction diff and the refusing report, and it is those findings — not the whole change — that the round grades.  Two more machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a person reads and decides how many rounds one item gets:  ``` LOOP-CORRECTIONS-ONLY: yes|no LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why> ```  `LOOP-CORRECTIONS-ONLY: yes` states that every finding is subtractive — a deletion, a corrected pointer, a narrower wording — so one worker pass can satisfy it and the change needs no new claim, case or assertion. It describes the *shape of a refusal*, so it is read only when `LOOP-BLOCKING` is not 0: a report with zero blocking findings does not refuse, and therefore has no round for this line to buy. `LOOP-DECISION` is what the item's escalation will carry: name what a person must choose between (merge as it stands, apply the corrections, re-run the change, abandon it) and say which you recommend. An escalation that says only "a decision is needed" leaves the owner to reconstruct the question from your report, which is the defect this line exists to prevent. 
+FAIL prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle
+loop-selftest: 1 of 1 cases failed
+### prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle exit=1

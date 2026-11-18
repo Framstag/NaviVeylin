@@ -1,0 +1,18 @@
+# mutation-954.1.log — the change's falsification, run against a copy so the shared tree is not mutated
+# date: 2026-11-17T17:33:36Z
+# 954.1 mutates the clause in tools/loop/prompts/reviewer.md (s|never ask a question|feel free to ask a question|)
+# and names prompt#reviewerCarriesTheEightItems.
+
+## bash tools/loop/tests/loop-mutations.sh --engine /home/tim/projects/NaviVeylin/.pi/tmp/954-mut-1/tools/loop --only 954.1
+loop-mutations: selected 1 of 415 records (labels: 954.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.mqb69n
+RED    954.1  prompt#reviewerCarriesTheEightItems   (the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954))
+       2026-11-17T17:33:50Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261117-173341')
+restore 954.1 prompt#reviewerCarriesTheEightItems green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+## bash tools/loop/tests/loop-mutations.sh --check --only 954.1   (the record applies)
+loop-mutations: selected 1 of 415 records (labels: 954.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.JnztKc
+loop-mutations: all 1 cases passed — every selected record applies to the file it names

@@ -1,0 +1,16 @@
+# The two review rounds of #954 — verdict lines only.
+# Full reports, read by no person before their verdict lines:
+#   items/954/reviewer-report-1.md  (round 1, after the gate, 2026-11-17T20:38+0100)
+#   items/954/reviewer-report-2.md  (round 2, the corrective round, 2026-11-18T06:25+0100)
+
+## reviewer-report-1.md
+LOOP-BLOCKING: 1
+VERDICT: FAIL
+LOOP-CORRECTIONS-ONLY: yes
+LOOP-DECISION: One choice: merge #954 as it stands, apply the corrections, re-run the change, or abandon it. Recommend **apply the corrections** — the only blocking finding is a wording collision introduced by the clause itself (`reviewer.md:62-63` forbids the `LOOP-DECISION` choice the same file and the shipped capability require), and it is answered by narrowing that clause and the delta's requirement body to the round's own answer, keeping the three asserted phrases, with no new claim, case or assertion; the remaining findings are notes a worker pass corrects in place.
+
+## reviewer-report-2.md
+LOOP-BLOCKING: 2
+VERDICT: FAIL
+LOOP-CORRECTIONS-ONLY: yes
+LOOP-DECISION: One choice: merge #954 as it stands, apply the corrections, re-run the change, or abandon it. Recommend **apply the corrections** — the narrowing the refusing round asked for was written but never landed under #954 (`a412345e` reverted it, so `reviewer.md:60-63` still forbids the `LOOP-DECISION` choice the same file and the shipped capability require, while the change's own documents already state the narrowed clause), so one worker pass that lands the hunk in a commit naming #954 and records the round in `tasks.md` answers both blocking findings, and the remaining findings are notes corrected in place with no new claim, case or assertion.

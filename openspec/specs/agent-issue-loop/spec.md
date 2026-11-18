@@ -2068,7 +2068,8 @@ suite's own summary line. A suite that fails without reporting one SHALL have th
 counted as its failures — a step's `<class> > <case> FAILED` line is one failing case — and SHALL be recorded as
 an error instead where it named none: that tally carries
 `tests="0"`, `failures="0"` and `errors="1"`, and the gate's own line carries the same numbers beside its case and
-failure counts. A step the gate ended at its bound SHALL keep the error, whichever of those lines it printed before
+failure counts. The throwable a failing case printed SHALL NOT be counted as a case the step named. A step the gate
+ended at its bound SHALL keep the error, whichever of those lines it printed before
 it was ended. A tally meant to prove what executed SHALL NOT state a case the suite did not report.
 
 #### Scenario: A suite that failed before it reported anything
@@ -2092,6 +2093,14 @@ it was ended. A tally meant to prove what executed SHALL NOT state a case the su
 - **THEN** its tally carries zero cases, one failure per case it named and no error, the gate's own line carries
   the same three numbers, and the tally keeps the failing cases' own lines as its failure text
 - **Case**: `gate#aTestFailureIsAFailureNotAnError`
+
+#### Scenario: A step that printed only the throwable named no case
+
+- **WHEN** a step exits non-zero having printed a test task's `FAILED` header and a `java.lang.AssertionError` line,
+  and no `<class> > <case> FAILED` line anywhere in its stream
+- **THEN** its tally carries zero cases, zero failures and one error — the throwable is not a case the step named —
+  the gate's own line carries the same three numbers, and the gate still names the step as the one that failed
+- **Case**: `gate#aLoneAssertionErrorIsNotACase`
 
 ### Requirement: The self-test compiles the Java core when a case asks for it
 

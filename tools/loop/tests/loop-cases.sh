@@ -9843,14 +9843,20 @@ case_run_anEditorSwapFileIsNotAChildsWrite() {
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
-    'case "$1" in worker*) printf "swap\n" > "$LOOP_CHILD_ROOT/.mise.local.toml.swp" ;; esac'
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    case "$1" in
+      worker*) printf "swap\n" > "$LOOP_CHILD_ROOT/.mise.local.toml.swp"
+               mkdir -p "$LOOP_CHILD_ROOT/newmodule/bin"
+               printf "class\n" > "$LOOP_CHILD_ROOT/newmodule/bin/x.class" ;;
+    esac'
   run_loop "$p" --items 1 --minutes 90 --review off --strict-outside-write yes >/dev/null 2>&1 ||
     fail "the run itself failed"
   note=$(jq -r '.items[0].note' "$(state_file "$p")")
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
     "a swap file in the project tree does not stop the item"
   assert_not_contains "$note" "outside the worktree" "and no difference is recorded for it: $note"
+  assert_eq "class" "$(cat "$p/newmodule/bin/x.class" 2>/dev/null)" \
+    "a build directory inside an untracked directory is read file by file, so the pattern sees it"
 }
 
 case_run_strictOutsideWriteDiscardsTheReviewRound() {

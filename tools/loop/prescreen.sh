@@ -273,6 +273,20 @@ if [ -n "$LOOP_STATE_FILE" ] && [ -r "$LOOP_STATE_FILE" ]; then
 fi
 [ -n "$blocked_within_run" ] || blocked_within_run='[]'
 
+# Two open changes describing one item (#931): the pre-screen is where a picked item learns it, because the archive
+# that exposes the collision is the one place a session has already spent its planning half. The reading is the
+# project's artifact check — its own fifth class — so the class keeps one owner and this screen greps that finding
+# for the item's number instead of re-deriving the walk over the open set. The check is a path the project records
+# (`LOOP_ARTIFACT_CHECK`), never a literal here, and an empty value is a project with no open set to hold to it:
+# its items are screened exactly as before.
+issue_collisions=""
+artifact_check=$(loop_conf_value LOOP_ARTIFACT_CHECK)
+artifact_check="${artifact_check:-}"
+if [ -n "$artifact_check" ] && [ -f "$LOOP_ROOT/$artifact_check" ]; then
+  issue_collisions=$(bash "$LOOP_ROOT/$artifact_check" --root "$LOOP_ROOT" 2>&1 |
+    grep -E '^::error::.*name one issue \(#[0-9]+\)' || true)
+fi
+
 # The tracker writes the refusals need are collected here and applied once, after the queue is written, so
 # a pre-screen that dies mid-selection changes no item (the labels are the run script's, never a child's).
 label_writes=$(mktemp) || loop_die "prescreen: could not create the label write list"
@@ -424,6 +438,30 @@ while [ "$scan_index" -lt "$count" ]; do
       else
         reason="the tracker holds this item blocked by #${blocker}, which is not closed — the predecessor lands first, and the edge clears itself when it does"
         evidence="blockedBy:#${blocker}"
+      fi
+    fi
+  fi
+
+  # The item's own number claimed twice (#931): refused here, before a branch is cut, naming the directories the
+  # check found. It sits before the shape block because it reads neither the item's shape nor the change it names —
+  # two tier-A items for one number collide exactly as a tier-B pair does, which is what #928 was.
+  if [ "$verdict" = "$queued_verdict" ] && [ -n "$issue_collisions" ]; then
+    collision=$(printf '%s\n' "$issue_collisions" | grep -m1 -F "name one issue (#${number})" || true)
+    if [ -n "$collision" ]; then
+      detail="${collision#'::error::'}"
+      verdict="change-not-ready"
+      reason="two open changes name issue #${number} — one item, two changes, and the archive of the second makes the first unarchivable; ${detail}"
+      evidence="${detail%% name one issue*}"
+      # One comment per collision, not one per run, and keyed on the check's own finding: this is a refusal the
+      # item cannot escape by itself (#163), so it leaves a trace the next session reads before it plans.
+      if [ "$write" -eq 1 ]; then
+        already=$(loop_issue_json "$number" --comments 2>/dev/null |
+          jq -r '[.comments[]? | .body // ""] | join("\n")' 2>/dev/null || true)
+        case "$already" in
+          *"$detail"*) ;;
+          *) printf '%s\t%s\n' "$number" "$(jq -c -n --arg b "$reason
+the item is left open and no child was started: archive one of the two changes, or give the second its own item, and it is selected again" '$b')" >> "$comment_writes" ;;
+        esac
       fi
     fi
   fi

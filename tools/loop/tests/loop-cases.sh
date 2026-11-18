@@ -125,6 +125,7 @@ LOOP_SHELL_CASES=(
   'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
   'worktree#aTrackedEditStillBlocksTheMerge'
   'prescreen#aTierAItemPassesUnchanged'
+  'prescreen#anIssueTwoOpenChangesNameIsRefused'
   'prescreen#aChangeThatIsNoLongerReadyIsRefused'
   'prescreen#aClosedItemIsNotSelected'
   'prompt#thePackageCarriesTheChange'
@@ -904,6 +905,7 @@ loop_run_shell_case() {
     'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
     'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
+    'prescreen#anIssueTwoOpenChangesNameIsRefused') fn=case_prescreen_anIssueTwoOpenChangesNameIsRefused ;;
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
     'prescreen#aClosedItemIsNotSelected') fn=case_prescreen_aClosedItemIsNotSelected ;;
     'prescreen#theScreenRecordsTheItemsEpic') fn=case_prescreen_theScreenRecordsTheItemsEpic ;;
@@ -15905,6 +15907,47 @@ case_prescreen_aTierAItemPassesUnchanged() {
     "no tier-B branch fires for an item that names no change"
   assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "the item reaches the queue"
 }
+
+# #931: two sessions wrote a change for one item in one afternoon, and the archive of the second replaced the
+# requirement the first modified, so the first then failed `openspec validate --strict` with no sign of why. The
+# item's number is read against the open set in the pre-screen — the reading is the artifact check's own fifth class,
+# so the case copies the real checker into the throwaway project instead of describing it — and an item whose number
+# two open changes carry is refused before a branch is cut. One claim on the number is the state every item is in and
+# changes nothing, which is what the control keeps honest.
+case_prescreen_anIssueTwoOpenChangesNameIsRefused() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/check-openspec-hygiene.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status record control cstatus
+  # the control: one open change claims the item's number, and the item is worked exactly as before
+  control=$(new_project)
+  cp "$LOOP_PROJECT_ROOT/tools/check-openspec-hygiene.sh" "$control/tools/check-openspec-hygiene.sh"
+  mkdir -p "$control/openspec/changes/a-case-waits-on-its-record"
+  printf 'schema: spec-driven\ncreated: 2026-01-01\nx-issue: 21\n' > "$control/openspec/changes/a-case-waits-on-its-record/.openspec.yaml"
+  init_state "$control" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(run_prescreen "$control" --json 2>"$control/prescreen.err"); cstatus=$?
+  assert_eq "0" "$cstatus" "the single claim on the item's number refuses nothing"
+  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$control")")" "the item reaches the queue"
+  # the collision: the same number in two open changes
+  p=$(new_project)
+  cp "$LOOP_PROJECT_ROOT/tools/check-openspec-hygiene.sh" "$p/tools/check-openspec-hygiene.sh"
+  mkdir -p "$p/openspec/changes/a-case-waits-on-its-record" "$p/openspec/changes/a-case-wait-decided-by-its-record"
+  printf 'schema: spec-driven\ncreated: 2026-01-01\nx-issue: 21\n' > "$p/openspec/changes/a-case-waits-on-its-record/.openspec.yaml"
+  printf 'schema: spec-driven\ncreated: 2026-01-01\nx-issue: 21\n' > "$p/openspec/changes/a-case-wait-decided-by-its-record/.openspec.yaml"
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "3" "$status" "an item whose number two open changes name leaves nothing to work"
+  record=$(printf '%s' "$out" | jq -c '.[] | select(.issue == 21)')
+  assert_eq "change-not-ready" "$(printf '%s' "$record" | jq -r '.verdict')" "its verdict is the refusal"
+  assert_contains "$(printf '%s' "$record" | jq -r '.reason')" "name one issue (#21)" \
+    "the reason is the check's own finding, and it states the number"
+  assert_eq "openspec/changes/a-case-wait-decided-by-its-record, openspec/changes/a-case-waits-on-its-record" \
+    "$(printf '%s' "$record" | jq -r '.evidence')" "the evidence names both directories"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "no child is started for it"
+  assert_contains "$(cat "$p/gh.log")" "issue comment 21" "the refusal leaves a trace on the item"
+  assert_contains "$(cat "$p/gh.log")" "name one issue (#21)" "and the trace carries the finding"
+}
+
 
 # The two script-decidable facts about a tier-B item are asked before any worktree is cut: the change directory is
 # there, and the profile's readiness checker still reports `ok`. Either failing is a refusal with the checker's own

@@ -1473,6 +1473,12 @@ MUTATIONS=(
   # the delta resolves to no case at all and the driver refuses it (exit 2) where the whole set was owed.
   '917.1@-@tools/loop/tests/loop-selftest.sh@driver#aHunkInACaseBodySelectsThatCaseOnly@the case file'"'"'s hunks narrowing the leg to the cases they sit in, so a delta that adds a case pays the whole suite from the base again (issue #917)@s|^      from_git_narrowed=1$|      from_git_narrowed=0|'
   '917.2@-@tools/loop/tests/loop-selftest.sh@driver#aHunkOutsideEveryCaseBodyOwesEveryCase@the guard that keeps a leg whole when no hunk of the cases file lands in a declared case, so a hunk in a shared helper narrows the selection to nothing and the driver refuses it instead of owing every case (issue #917)@s|^    if \[ -n "\$kept" \]; then$|    if true; then|'
+  # 931.1 — the item's number read against the open set (issue #931). Two sessions wrote a change for one item, and
+  # the archive of the second replaced the requirement the first modified, so the first then failed
+  # `openspec validate --strict` with no sign of why. The pre-screen is the caller that refuses the item before a
+  # branch is cut; the record takes the reading of that finding out, so the item is queued and worked and the case's
+  # own refusal is the only thing that can name it.
+  '931.1@-@tools/loop/prescreen.sh@prescreen#anIssueTwoOpenChangesNameIsRefused@the finding the screen reads for the item'"'"'s number, so an item whose number two open changes carry is queued and worked — the collision this change exists to find (issue #931)@s|^    collision=.*|    collision=""|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

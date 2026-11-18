@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# check-openspec-hygiene.sh — the four silent-failure classes of the OpenSpec artifacts, in one script so
+# check-openspec-hygiene.sh — the five silent-failure classes of the OpenSpec artifacts, in one script so
 # that the pipeline's step and the self-test that mutates each of them run the same code.
 #
-# All four are silent in the OpenSpec CLI: the command exits 0 and the artifact is wrong.
+# All five are silent in the OpenSpec CLI: the command exits 0 and the artifact is wrong.
 #
 #   1. a `tasks.md` whose items are bare `1. [x]` lines — the task parser only reads `- [x]` / `- [ ]`, so
 #      the change reports `completedTasks: 0, totalTasks: 0, status: "no-tasks"` while `openspec status`
@@ -21,6 +21,15 @@
 #      holds for a set its reader cannot identify, and nothing reports it (issue #732).
 #      Only the open changes are read: an archived record is history, and it is neither inspected nor
 #      rewritten here. A citation inside a fenced block is a quotation, not a citation.
+#   5. two open changes that name one issue (issue #931). Nothing in the tree states the relation *this
+#      change is the change for issue #N* — the directory name says it sometimes and mostly does not — so
+#      two sessions wrote a change for one item in one afternoon. The second archive replaced the
+#      requirement the first modified, and the first then failed `openspec validate --strict` with no
+#      sign of why: the CLI refuses only the directory lucky enough to be attempted second. A change
+#      declares the item in `x-issue:` of its own `.openspec.yaml` — the `x-` prefix is the CLI's own
+#      form for tool metadata, because a bare key is a WARNING that `--strict` counts as a failure —
+#      `none` when no item is owed, and a `fix-issue-<N>-` name supplies the number for a directory
+#      written before the field existed.
 #
 # Usage: tools/check-openspec-hygiene.sh [--root <dir>]
 # Exit:  0 every artifact is consistent; 1 findings (each printed as a GitHub `::error` annotation);
@@ -31,7 +40,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0")" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,28p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,36p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "$(basename -- "$0"): unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -85,6 +94,46 @@ if [ -n "$(printf '%s' "$owner_offenders" | tr -d '[:space:]')" ]; then
   fail=1
 fi
 
+# 5. two open changes that name one issue (issue #931). The field is read from the change's own `.openspec.yaml`,
+# never from the directory name and never from the proposal's prose: a name carries the change's claim and the
+# prose says what its author chose to say. `none` is a declaration — a change that answers no item — and a
+# `fix-issue-<N>-` name supplies the number for a directory written before the field existed.
+issue_rows=""
+issue_bad=0
+for change_dir in "$root"/openspec/changes/*/; do
+  [ -d "$change_dir" ] || continue
+  change_name=$(basename "$change_dir")
+  [ "$change_name" = "archive" ] && continue
+  change_rel="openspec/changes/$change_name"
+  change_issue=""
+  if [ -f "$change_dir.openspec.yaml" ]; then
+    change_issue=$(sed -n 's/^x-issue:[[:space:]]*//p' "$change_dir.openspec.yaml" | head -1 | tr -d "\"' \t")
+  fi
+  if [ -z "$change_issue" ]; then
+    if printf '%s' "$change_name" | grep -qE '^fix-issue-[0-9]+-'; then
+      change_issue=$(printf '%s' "$change_name" | sed -E 's/^fix-issue-([0-9]+)-.*/\1/')
+    else
+      echo "::error file=$change_rel/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed"
+      issue_bad=1
+      fail=1
+      continue
+    fi
+  fi
+  issue_rows="$issue_rows$change_issue"$'\t'"$change_rel"$'\n'
+done
+for claimed in $(printf '%s' "$issue_rows" | cut -f1 | sort -u); do
+  [ "$claimed" = "none" ] && continue
+  claimer_count=$(printf '%s' "$issue_rows" | awk -F'\t' -v n="$claimed" '$1 == n' | wc -l)
+  [ "$claimer_count" -ge 2 ] || continue
+  claimers=$(printf '%s' "$issue_rows" | awk -F'\t' -v n="$claimed" '$1 == n { printf "%s%s", sep, $2; sep = ", " }')
+  echo "::error::$claimers name one issue (#$claimed) — two open changes describe one item, and the archive of the second replaces the requirement the first modified, so the first then fails 'openspec validate --strict' with no sign of why; work one item in one change, and declare 'x-issue: none' for a change that answers no item"
+  issue_bad=1
+  fail=1
+done
+if [ "$issue_bad" -eq 0 ]; then
+  echo "Every open change names its issue: $(printf '%s' "$issue_rows" | awk -F'\t' '$2 != "" { printf "%s%s=%s", sep, $2, ($1 == "none" ? "none" : "#" $1); sep = ", " }')."
+fi
+
 spec_bad=$(find "$root/openspec/specs" -name spec.md -exec awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' {} + 2>/dev/null)
 if [ -n "$spec_bad" ]; then
   echo "::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)"
@@ -98,6 +147,6 @@ else
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "OpenSpec artifacts are consistent: $changes open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose."
+  echo "OpenSpec artifacts are consistent: $changes open change(s) carry task markers, the operation guidance is quoted, every open change names its issue, and every capability spec states its Purpose."
 fi
 exit "$fail"

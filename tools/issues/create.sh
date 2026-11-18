@@ -249,13 +249,15 @@ fi
 
 # A change is a directory the tree holds, a readiness check the profile names, and the answers to the forks the
 # change leaves: a name nobody can open is a plan nobody wrote, and an item that arrives with `recorded: none`
-# hands the worker back the fork the shape exists to settle.
+# hands the worker back the fork the shape exists to settle. The refusal below also states the field the change
+# carries its item in (issue #931): the scaffolder this tree pins writes no such option, so the person who files the
+# change writes it, and the message that sends them to create the directory is the one place they read that.
 change_dir=""
 if [ "$shape" = "b" ]; then
   change_dir="$(issues_changes_dir)/$change"
   if [ ! -d "$change_dir" ]; then
     issues_refuse "change-not-found" \
-      "no change directory at $change_dir — a change name no tree holds is a plan nobody wrote; create it with 'openspec new change $change'"
+      "no change directory at $change_dir — a change name no tree holds is a plan nobody wrote; create it with 'openspec new change $change' and declare the item it answers in the created change's .openspec.yaml — 'x-issue: <number>', or 'x-issue: none' when no tracker item is owed, because the file the hygiene check reads is where the tree states it"
   fi
   gate_key="checks.changeReady"
   gate=$(issues_profile_value "$gate_key" 2>/dev/null | head -1)

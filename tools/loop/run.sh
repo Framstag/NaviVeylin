@@ -3101,6 +3101,15 @@ while true; do
   # not run is not re-run, and a round before a gate that has already run has nothing to read.
   pre_gate_refusal=""
   pre_gate_refusal_verdict=""
+  # Whether the round before the gate answered nothing at all — cut on its way to the file twice (issue #953). The
+  # round is advisory by its own contract (`prompts/pre-gate-review.md`): what it may do is hand findings to the child
+  # that runs the gate, and it is not a round of the review budget, so an answer that never arrived is **not** a
+  # refusal. Measured 2026-11-17 (run 10:58Z→16:25Z, items #916 and #917): each reviewer was handed the item's prompt,
+  # answered the run with a question (`Want me to execute review against diff?`), the byte-identical retry asked the
+  # same question, and the second cut refused an item whose gate had never been started — 20.4 Mtok and 3 commits
+  # handed to a person. The round is recorded `unanswered` and the gate child decides the item, which is what it was
+  # going to do anyway.
+  pre_gate_unanswered=0
   # What the round%ss input bound cut, in the words `bound_review_inputs` composed (issue #924): empty when every
   # part of this item%ss rounds was under the cap, and the figures the pre-gate round read when it was the one over it.
   review_input_cut_scale=""
@@ -3262,8 +3271,10 @@ while true; do
             round_bound_key="${round_bound_line%% *}"
             round_bound_value="${round_bound_line##* }"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
-            pre_gate_refusal_verdict="cut-short"
-            pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
+            # The round's answer never arrived, twice. It refuses nothing — a round that answered nothing is not a
+            # reviewer that refused the change (issue #953) — so the round is recorded `unanswered` beside the answers
+            # it did not write, and the run carries on to the gate child below: the gate is the item's one verdict.
+            pre_gate_unanswered=1
           fi
         fi
       fi
@@ -3275,11 +3286,21 @@ while true; do
         pre_gate_findings=""
         pre_gate_verdict=$(report_verdict "$pre_gate_report")
         case "$pre_gate_verdict" in PASS|FAIL|NOTES) ;; *) pre_gate_verdict="" ;; esac
+        # A round that answered nothing is the fourth answer the item's record can carry (issue #953): neither a pass
+        # nor a refusal, and not the `cut-short` a bound leaves either — no bound ended it, the transport did.
+        if [ "$pre_gate_unanswered" -eq 1 ] && [ -z "$pre_gate_verdict" ]; then
+          pre_gate_verdict="unanswered"
+        fi
         if [ "$pre_gate_verdict" = FAIL ] && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
           pre_gate_findings="$pre_gate_report"
         fi
         loop_state step A --name pre-gate-review --status ok \
-          --note "the diff was read before the gate: $(if [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+          --note "the diff was read before the gate: $(if [ "$pre_gate_verdict" = unanswered ]; then
+            printf 'the round before the gate answered nothing, so it records `unanswered` and the gate child decides the item'
+          elif [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+        if [ "$pre_gate_verdict" = unanswered ]; then
+          progress note "#${issue} the round before the gate answered nothing twice — the round is recorded unanswered and the gate child decides the item"
+        fi
         # The gate child is a phase of its own: it is handed what the change child established, and the findings when
         # there are any, and it decides nothing the change child already decided.
         gate_prompt_values=(
@@ -3289,7 +3310,7 @@ while true; do
           "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)"
           "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)"
           "RED_TEST=$(report_field "$gate_report" LOOP-RED-TEST)"
-          "FINDINGS_PATH=${pre_gate_findings:-none — the round read before the gate found no blocking finding}"
+          "FINDINGS_PATH=${pre_gate_findings:-$(if [ "$pre_gate_verdict" = unanswered ]; then printf 'none — the round before the gate never answered, so nothing was handed forward'; else printf 'none — the round read before the gate found no blocking finding'; fi)}"
         )
         render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
           "${gate_prompt_values[@]}"
@@ -3635,6 +3656,9 @@ while true; do
   fi
   outcome="closed"
   blocked_reason=""
+  # A round the transport cut twice refused nothing and does not stop the item (issue #953): the gate child below is
+  # the item's one verdict, so `pre_gate_refusal` stays empty for that shape and the arms here read what the gate
+  # child answered.
   # Which class of arm stopped the item: `refused` for a review round that refused the change, `unmergeable` for a
   # base that would not take the branch, `bound` for a child the run's own bound ended, and one class per remaining arm
   # (issue #865). Every block reaches the record through `block` above, so the class and the result are written

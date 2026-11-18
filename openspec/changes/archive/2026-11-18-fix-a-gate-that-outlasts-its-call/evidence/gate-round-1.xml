@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tools/loop/gate.sh (round 1, 2026-11-18T20:13Z — the run that found the renderer defect)" tests="1157" failures="4" errors="0" time="1074">
+    <system-out>LOOP-GATE: tests=1157 failures=4 errors=0 — failing: tools/loop/tests/loop-selftest.sh --from-git 8b59ce848c8bcbf873c5d8ca6c16cb959992f2fc; the four reds were run#aCorrectiveRoundIsHandedTheCorrections, run#childPastItsContextBoundIsCut, run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound (all three: loop_render mangled the ampersand in the new gate section) and run#aHupEndedRunRecordsItsStopAndUnpicksItsItem (its own pool-scaled wait, green when run alone: evidence/gate-round-1-attribution.log). LOOP-GATE-BASERED-UNMEASURED named the step, so the base's red could not be measured and the red stayed with the item.</system-out>
+  </testsuite>
+</testsuites>

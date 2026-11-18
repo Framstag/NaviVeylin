@@ -966,13 +966,19 @@ loop_labels() {
 # how its gate is run arrive from `loop.conf` at render time and never appear in a phase (D16).
 loop_render() { # loop_render <template> [KEY=VALUE]…
   local template="$1"; shift
-  local tpl pair key value
+  local tpl pair key value subs_off=0
   tpl=$(cat "$template") || loop_die "cannot read the prompt skeleton $template"
+  # A replacement is literal text and not a pattern (issue #957). bash 5.2 gave the *replacement* a meaning of its own
+  # — `&` stands for the text the pattern matched, unless `patsub_replacement` is off — so a section holding a shell
+  # command (`cd x && nohup … 2>&1 &`) was rendered as two copies of the placeholder and a redirection into one. The
+  # option is the shell's, not this function's, so it is turned off around the loop and put back as it was found.
+  if shopt -q patsub_replacement 2>/dev/null; then subs_off=1; shopt -u patsub_replacement; fi
   for pair in "$@"; do
     key="${pair%%=*}"
     value="${pair#*=}"
     tpl="${tpl//\{\{$key\}\}/$value}"
   done
+  [ "$subs_off" -eq 0 ] || shopt -s patsub_replacement
   printf '%s\n' "$tpl"
 }
 

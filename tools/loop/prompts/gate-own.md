@@ -12,8 +12,32 @@ a repair made there is a tree the gate never measured.
 Run the project's gate **once**, exactly as the run's configuration states it:
 
 ```
-{{GATE_CMD}}
+cd {{CHANGE_ROOT}} && nohup {{GATE_CMD}} > {{EVIDENCE_DIR}}/gate.log 2>&1 &
 ```
+
+A shell whose policy refuses to let one program start another drops the `nohup` and keeps the trailing `&` with both
+streams in that log; the gate outlives the call either way. Keep the path absolute as it stands — `{{EVIDENCE_DIR}}`
+is, and a bare `gate.log` would land in the project's own tree.
+
+**The wall this call runs into, and the way through it (issue #957).** The harness you run under ends one tool call
+at a **ceiling** of its own — 900 s measured on this host, 1 500 s in the run that filed this issue — and the gate is
+bounded by the profile's own clocks, which are longer than that (`LOOP_GATE_STEP_MAX_SECONDS` for one step,
+`LOOP_ITEM_GATE_SECONDS` for an item's whole gate). So a gate that passes can outlast the call that started it, and a
+gate run inline ends as a call that was cut: no `LOOP-GATE:` line, no tally, and a diff the round after the gate
+refuses for carrying no gate of its own. So the gate is **started detached and polled** — the call that starts it is
+not the call that reads it — and each poll is one `sleep` and one `tail -n`: a wait and a range read, over a file under
+the item's own directory rather than a path of the project's tree, so reading its end is no search of a tree at all:
+
+```
+sleep 600 && tail -n 40 {{EVIDENCE_DIR}}/gate.log
+```
+
+The gate is over when the log's last line begins `LOOP-GATE:` — its verdict, the numbers your report quotes — or
+`LOOP-GATE-REFUSED:`, which measured nothing. **A call that ends at its ceiling is the call ending, not the gate**: the
+process it started keeps running (this loop's own record, `tools/loop/loop.conf`), so resume by polling again, and
+never start a second gate — a gate started while one is running refuses with `LOOP-GATE-REFUSED: another gate of this
+tree holds …` and exit `4`, which is the engine saying one gate per tree and not a red gate to repair. Do not end your
+session before that log carries the tally: the gate line you print below is the gate's own, copied.
 
 The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
 gate that does not complete inside the run's budget — the run ends a child that outlasts its configured

@@ -1,0 +1,111 @@
+2026-11-18T20:10:24Z
+f6e7e37a7e34dc406b303581267bd0fadfe9b952eff4a14438095b45e677ff25  tools/loop/prompts/gate-own.md
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   …and starts the gate detached: 'nohup' not found in: **Complete the change before you run the gate** (issue #837). The gate names the tree it measures and a round's diff
+prompt#theGatePromptNamesTheWallAndTheWayThrough| names the tree it was written from, and those two names have to be one — so everything that writes the change
+prompt#theGatePromptNamesTheWallAndTheWayThrough| directory is done *before* the gate: copy the XMLs you cite into the change's own `evidence/` directory and into
+prompt#theGatePromptNamesTheWallAndTheWayThrough| `{{EVIDENCE_DIR}}`, run `bash tools/loop/evidence-check.sh <the change directory> --root .` from the change root and
+prompt#theGatePromptNamesTheWallAndTheWayThrough| fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+prompt#theGatePromptNamesTheWallAndTheWayThrough| this child in this shape, so the archive is yours; a rework round starts with the change already archived, and there
+prompt#theGatePromptNamesTheWallAndTheWayThrough| you complete nothing and leave the directory where it is. The date prefix the
+prompt#theGatePromptNamesTheWallAndTheWayThrough| archive adds is what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree
+prompt#theGatePromptNamesTheWallAndTheWayThrough| reads the same before and after the move. Nothing outside the change's `evidence/` directory is written after the gate:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| a repair made there is a tree the gate never measured.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| Run the project's gate **once**, exactly as the run's configuration states it:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| cd {{CHANGE_ROOT}} && {{GATE_CMD}} > {{EVIDENCE_DIR}}/gate.log 2>&1 &
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| **The wall this call runs into, and the way through it (issue #957).** The harness you run under ends one tool call
+prompt#theGatePromptNamesTheWallAndTheWayThrough| at a **ceiling** of its own — 900 s measured on this host, 1 500 s in the run that filed this issue — and the gate is
+prompt#theGatePromptNamesTheWallAndTheWayThrough| bounded by the profile's own clocks, which are longer than that (`LOOP_GATE_STEP_MAX_SECONDS` for one step,
+prompt#theGatePromptNamesTheWallAndTheWayThrough| `LOOP_ITEM_GATE_SECONDS` for an item's whole gate). So a gate that passes can outlast the call that started it, and a
+prompt#theGatePromptNamesTheWallAndTheWayThrough| gate run inline ends as a call that was cut: no `LOOP-GATE:` line, no tally, and a diff the round after the gate
+prompt#theGatePromptNamesTheWallAndTheWayThrough| refuses for carrying no gate of its own. So the gate is **started detached and polled** — the call that starts it is
+prompt#theGatePromptNamesTheWallAndTheWayThrough| not the call that reads it — and each poll is a wait and a range read, which your shell allows, while `grep`, `cat` and
+prompt#theGatePromptNamesTheWallAndTheWayThrough| `head` over that log are the tree search it refuses:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| sleep 600 && tail -n 40 {{EVIDENCE_DIR}}/gate.log
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| The gate is over when the log's last line begins `LOOP-GATE:` — its verdict, the numbers your report quotes — or
+prompt#theGatePromptNamesTheWallAndTheWayThrough| `LOOP-GATE-REFUSED:`, which measured nothing. **A call that ends at its ceiling is the call ending, not the gate**: the
+prompt#theGatePromptNamesTheWallAndTheWayThrough| process it started keeps running (this loop's own record, `tools/loop/loop.conf`), so resume by polling again, and
+prompt#theGatePromptNamesTheWallAndTheWayThrough| never start a second gate — a gate started while one is running refuses with `LOOP-GATE-REFUSED: another gate of this
+prompt#theGatePromptNamesTheWallAndTheWayThrough| tree holds …` and exit `4`, which is the engine saying one gate per tree and not a red gate to repair. Do not end your
+prompt#theGatePromptNamesTheWallAndTheWayThrough| session before that log carries the tally: the gate line you print below is the gate's own, copied.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
+prompt#theGatePromptNamesTheWallAndTheWayThrough| gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
+prompt#theGatePromptNamesTheWallAndTheWayThrough| wall-clock, and that includes every command you started — is not yours to report: the run records the item
+prompt#theGatePromptNamesTheWallAndTheWayThrough| `blocked` with your log itself, and a second attempt is not yours to make. Two attempts at one gate is how a run
+prompt#theGatePromptNamesTheWallAndTheWayThrough| spends its whole budget inside one child.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| **The gate is where your session ends.** When it has run, print the gate block below and stop: copy the XMLs you
+prompt#theGatePromptNamesTheWallAndTheWayThrough| cite into `{{EVIDENCE_DIR}}` as they are produced, and write nothing else into the tree. The run starts the tail process
+prompt#theGatePromptNamesTheWallAndTheWayThrough| from those lines, and that process reads the archived change's `tasks.md`, the gate line and the last 200 lines of your
+prompt#theGatePromptNamesTheWallAndTheWayThrough| own tool output — which is why you stop here rather than carrying this session's whole context through the record.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| A gate that did not pass is not yours to repair either: the run restores the change to its unarchived name and the tail
+prompt#theGatePromptNamesTheWallAndTheWayThrough| records the item `blocked` with the failing output you printed. What you must leave behind is the evidence of what you
+prompt#theGatePromptNamesTheWallAndTheWayThrough| did — the XMLs in `{{EVIDENCE_DIR}}`, the archived change in the change root, and the block below.
+--- prompt#theGatePromptNamesTheWallAndTheWayThrough[0] (exit 1)
+  …and starts the gate detached: 'nohup' not found in: **Complete the change before you run the gate** (issue #837). The gate names the tree it measures and a round's diff
+names the tree it was written from, and those two names have to be one — so everything that writes the change
+directory is done *before* the gate: copy the XMLs you cite into the change's own `evidence/` directory and into
+`{{EVIDENCE_DIR}}`, run `bash tools/loop/evidence-check.sh <the change directory> --root .` from the change root and
+fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+this child in this shape, so the archive is yours; a rework round starts with the change already archived, and there
+you complete nothing and leave the directory where it is. The date prefix the
+archive adds is what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree
+reads the same before and after the move. Nothing outside the change's `evidence/` directory is written after the gate:
+a repair made there is a tree the gate never measured.
+
+Run the project's gate **once**, exactly as the run's configuration states it:
+
+```
+cd {{CHANGE_ROOT}} && {{GATE_CMD}} > {{EVIDENCE_DIR}}/gate.log 2>&1 &
+```
+
+**The wall this call runs into, and the way through it (issue #957).** The harness you run under ends one tool call
+at a **ceiling** of its own — 900 s measured on this host, 1 500 s in the run that filed this issue — and the gate is
+bounded by the profile's own clocks, which are longer than that (`LOOP_GATE_STEP_MAX_SECONDS` for one step,
+`LOOP_ITEM_GATE_SECONDS` for an item's whole gate). So a gate that passes can outlast the call that started it, and a
+gate run inline ends as a call that was cut: no `LOOP-GATE:` line, no tally, and a diff the round after the gate
+refuses for carrying no gate of its own. So the gate is **started detached and polled** — the call that starts it is
+not the call that reads it — and each poll is a wait and a range read, which your shell allows, while `grep`, `cat` and
+`head` over that log are the tree search it refuses:
+
+```
+sleep 600 && tail -n 40 {{EVIDENCE_DIR}}/gate.log
+```
+
+The gate is over when the log's last line begins `LOOP-GATE:` — its verdict, the numbers your report quotes — or
+`LOOP-GATE-REFUSED:`, which measured nothing. **A call that ends at its ceiling is the call ending, not the gate**: the
+process it started keeps running (this loop's own record, `tools/loop/loop.conf`), so resume by polling again, and
+never start a second gate — a gate started while one is running refuses with `LOOP-GATE-REFUSED: another gate of this
+tree holds …` and exit `4`, which is the engine saying one gate per tree and not a red gate to repair. Do not end your
+session before that log carries the tally: the gate line you print below is the gate's own, copied.
+
+The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
+gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
+wall-clock, and that includes every command you started — is not yours to report: the run records the item
+`blocked` with your log itself, and a second attempt is not yours to make. Two attempts at one gate is how a run
+spends its whole budget inside one child.
+
+**The gate is where your session ends.** When it has run, print the gate block below and stop: copy the XMLs you
+cite into `{{EVIDENCE_DIR}}` as they are produced, and write nothing else into the tree. The run starts the tail process
+from those lines, and that process reads the archived change's `tasks.md`, the gate line and the last 200 lines of your
+own tool output — which is why you stop here rather than carrying this session's whole context through the record.
+
+A gate that did not pass is not yours to repair either: the run restores the change to its unarchived name and the tail
+records the item `blocked` with the failing output you printed. What you must leave behind is the evidence of what you
+did — the XMLs in `{{EVIDENCE_DIR}}`, the archived change in the change root, and the block below.
+FAIL prompt#theGatePromptNamesTheWallAndTheWayThrough
+loop-selftest: 1 of 1 cases failed
+mutated exit=1
+f6e7e37a7e34dc406b303581267bd0fadfe9b952eff4a14438095b45e677ff25  tools/loop/prompts/gate-own.md
+PASS prompt#theGatePromptNamesTheWallAndTheWayThrough
+restored exit=0

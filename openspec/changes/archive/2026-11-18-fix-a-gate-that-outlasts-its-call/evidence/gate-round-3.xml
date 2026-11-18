@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tools/loop/gate.sh (round 3, 2026-11-18T20:57Z — the archived change, the tree this item lands)" tests="1165" failures="1" errors="1" time="1094">
+    <system-out>LOOP-GATE: tests=1165 failures=1 errors=1 — the one red is run#aHupEndedRunRecordsItsStopAndUnpicksItsItem, whose own pool-scaled deadline is exhausted under a sixteen-way pool: it passes alone on this tree, and it fails the same way on the base tree with no delta (git worktree at 8b59ce84, `loop-selftest.sh --group run`, 1 of 166 cases failed — evidence/base-run-group.log). The `errors=1` is the same step's per-case error count. evidence/gate-runs.md holds the three rounds and the attribution.</system-out>
+  </testsuite>
+</testsuites>

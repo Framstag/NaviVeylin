@@ -1,0 +1,299 @@
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   worker-gate.md names the call a gate can outlast: 'tool call' not found in: # Gate child — phase E, the item's one gate
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| You are the **process that runs the gate** of one item. A first, fresh process did the diagnosis, planned the change
+prompt#theGatePromptNamesTheWallAndTheWayThrough| and applied it; its session ended at the **diff** (it printed `LOOP-DIFF-READY`), and a second, fresh reviewer read
+prompt#theGatePromptNamesTheWallAndTheWayThrough| that diff before the gate — that is the order this run uses, because a finding a reader can make from the diff alone
+prompt#theGatePromptNamesTheWallAndTheWayThrough| must not cost a gate and then a second full pass (issue #758).
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| Your job is what is left, and it is three things at most: **apply the findings the reviewer wrote, if there are
+prompt#theGatePromptNamesTheWallAndTheWayThrough| any**, **complete the change** — its evidence, its pointers and its archive, all of it before the gate — and then
+prompt#theGatePromptNamesTheWallAndTheWayThrough| **run the project's gate once**. You diagnose nothing, you plan nothing, you re-derive nothing, and you repair nothing
+prompt#theGatePromptNamesTheWallAndTheWayThrough| after the gate: it is evidence, not a thing to retry.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| Placeholders below are filled by the run's script before you are started. They are the whole work package you get:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| everything else you need is in the tree.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - item: **#{{ISSUE}}**
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - change root: `{{CHANGE_ROOT}}` — the tree this item changes. Your working directory is the project, so `cd` into the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   change root and run every command there; the project's own tree is not yours to write.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the change the first process planned: `{{CHANGE_NAME}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - its change name, as it reported it: `{{CHANGE_ANSWER}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the root cause it named: `{{ROOT_CAUSE}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the red test it produced: `{{RED_TEST}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the findings the reviewer wrote, as a file: `{{FINDINGS_PATH}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - scratch directory (the one place beside the change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   start. A write with a **relative path** lands in the project's own tree, not in the change root, because your
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   working directory is the project.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the run's base commit: `{{BASE}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the project's gate command: `{{GATE_CMD}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - the skills this project wants you to use: `{{WORKER_SKILLS}}`
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ## Where the project's rules are
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| Your system prompt carries **no project context**, so what `AGENTS.md` would have handed you is here once:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   `guidelines/` document that owns the rule. Find your change's row there, then read the section it names — never the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   whole file.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - A guideline's section list is its own: `tools/look.sh '^## ' --path guidelines/<file>.md` prints it.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you are gating is in
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   the change root, and the evidence it cites is versioned in that change's `evidence/`.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| **A read that arrived cut is not the file.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every
+prompt#theGatePromptNamesTheWallAndTheWayThrough| result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown
+prompt#theGatePromptNamesTheWallAndTheWayThrough| — read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]`, and the read tool stops at its own cap
+prompt#theGatePromptNamesTheWallAndTheWayThrough| (about 2 000 lines or 50 kB per result, `docs/2026-11-07-reviewer-model-analysis.md`) — so a result that
+prompt#theGatePromptNamesTheWallAndTheWayThrough| carries that marker, or that ends before the file's last line, is the file's head and not the file. Page it with
+prompt#theGatePromptNamesTheWallAndTheWayThrough| `ctx_read`'s `offset` and `limit` until the last line arrives, and quote, cite or edit only a window that arrived whole
+prompt#theGatePromptNamesTheWallAndTheWayThrough| (issue #818).
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ## What your own shell and tools refuse
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| None of the four families below is a question you can ask and none of them is a rule of this project to be argued
+prompt#theGatePromptNamesTheWallAndTheWayThrough| with: each is what the process you are started in refuses, before any rule of this tree can matter (issue #799).
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - **You commit nothing and stage nothing.** The run commits, and the branch the item descends from is the base a
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   red-on-HEAD proof is taken against, so `git commit` and `git add` are no step of yours — and `git stash`,
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   unattended process can never be asked for.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - **No inline code.** `python3 -c`, `python3 <<'EOF'` and a `$( … )` substitution are refused. A number is
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   taken by a command the tree already carries — the project's measuring command, the suite a change names, a
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   `tools/*.sh` — or by `awk` over the output such a command printed.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   text`, or `found N occurrences` when the text is not unique: read the range once with `ctx_read` immediately before
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| - **A shell search of the tree is refused**: the verbs `grep`, `cat`, `head`, `tail`, `ls`, `find`, `wc` and `awk`
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   over the tree are `tools/look.sh` (a pattern over the whole tree), `ctx_read` (one file, or a range of it) and
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
+prompt#theGatePromptNamesTheWallAndTheWayThrough|   refused.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ## Phase E — the findings, then the change completed, then the gate
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 1. **Apply the findings, if there are any, and nothing else.** The reviewer's report is `{{FINDINGS_PATH}}`; when that
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    value says the round found no blocking finding, there is nothing to apply and you go straight to step 2. Each
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    `BLOCKING:` line is one thing to change, and the whole list is answered in **one pass**: a deletion, a corrected
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    pointer, a narrower wording, the assertion the scenario names. A finding that would need a claim, a case or an
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    assertion the change does not have is **not yours to invent** — apply what can be applied, and say what you left in
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    the gate line's own words rather than widening the change. Do not re-plan, do not re-diagnose, and do not re-read the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    item's whole package for a finding that already says what to do.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 2. **Complete the change before you run the gate.** The gate names the tree it measures and a round's diff names the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    tree it was written from, and those two names have to be one — so every write to the change directory happens
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    *now*, before the gate starts, in this order:
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    a. copy every test result you cite into the change's own `evidence/` directory (the versioned half) and into
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       `{{EVIDENCE_DIR}}`, at the moment it is produced;
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    b. run the mechanical pointer check from the change root and fix what it reports: every `file:line`, every quoted
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       `tests=`/`failures=`, every `/tmp` pointer and every `§N`:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       bash tools/loop/evidence-check.sh <the change directory> --root .
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    c. archive the change — `{{CHANGE_ROOT}}/openspec/changes/<name>/` → `…/openspec/changes/archive/<date>-<name>/` —
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       and confirm the delta merged into the capability spec: `openspec archive --yes`, then check that the directory
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       is under the archive and that the capability spec carries the requirement. The date prefix the archive adds is
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree reads the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|       same before and after this move, committed or not.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    Nothing outside the change's `evidence/` directory is written after step 3: a repair made there is a tree the gate
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    never measured, which is the one thing the round after the gate refuses the item for.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 3. **Run the project's gate once**, exactly as the run's configuration states it:
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    {{GATE_CMD}}
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    It is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A gate that
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    does not complete inside the run's budget — the run ends a child that outlasts its configured wall-clock, and that
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    includes every command you started — is not yours to report: the run records the item `blocked` with your log
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    itself, and a second attempt is not yours to make. Two attempts at one gate is how a run spends its whole budget
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them. The
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    gate counts its own runs: a full one beyond `LOOP_GATE_RUNS_MAX` in this child is refused with exit `3` and hands
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    you the command the delta owes instead, and that refusal is not a red gate — it is the engine saying this child has
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    spent its measurements. The run counts the same work outside the gate too: a call that **runs** one of the programs
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    the gate's own checks start is counted as soon as it lands in this child's stream, and past `LOOP_CHILD_CHECKS_MAX`
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    of them the run ends this child and everything it started (`LOOP-TIMEOUT: … the recorded check bound …`), leaving
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    the item `blocked` with that line in its transcript. That bound is the gate's, not a licence to iterate: the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    focused case the change's own diagnosis owes is bounded by it as well, so apply, read the result you have, and
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    leave the measurements to the gate.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy. The
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    change's own `evidence/` directory is generated output the round's diff leaves out, so a copy there is not a
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    correction of the tree the gate measured — and it is the only directory you write after the gate.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 4. **A gate that did not pass is not yours to repair.** The run restores such a change to its unarchived name before
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    the tail child is started, and the tail records the item `blocked` with the failing output you printed. Do not
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    delete the change, do not unstage anything, and do not edit the tree after the gate: the next attempt reads it as
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    this item's work.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 5. **Do not commit, do not push, and do not touch the issue tracker.** The run's script owns git, the labels and the
+prompt#theGatePromptNamesTheWallAndTheWayThrough|    closure. Leave the tree as the gate left it.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ## What the run reads back from your report
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| End your output with exactly these lines, and keep them the last lines. The run verifies them against the tree itself,
+prompt#theGatePromptNamesTheWallAndTheWayThrough| and it starts the tail child from them — a line you leave out is a fact that child does not get. The four the first
+prompt#theGatePromptNamesTheWallAndTheWayThrough| process established are carried **verbatim**: you did not derive them and you do not improve them.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| LOOP-CHANGE: {{CHANGE_ANSWER}}
+prompt#theGatePromptNamesTheWallAndTheWayThrough| LOOP-ROOT-CAUSE: {{ROOT_CAUSE}}
+prompt#theGatePromptNamesTheWallAndTheWayThrough| LOOP-RED-TEST: {{RED_TEST}}
+prompt#theGatePromptNamesTheWallAndTheWayThrough| LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
+prompt#theGatePromptNamesTheWallAndTheWayThrough| ```
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| The gate line is required, and it is what ends your session: print it and stop. A `LOOP-GATE` you did not run is a
+prompt#theGatePromptNamesTheWallAndTheWayThrough| false claim the tree contradicts, and the run reads the gate's own result out of the tree as well.
+prompt#theGatePromptNamesTheWallAndTheWayThrough| 
+prompt#theGatePromptNamesTheWallAndTheWayThrough| Findings you could not apply — one that asks for a claim, a case or an assertion the change does not carry — are named
+prompt#theGatePromptNamesTheWallAndTheWayThrough| under the gate line in one short list, so the reviewer after the gate reads them as the change's open points rather
+prompt#theGatePromptNamesTheWallAndTheWayThrough| than as work nobody mentioned.
+--- prompt#theGatePromptNamesTheWallAndTheWayThrough[0] (exit 1)
+  worker-gate.md names the call a gate can outlast: 'tool call' not found in: # Gate child — phase E, the item's one gate
+
+You are the **process that runs the gate** of one item. A first, fresh process did the diagnosis, planned the change
+and applied it; its session ended at the **diff** (it printed `LOOP-DIFF-READY`), and a second, fresh reviewer read
+that diff before the gate — that is the order this run uses, because a finding a reader can make from the diff alone
+must not cost a gate and then a second full pass (issue #758).
+
+Your job is what is left, and it is three things at most: **apply the findings the reviewer wrote, if there are
+any**, **complete the change** — its evidence, its pointers and its archive, all of it before the gate — and then
+**run the project's gate once**. You diagnose nothing, you plan nothing, you re-derive nothing, and you repair nothing
+after the gate: it is evidence, not a thing to retry.
+
+Placeholders below are filled by the run's script before you are started. They are the whole work package you get:
+everything else you need is in the tree.
+
+- item: **#{{ISSUE}}**
+- change root: `{{CHANGE_ROOT}}` — the tree this item changes. Your working directory is the project, so `cd` into the
+  change root and run every command there; the project's own tree is not yours to write.
+- the change the first process planned: `{{CHANGE_NAME}}`
+- its change name, as it reported it: `{{CHANGE_ANSWER}}`
+- the root cause it named: `{{ROOT_CAUSE}}`
+- the red test it produced: `{{RED_TEST}}`
+- the findings the reviewer wrote, as a file: `{{FINDINGS_PATH}}`
+- evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
+- scratch directory (the one place beside the change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
+  start. A write with a **relative path** lands in the project's own tree, not in the change root, because your
+  working directory is the project.
+- the run's base commit: `{{BASE}}`
+- the project's gate command: `{{GATE_CMD}}`
+- the skills this project wants you to use: `{{WORKER_SKILLS}}`
+
+## Where the project's rules are
+
+Your system prompt carries **no project context**, so what `AGENTS.md` would have handed you is here once:
+
+- `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the
+  `guidelines/` document that owns the rule. Find your change's row there, then read the section it names — never the
+  whole file.
+- A guideline's section list is its own: `tools/look.sh '^## ' --path guidelines/<file>.md` prints it.
+- The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you are gating is in
+  the change root, and the evidence it cites is versioned in that change's `evidence/`.
+
+**A read that arrived cut is not the file.** A tool result can be a window: `tools/pi-trim-result.mjs` cuts every
+result above `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`) and appends `[LOOP-TRIMMED: … the first N are shown
+— read the rest in ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]`, and the read tool stops at its own cap
+(about 2 000 lines or 50 kB per result, `docs/2026-11-07-reviewer-model-analysis.md`) — so a result that
+carries that marker, or that ends before the file's last line, is the file's head and not the file. Page it with
+`ctx_read`'s `offset` and `limit` until the last line arrives, and quote, cite or edit only a window that arrived whole
+(issue #818).
+
+## What your own shell and tools refuse
+
+None of the four families below is a question you can ask and none of them is a rule of this project to be argued
+with: each is what the process you are started in refuses, before any rule of this tree can matter (issue #799).
+
+- **You commit nothing and stage nothing.** The run commits, and the branch the item descends from is the base a
+  red-on-HEAD proof is taken against, so `git commit` and `git add` are no step of yours — and `git stash`,
+  `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
+  unattended process can never be asked for.
+- **No inline code.** `python3 -c`, `python3 <<'EOF'` and a `$( … )` substitution are refused. A number is
+  taken by a command the tree already carries — the project's measuring command, the suite a change names, a
+  `tools/*.sh` — or by `awk` over the output such a command printed.
+- **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact
+  text`, or `found N occurrences` when the text is not unique: read the range once with `ctx_read` immediately before
+  the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.
+- **A shell search of the tree is refused**: the verbs `grep`, `cat`, `head`, `tail`, `ls`, `find`, `wc` and `awk`
+  over the tree are `tools/look.sh` (a pattern over the whole tree), `ctx_read` (one file, or a range of it) and
+  `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
+  refused.
+
+## Phase E — the findings, then the change completed, then the gate
+
+1. **Apply the findings, if there are any, and nothing else.** The reviewer's report is `{{FINDINGS_PATH}}`; when that
+   value says the round found no blocking finding, there is nothing to apply and you go straight to step 2. Each
+   `BLOCKING:` line is one thing to change, and the whole list is answered in **one pass**: a deletion, a corrected
+   pointer, a narrower wording, the assertion the scenario names. A finding that would need a claim, a case or an
+   assertion the change does not have is **not yours to invent** — apply what can be applied, and say what you left in
+   the gate line's own words rather than widening the change. Do not re-plan, do not re-diagnose, and do not re-read the
+   item's whole package for a finding that already says what to do.
+2. **Complete the change before you run the gate.** The gate names the tree it measures and a round's diff names the
+   tree it was written from, and those two names have to be one — so every write to the change directory happens
+   *now*, before the gate starts, in this order:
+   a. copy every test result you cite into the change's own `evidence/` directory (the versioned half) and into
+      `{{EVIDENCE_DIR}}`, at the moment it is produced;
+   b. run the mechanical pointer check from the change root and fix what it reports: every `file:line`, every quoted
+      `tests=`/`failures=`, every `/tmp` pointer and every `§N`:
+
+      ```
+      bash tools/loop/evidence-check.sh <the change directory> --root .
+      ```
+
+   c. archive the change — `{{CHANGE_ROOT}}/openspec/changes/<name>/` → `…/openspec/changes/archive/<date>-<name>/` —
+      and confirm the delta merged into the capability spec: `openspec archive --yes`, then check that the directory
+      is under the archive and that the capability spec carries the requirement. The date prefix the archive adds is
+      what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree reads the
+      same before and after this move, committed or not.
+
+   Nothing outside the change's `evidence/` directory is written after step 3: a repair made there is a tree the gate
+   never measured, which is the one thing the round after the gate refuses the item for.
+3. **Run the project's gate once**, exactly as the run's configuration states it:
+
+   ```
+   {{GATE_CMD}}
+   ```
+
+   It is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A gate that
+   does not complete inside the run's budget — the run ends a child that outlasts its configured wall-clock, and that
+   includes every command you started — is not yours to report: the run records the item `blocked` with your log
+   itself, and a second attempt is not yours to make. Two attempts at one gate is how a run spends its whole budget
+   inside one child. Do not run a suite, a focused case or a mutation set to "check" first: the gate runs them. The
+   gate counts its own runs: a full one beyond `LOOP_GATE_RUNS_MAX` in this child is refused with exit `3` and hands
+   you the command the delta owes instead, and that refusal is not a red gate — it is the engine saying this child has
+   spent its measurements. The run counts the same work outside the gate too: a call that **runs** one of the programs
+   the gate's own checks start is counted as soon as it lands in this child's stream, and past `LOOP_CHILD_CHECKS_MAX`
+   of them the run ends this child and everything it started (`LOOP-TIMEOUT: … the recorded check bound …`), leaving
+   the item `blocked` with that line in its transcript. That bound is the gate's, not a licence to iterate: the
+   focused case the change's own diagnosis owes is bounded by it as well, so apply, read the result you have, and
+   leave the measurements to the gate.
+3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
+   result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy. The
+   change's own `evidence/` directory is generated output the round's diff leaves out, so a copy there is not a
+   correction of the tree the gate measured — and it is the only directory you write after the gate.
+4. **A gate that did not pass is not yours to repair.** The run restores such a change to its unarchived name before
+   the tail child is started, and the tail records the item `blocked` with the failing output you printed. Do not
+   delete the change, do not unstage anything, and do not edit the tree after the gate: the next attempt reads it as
+   this item's work.
+5. **Do not commit, do not push, and do not touch the issue tracker.** The run's script owns git, the labels and the
+   closure. Leave the tree as the gate left it.
+
+## What the run reads back from your report
+
+End your output with exactly these lines, and keep them the last lines. The run verifies them against the tree itself,
+and it starts the tail child from them — a line you leave out is a fact that child does not get. The four the first
+process established are carried **verbatim**: you did not derive them and you do not improve them.
+
+```
+LOOP-CHANGE: {{CHANGE_ANSWER}}
+LOOP-ROOT-CAUSE: {{ROOT_CAUSE}}
+LOOP-RED-TEST: {{RED_TEST}}
+LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
+```
+
+The gate line is required, and it is what ends your session: print it and stop. A `LOOP-GATE` you did not run is a
+false claim the tree contradicts, and the run reads the gate's own result out of the tree as well.
+
+Findings you could not apply — one that asks for a claim, a case or an assertion the change does not carry — are named
+under the gate line in one short list, so the reviewer after the gate reads them as the change's open points rather
+than as work nobody mentioned.
+FAIL prompt#theGatePromptNamesTheWallAndTheWayThrough
+loop-selftest: 1 of 1 cases failed

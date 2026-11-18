@@ -1,0 +1,96 @@
+loop-selftest: selected 52 of 486 cases (files: tools/loop/)
+PASS evidence#scansWhatTheProfileNames
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+PASS gate#anEnginePathOwesTheRecordCheck
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-212126')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei 4514bab init
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-212126')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 4537d81 an engine of its own
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS driver#aFilterThatNamesNoCaseRefuses
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (cda6be2)
+PASS driver#theSummaryNamesWhatEachGroupCost
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (15e48d3)
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei 15e48d3 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 15e48d3).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS measure#namesTheOwedChecksInOneBlock
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+PASS clean#interruptedSuiteRemovesItsScratchTree
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+worktree#noPushWithoutTheFlag|   landing #21 15e48d3867e0d30da3f639c9b599ca3e885bbe74: unscored — the pipeline runs of this commit could not be read
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (06a6b76)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (31cdff3)
+PASS clean#interruptedSuiteEndsItsProcessGroup
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 31cdff3 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 31cdff3).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 31cdff3c75af194419744e6158dce710a5881f05: unscored — the pipeline runs of this commit could not be read
+PASS worktree#noPushWithoutTheFlag
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS labels#neverWritesReservedLabel
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+PASS driver#aHunkInACaseBodySelectsThatCaseOnly
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS driver#aHunkOutsideEveryCaseBodyOwesEveryCase
+PASS driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#everyEngineScriptIsInTheTable
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#noEngineFileExceedsItsBound
+PASS driver#aFileWithoutABoundIsRefused
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aNameAssignedTwiceIsRefused
+PASS driver#anUndeclaredReadIsRefused
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+PASS driver#aQuotedProgramIsNotAShellRead
+PASS driver#theSharedNamesAreDeclared
+PASS driver#theSourceOrderIsDeclared
+PASS driver#aCallToALaterFilesFunctionFails
+PASS driver#theCaseBoundScalesWithThePool
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+PASS state#aQuotaWindowIsAHoldNotAStop
+PASS state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+PASS state#noQuotaCommandAsksNothing
+PASS state#aHoldMovesTheDeadlineWithIt
+PASS census#aRunDoesNotConsultTheCensus
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS run#theQuotaSwitchIsExplicit
+loop-selftest: evidence 1 cases 0.12 s
+loop-selftest: worktree 1 cases 11.47 s
+loop-selftest: labels 1 cases 15.66 s
+loop-selftest: gate 4 cases 30.78 s
+loop-selftest: driver 33 cases 442.40 s
+loop-selftest: measure 1 cases 5.35 s
+loop-selftest: run 3 cases 74.74 s
+loop-selftest: clean 3 cases 22.08 s
+loop-selftest: state 4 cases 35.09 s
+loop-selftest: census 1 cases 13.83 s
+loop-selftest: all 52 cases passed (JDK 21, offline, no token, no sandbox) — 76.02 s, selection: --files tools/loop/ 

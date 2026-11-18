@@ -162,6 +162,8 @@ LOOP_SHELL_CASES=(
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'prompt#thePhasePromptsCarryTheirOwnRoute'
   'prompt#thePhasePromptNamesWhatItsShellRefuses'
+  'prompt#theGatePromptNamesTheWallAndTheWayThrough'
+  'prompt#aValueArrivesAsTheTextItWasHanded'
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
   'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen'
@@ -939,6 +941,8 @@ loop_run_shell_case() {
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'prompt#thePhasePromptsCarryTheirOwnRoute') fn=case_prompt_thePhasePromptsCarryTheirOwnRoute ;;
     'prompt#thePhasePromptNamesWhatItsShellRefuses') fn=case_prompt_thePhasePromptNamesWhatItsShellRefuses ;;
+    'prompt#theGatePromptNamesTheWallAndTheWayThrough') fn=case_prompt_theGatePromptNamesTheWallAndTheWayThrough ;;
+    'prompt#aValueArrivesAsTheTextItWasHanded') fn=case_prompt_aValueArrivesAsTheTextItWasHanded ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
     'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen') fn=case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen ;;
@@ -5033,6 +5037,49 @@ case_prompt_thePhasePromptNamesWhatItsShellRefuses() {
   for v in $verbs; do
     assert_contains "$text" "\`$v\`" "the block names the verb the policy refuses, in the policy's own spelling: $v"
   done
+  return 0
+}
+
+# The gate is handed to a child as one line, and a line names no wall it must survive (issue #957). A gate whose
+# suites outlast one tool call ends with no `LOOP-GATE:` line, so the diff under review carries no gate execution and
+# the round after the gate refuses it — measured 2026-11-17, three of a run's fourteen items recorded no gate result
+# and the item whose second attempt was cut at the child's ceiling blocked with 7 commits unlanded and 29.4 Mtok
+# spent. Two skeletons hand a child its gate, `worker-gate.md` in the deferred shape and `gate-own.md` in the
+# one-child shape, so both state the wall and the way through it: the gate started detached with its output in the
+# evidence directory, that log polled with a read the child's own shell allows, and the resume-by-polling that the
+# engine's own lock refusal makes the only alternative to starting a second gate.
+case_prompt_theGatePromptNamesTheWallAndTheWayThrough() {
+  # files: tools/loop/prompts/
+  local f text
+  for f in "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/gate-own.md"; do
+    [ -f "$f" ] || fail "no prompt skeleton at $f"
+    text=$(cat "$f")
+    assert_contains "$text" 'tool call' "$(basename "$f") names the call a gate can outlast"
+    assert_contains "$text" 'ceiling' "…and the ceiling that ends it"
+    assert_contains "$text" 'nohup' "…and starts the gate detached"
+    assert_contains "$text" '{{EVIDENCE_DIR}}/gate.log' "…with its output in the evidence directory"
+    assert_contains "$text" 'sleep ' "…polls that log"
+    assert_contains "$text" 'tail -n' "…through the range read its own shell allows"
+    assert_contains "$text" 'LOOP-GATE-REFUSED' "…naming the refusal a second gate meets instead of a restart"
+  done
+  return 0
+}
+
+# A value a prompt skeleton is rendered with arrives as the text the run handed it (issue #957). `loop_render` is one
+# pattern substitution per pair, and bash 5.2 gave the *replacement* a meaning of its own: a `&` stands for the text the
+# pattern matched (`patsub_replacement`), so a section holding a shell command — `cd x && nohup … 2>&1 &` — was rendered
+# as two copies of the placeholder and a redirection into one, and the child was handed a sentence it could not run.
+# The renderer therefore turns that option off around its own loop: the skeleton's text is data, not a pattern.
+case_prompt_aValueArrivesAsTheTextItWasHanded() {
+  # files: tools/loop/lib.sh
+  local d tpl out
+  d=$(scratch)
+  tpl="$d/template.md"
+  printf 'start {{CMD}} end {{EVD}}\n' > "$tpl"
+  out=$(bash -c '. "$1/lib.sh"; loop_render "$2" "CMD=cd x && nohup ./gate.sh > gate.log 2>&1 &" "EVD=/e/d"' \
+    _ "$LOOP_ENGINE" "$tpl" 2>&1) || fail "the renderer refused: $out"
+  assert_eq 'start cd x && nohup ./gate.sh > gate.log 2>&1 & end /e/d' "$out" \
+    "a value arrives as the text it was handed, its ampersands included"
   return 0
 }
 

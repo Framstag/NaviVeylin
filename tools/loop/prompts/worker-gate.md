@@ -100,8 +100,40 @@ with: each is what the process you are started in refuses, before any rule of th
 3. **Run the project's gate once**, exactly as the run's configuration states it:
 
    ```
-   {{GATE_CMD}}
+   cd {{CHANGE_ROOT}} && nohup {{GATE_CMD}} > {{EVIDENCE_DIR}}/gate.log 2>&1 &
    ```
+
+   A shell whose policy refuses to let one program start another drops the `nohup` and keeps the trailing `&` with
+   both streams in that log; the gate outlives the call either way. Keep the path absolute as it stands —
+   `{{EVIDENCE_DIR}}` is, and a bare `gate.log` would land in the project's own tree.
+
+   **The wall your call runs into, and the way through it (issue #957).** The harness you run under ends one tool call
+   at a **ceiling** of its own — 900 s measured on this host, 1 500 s in the run that filed this issue — and the gate is
+   bounded by the profile's own clocks, which are longer than that: `LOOP_GATE_STEP_MAX_SECONDS` for one step,
+   `LOOP_ITEM_GATE_SECONDS` for an item's whole gate. So a gate that passes still outlasts the call that started it,
+   and a gate run inline ends as a call that was cut: no `LOOP-GATE:` line, no tally, and a diff the round after the
+   gate refuses for carrying no gate of its own — measured 2026-11-17, three items of one run recorded no gate result at
+   all and #911's second attempt was cut at 1 500 s after 3 025 s of gate clock.
+
+   So the gate is **started detached and polled**, and the call that starts it is not the call that reads it. Then poll
+   it, one call per poll, each of them cheap — `sleep` is a wait and `tail -n` is a range read, and the log itself is a
+   file under the item's own directory rather than a path of the project's tree, so reading its end is no search of a
+   tree at all:
+
+   ```
+   sleep 600 && tail -n 40 {{EVIDENCE_DIR}}/gate.log
+   ```
+
+   The gate is over when the log's last line begins `LOOP-GATE:` — its verdict, the `tests=`, `failures=` and
+   `errors=` your report quotes — or `LOOP-GATE-REFUSED:`, which measured nothing.
+
+   **A call that ends at its ceiling is the call ending, not the gate.** The process it started keeps running (this
+   loop's own record: an orphaned suite held its host for 1 383 s after the child was gone, `tools/loop/loop.conf`), so
+   the way to resume is to poll again — never to start a second gate, not to "check" and not because a poll came back
+   empty. A gate started while one is running refuses with `LOOP-GATE-REFUSED: another gate of this tree holds …` and
+   exit `4`: that is the engine saying one gate per tree, it measures nothing, and it is neither a red gate nor a thing
+   to repair. Do not end your session before that log carries the tally: the line you print below is the gate's own
+   line, copied.
 
    It is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A gate that
    does not complete inside the run's budget — the run ends a child that outlasts its configured wall-clock, and that
@@ -116,15 +148,15 @@ with: each is what the process you are started in refuses, before any rule of th
    the item `blocked` with that line in its transcript. That bound is the gate's, not a licence to iterate: the
    focused case the change's own diagnosis owes is bounded by it as well, so apply, read the result you have, and
    leave the measurements to the gate.
-3. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
+4. **Copy every test result you cite into `{{EVIDENCE_DIR}}`** at the moment it is produced. A change that cites a
    result and carries none is refused by the run, and a copy taken after the build tree is gone is not a copy. The
    change's own `evidence/` directory is generated output the round's diff leaves out, so a copy there is not a
    correction of the tree the gate measured — and it is the only directory you write after the gate.
-4. **A gate that did not pass is not yours to repair.** The run restores such a change to its unarchived name before
+5. **A gate that did not pass is not yours to repair.** The run restores such a change to its unarchived name before
    the tail child is started, and the tail records the item `blocked` with the failing output you printed. Do not
    delete the change, do not unstage anything, and do not edit the tree after the gate: the next attempt reads it as
    this item's work.
-5. **Do not commit, do not push, and do not touch the issue tracker.** The run's script owns git, the labels and the
+6. **Do not commit, do not push, and do not touch the issue tracker.** The run's script owns git, the labels and the
    closure. Leave the tree as the gate left it.
 
 ## What the run reads back from your report

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tools/loop/gate.sh (round 2, 2026-11-18T20:36Z — the renderer guard added, the change not yet archived)" tests="1158" failures="1" errors="0" time="1043">
+    <system-out>LOOP-GATE: tests=1158 failures=1 errors=0 — the three renderer reds of round 1 are gone and green individually (evidence/gate-round-1-attribution.log); the one red left is run#aHupEndedRunRecordsItsStopAndUnpicksItsItem, the pool-scaled deadline this host cannot meet at sixteen-way concurrency, which fails identically on a base tree carrying no delta (evidence/base-run-group.log). evidence/gate-runs.md holds the three rounds.</system-out>
+  </testsuite>
+</testsuites>

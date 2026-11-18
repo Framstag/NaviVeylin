@@ -1,0 +1,5 @@
+2026-11-18T20:36:10Z
+PASS run#aCorrectiveRoundIsHandedTheCorrections
+PASS run#childPastItsContextBoundIsCut
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+PASS run#aHupEndedRunRecordsItsStopAndUnpicksItsItem

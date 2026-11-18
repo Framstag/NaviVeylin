@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-17
+# The items this change is for — #958 (the run's own comparison) and #962 (the landing's dirty read), one rule the two
+# readings share. `a-change-names-the-issue-it-is-for` plans the key `issue:`; the installed CLI does not read it yet
+# and warns on it (which `--strict` turns red), so the numbers ride as tool metadata until that lands.
+x-tracker: "958, 962"

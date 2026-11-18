@@ -1,0 +1,21 @@
+worktree#aTrackedEditStillBlocksTheMerge| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#aTrackedEditStillBlocksTheMerge| HEAD ist jetzt bei 9d3fccd chore: a tracked file the ignore list would match
+worktree#aTrackedEditStillBlocksTheMerge| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#aTrackedEditStillBlocksTheMerge|   a tracked edit still refuses the merge, whatever the ignore list says: Aktualisiere 9d3fccd..2c6b235
+worktree#aTrackedEditStillBlocksTheMerge| Fast-forward
+worktree#aTrackedEditStillBlocksTheMerge|  demo-fix.txt | 1 +
+worktree#aTrackedEditStillBlocksTheMerge|  1 file changed, 1 insertion(+)
+worktree#aTrackedEditStillBlocksTheMerge|  create mode 100644 demo-fix.txt
+worktree#aTrackedEditStillBlocksTheMerge| merged: branch fix/issue-21-demo -> 2c6b235 · commits 2c6b235ef73efb876ff41b800ca3bbb7a93f61db: expected '5', got '0'
+--- worktree#aTrackedEditStillBlocksTheMerge[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 9d3fccd chore: a tracked file the ignore list would match
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  a tracked edit still refuses the merge, whatever the ignore list says: Aktualisiere 9d3fccd..2c6b235
+Fast-forward
+ demo-fix.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 demo-fix.txt
+merged: branch fix/issue-21-demo -> 2c6b235 · commits 2c6b235ef73efb876ff41b800ca3bbb7a93f61db: expected '5', got '0'
+FAIL worktree#aTrackedEditStillBlocksTheMerge
+loop-selftest: 1 of 1 cases failed

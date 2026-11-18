@@ -471,8 +471,11 @@ change.
 - **WHEN** an agent process changes the project's own tree while an item is in flight
 - **THEN** the run records one line naming what changed — the differing status entries and any process whose
   working directory is inside the project and outside the worktree — and none of that write is committed into
-  the item's change, because the worktree is the only tree a phase may write
-- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`, `run#mergesOverADifferenceItCannotPlace`
+  the item's change, because the worktree is the only tree a phase may write. An entry whose path no child of the
+  run could have written — an editor's temporary, a build directory, per `LOOP_WRITE_IGNORE` — is not one of them:
+  the comparison leaves it out, so a window nobody closed is not a write this requirement reports
+- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`, `run#mergesOverADifferenceItCannotPlace`,
+  `run#anEditorSwapFileIsNotAChildsWrite`
 
 #### Scenario: A difference the run cannot attribute does not decide the item
 
@@ -1533,8 +1536,11 @@ the run placed, or one no reading covers, SHALL refuse the merge (issues #286, #
   the difference in a process of its own tree, or no reading of that tree was taken at all
 - **THEN** the merge is refused with the reason it found and the base stays where it was: it does not merge over
   work it would attribute to itself, no commit of the branch reaches the base, and the branch is left where it was,
-  nothing merged into the tree the base branch is checked out in
-- **Case**: `worktree#theLandingDecidesByTheReadingItIsHanded`, `worktree#refusesToMergeOverADirtyProjectTree`
+  nothing merged into the tree the base branch is checked out in. An untracked entry whose path no child of the run
+  could have written — a build directory, an editor's temporary — is not a dirt the landing refuses: the reading
+  leaves it out, while a tracked file that changed refuses whatever its name
+- **Case**: `worktree#theLandingDecidesByTheReadingItIsHanded`, `worktree#refusesToMergeOverADirtyProjectTree`,
+  `worktree#anIdeBuildDirectoryDoesNotBlockTheMerge`, `worktree#aTrackedEditStillBlocksTheMerge`
 
 #### Scenario: The pre-screen's adoption lands over a difference this run placed nowhere
 
@@ -5688,3 +5694,25 @@ A block that escalates an item SHALL carry the question the run holds: the revie
 - **WHEN** a review round ran and its report carries a `LOOP-DECISION` while the worker's report carries another
 - **THEN** the escalation quotes the reviewer's, because that round read the diff the block is about, and the worker's is not quoted at all
 - **Case**: `run#aReviewersDecisionOutranksTheWorkers`
+
+### Requirement: A path no child wrote decides nothing
+
+A reading of the project tree the run takes for its outside-write comparison, and the landing's reading of the tree it merges into, SHALL leave out the paths no child of the run could have written — the profile's `LOOP_WRITE_IGNORE` list, defaulting to editor temporaries and build output — before it decides anything. At a landing, only untracked entries SHALL be droppable: a tracked file that changed is a write whatever its name.
+
+#### Scenario: An editor's swap file is not a child's write
+
+- **WHEN** a child of the run writes nothing, and an editor's swap file appears in the project tree while it runs, and the run judges the tree
+- **THEN** no outside-write line is recorded and the item is not stopped, because the difference carries no path a child of this run could have written
+- **Case**: `run#anEditorSwapFileIsNotAChildsWrite`
+
+#### Scenario: A build directory does not block a landing
+
+- **WHEN** a language server compiles into an untracked `bin/` directory under the project root and the landing is asked to merge
+- **THEN** the landing merges, because the reading that refuses it leaves out the paths no child wrote
+- **Case**: `worktree#anIdeBuildDirectoryDoesNotBlockTheMerge`
+
+#### Scenario: A tracked edit still refuses the landing
+
+- **WHEN** a tracked file in the project tree carries a modification the run did not make
+- **THEN** the landing refuses exactly as before, because the filter drops only untracked entries
+- **Case**: `worktree#aTrackedEditStillBlocksTheMerge`

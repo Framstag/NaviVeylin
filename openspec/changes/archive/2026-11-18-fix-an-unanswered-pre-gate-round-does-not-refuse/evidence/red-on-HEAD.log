@@ -1,0 +1,7 @@
+# red case on HEAD (tools/loop/run.sh, state.sh and prompts/reviewer.md at HEAD)
+run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides|   and the diff it never answered is gated: the gate child is started: expected '1', got '0'
+--- run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides[0] (exit 1)
+  and the diff it never answered is gated: the gate child is started: expected '1', got '0'
+FAIL run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides
+loop-selftest: 1 of 1 cases failed
+exit=1

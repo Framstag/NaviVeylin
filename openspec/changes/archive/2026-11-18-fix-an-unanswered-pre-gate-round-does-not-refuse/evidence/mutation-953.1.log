@@ -1,0 +1,12 @@
+# the two records the change owes
+loop-mutations: selected 2 of 423 records (labels: 953.1 79.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.SlLRDt
+RED    79.4  run#aPreGateReviewEndedAtItsBoundNamesIt   (the outcome arm a bound the run enforces records on a round it cut, so a round the deadline or a spend bound ended is left for the next run instead of closing (issues #758, #953; the case moved when a transport cut stopped taking this arm))
+       2026-11-18T17:48:13Z — and the class a bound leaves on the item, before the gate as much as after it (the run's item #898): expected 'bound', got 'null'
+restore 79.4 run#aPreGateReviewEndedAtItsBoundNamesIt green again
+RED    953.1  run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides   (the arm that records a round the transport cut twice as `unanswered` and lets the gate child decide the item, so a question the run can never answer refuses an item whose gate was never started (issue #953))
+       2026-11-18T17:48:32Z — and the diff it never answered is gated: the gate child is started: expected '1', got '0'
+restore 953.1 run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+exit=0

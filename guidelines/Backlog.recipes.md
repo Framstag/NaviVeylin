@@ -960,9 +960,12 @@ error under it, and no `M of N cases failed` line at all. Measured 2026-11-14 (i
 two `FAILED` lines, no summary — was tallied `tests=0 failures=0 errors=1`, so two broken tests read as one
 environment error and the run could not tell "my change broke a test" from "the JVM fell over". `finish_step`
 reads those per-test lines as the step's failures (the task's own line begins with `>`, which is what keeps its
-header from being read as a case); a step the bound ended, and a step that named no case, keep the error above.
-The case is
-`gate#aTestFailureIsAFailureNotAnError`, and `tools/loop/tests/loop-mutations.sh` 916.1 the record that keeps it.
+header from being read as a case), and it is the only reading taken; a step the bound ended, and a step that named
+no case, keep the error above. The case is
+`gate#aTestFailureIsAFailureNotAnError`, and `tools/loop/tests/loop-mutations.sh` 916.1 the record that keeps it. The
+other half — a step that named no per-test line while printing the throwable — is
+`gate#aLoneAssertionErrorIsNotACase`, kept by record 916.2: an `AssertionError` text in the stream is not a case, and
+counting it as one is the reading the elimination retired.
 
 A tally's name is the command that wrote it, and it is never a dotfile: the profile's compiled command runs as
 `./gradlew`, and the `./` is dropped before the name is built, so `ls` and a `*.xml` glob find the one tally that

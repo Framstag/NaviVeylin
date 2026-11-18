@@ -1454,6 +1454,11 @@ MUTATIONS=(
   # had broken. The record removes the reading of those lines, so the two cases the step named are none again and the
   # case's own numbers are the only thing that can notice it.
   '916.1@-@tools/loop/gate.sh@gate#aTestFailureIsAFailureNotAnError@the failing cases a step names, read as its failures where it printed no summary, so a change that broke a test reads as an error again@s|^  if \[ "\$rc" -ne 0 \] && \[ "\$f" -eq 0 \] && .*; then$|  if false; then|'
+  # 916.2 — the eliminated half, reintroduced (issue #916). `finish_step` carried a second arm that counted
+  # `AssertionError` text as a failing case, so a step whose stream named no `<class> > <case> FAILED` line was
+  # tallied one failure instead of #268's error. With that reading standing in for the per-test one, the shape the
+  # new case prints reads `failures=1 errors=0` again and the case's own line is what names it.
+  '916.2@-@tools/loop/gate.sh@gate#aLoneAssertionErrorIsNotACase@the AssertionError text counted as a failing case again, so a step that named no case is tallied one failure and the error #268 made it is lost — the reading this change deletes, standing in for the per-test one@s|\^\[\^\[\:space\:\]>\]\[\^>\]\* > \.\* FAILED\[\[\:space\:\]\]\*\$|^[[:space:]]*java[.]lang[.]AssertionError|'
   # 954.1 — the clause that says the round is one process with nobody to ask (issue #954). The contract stated the
   # answer's tail and nothing about the round being non-interactive, so a child read `reviewer.md` as a document to
   # summarise and answered `Pick: (1) run review, (2) summary done, (3) edit prompt. Awaiting answer.` — four rounds of

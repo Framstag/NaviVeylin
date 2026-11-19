@@ -76,6 +76,15 @@ class SettingsController @Inject constructor(
         _surfaceState.value = SettingsSurfaceState.Topic(topic)
     }
 
+    /**
+     * Show one row's options. The page remembers the [topic] it was opened from, because that is
+     * where [back] returns to (design D5 — a value set larger than four options gets a surface of
+     * its own rather than a row that cycles).
+     */
+    fun openOptions(topic: SettingsTopic, rowKey: String) {
+        _surfaceState.value = SettingsSurfaceState.Options(topic, rowKey)
+    }
+
     /** Leave the settings surface entirely. */
     fun close() {
         _surfaceState.value = SettingsSurfaceState.Closed
@@ -90,6 +99,7 @@ class SettingsController @Inject constructor(
             SettingsSurfaceState.Closed -> SettingsSurfaceState.Closed
             SettingsSurfaceState.Root -> SettingsSurfaceState.Closed
             is SettingsSurfaceState.Topic -> SettingsSurfaceState.Root
+            is SettingsSurfaceState.Options -> SettingsSurfaceState.Topic(state.topic)
         }
     }
 }

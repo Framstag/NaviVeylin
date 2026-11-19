@@ -26,11 +26,20 @@ enum class SettingControl {
     LINK
 }
 
-/** One value a [SettingControl.CHOICE] or [SettingControl.SELECT] row offers. */
+/**
+ * One value a [SettingControl.CHOICE] or [SettingControl.SELECT] row offers.
+ *
+ * Exactly one of [labelRes] and [label] carries the text. A row whose options have a resource of
+ * their own names it; a row whose options are the values' own labels — the vehicle anchors, whose
+ * text the Android Auto picker reads from `VehicleAnchorPosition.label` — carries the literal, so the
+ * two pickers cannot drift apart (spec: `settings-surface` — "The phone edits the settings Android
+ * Auto owns").
+ */
 data class SettingChoice(
     /** The value as it is persisted, so a row never renames what the settings file holds. */
     val key: String,
-    @param:StringRes val labelRes: Int
+    @param:StringRes val labelRes: Int? = null,
+    val label: String? = null
 )
 
 /** Where a [SettingControl.LINK] row sends the user (design D1: a link row's target). */
@@ -46,14 +55,28 @@ enum class SettingsLinkTarget {
 sealed interface SettingControlPayload {
     /** A row that leaves the surface for its target instead of editing a value here. */
     data class Open(val target: SettingsLinkTarget) : SettingControlPayload
-    /** A slider's endpoints and step, in the value's own unit. */
-    data class Slider(val min: Int, val max: Int, val step: Int) : SettingControlPayload
+    /**
+     * A slider's endpoints and step, in the value's own unit, plus the resource that renders one value
+     * with that unit (`%1$d km/h`). The row's `read` returns the bare number, so the value beside the
+     * label and both endpoint labels come from one resource instead of three string literals
+     * (spec: `settings-surface` — "A numeric range is a slider with labelled endpoints").
+     */
+    data class Slider(
+        val min: Int,
+        val max: Int,
+        val step: Int,
+        @param:StringRes val valueFormatRes: Int
+    ) : SettingControlPayload
 
     /** The ≤ 4 inline options of a [SettingControl.CHOICE] row. */
     data class Choice(val choices: List<SettingChoice>) : SettingControlPayload
 
-    /** The options a [SettingControl.SELECT] row lists on its own sub-surface. */
-    data class Select(val choices: List<SettingChoice>) : SettingControlPayload
+    /**
+     * The options a [SettingControl.SELECT] row lists on its own sub-surface, laid out in [columns]
+     * columns: one is a list, five reproduces the vehicle anchors' 5×3 picker (design D5; spec:
+     * `settings-surface` — "A finite value set is presented as options, never only by cycling").
+     */
+    data class Select(val choices: List<SettingChoice>, val columns: Int = 1) : SettingControlPayload
 }
 
 /**

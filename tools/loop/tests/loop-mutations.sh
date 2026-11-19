@@ -1687,11 +1687,28 @@ run_case() { # run_case <case> <fifo|->  → 0 the case passed, non-zero it fail
 
 # The assertion a red case failed on, and when: a `RED` line that names only the case is a label a reader has to
 # re-run to check, and the round-1 review of #674 read the evidence as one that carried no failing message and no
-# timestamp. The suite prints the case's own failing assertion before its `FAIL <case>` line, so the first line that
-# carries the suite's `<case>|   <message>` shape is the one that names the failure.
+# timestamp.
+# The line to quote is the **last** the case printed, not the first: the suite prefixes every line a case prints with
+# `<case>| `, so the first match is the case's first output line — its fixture's own (`git init`'s progress line was
+# what record `29.8` quoted, issue #964) — while a case signals failure by calling `fail`, which prints its message
+# indented by two spaces and exits at once. The dump `--- <case>[<slot>] (exit <status>)` the suite repeats for a
+# failed case comes *before* the `FAIL <case>` line, so the assertion is in that dump's tail; the first line of the
+# last **run** of indented lines is the assertion itself, and its log line is printed with it so a reader checks the
+# choice instead of re-running the record. A case that printed no assertion at all (killed at its bound) is answered
+# with the last line it printed, said to be that rather than the message it failed on.
 case_reason() {
   [ -s "${case_log:-}" ] || return 0
-  sed -n 's/^[^|]*|  *//p' "$case_log" | head -1 | cut -c1-240
+  awk '
+    /^[^|]*\|  / {
+      if (!run) { n = NR; why = $0; sub(/^[^|]*\|  */, "", why); run = 1 }
+      last = NR; tail = $0; sub(/^[^|]*\| /, "", tail)
+      next
+    }
+    { run = 0 }
+    END {
+      if (n) printf "case log line %d: %s\n", n, substr(why, 1, 240)
+      else if (last) printf "case log line %d, the last line the case printed: %s\n", last, substr(tail, 1, 240)
+    }' "$case_log"
 }
 
 apply_mutation() { # apply_mutation <file> <backup> <expressions separated by ;;>

@@ -92,6 +92,21 @@ case "$out" in
 esac
 copy_is_pristine "the mutated copy is byte-identical to the pristine one again"
 
+# 3b. the record's reason is the assertion the case failed on (issue #964). A `RED` line that quotes the first line a
+# case printed quotes its fixture: `29.8`'s case runs `git init` and fails on a later refusal, and the record archived
+# with item #962 quoted `Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')` instead of the refusal the case
+# failed on (`openspec/changes/archive/2026-11-18-a-path-no-child-wrote-is-not-a-write/evidence/mutation-29.8-red.txt`).
+# The reason also names the line of the case's log it was read from, and that line is not the log's first.
+out=$(timeout 600 bash "$harness" --only 29.8 --engine "$copy_dir" 2>&1)
+status=$?
+check "a record whose case prints before it fails exits zero" "0" "$status"
+if printf '%s\n' "$out" | grep -qE '^ *[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]+Z — case log line ([2-9]|[1-9][0-9]+): the merge was refused on a build directory'; then
+  ok "a red record quotes the assertion the case failed on"
+else
+  bad "a red record quotes the assertion the case failed on — the reason line: [$out]"
+fi
+copy_is_pristine "and the copy is byte-identical again after the record whose reason is read"
+
 # 4. the scratch tree the backups live in: the project's own `.pi/tmp` unless `TMPDIR` moves it, and gone
 # afterwards. A backup on the host's tmpfs is how a full /tmp emptied six engine files on 2026-10-21 (#234).
 default_scratch=$(unset TMPDIR; timeout 300 bash "$harness" --probe no-apply --engine "$copy_dir" 2>&1 |

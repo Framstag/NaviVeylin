@@ -59,8 +59,12 @@ the right reason, restore, it must pass again**); three mechanics differ:
 
 The mechanical form for the loop is **`tools/loop/tests/loop-mutations.sh`**: one command per mutation, red asserted,
 restore asserted, a `MUTATION-DID-NOT-APPLY` guard, and an EXIT trap that restores what it touched if the run
-is killed. `--list` prints the set; `--only <labels>` runs one; `--engine <copy>` runs against a copy (which
-is what its own self-test, `tools/loop/tests/loop-mutations-selftest.sh`, does to prove both guards and the restore);
+is killed. A `RED` line quotes the assertion the case failed on and the line of the case's own log it was read from
+(`— case log line 4: the merge was refused on a build directory: …`), and never the first line the case printed,
+which is its fixture's output: the suite repeats everything a case printed *before* it prints `FAIL <case>`, so the
+assertion is the tail of that text, the message `fail` printed last (issue #964).
+`--list` prints the set; `--only <labels>` runs one; `--engine <copy>` runs against a copy (which is what its own
+self-test, `tools/loop/tests/loop-mutations-selftest.sh`, does to prove both guards and the restore);
 `--files <path> ...` and `--from-git <base>` bound the pass to the records whose file the change touched, and
 the count line (`selected 7 of 81 records`) says so.
 Quote its transcript in the task item, exactly as the Gradle form quotes a tally.

@@ -300,9 +300,10 @@ gate_check_programs() { # → the programs the gate's checks start, one per line
 # leading `VAR=value` assignments and a `bash`/`sh`/`exec`/`timeout <n>` wrapper, so `cd /w && timeout 300
 # ./tools/loop/gate.sh` runs the gate while a command whose argument is the path of the gate — a `sed -n 1,60p
 # tools/loop/gate.sh`, a `git show HEAD:tools/loop/gate.sh`, a `grep` over it — reads that file and runs nothing. A
-# `--plan` call runs no step either. Both read a command string as `.` and the two variables the caller binds:
+# `--plan` call runs no step either, and a check programme run **whole** — no `--case`, no `--tests` — is the gate's
+# own work under another name (issue #937). Both read a command string as `.` and the two variables the caller binds:
 # `$gate` (the gate's program) and `$checks` (the programs its checks start).
-gate_command_jq() { # → jq definitions `words`, `assignment`, `wrapper`, `run_word`, `is_gate`, `is_check`
+gate_command_jq() { # → jq definitions `words`, `assignment`, `wrapper`, `run_word`, `whole`, `is_check`, `is_whole_check`, `is_gate`
   cat <<'JQ'
       def words: [((. // "") | tostring) | splits("[ \\t;|&]+")] | map(select(length > 0));
       def assignment: test("^[A-Za-z_][A-Za-z0-9_]*=");
@@ -314,17 +315,36 @@ gate_command_jq() { # → jq definitions `words`, `assignment`, `wrapper`, `run_
              elif (.[0] == "timeout" and ((.[1] // "") | test("^[0-9]"))) then .[2:]
              else .[1:] end))
         | .[0] // "";
-      def is_gate: (($gate | length) > 0)
-                   and ((words) as $w
-                        | (($w | run_word) as $prog
-                           | (($prog == $gate) or ($prog | endswith("/" + $gate))))
-                          and ([$w[] | select(. == "--plan")] | length == 0));
+      # Whether a call's words narrow it, read on a word list: `--case <name>` and `--tests <filter>` run one case, and
+      # `--plan`, `--list` and `--help` run no step at all. A call naming none of them runs the programme **whole**.
+      def whole: ([.[] | select((. | test("^--(case|tests)=")) or (. == "--case") or (. == "--tests")
+                          or (. == "--plan") or (. == "--list") or (. == "--help") or (. == "-h"))]
+                  | length) == 0;
       def is_check: (($checks | length) > 0)
                     and (([((. // "") | tostring) | splits("[;&|]+") | words
                            | (run_word) as $prog
                            | select([$checks[] as $c | select(($prog == $c) or ($prog | endswith("/" + $c)))] | length > 0)]
                           | length) > 0)
                     and ([words[] | select(. == "--plan")] | length == 0);
+      # A call that runs one of those programmes **whole** is the gate's own work under another name (issue #937): a
+      # child that runs the gate's suite by hand spends the gate's own 15-19 minutes and the item gate runs it again
+      # right after it, so counting it as one of the profile's checks prices the gate's dearest work at a focused
+      # case's price. Only a call narrowed to a case is the iteration `guidelines/BuildGate.md` §2a hands a child.
+      def is_whole_check:
+        (($checks | length) > 0)
+        and (([((. // "") | tostring) | splits("[;&|]+")
+               | words as $w
+               | ($w | run_word) as $prog
+               | select(any($checks[]; . as $c | ($prog == $c) or ($prog | endswith("/" + $c))))
+               | select($w | whole)]
+              | length) > 0);
+      def is_gate:
+        (((($gate | length) > 0)
+          and ((words) as $w
+               | (($w | run_word) as $prog
+                  | (($prog == $gate) or ($prog | endswith("/" + $gate))))
+                 and ([$w[] | select(. == "--plan")] | length == 0)))
+         or is_whole_check);
 JQ
 }
 
@@ -375,10 +395,11 @@ JQ
 # How many of the gate's checks a child has run by hand since the last look (issue #882), read from the lines its
 # stream has gained — the same incremental reading `run.sh`'s `child_context` takes, so a stream that runs to
 # megabytes costs one `wc` and one `jq` over the new lines per second and never a re-parse of the whole file. The
-# calls counted are the ones the gate itself would re-run (`gate_check_programs`), less the gate's own run: a check
-# the gate would not run again is the focused iteration an item's own diagnosis owes and is nobody's to bound. A
-# stream that is absent, empty or unreadable is no reading rather than an error, exactly as `child_context` treats
-# one: a child whose command writes no events is bounded by its clock, its turns and its context alone.
+# calls counted are the ones the gate itself would re-run (`gate_check_programs`), narrowed to a case, less the
+# gate's own run: a check the gate would not run again is the focused iteration an item's own diagnosis owes and is
+# nobody's to bound, and a suite run **whole** is the gate's work under another name (issue #937). A stream that is
+# absent, empty or unreadable is no reading rather than an error, exactly as `child_context` treats one: a child
+# whose command writes no events is bounded by its clock, its turns and its context alone.
 child_check_calls() { # <events file> <lines already read> → "<check calls in the new lines> <lines read>"
   local f="${1:-}" done_lines="${2:-0}" total gate_prog checks_json n
   [ -n "$f" ] && [ -f "$f" ] || { printf '0 0\n'; return 0; }

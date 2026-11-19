@@ -759,7 +759,8 @@ read from the stream `state.sh done` already opens: `metrics.phases` (the turns'
 the checks the profile's own map names (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) as the
 gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
 and a tool's the execution after it), `metrics.gateRepeat` beside it (the part of that gate no `gate.sh` call paid —
-the checks a child ran by hand, counted and timed, `null` where a child ran none, issue #857: 674 s in the four
+the checks a child ran by hand, narrowed to a case since issue #937, counted and timed, `null` where a child ran none,
+issue #857: 674 s in the four
 largest check calls of item #849's stream, whose order puts the two largest *before* its gate),
 `metrics.roles` (each session's tokens keyed by the role its prompt **path**
 names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker, and

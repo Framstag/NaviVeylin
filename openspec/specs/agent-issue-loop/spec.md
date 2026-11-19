@@ -5045,8 +5045,9 @@ fall back to the note, and it SHALL say on the line that what it printed is re-d
 
 A child's hand-run checks SHALL be counted while it runs, from the lines its stream has gained, and SHALL end it at
 the recorded `LOOP_CHILD_CHECKS_MAX`: the `LOOP-TIMEOUT` line SHALL name that key and the count that reached it. A
-counted call is one that **runs** a program the gate's own checks start, less the gate's own run; a call that only
-names such a path, and a `--plan` call, SHALL NOT count. No key, or `0`, SHALL bound nothing.
+counted call is one that **runs** a program the gate's own checks start, narrowed to one case, less the gate's own
+run; a call that only names such a path, a `--plan` call, and a call that runs one of those programs whole SHALL NOT
+count. No key, or `0`, SHALL bound nothing.
 
 #### Scenario: A child past the recorded check bound is ended
 
@@ -5830,3 +5831,24 @@ that refusal on the item in the tracker.
   already unarchivable
 - **Case**: `prescreen#anIssueTwoOpenChangesNameIsRefused` — the control is one open change claiming the number,
   which refuses nothing; a tree that carries no such check has no open set to read and is screened as before
+
+### Requirement: A whole-suite run is the gate's work, not a child's check
+
+A call that runs one of the gate's check programmes without narrowing it to a case SHALL be classified with the gate,
+so a child's check budget counts the focused cases the iteration protocol hands it and not the gate's own suite run
+by hand. A narrowed call SHALL stay a child's check.
+
+#### Scenario: A whole-suite run by hand spends no check
+
+- **WHEN** a child's stream shows `tools/loop/tests/loop-selftest.sh --from-git <base>` or a Gradle test task with no
+  `--tests` filter in one of its turns
+- **THEN** `child_check_calls` adds nothing to the child's count for that call, and the count is the one the run's
+  check bound reads
+- **Case**: `run#aChildCheckSkipsTheGatesOwnSuite`
+
+#### Scenario: A focused case is still counted
+
+- **WHEN** a child runs one case (`--case <name>`, or `--tests <filter>`)
+- **THEN** the call is counted, and a child that reaches `LOOP_CHILD_CHECKS_MAX` such calls is still ended at the
+  bound with the key named on its `LOOP-TIMEOUT` line
+- **Case**: `run#aFocusedCaseIsStillAChildCheck`, `run#childPastItsCheckBoundIsCut`

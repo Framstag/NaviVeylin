@@ -1189,8 +1189,9 @@ num_or_null() {
 #     (`run#engineNamesNoProjectFact`). The three are disjoint: a turn's duration is the model response, the tool's
 #     duration the execution that follows it, so they add up to the clock the item's children spent working;
 #   * **`gateRepeat`** (`{calls, ms}`) — the part of that gate bucket no `gate.sh` call paid: the check calls a child
-#     ran by hand, counted and priced (issue #857). `null` where no child ran one, never the zero a run of none would
-#     read as;
+#     ran by hand, counted and priced (issue #857). A call that runs a check programme **whole** is not one of them
+#     (issue #937): that is the gate's work under another name, so the field counts the calls narrowed to one case.
+#     `null` where no child ran one, never the zero a run of none would read as;
 #   * **`roles`** — each `session` record opens one child's stream and its first `user` message is the prompt file
 #     the run handed it, which is the only thing in the stream that names the role. The path does: `worker-tail` is
 #     the tail, `reviewer-pre-gate` the round that reads the diff before the gate, `reviewer` the reviewer, everything

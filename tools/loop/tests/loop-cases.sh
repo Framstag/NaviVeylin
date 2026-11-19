@@ -490,6 +490,8 @@ LOOP_SHELL_CASES=(
   'repeat#theHookWritesTheItemsLedger'
   'run#childPastItsTurnBoundIsCut'
   'run#childPastItsCheckBoundIsCut'
+  'run#aChildCheckSkipsTheGatesOwnSuite'
+  'run#aFocusedCaseIsStillAChildCheck'
   'prescreen#aReworkCutBranchIsWork'
   'prescreen#anAnsweredBranchIsWorkNotADecision'
   'prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch'
@@ -1268,6 +1270,8 @@ loop_run_shell_case() {
     'repeat#theHookWritesTheItemsLedger') fn=case_repeat_theHookWritesTheItemsLedger ;;
     'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
     'run#childPastItsCheckBoundIsCut') fn=case_run_childPastItsCheckBoundIsCut ;;
+    'run#aChildCheckSkipsTheGatesOwnSuite') fn=case_run_aChildCheckSkipsTheGatesOwnSuite ;;
+    'run#aFocusedCaseIsStillAChildCheck') fn=case_run_aFocusedCaseIsStillAChildCheck ;;
     'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
@@ -15054,14 +15058,16 @@ JSONL
 # that took only the gate's call held its 823 s and left those 674 s as ordinary tool time. The map the profile
 # declares (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) already names those checks. This
 # case pins both halves: a check the map names is the gate's bucket wherever it stands in the item, and the part of
-# that bucket no gate run paid is the figure the record now names, counted and priced.
+# that bucket no whole run paid is the figure the record now names, counted and priced (issue #937: a programme run
+# whole — no `--case`, no `--tests` — is the gate's work, so the record counts the narrowed calls alone).
 case_report_aCheckTheGateWouldRunIsTheGateTime() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/loop/tests/ tools/pi-child-events.sh tools/tooling.json
   local d p f out trend phases_line
   d=$(scratch); p=$(new_project)
-  # The shape item #849's stream has: a case the worker iterates on, the gate, one of the loop's suites run by hand —
+  # The shape item #849's stream has: a case the worker iterates on, the gate, the loop's whole suite run by hand —
   # chained behind a `date -u`, as the recipes in the prompts write it — a call that is no check, and the gate's own
-  # plan: 394 s of the item's clock in checks, of which the 389 s no gate run paid is the figure the record names.
+  # plan: 394 s of the item's clock in gate work, of which the 2 s no whole run paid is the figure the record names
+  # (issue #937: a suite run whole is the gate's work under another name, so it is the bucket's and not the child's).
   cat > "$d/repeat.jsonl" <<'JSONL'
 {"type":"session","version":3,"id":"s1"}
 {"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
@@ -15085,8 +15091,8 @@ JSONL
     "the case the child iterated on, the gate, and the suite it chained behind a 'date' are the gate bucket, whoever started them"
   assert_eq "900" "$(jq -r '.items[0].metrics.phases.otherMs' "$f")" \
     "and the call that is no check, and the plan, are the other tools they are"
-  assert_eq '{"calls":2,"ms":389000}' "$(jq -c '.items[0].metrics.gateRepeat' "$f")" \
-    "the two checks the child ran itself are recorded as the part of the gate no gate run paid, with their count and their clock"
+  assert_eq '{"calls":1,"ms":2000}' "$(jq -c '.items[0].metrics.gateRepeat' "$f")" \
+    "the one case the child narrowed to is the part of the gate no whole run paid, and the suite it ran whole is the bucket's, not the child's (issue #937)"
   assert_eq "5000000" "$(jq -r '.items[0].metrics.afterGate.tokens' "$f")" \
     "the split after the first gate is still taken at the gate: 5 of the item's 6 Mtok stand from the gate on, not from the suite the child ran before it"
   out=$(run_report "$p") || fail "the report failed"
@@ -15095,8 +15101,8 @@ JSONL
   [ -n "$phases_line" ] || fail "the trend printed no phases line"
   assert_contains "$phases_line" "gate 394 s · other 0.9 s" \
     "the trend's gate bucket holds what the checks the gate would run cost the item, wherever a child ran them"
-  assert_contains "$phases_line" "389 s of that gate was 2 checks a child ran itself" \
-    "and it names the part of the bucket no gate run paid, wherever the child's own checks stand"
+  assert_contains "$phases_line" "2 s of that gate was 1 check a child ran itself" \
+    "and it names the narrowed checks of the bucket, not the whole suite the child ran by hand (issue #937)"
   # An item whose child ran the gate and no check by hand records nothing there: the field is `null`, never the zero a
   # run of none would read as, and the line carries no clause about a check the child did not run.
   cat > "$d/once.jsonl" <<'JSONL'
@@ -20466,13 +20472,14 @@ case_run_childPastItsCheckBoundIsCut() {
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   # The calls, in the shape the adapter keeps them: a `toolCall` block inside the turn it was made in, with the command
   # it ran. `sed -n 1,60p tools/loop/gate.sh` and `git show HEAD:tools/loop/gate.sh` read the gate's file and start
-  # nothing; the two after them start programs the gate's own map names.
+  # nothing; the two after them run a program the gate's own map names, each narrowed to one case — the suite run by
+  # hand spends no check of this bound (issue #937), so a tree that counted it would read three where these two stand.
   fixture="$d/events.jsonl"
   printf '%s\n' \
     '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"m1","name":"bash","arguments":{"command":"sed -n 1,60p tools/loop/gate.sh"}}]}}' \
     '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"m2","name":"bash","arguments":{"command":"git show HEAD:tools/loop/gate.sh"}}]}}' \
     '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c1","name":"bash","arguments":{"command":"tools/loop/tests/loop-selftest.sh --case run#childStartsInTheProjectRoot"}}]}}' \
-    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c2","name":"bash","arguments":{"command":"bash tools/loop/tests/loop-mutations.sh --check"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c2","name":"bash","arguments":{"command":"tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach"}}]}}' \
     > "$fixture"
   action="$d/check-child.sh"
   cat > "$action" <<EOF
@@ -20519,6 +20526,58 @@ EOF
     "an item whose child crossed the bound is recorded cut, not blocked (issue #790)"
   assert_eq "bound" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
     "and the bound that ended it is kept beside the result"
+  return 0
+}
+
+# A programme the gate's map names, run **whole**, is the gate's own work and not one of the child's checks (issue
+# #937). The run started 2026-11-18T22:18:25Z ended 4 of its 11 items at `LOOP_CHILD_CHECKS_MAX=40` — #964 after 64
+# checks, #902 after 53, #900 on check 40 — while the children ran 253 checks themselves, 1.9 h of the run's 9.6 h of
+# item wall, and the item gate that followed each of the four passed on the tree the bound had left
+# (`items/{964,900,902,894}/cut-gate.log`): the bound cut finished work, and what it priced at a focused case's price
+# was the suite the gate runs again right after the child. `child_check_calls` counts the calls that **run** a
+# programme the map lists, less the gate's own run; this case pins the other half of that rule — a call narrowed to a
+# case is a check, and a call that narrows nothing runs the gate's work.
+case_run_aChildCheckSkipsTheGatesOwnSuite() {
+  # files: tools/loop/ tools/loop/loop.conf
+  local d f got
+  d=$(scratch)
+  f="$d/events.jsonl"
+  # The forms a child writes: the suite its delta owes, the mutation check it runs after a fix, the build's own test
+  # task, and one of them chained behind a `date` as the prompts' recipes write it. None of the four narrows the
+  # programme, so every one of them is the gate's work under another name.
+  printf '%s\n' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"s1","name":"bash","arguments":{"command":"tools/loop/tests/loop-selftest.sh --from-git main"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"s2","name":"bash","arguments":{"command":"bash tools/loop/tests/loop-mutations.sh --check"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"s3","name":"bash","arguments":{"command":"./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"s4","name":"bash","arguments":{"command":"date -u +%Y-%m-%dT%H:%M:%SZ && bash tools/loop/tests/loop-selftest.sh --from-git main"}}]}}' \
+    > "$f"
+  got=$(child_check_calls "$f" 0)
+  assert_eq "0 4" "$got" \
+    "a child that ran the gate's whole suite by hand spends no check of the bound (issue #937): it read '$got'"
+  # …and the second reading over the same lines, so the case is about the rule and not about one pass over the file.
+  got=$(child_check_calls "$f" 4)
+  assert_eq "0 4" "$got" "and a stream whose lines were already read adds none of them again: it read '$got'"
+  return 0
+}
+
+# The half the exclusion must not take with it (issue #937): a call narrowed to one case is the focused iteration
+# `guidelines/BuildGate.md` §2a hands a child, it is what the check bound exists to price, and it is still counted.
+# A rule that excluded every call to a programme the map lists would read zero here, and the end-at-the-bound arm
+# keeps its own case (`run#childPastItsCheckBoundIsCut`).
+case_run_aFocusedCaseIsStillAChildCheck() {
+  # files: tools/loop/ tools/loop/loop.conf
+  local d f got
+  d=$(scratch)
+  f="$d/events.jsonl"
+  # The two shapes §2a hands a child: one case of the loop's suite (`--case`), and one Gradle test class
+  # (`--tests`). Both narrow the programme, so both stay checks.
+  printf '%s\n' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"f1","name":"bash","arguments":{"command":"tools/loop/tests/loop-selftest.sh --case run#childStartsInTheProjectRoot"}}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"f2","name":"bash","arguments":{"command":"./gradlew test --tests net.example.Foo"}}]}}' \
+    > "$f"
+  got=$(child_check_calls "$f" 0)
+  assert_eq "2 2" "$got" \
+    "a child's focused cases are still the checks its bound counts (issue #937): it read '$got'"
   return 0
 }
 

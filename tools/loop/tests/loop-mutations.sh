@@ -1319,6 +1319,14 @@ MUTATIONS=(
   # (`882.2`) — a call that only names the gate's own file is read and starts nothing.
   '882.1@-@tools/loop/run.sh@run#childPastItsCheckBoundIsCut@the arm that ends a child past the recorded check bound, so the checks a child starts by hand are counted in the report and never acted on, and the gate-s work is paid outside the gate (issue #882)@s|^      if \[ "\$checks_seen" -ge "\$checks_max" \]; then$|      if false; then|'
   '882.2@-@tools/loop/lib.sh@run#childPastItsCheckBoundIsCut@the clause that reads the program a call runs, so a call that only names the path of a program the gate-s checks start is counted as one that ran it and the transcript names four checks where the child ran two (issue #882)@s#select(($prog == $c) or ($prog | endswith("/" + $c)))#select(true)#'
+  # 937.x — a programme the gate's map names, run whole, is the gate's work and not one of the child's checks (issue
+  # #937). The run started 2026-11-18T22:18:25Z ended 4 of its 11 items at `LOOP_CHILD_CHECKS_MAX=40` while the
+  # children ran 253 checks themselves, 1.9 h of the run's 9.6 h of item wall, and the item gate after each of the
+  # four passed on the tree the bound had left: the 40 bought the gate's dearest work at a focused case's price. Two
+  # rules, one case each: the arm that classes a whole run as the gate's (`937.1`), and the narrowing that keeps a
+  # focused case a check (`937.2`) — a tree that dropped the second would bound no child at all.
+  '937.1@-@tools/loop/lib.sh@run#aChildCheckSkipsTheGatesOwnSuite@the arm that classes a whole run of a check programme as the gate-s work, so the suite a child runs by hand is one of its 40 checks again and the bound cuts a child for the work the gate re-runs (issue #937)@s#or is_whole_check#or false#'
+  '937.2@-@tools/loop/lib.sh@run#aFocusedCaseIsStillAChildCheck@the narrowing that keeps a call with --case or --tests a child-s check, so every call to a check programme reads as the gate-s and no focused iteration is bounded at all (issue #937)@s#select($w | whole)#select(true)#'
   # 882.x — the two defects the run of 2026-11-14 left behind. The gate's base was the remote's memory of the base
   # branch, and a tree that only lands never fetches: `origin/main` stood 7 commits behind local `main`, every gate
   # measured `HEAD..<stale sha>` and the self-test leg selected all 427 of its cases — 841 s a gate, 56 % of the item's

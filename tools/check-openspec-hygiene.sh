@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# check-openspec-hygiene.sh — the five silent-failure classes of the OpenSpec artifacts, in one script so
+# check-openspec-hygiene.sh — the six silent-failure classes of the OpenSpec artifacts, in one script so
 # that the pipeline's step and the self-test that mutates each of them run the same code.
 #
-# All five are silent in the OpenSpec CLI: the command exits 0 and the artifact is wrong.
+# All six are silent in the OpenSpec CLI: the command exits 0 and the artifact is wrong.
 #
 #   1. a `tasks.md` whose items are bare `1. [x]` lines — the task parser only reads `- [x]` / `- [ ]`, so
 #      the change reports `completedTasks: 0, totalTasks: 0, status: "no-tasks"` while `openspec status`
@@ -30,6 +30,12 @@
 #      form for tool metadata, because a bare key is a WARNING that `--strict` counts as a failure —
 #      `none` when no item is owed, and a `fix-issue-<N>-` name supplies the number for a directory
 #      written before the field existed.
+#   6. a `config.yaml` `context:` block that restates the project's facts instead of pointing at `AGENTS.md`.
+#      The CLI injects the block verbatim into `openspec instructions <artifact|apply|archive> --change <name>
+#      --json` (`.context`), and nothing compares the two copies — so the copy drifts silently, as it did:
+#      the block's `Guidelines:` line priced whole-document reads at figures `AGENTS.md`'s split measurement
+#      no longer gives. The facts have one owner (`AGENTS.md`, loaded for every session), so the block is
+#      read as a pointer: it must name `AGENTS.md` and stay at most three lines. Absent, it is not a finding.
 #
 # Usage: tools/check-openspec-hygiene.sh [--root <dir>]
 # Exit:  0 every artifact is consistent; 1 findings (each printed as a GitHub `::error` annotation);
@@ -40,7 +46,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0")" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,36p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,42p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "$(basename -- "$0"): unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -134,6 +140,25 @@ if [ "$issue_bad" -eq 0 ]; then
   echo "Every open change names its issue: $(printf '%s' "$issue_rows" | awk -F'\t' '$2 != "" { printf "%s%s=%s", sep, $2, ($1 == "none" ? "none" : "#" $1); sep = ", " }')."
 fi
 
+# 6. a `context:` block that restates the project's facts rather than pointing at `AGENTS.md`. The block is
+# injected verbatim into `openspec instructions <artifact|apply|archive> --change <name> --json`, nothing
+# compares it with the file that owns the facts, and the copy drifted (its `Guidelines:` line priced
+# whole-document reads at figures `AGENTS.md`'s split measurement no longer gives). A pointer names
+# `AGENTS.md` and fits in three lines; a copy of the stack, the modules and the constraints cannot.
+if [ -f "$config" ]; then
+  ctx_state=$(awk '
+    /^context:[[:space:]]*[|>]/ { inctx = 1; next }
+    inctx && /^[^[:space:]#]/ { inctx = 0 }
+    inctx { line = $0; sub(/[[:space:]]+$/, "", line); if (line != "") { n++; body = body line "\n" } }
+    END { if (n > 3) printf "lines=%d", n; else if (n > 0 && body !~ /AGENTS\.md/) printf "unnamed" }
+  ' "$config")
+  case "$ctx_state" in
+    "") ;;
+    unnamed) echo "::error file=openspec/config.yaml::the 'context:' block does not name AGENTS.md — it is a pointer to the project's facts, not a copy of them"; fail=1 ;;
+    *) echo "::error file=openspec/config.yaml::the 'context:' block is ${ctx_state#lines=} lines — the project's facts have one owner (AGENTS.md, loaded every session) and a copy here drifts; leave a pointer of at most three lines that names AGENTS.md"; fail=1 ;;
+  esac
+fi
+
 spec_bad=$(find "$root/openspec/specs" -name spec.md -exec awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' {} + 2>/dev/null)
 if [ -n "$spec_bad" ]; then
   echo "::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)"
@@ -147,6 +172,6 @@ else
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "OpenSpec artifacts are consistent: $changes open change(s) carry task markers, the operation guidance is quoted, every open change names its issue, and every capability spec states its Purpose."
+  echo "OpenSpec artifacts are consistent: $changes open change(s) carry task markers, the operation guidance is quoted, every open change names its issue, the context block is a pointer, and every capability spec states its Purpose."
 fi
 exit "$fail"

@@ -1,24 +1,9 @@
 schema: spec-driven
 
 context: |
-  Project: NaviVeylin — Android navigation app built on libosmscout
-  Tech Stack: Kotlin, Java, C++20 (NDK)
-  UI: Jetpack Compose + Material 3
-  DI: Hilt
-  Persistence: JSON files (JNI favorites, settings, search history)
-  Navigation: Jetpack Navigation Compose
-  Native: libosmscout-client-java via NDK/CMake
-  Build: Gradle (Kotlin DSL), AGP 8.7+, CMake 3.22+
-  Min SDK: 29, Target SDK: 36
-  ABI Targets: arm64-v8a, armeabi-v7a, x86_64
-  Android Auto: implemented (Car App Library, :auto module + NaviVeylinCarAppService, AAOS support)
-  Distribution: Google Play (mobile + Android Automotive OS tracks, same applicationId); sideloading also supported
-  External Repo: https://github.com/Framstag/libosmscout
-  Guidelines: guidelines/Design.md, UI.md, MapRendering.md, Build.md, Regulatory.md, Logging.md — read the section that owns your topic, not the whole document. A whole-document read is expensive (Build.md ~29k tokens, MapRendering.md ~23k, UI.md ~22k, Design.md ~15k, Regulatory.md ~7k, Logging.md ~2k); AGENTS.md "Documentation Map" is the topic-to-section routing table, and `tools/look.sh '^## ' --path guidelines/<file>.md` lists every section of one file.
-  Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
-  Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
-  Tooling: do NOT use python3 for openspec interaction or CLI output processing — use plain shell, jq, or openspec's own --json output instead
-  Defect-shaped items: `tools/loop/run.sh` is the entry to the budgeted loop that closes bugs and defect-shaped improvements (triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → the issue's `status/fixed-by` label and its closure); its contract is the spec `agent-issue-loop`. An item may only enter that loop when exactly one fix follows from a proven root cause; otherwise it is skipped, not guessed at.
+  Project facts — stack, modules, conventions, constraints and the topic-to-section documentation routing — are
+  `AGENTS.md`, which the harness loads for every session: read it, and read the section of `guidelines/<concern>.md`
+  that its "Documentation Map" routes your topic to. This block is a pointer, not a second copy.
 
 rules:
   proposal:

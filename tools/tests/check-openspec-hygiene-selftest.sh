@@ -41,9 +41,9 @@ selected() {
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# clean_tree <dir> — the smallest OpenSpec tree the three classes accept: one open change whose tasks
-# carry `- [x]` markers, a config whose guidance entries are quoted, and a capability spec whose Purpose
-# is a sentence its author wrote.
+# clean_tree <dir> — the smallest OpenSpec tree the six classes accept: one open change whose tasks
+# carry `- [x]` markers, a config whose guidance entries are quoted and whose `context:` block is the pointer
+# the sixth class reads, and a capability spec whose Purpose is a sentence its author wrote.
 clean_tree() {
   local d="$1"
   mkdir -p "$d/openspec/changes/demo" "$d/openspec/specs/demo"
@@ -64,6 +64,9 @@ x-issue: none
 EOF
   cat > "$d/openspec/config.yaml" <<'EOF'
 schema: spec-driven
+context: |
+  Project facts are `AGENTS.md`, loaded for every session: read it, and read the section of
+  `guidelines/<concern>.md` its "Documentation Map" routes your topic to. This block is a pointer.
 operations:
   apply:
     guidance:
@@ -375,6 +378,56 @@ if [ "$CHECK_RC" != 0 ]; then
   fail_case "artifact-hygiene#$case_k" "a 'fix-issue-<N>-' name with no field was refused (exit $CHECK_RC)"
 elif ! grep -q 'fix-issue-898-a-case-waits=#898' "$tmp/$case_k-prefix.out"; then
   fail_case "artifact-hygiene#$case_k" "the number in the directory name is not the one reported"
+fi
+fi
+
+# ── case 11 ───────────────────────────────────────────────────────────────────────────────────────────────
+# `artifact-hygiene#aContextBlockThatCopiesTheFactsIsRefused`: the `context:` block is injected verbatim into
+# `openspec instructions … --json`, and nothing compares it with the file that owns the facts, so a copy drifts
+# in silence (the shipped one priced whole-document reads at figures `AGENTS.md`'s split measurement stopped
+# giving). Both arms are the refused shapes — a long copy, and a short one that names no owner — while the
+# clean tree carries the pointer that passes.
+case_l=aContextBlockThatCopiesTheFactsIsRefused
+if selected "artifact-hygiene#$case_l"; then
+total=$((total + 1))
+# arm 1: a copy long enough to be the facts themselves
+copy="$tmp/tree-context-copy"; clean_tree "$copy"
+cat > "$copy/openspec/config.yaml" <<'EOF'
+schema: spec-driven
+context: |
+  Project: NaviVeylin — Android navigation app built on libosmscout
+  Tech Stack: Kotlin, Java, C++20 (NDK)
+  UI: Jetpack Compose + Material 3
+  DI: Hilt
+  Build: Gradle (Kotlin DSL), AGP 8.7+, CMake 3.22+
+  Min SDK: 29, Target SDK: 36
+operations:
+  apply:
+    guidance:
+      - "A quoted entry that contains ': ' on purpose"
+EOF
+run "$case_l-copy" "$copy"
+if [ "$CHECK_RC" = 0 ]; then
+  fail_case "artifact-hygiene#$case_l" "a copied context block passed (exit 0)"
+elif ! grep -q "the 'context:' block is 6 lines" "$tmp/$case_l-copy.out"; then
+  fail_case "artifact-hygiene#$case_l" "the finding does not state how many lines the block carries"
+fi
+# arm 2: short enough, but it names no owner — a reader cannot tell where the facts live
+unowned="$tmp/tree-context-unowned"; clean_tree "$unowned"
+cat > "$unowned/openspec/config.yaml" <<'EOF'
+schema: spec-driven
+context: |
+  Android navigation app; Kotlin and C++; Hilt; Compose.
+operations:
+  apply:
+    guidance:
+      - "A quoted entry that contains ': ' on purpose"
+EOF
+run "$case_l-unowned" "$unowned"
+if [ "$CHECK_RC" = 0 ]; then
+  fail_case "artifact-hygiene#$case_l" "a short context block that names no owner passed (exit 0)"
+elif ! grep -q 'does not name AGENTS.md' "$tmp/$case_l-unowned.out"; then
+  fail_case "artifact-hygiene#$case_l" "the finding does not name the missing pointer"
 fi
 fi
 

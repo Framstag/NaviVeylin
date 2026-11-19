@@ -221,7 +221,7 @@ view, name the query rather than building a list.
 8. **Never grant `agent/eligible`.** It is the human's authorisation; a hygiene pass that could set it
    would let the backlog authorise its own automation.
 9. **Shell tools, not a blocked allowlist**: `grep`/`sed`/`awk`/`jq` are the house style for the commands
-   above (and `openspec/config.yaml` forbids `python3` for OpenSpec interaction). `python3`, `perl` and
+   above (and `AGENTS.md` "OpenSpec Workflow" forbids `python3` for OpenSpec interaction). `python3`, `perl` and
    `tesseract` do run in this shell (verified 2026-10-03) — keep the shell tools anyway: the checks stay
    copy-pasteable and cheap.
 10. **Do not "clean" by closing the items whose owner is unknown.** An unverifiable item is the most

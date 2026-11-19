@@ -16,7 +16,7 @@ Prints a markdown table of every open (in-progress) OpenSpec change with:
 
 ## Rules
 
-- **Only openspec calls + bash**: `openspec list --json` provides the change inventory + task counters; `tasks.md` files are parsed with `sed`/`awk`/`grep`/`cut`. **No python** (project rule, `openspec/config.yaml`).
+- **Only openspec calls + bash**: `openspec list --json` provides the change inventory + task counters; `tasks.md` files are parsed with `sed`/`awk`/`grep`/`cut`. **No python** (project rule, `AGENTS.md` "OpenSpec Workflow").
 - Read-only: never runs `new change`, `status` writes, or any artifact edit.
 - Only `status == "in-progress"` changes are listed (archived/done ones are excluded).
 

@@ -283,7 +283,7 @@ Rules for the recommendation:
    and needs approval; computing a band is `issue-metadata-loop`'s; creating the change is
    `/openspec-propose`. This skill only reads and ranks.
 10. **Shell tools, not a blocked allowlist.** Use `jq`, `grep`, `sed`, `awk`. `python3`/`perl` are present
-    but `openspec/config.yaml` forbids `python3` for OpenSpec interaction; `pgrep -f gradlew` matches its
+    but `AGENTS.md` ("OpenSpec Workflow") forbids `python3` for OpenSpec interaction; `pgrep -f gradlew` matches its
     own command line, so use `pgrep -af 'gradle-wrapper\.ja[r]'`; git/gh output may be German, and that is
     normal.
 

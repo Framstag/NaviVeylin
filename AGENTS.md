@@ -133,7 +133,10 @@ flavors.
 C++ source lives in `app/src/main/cpp/` and the JNI bridge is split across the libosmscout submodule and the
 `:osmscout-client-java` module — **patch in one place, never both**; the rest of the boundary, the submodule
 pin and the one-session-owns-the-push discipline are `guidelines/Design.md` §5, and CMake and vcpkg (a Cairo
-backend, not OpenGL, on purpose) are `guidelines/Build.md` §12.
+backend, not OpenGL, on purpose) are `guidelines/Build.md` §12. Upstream is
+`https://github.com/Framstag/libosmscout`, and libosmscout stays Android-free outside its frozen `Android/`
+directory — a CI-gated property, so a change that needs an Android API there belongs in the bridge module
+instead.
 
 ### Logging
 
@@ -178,6 +181,9 @@ exists because those rules cost the most rounds in `ki_processing_failures.log` 
 whose single visual symptom needed many review rounds, rule 4 from the shared-worktree collisions
 (`TODO.md` §40 item 4) — so a session follows it rather than re-deriving it.
 
+- an item enters the loop only when exactly one fix follows from a proven root cause; otherwise it is skipped,
+  not guessed at.
+
 - a defect fix inside the loop owes a test that fails on HEAD *before* the fix, and an independent read-only
   reviewer before archive — that includes a defect-shaped improvement, whose red case asserts the bound it is
   missing; the loop's contract is the spec `agent-issue-loop`, the eligibility gate the worker applies is
@@ -200,7 +206,13 @@ proposal → specs → design → tasks → apply
 ```
 
 Change artifacts live in `openspec/changes/<change-name>/`.
-Config: `openspec/config.yaml`
+Config: `openspec/config.yaml` — it carries the artifact-keyed `rules` and the `operations.*.guidance`, because
+only the CLI delivers them per artifact. The project's own facts (stack, modules, conventions, constraints and
+the documentation routing) live in this file alone: the config's `context:` block is a pointer to `AGENTS.md`,
+never a second copy.
+
+Tooling: **do not use `python3`** for OpenSpec interaction or CLI output processing — plain shell, `jq`, or the
+CLI's own `--json` output.
 
 Three artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check OpenSpec artifact hygiene"):
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The mutation harness's self-test writes no JUnit XML of its own (`.pi/skills/revert-check/SKILL.md` §"When the
+     gate is a shell self-test, not Gradle"): this is the tally of the run recorded in
+     `red-on-base-selftest.log`, transcribed from that run's own `ok`/`FAIL` lines and its closing tally line, and it
+     is not the script's output. The script runs 39 legs, so tests=39; one leg failed, so failures=1, errors=0.
+     The engine was `tools/loop/tests/loop-mutations.sh` as of the item's base
+     (20d4bbafdb8a5e59af66f81ddb506b72fe2e99c1), copied over the live file and restored byte-identically afterwards,
+     with this change's `tools/loop/tests/loop-mutations-selftest.sh` and its new leg in place — so this is the
+     reading the change is red on. The failing reason line is the fixture's `git init` progress line, which is the
+     defect: the fix reads the assertion `red-on-base-29.8-case.log:4` instead. -->
+<testsuite name="tools/loop/tests/loop-mutations-selftest.sh (on the item's base, before the change)" tests="39" failures="1" errors="0" timestamp="2026-11-19T02:48:36Z">
+  <testcase name="a red record quotes the assertion the case failed on" classname="loop-mutations-selftest" time="0">
+    <failure message="a red record quotes the assertion the case failed on — the reason line: 2026-11-19T02:48:36Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')"/>
+  </testcase>
+  <system-out>One run, 2026-11-19T02:48:36Z, from the change root. `bash tools/loop/tests/loop-mutations-selftest.sh` printed the same 38 `ok` lines it prints on the fixed tree, the `FAIL` line above, and `loop-mutations-selftest: 1 of 39 cases failed — the mutation harness does not hold its own guards`, exit 1. The full transcript is `evidence/red-on-base-selftest.log`; the harness was restored before the run ended and `cmp` against its saved copy exited 0.</system-out>
+</testsuite>

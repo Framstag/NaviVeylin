@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The mutation harness writes no JUnit XML of its own (`.pi/skills/revert-check/SKILL.md` §"When the gate is a
+     shell self-test, not Gradle"): this is the tally of the record run recorded in `red-on-base-29.8.log`,
+     transcribed from that run's own lines, and it is not harness output. One record ran, so tests=1; its case went
+     red, so failures=1, errors=0 — counted from the `RED` line and the case's own `FAIL` line in
+     `red-on-base-29.8-case.log`, the way `tools/loop/gate.sh` derives its per-suite tally.
+     The run is on the item's base (20d4bbafdb8a5e59af66f81ddb506b72fe2e99c1), before the change: the record's reason
+     that day quoted the case's fixture line, and the failure message below is the assertion the same run's case
+     failed on (`red-on-base-29.8-case.log:4`), which is the assertion mutation record 29.8 is aimed at. -->
+<testsuite name="tools/loop/tests/loop-mutations.sh --only 29.8 (on the item's base, before the change)" tests="1" failures="1" errors="0" timestamp="2026-11-19T02:40:17Z">
+  <testcase name="worktree#anIdeBuildDirectoryDoesNotBlockTheMerge" classname="worktree" time="0">
+    <failure message="the merge was refused on a build directory: loop: the project tree is not clean — refusing to merge onto the base:"/>
+  </testcase>
+  <system-out>One record, 2026-11-19T02:40:17Z, from the change root on the base. `bash tools/loop/tests/loop-mutations.sh --only 29.8 --out evidence/red-on-base-29.8.log` printed `RED    29.8  worktree#anIdeBuildDirectoryDoesNotBlockTheMerge` and `restore 29.8 worktree#anIdeBuildDirectoryDoesNotBlockTheMerge green again`, ended `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`, exit 0. The reason the RED line carried beside the timestamp was the case's fixture line, `Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')` — the defect this change is red on; the assertion the case itself failed on is `red-on-base-29.8-case.log:4`, quoted in the failure message above. The case's own log is `evidence/red-on-base-29.8-case.log`, and the self-test leg this change adds is red on that output (`evidence/red-on-base-selftest.log`, `FAIL a red record quotes the assertion the case failed on`).</system-out>
+</testsuite>

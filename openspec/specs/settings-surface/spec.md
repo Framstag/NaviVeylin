@@ -105,7 +105,7 @@ The settings surface SHALL expose every persisted setting the phone can change, 
 
 - **WHEN** the user opens the Navigation & Route topic
 - **THEN** the page offers the three vehicle maximum speeds, the three avoidance switches and the vehicle anchors for routing and free driving
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#theNavigationTopicCarriesTheRoutingValues` — red on HEAD, where the topic's row table is `navigationTopicRows: List<SettingSpec> = emptyList()`
 
 #### Scenario: Hinweise & Sprache carries the announcement values
 
@@ -208,7 +208,7 @@ A setting with a numeric range SHALL render as a slider that shows its current v
 
 - **WHEN** the car's maximum speed row is displayed
 - **THEN** every whole value from 30 to 160 km/h is reachable
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#theThreeSpeedSlidersKeepTheirRanges` — green on this tree, `ProgressBarRangeInfo(current=120.0, range=30.0..160.0, steps=129)`
 
 ### Requirement: A link row leaves the surface
 

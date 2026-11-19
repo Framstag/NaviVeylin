@@ -1,0 +1,3 @@
+Change 'fix-a-pipeline-call-is-a-read' is valid
+validate exit=0
+OpenSpec artifacts are consistent: 9 open change(s) carry task markers, the operation guidance is quoted, every open change names its issue, and every capability spec states its Purpose.

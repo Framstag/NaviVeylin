@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from mutation-963.1.log. That record puts back the reading the base ships for `is_call`
+     (`gsub(/[;|&]+/, " SEP ", line)` reads as `" XSEP "`, a marker no predecessor rule accepts), so its RED arm is
+     the case run against HEAD's derivation. A focused `--case` run writes no XML of its own; the gate's tally is the
+     gate child's to take. -->
+<testsuite name="driver#aCallInPipelinePositionIsARead" tests="1" failures="1" errors="0" time="0.00" run="2026-11-19T01:49:28Z">
+  <testcase name="driver#aCallInPipelinePositionIsARead" classname="driver">
+    <failure message="a call in pipeline position is a read of the name: expected 'shared_fn&#9;a.sh&#9;b.sh', got ''">RED    963.1  driver#aCallInPipelinePositionIsARead</failure>
+  </testcase>
+  <system-out>loop-mutations: selected 1 of 426 records (labels: 963.1)
+RED    963.1  driver#aCallInPipelinePositionIsARead
+       2026-11-19T01:49:28Z - a call in pipeline position is a read of the name: : expected 'shared_fn	a.sh	b.sh', got ''
+restore 963.1 driver#aCallInPipelinePositionIsARead green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0</system-out>
+</testsuite>

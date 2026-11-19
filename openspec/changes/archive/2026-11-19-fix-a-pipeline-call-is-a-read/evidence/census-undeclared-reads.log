@@ -1,0 +1,11 @@
+driver#theSharedNamesAreDeclared|   the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: loop_die is read by prescreen.sh, gate.sh, labels.sh, measure.sh, phase.sh, report.sh, run.sh, state.sh, worktree.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_drop_ignorable_writes is read by worktree.sh, run.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_shaping_verdicts is read by labels.sh and no row declares it
+driver#theSharedNamesAreDeclared| shared.tsv: loop_die is declared and no file a second one reads assigns it'
+--- driver#theSharedNamesAreDeclared[0] (exit 1)
+  the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: loop_die is read by prescreen.sh, gate.sh, labels.sh, measure.sh, phase.sh, report.sh, run.sh, state.sh, worktree.sh and no row declares it
+shared.tsv: loop_drop_ignorable_writes is read by worktree.sh, run.sh and no row declares it
+shared.tsv: loop_shaping_verdicts is read by labels.sh and no row declares it
+shared.tsv: loop_die is declared and no file a second one reads assigns it'
+FAIL driver#theSharedNamesAreDeclared
+loop-selftest: 1 of 1 cases failed

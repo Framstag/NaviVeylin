@@ -1,0 +1,5 @@
+driver#aCallInPipelinePositionIsARead|   a call in pipeline position is a read of the name: : expected 'shared_fn	a.sh	b.sh', got ''
+--- driver#aCallInPipelinePositionIsARead[0] (exit 1)
+  a call in pipeline position is a read of the name: : expected 'shared_fn	a.sh	b.sh', got ''
+FAIL driver#aCallInPipelinePositionIsARead
+loop-selftest: 1 of 1 cases failed

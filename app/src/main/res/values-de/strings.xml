@@ -446,4 +446,20 @@
     <string name="settings_topic_about">Über NaviVeylin</string>
     <string name="settings_back">Zurück</string>
     <string name="settings_open_surface">Alle Einstellungen</string>
+    <!-- Die Abschnittstitel der Themenseiten (Spezifikation: `settings-surface`). -->
+    <string name="settings_section_speech">Sprache</string>
+    <string name="settings_section_announcements">Hinweise</string>
+    <!-- Die Hinweiszeilen unter "Hinweise &amp; Sprache": der Schalter des Autos, die Kurz- und
+         Langhilfen und die Endpunkte des Schiebereglers. -->
+    <string name="settings_voice_guidance_car">Sprachführung (Android Auto)</string>
+    <string name="settings_help_voice_phone">Spricht die Abbiegehinweise auf dem Telefon.</string>
+    <string name="settings_help_voice_car">Spricht die Abbiegehinweise in Android Auto.</string>
+    <string name="settings_help_voice_car_long">Android Auto hat einen eigenen Sprachschalter. Eine Änderung hier ändert nur, was das Auto spricht: der Schalter des Telefons bleibt unberührt, und die nächste Autofahrt liest diesen Wert, ohne dass ein Auto verbunden sein muss.</string>
+    <string name="settings_help_gps_announcements">Sagt ein verlorenes oder wiederhergestelltes GPS-Signal an.</string>
+    <string name="settings_help_lane_hints">Zeigt die Spurführung neben dem nächsten Abbiegehinweis.</string>
+    <string name="settings_help_overspeed">Wird für die Warnung zur Höchstgeschwindigkeit des Fahrzeugs addiert.</string>
+    <string name="settings_help_overspeed_long">Das Geschwindigkeitsabzeichen wechselt in die Warnfarbe, sobald du schneller fährst als die Höchstgeschwindigkeit des Fahrzeugs plus dieser Zugabe. Der Wert gilt auch für Android Auto, eine Änderung hier erreicht also die nächste Autofahrt.</string>
+    <string name="settings_help_open">Mehr zu dieser Einstellung</string>
+    <string name="settings_help_close">Schließen</string>
+    <string name="settings_slider_endpoint">%1$d km/h</string>
 </resources>

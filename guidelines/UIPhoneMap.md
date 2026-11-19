@@ -46,7 +46,9 @@ Source: spec `map-modes`.
   (spec `settings-surface` — "The quick sheet holds only the current mode's live controls").
 - **Rule: the phone has one settings surface, reachable from three hosts.** `SettingsSurfaceHost`
   renders one scrolling column from the registry (`SettingsRegistry.root`, six topics in their fixed
-  order), with section titles, an optional short help line under a row's label, a leading
+  order), with section titles, an optional short help line under a row's label, an info button on a
+  row that declares a long help text (it opens that text on a sheet of its own, design D7), a slider
+  drawn under its label row with both endpoints named, a leading
   phone/car icon on a surface-specific row and a chevron on a row that leaves the surface. It opens
   at its root from the map menu's Settings entry (`MapMenu`, between Search and About), from the
   start screen's overflow menu (`MainScreen`) and from the quick sheet's last row, which closes the

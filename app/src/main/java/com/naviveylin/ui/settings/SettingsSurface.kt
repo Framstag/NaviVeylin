@@ -17,19 +17,27 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -38,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.data.AppSettings
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /** Test handle on the surface's root: the band a host composes it into. */
 internal const val SETTINGS_SURFACE_TAG = "settings-surface"
@@ -50,6 +59,15 @@ internal const val SETTINGS_TOPIC_TAG = "settings-topic"
 
 /** Test handle prefix on a setting row, so a case points at one row rather than at its label. */
 internal const val SETTINGS_ROW_TAG_PREFIX = "settings-row-"
+
+/** Test handle prefix on the control a numeric row renders, so a case can drag its track. */
+internal const val SETTINGS_SLIDER_TAG_PREFIX = "settings-slider-"
+
+/** Test handle prefix on the button that opens a row's long help text. */
+internal const val SETTINGS_HELP_TAG_PREFIX = "settings-help-"
+
+/** Test handle on the sheet that carries a row's long help text. */
+internal const val SETTINGS_LONG_HELP_TAG = "settings-long-help"
 
 /**
  * The settings surface, hosted on whatever page is showing (design D2, D3; spec: `settings-surface`).
@@ -98,6 +116,7 @@ fun SettingsSurfaceHost(
  * It is not a navigation destination (design D3): a host composes it inside its own overlay band, so
  * the map's renderer, follow loop and route session are never re-initialised by opening it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSurface(
     state: SettingsSurfaceState,
@@ -115,6 +134,9 @@ fun SettingsSurface(
     // surface, and the map underneath keeps its own back behaviour
     // (spec: `settings-surface`; spec: `back-gesture`).
     BackHandler(enabled = true) { onBack() }
+    // A row's long help is text on a surface of its own (design D7): it shows what the short line
+    // cannot and writes nothing, so dismissing it leaves the row's value as it was.
+    var openHelp by remember { mutableStateOf<Int?>(null) }
     Surface(
         modifier = modifier
             .fillMaxSize()
@@ -131,9 +153,28 @@ fun SettingsSurface(
                     rows = root.firstOrNull { it.topic == state.topic }?.rows.orEmpty(),
                     settings = settings,
                     onWrite = onWrite,
+                    onOpenHelp = { openHelp = it },
                     onOpenMapManager = onOpenMapManager,
                     onOpenAbout = onOpenAbout
                 )
+            }
+        }
+        openHelp?.let { help ->
+            ModalBottomSheet(onDismissRequest = { openHelp = null }) {
+                Text(
+                    text = stringResource(help),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .testTag(SETTINGS_LONG_HELP_TAG)
+                )
+                TextButton(
+                    onClick = { openHelp = null },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(stringResource(R.string.settings_help_close))
+                }
             }
         }
     }
@@ -208,6 +249,7 @@ private fun SettingsTopicPage(
     rows: List<SettingSpec>,
     settings: AppSettings,
     onWrite: (SettingSpec, String) -> Unit,
+    onOpenHelp: (Int) -> Unit,
     onOpenMapManager: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -232,6 +274,7 @@ private fun SettingsTopicPage(
                     row = row,
                     settings = settings,
                     onWrite = onWrite,
+                    onOpenHelp = onOpenHelp,
                     onOpenMapManager = onOpenMapManager,
                     onOpenAbout = onOpenAbout
                 )
@@ -246,12 +289,16 @@ private fun SettingsTopicPage(
  * The scope mark is the row's own: a phone-only or car-only row carries a leading icon whose content
  * description names the surface, a shared row carries none (spec: `settings-taxonomy` — "A
  * surface-specific row is marked, a shared row is not").
+ *
+ * A row that declares a long help text carries the button that opens it, and a slider is drawn below
+ * its label row with both endpoints named (design D5, D7).
  */
 @Composable
 private fun SettingRow(
     row: SettingSpec,
     settings: AppSettings,
     onWrite: (SettingSpec, String) -> Unit,
+    onOpenHelp: (Int) -> Unit,
     onOpenMapManager: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -290,6 +337,19 @@ private fun SettingRow(
                 }
             }
             Spacer(Modifier.width(8.dp))
+            // A row with a long explanation offers it here, before the control: the short line stays
+            // under the label and the long text is one tap away (design D7).
+            row.helpLongRes?.let { help ->
+                IconButton(
+                    onClick = { onOpenHelp(help) },
+                    modifier = Modifier.testTag(SETTINGS_HELP_TAG_PREFIX + row.key)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = stringResource(R.string.settings_help_open)
+                    )
+                }
+            }
             when (row.control) {
                 SettingControl.SWITCH -> Switch(
                     checked = value == "on",
@@ -302,7 +362,7 @@ private fun SettingRow(
                 )
 
                 SettingControl.CHOICE, SettingControl.SLIDER -> Text(
-                    text = value,
+                    text = valueText(row, value),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -325,7 +385,60 @@ private fun SettingRow(
                 }
             }
         }
+        if (row.control == SettingControl.SLIDER) {
+            (row.payload as? SettingControlPayload.Slider)?.let { slider ->
+                SliderControl(row = row, value = value, slider = slider, onWrite = onWrite)
+            }
+        }
     }
+}
+
+/**
+ * A bounded slider under its label row (design D5; spec: `settings-surface` — "The overspeed delta is
+ * a bounded slider"): both endpoints are named, every permitted value is reachable, and a drag applies
+ * the value it stopped on rather than a save action.
+ */
+@Composable
+private fun SliderControl(
+    row: SettingSpec,
+    value: String,
+    slider: SettingControlPayload.Slider,
+    onWrite: (SettingSpec, String) -> Unit
+) {
+    Slider(
+        value = (value.toIntOrNull() ?: slider.min).toFloat(),
+        onValueChange = { dragged -> onWrite(row, dragged.roundToInt().toString()) },
+        valueRange = slider.min.toFloat()..slider.max.toFloat(),
+        steps = ((slider.max - slider.min) / slider.step - 1).coerceAtLeast(0),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SETTINGS_SLIDER_TAG_PREFIX + row.key)
+    )
+    Row(Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.settings_slider_endpoint, slider.min),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = stringResource(R.string.settings_slider_endpoint, slider.max),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * A row's value as the surface shows it: a number-shaped row formats its own value with the resource
+ * it declares, so a unit stays a translated string rather than a literal of this composable
+ * (guidelines/UI.md §10).
+ */
+@Composable
+private fun valueText(row: SettingSpec, value: String): String {
+    val format = row.valueFormatRes ?: return value
+    val number = value.toIntOrNull() ?: return value
+    return stringResource(format, number)
 }
 
 /** The destination a link row leaves the surface for, resolved from the row's own payload. */

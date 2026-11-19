@@ -490,4 +490,22 @@
     <string name="settings_topic_about">Über NaviVeylin</string>
     <string name="settings_back">Back</string>
     <string name="settings_open_surface">All settings</string>
+    <!-- The topic pages' section titles (spec: `settings-surface` - a topic page groups its rows
+         under section titles). A topic's sections are named by the subject its rows share. -->
+    <string name="settings_section_speech">Voice</string>
+    <string name="settings_section_announcements">Announcements</string>
+    <!-- The announcement rows of "Hinweise & Sprache" (spec: `voice-guidance`, spec:
+         `settings-surface`): the car's own switch the phone additionally offers, their short help
+         lines, the two rows that also carry a long explanation, and the slider's endpoint labels. -->
+    <string name="settings_voice_guidance_car">Voice guidance (Android Auto)</string>
+    <string name="settings_help_voice_phone">Speaks the turn-by-turn instructions on the phone.</string>
+    <string name="settings_help_voice_car">Speaks the turn-by-turn instructions in Android Auto.</string>
+    <string name="settings_help_voice_car_long">Android Auto has its own voice switch. Changing it here changes only what the car speaks: the phone\'s own switch is untouched, and the next car session reads this value without a car being connected.</string>
+    <string name="settings_help_gps_announcements">Announces a lost or restored GPS signal.</string>
+    <string name="settings_help_lane_hints">Shows the lane guidance beside the next turn.</string>
+    <string name="settings_help_overspeed">Added to the vehicle\'s maximum speed for the warning.</string>
+    <string name="settings_help_overspeed_long">The speed badge turns to the warning colour once you drive faster than the vehicle\'s maximum speed plus this delta. The value is shared with Android Auto, so a change here reaches the car\'s next session.</string>
+    <string name="settings_help_open">More about this setting</string>
+    <string name="settings_help_close">Close</string>
+    <string name="settings_slider_endpoint">%1$d km/h</string>
 </resources>

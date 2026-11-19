@@ -67,7 +67,12 @@ sealed interface SettingControlPayload {
  * @property scope the one surface the row belongs to; [surfaceContentDescriptionRes] names that
  *   surface for a screen reader and is null exactly when [scope] is [SettingScope.SHARED] (spec:
  *   `settings-taxonomy` — "A surface-specific row is marked, a shared row is not").
- * @property read the row's display value, derived from the whole document.
+ * @property read the row's value as the setting stores it, derived from the whole document; the
+ *   surface's number-shaped controls ([SettingControl.SLIDER]) read the numeric form and format it
+ *   with [valueFormatRes].
+ * @property valueFormatRes the resource that turns a [SettingControl.SLIDER]'s numeric value into
+ *   the line shown beside its label, with the value as its `%1$d`; null renders [read] as it stands.
+ *   A value's unit is a string resource, never composed in code (guidelines/UI.md §10).
  * @property write the transform a [SettingControl] applies; null for a `LINK` row, which changes no
  *   value.
  * @property enabled false when the row does not apply to the current document (design D1,
@@ -83,6 +88,7 @@ data class SettingSpec(
     @param:StringRes val helpLongRes: Int? = null,
     val control: SettingControl,
     val payload: SettingControlPayload? = null,
+    @param:StringRes val valueFormatRes: Int? = null,
     @param:StringRes val surfaceContentDescriptionRes: Int? = null,
     val enabled: (AppSettings) -> Boolean = { true },
     val read: (AppSettings) -> String,

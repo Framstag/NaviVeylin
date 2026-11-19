@@ -9,11 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -23,6 +28,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -61,6 +69,7 @@ import com.naviveylin.ui.route.RoutePanelViewModel
 import com.naviveylin.ui.route.RouteSessionState
 import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -574,6 +583,73 @@ class SettingsSurfaceTest {
         )
     }
 
+    // ---- the announcement rows (tasks.md 5.3, 5.4) ----
+
+    /**
+     * The overspeed row is a bounded slider over whole km/h, from 0 to 30, showing its value and
+     * both endpoints, with the stored default of 5 (spec: `settings-surface` — "The overspeed delta
+     * is a bounded slider"; tasks.md 5.3 `theOverspeedSliderOffersOneKilometreSteps`).
+     */
+    @Test
+    fun theOverspeedSliderOffersOneKilometreSteps() {
+        // The rows read the document the host loaded on its start path (design D2).
+        runBlocking { controller.load() }
+        launchSurface(topic = SettingsTopic.HINTS_AND_LANGUAGE)
+
+        composeRule.onNodeWithText(label(R.string.overspeed_warning_delta)).performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(label(R.string.overspeed_delta_value).format(5)).assertIsDisplayed()
+        composeRule.onNodeWithText(label(R.string.settings_slider_endpoint).format(0)).assertIsDisplayed()
+        composeRule.onNodeWithText(label(R.string.settings_slider_endpoint).format(30)).assertIsDisplayed()
+
+        val slider = composeRule.onNodeWithTag(SETTINGS_SLIDER_TAG_PREFIX + OVERSPEED_ROW)
+        val range = slider.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, range.range.start, 0f)
+        assertEquals(30f, range.range.endInclusive, 0f)
+        assertEquals("one stop per km/h between the endpoints", 29, range.steps)
+        assertEquals("the stored default", 5f, range.current, 0f)
+
+        // Two whole values a pointer could land on, and both are written as they are: 7 km/h is not
+        // rounded to a coarser step and the range's top is reachable.
+        slider.performSemanticsAction(SemanticsActions.SetProgress) { it(7f) }
+        awaitStored { settings -> settings.overspeedWarningDeltaKmh == 7 }
+        composeRule.onNodeWithText(label(R.string.overspeed_delta_value).format(7)).assertIsDisplayed()
+
+        slider.performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
+        awaitStored { settings -> settings.overspeedWarningDeltaKmh == 30 }
+    }
+
+    /**
+     * A row with a long help text offers it on a sheet of its own, and dismissing that sheet leaves
+     * the value as it was (spec: `settings-taxonomy` — "A long explanation opens on its own surface";
+     * tasks.md 5.4 `aLongHelpOpensWithoutChangingTheValue`).
+     */
+    @Test
+    fun aLongHelpOpensWithoutChangingTheValue() {
+        runBlocking { controller.load() }
+        launchSurface(topic = SettingsTopic.HINTS_AND_LANGUAGE)
+        val valueBefore = controller.settings.value.autoVoiceGuidanceEnabled
+
+        composeRule.onNodeWithTag(SETTINGS_HELP_TAG_PREFIX + CAR_ROW).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SETTINGS_LONG_HELP_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText(label(R.string.settings_help_voice_car_long)).assertIsDisplayed()
+        // The short line stays on the row it belongs to; the long one is the sheet's only text.
+        composeRule.onNodeWithText(label(R.string.settings_help_voice_car)).assertIsDisplayed()
+
+        composeRule.onNodeWithText(label(R.string.settings_help_close)).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SETTINGS_LONG_HELP_TAG).assertDoesNotExist()
+        switchOf(CAR_ROW).assertIsOn()
+        assertEquals(
+            "reading a row's explanation changes no value",
+            valueBefore,
+            runBlocking { SettingsStorage(context).load() }.autoVoiceGuidanceEnabled
+        )
+    }
+
     // ---- fixtures ----
 
     private fun launchSurface(
@@ -596,6 +672,24 @@ class SettingsSurfaceTest {
 
     /** A resource-backed label, resolved the way the surface resolves it. */
     private fun label(res: Int): String = context.getString(res)
+
+    /** The one switch a row carries: the row's tag is on the label column, the toggle is below it. */
+    private fun switchOf(key: String) = composeRule.onNode(
+        isToggleable() and hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + key)),
+        useUnmergedTree = true
+    )
+
+    /**
+     * Wait until the settings file holds a document [holds] accepts: a row's write is a coroutine on
+     * the rule's scheduler and lands in the file on the storage's own dispatcher.
+     */
+    private fun awaitStored(holds: (AppSettings) -> Boolean) {
+        composeRule.waitForIdle()
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runBlocking { SettingsStorage(context).load() }.let(holds)
+        }
+    }
 
     private fun row(
         key: String,
@@ -623,6 +717,14 @@ class SettingsSurfaceTest {
         read = { settings: AppSettings -> if (settings.keepScreenOn) "on" else "off" },
         write = write
     )
+
+    private companion object {
+        /** The car's own voice switch: the row whose long help this class opens. */
+        const val CAR_ROW = "voice-guidance-car"
+
+        /** The overspeed warning delta the topic's slider edits. */
+        const val OVERSPEED_ROW = "overspeed-warning"
+    }
 
     /** The map screen's own dependencies, as `MapLayerStackComposeTest` builds them. */
     private fun setUpMap(): FakeOSMScoutClient {

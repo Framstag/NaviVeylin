@@ -12,6 +12,7 @@ import com.naviveylin.data.AppSettings
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
+import com.naviveylin.ui.settings.SettingsController
 import com.naviveylin.test.engineUnderTest
 import java.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -382,6 +383,48 @@ class NavigationEngineVoiceGuidanceTest {
             listOf("After 300 meters turn left"),
             output.spoken
         )
+    }
+
+    /**
+     * Spec scenario: The next car session reads the phone's edit.
+     */
+    @Test
+    fun theCarSessionReadsAValueSetOnThePhone() {
+        val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val output = RecordingVoiceOutput()
+        val locationService = LocationService(context)
+        grantPreciseLocation()
+        injectGpsFix(locationService, 52.5200, 13.4050)
+        // The phone's settings surface switches the car's own voice guidance off: the row's write goes
+        // through the one writer before any car session exists (spec: `voice-guidance` — "The phone
+        // offers the car's own voice switch").
+        val storage = SettingsStorage(context)
+        runBlocking {
+            storage.save(AppSettings(voiceGuidanceEnabled = true, autoVoiceGuidanceEnabled = true))
+            SettingsController(storage).update { current -> current.copy(autoVoiceGuidanceEnabled = false) }
+        }
+        storage.ioDispatcher = ioDispatcher
+        val engine = engineUnderTest(
+            { client },
+            locationService,
+            context,
+            dispatchers = engineDispatchers,
+            settingsStorage = storage,
+            voiceGuidance = VoiceGuidance(context, output)
+        )
+
+        engine.navigateTo(52.5230, 13.4080, null, SurfaceOrigin.CAR)
+        await { engine.state.value.isNavigating }
+
+        client.navigationListener!!.onVoiceInstruction(turnSequence)
+        advanceHold(NavigationEngine.FLAP_WINDOW_MILLIS)
+
+        assertTrue(
+            "the car's switch was set off on the phone, so the car speaks nothing",
+            output.spoken.isEmpty()
+        )
+        assertTrue("and the session is otherwise untouched", engine.state.value.isNavigating)
     }
 
     /**

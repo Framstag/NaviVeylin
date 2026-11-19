@@ -92,35 +92,6 @@ Opening the surface SHALL show the topic root. System back SHALL close a topic p
 - **THEN** the surface closes and the map is shown in the state it had before
 - **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
 
-### Requirement: Every persisted phone setting is editable from the surface
-
-The settings surface SHALL expose every persisted setting the phone can change, each exactly once, in the topic that owns its subject, and SHALL render those rows in every map state.
-
-#### Scenario: Karte carries the map's presentation and handling
-
-- **WHEN** the user opens the Karte topic
-- **THEN** the page offers map style, POI symbols, dark mode with its ambient-light sensitivity, auto-zoom, orientation, render mode, keep screen on and the long-press delay
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
-#### Scenario: Navigation & Route carries routing values
-
-- **WHEN** the user opens the Navigation & Route topic
-- **THEN** the page offers the three vehicle maximum speeds, the three avoidance switches and the vehicle anchors for routing and free driving
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
-#### Scenario: Hinweise & Sprache carries the announcement values
-
-- **WHEN** the user opens the Hinweise & Sprache topic
-- **THEN** the page offers both voice guidance switches, GPS announcements, lane hints and the overspeed warning delta
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
-#### Scenario: The surface is not mode-dependent
-
-- **WHEN** the map state is BROWSE and the settings surface is opened
-- **THEN** the same rows are offered as in NAVIGATION
-- **AND** no row is hidden because of the map state
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
 ### Requirement: The phone edits the settings Android Auto owns
 
 The settings surface SHALL present the car's voice guidance and both car vehicle anchors as rows marked for Android Auto and SHALL let the phone change them. A car anchor that still inherits the phone's value SHALL show that state and SHALL offer returning to it.
@@ -195,22 +166,6 @@ A row whose setting has a finite set of values SHALL present those values with t
 - **THEN** a surface opens listing every available style with the current one marked
 - **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
 
-### Requirement: A numeric range is a slider with labelled endpoints
-
-A setting with a numeric range SHALL render as a slider that shows its current value and the meaning of both endpoints, and every permitted value SHALL be reachable.
-
-#### Scenario: The overspeed delta is a bounded slider
-
-- **WHEN** the overspeed warning row is displayed
-- **THEN** it shows its current value in km/h and a slider covering 0 to 30 km/h
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
-#### Scenario: A vehicle speed shows its full range
-
-- **WHEN** the car's maximum speed row is displayed
-- **THEN** every whole value from 30 to 160 km/h is reachable
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
 ### Requirement: A link row leaves the surface
 
 A row that opens another screen SHALL render as a link row with a trailing chevron and SHALL carry no inline control.
@@ -236,3 +191,50 @@ The settings surface SHALL lay out as a single scrolling column on phone, foldab
 - **WHEN** the surface is opened on a 900 dp wide window
 - **THEN** the rows render in one column at full width
 - **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+## MODIFIED Requirements
+
+### Requirement: Every persisted phone setting is editable from the surface
+
+The settings surface SHALL expose every persisted setting the phone can change, each exactly once, in the topic that owns its subject, and SHALL render those rows in every map state.
+
+#### Scenario: Karte carries the map's presentation and handling
+
+- **WHEN** the user opens the Karte topic
+- **THEN** the page offers map style, POI symbols, dark mode with its ambient-light sensitivity, auto-zoom, orientation, render mode, keep screen on and the long-press delay
+- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+#### Scenario: Navigation & Route carries routing values
+
+- **WHEN** the user opens the Navigation & Route topic
+- **THEN** the page offers the three vehicle maximum speeds, the three avoidance switches and the vehicle anchors for routing and free driving
+- **Case**: `SettingsSurfaceTest#theNavigationTopicCarriesTheRoutingValues` — red on HEAD, where the topic's row table is `navigationTopicRows: List<SettingSpec> = emptyList()`
+
+#### Scenario: Hinweise & Sprache carries the announcement values
+
+- **WHEN** the user opens the Hinweise & Sprache topic
+- **THEN** the page offers both voice guidance switches, GPS announcements, lane hints and the overspeed warning delta
+- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+#### Scenario: The surface is not mode-dependent
+
+- **WHEN** the map state is BROWSE and the settings surface is opened
+- **THEN** the same rows are offered as in NAVIGATION
+- **AND** no row is hidden because of the map state
+- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+### Requirement: A numeric range is a slider with labelled endpoints
+
+A setting with a numeric range SHALL render as a slider that shows its current value and the meaning of both endpoints, and every permitted value SHALL be reachable.
+
+#### Scenario: The overspeed delta is a bounded slider
+
+- **WHEN** the overspeed warning row is displayed
+- **THEN** it shows its current value in km/h and a slider covering 0 to 30 km/h
+- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+#### Scenario: A vehicle speed shows its full range
+
+- **WHEN** the car's maximum speed row is displayed
+- **THEN** every whole value from 30 to 160 km/h is reachable
+- **Case**: `SettingsSurfaceTest#theThreeSpeedSlidersKeepTheirRanges` — green on this tree, `ProgressBarRangeInfo(current=120.0, range=30.0..160.0, steps=129)`

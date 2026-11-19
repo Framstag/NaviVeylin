@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.architecture.StructureReportTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-15T12:09:17.698Z" hostname="dingens" time="0.091">
-  <properties/>
-  <testcase name="greenRunPrintsFigures" classname="com.naviveylin.architecture.StructureReportTest" time="0.09"/>
-  <testcase name="aNestedCopyOfASourceRootIsNotTheTree" classname="com.naviveylin.architecture.StructureReportTest" time="0.001"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

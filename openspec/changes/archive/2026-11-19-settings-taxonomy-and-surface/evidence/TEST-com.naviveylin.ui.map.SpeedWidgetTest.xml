@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.SpeedWidgetTest" tests="29" skipped="0" failures="0" errors="0" timestamp="2026-11-19T05:21:12.831Z" hostname="dingens" time="16.583">
+  <properties/>
+  <testcase name="limitSignShownWhenMaxKnown" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="12.184"/>
+  <testcase name="deltaZeroWarnsAtTheLimit" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.186"/>
+  <testcase name="limitSpaceReservedWhenRequested" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.261"/>
+  <testcase name="limitSignDigitsAtLeast28sp" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.176"/>
+  <testcase name="customDeltaChangesBoundary" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.127"/>
+  <testcase name="badgeTextColorDarkOnLightCard" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.148"/>
+  <testcase name="slotNotReservedByDefault" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.142"/>
+  <testcase name="limitSignHiddenWhenMaxUnknown" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.136"/>
+  <testcase name="navigationSourceWinsWhileNavigating" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.093"/>
+  <testcase name="badgeWidthStableAcrossSpeedValues" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.18"/>
+  <testcase name="visibleDuringNavigationWithEngineSpeed" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.132"/>
+  <testcase name="visibleInFollowModeWithGpsSpeed" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.139"/>
+  <testcase name="hiddenWhenSpeedNegative" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.111"/>
+  <testcase name="notOverLimitWhenMaxUnknown" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.103"/>
+  <testcase name="overLimitAtExactlyMaxPlusDelta" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.096"/>
+  <testcase name="placeholderMatchesSignFootprint" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.125"/>
+  <testcase name="badgeTextAtLeast24sp" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.104"/>
+  <testcase name="overLimitBadgeRedBackgroundWithWhiteText" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.12"/>
+  <testcase name="notOverLimitBelowMaxPlusDelta" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.169"/>
+  <testcase name="hiddenInFollowModeWithoutSpeedData" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.134"/>
+  <testcase name="overLimitWhenExceedingMaxBy5Plus" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.091"/>
+  <testcase name="hiddenWhileBrowsing" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.113"/>
+  <testcase name="slotReservedWhenHiddenAndRequested" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.112"/>
+  <testcase name="badgeShowsCurrentSpeed" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.129"/>
+  <testcase name="badgeBackgroundIsThemeCardNotFixedDark" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.096"/>
+  <testcase name="limitSignShownWhenReservingSpace" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.11"/>
+  <testcase name="limitSignAtLeast64dp" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.124"/>
+  <testcase name="badgeReservesMaxWidthText" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.109"/>
+  <testcase name="hiddenWhenSpeedNaN" classname="com.naviveylin.ui.map.SpeedWidgetTest" time="0.16"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

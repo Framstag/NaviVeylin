@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsRegistryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-15T12:12:36.121Z" hostname="dingens" time="0.028">
+  <properties/>
+  <testcase name="theCarOffersOnlySharedAndCarRows" classname="com.naviveylin.ui.settings.SettingsRegistryTest" time="0.026"/>
+  <testcase name="everySurfaceSpecificRowIsMarked" classname="com.naviveylin.ui.settings.SettingsRegistryTest" time="0.001"/>
+  <testcase name="theRootHoldsSixTopicsInOrder" classname="com.naviveylin.ui.settings.SettingsRegistryTest" time="0.001"/>
+  <testcase name="everyKeyAppearsExactlyOnce" classname="com.naviveylin.ui.settings.SettingsRegistryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceVoiceSwitchesTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-19T05:16:38.699Z" hostname="dingens" time="1.155">
+  <properties/>
+  <testcase name="bothSwitchesAreShownAndPersisted" classname="com.naviveylin.ui.settings.SettingsSurfaceVoiceSwitchesTest" time="1.139"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

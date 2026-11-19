@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-openspec-hygiene.sh" tests="0" failures="0" errors="0" time="0" run="4190479">
+  <system-out>Every open change names its issue: openspec/changes/a-case-name-resolves-to-one-harness=#895, openspec/changes/fix-the-outside-write-reading-is-one-walk-not-one-process=#950, openspec/changes/loop-protocol-core-in-java=#882, openspec/changes/run-event-stream-is-typed=none, openspec/changes/run-sh-is-split-along-the-stream=none, openspec/changes/the-bounds-spend-and-budget-are-typed=none, openspec/</system-out>
+</testsuite>

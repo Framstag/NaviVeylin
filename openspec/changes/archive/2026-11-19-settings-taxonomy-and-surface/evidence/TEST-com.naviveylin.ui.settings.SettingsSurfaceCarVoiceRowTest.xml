@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceCarVoiceRowTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-19T05:16:19.896Z" hostname="dingens" time="18.416">
+  <properties/>
+  <testcase name="theCarRowWritesOnlyTheCarValue" classname="com.naviveylin.ui.settings.SettingsSurfaceCarVoiceRowTest" time="17.068"/>
+  <testcase name="theCarRowShowsTheCarValue" classname="com.naviveylin.ui.settings.SettingsSurfaceCarVoiceRowTest" time="0.369"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

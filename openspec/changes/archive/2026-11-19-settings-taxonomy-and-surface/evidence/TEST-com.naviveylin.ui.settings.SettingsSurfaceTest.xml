@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-11-19T05:16:47.920Z" hostname="dingens" time="4.439">
+  <properties/>
+  <testcase name="theMapKeepsRenderingWhileTheSurfaceIsOpen" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.591"/>
+  <testcase name="theMapManagerRowOpensTheMapManager" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.279"/>
+  <testcase name="aTopicPageShowsSections" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.238"/>
+  <testcase name="theMapMenuOpensTheRoot" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.352"/>
+  <testcase name="aLongHelpOpensWithoutChangingTheValue" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.408"/>
+  <testcase name="theRootShowsSixTopicsAndNoSettingRow" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.363"/>
+  <testcase name="theSheetRowClosesTheSheetAndOpensTheSurface" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.329"/>
+  <testcase name="aSharedRowCarriesNoSurfaceIcon" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.255"/>
+  <testcase name="theStartScreenMenuOpensTheRoot" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.333"/>
+  <testcase name="theOverspeedSliderOffersOneKilometreSteps" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.287"/>
+  <testcase name="aShortHelpLineSitsUnderTheLabel" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.223"/>
+  <testcase name="anInapplicableSectionIsOmitted" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.194"/>
+  <testcase name="dismissingReturnsTheUntouchedMap" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.228"/>
+  <testcase name="theAboutRowOpensTheDialog" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.324"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+  store-assets
+specs read: 193
+classified: 197
+unclassified: 0
+delta spec ids: 0
+stale: 4
+car-only areas: 1
+highlights: 19
+gate: bash tools/gen-feature-list.sh --check-classification — 4s

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-11-19T05:16:38.372Z" hostname="dingens" time="9.476">
+  <properties/>
+  <testcase name="freeDriveHeaderShowsDrivingSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="1.36"/>
+  <testcase name="longPressTimeoutSliderIsReachableInFreeDrive" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.594"/>
+  <testcase name="slidersShowTheStoredValues" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.495"/>
+  <testcase name="sheetShowsTheSymbolIconPreferenceOffByDefault" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.286"/>
+  <testcase name="theVoiceAndGpsSwitchesAreShownAndReportAGesture" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.408"/>
+  <testcase name="anchorRowsShowCurrentPresets" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.319"/>
+  <testcase name="symbolIconToggleReportsTheChange" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.29"/>
+  <testcase name="eachSliderCoversEveryWholeValueOfItsRange" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.456"/>
+  <testcase name="navigationHeaderShowsDrivingSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.33"/>
+  <testcase name="ambientSensitivityReflectsState" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.382"/>
+  <testcase name="theRangesAreTheOnesTheSheetOffers" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.075"/>
+  <testcase name="overspeedSliderCanSelectZero" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.21"/>
+  <testcase name="sheetShowsMapStyleDropdownWithAllStyles" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.379"/>
+  <testcase name="anchorPickerOffersTheFiveByThreeGridWithCurrentMarked" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.373"/>
+  <testcase name="slidersAreReachableInFreeDrive" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.407"/>
+  <testcase name="longPressTimeoutSliderIsReachableInBrowse" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.244"/>
+  <testcase name="theAvoidanceSwitchesAreShownAndReportAGesture" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.367"/>
+  <testcase name="slidersAreReachableInNavigation" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.266"/>
+  <testcase name="dropdownSelectionReportsStyle" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.318"/>
+  <testcase name="threeMaximumSpeedSlidersAreShown" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.249"/>
+  <testcase name="browseHeaderShowsBrowseAndBrowseSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.183"/>
+  <testcase name="anchorPickerFreeDrivingReportsSelection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.25"/>
+  <testcase name="ambientSensitivityRendersAndReports" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.25"/>
+  <testcase name="longPressTimeoutSliderShowsAndWritesTheValue" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.232"/>
+  <testcase name="sheetHasNoModeSwitchControl" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.181"/>
+  <testcase name="slidersAreReachableInBrowse" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.239"/>
+  <testcase name="longPressTimeoutSliderIsReachableInNavigation" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.303"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

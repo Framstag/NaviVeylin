@@ -64,7 +64,9 @@ Chosen: the sixth invariant joins the five — named on stdout, carried in `--js
 ## Risks / Trade-offs
 
 - **A tracker with many untyped children turns the sensor red at once** → that is the honest state; the row's own
-  `maxFilings` bounds how many items one run files, and the two epics in this tracker are the only known offenders.
+  `maxFilings` bounds how many items one run files. The item's premise of 2026-11-14 named two epics as the known
+  offenders; the change's own `evidence/live.json` holds three (`#838`, `#895`, `#906`, and `#906` alone has 14
+  children), so the sentence is kept as the premise it was and not as a bound on this tracker.
 - **`issueType` is absent on older `gh` versions** → a document that carries no type field at all is one line saying
   the axis could not be read and exit 1, so a client that cannot answer is named rather than read as a clean tracker.
   A parent outside the read's window is a narrower unknown: its type is not in the document, so the child is not

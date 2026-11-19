@@ -24,7 +24,10 @@ holds now is typed.
 the window's one known unknown: the only other untyped child in the read is #887, whose parent is #36 — an issue
 outside `--limit 400`'s window, so its type is not in the document and the check says nothing about the child
 rather than guessing (design, Risks / Trade-offs). Nothing in the read is silently passed over: 32 items carry a
-parent and 9 of them sit under a container.
+parent, and 30 of them sit under a container — re-read over the archived `evidence/live.json` (2026-11-19): the
+parents are #36 (1 child), #838 (7), #895 (9), #906 (14) and #919 (1), and #838, #895 and #906 carry `issueType`
+"Epic", the profile's container type. The child under #36 is the untyped one, so the 30 typed children of a
+container are exactly the population the sixth invariant reads, and it reports 0 violations over them.
 
 the cost claim: one more field on the read the pass already makes — no second call. The difference of the two wall
 times is 3.7 s over 400 items, and `metadata#bothPerItemModesCheckIt` pins the call count on the stub tracker

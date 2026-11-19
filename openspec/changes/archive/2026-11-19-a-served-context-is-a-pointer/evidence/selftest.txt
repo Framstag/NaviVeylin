@@ -1,0 +1,4 @@
+# artifact-hygiene self-test, 11 cases (10 at the base)
+$ bash tools/tests/check-openspec-hygiene-selftest.sh
+# 2026-11-19T18:43:24Z
+check-openspec-hygiene-selftest: all 11 cases passed (throwaway OpenSpec trees, no Gradle)

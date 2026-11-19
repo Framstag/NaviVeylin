@@ -1,0 +1,10 @@
+# the served context as the CLI now injects it
+$ openspec instructions apply --change a-served-context-is-a-pointer --json | jq -r .context
+# 2026-11-19T18:43:26Z
+Project facts — stack, modules, conventions, constraints and the topic-to-section documentation routing — are
+`AGENTS.md`, which the harness loads for every session: read it, and read the section of `guidelines/<concern>.md`
+that its "Documentation Map" routes your topic to. This block is a pointer, not a second copy.
+
+
+$ ... | jq '.operationGuidance | length'
+23

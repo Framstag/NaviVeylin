@@ -1,0 +1,28 @@
+# Structural checks a delta with no compiled file owes (guidelines/Build.md §2, the scope block)
+# 2026-11-19T18:43:37Z
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 356 section references resolve, all 7 skill references resolve
+exit=0
+
+$ bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 651 named rule(s) are reached
+exit=0
+
+$ openspec doctor
+  OpenSpec root: ok
+
+$ bash tools/check-openspec-hygiene.sh   # findings per class
+exit=1
+class 5 ('no x-issue') findings: 30
+class 6 ('context:' block) findings: 0
+Purpose verdict: 1
+
+# The class-5 findings are pre-existing: the same script at HEAD reports the same count
+HEAD exit=2, HEAD class 5 findings: 0
+# The class-5 findings are pre-existing: the same script at HEAD, same root, same count
+$ git show HEAD:tools/check-openspec-hygiene.sh > /tmp/hygiene-head.sh
+$ bash /tmp/hygiene-head.sh --root $PWD 2>&1 | grep -c "no 'x-issue:'"
+exit=1
+HEAD class 5 findings: 30
+# and HEAD's script has no class 6, so the same tree reports 0 there by construction

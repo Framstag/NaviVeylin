@@ -1,0 +1,15 @@
+# Revert-check: the new class is one invariant, mutated once
+# mutation: 'if (n > 3) printf' -> 'if (n > 99) printf' in tools/check-openspec-hygiene.sh
+153:    END { if (n > 99) printf "lines=%d", n; else if (n > 0 && body !~ /AGENTS\.md/) printf "unnamed" }
+
+# RED, 2026-11-19T18:43:34Z
+$ bash tools/tests/check-openspec-hygiene-selftest.sh --case aContextBlockThatCopiesTheFactsIsRefused
+exit=1
+FAIL artifact-hygiene#aContextBlockThatCopiesTheFactsIsRefused: the finding does not state how many lines the block carries
+       
+check-openspec-hygiene-selftest: 1 of 1 cases failed — artifact-hygiene#aContextBlockThatCopiesTheFactsIsRefused
+
+# RESTORED, 2026-11-19T18:43:34Z
+$ bash tools/tests/check-openspec-hygiene-selftest.sh --case aContextBlockThatCopiesTheFactsIsRefused
+exit=0
+check-openspec-hygiene-selftest: all 1 case passed (throwaway OpenSpec trees, no Gradle)

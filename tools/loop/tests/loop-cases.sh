@@ -454,6 +454,7 @@ LOOP_SHELL_CASES=(
   'driver#anUndeclaredReadIsRefused'
   'driver#aLocalIsNotAShareOfAnotherFilesName'
   'driver#aQuotedProgramIsNotAShellRead'
+  'driver#aCallInPipelinePositionIsARead'
   'driver#theSharedNamesAreDeclared'
   'driver#theSourceOrderIsDeclared'
   'driver#aCallToALaterFilesFunctionFails'
@@ -1231,6 +1232,7 @@ loop_run_shell_case() {
     'driver#anUndeclaredReadIsRefused') fn=case_driver_anUndeclaredReadIsRefused ;;
     'driver#aLocalIsNotAShareOfAnotherFilesName') fn=case_driver_aLocalIsNotAShareOfAnotherFilesName ;;
     'driver#aQuotedProgramIsNotAShellRead') fn=case_driver_aQuotedProgramIsNotAShellRead ;;
+    'driver#aCallInPipelinePositionIsARead') fn=case_driver_aCallInPipelinePositionIsARead ;;
     'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
     'driver#theSourceOrderIsDeclared') fn=case_driver_theSourceOrderIsDeclared ;;
     'driver#aCallToALaterFilesFunctionFails') fn=case_driver_aCallToALaterFilesFunctionFails ;;
@@ -18030,7 +18032,11 @@ function is_call(line, name,   n, w, i, prev) {
   gsub(/\$\{[^}]*\}/, " ", line)
   gsub(/\$[A-Za-z_][A-Za-z0-9_]*/, " ", line)
   gsub(/\$\(/, " CMDSUB ", line)
-  gsub(/[;|&(){}[\]\t"']/, " ", line)
+  # A list separator opens a command, so the word after it is at a command position: `a | name`, `a && name`,
+  # `a || name` and `a; name` are calls of `name`. Read as the whitespace it sits in, the separator leaves the
+  # previous command's last word in front of the name, and a call in pipeline position is no call at all (#963).
+  gsub(/[;|&]+/, " SEP ", line)
+  gsub(/[(){}[\]\t"']/, " ", line)
   n = split(line, w, / +/)
   for (i = 1; i <= n; i++) {
     if (w[i] != name) continue
@@ -18038,7 +18044,7 @@ function is_call(line, name,   n, w, i, prev) {
     prev = w[i - 1]
     # Indentation is an empty first field and not a word before the command.
     if (prev == "") return 1
-    if (prev ~ /^(CMDSUB|if|then|elif|else|while|until|do|time|!)$/) return 1
+    if (prev ~ /^(CMDSUB|SEP|if|then|elif|else|while|until|do|time|!)$/) return 1
     if (prev ~ /[=$]$/) return 1
   }
   return 0
@@ -18221,7 +18227,11 @@ function is_call(line, name,   n, w, i, prev) {
   gsub(/\$\{[^}]*\}/, " ", line)
   gsub(/\$[A-Za-z_][A-Za-z0-9_]*/, " ", line)
   gsub(/\$\(/, " CMDSUB ", line)
-  gsub(/[;|&(){}[\]\t"']/, " ", line)
+  # A list separator opens a command, so the word after it is at a command position: `a | name`, `a && name`,
+  # `a || name` and `a; name` are calls of `name`. Read as the whitespace it sits in, the separator leaves the
+  # previous command's last word in front of the name, and a call in pipeline position is no call at all (#963).
+  gsub(/[;|&]+/, " SEP ", line)
+  gsub(/[(){}[\]\t"']/, " ", line)
   n = split(line, w, / +/)
   for (i = 1; i <= n; i++) {
     if (w[i] != name) continue
@@ -18229,7 +18239,7 @@ function is_call(line, name,   n, w, i, prev) {
     prev = w[i - 1]
     # Indentation is an empty first field and not a word before the command.
     if (prev == "") return 1
-    if (prev ~ /^(CMDSUB|if|then|elif|else|while|until|do|time|!)$/) return 1
+    if (prev ~ /^(CMDSUB|SEP|if|then|elif|else|while|until|do|time|!)$/) return 1
     if (prev ~ /[=$]$/) return 1
   }
   return 0
@@ -18452,6 +18462,35 @@ case_driver_aQuotedProgramIsNotAShellRead() {
   return 0
 }
 
+case_driver_aCallInPipelinePositionIsARead() {
+  # files: tools/loop/ tools/loop/shared.tsv
+  local out d row
+  d=$(scratch)
+  printf 'shared_fn() { :; }\n' > "$d/a.sh"
+  row=$'shared_fn\ta.sh\tb.sh'
+  # A list separator opens a command, so the name after it is at a command position: a pipeline stage, the second
+  # operand of `&&` and of `||`, and the command after `;`. The word in front of the name is the previous command's
+  # last one, which is exactly why a derivation that reads the separator as whitespace loses the call (#963).
+  printf 'printf "%%s\\n" x | shared_fn\n' > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "$row" "$out" "a call in pipeline position is a read of the name: $out"
+  printf 'true && shared_fn\n' > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "$row" "$out" "a call after && is a read of the name: $out"
+  printf 'false || shared_fn\n' > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "$row" "$out" "a call after || is a read of the name: $out"
+  printf 'true; shared_fn\n' > "$d/b.sh"
+  out=$(layout_shared_awk "$d" rows)
+  assert_eq "$row" "$out" "a call opened by ; is a read of the name: $out"
+  # …and the derivation the declaration is compared against accepts the row such a read owes, in both directions: the
+  # row alone cannot be the fix, because a census that cannot see the read refuses the row as one nothing assigns.
+  printf '%s\n' "$row" > "$d/shared.tsv"
+  out=$(layout_shared_refusals "$d")
+  assert_eq "" "$out" "the row a pipeline read owes is accepted, in both directions: $out"
+  return 0
+}
+
 case_driver_theSharedNamesAreDeclared() {
   # files: tools/loop/ tools/loop/layout.tsv tools/loop/shared.tsv
   local out
@@ -18503,6 +18542,16 @@ case_driver_aCallToALaterFilesFunctionFails() {
   out=$(layout_call_refusals "$d")
   assert_contains "$out" "caller.sh calls later_fn at line 2, which later.sh defines and it never sources" \
     "a call to a file the caller never sources is refused: $out"
+  # …and the call is the name at a command position whatever opens the command: a stage of a pipeline, and the
+  # second operand of `&&`, are calls of it as much as the first word of a line is (#963).
+  printf 'caller_fn() {\n  printf "%%s\\n" x | later_fn\n}\n' > "$d/caller.sh"
+  out=$(layout_call_refusals "$d")
+  assert_contains "$out" "caller.sh calls later_fn at line 2, which later.sh defines and it never sources" \
+    "a call in pipeline position to a file the caller never sources is refused: $out"
+  printf 'caller_fn() {\n  true && later_fn\n}\n' > "$d/caller.sh"
+  out=$(layout_call_refusals "$d")
+  assert_contains "$out" "caller.sh calls later_fn at line 2, which later.sh defines and it never sources" \
+    "a call after && to a file the caller never sources is refused: $out"
   return 0
 }
 # ------------------------------------------------------- cases: one suite per repository

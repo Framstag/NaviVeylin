@@ -21,6 +21,8 @@
 body	phase.sh	prescreen.sh
 bound_class_jq	lib.sh	report.sh state.sh
 project_state_differs	lib.sh	run.sh
+loop_drop_ignorable_writes	lib.sh	worktree.sh run.sh
+loop_shaping_verdicts	lib.sh	labels.sh
 blocked	report.sh	prescreen.sh
 branch	run.sh	report.sh loop-clean.sh phase.sh
 cases	gate.sh	measure.sh
@@ -51,7 +53,7 @@ loop_commit_identity	lib.sh	worktree.sh
 loop_compat_profile_value	lib.sh	labels.sh prescreen.sh run.sh
 LOOP_CONF_PATH	lib.sh	run.sh gate.sh measure.sh state.sh
 loop_conf_value	lib.sh	state.sh gate.sh loop-clean.sh measure.sh phase.sh prescreen.sh report.sh run.sh worktree.sh
-loop_die	lib.sh	prescreen.sh gate.sh labels.sh run.sh state.sh worktree.sh
+loop_die	lib.sh	prescreen.sh gate.sh labels.sh measure.sh phase.sh report.sh run.sh state.sh worktree.sh
 LOOP_DIR	lib.sh	run.sh prescreen.sh report.sh worktree.sh
 loop_end_group	lib.sh	gate.sh run.sh
 loop_end_pid	lib.sh	gate.sh loop-clean.sh run.sh

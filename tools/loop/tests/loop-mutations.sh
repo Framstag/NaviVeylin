@@ -1479,6 +1479,7 @@ MUTATIONS=(
   # branch is cut; the record takes the reading of that finding out, so the item is queued and worked and the case's
   # own refusal is the only thing that can name it.
   '931.1@-@tools/loop/prescreen.sh@prescreen#anIssueTwoOpenChangesNameIsRefused@the finding the screen reads for the item'"'"'s number, so an item whose number two open changes carry is queued and worked — the collision this change exists to find (issue #931)@s|^    collision=.*|    collision=""|'
+  '963.1@-@tools/loop/tests/loop-cases.sh@driver#aCallInPipelinePositionIsARead@the list separator that opens a command, so a stage of a pipeline is a call of the name instead of the last word of the command before it (issue #963)@s#" SEP ", line)#" XSEP ", line)#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

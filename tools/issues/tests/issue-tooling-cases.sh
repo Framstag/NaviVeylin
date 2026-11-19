@@ -166,6 +166,12 @@ ISSUES_SHELL_CASES=(
   'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
+  'metadata#aTypedChildIsConsistent'
+  'metadata#anUntypedChildIsAViolation'
+  'metadata#aChildOfAnOrdinaryIssueIsOutOfScope'
+  'metadata#bothPerItemModesCheckIt'
+  'metadata#theJsonCarriesTheViolation'
+  'metadata#anUnreadableFieldIsNamed'
   'prioritise#recordsOutgrowOneArgument'
   'create#writesTheTypeItWasGiven'
   'create#writesTheDependencyItWasGiven'
@@ -332,6 +338,12 @@ issues_run_shell_case() {
       'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
       'check#aDisplacedSettledStateIsReported'|\
       'check#unrankedIsNotAViolation'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
+    'metadata#aTypedChildIsConsistent') case_metadata_aTypedChildIsConsistent ;;
+    'metadata#anUntypedChildIsAViolation') case_metadata_anUntypedChildIsAViolation ;;
+    'metadata#aChildOfAnOrdinaryIssueIsOutOfScope') case_metadata_aChildOfAnOrdinaryIssueIsOutOfScope ;;
+    'metadata#bothPerItemModesCheckIt') case_metadata_bothPerItemModesCheckIt ;;
+    'metadata#theJsonCarriesTheViolation') case_metadata_theJsonCarriesTheViolation ;;
+    'metadata#anUnreadableFieldIsNamed') case_metadata_anUnreadableFieldIsNamed ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -351,6 +363,13 @@ assert_contains() {
   case "$1" in
     *"$2"*) ;;
     *) fail "$3: '$2' not found in: $1" ;;
+  esac
+}
+
+assert_not_contains() {
+  case "$1" in
+    *"$2"*) fail "$3: '$2' should not appear in: $1" ;;
+    *) ;;
   esac
 }
 
@@ -3130,6 +3149,112 @@ case_check_delegated() {
   return 0
 }
 
+# The container's child carries a type (#911). The tracker groups a container's sub-issues by type, so a child
+# carrying none is invisible under its container however correct its link is; the metadata pass is the reader
+# that says so. Which type a child carries stays the filer's judgement — the rule is that one is there, and only
+# under a container.
+metadata_children_fixture() {
+  printf '%s\n' "$ISSUES_FIXTURES/metadata/children.json"
+}
+
+case_metadata_aTypedChildIsConsistent() {
+  local dir out
+  dir=$(scratch)
+  # the untyped child is the next case's subject, so this array keeps the container, its typed child and the
+  # ordinary pair: the only silence asserted here is the typed child's
+  jq '[.[] | select(.number != 43)]' "$(metadata_children_fixture)" > "$dir/issues.json"
+
+  out=$(run_tool check-metadata.sh --issues "$dir/issues.json" 2>&1) ||
+    fail "a child carrying a type was reported: $out"
+  assert_contains "$out" "4 issue(s) checked" "the typed child was read"
+  assert_not_contains "$out" "untyped-child" "and no violation is reported for it"
+  assert_not_contains "$out" "#42" "nor is it named"
+  return 0
+}
+
+case_metadata_anUntypedChildIsAViolation() {
+  local out status
+  out=$(run_tool check-metadata.sh --issues "$(metadata_children_fixture)" 2>&1); status=$?
+  assert_eq "1" "$status" "an untyped child of a container exits non-zero"
+  assert_contains "$out" "#43 untyped-child" "the violation names the child and the invariant"
+  assert_contains "$out" "container #41" "and its container"
+  assert_contains "$out" "child type absent" "and the type it lacks"
+  assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'untyped-child' || true)" \
+    "one violation, with the typed child and the ordinary pair silent: $out"
+  return 0
+}
+
+case_metadata_aChildOfAnOrdinaryIssueIsOutOfScope() {
+  local dir out
+  dir=$(scratch)
+  # the untyped child of an ordinary issue is the item this rule must not reach
+  jq '[.[] | select(.number != 43)]' "$(metadata_children_fixture)" > "$dir/issues.json"
+
+  out=$(run_tool check-metadata.sh --issues "$dir/issues.json" 2>&1) ||
+    fail "a child of an ordinary issue was reported: $out"
+  assert_contains "$out" "4 issue(s) checked" "the untyped child of an ordinary issue was read"
+  assert_not_contains "$out" "#45" "and nothing is said about its type"
+  assert_not_contains "$out" "untyped-child" "so a plain parent-child between ordinary issues is not this rule's subject"
+  return 0
+}
+
+case_metadata_bothPerItemModesCheckIt() {
+  local dir out status
+  dir=$(scratch)
+  jq '.' "$(metadata_children_fixture)" > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(run_tool check-metadata.sh --issues "$dir/issues.json" 2>&1); status=$?
+  assert_eq "1" "$status" "the offline mode reports the untyped child"
+  assert_contains "$out" "#43 untyped-child" "and names it"
+  assert_contains "$out" "container #41" "with its container"
+
+  # The axis reads fields of the document the pass already asks for, so the live mode spends no second call: a
+  # shim in front of the stub records every invocation, and one line is the number to beat.
+  mkdir -p "$dir/bin"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'printf "%%s\\n" "$*" >> %q\n' "$dir/calls.log"
+    printf 'exec %q "$@"\n' "$ISSUES_FIXTURES/gh"
+  } > "$dir/bin/gh"
+  chmod +x "$dir/bin/gh"
+  PATH="$dir/bin:$PATH"
+
+  out=$(run_tool check-metadata.sh --live 2>&1); status=$?
+  assert_eq "1" "$status" "the live mode reports the same item"
+  assert_contains "$out" "#43 untyped-child" "and the same violation"
+  assert_contains "$out" "container #41" "with the same container"
+  assert_eq "1" "$(grep -c 'issue list' "$dir/calls.log" || true)" \
+    "one tracker read, no call per child: $(cat "$dir/calls.log" 2>/dev/null)"
+  return 0
+}
+
+case_metadata_theJsonCarriesTheViolation() {
+  local out status found
+  out=$(run_tool check-metadata.sh --issues "$(metadata_children_fixture)" --json 2>&1); status=$?
+  assert_eq "1" "$status" "the JSON run exits non-zero"
+  found=$(printf '%s' "$out" | jq -r '[.violations[] | select(.code == "untyped-child")] | length' 2>/dev/null)
+  assert_eq "1" "$found" "the document carries the violation beside the other invariants: $out"
+  assert_eq "43" "$(printf '%s' "$out" | jq -r '.violations[] | select(.code == "untyped-child") | .issue')" \
+    "under the item that carries it"
+  assert_contains "$(printf '%s' "$out" | jq -r '.violations[] | select(.code == "untyped-child") | .detail')" \
+    "container #41" "naming its container"
+  assert_eq "5" "$(printf '%s' "$out" | jq -r '.checked')" "beside every item the pass read"
+  return 0
+}
+
+case_metadata_anUnreadableFieldIsNamed() {
+  local out status
+  # a client that answers a document with no type field at all: reading that as consistency is what let nine
+  # children of a finished epic stay invisible
+  out=$(run_tool check-metadata.sh --issues "$ISSUES_FIXTURES/metadata/no-type-field.json" 2>&1); status=$?
+  assert_eq "1" "$status" "a document with no type field is not a clean tracker"
+  assert_contains "$out" "type-axis-unreadable" "the line names the axis it could not read"
+  assert_contains "$out" "the type axis could not be read" "in one line, saying what was missing"
+  assert_contains "$out" "1 violation(s)" "and the silence is not counted as consistency"
+  return 0
+}
+
 case_basis_anAgedScoreIsRevisited() {
   local dir out aged
   dir=$(scratch); metadata_issues 1 > "$dir/issues.json"
@@ -3553,7 +3678,7 @@ case_import_theImportedItemNamesItsExemption() {
   esac
 }
 
-# ── the tracker's own classification (capability `issue-types`, `guidelines/Backlog.md` §3) ────────────────────
+# ── the tracker's own classification (capability `issue-backlog`, `guidelines/Backlog.md` §3) ────────────────────
 #
 # An issue type and the container an item sits under are the tracker's fields, not labels: a type is account
 # scoped and a parent is an issue, so neither can travel through the vocabulary gate. Two halves are this

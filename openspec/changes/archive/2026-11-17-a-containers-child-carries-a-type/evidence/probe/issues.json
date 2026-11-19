@@ -1,0 +1,13 @@
+[
+  { "number": 895, "title": "an epic whose children carry the work", "body": "", "labels": [], "issueType": { "name": "Epic" } },
+  { "number": 889, "title": "a typed child", "body": "", "labels": [], "issueType": { "name": "Task" }, "parent": { "number": 895 } },
+  { "number": 890, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 891, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 892, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 893, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 894, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 896, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 897, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 898, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } },
+  { "number": 899, "title": "an untyped child", "body": "", "labels": [], "issueType": null, "parent": { "number": 895 } }
+]

@@ -177,7 +177,7 @@ issues_login() {
 }
 
 # The issue types the account declares, one name per line, enabled ones only (`guidelines/Backlog.md` §3,
-# capability `issue-types`). This is **not** a vocabulary this repository may spell: a type is GitHub's,
+# capability `issue-backlog`). This is **not** a vocabulary this repository may spell: a type is GitHub's,
 # account-scoped configuration, so the writer asks the tracker which names it may use instead of keeping a copy
 # that drifts. The read exists because `gh --type` is not safe on its own — measured 2026-11-12: `gh issue create
 # --type Bogus` filed issue #874 *and then* printed `type "Bogus" not found; available types: Task, Bug, Feature`,

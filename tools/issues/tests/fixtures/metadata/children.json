@@ -1,0 +1,40 @@
+[
+  {
+    "number": 41,
+    "title": "a container whose children carry the work",
+    "body": "An epic: the panel under it groups its children by type.",
+    "labels": [],
+    "issueType": { "name": "Epic" }
+  },
+  {
+    "number": 42,
+    "title": "a typed child of that container",
+    "body": "The child the container's panel shows.",
+    "labels": [],
+    "issueType": { "name": "Task" },
+    "parent": { "number": 41 }
+  },
+  {
+    "number": 43,
+    "title": "an untyped child of that container",
+    "body": "The child the container's panel does not show at all.",
+    "labels": [],
+    "issueType": null,
+    "parent": { "number": 41 }
+  },
+  {
+    "number": 44,
+    "title": "an ordinary issue that happens to have a child",
+    "body": "Not a container, so the child's type is nobody's rule here.",
+    "labels": [],
+    "issueType": { "name": "Bug" }
+  },
+  {
+    "number": 45,
+    "title": "an untyped child of an ordinary issue",
+    "body": "Out of the container rule's scope.",
+    "labels": [],
+    "issueType": null,
+    "parent": { "number": 44 }
+  }
+]

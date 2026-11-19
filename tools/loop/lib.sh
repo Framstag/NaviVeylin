@@ -835,7 +835,7 @@ loop_profile() {
 loop_issue_json() {
   # `issueType` and `parent` are the tracker's own hierarchy — an item's classification and the container it
   # sits under — and neither is a label, so a reader that decides something about an item has to ask for them
-  # here (capability `issue-types`, `guidelines/Backlog.md` §3). They sit before `author,state` on purpose: a
+  # here (capability `issue-backlog`, `guidelines/Backlog.md` §3). They sit before `author,state` on purpose: a
   # case discriminates the comments read from the plain one by its trailing fields (`run#anUnreadable…` names
   # `author,state,comments`), and that tail is what `--comments` appends to.
   # `blockedBy` is the tracker's dependency edge (#919): the item this one must wait for. It sits before

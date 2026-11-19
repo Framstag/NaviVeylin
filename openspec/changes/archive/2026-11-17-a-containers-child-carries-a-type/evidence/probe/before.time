@@ -1,0 +1,1 @@
+bash tools/issues/check-metadata.sh --live >  2>   31,77s user 16,13s system 117% cpu 40,879 total

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/issues/tests/fixtures/gh "$@"

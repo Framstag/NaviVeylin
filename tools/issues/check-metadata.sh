@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # check-metadata.sh — the per-item invariants, as a command.
 #
-# Five things can be true of an issue, and a hand edit can break any of them: the band label is inside the
+# Six things can be true of an issue, and a hand edit can break any of them: the band label is inside the
 # vocabulary, an issue carries at most one band, the marker and the label are both there, they agree with each
-# other, and an item whose body keeps a settled state of its own carries a settled state label (#683). This
-# script asserts all five (`issue-metadata-loop`, D1/D7), plus the two things that make the pass safe: the
+# other, an item whose body keeps a settled state of its own carries a settled state label (#683), and an item
+# sitting under a container of the profile's `roles.containerType` carries an issue type of its own (#911).
+# This script asserts all six (`issue-metadata-loop`, D1/D7), plus the two things that make the pass safe: the
 # marker's score is inside the model's range, and the pass never wrote the automation opt-in.
 #
 # Three modes:
@@ -13,9 +14,10 @@
 #                        well formed, the marker grammar has one home, and neither write path can name or
 #                        pass a reserved label. No network, no token, no tracker.
 #   --live               read the tracker through `gh issue list --state all` (needs a token) and check the
-#                        per-issue invariants on every issue. Its unattended caller is the sensors pipeline's
-#                        `metadata-invariant` row (`guidelines/BacklogTooling.md` §9, issue #292); run by hand it is
-#                        `helper/backlog-pass.sh`.
+#                        per-issue invariants on every issue — the type axis included, which is why the read
+#                        names `issueType` and `parent` and still makes one call. Its unattended caller is the
+#                        sensors pipeline's `metadata-invariant` row (`guidelines/BacklogTooling.md` §9, issue
+#                        #292); run by hand it is `helper/backlog-pass.sh`.
 #   --issues <file>      the same per-issue checks over a JSON array — what the offline cases and this
 #                        script's own selftest drive.
 #
@@ -124,7 +126,7 @@ fi
 # ── the per-issue half: the label and the marker, whether they agree, and the settled pair ──────────────
 
 if [ "$mode" = "live" ]; then
-  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body 2>/dev/null) ||
+  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent 2>/dev/null) ||
     issues_die "check-metadata: gh could not read the tracker (--live needs a token)"
 elif [ "$mode" = "issues" ]; then
   [ -f "$issues_file" ] || issues_die "check-metadata: no such issue file: $issues_file"
@@ -132,6 +134,27 @@ elif [ "$mode" = "issues" ]; then
   printf '%s' "$issues_json" | jq -e . >/dev/null 2>&1 ||
     issues_die "check-metadata: $issues_file is not valid JSON"
 fi
+
+# ── the type axis: a container's child carries a type, and a client that cannot answer is named ─────────────
+#
+# The tracker groups a container's sub-issues by type, so a child carrying none does not appear under its
+# container at all: nine children of a finished epic read as an empty epic although every link was correct
+# (#911). Both fields come from the document the pass already reads, so this half costs no call.
+container_type=$(jq -r '.roles.containerType // empty' "$profile")
+# A document that carries no `issueType` key at all is a client that cannot answer, not a tracker where every
+# item happens to be untyped: reading it as consistency is what let the nine children stay invisible.
+read_state=$(printf '%s' "$issues_json" | jq -r '
+  if length == 0 then "empty"
+  elif ([.[] | has("issueType")] | any) then "readable"
+  else "unreadable" end')
+if [ "$read_state" = "unreadable" ]; then
+  violate "document" "type-axis-unreadable" "the type axis could not be read: the document carries no issueType field"
+fi
+type_axis=$(printf '%s' "$issues_json" | jq -r '
+  .[] | [ (.number | tostring),
+          (.issueType | if type == "object" then (.name // "") elif type == "string" then . else "" end),
+          (.parent | if type == "object" then ((.number // "") | tostring) else ((. // "") | tostring) end) ]
+  | @tsv')
 
 issue_numbers=$(printf '%s' "$issues_json" | jq -r '.[].number')
 # An item's settled state is stated twice: by the label the pre-screen reads as settled, and by the record a
@@ -145,6 +168,20 @@ for number in $issue_numbers; do
   labels=$(printf '%s' "$issues_json" | jq -r --argjson n "$number" \
     '[.[] | select(.number == $n) | .labels[]? | if type == "string" then . else .name end] | .[]')
   body=$(printf '%s' "$issues_json" | jq -r --argjson n "$number" '[.[] | select(.number == $n) | .body // ""] | .[0]')
+
+  # Which type a child carries is the filer's judgement; that it carries one is the tracker's rule. A parent that
+  # is not a container leaves the child out of scope, and so does a parent this window did not carry — the check
+  # reads the parent's type from the same document rather than spending a call on it.
+  child_fields=$(printf '%s\n' "$type_axis" | awk -F'\t' -v n="$number" '$1 == n { print $2 "\t" $3; exit }')
+  item_type=${child_fields%%$'\t'*}
+  parent_number=${child_fields##*$'\t'}
+  parent_type=""
+  if [ -n "$parent_number" ]; then
+    parent_type=$(printf '%s\n' "$type_axis" | awk -F'\t' -v n="$parent_number" '$1 == n { print $2; exit }')
+  fi
+  if [ -n "$container_type" ] && [ "$parent_type" = "$container_type" ] && [ -z "$item_type" ]; then
+    violate "$number" "untyped-child" "container #$parent_number ($container_type), child type absent"
+  fi
 
   bands_found=0
   band_label=""

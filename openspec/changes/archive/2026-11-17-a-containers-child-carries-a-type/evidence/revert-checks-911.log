@@ -1,0 +1,17 @@
+# revert checks for #911 — each mutation must turn its named case red, and the restore green
+measured 2026-11-17T15:09:53Z
+
+## 5.3 the invariant skips an untyped child
+  an untyped child of a container exits non-zero: expected '1', got '0'
+FAIL metadata#anUntypedChildIsAViolation
+PASS metadata#anUntypedChildIsAViolation
+
+## 5.4 the invariant fires on a child of an ordinary issue
+check-metadata: 4 issue(s) checked · 1 violation(s)
+FAIL metadata#aChildOfAnOrdinaryIssueIsOutOfScope
+PASS metadata#aChildOfAnOrdinaryIssueIsOutOfScope
+
+## 5.5 an absent type field is read as consistency
+  a document with no type field is not a clean tracker: expected '1', got '0'
+FAIL metadata#anUnreadableFieldIsNamed
+PASS metadata#anUnreadableFieldIsNamed

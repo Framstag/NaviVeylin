@@ -1,0 +1,10 @@
+RED    931.1  prescreen#anIssueTwoOpenChangesNameIsRefused   (the finding the screen reads for the item's number, so an item whose number two open changes carry is queued and worked — the collision this change exists to find (issue #931))
+       2026-11-18T23:40:10Z — an item whose number two open changes name leaves nothing to work: expected '3', got '0'
+restore 931.1 prescreen#anIssueTwoOpenChangesNameIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+RED    931.1  prescreen#anIssueTwoOpenChangesNameIsRefused   (the finding the screen reads for the item's number, so an item whose number two open changes carry is queued and worked — the collision this change exists to find (issue #931))
+       2026-11-18T23:43:45Z — an item whose number two open changes name leaves nothing to work: expected '3', got '0'
+restore 931.1 prescreen#anIssueTwoOpenChangesNameIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

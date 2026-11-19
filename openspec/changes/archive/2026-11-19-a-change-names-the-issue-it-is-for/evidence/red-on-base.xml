@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-base.log,
+     transcribed from that run's own lines, and it is not the runner output. The base checker is
+     `git show 0560f439236ac4e798516317432d9b131bc63d49:tools/check-openspec-hygiene.sh` in a throwaway root
+     (.pi/issue-loop/items/931/scratch/base-tree) with this change's case file beside it, so these are the three
+     cases the change adds failing on the tree it is written against. The run ended 2026-11-18T23:40:17Z, exit 1,
+     `5 of 10 cases failed` (five failed assertions over three case ids). -->
+<testsuite name="check-openspec-hygiene-selftest" tests="10" failures="5" errors="0" timestamp="2026-11-18T23:40:17Z">
+  <testcase name="artifact-hygiene#theIssueFieldIsReported" classname="artifact-hygiene">
+    <failure message="the check does not report the change under the issue its field declares"/>
+  </testcase>
+  <testcase name="artifact-hygiene#twoOpenChangesNamingOneIssueAreRefused" classname="artifact-hygiene">
+    <failure message="two open changes naming one issue passed (exit 0)"/>
+  </testcase>
+  <testcase name="artifact-hygiene#aChangeNamingNoIssueIsRefused" classname="artifact-hygiene">
+    <failure message="a change with no issue field and no issue-prefixed name passed (exit 0)"/>
+    <failure message="the declared 'none' is not reported as the change's declaration"/>
+    <failure message="the number in the directory name is not the one reported"/>
+  </testcase>
+</testsuite>

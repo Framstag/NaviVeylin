@@ -1,0 +1,148 @@
+loop-selftest: selected 97 of 490 cases (files: tools/loop/prescreen.sh)
+prescreen#landedBranchIsNotADecision| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.oZeq6v/cases/15/tree/case.iJ4BSJ/repo/.pi/issue-loop/runs/2026-11-18T23:43:58Z.json
+prescreen#anEmptyBlockedVerdictBlocksNothing| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.oZeq6v/cases/10/tree/case.3RbZhl/repo/.pi/issue-loop/runs/2026-11-18T23:43:58Z.json
+prescreen#aRefusedClassStillStopsTheScreen| stub gh: recorded `gh issue edit`
+prescreen#aRefusedClassStillStopsTheScreen| exclude-feature #25
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#settledItemIsDropped
+PASS prescreen#aBlockedCandidateWaitsForItsPredecessor
+PASS prescreen#theRunHoldsWhatItsBlockedItemShares
+PASS prescreen#anEmptyBlockedVerdictBlocksNothing
+PASS prescreen#deviceItemIsAVerdictNotWork
+PASS prescreen#readsTheVerdictsFromTheProfile
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#aBlockedAttemptBranchIsWork
+PASS prescreen#landedBranchIsNotADecision
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+PASS prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#missingPathIsReportedNotRefused
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#theQueueIsWrittenInRankOrder
+PASS prescreen#aPinnedItemLeadsTheQueue
+PASS prescreen#aProfileWithNoPinPinsNothing
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#aContainerTypeIsNotWork
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+PASS evidence#scansWhatTheProfileNames
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-234436')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei ec61e47 init
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS prescreen#aTierAItemPassesUnchanged
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+PASS prescreen#anIssueTwoOpenChangesNameIsRefused
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (843b0fe)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ba20109)
+PASS prescreen#aChangeThatIsNoLongerReadyIsRefused
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei ba20109 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ba20109).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS prescreen#aClosedItemIsNotSelected
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+PASS labels#neverWritesReservedLabel
+worktree#noPushWithoutTheFlag|   landing #21 ba201096d0826a8affc5c00e6e6ef4673fed357d: unscored — the pipeline runs of this commit could not be read
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#theShapingInboxDoesNotCountAgainstTheCeiling
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#aFailedPreScreenRecordsItsStopReason
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261118-234446')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei d337a22 an engine of its own
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS prescreen#refusalLeavesATraceInTheTracker
+PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
+PASS prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (bf42e43)
+PASS prescreen#oneUnreadableCandidateDoesNotStopTheScreen
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (9b065a2)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 9b065a2 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 9b065a2).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS prescreen#anUnansweredTrackerIsNotAnEmptyQueue
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 9b065a24f5f393daa04f82d0fb8401ecd20eb2aa: unscored — the pipeline runs of this commit could not be read
+PASS worktree#noPushWithoutTheFlag
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS driver#theSummaryNamesWhatEachGroupCost
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+PASS measure#namesTheOwedChecksInOneBlock
+PASS clean#interruptedSuiteRemovesItsScratchTree
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aHunkInACaseBodySelectsThatCaseOnly
+PASS driver#aHunkOutsideEveryCaseBodyOwesEveryCase
+PASS driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#everyEngineScriptIsInTheTable
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS driver#aFileWithoutABoundIsRefused
+PASS driver#aNameAssignedTwiceIsRefused
+PASS driver#anUndeclaredReadIsRefused
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+PASS driver#aQuotedProgramIsNotAShellRead
+PASS driver#theSharedNamesAreDeclared
+PASS driver#theSourceOrderIsDeclared
+PASS driver#aCallToALaterFilesFunctionFails
+PASS driver#theCaseBoundScalesWithThePool
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+prescreen#anAnsweredBranchIsWorkNotADecision| set-aside: branch fix/issue-21-a-refused-attempt renamed to loop/leftover/issue-21-a-refused-attempt-20261118T234541Z, its commits are kept
+PASS driver#noEngineFileExceedsItsBound
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+PASS prescreen#aReworkCutBranchIsWork
+PASS prescreen#anAnsweredBranchIsWorkNotADecision
+PASS prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch
+PASS prescreen#theScreenRecordsTheItemsEpic
+PASS state#aQuotaWindowIsAHoldNotAStop
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+PASS state#noQuotaCommandAsksNothing
+PASS state#aHoldMovesTheDeadlineWithIt
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS census#aRunDoesNotConsultTheCensus
+PASS run#theQuotaSwitchIsExplicit
+loop-selftest: prescreen 42 cases 514.59 s
+loop-selftest: evidence 1 cases 0.18 s
+loop-selftest: worktree 1 cases 25.36 s
+loop-selftest: labels 1 cases 10.31 s
+loop-selftest: run 5 cases 88.50 s
+loop-selftest: gate 4 cases 45.87 s
+loop-selftest: driver 33 cases 473.01 s
+loop-selftest: measure 1 cases 0.41 s
+loop-selftest: clean 3 cases 20.75 s
+loop-selftest: usage 1 cases 10.45 s
+loop-selftest: state 4 cases 58.96 s
+loop-selftest: census 1 cases 3.31 s
+loop-selftest: all 97 cases passed (JDK 21, offline, no token, no sandbox) — 129.29 s, selection: --files tools/loop/prescreen.sh 

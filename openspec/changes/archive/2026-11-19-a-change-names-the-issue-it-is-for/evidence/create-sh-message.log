@@ -1,0 +1,7 @@
+if [ "$shape" = "b" ]; then
+  change_dir="$(issues_changes_dir)/$change"
+  if [ ! -d "$change_dir" ]; then
+    issues_refuse "change-not-found" \
+      "no change directory at $change_dir — a change name no tree holds is a plan nobody wrote; create it with 'openspec new change $change' and declare the item it answers in the created change's .openspec.yaml — 'x-issue: <number>', or 'x-issue: none' when no tracker item is owed, because the file the hygiene check reads is where the tree states it"
+  fi
+  gate_key="checks.changeReady"

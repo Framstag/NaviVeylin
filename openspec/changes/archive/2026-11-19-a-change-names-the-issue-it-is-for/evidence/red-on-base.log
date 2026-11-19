@@ -1,0 +1,12 @@
+FAIL artifact-hygiene#theIssueFieldIsReported: the check does not report the change under the issue its field declares
+       
+FAIL artifact-hygiene#twoOpenChangesNamingOneIssueAreRefused: two open changes naming one issue passed (exit 0)
+       
+FAIL artifact-hygiene#aChangeNamingNoIssueIsRefused: a change with no issue field and no issue-prefixed name passed (exit 0)
+       
+FAIL artifact-hygiene#aChangeNamingNoIssueIsRefused: the declared 'none' is not reported as the change's declaration
+       
+FAIL artifact-hygiene#aChangeNamingNoIssueIsRefused: the number in the directory name is not the one reported
+       
+check-openspec-hygiene-selftest: 5 of 10 cases failed — artifact-hygiene#theIssueFieldIsReported artifact-hygiene#twoOpenChangesNamingOneIssueAreRefused artifact-hygiene#aChangeNamingNoIssueIsRefused artifact-hygiene#aChangeNamingNoIssueIsRefused artifact-hygiene#aChangeNamingNoIssueIsRefused
+red-on-base exit: 1

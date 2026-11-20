@@ -114,6 +114,7 @@ LOOP_SHELL_CASES=(
   'worktree#doesNotAdoptAChangeCreditedToAnotherIssue'
   'worktree#refusesABranchWhoseReviewFailed'
   'worktree#refusesABranchWhoseReviewRoundNeverAnswered'
+  'worktree#aRepairedRefusalDoesNotKeepALandedBranch'
   'worktree#refusesToMergeOverADirtyProjectTree'
   'worktree#theLandingDecidesByTheReadingItIsHanded'
   'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom'
@@ -299,6 +300,7 @@ LOOP_SHELL_CASES=(
   'run#theBaseAdvancesWithEveryMerge'
   'run#staleTestResultsAreNotThisChildsGate'
   'run#recordsAFailedReviewOnTheBranch'
+  'run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement'
   'run#announcesAndRecordsTheReviewRound'
   'run#thePreGateReviewRunsBeforeTheGate'
   'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides'
@@ -897,6 +899,7 @@ loop_run_shell_case() {
     'worktree#doesNotAdoptAChangeCreditedToAnotherIssue') fn=case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'worktree#refusesABranchWhoseReviewRoundNeverAnswered') fn=case_worktree_refusesABranchWhoseReviewRoundNeverAnswered ;;
+    'worktree#aRepairedRefusalDoesNotKeepALandedBranch') fn=case_worktree_aRepairedRefusalDoesNotKeepALandedBranch ;;
     'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
     'worktree#theLandingDecidesByTheReadingItIsHanded') fn=case_worktree_theLandingDecidesByTheReadingItIsHanded ;;
     'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom') fn=case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom ;;
@@ -1083,6 +1086,7 @@ loop_run_shell_case() {
     'run#theBaseAdvancesWithEveryMerge') fn=case_run_theBaseAdvancesWithEveryMerge ;;
     'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
+    'run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement') fn=case_run_aRefusedRoundLeavesAnAnswerBesideItsAnnouncement ;;
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#thePreGateReviewRunsBeforeTheGate') fn=case_run_thePreGateReviewRunsBeforeTheGate ;;
     'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides') fn=case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides ;;
@@ -4346,6 +4350,47 @@ case_worktree_pushSkipsABranchItAlreadyMerged() {
   assert_not_contains "$(cat "$out")" "does not match any" "the run never hands git a refspec it deleted"
   assert_eq "" "$(git -C "$origin" for-each-ref "refs/heads/$branch")" \
     "the remote carries no branch of a closed item"
+}
+
+# A refusal a later round did not repeat is not the branch's verdict (issue #975). The sweep read the branch for
+# *any* `review-failed-round-*.md`, which was sound while only a last-round refusal was written: with every round's
+# answer recorded, a branch that refused round 1 and passed round 2 would be kept for ever and named refused,
+# though the base carries its work and the branch's own last answer says it passed.
+case_worktree_aRepairedRefusalDoesNotKeepALandedBranch() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p branch out
+  p=$(new_project)
+  branch="fix/issue-21-a-repaired-refusal"
+  git -C "$p" checkout -q -b "$branch" || fail "could not create the repaired attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-repaired/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-repaired/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-repaired/evidence/TEST-repaired.xml"
+  printf 'The run announced review round 1 of this change before its reviewer started.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-repaired/evidence/review-round-1-requested.md"
+  printf 'The reviewer refused this change in review round 1.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-repaired/evidence/review-failed-round-1.md"
+  printf 'The reviewer passed this change in review round 2.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-repaired/evidence/review-round-2-passed.md"
+  printf 'the repaired work\n' > "$p/repaired-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid \
+    commit -qm "review: fix-repaired round 2 passed (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the repaired round"
+  git -C "$p" checkout -q main || fail "could not return to the base"
+  # The work landed by hand, as a fresh commit: the branch is landed by what it changed, not by where it points.
+  git -C "$p" merge -q --squash "$branch" >/dev/null 2>&1 || fail "could not land the repaired change"
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid \
+    commit -qm "fix: the repaired work (#21)" >/dev/null 2>&1 || fail "could not commit the landing"
+  # The run's recorded base is the base the sweep reads, so it is taken **after** the landing: the branch is landed
+  # by what the base carries, and a base recorded before the landing would answer about a tree that never held it.
+  init_state "$p" 1 90
+
+  out=$(run_worktree "$p" prune-landed --apply 2>&1) || fail "the sweep failed: $out"
+  assert_contains "$out" "removed $branch" \
+    "a branch the base carries is swept, whatever it refused on the way to passing"
+  assert_not_contains "$out" "kept $branch — the reviewer refused it" \
+    "and a refusal the branch's last round did not repeat is not read as its verdict"
 }
 
 case_worktree_refusesABranchWhoseReviewFailed() {
@@ -9078,6 +9123,10 @@ esac"
     "the branch records the rework the run's own bound ended"
   assert_eq "1" "$(printf '%s\n' "$carried" | grep -c 'review-round-1-requested.md' || true)" \
     "beside the announcement, which stays: the round was asked and its refusal answered"
+  # …and the refusal itself is on the branch (issue #975): the rework being cut withdraws neither the announcement
+  # nor the answer the announcement got, so a later run reads a round that answered no rather than a silence.
+  assert_eq "1" "$(printf '%s\n' "$carried" | grep -c 'review-failed-round-1.md' || true)" \
+    "and the refusal the rework was repairing is recorded beside them both"
   assert_eq "rework-cut" "$(run_worktree "$p" branch-state 21 "$branch" 2>/dev/null | cut -f1)" \
     "so a later run reads the branch as a phase its next attempt resumes, not as a question it must ask"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" \
@@ -10096,6 +10145,44 @@ case_run_recordsAFailedReviewOnTheBranch() {
     fail "the reviewer's verdict does not travel with the change: $(printf '%s' "$files" | grep evidence || true)"
   assert_contains "$(git -C "$p" log --format=%s "$branch" | head -1)" "failed round 2" \
     "and it is a commit on the branch, not a machine-local file"
+  # The round's answer is written once (issue #975): the same record is written when the answer arrives, so the write
+  # the run makes on its way out of a last-round refusal finds it already there and adds nothing — a second commit,
+  # or a death on git's "nothing to commit", is what the idempotent arm exists to prevent.
+  assert_not_contains "$out" "could not be recorded" \
+    "the last-round write finds the answer already on the branch and adds nothing"
+  assert_eq "1" "$(git -C "$p" log --format=%s "$branch" | grep -c 'failed round 2' || true)" \
+    "and the round carries one answer, not two"
+  assert_contains "$out" "already recorded" \
+    "and the write the run makes on its way out reports the record as already on the branch"
+}
+
+# A round that answered *no* is an answer, and it is written beside the round it answers (#975). The refusal used to
+# be written after the loop, where only the last round is known, so a round that refused and was then repaired left
+# its announcement and nothing else: measured over the archive 2026-11-19, 156 `review-round-1-requested.md`, 76
+# `review-round-1-passed.md`, 62 `review-round-2-requested.md` and 2 `review-failed-round-1.md`, against roughly 80
+# rounds that did not pass at their first round — the rate was derivable only by subtracting two other markers, and
+# only where both survived.
+case_run_aRefusedRoundLeavesAnAnswerBesideItsAnnouncement() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p files
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  printf 'VERDICT: FAIL\n' > "$d/reviewer-fail.txt"
+  printf 'VERDICT: PASS\n' > "$d/reviewer-pass.txt"
+  # Round 1 refuses and round 2 accepts the rework, so the refusal is *not* the last round: it is exactly the round
+  # the post-loop write never reaches.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "case \"\$1\" in
+  reviewer-prompt-1.md) cp \"$d/reviewer-fail.txt\" \"\$PI_STUB_REPORT_REVIEWER\" ;;
+  reviewer-prompt-2.md) cp \"$d/reviewer-pass.txt\" \"\$PI_STUB_REPORT_REVIEWER\" ;;
+esac"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "the round that accepted the rework closes the item"
+  files=$(git -C "$p" ls-tree -r --name-only main -- openspec/changes/archive/2026-01-01-fix-demo/evidence)
+  assert_contains "$files" "review-round-1-requested.md" "the refused round was announced before its reviewer ran"
+  assert_contains "$files" "review-failed-round-1.md" "and the round that answered no is recorded beside it"
+  assert_contains "$files" "review-round-2-passed.md" "the round that answered yes is still recorded as it was"
+  assert_not_contains "$files" "review-failed-round-2.md" "no refusal is written for the round that passed"
 }
 
 # The round is readable from the branch in both directions, which is what makes an unanswered one a fact rather

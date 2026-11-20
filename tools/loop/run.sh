@@ -3967,15 +3967,22 @@ while true; do
       elif [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
         review_verdict="NOTES"
       fi
-      # A round that answered is written on the branch as the answer to the round it announced (#262). The
-      # refusal arm is written after the loop (`record-review-failure`), where the run knows the round was the
-      # last one; here the answer is all that is known and all a later run needs.
+      # A round that answered is written on the branch as the answer to the round it announced (#262), and the
+      # answer *no* is written here beside it (#975). The refusal used to be written after the loop, where only the
+      # last round is known, so a round that refused and was then repaired left its announcement and nothing else —
+      # 62 of the archive's 156 first rounds could not say they had refused. The write the run makes when it ends on
+      # a refusal stays (`record-review-failure` on the way out): it is the same record, and a round already written
+      # here is not written a second time. See `worktree.sh`'s `record-review-failure`.
       if [ "$review_verdict" = "PASS" ] || [ "$review_verdict" = "NOTES" ]; then
         if [ -n "$change" ]; then
           bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" passed >&2 ||
             printf 'run: the round %s answer could not be recorded on the branch — a later run reads %s as never answered\n' \
               "$round" "$change" >&2
         fi
+      elif [ -n "$change" ]; then
+        bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$round" >&2 ||
+          printf 'run: the refusal of round %s could not be recorded on the branch — a later run reads %s as a round nobody answered\n' \
+            "$round" "$change" >&2
       fi
       if [ "$review_verdict" = "PASS" ]; then
         break

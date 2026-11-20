@@ -1467,8 +1467,9 @@ files the branch touched, and the branch's archived change on the base. Patch id
 because it lands work as `fix: … (#N)`, so a landed branch is not an ancestor of the base; the four together are
 what the item's measurement used, and they keep a branch that merely looks landed from being deleted. The sweep
 refuses a branch a
-worktree holds, a branch that still carries unlanded work, and a branch whose change carries
-`review-failed-round-*.md`, which is its owner's verdict (#185). It prints what it removed and why it kept the
+worktree holds, a branch that still carries unlanded work, and a branch whose change's **last** round answered
+`review-failed-round-*.md` — a refusal a later round repaired is not the branch's verdict, so a landed branch that
+refused once and passed after it is swept like any other landed one (#975). It prints what it removed and why it kept the
 rest, and without `--apply` it removes nothing at all. The manual command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes the
 same landed branches together with the scratch paths. Measured 2026-10-27 on the tree that carried #239: 28
 branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
@@ -1614,7 +1615,8 @@ with a bound's reason and a 4–6 k-line patch beside them, so the next reader h
 item was work. What the branch carries is that phase, recorded where a later run reads it: a round the **reviewer's
 child** never answered is `review-round-<n>-cut.md`, with the announcement of the same round withdrawn in that
 commit, so `branch-state` reads `adoptable` rather than `review-unanswered`; a refusal whose **rework** the bound
-ended keeps both the announcement and the refusal, and puts `review-round-<n>-rework-cut.md` beside them (issue
+ended keeps both the announcement and the refusal — the refusal is written when the round answers, and not only when
+the run ends on it (#975) — and puts `review-round-<n>-rework-cut.md` beside them (issue
 #788), so `branch-state` reads `rework-cut` — a phase its next attempt resumes, never a question — and the next
 pre-screen offers the item as work with its branch named, `start-item` setting that branch aside. Both readings
 are the same rule: nothing the loop ended itself may arrive at the pre-screen as an item its owner owes an answer

@@ -831,6 +831,10 @@ cmd_record_review_round() { # <issue> <change> <round> <requested|passed|cut|rew
     "$(gitw rev-parse --short HEAD)"
 }
 
+# The reviewer's verdict, written when the round answers (#262) and again, idempotently, when the run ends on the
+# round (issue #975): a round that refused and was then repaired is recorded by the first write, so the last-round
+# write on the way out finds the file already there and adds nothing — no second commit, and no refusal of a record
+# that says exactly what this one would say.
 cmd_record_review_failure() { # <issue> <change> <round>
   local issue="${1:-}" change="${2:-}" round="${3:-}" dir file who_name who_email
   case "$issue" in ''|*[!0-9]*) loop_die "record-review-failure: usage: worktree.sh record-review-failure <issue> <change> <round>" ;; esac
@@ -842,6 +846,10 @@ cmd_record_review_failure() { # <issue> <change> <round>
   dir="$worktree/openspec/changes/archive/$change/evidence"
   file="$dir/review-failed-round-$round.md"
   mkdir -p "$dir" || loop_die "record-review-failure: could not create $dir"
+  if [ -f "$file" ]; then
+    printf 'recorded: evidence/review-failed-round-%s.md in %s (already recorded)\n' "$round" "$change"
+    return 0
+  fi
   {
     printf 'The reviewer refused this change in review round %s.\n\n' "$round"
     printf 'Recorded by the run for issue #%s at %s, on the item branch, because a branch is what a later run\n' \
@@ -894,10 +902,12 @@ branch_added_changes() { # <branch> <base> → one change name per line
 }
 
 # A reviewer's refusal is its owner's verdict (#185), not a leftover: the branch stays even when its patch is in the
-# base. The marker is read from the change the branch's tip commit adds: `record-review-failure` writes it last, so
-# it is the tip's own diff even after a fast-forward put the branch in the base, where a diff against the base can
-# no longer say what the branch added. The name it is parsed from is the second argument when the rev is a remote
-# ref (`origin/fix/issue-3-refused`), because the sweep reads both arms with the same refusal.
+# base. The answer is read on the change the branch's tip commit adds, because a round's own commit is always that
+# change's evidence — and the answer that counts is the **last round's** (issue #975): the sweep used to keep a branch
+# carrying any `review-failed-round-*.md` at all, which was sound only while a refusal was written for the last round
+# alone, so a round that refused and was then repaired would have kept a landed branch for ever and named it refused.
+# The name it is parsed from is the second argument when the rev is a remote ref (`origin/fix/issue-3-refused`),
+# because the sweep reads both arms with the same refusal.
 branch_carries_refused_review() { # <rev> [<branch name>] → 0 when the change the rev carries was refused
   local rev="$1" branch="${2:-$1}" issue subject change
   case "$branch" in fix/issue-*) ;; *) return 1 ;; esac
@@ -908,8 +918,9 @@ branch_carries_refused_review() { # <rev> [<branch name>] → 0 when the change 
   case "$subject" in *"(#$issue)"*) ;; *) return 1 ;; esac
   while IFS= read -r change; do
     [ -n "$change" ] || continue
-    gitr ls-tree -r --name-only "$rev" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
-      grep -Eq 'review-failed-round-[0-9][0-9]*\.md$' && return 0
+    case "$(carried_review_state "$rev" "$change")" in
+      *' failed') return 0 ;;
+    esac
   done <<< "$(gitr diff-tree --no-commit-id --name-only -r --diff-filter=A "$rev" -- openspec/changes/archive 2>/dev/null |
     awk -F/ 'NF > 3 { print $4 }' | sort -u)"
   return 1

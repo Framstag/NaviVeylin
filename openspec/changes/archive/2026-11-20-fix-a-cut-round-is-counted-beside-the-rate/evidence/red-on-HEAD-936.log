@@ -1,0 +1,31 @@
+report#aCutRoundIsCountedBesideTheRate|   the rate names how many of the run's rounds were handed a part the cap cut, printed beside the verdicts the rate counts: 'review: 3/3 first rounds passed (2 truncated)' not found in: trend — this run's own items; no rate is green or red in one run:
+report#aCutRoundIsCountedBesideTheRate|   review: 3/3 first rounds passed · 0 undecided · 0 never reviewed
+report#aCutRoundIsCountedBesideTheRate|   waived: 0 of 3 closed items · no close was over a gate that did not pass
+report#aCutRoundIsCountedBesideTheRate|   attributed: 0 of 3 items recorded which tree fails the case their gate named · no red gate was attributed
+report#aCutRoundIsCountedBesideTheRate|   wall:   median 52 s (min 41, max 63) · 3 items
+report#aCutRoundIsCountedBesideTheRate|   calls:  - · no item recorded a turn
+report#aCutRoundIsCountedBesideTheRate|   reads:  - · no item recorded a file read · the rule counted no second read
+report#aCutRoundIsCountedBesideTheRate|   phases: - · no item recorded a phase duration
+report#aCutRoundIsCountedBesideTheRate|   gate share: - · no item recorded a phase duration, so no item holds a gate bucket to take a share of
+report#aCutRoundIsCountedBesideTheRate|   outside items: - · this state records no run window — the run has not stopped, or its record carries no start and stop to measure
+report#aCutRoundIsCountedBesideTheRate|   roles:  - · no item recorded a session role
+report#aCutRoundIsCountedBesideTheRate|   after the first gate: - · no item of this run ran a gate in its stream
+report#aCutRoundIsCountedBesideTheRate|   truncated: - · no item had its stream rotated
+report#aCutRoundIsCountedBesideTheRate|   landings: - · no item of this run landed
+--- report#aCutRoundIsCountedBesideTheRate[0] (exit 1)
+  the rate names how many of the run's rounds were handed a part the cap cut, printed beside the verdicts the rate counts: 'review: 3/3 first rounds passed (2 truncated)' not found in: trend — this run's own items; no rate is green or red in one run:
+  review: 3/3 first rounds passed · 0 undecided · 0 never reviewed
+  waived: 0 of 3 closed items · no close was over a gate that did not pass
+  attributed: 0 of 3 items recorded which tree fails the case their gate named · no red gate was attributed
+  wall:   median 52 s (min 41, max 63) · 3 items
+  calls:  - · no item recorded a turn
+  reads:  - · no item recorded a file read · the rule counted no second read
+  phases: - · no item recorded a phase duration
+  gate share: - · no item recorded a phase duration, so no item holds a gate bucket to take a share of
+  outside items: - · this state records no run window — the run has not stopped, or its record carries no start and stop to measure
+  roles:  - · no item recorded a session role
+  after the first gate: - · no item of this run ran a gate in its stream
+  truncated: - · no item had its stream rotated
+  landings: - · no item of this run landed
+FAIL report#aCutRoundIsCountedBesideTheRate
+loop-selftest: 1 of 1 cases failed

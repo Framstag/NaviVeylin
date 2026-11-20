@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in red-on-HEAD-936.log,
+     transcribed from that run's own lines, and it is not the runner output. The engine is the item's base
+     (39e0b8db59b3a65916f31164a58c0dfbd475d9cf: `tools/loop/report.sh` restored from `git show HEAD:` over the
+     fixed copy, byte for byte, and put back immediately after the run), with the case as this change writes it, so
+     this is the reading the fix is red on: the base totals a round's verdict and its count and reads nothing about
+     the scale the round's input bound recorded, so the two rounds the cap cut print exactly like the one that read
+     all of it. The run ended 2026-11-20T07:18:41Z, exit 1, `1 of 1 cases failed`. -->
+<testsuite name="report#aCutRoundIsCountedBesideTheRate" tests="1" failures="1" errors="0" timestamp="2026-11-20T07:18:41Z">
+  <testcase name="report#aCutRoundIsCountedBesideTheRate" classname="report">
+    <failure message="the rate names how many of the run's rounds were handed a part the cap cut, printed beside the verdicts the rate counts: 'review: 3/3 first rounds passed (2 truncated)' not found in: trend — this run's own items; the line printed was `review: 3/3 first rounds passed · 0 undecided · 0 never reviewed`"/>
+  </testcase>
+</testsuite>

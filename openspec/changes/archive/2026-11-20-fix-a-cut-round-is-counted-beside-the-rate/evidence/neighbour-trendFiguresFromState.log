@@ -1,0 +1,2 @@
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.yOESWr/cases/0/tree/case.AXCZAP/repo/.pi/issue-loop/runs/2026-11-20T07:19:05Z.json
+PASS report#trendFiguresFromState

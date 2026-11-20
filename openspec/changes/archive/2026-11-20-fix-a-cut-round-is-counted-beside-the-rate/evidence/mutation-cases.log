@@ -1,0 +1,5 @@
+PASS mutation#theFileSetLegScopesByTheCheapestFile
+PASS mutation#aStaleRecordIsNamed
+PASS mutation#everyDeclaredRecordApplies
+loop-selftest: mutation 3 cases 4.23 s
+loop-selftest: all 3 cases passed (JDK 21, offline, no token, no sandbox) — 4.21 s, selection: --case mutation#*

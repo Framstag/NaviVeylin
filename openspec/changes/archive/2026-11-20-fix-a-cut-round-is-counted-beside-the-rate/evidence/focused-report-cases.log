@@ -1,0 +1,76 @@
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/12/tree/case.Q830lW/repo/.pi/issue-loop/runs/2026-11-20T07:20:47Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/8/tree/case.DskXEB/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (0c5bed5a1adb8cf3 → 88ab7135bf59a3e2); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/10/tree/case.PmuKox/repo/.pi/issue-loop/runs/2026-11-20T07:20:47Z.json
+PASS report#emptyRunSaysNone
+PASS report#yieldIsCountedFromState
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-072050')
+report#headerAndTableShape| HEAD ist jetzt bei 8fd77cd init
+report#headerAndTableShape| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS report#aVerdictAloneIsNoEscalation
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#misdiagnosedIsCountedApart
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0b57839)
+PASS report#archivedStateIsReported
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (db0a5a3)
+report#headerAndTableShape| HEAD ist jetzt bei db0a5a3 review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war db0a5a3).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS report#impossibleBudgetNamesAnotherRun
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| closed #21 (completed)
+PASS report#aKilledRunIsNotALiveRun
+report#headerAndTableShape|   landing #21 db0a5a30175121897bd91347f09fefa07898ea2c: unscored — the pipeline runs of this commit could not be read
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#wallTimeAndReasonInTheTable
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#anUnmergeableItemNamesItsLanding
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#anItemOverTheTokenBoundIsFlagged
+PASS report#headerAndTableShape
+report#theRuleRecordsTheSecondReadsItCounted| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/7/tree/case.0p4ZzH/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (41503cdcbab27769 → 8d31915b330471aa); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/6/tree/case.TdRuW2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (29191fcaaae24920 → 052a2116a5e27c6d); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/8/tree/case.5SLSor/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (854fb232ba469881 → dcdd457e41382409); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/8/tree/case.5SLSor/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (854fb232ba469881 → dcdd457e41382409); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/6/tree/case.TdRuW2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (29191fcaaae24920 → 228623d906fb8aab); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/6/tree/case.TdRuW2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (29191fcaaae24920 → 4ca7b6a876f98f7c); a field was edited outside this script
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/6/tree/case.TdRuW2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (29191fcaaae24920 → 39c997ed70839fd6); a field was edited outside this script
+PASS report#escalatedSkipNamesTheLabelWritten
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/6/tree/case.TdRuW2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (29191fcaaae24920 → 39c997ed70839fd6); a field was edited outside this script
+PASS report#failedReviewEscalationIsNamed
+PASS report#theArchivesClassesAreDerivedNotInvented
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#anItemRecordsItsRepeatReads
+PASS report#theRuleRecordsTheSecondReadsItCounted
+PASS report#aTruncatedStreamSaysSo
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#thePreGateRoundIsChargedToItsOwnRole
+PASS report#aCallThatNamesTheGateIsNotAGateRun
+PASS report#aCheckTheGateWouldRunIsTheGateTime
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#aRolesTokensRecordTheModelThatAnswered
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/9/tree/case.dpI2YC/repo/.pi/issue-loop/runs/2026-11-20T07:21:20Z.json
+report#aCutRoundIsCountedBesideTheRate| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/8/tree/case.eiHgpe/repo/.pi/issue-loop/runs/2026-11-20T07:21:20Z.json
+PASS report#theBoundRateIsNamed
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.1jq1yH/cases/7/tree/case.YtFdzu/repo/.pi/issue-loop/runs/2026-11-20T07:21:20Z.json
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+PASS report#aTurnNoSessionRecordReachesIsItsOwnBucket
+PASS report#thePhaseLineNamesTheClockItIsAShareOf
+PASS report#theTrendBlockNamesTheGateShareAndTheOutsideWindow
+PASS report#theRefusedLandingIsReadFromTheRecord
+PASS report#trendFiguresFromState
+PASS report#aCutRoundIsCountedBesideTheRate
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#landingsAreTheStoredNumber
+PASS report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+PASS report#anActionNamesAnItemPathThatExists
+PASS report#theRunGroupsItsItemsByEpic
+PASS report#theSpendIsWorkNotWaiting
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+loop-selftest: report 44 cases 462.45 s
+loop-selftest: all 44 cases passed (JDK 21, offline, no token, no sandbox) — 49.36 s, selection: --case report#*

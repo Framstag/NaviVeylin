@@ -1498,6 +1498,12 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 938.1 — the container as a unit (issue #938). The screen refused a container and refused each child that awaits a
+  # decision, and nothing joined the two, so a child of a container the run could not advance was handed a slot it
+  # could not return: the run of 2026-11-15T19:32:41Z spent 51.3 of its 175.0 Mtok on two epics that closed nothing.
+  # The record empties the arm that reads this run's own cut, so a container that already spent its slot is screened
+  # exactly as before and its children are queued again.
+  '938.1@-@tools/loop/prescreen.sh@prescreen#aContainerCutAtABoundTakesNoFurtherSlot@the arm that reads the child a bound ended, so a container that already spent its slot this run takes no further one (issue #938)@s#^        | if \$cutChild != null then$#        | if false then#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

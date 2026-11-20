@@ -499,6 +499,8 @@ LOOP_SHELL_CASES=(
   'prescreen#anAnsweredBranchIsWorkNotADecision'
   'prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch'
   'prescreen#theScreenRecordsTheItemsEpic'
+  'prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot'
+  'prescreen#aContainerCutAtABoundTakesNoFurtherSlot'
   'worktree#setsAsideAReworkCutBranchAndStartsFresh'
   'run#aRotatedStreamStillCountsTheTurnsItDropped'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
@@ -916,6 +918,8 @@ loop_run_shell_case() {
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
     'prescreen#aClosedItemIsNotSelected') fn=case_prescreen_aClosedItemIsNotSelected ;;
     'prescreen#theScreenRecordsTheItemsEpic') fn=case_prescreen_theScreenRecordsTheItemsEpic ;;
+    'prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot') fn=case_prescreen_aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot ;;
+    'prescreen#aContainerCutAtABoundTakesNoFurtherSlot') fn=case_prescreen_aContainerCutAtABoundTakesNoFurtherSlot ;;
     'prompt#thePackageCarriesTheChange') fn=case_prompt_thePackageCarriesTheChange ;;
     'prompt#aTierAItemSaysSo') fn=case_prompt_aTierAItemSaysSo ;;
     'run#aTierBItemWritesNoSecondChange') fn=case_run_aTierBItemWritesNoSecondChange ;;
@@ -21952,4 +21956,60 @@ case_census_aRunDoesNotConsultTheCensus() {
   out=$(LOOP_ENGINE="$n/tools/loop" run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1) \
     || fail "a census that fails changed the run's answer: $out"
   assert_not_contains "$out" 'census' "the run mentions no census in its own path: $out"
+}
+
+# A container whose children cannot close is a slot the run spends and cannot collect (#938). Measured on the run of
+# 2026-11-15T19:32:41Z: `by epic: epic #895: 0 of 2 children closed · 27.4 Mtok · 28 m 11 s · epic #906: 0 of 1 child
+# closed · 23.9 Mtok · 47 m 50 s` — 51.3 of the run's 175.0 Mtok (29 %) bought no close, and the one child #906
+# counted was cut at `LOOP_CHILD_CHECKS_MAX=40` while 7 of the epic's items sat in the run's `needs-decision`
+# exclusion. The screen refuses the container itself and refuses each child that awaits a decision, and nothing joins
+# the two: a child of a container the run cannot advance is handed a slot it cannot return.
+#
+# The refusal is the container's, not the child's, so it names what it waits for and is cleared by no write of ours:
+# the decision arm clears when the label it names is gone, and the bound arm clears with the run that recorded the cut.
+case_prescreen_aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  init_state "$p" 4 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario epic-stalled)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "epic-stalled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 32) | .verdict')" \
+    "a container whose remaining child awaits a decision takes no slot"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 32) | .reason')" "#31" \
+    "and the refusal names the item it waits for"
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" \
+    "the child that awaits the decision keeps its own verdict"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 35) | .verdict')" \
+    "a container whose only child is that child is not stalled by a sibling it does not have"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 36) | .verdict')" \
+    "and an item in no epic is screened exactly as before"
+}
+
+# The second arm of the same rule: a container that already spent this run's slot and whose child a bound ended has
+# nothing the run can collect from a second child, so the children it still holds are refused — the one the bound cut
+# included, because re-queuing it in the same run is the same slot spent twice.
+case_prescreen_aContainerCutAtABoundTakesNoFurtherSlot() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out f
+  p=$(new_project)
+  init_state "$p" 4 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario epic-stalled)
+  out=$(run_prescreen "$p" --json) || fail "the first pre-screen failed"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 33) | .verdict')" \
+    "a child of a container nothing has spent on is queued"
+  run_state "$p" done 34 --result cut --stop-reason bound --bound-key LOOP_CHILD_CHECKS_MAX --bound-value 40 >/dev/null ||
+    fail "the cut was not recorded"
+  out=$(run_prescreen "$p" --json) || fail "the second pre-screen failed"
+  assert_eq "epic-stalled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 33) | .verdict')" \
+    "the container whose child a bound cut takes no further slot"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 33) | .reason')" "LOOP_CHILD_CHECKS_MAX=40" \
+    "and the refusal names the bound it is waiting on"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 33) | .reason')" "#34" \
+    "beside the child the bound ended"
+  assert_eq "epic-stalled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 34) | .verdict')" \
+    "the child the bound ended is not handed a second slot in the same run"
+  f=$(state_file "$p")
+  assert_eq "cut" "$(jq -r '.items[] | select(.issue == 34) | .result' "$f")" \
+    "while its own record keeps the cut the run made"
 }

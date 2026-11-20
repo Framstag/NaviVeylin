@@ -100,6 +100,19 @@ body's `tier:` record: `tier` says whether an item is worked as a cause or as a 
 what the tracker calls it, and an item may be either tier under any type — an Epic is a container whatever the
 shape of its children.
 
+**Rule: the same screen judges the container, not only the child — and a container nothing can close is refused as**
+**one.** Refusing the container and refusing each child that awaits a decision are two halves of one judgement, and a
+container whose children the run cannot collect from is not work at any level: a candidate that would otherwise be
+queued is refused with the verdict `epic-stalled` when every child the screen saw under its container is refused with
+the decision verdict, or when this run recorded a child of it cut at a bound — and the record names the decision or
+`KEY=VALUE` the container waits for (cases `prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot` and
+`prescreen#aContainerCutAtABoundTakesNoFurtherSlot`, issue #938: the run of 2026-11-15T19:32:41Z spent 51.3 of its
+175.0 Mtok on two containers that closed nothing, one of them on a single child a bound ended). The verdict writes
+nothing to the tracker, for the reason `blocked` writes nothing: the label or the record it names is already visible
+where the refusal read it. It clears itself — the decision arm on the first run whose labels say no decision stands,
+the bound arm with the run that recorded the cut — and a container with two workable children is screened as before,
+because the rule is about a container with nothing left that can close and not about a second slot beside work.
+
 **Rule: a container's child carries a type of its own.** GitHub groups a container's sub-issues by type, so a child
 that carries none does not appear under its container at all — nine children of a finished epic read as an empty epic
 although `parent` and `subIssues.totalCount` were both correct (measured 2026-11-14, issue #911). Any type the account

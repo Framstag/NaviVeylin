@@ -21,6 +21,7 @@ tools/issues/list.sh --category map-rendering          # one area
 tools/issues/list.sh --status open-device              # waiting for a device
 tools/issues/list.sh --author Framstag                 # filed by one actor
 tools/issues/list.sh --eligible-only                   # authorised for automated work
+tools/issues/list.sh --untyped                         # the open items carrying no issue type (the census)
 tools/issues/list.sh --class bug --status open --json  # one JSON document
 tools/issues/list.sh --limit 100                       # page size into `gh`
 ```
@@ -45,6 +46,7 @@ One line per match, `#<number> <title> [labels]`, then a count. With `--json`, t
 | `--status` | `status/` — the lifecycle, read at the moment of the query |
 | `--author` | nothing — it filters the issue's author, the one attributable actor GitHub exposes |
 | `--eligible-only` | the project's required labels: authorisation, which only a person grants |
+| `--untyped` | nothing — GitHub's issue type, not a label: the items carrying none, which is the census `check-metadata.sh` reports |
 
 Every `--class`, `--category` and `--status` value is checked against the profile's closed vocabulary first; a
 value the vocabulary does not contain is a refusal (exit 3, `label-opaque`), so a typo cannot silently select

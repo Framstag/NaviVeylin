@@ -44,6 +44,7 @@ CASES=(
   'check#aMarkerLineBesideAQuotationIsTheRecord'
   'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
+  'check#untypedItemIsReported'
   'check#selfCheckIsGreen'
 )
 
@@ -232,6 +233,43 @@ case_selfCheckIsGreen() {
   run_check
   expect "the self-check exits 0" "0" "$CHECK_STATUS"
   expect_contains "and reports no violation" "· 0 violation(s)" "$CHECK_OUT"
+  expect_contains "and carries the census, so a report that stopped firing is visible here too" \
+    "· 0 untyped" "$CHECK_OUT"
+}
+
+# The census (`issue-type-census`, D1): an open item carrying no issue type is *reported* — named in human mode,
+# carried under one `--json` field, counted in the summary — and the exit status stays the invariants', because
+# 60 legacy items must not turn every run red. Both directions: the untyped fixture is named and the typed one is
+# not, giving the untyped item a type takes it out of the set, and taking the typed item's type away puts it back.
+case_untypedItemIsReported() {
+  run_check --issues "$fixtures/untyped-item.json"
+  expect "an untyped item does not turn the check red" "0" "$CHECK_STATUS"
+  expect_contains "and the census names it" "#61 untyped:" "$CHECK_OUT"
+  expect_contains "in a line saying what it lacks" "carries no issue type" "$CHECK_OUT"
+  expect_contains "beside no violation, and counted" "· 0 violation(s) · 1 untyped" "$CHECK_OUT"
+
+  run_check --issues "$fixtures/untyped-item.json" --json
+  expect "the JSON form is valid" "0" "$(printf '%s' "$CHECK_OUT" | jq -e . >/dev/null 2>&1; echo $?)"
+  expect "and carries the same set under one field" "61" \
+    "$(printf '%s' "$CHECK_OUT" | jq -r '.untyped | join(",")')"
+
+  # the same fixture with one type written: the set is empty and the summary says so
+  jq '.[0].issueType = {"name": "Task"}' "$fixtures/untyped-item.json" > "$tmp/typed.json"
+  run_check --issues "$tmp/typed.json"
+  expect "a typed copy exits 0" "0" "$CHECK_STATUS"
+  expect_not_contains "and is not named" "#61 untyped:" "$CHECK_OUT"
+  expect_contains "and the census is empty" "· 0 untyped" "$CHECK_OUT"
+
+  # the typed fixture is silent, and its type taken away puts it back in the set
+  run_check --issues "$fixtures/typed-item.json"
+  expect "the typed fixture exits 0" "0" "$CHECK_STATUS"
+  expect_not_contains "and is not named" "#62" "$CHECK_OUT"
+
+  jq '.[0].issueType = null' "$fixtures/typed-item.json" > "$tmp/untyped-again.json"
+  run_check --issues "$tmp/untyped-again.json"
+  expect "its type taken away still exits 0" "0" "$CHECK_STATUS"
+  expect_contains "and the census names it again" "#62 untyped:" "$CHECK_OUT"
+  return 0
 }
 
 if [ -n "$only_case" ]; then
@@ -245,6 +283,7 @@ if [ -n "$only_case" ]; then
     'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
     'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
+    'check#untypedItemIsReported') case_untypedItemIsReported ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
     *) echo "check-metadata-selftest: no such case: $only_case" >&2; exit 2 ;;
   esac
@@ -265,6 +304,7 @@ for name in "${CASES[@]}"; do
     'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
     'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
+    'check#untypedItemIsReported') case_untypedItemIsReported ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
   esac
   if [ "$fail_done" -eq "$fail_before" ]; then

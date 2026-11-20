@@ -108,6 +108,19 @@ declares satisfies the rule: what an item *is* stays the filer's judgement, so t
 naming the child, its container and the type it lacks — and the `metadata-invariant` row runs that pass once a day
 (`BacklogTooling.recipes.md` §9).
 
+**The census is reported and never refused, and the number is re-taken rather than remembered.** Every open item
+carrying no issue type is a *report* `tools/issues/check-metadata.sh` prints — one line per item, counted in its
+summary, and the same set under its `--json` `untyped` field — and it never sets the exit status: the items a
+project has not typed are the backlog's shape, and a check that stays red over them is switched off instead. A
+container's child is a violation once the container is typed (§3's rule above), because there a correct link reads
+as an empty container; an ordinary item without a type is only the census. `tools/issues/list.sh --untyped` is the
+same set as one query, and the number is read back with the query itself:
+
+```bash
+gh issue list --state open --json number,issueType --limit 200 \
+  | jq '[.[] | select(.issueType.name == null)] | length'
+```
+
 **The analysis's three rows are one area, and one rule is one item.** `sonar-reliability`,
 `sonar-maintainability` and `sonar-duplication` declare `category/code-quality` with their own
 `lifecycle: file+close`, and their identity is the rule a finding breaks: every finding of that rule lands in

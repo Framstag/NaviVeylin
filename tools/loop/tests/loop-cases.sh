@@ -477,6 +477,8 @@ LOOP_SHELL_CASES=(
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
   'gate#theBaseIsReadFromTheRunNotFromTheRemote'
   'gate#theDeclarationCaseIsOwedFirst'
+  'gate#aPathNoGlobNamesIsRefused'
+  'gate#aDeltaTouchingAnyPathOwesTheCoverageStep'
   'gate#aGreenLogNamesNoFailingCase'
   'gate#aFailingCaseCarriesItsFactsAndItsRerun'
   'gate#twoFailuresNameTheFirstAndCountTheRest'
@@ -1272,6 +1274,8 @@ loop_run_shell_case() {
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
     'gate#theBaseIsReadFromTheRunNotFromTheRemote') fn=case_gate_theBaseIsReadFromTheRunNotFromTheRemote ;;
     'gate#theDeclarationCaseIsOwedFirst') fn=case_gate_theDeclarationCaseIsOwedFirst ;;
+    'gate#aPathNoGlobNamesIsRefused') fn=case_gate_aPathNoGlobNamesIsRefused ;;
+    'gate#aDeltaTouchingAnyPathOwesTheCoverageStep') fn=case_gate_aDeltaTouchingAnyPathOwesTheCoverageStep ;;
     'gate#aGreenLogNamesNoFailingCase') fn=case_gate_aGreenLogNamesNoFailingCase ;;
     'gate#aFailingCaseCarriesItsFactsAndItsRerun') fn=case_gate_aFailingCaseCarriesItsFactsAndItsRerun ;;
     'gate#twoFailuresNameTheFirstAndCountTheRest') fn=case_gate_twoFailuresNameTheFirstAndCountTheRest ;;
@@ -19081,6 +19085,58 @@ case_gate_theBaseIsReadFromTheRunNotFromTheRemote() {
 # plan line: the gate's order saves the gate's tail, the child's step saves the attempt. The prompt is asserted for the
 # pointer, never for this case's name or command — the prompt is an engine template and a case name there would order
 # another project's child to run a case that project does not have.
+case_gate_aPathNoGlobNamesIsRefused() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/gate.sh tools/loop/loop.conf tools/check-gate-coverage.sh tools/gate-coverage-allowlist.tsv tools/pi-child-events.sh tools/tooling.json
+  local d p conf list out status
+  d=$(scratch); p=$(new_project)
+  conf="$d/coverage.conf"
+  list="$d/allowlist.tsv"
+  # A throwaway profile whose globs name every path the fixture starts with and stop there, so the one path left out
+  # is the case's finding and not the fixture's own plumbing.
+  printf 'LOOP_GATE_SUITES="a/*|true;.gitignore|true;tools/*|true;app/*|true;.pi/*|true;openspec/*|true"\nLOOP_GATE_COMPILED_PATTERNS=""\n' > "$conf"
+  mkdir -p "$p/a" "$p/b"
+  printf 'a covered path\n' > "$p/a/covered.txt"
+  printf 'a path no glob names\n' > "$p/b/unnamed.txt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a covered path and an unnamed one' >/dev/null 2>&1 \
+    || fail "could not commit the fixture's paths"
+  printf 'b/unnamed.txt\tread by no suite of this fixture, and that is the reason the entry states\n' > "$list"
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_GATE_COVERAGE_ALLOWLIST="$list" bash "$LOOP_PROJECT_ROOT/tools/check-gate-coverage.sh" --root "$p" 2>&1 ); status=$?
+  assert_eq "0" "$status" "a path an allowlist entry explains passes: $out"
+  assert_contains "$out" "allowlisted=1" "the explained path is counted as allowlisted: $out"
+  assert_contains "$out" "unnamed=0" "and nothing is unnamed: $out"
+  # The entry taken away: the same path is the finding the check exists to print.
+  printf '# no entry\n' > "$list"
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_GATE_COVERAGE_ALLOWLIST="$list" bash "$LOOP_PROJECT_ROOT/tools/check-gate-coverage.sh" --root "$p" 2>&1 ); status=$?
+  assert_eq "1" "$status" "a tracked path no glob names and no entry explains is refused: $out"
+  assert_contains "$out" "UNNAMED: b/unnamed.txt" "and the finding names the path: $out"
+  assert_contains "$out" "unnamed=1" "and the count the verdict prints is the findings it found: $out"
+  assert_contains "$out" "LOOP-GATE-COVERAGE: fail" "and the verdict is a refusal, not a green count: $out"
+  # …and an entry that states no reason is refused with it: a line that explains nothing is the silence this check ends.
+  printf 'b/unnamed.txt\t\n' > "$list"
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_GATE_COVERAGE_ALLOWLIST="$list" bash "$LOOP_PROJECT_ROOT/tools/check-gate-coverage.sh" --root "$p" 2>&1 ); status=$?
+  assert_eq "2" "$status" "an allowlist entry with no reason is refused: $out"
+  assert_contains "$out" "ALLOWLIST-NO-REASON" "and the refusal names the entry that states nothing: $out"
+  return 0
+}
+
+case_gate_aDeltaTouchingAnyPathOwesTheCoverageStep() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/gate.sh tools/loop/loop.conf tools/check-gate-coverage.sh tools/pi-child-events.sh tools/tooling.json
+  local p conf base plan
+  p=$(new_project)
+  conf="$LOOP_ENGINE/loop.conf"
+  # The path is one the allowlist explains, so no suite and no compiled pattern of the profile is owed for it: the one
+  # step the delta owes is the coverage check itself, and this is the shape in which "owed for any path" is visible.
+  mkdir -p "$p/architecture"
+  printf 'a ratchet baseline\n' > "$p/architecture/baseline.tsv"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a path no step is owed for' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_eq "tools/check-gate-coverage.sh" "$plan" \
+    "a delta that touches a path no other step is owed for owes the coverage check, and only it: $plan"
+  return 0
+}
+
 case_gate_theDeclarationCaseIsOwedFirst() {
   # files: tools/loop/tests/loop-cases.sh tools/loop/gate.sh tools/loop/loop.conf tools/loop/prompts/worker.md tools/pi-child-events.sh tools/tooling.json
   local d p base plan first suite build compiled prompt

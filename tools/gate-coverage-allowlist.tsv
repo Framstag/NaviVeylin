@@ -1,0 +1,33 @@
+# gate-coverage-allowlist.tsv — the tracked paths that owe no step of the gate, each with the reason it does not.
+#
+# Read by `tools/check-gate-coverage.sh` (issue #943), which refuses every tracked path that no glob of the profile
+# names unless a line here explains it. The format is one entry per line, `<pattern><TAB><reason>`: the pattern is a
+# shell `case` glob over a repository-relative path, and the reason is what a reader of the profile needs in order to
+# know why no step is owed. A line with no reason is refused, and so is a line with no pattern.
+#
+# A class entry (`vcpkg-overlays/**`) is written only where the whole class is deliberately ungated — a path added under
+# it is ungated for the same reason the class is. Everywhere else an entry names one path, because the finding this
+# check exists to print is the *new* file that nothing runs.
+#
+# This file is itself a tracked path: the profile's suite map names it, so a delta here owes the check.
+#
+# pattern	reason
+vcpkg-overlays/**	third-party port overlays and triplets: consumed by the native build through vcpkg, and no suite of the gate reads them — a delta here is measured by the native build on a device
+gradle/wrapper/*	the wrapper's jar and its properties: the Gradle launcher, started by every build and read by no case
+gradle/gradle-daemon-jvm.properties	the daemon JVM criteria: read by Gradle at configuration, asserted by no suite of the gate
+gradle.properties	the build's own settings: read by Gradle at configuration, asserted by no suite of the gate
+gradlew	the build's launcher script
+gradlew.bat	the build's launcher script on Windows
+licenses/**	verbatim licence texts, the native licence map and the licence policy: the release's legal input, read by no suite of the gate
+LICENSE	the project's licence text
+.gitignore	repository plumbing: no suite reads it
+.gitmodules	the submodule pin's declaration: read by the build, and the compiled step owns a submodule whose sources change
+.github/CODEOWNERS	the forge's review routing: read by the forge, not by a suite of the gate
+local.properties.template	the local properties a developer copies by hand: no suite reads it
+initialize.sh	a hand-run setup script: the gate's steps measure the tree, not the environment a person sets up
+setup-vcpkg.sh	a hand-run vcpkg setup script: the native build's prerequisite, run by a person
+helper/backlog-pass.sh	a hand-run backlog pass over item documents: the issue tooling suite covers `tools/issues`, not this script
+architecture/baseline.tsv	the structure suite's ratchet baseline, whose suite is `openspec/changes/package-structure-rules-and-suite` and is not landed yet — this entry is the line that has to move when it does
+.pi/skills/**	the skills' own scripts: run by the model that reads the skill, asserted by no suite of the gate
+tools/bench/*	one-off probe scripts run by hand; they measure a model, not the tree
+tools/sync-specs.py	a hand-run spec sync: it writes the capability specs and no suite of the gate reads it

@@ -1216,6 +1216,21 @@ the window cannot reach is a fixture its own bound contradicts, and it reddens t
 gates (issue #915, `phase#aResultOverTheBoundIsCutAndNamed`). What gives way when the state alone fills the bound is a
 decision about the answer's shape and not a case's to make.
 
+**A path no glob names owes nothing, and nothing said so (issue #943).** The suite map is the selection rule, so the map
+is what has to be reconciled with the tree: `tools/check-gate-coverage.sh` reads every tracked path (`git ls-files`)
+against the globs of `LOOP_GATE_SUITES` and `LOOP_GATE_COMPILED_PATTERNS`, and refuses — in `LOOP_GATE_FIRST_STEPS`, owed
+by every delta, because its condition is the file set and no path names it — the path no glob names unless
+`tools/gate-coverage-allowlist.tsv` explains it with a reason. Measured on `8e3861c4`: 96 of 14 291 tracked paths were
+named by no glob, 41 of them under `tools/tests/`, where a checker's delta owed its selftest and the selftest's own
+delta owed nothing, so the gate printed `nothing owed` for such a delta and exited 0
+(`.pi/issue-loop/items/943/red-on-HEAD-coverage.txt`). The allowlist's entry is `<pattern><TAB><reason>` and a
+reasonless entry is refused, because an entry that states nothing is the silence the check exists to end; a class entry
+is written only where the whole class is deliberately ungated, since the finding is the *new* file. The check reads the
+two lists that owe a step **for a path** and not the first-step list: its own entry's glob is `*`, which names every
+path, so reading that list would reconcile the tree against everything and prove nothing. Two cases hold it
+(`gate#aPathNoGlobNamesIsRefused`, `gate#aDeltaTouchingAnyPathOwesTheCoverageStep`) and one record of
+`tools/loop/tests/loop-mutations.sh` keeps the profile entry they read.
+
 
 ## §7d Refusals, records and the landing
 

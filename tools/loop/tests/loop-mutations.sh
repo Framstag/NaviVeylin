@@ -1503,6 +1503,10 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 943.1 — the profile entry that makes the coverage check owed for every delta (issue #943). The check's condition is
+  # the tree's file set against the map's globs, which no path names, so a profile that leaves it behind a narrow glob
+  # runs it for nobody; the record takes the entry out, and the case that reads the plan is what must notice.
+  '943.1@-@loop.conf@gate#aDeltaTouchingAnyPathOwesTheCoverageStep@the profile entry that makes the coverage check owed for every delta, so a path no glob names is measured by nothing (issue #943)@s#;\*|tools/check-gate-coverage.sh"#"#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -1,0 +1,38 @@
+{
+  "comment": "The revert-check of `tools/check-gate-coverage.sh` (issue #943): one mutation per invariant — the refusal of a path no glob names, the refusal of an allowlist entry that states no reason, the count the verdict prints, and the first-step wiring in the profile that makes the check owed at all. Run it with `bash tools/mutate.sh --mutations tools/tests/check-gate-coverage-mutations.json`; `.pi/skills/revert-check` owns the rule and `.pi/skills/mutation-runner` owns how. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite; the wiring record names the profile and the case that reads the plan, because a check nobody owes is a check that never runs. The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
+  "case-cmd": "bash tools/tests/check-gate-coverage-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "unnamed-path-refused",
+      "case": "gate#aPathNoGlobNamesIsRefused",
+      "file": "tools/check-gate-coverage.sh",
+      "search": "if [ \"$unnamed\" -gt 0 ]; then",
+      "replace": "  if [ \"$unnamed\" -lt 0 ]; then",
+      "why": "a tracked path no glob names and no allowlist entry explains is the finding, so a check that reports the count and passes is a green gate over a path nothing measures"
+    },
+    {
+      "label": "allowlist-entry-states-a-reason",
+      "case": "gate#aPathNoGlobNamesIsRefused",
+      "file": "tools/check-gate-coverage.sh",
+      "search": "  if [ \"$reason\" = \"$line\" ] || [ -z \"${reason//[[:space:]]/}\" ] || [ -z \"$pattern\" ]; then",
+      "replace": "  if false; then",
+      "why": "an allowlist entry that states no reason is refused, because an entry with no reason is the silence the check exists to end"
+    },
+    {
+      "label": "verdict-carries-the-count",
+      "case": "gate#aPathNoGlobNamesIsRefused",
+      "file": "tools/check-gate-coverage.sh",
+      "search": "printf 'LOOP-GATE-COVERAGE: tracked=%s named=%s allowlisted=%s unnamed=%s\\n' \"$total\" \"$named\" \"$allowed\" \"$unnamed\"",
+      "replace": "printf 'LOOP-GATE-COVERAGE: tracked=%s named=%s allowlisted=%s unnamed=%s\\n' \"$total\" \"$named\" \"$allowed\" 0",
+      "why": "the verdict carries what it counted, so an allowlisted path and a named one are told apart instead of both reading as covered"
+    },
+    {
+      "label": "the-check-is-owed-for-any-path",
+      "case": "gate#aDeltaTouchingAnyPathOwesTheCoverageStep",
+      "file": "tools/loop/loop.conf",
+      "search": ";*|tools/check-gate-coverage.sh\"",
+      "replace": "\"",
+      "why": "the check's condition is the whole file set against the profile's globs, which no path names, so a profile that leaves it behind a narrow glob runs it for nobody"
+    }
+  ]
+}

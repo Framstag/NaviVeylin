@@ -1286,6 +1286,22 @@ phase. A child the run itself ended is not retried: it never returns 0 (`LOOP_CH
 `LOOP-TIMEOUT` or `LOOP-DEADLINE` line is excluded from the reading for the same reason — a retry would spend the
 bound again.
 
+The **change** child's silence is the one phase failure with a second chance of its own (issue #970). #827's arm is
+right that an empty report is no verdict, and the run's answer to it was to end the item where it stood — measured
+2026-11-18: #892 spent 2 166 s and 6.29 Mtok, its `worker-report.md` was 0 B with status 0 while a finished diagnosis
+stood beside it as `evidence-diagnosis.md`, and the item blocked `child-failed` with no gate verdict at all (`child-
+failed`/`child-blocked` is the archive's largest stop class: 5 of 18 items over 8 archived states). The phase is now
+asked **once more** from the checkpoint prompt (`tools/loop/prompts/worker-continuation.md`, which already names the
+tree, the leftover and what is owed), written to `worker-prompt-retry.md` and read from `worker-report-retry.md`; the
+item records `worker-answer-retry` beside its other steps and the trend line prints how many items were asked twice.
+The guards are #827's own: the child exited 0 (a child the run ended returns `LOOP_CHILD_TIMEOUT`, #224), no project
+write the run can place decided the item (#800), `LOOP_RETRY_MAX` records at least one retry (#752), and the tree
+carries work — a HEAD at the run's base beside a clean status is the shape a provider that refused every call leaves,
+and it keeps the item-level retry that re-renders the first prompt — so a report the second asking also leaves silent
+blocks the item with the attempt count in its reason, and a project that records `0` retries keeps the block #827
+wrote. The cases are `run#aPhaseThatWroteNothingIsAskedOnceMore` and
+`run#aChildTheRunEndedIsNotAskedAgain`, and `tools/loop/tests/loop-mutations.sh` 970.1 the record that keeps the first.
+
 What it does with an item the tracker does not answer for: nothing is decided about that item, so nothing ends the
 run on it. The read is the seam's own — `tools/loop/lib.sh` sources `tools/issues/lib.sh`, so what reaches the run is
 the failure the seam handed back: a refusal it passes through without retrying, or a transport failure it retried and

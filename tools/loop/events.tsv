@@ -94,6 +94,7 @@ progress-mark-failed	issue:num	run: could not mark #%s in progress\n
 progress-record-failed	issue:num	run: could not record #%s as the item in progress\n
 pre-gate-cut-retry	last:text	run: the pre-gate answer was cut short (%s) — retrying the round once\n
 gate-not-answer-retry	last:text	run: the gate answer is not an answer (%s) — retrying the phase once\n
+change-not-answer-retry	bytes:num	run: the change child wrote no line the run reads (%s B) — asking the phase once more\n
 answer-empty-retry	child:ident+retry:num+of:num+delay:num+retry_max:num+retry_delays:text	run: the %s answered nothing (answer-empty, retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before asking the same question again\n
 answer-empty-retry-ended	child:ident+exit:num+bytes:num	run: the answer-empty retry of the %s ended with exit %s and %s B\n
 child-start-retry	child:ident+retry:num+of:num+delay:num+retry_max:num+retry_delays:text+issue:num	run: the %s could not start (retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before retrying #%s\n

@@ -3133,6 +3133,80 @@ while true; do
     loop_state step A --name outside-write --status ok --note "$write_step_note" >/dev/null 2>&1 || true
     progress note "$write_step_note"
   fi
+
+  # ── a change child that exited 0 and wrote no answer is asked once more (issue #970) ──────────────────
+  #
+  # `change_answered` is right that an empty report is not a verdict (#827), and the run's answer to it was to end
+  # the item where it stood: measured 2026-11-18, item #892 spent 2 166 s and 6.29 Mtok, its `worker-report.md` was 0 B
+  # with status 0 while a finished diagnosis stood beside it as `evidence-diagnosis.md`, and the item blocked
+  # `child-failed` with no gate verdict at all (`child-failed`/`child-blocked` is the archive's largest stop class:
+  # 5 of 18 items). Every other bound the run enforces already has a second chance — a checkpoint continues a cut
+  # item, a leftover patch is applied where it fits, a cut item is resumed by the next run — and a child that exits 0
+  # and writes twelve bytes too few is the cheapest of them to recover from: the tree is where the child left it and
+  # the phase's own prompt is on disk.
+  #
+  # The relaunch composes **the checkpoint prompt** (`prompts/worker-continuation.md`), which already names the tree,
+  # the leftover and what is still owed, so a retry is not a second definition of what a phase is asked — nothing new
+  # is composed here, and the values are the ones the continuation renders with. It is asked **once**, and two silent
+  # children in a row are a finding about the phase: the item then blocks with the attempt count in its reason.
+  #
+  # Three guards, each of them a sentence the item's own record already keeps:
+  #   * `worker_exit -eq 0` — a child the **run** ended at a bound returns `LOOP_CHILD_TIMEOUT` (#224) and a report
+  #     carrying `LOOP-TIMEOUT`/`LOOP-DEADLINE` is an answer to `change_answered`, so neither is retried: asking again
+  #     would double a spend the run had already decided to stop.
+  #   * `worker_write_decides -eq 0` — a change standing in a tree the run cannot vouch for decides the item where it
+  #     is read (#800), and retrying it would read past that reading.
+  #   * `retry_max -gt 0` and one entry of the same budget the other transient classes spend (`LOOP_RETRY_MAX`,
+  #     `loop.conf`): a project that records `0` retries is a project that wants this shape left as it was, which is
+  #     what `run#anEmptyAnswerOverACommitIsTheChangePhasesFailure` reads.
+  #
+  # …and one fact about the tree, which is what separates this silence from the one #752 retries: a tree that carries
+  # nothing — HEAD at the run's base **and** a clean status, the shape a provider that refused every call leaves (#742)
+  # — keeps the item-level retry it already has, which re-renders the **first** prompt. Both halves are read, because a
+  # child's work is uncommitted until the run commits it below: a dirty tree at the base is work, and a clean tree past
+  # it is work the child committed itself. The checkpoint composition below tells the child the tree it is handed already
+  # holds that work, so it is only the honest prompt for a tree the phase moved.
+  worker_head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+  worker_tree_work=""
+  if [ "$worker_head_now" != "$base" ]; then
+    worker_tree_work=1
+  elif [ -n "$(git -C "$worktree" status --porcelain 2>/dev/null | head -1)" ]; then
+    worker_tree_work=1
+  fi
+  if [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ] && [ "$retry_max" -gt 0 ] && [ "$retry_spent_child_start" -lt "$retry_max" ] && [ -n "$worker_tree_work" ] && ! change_answered "$worker_report"; then
+    answer_bytes=$(wc -c < "$worker_report" 2>/dev/null || printf 0)
+    retry_spent_child_start=$((retry_spent_child_start + 1))
+    change_answer_retried=1
+    # The prompt names the tree and nothing it does not have: there is no patch, because the child was not ended and
+    # nothing was kept — its work is the change root as it stands, uncommitted, which is exactly what `worktree.sh
+    # end-item` would commit later.
+    render_prompt "$LOOP_DIR/prompts/worker-continuation.md" "$item_dir/worker-prompt-retry.md" \
+      "GATE_STEP=$(gate_step_text "$pre_gate")" \
+      "ISSUE=$issue" "CLASS=$class" "PROPOSE_CLASS=$propose_class" \
+      "BOUND_LINE=it exited 0 and wrote none of the lines the run reads ($answer_bytes B) — the phase answered, but its answer never reached its report" \
+      "PATCH=none — the work that process left is the tree itself, uncommitted" \
+      "PATCH_FILES=0" "PATCH_HUNKS=0" \
+      "PATCH_PATHS=  - the change root as the first process left it" \
+      "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+      "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
+      "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+    printf 'run: the change child wrote no line the run reads (%s B) — asking the phase once more\n' "$answer_bytes" >&2
+    progress item "#${issue} the change child answered nothing — the phase is asked once more from the tree it stands in (retry $retry_spent_child_start of $retry_max), and its report is written to $item_dir/worker-report-retry.md"
+    run_child "$item_dir/worker-prompt-retry.md" "$item_dir/worker-report-retry.md"
+    worker_exit=$?
+    worker_report="$item_dir/worker-report-retry.md"
+    worker_prompt="$item_dir/worker-prompt-retry.md"
+    # The reading of the project tree `run_child` takes belongs to the child that just ended, so it is the retry's now:
+    # a write this one made is read where the arms below read one, and the first child's reading stays in the step the
+    # block above already recorded.
+    worker_write_note="$outside_write_note"
+    worker_write_attributed="$outside_write_attributed"
+    worker_write_decides=0
+    outside_write_decides && worker_write_decides=1
+    loop_state step A --name worker-answer-retry --status ok \
+      --note "exit 0 and no line the run reads (${answer_bytes} B) — the phase was asked once more, and the second asking (exit $worker_exit) wrote $(wc -c < "$worker_report" 2>/dev/null || printf 0) B" >/dev/null 2>&1 || true
+  fi
+
   # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
   # deferred the gate to a child of its own below (issue #758).
   gate_report="$worker_report"
@@ -3217,6 +3291,10 @@ while true; do
   # every other shape, and kept beside `empty_tree_reading` for the same reason: it is decided before the outcome block
   # and it names a phase, not a verdict.
   phase_failure=""
+  # Whether this item's change child was asked once more because its answer carried no line the run reads (issue #970).
+  # It is the item's own fact and not the run's retry counter, which counts every transient class the run spent: a run
+  # that retried another item's child before this one must not read its own figure as this item's attempts.
+  change_answer_retried=0
   # The change child's own silence is read here, before the phase that would follow it (issue #827): a report that
   # carries no diff marker, no gate line and no verdict is nothing any arm below can read, so the round before the
   # gate is not entered on it, no gate child is started, and the tail has nothing to archive — the item is that
@@ -3224,8 +3302,15 @@ while true; do
   # (`end-item`, below), which is why the outcome must not fall through to the arm that names the item's diff. A tree
   # still at the base is the run's own stop (`could not start`, further down) and is read there: both readings are
   # taken, and the one that speaks for the run speaks first because it is the stronger statement about the child.
+  # Since issue #970 the silence is asked once more first (the arm above), so a report this block reads a silence from
+  # is the **second** asking's: the reason names the attempt count, which is strictly more than the run recorded
+  # before, and a run whose retry budget is off keeps the sentence it always wrote.
   if [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ] && ! change_answered "$gate_report"; then
-    phase_failure="the change worker exited 0 and wrote no answer ($(wc -c < "$gate_report" 2>/dev/null || printf 0) B, no line the run reads) — the phase that would have made the change produced nothing the run could read, so the item is stopped by that phase and not by its own tree"
+    if [ "$change_answer_retried" -eq 1 ]; then
+      phase_failure="the change worker exited 0 and wrote no answer twice ($(wc -c < "$gate_report" 2>/dev/null || printf 0) B, no line the run reads, after being asked once more) — the phase that would have made the change produced nothing the run could read, so the item is stopped by that phase and not by its own tree"
+    else
+      phase_failure="the change worker exited 0 and wrote no answer ($(wc -c < "$gate_report" 2>/dev/null || printf 0) B, no line the run reads) — the phase that would have made the change produced nothing the run could read, so the item is stopped by that phase and not by its own tree"
+    fi
     loop_state step A --name worker-answer --status fail --note "exit 0 and no answer" >/dev/null 2>&1 || true
     progress note "the change child's answer is not an answer — the round before the gate and the gate child are not started on it"
   fi

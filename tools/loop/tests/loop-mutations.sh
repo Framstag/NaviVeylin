@@ -1240,6 +1240,11 @@ MUTATIONS=(
   # the reading: the change child's silence is then no fact at all, the gate phase is skipped on it, and the item is
   # blocked on "no archived change appears in the run's diff" — the reason #85 was recorded with.
   '273.1@-@tools/loop/run.sh@run#anEmptyAnswerOverACommitIsTheChangePhasesFailure@the reading of the answer a change child wrote, so a 0-byte report over a branch is an answer the phases after it were never asked for and the item is blocked on its own diff (issue #827)@s|^  if \[ "\$worker_exit" -eq 0 \] && \[ "\$worker_write_decides" -eq 0 \] && ! change_answered "\$gate_report"; then$|  if false; then|'
+  # 970.1 — a change child that exited 0 and wrote no line the run reads is asked once more, from the checkpoint prompt,
+  # before the item is blocked (issue #970). The retry arm is the one place that second asking is composed, and dropping
+  # it leaves #827's arm to end the item on the first silence: `run#aPhaseThatWroteNothingIsAskedOnceMore` then reads a
+  # blocked item whose retry never happened, which is the #892 shape (2 166 s and 6.29 Mtok for a 0-byte report).
+  '970.1@-@tools/loop/run.sh@run#aPhaseThatWroteNothingIsAskedOnceMore@the relaunch of a change child that exited 0 with no line the run reads, so the first silence is the item outcome again and the work the phase did is lost (issue #970)@s|^  if \[ "\$worker_exit" -eq 0 \] && \[ "\$worker_write_decides" -eq 0 \] && \[ "\$retry_max" -gt 0 \] && \[ "\$retry_spent_child_start" -lt "\$retry_max" \] && \[ -n "\$worker_tree_work" \] && ! change_answered "\$worker_report"; then$|  if false; then|'
   # 274.1 — an item whose owner answered its branch question is work, not the same question asked again (issue #847).
   # The record removes the two things that arm does — read the answer and set the attempt's branch aside — so the
   # pre-screen meets the refused branch again, records the decision, and the run writes `agent/needs-decision` and

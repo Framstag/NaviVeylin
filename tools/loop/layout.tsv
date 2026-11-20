@@ -22,7 +22,7 @@ loop-clean.sh	482	-	-
 measure.sh	268	-	-
 phase.sh	265	-	-
 prescreen.sh	860	-	-
-report.sh	1038	-	-
+report.sh	1304	-	the retried-items figure the trend prints (issue #970) added 7 lines to a 1036-line file; bound re-stated as its size plus the quarter above
 run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
 state.sh	1788	-	-
 worktree.sh	1414	-	-

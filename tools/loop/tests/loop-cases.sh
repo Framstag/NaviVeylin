@@ -270,6 +270,8 @@ LOOP_SHELL_CASES=(
   'run#childThatNeverStartedIsTheRunsFault'
   'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
   'run#anEmptyAnswerOverACommitIsTheChangePhasesFailure'
+  'run#aPhaseThatWroteNothingIsAskedOnceMore'
+  'run#aChildTheRunEndedIsNotAskedAgain'
   'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops'
   'run#theRetryCapIsSpentAndTheRunStops'
   'run#aPhaseThatAnswersNothingIsThatPhasesFailure'
@@ -1067,6 +1069,8 @@ loop_run_shell_case() {
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
     'run#anEmptyAnswerOverACommitIsTheChangePhasesFailure') fn=case_run_anEmptyAnswerOverACommitIsTheChangePhasesFailure ;;
+    'run#aPhaseThatWroteNothingIsAskedOnceMore') fn=case_run_aPhaseThatWroteNothingIsAskedOnceMore ;;
+    'run#aChildTheRunEndedIsNotAskedAgain') fn=case_run_aChildTheRunEndedIsNotAskedAgain ;;
     'run#aChildThatNeverStartedIsRetriedBeforeTheRunStops') fn=case_run_aChildThatNeverStartedIsRetriedBeforeTheRunStops ;;
     'run#theRetryCapIsSpentAndTheRunStops') fn=case_run_theRetryCapIsSpentAndTheRunStops ;;
     'run#aPhaseThatAnswersNothingIsThatPhasesFailure') fn=case_run_aPhaseThatAnswersNothingIsThatPhasesFailure ;;
@@ -9444,6 +9448,76 @@ ACT
   # A block is the item's and reaches its tracker, with the branch that carries the attempt.
   assert_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" "a blocked item is marked as awaiting a decision"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# A change child that exits 0 and writes no line the run reads is asked **once more**, from the checkpoint prompt, before
+# the item is blocked (issue #970). Measured 2026-11-18: item #892 spent 2 166 s and 6.29 Mtok, its `worker-report.md`
+# was 0 B with status 0 while a finished diagnosis stood beside it as `evidence-diagnosis.md`, and the item blocked
+# `child-failed` with no gate verdict — 5 of 18 archived items ended in that class. The retry is the same composition
+# the checkpoint continuation renders, written to a name of its own (`worker-prompt-retry.md`), and the item records
+# that it was asked twice: a phase that answers at the second asking decides the item as it always would.
+case_run_aPhaseThatWroteNothingIsAskedOnceMore() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The change child's answer is an empty file and the retry writes the item's own answer into it: the stub prints the
+  # file it is handed, so the action is what tells the two askings apart.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  export PI_STUB_REPORT_WORKER="$d/answer.txt"; : > "$PI_STUB_REPORT_WORKER"
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/answered.txt"
+  cat >> "$d/worker-action.sh" <<ACTION
+case "\$1" in
+  worker-prompt-retry.md) printf 'the rest of the change\n' > half-a-change.txt; cp "$d/answered.txt" "$PI_STUB_REPORT_WORKER" ;;
+esac
+ACTION
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed"
+  f=$(state_file "$p")
+  # Exactly one relaunch: the change child, and the same phase asked once more under a name of its own.
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the change child is started once"
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt-retry.md$' "$PI_STUB_LOG" || true)" \
+    "and the phase is asked once more when its answer carries no line the run reads"
+  [ -s "$p/.pi/issue-loop/items/21/worker-report-retry.md" ] || fail "the retry's own report was not written"
+  assert_contains "$out" "wrote no line the run reads" "the run says what it read and what it is doing about it"
+  # The item's record names the retry, beside the phase's other readings.
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "worker-answer-retry")] | length' "$f")" \
+    "the item records the second asking"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "worker-answer-retry") | .note] | join(" | ")' "$f")" \
+    "the phase was asked once more" "and says what the retry was spent on"
+  # The answer that arrived decides the item: the first silence blocks nothing and asks nobody a question.
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "the item is decided by the retried answer"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$f")" "and the verdict is the one the second asking wrote"
+  note=$(jq -r '.items[0].note // ""' "$f")
+  assert_not_contains "$note" "wrote no answer" "the silence is not carried into the item's reason"
+  assert_not_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" \
+    "no decision is asked for a silence the retry answered"
+}
+
+# The other half of the same rule (issue #970): a child the **run** ended is not asked again. `LOOP_CHILD_TIMEOUT` and a
+# report carrying `LOOP-TIMEOUT` are the run's own bound, and retrying one would double a spend the run had already
+# decided to stop (#224). The case stages the status the bound leaves, so the guard — and not the fixture — is what the
+# assertion reads.
+case_run_aChildTheRunEndedIsNotAskedAgain() {
+  # files: tools/loop/lib.sh tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # 124 is `LOOP_CHILD_TIMEOUT` (`tools/loop/lib.sh`): the status a child the run ended at one of its bounds returns,
+  # and the one the guard above the retry reads.
+  export PI_STUB_EXIT=124
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed"
+  unset PI_STUB_EXIT
+  f=$(state_file "$p")
+  assert_eq "0" "$(grep -c '^prompt: worker-prompt-retry.md$' "$PI_STUB_LOG" || true)" \
+    "a child the run ended is not asked again"
+  assert_eq "0" "$(jq -r '[.steps[] | select(.name == "worker-answer-retry")] | length' "$f")" \
+    "and the item records no retry it did not take"
+  assert_not_contains "$out" "wrote no line the run reads" "the run does not offer to ask it again"
+  # The bound is the item's class, exactly as it was before the retry existed.
+  assert_eq "cut" "$(jq -r '.items[0].result' "$f")" "the item is still the run's cut"
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$f")" "with the run's own bound as its class"
 }
 
 # A phase's report is the phase's **answer**, not optional text beside it (issue #810). Measured 2026-11-06 on item

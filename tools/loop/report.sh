@@ -805,7 +805,14 @@ trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-nu
         then "- · this state records no gate attribution — it was written before the report counted one"
       else "0 of \($attributableItems) items recorded which tree fails the case their gate named · no red gate was attributed"
       end ) as $attributionline
-  | "  review: \($review)\n  waived: \($waivedline)\n  attributed: \($attributionline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  gate share: \($gateshare)\n  outside items: \($outside)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
+  # What the run paid twice (issue #970): the items whose change child exited 0 and wrote no line the run reads, and
+  # which were therefore asked once more. The step the retry records belongs to the item and not to a run-wide
+  # counter, so the count is read from the record and an item that answered at the first asking is not in it.
+  | ([(.steps // [])[] | select(.name == "worker-answer-retry") | .issue] | unique) as $retried
+  | ( if ($retried | length) == 0 then "0 of \(.items | length) items were asked their change child twice"
+      else "\($retried | length) of \(.items | length) items were asked their change child twice · \($retried | map("#\(.)") | join(" · "))"
+      end ) as $retriedline
+  | "  review: \($review)\n  waived: \($waivedline)\n  attributed: \($attributionline)\n  retried: \($retriedline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  gate share: \($gateshare)\n  outside items: \($outside)\n  roles:  \($roleline)\n  after the first gate: \($gateline)\n  truncated: \($truncline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

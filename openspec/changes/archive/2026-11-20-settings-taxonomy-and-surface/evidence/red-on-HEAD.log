@@ -1,0 +1,38 @@
+# red-on-HEAD — the cases compiled against HEAD's production sources, 2026-11-20 (UTC 03:47)
+# tree: all four production files of this delta taken from HEAD (SettingSpec.kt, SettingsSurface.kt, MapTopic.kt, MapCanvasViewModelSettings.kt); the test source is this change's
+# command: ./gradlew :app:testMobileDebugUnitTest --tests com.naviveylin.ui.settings.SettingsSurfaceTest.aSwitchTogglesFromTheWholeRow
+
+> Task :app:hiltSyncMobileDebug
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug FROM-CACHE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:transformMobileDebugClassesWithAsm
+> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :app:kspMobileDebugUnitTestKotlin
+
+> Task :app:compileMobileDebugUnitTestKotlin FAILED
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:676:35 Unresolved reference 'SETTINGS_SELECT_TAG'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:681:35 Unresolved reference 'SETTINGS_SELECT_TAG'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:683:39 Unresolved reference 'SETTINGS_SELECT_OPTION_TAG_PREFIX'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:686:35 Unresolved reference 'SETTINGS_SELECT_OPTION_TAG_PREFIX'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:688:35 Unresolved reference 'SETTINGS_SELECT_OPTION_TAG_PREFIX'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:690:35 Unresolved reference 'SETTINGS_SELECT_OPTION_TAG_PREFIX'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:693:35 Unresolved reference 'SETTINGS_SELECT_OPTION_TAG_PREFIX'.
+e: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt:697:35 Unresolved reference 'SETTINGS_SELECT_TAG'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileMobileDebugUnitTestKotlin' (registered by plugin 'com.android.internal.application').
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 7s
+117 actionable tasks: 26 executed, 3 from cache, 88 up-to-date

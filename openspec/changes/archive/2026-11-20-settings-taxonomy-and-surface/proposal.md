@@ -91,9 +91,13 @@ preferences read the same `settings.json`.
   underlying map overlay, and the ordering is named beside the existing sheet rules.
 
 Capabilities examined and deliberately **not** modified: `dark-mode`,
-`map-styles`, `routing-max-speed`, `compass-button` and `settings-persistence` state no place of
+`routing-max-speed`, `compass-button` and `settings-persistence` state no place of
 editing or no interaction, so their requirements hold unchanged; they keep owning the values
-this change only relocates; `map-source-selection`,
+this change only relocates. `map-styles` is examined and not modified, but its requirement that
+the selection list be derived from the stylesheets present in the bundled assets governs this
+change's new settings style row, which lists the hand-kept `BundledMapStyles.USER_SELECTABLE`
+instead — an open point of this slice, resolved neither by deriving the list nor by amending
+`map-styles`; `map-source-selection`,
 `map-updates` and `map-download-infrastructure` keep owning the Map Manager behaviour this
 change only links to. `landscape-layout`, `button-elevation`, `route-planning-session` and
 `map-recenter-button` name the gear's position, not its content, and stay as written.

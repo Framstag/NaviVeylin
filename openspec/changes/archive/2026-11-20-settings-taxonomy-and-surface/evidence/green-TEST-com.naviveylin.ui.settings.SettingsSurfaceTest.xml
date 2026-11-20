@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-20T03:51:36.561Z" hostname="dingens" time="10.602">
+  <properties/>
+  <testcase name="theMapKeepsRenderingWhileTheSurfaceIsOpen" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="5.318"/>
+  <testcase name="theMapManagerRowOpensTheMapManager" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.444"/>
+  <testcase name="aTopicPageShowsSections" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.305"/>
+  <testcase name="theMapMenuOpensTheRoot" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.428"/>
+  <testcase name="aLongHelpOpensWithoutChangingTheValue" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.623"/>
+  <testcase name="theRootShowsSixTopicsAndNoSettingRow" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.219"/>
+  <testcase name="theSheetRowClosesTheSheetAndOpensTheSurface" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.514"/>
+  <testcase name="aSharedRowCarriesNoSurfaceIcon" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.207"/>
+  <testcase name="theStartScreenMenuOpensTheRoot" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.534"/>
+  <testcase name="theOverspeedSliderOffersOneKilometreSteps" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.268"/>
+  <testcase name="aChangePersistsWithoutASaveAction" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.264"/>
+  <testcase name="aSwitchTogglesFromTheWholeRow" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.204"/>
+  <testcase name="theStyleRowOpensItsSelectionSurface" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.353"/>
+  <testcase name="aShortHelpLineSitsUnderTheLabel" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.208"/>
+  <testcase name="anInapplicableSectionIsOmitted" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.192"/>
+  <testcase name="dismissingReturnsTheUntouchedMap" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.211"/>
+  <testcase name="theAboutRowOpensTheDialog" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.229"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

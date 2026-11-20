@@ -3,6 +3,14 @@
 Each group lands the tests and the documentation its own work calls for. Verification names the
 command or the observable behaviour, with a case name where one exists.
 
+This is the remainder of the change. Group 1 landed on 2026-11-14 and its slice is the archive
+`2026-11-14-settings-taxonomy-and-surface` — that archive holds the group-1 evidence and applied the
+change's spec deltas to `openspec/specs/settings-taxonomy/` and `openspec/specs/settings-surface/`, so
+the corpus already states the whole target and a task below only lands it. Group 2 landed on
+2026-11-15 carried by the tracker item #899 (commit `905d1dcc`, merged as `2017553d`); its boxes are
+ticked here without a second archive, and the cases they name are green on that commit. Groups 3 to 8
+are open, one tracker item each (#900–#905).
+
 ## 1. Foundations — the row model and the single writer
 
 - [x] 1.1 Add `SettingsController` (`@Singleton`, wrapping `SettingsStorage`) exposing
@@ -26,34 +34,34 @@ command or the observable behaviour, with a case name where one exists.
 
 ## 2. The surface — rendering, hosts, dismissal
 
-- [ ] 2.1 Render the root and a topic page from the registry: one scrolling column, section
+- [x] 2.1 Render the root and a topic page from the registry: one scrolling column, section
       titles, `supportingContent` help line, surface icon for scope-marked rows, chevron for link
       rows; verify `SettingsSurfaceTest#theRootShowsSixTopicsAndNoSettingRow`,
       `#aTopicPageShowsSections`, `#aShortHelpLineSitsUnderTheLabel` and
       `#aSharedRowCarriesNoSurfaceIcon`.
-- [ ] 2.2 Host the surface in `MapCanvasScreen`'s modal band as a full-height overlay above the
+- [x] 2.2 Host the surface in `MapCanvasScreen`'s modal band as a full-height overlay above the
       map chrome, sized without changing the map composable's size; verify the map keeps
       producing frames and follow mode stays engaged while it is open
       (`SettingsSurfaceTest#theMapKeepsRenderingWhileTheSurfaceIsOpen`) and that dismissing it
       leaves camera, mode and follow untouched (`#dismissingReturnsTheUntouchedMap`).
-- [ ] 2.3 Add the three entry points: `MapMenu` "Settings" entry between Search and About, an
+- [x] 2.3 Add the three entry points: `MapMenu` "Settings" entry between Search and About, an
       entry in `ui/MainScreen.kt`'s menu, and the quick sheet's last row; opening the surface
       closes the sheet; verify `SettingsSurfaceTest#theMapMenuOpensTheRoot`,
       `#theStartScreenMenuOpensTheRoot` and `#theSheetRowClosesTheSheetAndOpensTheSurface`.
-- [ ] 2.4 Add `BackHandler` for level-by-level dismissal and keep the existing topmost-overlay
+- [x] 2.4 Add `BackHandler` for level-by-level dismissal and keep the existing topmost-overlay
       order intact; verify `SettingsSurfaceBackTest#backLeavesTheTopicThenTheSurface` and that
       back on the base map still follows default behaviour.
-- [ ] 2.5 Add the conditional-row and link-row renderers (ambient sensitivity only when dark mode
+- [x] 2.5 Add the conditional-row and link-row renderers (ambient sensitivity only when dark mode
       is Automatic; Karten & Daten opens `MapManagerScreen`; About opens the existing dialog);
       verify `SettingsSurfaceTest#anInapplicableSectionIsOmitted`,
       `#theMapManagerRowOpensTheMapManager` and `#theAboutRowOpensTheDialog`.
-- [ ] 2.6 Document the new surface in `guidelines/UIPhoneMap.md` sections 7/8 (the gear opens the quick
+- [x] 2.6 Document the new surface in `guidelines/UIPhoneMap.md` sections 7/8 (the gear opens the quick
       sheet, the settings surface is an overlay, its entry points) and in `guidelines/UIPhone.md`
       (phone surfaces); verify every path and case name the new text names exists.
 
 ## 3. Karte topic — presentation and handling
 
-- [ ] 3.1 Move map style and the POI-symbol switch into the registry and the surface, style as a
+- [x] 3.1 Move map style and the POI-symbol switch into the registry and the surface, style as a
       `SELECT` sub-surface listing the available styles with the current one marked; verify
       `SettingsSurfaceTest#theStyleRowOpensItsSelectionSurface` and that
       `MapCanvasViewModelStyleTest` cases still pass.
@@ -123,9 +131,10 @@ command or the observable behaviour, with a case name where one exists.
 - [ ] 6.3 Delete the moved control cases from `LocationOptionsOverlayComposeTest` and keep its
       button, sheet-open, orientation, auto-zoom, mode-header and navigation-reachability cases;
       verify the class compiles and its remaining cases pass.
-- [ ] 6.4 Update `guidelines/UI.md` §8 (the location-options-only rule becomes a scope rule over
-      the registry) and §9 (where the dark-mode control lives); verify
-      `tools/check-doc-routes.sh` reports no unpriced or mispriced row.
+- [ ] 6.4 Update `guidelines/UI.md` §9 (the on-map settings sheet: the location-options-only rule
+      becomes a scope rule over the registry, and where the dark-mode control lives); verify
+      `tools/check-doc-routes.sh` reports no unpriced or mispriced row. `UI.md` carries no §8 — its
+      sections are 1, 6, 8d, 9, 10 and 20, and §8d is cross-variant map presentation.
 
 ## 7. Android Auto — grouped sub-screens
 

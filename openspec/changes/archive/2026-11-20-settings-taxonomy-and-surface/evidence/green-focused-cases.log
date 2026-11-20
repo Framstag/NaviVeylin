@@ -14,6 +14,7 @@ This is a build performance and scalability issue.
 See https://github.com/gradle/gradle/issues/2298
 Run with --info for a stacktrace.
 
+> Task :architecture:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :app:checkCleartextTransportPolicy
 > Task :osmscout-client-java:compileVendoredJava UP-TO-DATE
 > Task :osmscout-client-java:processVendoredResources NO-SOURCE
@@ -22,6 +23,15 @@ Run with --info for a stacktrace.
 > Task :osmscout-client-java:processResources NO-SOURCE
 > Task :osmscout-client-java:classes UP-TO-DATE
 > Task :osmscout-client-java:jar UP-TO-DATE
+> Task :architecture:compileKotlin UP-TO-DATE
+> Task :architecture:compileJava NO-SOURCE
+> Task :architecture:processResources NO-SOURCE
+> Task :architecture:classes UP-TO-DATE
+> Task :architecture:jar UP-TO-DATE
+> Task :architecture:compileTestKotlin UP-TO-DATE
+> Task :architecture:compileTestJava NO-SOURCE
+> Task :architecture:processTestResources NO-SOURCE
+> Task :architecture:testClasses UP-TO-DATE
 > Task :core:checkHardcodedStrings
 > Task :auto:checkHardcodedStrings
 > Task :core:checkNoWallClockWaits
@@ -32,27 +42,7 @@ Run with --info for a stacktrace.
 > Task :core:packageDebugResources UP-TO-DATE
 > Task :core:parseDebugLocalResources UP-TO-DATE
 > Task :core:generateDebugRFile UP-TO-DATE
-> Task :auto:checkNoWallClockWaits
-> Task :auto:checkTripSendGate
-> Task :auto:preBuild
-> Task :auto:preDebugBuild
-> Task :auto:processDebugNavigationResources UP-TO-DATE
-> Task :auto:generateDebugResources UP-TO-DATE
-> Task :auto:packageDebugResources UP-TO-DATE
-> Task :auto:parseDebugLocalResources UP-TO-DATE
-> Task :auto:generateDebugRFile UP-TO-DATE
 > Task :core:kspDebugKotlin UP-TO-DATE
-> Task :auto:javaPreCompileDebug UP-TO-DATE
-> Task :auto:writeDebugAarMetadata UP-TO-DATE
-> Task :auto:extractDeepLinksDebug UP-TO-DATE
-> Task :auto:processDebugManifest UP-TO-DATE
-> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
-> Task :auto:compileDebugLibraryResources UP-TO-DATE
-> Task :auto:mergeDebugJniLibFolders UP-TO-DATE
-> Task :auto:mergeDebugNativeLibs NO-SOURCE
-> Task :auto:copyDebugJniLibsProjectOnly UP-TO-DATE
-> Task :auto:generateDebugAssets UP-TO-DATE
-> Task :auto:mergeDebugAssets UP-TO-DATE
 > Task :core:compileDebugKotlin UP-TO-DATE
 > Task :core:javaPreCompileDebug UP-TO-DATE
 > Task :core:compileDebugJavaWithJavac UP-TO-DATE
@@ -71,12 +61,32 @@ Run with --info for a stacktrace.
 > Task :core:copyDebugJniLibsProjectOnly UP-TO-DATE
 > Task :core:generateDebugAssets UP-TO-DATE
 > Task :core:mergeDebugAssets UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
 > Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
 > Task :auto:compileDebugJavaWithJavac NO-SOURCE
 > Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :auto:processDebugJavaRes UP-TO-DATE
 > Task :auto:createFullJarDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:mergeDebugJniLibFolders UP-TO-DATE
+> Task :auto:mergeDebugNativeLibs NO-SOURCE
+> Task :auto:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
 > Task :app:checkHardcodedStrings
 > Task :app:checkNativeParity
 > Task :app:checkNoCoordinatesInLogs
@@ -89,27 +99,22 @@ Run with --info for a stacktrace.
 > Task :app:preBuild
 > Task :app:preMobileDebugBuild
 > Task :app:generateMobileDebugBuildConfig UP-TO-DATE
-> Task :app:generateMobileDebugResources
-> Task :app:packageMobileDebugResources
-> Task :app:processMobileDebugNavigationResources
-> Task :app:parseMobileDebugLocalResources
-> Task :app:kspMobileDebugKotlin FROM-CACHE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
 > Task :app:javaPreCompileMobileDebug UP-TO-DATE
 > Task :app:checkMobileDebugAarMetadata UP-TO-DATE
-> Task :app:mapMobileDebugSourceSetPaths
+> Task :app:mapMobileDebugSourceSetPaths UP-TO-DATE
 > Task :app:compileMobileDebugNavigationResources UP-TO-DATE
-> Task :app:generateMobileDebugRFile
-> Task :app:compileMobileDebugKotlin FROM-CACHE
-> Task :app:compileMobileDebugJavaWithJavac FROM-CACHE
-> Task :app:mergeMobileDebugResources
-> Task :app:hiltSyncMobileDebug
-> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
-> Task :app:hiltJavaCompileMobileDebug FROM-CACHE
+> Task :app:mergeMobileDebugResources UP-TO-DATE
 > Task :app:createMobileDebugCompatibleScreenManifests UP-TO-DATE
 > Task :app:extractDeepLinksMobileDebug UP-TO-DATE
 > Task :app:processMobileDebugMainManifest UP-TO-DATE
 > Task :app:processMobileDebugManifest UP-TO-DATE
 > Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :app:processMobileDebugResources UP-TO-DATE
 > Task :app:downloadSbomCli UP-TO-DATE
 > Task :app:generateSbomJvmMobileDebug UP-TO-DATE
 > Task :app:mergeNativeSbom UP-TO-DATE
@@ -130,29 +135,35 @@ Run with --info for a stacktrace.
 > Task :app:generateSbomMobileDebug UP-TO-DATE
 > Task :app:generateLicenseAssetsMobileDebug UP-TO-DATE
 > Task :app:generateMobileDebugAssets UP-TO-DATE
-> Task :app:mergeMobileDebugAssets
+> Task :app:mergeMobileDebugAssets UP-TO-DATE
 > Task :app:preMobileDebugUnitTestBuild
+> Task :app:packageMobileDebugUnitTestForUnitTest UP-TO-DATE
 > Task :app:mergeMobileDebugUnitTestManifest UP-TO-DATE
-> Task :app:processMobileDebugResources
 > Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
-> Task :app:transformMobileDebugClassesWithAsm FROM-CACHE
-> Task :app:packageMobileDebugUnitTestForUnitTest
+> Task :app:generateMobileDebugUnitTestConfig UP-TO-DATE
 > Task :app:koverFindJar UP-TO-DATE
-> Task :app:generateMobileDebugUnitTestConfig
-> Task :app:processMobileDebugJavaRes
 > Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
-> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :architecture:test
+> Task :app:kspMobileDebugKotlin
+> Task :app:compileMobileDebugKotlin
+> Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncMobileDebug
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
 > Task :app:bundleMobileDebugClassesToCompileJar
-> Task :app:kspMobileDebugUnitTestKotlin FROM-CACHE
-> Task :app:compileMobileDebugUnitTestKotlin FROM-CACHE
+> Task :app:transformMobileDebugClassesWithAsm
+> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :app:kspMobileDebugUnitTestKotlin
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
 > Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
 > Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :app:hiltSyncMobileDebugUnitTest
 > Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
 > Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
-> Task :app:transformMobileDebugUnitTestClassesWithAsm FROM-CACHE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm
 > Task :app:testMobileDebugUnitTest
 
-BUILD SUCCESSFUL in 2m 19s
-118 actionable tasks: 36 executed, 8 from cache, 74 up-to-date
+BUILD SUCCESSFUL in 37s
+122 actionable tasks: 30 executed, 92 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

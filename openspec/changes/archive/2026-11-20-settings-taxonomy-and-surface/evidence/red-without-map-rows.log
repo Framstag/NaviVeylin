@@ -1,0 +1,45 @@
+# red-without-map-rows — the delta's two row-dependent cases against HEAD, 2026-11-20 (UTC 03:47)
+# tree: change root at fcdc7ea875ccd6c203cc2ebbf2f60ec313430229 + this change, with app/src/main/java/com/naviveylin/ui/settings/specs/MapTopic.kt and app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSettings.kt taken from HEAD (map rows table empty, no surface follow)
+# command: ./gradlew :app:testMobileDebugUnitTest --tests com.naviveylin.ui.settings.SettingsSurfaceTest.theStyleRowOpensItsSelectionSurface --tests ...aSwitchTogglesFromTheWholeRow --tests ...aChangePersistsWithoutASaveAction
+
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :core:compileDebugKotlin UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :auto:checkHardcodedStrings
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:mergeDebugJniLibFolders UP-TO-DATE
+> Task :core:mergeDebugNativeLibs NO-SOURCE
+> Task :core:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:checkTripSendGate
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE

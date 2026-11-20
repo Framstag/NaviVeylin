@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-20T03:51:25.203Z" hostname="dingens" time="14.458">
+  <properties/>
+  <testcase name="initMapAppliesPersistedStyleAfterDatabaseOpens" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="10.435"/>
+  <testcase name="unchangedStyleReapplyPerformsNoLoad" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.394"/>
+  <testcase name="selectingStylePersists" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.119"/>
+  <testcase name="oneStartupLoadsTheStyleSetOnce" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.242"/>
+  <testcase name="failedSwitchReportsTheKeptStyleOnce" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.091"/>
+  <testcase name="selectingStyleAppliesImmediately" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.085"/>
+  <testcase name="persistedStyleFailsAtStartupFallsBackToTheDefaultStyle" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.227"/>
+  <testcase name="basemapReloadKeepsSingleCacheConfigPoint" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.237"/>
+  <testcase name="startupRePushesTheFlagAfterTheDatabaseOpens" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.251"/>
+  <testcase name="reSelectingTheActiveStylePerformsNoLoad" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.089"/>
+  <testcase name="initMapConfiguresNativeTileDataCacheAfterDatabaseOpens" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.209"/>
+  <testcase name="failedStyleFlagReloadIsReported" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.475"/>
+  <testcase name="aRejectedFlagPushLeavesTheSurfacesRecordAndTheRetryApplies" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.236"/>
+  <testcase name="failedLoadKeepsPreviousStyleAndRetries" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.075"/>
+  <testcase name="initMapSkipsCacheConfigWhenDatabaseOpenFails" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.195"/>
+  <testcase name="availableStyleSheetsExposedInUiState" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.081"/>
+  <testcase name="styleSwitchLoadsExactlyOnceWithoutAFlagPush" classname="com.naviveylin.ui.map.MapCanvasViewModelStyleTest" time="0.189"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

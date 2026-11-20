@@ -4,6 +4,41 @@
 
 Owns the phone's settings surfaces: the bounded quick sheet the map's gear opens, the full-height settings surface behind it, how each kind of row behaves there, and the phone's access to the settings Android Auto owns.
 
+## MODIFIED Requirements
+
+### Requirement: A change applies immediately and persists
+
+Every change on the surface SHALL apply to the running map without a save action and SHALL be persisted to the shared settings storage as it is made; reopening the surface or restarting the app SHALL show the new value.
+
+#### Scenario: A change persists without a save action
+
+- **WHEN** the user switches POI symbols off
+- **THEN** the map reflects it immediately
+- **AND** after an app restart the surface shows the switch off
+- **Case**: `SettingsSurfaceTest#aChangePersistsWithoutASaveAction`
+
+#### Scenario: A shared change reaches the car
+
+- **WHEN** the user moves the overspeed warning delta on the phone
+- **THEN** the persisted value is the one Android Auto reads
+- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+### Requirement: A finite value set is presented as options, never only by cycling
+
+A row whose setting has a finite set of values SHALL present those values with the current one marked; it SHALL NOT be reachable only by repeated taps. A set of at most four values SHALL be presented inline as a selection list, a larger set on a selection surface of its own.
+
+#### Scenario: Dark mode lists its three values
+
+- **WHEN** the dark mode row is displayed
+- **THEN** Off, On and Automatic are offered as a selection list with the current value marked
+- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+#### Scenario: Map style opens a selection surface
+
+- **WHEN** the user selects the map style row
+- **THEN** a surface opens listing every available style with the current one marked
+- **Case**: `SettingsSurfaceTest#theStyleRowOpensItsSelectionSurface`
+
 ## ADDED Requirements
 
 ### Requirement: The quick sheet holds only the current mode's live controls
@@ -145,23 +180,6 @@ The settings surface SHALL present the car's voice guidance and both car vehicle
 - **AND** the car follows the phone's anchor from then on
 - **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
 
-### Requirement: A change applies immediately and persists
-
-Every change on the surface SHALL apply to the running map without a save action and SHALL be persisted to the shared settings storage as it is made; reopening the surface or restarting the app SHALL show the new value.
-
-#### Scenario: A change persists without a save action
-
-- **WHEN** the user switches POI symbols off
-- **THEN** the map reflects it immediately
-- **AND** after an app restart the surface shows the switch off
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
-#### Scenario: A shared change reaches the car
-
-- **WHEN** the user moves the overspeed warning delta on the phone
-- **THEN** the persisted value is the one Android Auto reads
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
 ### Requirement: A topic page groups its rows under section titles
 
 A topic page SHALL render its rows as one scrolling column grouped under section titles, and SHALL omit a section whose rows do not apply to the current state.
@@ -179,21 +197,16 @@ A topic page SHALL render its rows as one scrolling column grouped under section
 - **THEN** the ambient-light sensitivity row is not shown
 - **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
 
-### Requirement: A finite value set is presented as options, never only by cycling
+### Requirement: A switch toggles from its whole row
 
-A row whose setting has a finite set of values SHALL present those values with the current one marked; it SHALL NOT be reachable only by repeated taps. A set of at most four values SHALL be presented inline as a selection list, a larger set on a selection surface of its own.
+A row whose control is a switch SHALL toggle when the user taps anywhere on the row, not only on the switch itself, and SHALL write the new value as it toggles.
 
-#### Scenario: Dark mode lists its three values
+#### Scenario: Tapping the row toggles its switch
 
-- **WHEN** the dark mode row is displayed
-- **THEN** Off, On and Automatic are offered as a selection list with the current value marked
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
-
-#### Scenario: Map style opens a selection surface
-
-- **WHEN** the user selects the map style row
-- **THEN** a surface opens listing every available style with the current one marked
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **WHEN** the user taps the label of a switch row
+- **THEN** the switch moves to its other position
+- **AND** the new value is stored without a save action
+- **Case**: `SettingsSurfaceTest#aSwitchTogglesFromTheWholeRow`
 
 ### Requirement: A numeric range is a slider with labelled endpoints
 

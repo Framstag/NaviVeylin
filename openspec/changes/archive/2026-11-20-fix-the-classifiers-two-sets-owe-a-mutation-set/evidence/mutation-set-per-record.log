@@ -1,0 +1,30 @@
+926.1	gate: a stale entry is reported	the ids the classification names that the shipped set does not are the not-shipped set both states are computed from, so taking the intersection instead leaves a stale entry uncounted and the figure that should report it green
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+926.2	gate: a delta-only classification is reported as pending, not as stale	a pending entry is a not-shipped id an open change's delta spec introduces, so the intersection is the set that reports one; the remainder is the stale state and counting it as pending is the conflation issue #926 removed
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+926.3	gate: a delta-only classification is not a stale entry	a stale entry is a not-shipped id no open change introduces — the remainder — so the intersection is the pending state, and reporting a capability on its way as one that has left is the defect this split exists for
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+926.4	gate: a delta-only classification is reported as pending, not as stale	the pending figure counts the pending set, so reading it from the stale one prints the wrong state's number while both sets stay correct — one regression the direct assertions on the two figures cannot see
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+926.5	gate: a delta-only classification is not a stale entry	the stale figure counts the stale set, so reading it from the pending one prints a capability on its way as one that has left, which is exactly the reading issue #926 was filed against
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

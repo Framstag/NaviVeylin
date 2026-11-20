@@ -1,0 +1,46 @@
+{
+  "comment": "The premise probe of item #926, run in a throwaway root holding HEAD's `tools/gen-feature-list.sh` and HEAD's selftest (no `--case` filter): one record per expression the item says can be mutated while the suite still prints PASS. `case-cmd` runs the whole base suite, so a record that reports RED means the suite did notice and the item's premise does not hold; STAYS-GREEN means it did not.",
+  "case-cmd": "bash tools/tests/gen-feature-list-selftest.sh",
+  "mutations": [
+    {
+      "label": "926.1",
+      "case": "the whole base suite",
+      "file": "tools/gen-feature-list.sh",
+      "search": "not_shipped=$(comm -13 <(printf '%s\\n' \"$shipped_ids\") <(printf '%s\\n' \"$classified_ids\"))",
+      "replace": "not_shipped=$(comm -12 <(printf '%s\\n' \"$shipped_ids\") <(printf '%s\\n' \"$classified_ids\"))",
+      "why": "the not-shipped set read as the intersection of the two inputs"
+    },
+    {
+      "label": "926.2",
+      "case": "the whole base suite",
+      "file": "tools/gen-feature-list.sh",
+      "search": "pending=$(comm -12 <(printf '%s\\n' \"$delta_ids\") <(printf '%s\\n' \"$not_shipped\"))",
+      "replace": "pending=$(comm -23 <(printf '%s\\n' \"$not_shipped\") <(printf '%s\\n' \"$delta_ids\"))",
+      "why": "the two sets swapped: pending takes the remainder"
+    },
+    {
+      "label": "926.3",
+      "case": "the whole base suite",
+      "file": "tools/gen-feature-list.sh",
+      "search": "stale=$(comm -23 <(printf '%s\\n' \"$not_shipped\") <(printf '%s\\n' \"$delta_ids\"))",
+      "replace": "stale=$(comm -12 <(printf '%s\\n' \"$not_shipped\") <(printf '%s\\n' \"$delta_ids\"))",
+      "why": "the two sets swapped: stale takes the intersection"
+    },
+    {
+      "label": "926.4",
+      "case": "the whole base suite",
+      "file": "tools/gen-feature-list.sh",
+      "search": "pending_n=$(printf '%s\\n' \"$pending\" | grep -c . || true)",
+      "replace": "pending_n=$(printf '%s\\n' \"$stale\" | grep -c . || true)",
+      "why": "the pending figure counted from the stale set"
+    },
+    {
+      "label": "926.5",
+      "case": "the whole base suite",
+      "file": "tools/gen-feature-list.sh",
+      "search": "stale_n=$(printf '%s\\n' \"$stale\" | grep -c . || true)",
+      "replace": "stale_n=$(printf '%s\\n' \"$pending\" | grep -c . || true)",
+      "why": "the stale figure counted from the pending set"
+    }
+  ]
+}

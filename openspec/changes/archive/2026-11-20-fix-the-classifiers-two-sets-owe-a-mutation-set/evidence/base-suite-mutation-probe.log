@@ -1,0 +1,18 @@
+926.1	the whole base suite	the not-shipped set read as the intersection of the two inputs
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+926.2	the whole base suite	the two sets swapped: pending takes the remainder
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+926.3	the whole base suite	the two sets swapped: stale takes the intersection
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+926.4	the whole base suite	the pending figure counted from the stale set
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+926.5	the whole base suite	the stale figure counted from the pending set
+  RED(exit 1)  1 occurrence(s) replaced in tools/gen-feature-list.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 5 mutation(s) run, 5 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/tests/check-sonar-workflow-selftest.sh" tests="13" failures="0" errors="0" time="2" run="1075432">
+  <system-out>ok: sonar-workflow#theFindingsRecordIsTheScanPipelinesOwn ok: sonar-workflow#theFindingsRecordCarriesNoTrackerToken check-sonar-workflow-selftest: all 13 cases passed (the repository's own scan files, no build, no network)</system-out>
+</testsuite>

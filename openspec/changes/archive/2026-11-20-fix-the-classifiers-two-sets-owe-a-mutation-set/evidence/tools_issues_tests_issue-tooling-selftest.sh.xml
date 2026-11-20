@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/tests/issue-tooling-selftest.sh" tests="183" failures="0" errors="0" time="154" run="1075432">
+  <system-out>PASS create#writesTheDependencyItWasGiven PASS update#writesTheTypeItWasGiven issue-tooling-selftest: all 183 cases passed (JDK 21, offline, no token, HEAD 176ad247, tools e3b0c44298fc, 2026-11-20T06:58:38Z)</system-out>
+</testsuite>

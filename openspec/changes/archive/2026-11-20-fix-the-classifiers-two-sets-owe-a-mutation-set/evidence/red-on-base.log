@@ -1,0 +1,10 @@
+FAIL mutation: the classification's two sets and their counts are held by a record set
+     expected [5], got [0]
+     last run: check --check-classification
+       stale: 0
+       pending (classified ahead of its archive): 1
+       car-only areas: 1
+       highlights: 3
+
+gen-feature-list-selftest: 0 passed, 1 failed
+gen-feature-list-selftest: 1 of 1 cases failed

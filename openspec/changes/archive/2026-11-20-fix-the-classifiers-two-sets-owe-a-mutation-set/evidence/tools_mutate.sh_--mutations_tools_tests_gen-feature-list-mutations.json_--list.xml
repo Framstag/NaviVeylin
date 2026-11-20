@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/tests/gen-feature-list-mutations.json --list" tests="0" failures="0" errors="0" time="0" run="1075432">
+  <system-out>926.3	gate: a delta-only classification is not a stale entry	a stale entry is a not-shipped id no open change introduces — the remainder — so the intersection is the pending state, and reporting a capability on its way as one that has left is the defect this split exists for 926.4	gate: a delta-only classification is reported as pending, not as stale	the pending figure counts the pending set, so r</system-out>
+</testsuite>

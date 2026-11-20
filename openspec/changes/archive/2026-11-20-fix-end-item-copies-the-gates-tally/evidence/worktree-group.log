@@ -1,0 +1,122 @@
+worktree#seedsAllFourInputs| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#seedsAllFourInputs| HEAD ist jetzt bei 6bd955b init
+worktree#oneBranchPerItemOffTheBase| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#oneBranchPerItemOffTheBase| HEAD ist jetzt bei 6bd955b init
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchWhoseWorkAlreadyLanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| HEAD ist jetzt bei 6bd955b init
+worktree#reusesABranchWhoseWorkAlreadyLanded| HEAD ist jetzt bei 6bd955b init
+worktree#refusesABranchCarryingAPreviousAttempt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideABlockedAttemptAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideABlockedAttemptAndStartsFresh| HEAD ist jetzt bei 6bd955b init
+worktree#refusesABranchCarryingAPreviousAttempt| HEAD ist jetzt bei 6bd955b init
+PASS worktree#seedsAllFourInputs
+worktree#refusesWhenMainAdvanced| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesWhenMainAdvanced| HEAD ist jetzt bei 6bd955b init
+worktree#reusesABranchWhoseWorkAlreadyLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.CYzKVw/cases/11/tree/case.FZmpFN/repo/.pi/issue-loop/runs/2026-11-20T14:01:38Z.json
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+worktree#refusesABranchCarryingAPreviousAttempt| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#setsAsideABlockedAttemptAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesABranchWhoseReviewFailed
+worktree#refusesWhenMainAdvanced| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.CYzKVw/cases/10/tree/case.cu4WCJ/repo/.pi/issue-loop/runs/2026-11-20T14:01:38Z.json
+PASS worktree#placesAPinOnlyTheRootCheckoutHolds
+PASS worktree#checksOutTheNewPinWhenItReusesTheWorktree
+PASS worktree#refusesWhenMainAdvanced
+worktree#oneBranchPerItemOffTheBase| Zu neuem Branch 'fix/issue-22-other' gewechselt
+PASS worktree#reusesABranchWhoseWorkAlreadyLanded
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| HEAD ist jetzt bei daa158e init
+worktree#refusesToMergeOverADirtyProjectTree| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeOverADirtyProjectTree| HEAD ist jetzt bei daa158e init
+worktree#theLandingDecidesByTheReadingItIsHanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#theLandingDecidesByTheReadingItIsHanded| HEAD ist jetzt bei daa158e init
+PASS worktree#aRepairedRefusalDoesNotKeepALandedBranch
+PASS worktree#oneBranchPerItemOffTheBase
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+PASS worktree#setsAsideABlockedAttemptAndStartsFresh
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesToMergeOverADirtyProjectTree| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theLandingDecidesByTheReadingItIsHanded| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| HEAD ist jetzt bei daa158e init
+worktree#theNamedChangeIsCopiedIntoTheItem| change add-prepared-change copied into the worktree for #31 (4 file(s), 32768 B) — source openspec/changes/add-prepared-change
+PASS worktree#aMissingChangeRefusesTheItem
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideAReworkCutBranchAndStartsFresh| HEAD ist jetzt bei daa158e init
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#aTrackedEditStillBlocksTheMerge| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| HEAD ist jetzt bei daa158e init
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence| HEAD ist jetzt bei daa158e init
+worktree#aTrackedEditStillBlocksTheMerge| HEAD ist jetzt bei 89921c6 chore: a tracked file the ignore list would match
+worktree#theNamedChangeIsCopiedIntoTheItem| Zu neuem Branch 'fix/issue-31-a-prepared-change' gewechselt
+PASS worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved
+PASS worktree#aSetAsideBranchWhosePatchesLandedIsRemoved
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#aTrackedEditStillBlocksTheMerge| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesToMergeOverADirtyProjectTree
+PASS worktree#theLandingDecidesByTheReadingItIsHanded
+PASS worktree#theNamedChangeIsCopiedIntoTheItem
+PASS worktree#anIdeBuildDirectoryDoesNotBlockTheMerge
+PASS worktree#aTrackedEditStillBlocksTheMerge
+PASS worktree#setsAsideAReworkCutBranchAndStartsFresh
+PASS worktree#refusesToMergeIntoATreeOffTheBaseBranch
+PASS worktree#endItemCopiesTheGatesTallyIntoTheEvidence
+worktree#keepsByDefaultAndRemovesOnRequest| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-140143')
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei 6bd955b init
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-140143')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei 6bd955b init
+worktree#keepsByDefaultAndRemovesOnRequest| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6e3febb)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6e3febb)
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e0d5aa8)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e0d5aa8)
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei e0d5aa8 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#keepsByDefaultAndRemovesOnRequest| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e0d5aa8).
+worktree#keepsByDefaultAndRemovesOnRequest| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei e0d5aa8 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e0d5aa8).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| closed #21 (completed)
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+worktree#keepsByDefaultAndRemovesOnRequest|   landing #21 e0d5aa83f966a9bddba54630a98a8ecca0c5f01d: unscored — the pipeline runs of this commit could not be read
+worktree#noPushWithoutTheFlag|   landing #21 e0d5aa83f966a9bddba54630a98a8ecca0c5f01d: unscored — the pipeline runs of this commit could not be read
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree#keepsByDefaultAndRemovesOnRequest| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS worktree#noPushWithoutTheFlag
+PASS worktree#keepsSourcesNotBuildOutput
+PASS worktree#pushSkipsABranchItAlreadyMerged
+worktree#keepsByDefaultAndRemovesOnRequest| Zu neuem Branch 'loop-20261120-140156' gewechselt
+worktree#keepsByDefaultAndRemovesOnRequest| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| unpick #21
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| commented on #21 (left open)
+worktree#keepsByDefaultAndRemovesOnRequest| escalate #21
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree#keepsByDefaultAndRemovesOnRequest| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+loop-selftest: worktree 30 cases 99.41 s
+loop-selftest: all 30 cases passed (JDK 21, offline, no token, no sandbox) — 22.84 s, selection: --group worktree

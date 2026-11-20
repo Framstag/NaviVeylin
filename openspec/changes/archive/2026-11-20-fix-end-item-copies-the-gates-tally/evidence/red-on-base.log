@@ -1,0 +1,11 @@
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence| HEAD ist jetzt bei 0044a60 init
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#endItemCopiesTheGatesTallyIntoTheEvidence|   the gate's tally was not copied into the archived change's evidence: TEST-demo-red-on-HEAD.xml
+--- worktree#endItemCopiesTheGatesTallyIntoTheEvidence[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 0044a60 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  the gate's tally was not copied into the archived change's evidence: TEST-demo-red-on-HEAD.xml
+FAIL worktree#endItemCopiesTheGatesTallyIntoTheEvidence
+loop-selftest: 1 of 1 cases failed

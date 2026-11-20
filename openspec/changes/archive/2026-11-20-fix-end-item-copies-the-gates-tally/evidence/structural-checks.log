@@ -1,0 +1,7 @@
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+check-doc-values exit=0
+check-doc-routes: all 356 section references resolve, all 8 skill references resolve
+check-doc-routes exit=0
+check-todo-references exit=0
+Change 'fix-end-item-copies-the-gates-tally' is valid
+openspec validate exit=0

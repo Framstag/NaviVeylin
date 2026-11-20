@@ -6055,3 +6055,35 @@ run's base with a clean status — that silence spent no phase and keeps the ite
 - **THEN** no relaunch happens inside the item, and the transient class the run already spends re-runs the item from the
   queue
 - **Case**: `run#aChildThatNeverStartedIsRetriedBeforeTheRunStops`
+
+### Requirement: The gate child names the capability its own change introduces
+
+The child that completes a change before the gate SHALL name in `tools/feature-list/specs.json` every capability id
+that change's own `openspec/changes/<change>/specs/` delta introduces and the file does not name, taking the `area`
+from `tools/feature-list/areas.json` and `userVisible` and `surfaces` from the requirement the delta writes, and
+SHALL do it in the completion that stands before the gate, so the gate's one run measures a tree in which the line
+the change owes is present.
+
+#### Scenario: The gate child's completion carries the classification line the change owes
+
+- **WHEN** each skeleton the gate child can be started from — the deferred shape's and the one-child shape's — is
+  read, before it completes a change and runs the gate
+- **THEN** each names the classification file `tools/feature-list/specs.json`, the area catalogue
+  `tools/feature-list/areas.json`, the change's own delta directory `openspec/changes/{{CHANGE_NAME}}/specs/` and the
+  `userVisible` field the row carries
+- **Case**: `prompt#theGateChildClassifiesItsOwnDelta`
+
+### Requirement: The classification arm is bounded to the change's own delta
+
+That arm SHALL be bounded to the ids the change's own delta introduces: an id the change's delta does not introduce,
+a second failing check, or an area the catalogue does not hold SHALL be the gate's red and the item's `blocked`
+verdict, never an edit. The tail child SHALL NOT be handed the write, because its own rule is that it writes no path
+outside the change's `evidence/` directory.
+
+#### Scenario: A red outside the change's own ids is the item's blocked verdict, and not the tail's write
+
+- **WHEN** the same skeleton is read for the bound the arm carries, beside the tail child's own skeleton
+- **THEN** it states that an id this change does not introduce is not its step, keeps `blocked` as the verdict such a
+  red blocks on, and the tail's skeleton names no write of `tools/feature-list/specs.json` and keeps its rule that
+  the tail writes no path outside the change's `evidence/` directory
+- **Case**: `prompt#theClassificationArmIsBoundedToTheDelta`

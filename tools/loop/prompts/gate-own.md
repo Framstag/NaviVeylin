@@ -2,7 +2,14 @@
 names the tree it was written from, and those two names have to be one — so everything that writes the change
 directory is done *before* the gate: copy the XMLs you cite into the change's own `evidence/` directory and into
 `{{EVIDENCE_DIR}}`, run `bash tools/loop/evidence-check.sh <the change directory> --root .` from the change root and
-fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+fix what it reports, then classify the capability this change's own delta introduces, and only those: read the
+capability ids under `openspec/changes/{{CHANGE_NAME}}/specs/` — read before the archive moves the directory — and
+the entries in `tools/feature-list/specs.json`, and append one line, in that file's own shape, for each id it does
+not name. `area` is chosen from `tools/feature-list/areas.json`; `userVisible` and `surfaces` are read from the
+requirement the delta writes. The arm is bounded to this change's own ids — an id this change does not introduce, a
+second failing check, or an area the catalogue does not hold is **not this step**: that red stays the gate's red and
+the item's `blocked` verdict, never an edit here (issue #914). Then archive the change with the delta it merges
+(`openspec archive --yes`) — the change child is
 this child in this shape, so the archive is yours; a rework round starts with the change already archived, and there
 you complete nothing and leave the directory where it is. The date prefix the
 archive adds is what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree

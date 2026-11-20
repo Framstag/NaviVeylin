@@ -5163,19 +5163,24 @@ case_prompt_theGatePromptNamesTheWallAndTheWayThrough() {
 # `every shipped spec id must be named by tools/feature-list/specs.json … was:<[settings-surface,
 # settings-taxonomy]>`, two capability specs the change itself had added — and no phase was told to write it. The
 # tail may not repair (issue #914), so the line belongs to the gate child, the last child that writes the tree before
-# the gate, whose completion named no classification at all.
+# the gate, whose completion named no classification at all. Two skeletons hand that child its completion —
+# `worker-gate.md` in the deferred shape and `gate-own.md` in the one-child shape, where the child *is* the gate
+# child — so both name the line, as `prompt#theGatePromptNamesTheWallAndTheWayThrough` reads both for the wall.
 case_prompt_theGateChildClassifiesItsOwnDelta() {
   # files: tools/loop/prompts/ tools/feature-list/
-  local text
-  text=$(cat "$LOOP_ENGINE/prompts/worker-gate.md")
-  assert_contains "$text" 'tools/feature-list/specs.json' \
-    "the gate child is told the classification line its change owes (issue #914)"
-  assert_contains "$text" 'tools/feature-list/areas.json' \
-    "…and the area catalogue the row's area is chosen from"
-  assert_contains "$text" 'openspec/changes/{{CHANGE_NAME}}/specs/' \
-    "…and the delta directory its ids are read from, before the archive moves it"
-  assert_contains "$text" 'userVisible' \
-    "…and the field the row's catalogue tag is read from the requirement the delta writes"
+  local f text
+  for f in "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/gate-own.md"; do
+    [ -f "$f" ] || fail "no prompt skeleton at $f"
+    text=$(cat "$f")
+    assert_contains "$text" 'tools/feature-list/specs.json' \
+      "$(basename "$f") tells the gate child the classification line its change owes (issue #914)"
+    assert_contains "$text" 'tools/feature-list/areas.json' \
+      "…and the area catalogue the row's area is chosen from"
+    assert_contains "$text" 'openspec/changes/{{CHANGE_NAME}}/specs/' \
+      "…and the delta directory its ids are read from, before the archive moves it"
+    assert_contains "$text" 'userVisible' \
+      "…and the field the row's catalogue tag is read from the requirement the delta writes"
+  done
   return 0
 }
 

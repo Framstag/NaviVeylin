@@ -3243,7 +3243,7 @@ case_metadata_aChildOfAnOrdinaryIssueIsOutOfScope() {
   out=$(run_tool check-metadata.sh --issues "$dir/issues.json" 2>&1) ||
     fail "a child of an ordinary issue was reported: $out"
   assert_contains "$out" "4 issue(s) checked" "the untyped child of an ordinary issue was read"
-  assert_not_contains "$out" "#45 untyped-child" "and nothing is said about its type"
+  assert_not_contains "$out" "#45 untyped-child" "no violation is reported about the child's type"
   assert_not_contains "$out" "untyped-child" "so a plain parent-child between ordinary issues is not this rule's subject"
   return 0
 }

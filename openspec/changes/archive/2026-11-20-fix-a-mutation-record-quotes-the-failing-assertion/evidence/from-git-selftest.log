@@ -1,0 +1,106 @@
+loop-selftest: selected 60 of 497 cases (files: .pi/skills/revert-check/SKILL.md tools/loop/tests/loop-mutations-selftest.sh tools/loop/tests/loop-mutations.sh)
+PASS evidence#scansWhatTheProfileNames
+PASS mutation#theFileSetLegScopesByTheCheapestFile
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS mutation#aStaleRecordIsNamed
+PASS measure#namesTheOwedChecksInOneBlock
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#interruptedSuiteRemovesItsScratchTree
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aHunkInACaseBodySelectsThatCaseOnly
+PASS driver#everyEngineScriptIsInTheTable
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aHunkOutsideEveryCaseBodyOwesEveryCase
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#noEngineFileExceedsItsBound
+PASS driver#aFileWithoutABoundIsRefused
+PASS driver#theSummaryNamesWhatEachGroupCost
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+PASS driver#aNameAssignedTwiceIsRefused
+PASS labels#neverWritesReservedLabel
+PASS driver#anUndeclaredReadIsRefused
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+PASS driver#aQuotedProgramIsNotAShellRead
+PASS driver#aCallInPipelinePositionIsARead
+PASS driver#theSourceOrderIsDeclared
+PASS report#aCheckTheGateWouldRunIsTheGateTime
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS driver#aCallToALaterFilesFunctionFails
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+PASS run#aChildCheckSkipsTheGatesOwnSuite
+PASS run#aFocusedCaseIsStillAChildCheck
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS state#aQuotaWindowIsAHoldNotAStop
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-132907')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei a302bec init
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-132907')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 6ac09a8 an engine of its own
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+PASS state#noQuotaCommandAsksNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS state#aHoldMovesTheDeadlineWithIt
+PASS driver#theCaseBoundScalesWithThePool
+PASS mutation#everyDeclaredRecordApplies
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+PASS driver#theSuiteRunsItsCasesInAPool
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ceea004)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (aa0f967)
+PASS driver#theSharedNamesAreDeclared
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei aa0f967 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war aa0f967).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS census#aRunDoesNotConsultTheCensus
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d36f40f)
+worktree#noPushWithoutTheFlag|   landing #21 aa0f967ed32391286ce9b5fe650ca3b852d54ea7: unscored — the pipeline runs of this commit could not be read
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ca4c131)
+PASS run#childPastItsCheckBoundIsCut
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei ca4c131 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ca4c131).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS worktree#noPushWithoutTheFlag
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 ca4c131da4ef79f9004621cfc65f4dce4f7ffe38: unscored — the pipeline runs of this commit could not be read
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS run#theQuotaSwitchIsExplicit
+loop-selftest: evidence 1 cases 0.10 s
+loop-selftest: worktree 1 cases 18.50 s
+loop-selftest: labels 1 cases 2.38 s
+loop-selftest: gate 4 cases 22.53 s
+loop-selftest: driver 34 cases 59.46 s
+loop-selftest: mutation 3 cases 8.03 s
+loop-selftest: measure 1 cases 0.27 s
+loop-selftest: run 6 cases 71.42 s
+loop-selftest: report 1 cases 3.04 s
+loop-selftest: clean 3 cases 2.65 s
+loop-selftest: state 4 cases 5.19 s
+loop-selftest: census 1 cases 5.63 s
+loop-selftest: all 60 cases passed (JDK 21, offline, no token, no sandbox) — 35.19 s, selection: --from-git 6f32fdb005aef825bd10d821f0e5bd27ec98f7b8

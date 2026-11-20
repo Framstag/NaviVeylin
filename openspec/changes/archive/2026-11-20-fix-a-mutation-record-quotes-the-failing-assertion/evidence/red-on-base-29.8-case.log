@@ -1,0 +1,13 @@
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| HEAD ist jetzt bei e813015 init
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge|   the merge was refused on a build directory: loop: the project tree is not clean — refusing to merge onto the base:
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| ?? architecture/bin/Thing.class
+--- worktree#anIdeBuildDirectoryDoesNotBlockTheMerge[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei e813015 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  the merge was refused on a build directory: loop: the project tree is not clean — refusing to merge onto the base:
+?? architecture/bin/Thing.class
+FAIL worktree#anIdeBuildDirectoryDoesNotBlockTheMerge
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,30 @@
+# extracted from /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-mutations.sh (case_reason), 2026-11-20T13:26:33Z
+#
+# the text probed:
+#       /^[^|]*\|  / {
+#         if (!run) { n = NR; why = $0; sub(/^[^|]*\|  */, "", why); run = 1 }
+#         last = NR; tail = $0; sub(/^[^|]*\| /, "", tail)
+#         next
+#       }
+#       /^[^|[:space:]]*\| / {
+#         last = NR; tail = $0; sub(/^[^|]*\| /, "", tail)
+#         run = 0
+#         next
+#       }
+#       { run = 0 }
+#       END {
+#         if (n) printf "case log line %d: %s\n", n, substr(why, 1, 240)
+#         else if (last) printf "case log line %d, the last line the case printed: %s\n", last, substr(tail, 1, 240)
+#   }
+#
+# Probe 1 — the real case log of record 29.8 (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/964/scratch/base-case-29.8.log):
+case log line 4: the merge was refused on a build directory: loop: the project tree is not clean — refusing to merge onto the base:
+#
+# Probe 2 — a case that printed no indented line (/home/tim/projects/NaviVeylin/.pi/issue-loop/items/964/scratch/no-assertion.log):
+#   worktree#aCaseThatWasKilled| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+#   worktree#aCaseThatWasKilled| ?? newmodule/
+#   worktree#aCaseThatWasKilled| ?? architecture/bin/Thing.class
+case log line 3, the last line the case printed: ?? architecture/bin/Thing.class
+#
+# Probe 3 — the round-1 awk (awk-round1.awk, the diff of review round 1) over Probe 2's log:
+# (nothing above: the fallback was unreachable, which is the finding this correction answers)

@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 430 records (labels: 29.8)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.XcYLJq
+RED    29.8  worktree#anIdeBuildDirectoryDoesNotBlockTheMerge   (the landing reading the tree as the filter leaves it (issue #962))
+       2026-11-20T13:24:29Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+restore 29.8 worktree#anIdeBuildDirectoryDoesNotBlockTheMerge green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

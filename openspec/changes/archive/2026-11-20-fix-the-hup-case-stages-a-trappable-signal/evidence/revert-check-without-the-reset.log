@@ -1,0 +1,5 @@
+run#aHupEndedRunRecordsItsStopAndUnpicksItsItem|   the run's shell (pid 1196870) ignores SIGHUP, so the trap this case sends its signal to cannot be installed in it (issue #978)
+--- run#aHupEndedRunRecordsItsStopAndUnpicksItsItem[0] (exit 1)
+  the run's shell (pid 1196870) ignores SIGHUP, so the trap this case sends its signal to cannot be installed in it (issue #978)
+FAIL run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+loop-selftest: 1 of 1 cases failed

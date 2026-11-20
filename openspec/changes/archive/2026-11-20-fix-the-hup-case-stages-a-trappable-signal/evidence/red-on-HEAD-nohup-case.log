@@ -1,0 +1,5 @@
+run#aHupEndedRunRecordsItsStopAndUnpicksItsItem|   a run that took HUP did not end inside 300 ticks (30 s for each of the 1 case(s) the pool starts beside this one; status 124) — its stop was '' and its item ''
+--- run#aHupEndedRunRecordsItsStopAndUnpicksItsItem[0] (exit 1)
+  a run that took HUP did not end inside 300 ticks (30 s for each of the 1 case(s) the pool starts beside this one; status 124) — its stop was '' and its item ''
+FAIL run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+loop-selftest: 1 of 1 cases failed

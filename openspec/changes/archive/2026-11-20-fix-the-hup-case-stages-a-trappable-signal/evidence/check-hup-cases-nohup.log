@@ -1,0 +1,4 @@
+PASS run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+PASS run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+loop-selftest: run 2 cases 11.91 s
+loop-selftest: all 2 cases passed (JDK 21, offline, no token, no sandbox) — 13.37 s, selection: --case run#aHup*

@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.data.AppSettings
@@ -192,6 +193,7 @@ fun SettingsSurface(
         }
         openSelect?.let { row ->
             val current = row.read(settings)
+            val select = row.payload as? SettingControlPayload.Select
             ModalBottomSheet(onDismissRequest = { openSelect = null }) {
                 Column(
                     Modifier
@@ -199,27 +201,32 @@ fun SettingsSurface(
                         .selectableGroup()
                         .testTag(SETTINGS_SELECT_TAG)
                 ) {
-                    (row.payload as? SettingControlPayload.Select)?.choices.orEmpty().forEach { choice ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(
+                    val choices = select?.choices.orEmpty()
+                    // An option with no key is a row's "inherits" entry: its text is a sentence rather
+                    // than a preset's name, so it takes a full-width row above the grid (spec:
+                    // `settings-surface` — "Returning to the phone value").
+                    val inheriting = choices.filter { it.key.isEmpty() }
+                    val values = choices.filter { it.key.isNotEmpty() }
+                    inheriting.forEach { choice ->
+                        SelectOptionRow(choice = choice, selected = current.isEmpty()) {
+                            openSelect = null
+                            onWrite(row, choice.key)
+                        }
+                    }
+                    // The rest are laid out in the payload's columns: five reproduces the vehicle
+                    // anchors' 5×3 picker, one is the list every other `SELECT` row shows (design D5).
+                    values.chunked((select?.columns ?: 1).coerceAtLeast(1)).forEach { cells ->
+                        Row(Modifier.fillMaxWidth()) {
+                            cells.forEach { choice ->
+                                SelectOptionCell(
+                                    choice = choice,
                                     selected = choice.key == current,
-                                    role = Role.RadioButton,
-                                    onClick = {
-                                        openSelect = null
-                                        onWrite(row, choice.key)
-                                    }
-                                )
-                                .testTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + choice.key)
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(selected = choice.key == current, onClick = null)
-                            Text(
-                                text = choiceLabel(choice),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    openSelect = null
+                                    onWrite(row, choice.key)
+                                }
+                            }
                         }
                     }
                 }
@@ -467,12 +474,59 @@ private fun SettingRow(
 }
 
 /**
- * An option's label: its own resource, or the value's key when the value carries its name (a map
- * style's name is its stylesheet's file name — spec: `map-styles`).
+ * An option's label: the literal the value carries (a vehicle anchor's own label), else its resource,
+ * else its key (a map style's name is its stylesheet's file name — spec: `map-styles`).
  */
 @Composable
 private fun choiceLabel(choice: SettingChoice): String =
-    choice.labelRes?.let { stringResource(it) } ?: choice.key
+    choice.label ?: choice.labelRes?.let { stringResource(it) } ?: choice.key
+
+/**
+ * One `SELECT` option as a full-width row: the shape an option with a sentence for a label needs (a
+ * car anchor's "uses the phone value" entry). The tag is the option's key, so a case points at one
+ * option rather than at its text.
+ */
+@Composable
+private fun SelectOptionRow(choice: SettingChoice, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .testTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + choice.key)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Text(text = choiceLabel(choice), style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/**
+ * One `SELECT` option as a cell of its row's grid: a radio mark above the preset's label, so fifteen
+ * presets sit in the five columns and three rows the anchors' picker uses (design D5).
+ */
+@Composable
+private fun SelectOptionCell(
+    choice: SettingChoice,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .testTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + choice.key)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Text(
+            text = choiceLabel(choice),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
 /**
  * A bounded slider under its label row (design D5; spec: `settings-surface` — "The overspeed delta is
@@ -517,6 +571,12 @@ private fun SliderControl(
  */
 @Composable
 private fun valueText(row: SettingSpec, value: String): String {
+    // A `SELECT` row whose stored value is empty is a car value that still inherits the phone's, and
+    // the row says so rather than showing a blank line (spec: `settings-surface` — "An inheriting
+    // anchor is shown as inheriting").
+    if (row.control == SettingControl.SELECT && value.isEmpty()) {
+        return stringResource(R.string.settings_anchor_inherit)
+    }
     val format = row.valueFormatRes ?: return value
     val number = value.toIntOrNull() ?: return value
     return stringResource(format, number)

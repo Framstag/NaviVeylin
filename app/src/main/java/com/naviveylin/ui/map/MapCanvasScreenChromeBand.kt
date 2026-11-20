@@ -194,38 +194,6 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             onSetLongPressTimeoutMs = { timeoutMs ->
                                 viewModel.onSetLongPressTimeoutMs(timeoutMs)
                             },
-                            carMaxSpeedKmh = state.carMaxSpeedKmh,
-                            onSetCarMaxSpeed = { kmh ->
-                                viewModel.onSetCarMaxSpeed(kmh)
-                            },
-                            bicycleMaxSpeedKmh = state.bicycleMaxSpeedKmh,
-                            onSetBicycleMaxSpeed = { kmh ->
-                                viewModel.onSetBicycleMaxSpeed(kmh)
-                            },
-                            footMaxSpeedKmh = state.footMaxSpeedKmh,
-                            onSetFootMaxSpeed = { kmh ->
-                                viewModel.onSetFootMaxSpeed(kmh)
-                            },
-                            avoidTolls = state.avoidTolls,
-                            onSetAvoidTolls = { avoid ->
-                                viewModel.onSetAvoidTolls(avoid)
-                            },
-                            avoidFerries = state.avoidFerries,
-                            onSetAvoidFerries = { avoid ->
-                                viewModel.onSetAvoidFerries(avoid)
-                            },
-                            avoidUnpaved = state.avoidUnpaved,
-                            onSetAvoidUnpaved = { avoid ->
-                                viewModel.onSetAvoidUnpaved(avoid)
-                            },
-                            routingAnchor = state.routingAnchor,
-                            onSetRoutingAnchor = { anchor ->
-                                viewModel.setRoutingAnchor(anchor)
-                            },
-                            freeDrivingAnchor = state.freeDrivingAnchor,
-                            onSetFreeDrivingAnchor = { anchor ->
-                                viewModel.setFreeDrivingAnchor(anchor)
-                            },
                             renderMode = state.renderMode,
                             onSetRenderMode = { mode ->
                                 viewModel.onSetRenderMode(mode)
@@ -379,38 +347,6 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             longPressTimeoutMs = state.longPressTimeoutMs,
                             onSetLongPressTimeoutMs = { timeoutMs ->
                                 viewModel.onSetLongPressTimeoutMs(timeoutMs)
-                            },
-                            carMaxSpeedKmh = state.carMaxSpeedKmh,
-                            onSetCarMaxSpeed = { kmh ->
-                                viewModel.onSetCarMaxSpeed(kmh)
-                            },
-                            bicycleMaxSpeedKmh = state.bicycleMaxSpeedKmh,
-                            onSetBicycleMaxSpeed = { kmh ->
-                                viewModel.onSetBicycleMaxSpeed(kmh)
-                            },
-                            footMaxSpeedKmh = state.footMaxSpeedKmh,
-                            onSetFootMaxSpeed = { kmh ->
-                                viewModel.onSetFootMaxSpeed(kmh)
-                            },
-                            avoidTolls = state.avoidTolls,
-                            onSetAvoidTolls = { avoid ->
-                                viewModel.onSetAvoidTolls(avoid)
-                            },
-                            avoidFerries = state.avoidFerries,
-                            onSetAvoidFerries = { avoid ->
-                                viewModel.onSetAvoidFerries(avoid)
-                            },
-                            avoidUnpaved = state.avoidUnpaved,
-                            onSetAvoidUnpaved = { avoid ->
-                                viewModel.onSetAvoidUnpaved(avoid)
-                            },
-                            routingAnchor = state.routingAnchor,
-                            onSetRoutingAnchor = { anchor ->
-                                viewModel.setRoutingAnchor(anchor)
-                            },
-                            freeDrivingAnchor = state.freeDrivingAnchor,
-                            onSetFreeDrivingAnchor = { anchor ->
-                                viewModel.setFreeDrivingAnchor(anchor)
                             },
                             renderMode = state.renderMode,
                             onSetRenderMode = { mode ->
@@ -600,33 +536,6 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                                 onSetLongPressTimeoutMs = { timeoutMs ->
                                     viewModel.onSetLongPressTimeoutMs(timeoutMs)
                                 },
-                                // Usual maximum speed per vehicle: required by the sheet, which
-                                // renders the sliders in every mode — the routing view must wire
-                                // them like the other surfaces do (spec: location-options-ui).
-                                carMaxSpeedKmh = state.carMaxSpeedKmh,
-                                onSetCarMaxSpeed = { kmh ->
-                                    viewModel.onSetCarMaxSpeed(kmh)
-                                },
-                                bicycleMaxSpeedKmh = state.bicycleMaxSpeedKmh,
-                                onSetBicycleMaxSpeed = { kmh ->
-                                    viewModel.onSetBicycleMaxSpeed(kmh)
-                                },
-                                footMaxSpeedKmh = state.footMaxSpeedKmh,
-                                onSetFootMaxSpeed = { kmh ->
-                                    viewModel.onSetFootMaxSpeed(kmh)
-                                },
-                                avoidTolls = state.avoidTolls,
-                                onSetAvoidTolls = { avoid ->
-                                    viewModel.onSetAvoidTolls(avoid)
-                                },
-                                avoidFerries = state.avoidFerries,
-                                onSetAvoidFerries = { avoid ->
-                                    viewModel.onSetAvoidFerries(avoid)
-                                },
-                                avoidUnpaved = state.avoidUnpaved,
-                                onSetAvoidUnpaved = { avoid ->
-                                    viewModel.onSetAvoidUnpaved(avoid)
-                                },
                                 renderMode = state.renderMode,
                                 onSetRenderMode = { mode ->
                                     viewModel.onSetRenderMode(mode)
@@ -639,19 +548,6 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                                 preferSymbolPoiIcons = state.preferSymbolPoiIcons,
                                 onSetPreferSymbolPoiIcons = { preferSymbols ->
                                     viewModel.onSetPreferSymbolPoiIcons(preferSymbols)
-                                },
-                                // Vehicle anchor rows in the ROUTING view too: the
-                                // rows are rendered in every mode, so leaving the
-                                // defaults here made the picker a no-op during
-                                // navigation (spec: location-options-ui — anchor
-                                // rows; change fix-anchor-picker-in-navigation).
-                                routingAnchor = state.routingAnchor,
-                                onSetRoutingAnchor = { anchor ->
-                                    viewModel.setRoutingAnchor(anchor)
-                                },
-                                freeDrivingAnchor = state.freeDrivingAnchor,
-                                onSetFreeDrivingAnchor = { anchor ->
-                                    viewModel.setFreeDrivingAnchor(anchor)
                                 },
                                 // The sheet's last row closes it and opens the surface, which is
                                 // the map screen's own host (spec: `settings-surface` — "Three

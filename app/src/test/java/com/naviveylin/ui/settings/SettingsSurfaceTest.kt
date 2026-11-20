@@ -32,8 +32,13 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertRangeInfoEquals
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -53,6 +58,7 @@ import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.data.ViewportStorage
+import com.naviveylin.data.routingProfileFor
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
@@ -440,22 +446,6 @@ class SettingsSurfaceTest {
                     // them, only the entry row it puts last in every map state.
                     longPressTimeoutMs = 500,
                     onSetLongPressTimeoutMs = {},
-                    carMaxSpeedKmh = 130,
-                    onSetCarMaxSpeed = {},
-                    bicycleMaxSpeedKmh = 25,
-                    onSetBicycleMaxSpeed = {},
-                    footMaxSpeedKmh = 5,
-                    onSetFootMaxSpeed = {},
-                    avoidTolls = false,
-                    onSetAvoidTolls = {},
-                    avoidFerries = true,
-                    onSetAvoidFerries = {},
-                    avoidUnpaved = false,
-                    onSetAvoidUnpaved = {},
-                    routingAnchor = VehicleAnchorPosition.CENTER,
-                    onSetRoutingAnchor = {},
-                    freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                    onSetFreeDrivingAnchor = {},
                     onOpenSettings = { controller.openRoot() }
                 )
                 SettingsSurfaceHost(
@@ -753,7 +743,14 @@ class SettingsSurfaceTest {
 
         // One tap was the whole interaction, and the running map took it: the surface writes
         // through the one writer, so the map follows the document as it is made (no save action,
-        // no restart).
+        // no restart). The wait drains the rule's scheduler between polls because the controller
+        // publishes the document only once `SettingsStorage.update` returns — that continuation
+        // resumes on this scheduler, while `awaitStored` above waits on the file it wrote, so the
+        // two can land in either order.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            !viewModel.uiState.value.preferSymbolPoiIcons
+        }
         assertFalse(
             "the map's own state follows the surface as it is made",
             viewModel.uiState.value.preferSymbolPoiIcons
@@ -770,6 +767,177 @@ class SettingsSurfaceTest {
             "a change on the surface is in the file with no save action",
             runBlocking { SettingsStorage(context).load() }.preferSymbolPoiIcons
         )
+    }
+
+    // ---- the Navigation & Route topic's rows (tasks.md group 4) ----
+
+    /**
+     * The Navigation & Route page carries the routing values, each as its own row: the three maximum
+     * speeds, the three avoidance switches and the anchors for routing and free driving — the phone's
+     * two and the car's own two (spec: `settings-surface` — "Navigation & Route carries routing
+     * values", "The phone edits the settings Android Auto owns").
+     */
+    @Test
+    fun theNavigationTopicCarriesTheRoutingValues() {
+        launchSurface(topic = SettingsTopic.NAVIGATION_AND_ROUTE)
+
+        for (key in listOf(
+            "car-max-speed",
+            "bicycle-max-speed",
+            "foot-max-speed",
+            "avoid-tolls",
+            "avoid-ferries",
+            "avoid-unpaved",
+            "routing-anchor",
+            "free-driving-anchor",
+            "car-routing-anchor",
+            "car-free-driving-anchor"
+        )) {
+            composeRule.onNodeWithTag(SETTINGS_ROW_TAG_PREFIX + key)
+                .performScrollTo()
+                .assertIsDisplayed()
+        }
+    }
+
+    /**
+     * The three maximum-speed sliders are rows of the Navigation & Route topic, and each still covers
+     * its vehicle's whole range: the range is read off the control, so a range that moved shows up as
+     * a slider that cannot reach it (spec: `routing-max-speed` — A per-vehicle maximum speed is a
+     * persisted setting; tasks.md 4.1 `theThreeSpeedSlidersKeepTheirRanges`).
+     */
+    @Test
+    fun theThreeSpeedSlidersKeepTheirRanges() {
+        launchSurface(topic = SettingsTopic.NAVIGATION_AND_ROUTE)
+
+        // The values are the settings' own defaults, which is what the surface renders before a write.
+        assertSliderRange("car-max-speed", current = 120, min = 30, max = 160)
+        assertSliderRange("bicycle-max-speed", current = 15, min = 5, max = 40)
+        assertSliderRange("foot-max-speed", current = 5, min = 2, max = 15)
+    }
+
+    /**
+     * A speed moved on the surface reaches the settings file, which is what a restart reads — the row
+     * writes through the one writer rather than into a copy the file never sees (spec:
+     * `routing-max-speed`; tasks.md 4.1 `aSliderChangePersistsAndSurvivesRestart`).
+     */
+    @Test
+    fun aSliderChangePersistsAndSurvivesRestart() {
+        launchSurface(topic = SettingsTopic.NAVIGATION_AND_ROUTE)
+
+        composeRule.onNodeWithTag(SETTINGS_SLIDER_TAG_PREFIX + "car-max-speed")
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(90f) }
+        awaitStored { settings -> settings.carMaxSpeedKmh == 90 }
+
+        assertEquals(
+            "the row writes the value the user moved to",
+            90,
+            runBlocking { SettingsStorage(context).load() }.carMaxSpeedKmh
+        )
+        assertEquals(
+            "the other vehicles' speeds are untouched",
+            15,
+            runBlocking { SettingsStorage(context).load() }.bicycleMaxSpeedKmh
+        )
+    }
+
+    /**
+     * The three avoidance switches stand on the same topic page as the speeds, after them, and still
+     * feed the one routing-profile builder every calculation reads (spec: `routing-avoidance` — One
+     * builder produces the profile, and the phone edits the choices; tasks.md 4.2
+     * `theAvoidanceSwitchesSitBesideTheSpeeds`).
+     */
+    @Test
+    fun theAvoidanceSwitchesSitBesideTheSpeeds() {
+        launchSurface(topic = SettingsTopic.NAVIGATION_AND_ROUTE)
+
+        composeRule.onNodeWithText(label(R.string.max_speed_section))
+            .performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(label(R.string.avoidance_section))
+            .performScrollTo().assertIsDisplayed()
+
+        // One page, one order: the three speed rows come first, the avoidance rows under them (read
+        // off the page's own child order, so a section moved elsewhere fails here).
+        val order = pageOrder()
+        val lastSpeedRow = order.indexOf(SETTINGS_ROW_TAG_PREFIX + "foot-max-speed")
+        val firstAvoidanceRow = order.indexOf(SETTINGS_ROW_TAG_PREFIX + "avoid-tolls")
+        val lastAvoidanceRow = order.indexOf(SETTINGS_ROW_TAG_PREFIX + "avoid-unpaved")
+        assertTrue(
+            "the avoidance rows must follow the speed rows on the same page, order=$order",
+            lastSpeedRow >= 0 && firstAvoidanceRow > lastSpeedRow &&
+                lastAvoidanceRow > firstAvoidanceRow
+        )
+
+        // A switch shows the stored value, toggles it, and the shared builder carries the result.
+        switchOf("avoid-ferries").assertIsOff().performClick()
+        awaitStored { settings -> settings.avoidFerries }
+
+        val stored = controller.settings.value
+        assertEquals("the toggle reached the settings document", true, stored.avoidFerries)
+        assertEquals(
+            "the shared builder carries the choice every calculation reads",
+            true,
+            stored.routingProfileFor(Vehicle.CAR).avoidFerries
+        )
+    }
+
+    /**
+     * Each phone anchor row opens the 5×3 picker with the configured preset marked, and choosing a
+     * cell writes that preset and returns to the topic (spec: `settings-surface` — "A finite value set
+     * is presented as options"; tasks.md 4.3 `theAnchorPickerMarksTheConfiguredValue`).
+     */
+    @Test
+    fun theAnchorPickerMarksTheConfiguredValue() {
+        launchSurface(topic = SettingsTopic.NAVIGATION_AND_ROUTE)
+
+        composeRule.onNodeWithTag(SETTINGS_ROW_TAG_PREFIX + "routing-anchor")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SETTINGS_SELECT_TAG).assertIsDisplayed()
+        // The stored preset is the marked one, not the first cell: a picker that marked the default
+        // would fail here.
+        composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + VehicleAnchorPosition.CENTER.id)
+            .assertIsSelected()
+        composeRule.onNodeWithTag(
+            SETTINGS_SELECT_OPTION_TAG_PREFIX + VehicleAnchorPosition.BOTTOM_RIGHT.id
+        ).assertIsNotSelected()
+
+        composeRule.onNodeWithTag(
+            SETTINGS_SELECT_OPTION_TAG_PREFIX + VehicleAnchorPosition.BOTTOM_RIGHT.id
+        ).performClick()
+        awaitStored { settings -> settings.routingAnchorId == VehicleAnchorPosition.BOTTOM_RIGHT.id }
+
+        // Choosing closes the picker: it is a sub-surface of the topic, not a place to be stranded in.
+        composeRule.onNodeWithTag(SETTINGS_SELECT_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(SETTINGS_TOPIC_TAG).assertIsDisplayed()
+    }
+
+    /**
+     * The picker's option texts are the shared enum's labels — the ones the car's own picker draws —
+     * so the two surfaces name the same preset the same way (label parity; tasks.md 4.3
+     * `theAnchorLabelsMatchTheCarPicker`).
+     */
+    @Test
+    fun theAnchorLabelsMatchTheCarPicker() {
+        launchSurface(topic = SettingsTopic.NAVIGATION_AND_ROUTE)
+
+        composeRule.onNodeWithTag(SETTINGS_ROW_TAG_PREFIX + "free-driving-anchor")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        // One option per preset, each carrying `VehicleAnchorPosition.label` — the literal the car's
+        // `VehicleAnchorPickerScreen` draws for the same preset.
+        for (anchor in VehicleAnchorPosition.entries) {
+            // The merged cell node carries the label text, so a cell showing a key instead of the
+            // preset's label fails here.
+            composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + anchor.id)
+                .assertIsDisplayed()
+            composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + anchor.id)
+                .assert(hasText(anchor.label))
+        }
     }
 
     // ---- fixtures ----
@@ -800,6 +968,26 @@ class SettingsSurfaceTest {
         isToggleable() and hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + key)),
         useUnmergedTree = true
     )
+
+    /**
+     * One numeric row's slider as the user can reach it: the value it shows is the stored one and the
+     * range it offers is the row's own payload, read off the control rather than off the code.
+     */
+    private fun assertSliderRange(key: String, current: Int, min: Int, max: Int) {
+        val slider = composeRule
+            .onNodeWithTag(SETTINGS_SLIDER_TAG_PREFIX + key)
+            .performScrollTo()
+        slider.assertRangeInfoEquals(
+            ProgressBarRangeInfo(current.toFloat(), min.toFloat()..max.toFloat(), steps = max - min - 1)
+        )
+    }
+
+    /** The tags the topic page shows, in the order it shows them: sections and rows, top to bottom. */
+    private fun pageOrder(): List<String> =
+        composeRule.onNodeWithTag(SETTINGS_TOPIC_TAG)
+            .onChildren()
+            .fetchSemanticsNodes()
+            .mapNotNull { node -> node.config.getOrNull(SemanticsProperties.TestTag) }
 
     /**
      * Wait until the settings file holds a document [holds] accepts: a row's write is a coroutine on

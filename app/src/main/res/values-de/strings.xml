@@ -467,4 +467,9 @@
     <string name="settings_help_open">Mehr zu dieser Einstellung</string>
     <string name="settings_help_close">Schließen</string>
     <string name="settings_slider_endpoint">%1$d km/h</string>
+    <string name="settings_help_max_speed">Das Tempo, mit dem die Route für dieses Fahrzeug berechnet wird.</string>
+    <string name="settings_help_avoidance">Hält diese Art Straße aus der berechneten Route heraus.</string>
+    <string name="settings_help_anchor">Wo die Karte das Fahrzeugsymbol statt der Mitte hält.</string>
+    <string name="settings_help_car_anchor">Die eigene Position des Autos. Solange hier keine gewählt ist, nutzt Android Auto die Position des Telefons.</string>
+    <string name="settings_anchor_inherit">Nutzt den Wert des Telefons</string>
 </resources>

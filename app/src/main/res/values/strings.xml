@@ -513,4 +513,9 @@
     <string name="settings_help_open">More about this setting</string>
     <string name="settings_help_close">Close</string>
     <string name="settings_slider_endpoint">%1$d km/h</string>
+    <string name="settings_help_max_speed">The speed the router calculates this vehicle with.</string>
+    <string name="settings_help_avoidance">Keeps this kind of road out of the calculated route.</string>
+    <string name="settings_help_anchor">Where the map keeps the vehicle marker instead of the centre.</string>
+    <string name="settings_help_car_anchor">The car\'s own position. Until one is chosen here, Android Auto uses the phone\'s position.</string>
+    <string name="settings_anchor_inherit">Uses the phone value</string>
 </resources>

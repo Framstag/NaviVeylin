@@ -110,35 +110,6 @@ fun LocationOptionsOverlay(
     // (spec: location-options-ui — Long-press timeout control).
     longPressTimeoutMs: Int,
     onSetLongPressTimeoutMs: (Int) -> Unit,
-    // Usual maximum speed per vehicle: REQUIRED (no defaults), for the same reason as the anchor
-    // rows below. The sliders render in EVERY mode, so an optional callback would let a call site
-    // compile into a slider whose selection is silently dropped (spec: location-options-ui —
-    // Vehicle maximum speed sliders in the options sheet).
-    carMaxSpeedKmh: Int,
-    onSetCarMaxSpeed: (Int) -> Unit,
-    bicycleMaxSpeedKmh: Int,
-    onSetBicycleMaxSpeed: (Int) -> Unit,
-    footMaxSpeedKmh: Int,
-    onSetFootMaxSpeed: (Int) -> Unit,
-    // Routing avoidance: REQUIRED (no defaults), for the same reason as the max-speed rows. The
-    // switches render in EVERY mode, so an optional callback would let a call site compile into a
-    // switch whose change is silently dropped (spec: `routing-avoidance` — The phone edits the
-    // choices and the car reads them).
-    avoidTolls: Boolean,
-    onSetAvoidTolls: (Boolean) -> Unit,
-    avoidFerries: Boolean,
-    onSetAvoidFerries: (Boolean) -> Unit,
-    avoidUnpaved: Boolean,
-    onSetAvoidUnpaved: (Boolean) -> Unit,
-    // Vehicle anchor rows: REQUIRED (no defaults). The rows render in EVERY mode,
-    // so an optional callback would let a call site (e.g. the routing view) compile
-    // into a picker that silently ignores the selection and keeps showing "Center"
-    // (regression: navigation view used the defaults). Making them required moves
-    // that class of bug to the compiler (change fix-anchor-picker-in-navigation).
-    routingAnchor: VehicleAnchorPosition,
-    onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
-    freeDrivingAnchor: VehicleAnchorPosition,
-    onSetFreeDrivingAnchor: (VehicleAnchorPosition) -> Unit,
     renderMode: RenderMode = RenderMode.TILES,
     onSetRenderMode: (RenderMode) -> Unit = {},
     availableStyles: List<String> = emptyList(),
@@ -213,22 +184,6 @@ fun LocationOptionsOverlay(
                 onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
                 longPressTimeoutMs = longPressTimeoutMs,
                 onSetLongPressTimeoutMs = onSetLongPressTimeoutMs,
-                carMaxSpeedKmh = carMaxSpeedKmh,
-                onSetCarMaxSpeed = onSetCarMaxSpeed,
-                bicycleMaxSpeedKmh = bicycleMaxSpeedKmh,
-                onSetBicycleMaxSpeed = onSetBicycleMaxSpeed,
-                footMaxSpeedKmh = footMaxSpeedKmh,
-                onSetFootMaxSpeed = onSetFootMaxSpeed,
-                avoidTolls = avoidTolls,
-                onSetAvoidTolls = onSetAvoidTolls,
-                avoidFerries = avoidFerries,
-                onSetAvoidFerries = onSetAvoidFerries,
-                avoidUnpaved = avoidUnpaved,
-                onSetAvoidUnpaved = onSetAvoidUnpaved,
-                routingAnchor = routingAnchor,
-                onSetRoutingAnchor = onSetRoutingAnchor,
-                freeDrivingAnchor = freeDrivingAnchor,
-                onSetFreeDrivingAnchor = onSetFreeDrivingAnchor,
                 renderMode = renderMode,
                 onSetRenderMode = onSetRenderMode,
                 availableStyles = availableStyles,
@@ -274,22 +229,6 @@ private fun LocationOptionsSheetContent(
     onSetOverspeedWarningDelta: (Int) -> Unit,
     longPressTimeoutMs: Int,
     onSetLongPressTimeoutMs: (Int) -> Unit,
-    carMaxSpeedKmh: Int,
-    onSetCarMaxSpeed: (Int) -> Unit,
-    bicycleMaxSpeedKmh: Int,
-    onSetBicycleMaxSpeed: (Int) -> Unit,
-    footMaxSpeedKmh: Int,
-    onSetFootMaxSpeed: (Int) -> Unit,
-    avoidTolls: Boolean,
-    onSetAvoidTolls: (Boolean) -> Unit,
-    avoidFerries: Boolean,
-    onSetAvoidFerries: (Boolean) -> Unit,
-    avoidUnpaved: Boolean,
-    onSetAvoidUnpaved: (Boolean) -> Unit,
-    routingAnchor: VehicleAnchorPosition,
-    onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
-    freeDrivingAnchor: VehicleAnchorPosition,
-    onSetFreeDrivingAnchor: (VehicleAnchorPosition) -> Unit,
     renderMode: RenderMode,
     onSetRenderMode: (RenderMode) -> Unit,
     availableStyles: List<String>,
@@ -299,10 +238,6 @@ private fun LocationOptionsSheetContent(
     onSetPreferSymbolPoiIcons: (Boolean) -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    // Vehicle anchor grid dialog target (spec: location-options-ui — Vehicle
-    // anchor position controls): null = no picker open.
-    var pickerFor by remember { mutableStateOf<AnchorPickerFor?>(null) }
-
     // FREE_DRIVE and NAVIGATION share the driving config (auto-zoom +
     // orientation); BROWSE has its own orientation only.
     val driving = mode == MapMode.FREE_DRIVE || mode == MapMode.NAVIGATION
@@ -535,104 +470,6 @@ private fun LocationOptionsSheetContent(
                 .testTag("longPressTimeoutSlider")
         )
 
-        // Usual maximum speed per vehicle (spec: location-options-ui — Vehicle maximum speed
-        // sliders in the options sheet): one slider per routing vehicle, rendered in EVERY mode
-        // because the value is set before a trip at least as often as during one. The same stored
-        // value is what a routing calculation for that vehicle uses (spec: routing-max-speed).
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-
-        Text(
-            text = stringResource(R.string.max_speed_section),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-        )
-
-        MaxSpeedSlider(
-            label = stringResource(R.string.vehicle_car),
-            valueKmh = carMaxSpeedKmh,
-            range = MaxSpeedRange.CAR,
-            testTag = "carMaxSpeedSlider",
-            onSetValue = onSetCarMaxSpeed
-        )
-        MaxSpeedSlider(
-            label = stringResource(R.string.vehicle_bicycle),
-            valueKmh = bicycleMaxSpeedKmh,
-            range = MaxSpeedRange.BICYCLE,
-            testTag = "bicycleMaxSpeedSlider",
-            onSetValue = onSetBicycleMaxSpeed
-        )
-        MaxSpeedSlider(
-            label = stringResource(R.string.vehicle_pedestrian),
-            valueKmh = footMaxSpeedKmh,
-            range = MaxSpeedRange.FOOT,
-            testTag = "footMaxSpeedSlider",
-            onSetValue = onSetFootMaxSpeed
-        )
-
-        // Routing avoidance (spec: `routing-avoidance` — The phone edits the choices and the car reads
-        // them). Beside the vehicle speeds because they are the same kind of choice: how the next route
-        // should be calculated. The car has no such control; it uses the values stored here.
-        Text(
-            text = stringResource(R.string.avoidance_section),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-        )
-        AvoidanceSwitch(
-            label = stringResource(R.string.avoid_tolls),
-            checked = avoidTolls,
-            testTag = "avoidTollsSwitch",
-            onSetChecked = onSetAvoidTolls
-        )
-        AvoidanceSwitch(
-            label = stringResource(R.string.avoid_ferries),
-            checked = avoidFerries,
-            testTag = "avoidFerriesSwitch",
-            onSetChecked = onSetAvoidFerries
-        )
-        AvoidanceSwitch(
-            label = stringResource(R.string.avoid_unpaved),
-            checked = avoidUnpaved,
-            testTag = "avoidUnpavedSwitch",
-            onSetChecked = onSetAvoidUnpaved
-        )
-
-        // Vehicle anchor presets (spec: location-options-ui — Vehicle anchor
-        // position controls): one row per mode, each opening a 5×3 grid
-        // picker; the value labels come from the shared enum so the phone and
-        // Android Auto pickers stay in label parity (guidelines/UI.md).
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-        AnchorPreferenceRow(
-            title = stringResource(R.string.vehicle_position_routing),
-            value = routingAnchor.label,
-            onClick = { pickerFor = AnchorPickerFor.ROUTING }
-        )
-        AnchorPreferenceRow(
-            title = stringResource(R.string.vehicle_position_free_driving),
-            value = freeDrivingAnchor.label,
-            onClick = { pickerFor = AnchorPickerFor.FREE_DRIVING }
-        )
-
-        pickerFor?.let { target ->
-            val current = when (target) {
-                AnchorPickerFor.ROUTING -> routingAnchor
-                AnchorPickerFor.FREE_DRIVING -> freeDrivingAnchor
-            }
-            AnchorGridPickerDialog(
-                current = current,
-                onSelect = { anchor ->
-                    when (target) {
-                        AnchorPickerFor.ROUTING -> onSetRoutingAnchor(anchor)
-                        AnchorPickerFor.FREE_DRIVING -> onSetFreeDrivingAnchor(anchor)
-                    }
-                    pickerFor = null
-                },
-                onDismiss = { pickerFor = null },
-                closeLabel = stringResource(R.string.close)
-            )
-        }
-
         // Dark mode section — always visible
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
@@ -861,216 +698,6 @@ private fun OrientationOption(
     }
 }
 
-/** Which per-mode anchor the grid picker is editing. */
-private enum class AnchorPickerFor { ROUTING, FREE_DRIVING }
-
-/**
- * One vehicle-position preference row: title + the current preset label;
- * tapping opens the grid picker (spec: location-options-ui — Anchor rows
- * visible in the sheet).
- */
-@Composable
-private fun AnchorPreferenceRow(
-    title: String,
-    value: String,
-    onClick: () -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/**
- * 5×3 grid picker for one vehicle anchor (spec: location-options-ui —
- * Picker offers the 5×3 grid): all 15 presets, the current one marked,
- * labels shared with the Android Auto picker.
- */
-@Composable
-private fun AnchorGridPickerDialog(
-    current: VehicleAnchorPosition,
-    onSelect: (VehicleAnchorPosition) -> Unit,
-    onDismiss: () -> Unit,
-    closeLabel: String
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.vehicle_position)) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Bounded height so the grid scrolls on small/landscape
-                    // screens instead of overflowing the dialog window.
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                VehicleAnchorPosition.entries.chunked(5).forEach { rowAnchors ->
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        rowAnchors.forEach { anchor ->
-                            AnchorGridCell(
-                                anchor = anchor,
-                                selected = anchor == current,
-                                onClick = { onSelect(anchor) },
-                                // Weighted cells share the dialog width evenly:
-                                // five equal columns instead of fixed 76.dp cells
-                                // that overflow the AlertDialog content width
-                                // (only ~3-4 fit on phones) into a ragged grid.
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(closeLabel) }
-        }
-    )
-}
-
-/** One 5×3 grid cell: compact preset label, selected preset highlighted. */
-@Composable
-private fun AnchorGridCell(
-    anchor: VehicleAnchorPosition,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val border = if (selected) {
-        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-    } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .height(56.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .border(border)
-            .clickable(onClick = onClick)
-            .padding(2.dp),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-    ) {
-        Text(
-            text = anchor.label,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-/**
- * The km/h range of one vehicle's usual maximum speed (spec: `location-options-ui` — Vehicle
- * maximum speed sliders in the options sheet). One table, so the sheet, the bounds its test
- * asserts and the routing profile cannot drift apart silently.
- */
-internal data class MaxSpeedRange(val minKmh: Int, val maxKmh: Int) {
-    /** A value strictly inside the range, for a test that must move a slider away from a bound. */
-    val midKmh: Int get() = (minKmh + maxKmh) / 2
-
-    companion object {
-        val CAR = MaxSpeedRange(30, 160)
-        val BICYCLE = MaxSpeedRange(5, 40)
-        val FOOT = MaxSpeedRange(2, 15)
-    }
-}
-
-/**
- * One usual-maximum-speed row: the vehicle's label, the current value in km/h and a slider over
- * the vehicle's whole range. `steps` fills in every whole km/h between the bounds, so the slider
- * has 1 km/h precision and no coarser step.
- *
- * The slider reports continuously while the user drags; the caller decides where the value is
- * written, and every drag step is a valid integer in the range.
- */
-@Composable
-private fun MaxSpeedSlider(
-    label: String,
-    valueKmh: Int,
-    range: MaxSpeedRange,
-    testTag: String,
-    onSetValue: (Int) -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = stringResource(R.string.max_speed_value, valueKmh),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-    Slider(
-        value = valueKmh.toFloat(),
-        onValueChange = { value -> onSetValue(value.roundToInt()) },
-        valueRange = range.minKmh.toFloat()..range.maxKmh.toFloat(),
-        steps = range.maxKmh - range.minKmh - 1,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(testTag)
-    )
-}
-
-/**
- * One routing-avoidance row: the choice's label and the switch that sets it (spec: `routing-avoidance`
- * — The phone edits the choices and the car reads them). The label carries the test tag, so a test
- * names the row and reads the switch inside it.
- */
-@Composable
-private fun AvoidanceSwitch(
-    label: String,
-    checked: Boolean,
-    testTag: String,
-    onSetChecked: (Boolean) -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .testTag(testTag)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = { enabled -> onSetChecked(enabled) }
-        )
-    }
-}
-
 /**
  * One spoken-announcement switch row: a label and its switch, 56 dp tall, tagged so a Compose case
  * can find it (spec: `voice-guidance` — The phone offers both switches in its settings sheet).
@@ -1130,35 +757,3 @@ private fun AnnouncementSwitchRowsPreview() {
     }
 }
 
-/**
- * The three usual-maximum-speed sliders with their default values, as the sheet shows them on a
- * fresh install.
- */@Preview(showBackground = true)
-@Composable
-private fun MaxSpeedSlidersPreview() {
-    MaterialTheme {
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            MaxSpeedSlider(
-                label = stringResource(R.string.vehicle_car),
-                valueKmh = 120,
-                range = MaxSpeedRange.CAR,
-                testTag = "previewCarMaxSpeedSlider",
-                onSetValue = {}
-            )
-            MaxSpeedSlider(
-                label = stringResource(R.string.vehicle_bicycle),
-                valueKmh = 15,
-                range = MaxSpeedRange.BICYCLE,
-                testTag = "previewBicycleMaxSpeedSlider",
-                onSetValue = {}
-            )
-            MaxSpeedSlider(
-                label = stringResource(R.string.vehicle_pedestrian),
-                valueKmh = 5,
-                range = MaxSpeedRange.FOOT,
-                testTag = "previewFootMaxSpeedSlider",
-                onSetValue = {}
-            )
-        }
-    }
-}

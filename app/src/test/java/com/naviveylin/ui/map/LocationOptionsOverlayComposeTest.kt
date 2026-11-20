@@ -62,21 +62,9 @@ class LocationOptionsOverlayComposeTest {
         onSetPreferSymbolPoiIcons: (Boolean) -> Unit = {},
         // Usual maximum speed per vehicle: the sheet's own defaults, overridable so a case can
         // assert that a stored value is what the sliders show (spec: location-options-ui).
-        carMaxSpeedKmh: Int = 120,
-        onSetCarMaxSpeed: (Int) -> Unit = {},
-        bicycleMaxSpeedKmh: Int = 15,
-        onSetBicycleMaxSpeed: (Int) -> Unit = {},
-        footMaxSpeedKmh: Int = 5,
-        onSetFootMaxSpeed: (Int) -> Unit = {},
         // Routing avoidance: overridable so a case can assert that a stored choice is what the
         // switches show and that a toggle is reported back (spec: `routing-avoidance` — The phone
         // edits the choices and the car reads them).
-        avoidTolls: Boolean = false,
-        onSetAvoidTolls: (Boolean) -> Unit = {},
-        avoidFerries: Boolean = false,
-        onSetAvoidFerries: (Boolean) -> Unit = {},
-        avoidUnpaved: Boolean = false,
-        onSetAvoidUnpaved: (Boolean) -> Unit = {},
         // The long-press timeout row: overridable so a case can assert that the configured value
         // is what the slider shows and that a move is reported back (spec: location-options-ui —
         // Long-press timeout control).
@@ -92,24 +80,8 @@ class LocationOptionsOverlayComposeTest {
     ) {
         composeRule.setContent {
             LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
                 longPressTimeoutMs = longPressTimeoutMs,
                 onSetLongPressTimeoutMs = onSetLongPressTimeoutMs,
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                carMaxSpeedKmh = carMaxSpeedKmh,
-                onSetCarMaxSpeed = onSetCarMaxSpeed,
-                bicycleMaxSpeedKmh = bicycleMaxSpeedKmh,
-                onSetBicycleMaxSpeed = onSetBicycleMaxSpeed,
-                footMaxSpeedKmh = footMaxSpeedKmh,
-                onSetFootMaxSpeed = onSetFootMaxSpeed,
-                avoidTolls = avoidTolls,
-                onSetAvoidTolls = onSetAvoidTolls,
-                avoidFerries = avoidFerries,
-                onSetAvoidFerries = onSetAvoidFerries,
-                avoidUnpaved = avoidUnpaved,
-                onSetAvoidUnpaved = onSetAvoidUnpaved,
                 mode = mode,
                 availableStyles = styles,
                 styleSheet = "standard",
@@ -165,24 +137,8 @@ class LocationOptionsOverlayComposeTest {
         var reported: AmbientLightSensitivity? = null
         composeRule.setContent {
             LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
                 longPressTimeoutMs = 500,
                 onSetLongPressTimeoutMs = {},
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 ambientLightSensitivity = AmbientLightSensitivity.OFF,
                 onSetAmbientLightSensitivity = { reported = it }
@@ -206,24 +162,8 @@ class LocationOptionsOverlayComposeTest {
     fun ambientSensitivityReflectsState() {
         composeRule.setContent {
             LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
                 longPressTimeoutMs = 500,
                 onSetLongPressTimeoutMs = {},
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 ambientLightSensitivity = AmbientLightSensitivity.MEDIUM,
                 onSetAmbientLightSensitivity = {}
@@ -318,24 +258,8 @@ class LocationOptionsOverlayComposeTest {
         var reported: Int? = null
         composeRule.setContent {
             LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
                 longPressTimeoutMs = 500,
                 onSetLongPressTimeoutMs = {},
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 20,
                 onSetOverspeedWarningDelta = { reported = it }
@@ -353,145 +277,6 @@ class LocationOptionsOverlayComposeTest {
         composeRule.waitForIdle()
 
         assertEquals(0, reported)
-    }
-
-    @Test
-    fun anchorRowsShowCurrentPresets() {
-        composeRule.setContent {
-            LocationOptionsOverlay(
-                onSetRoutingAnchor = {},
-                longPressTimeoutMs = 500,
-                onSetLongPressTimeoutMs = {},
-                onSetFreeDrivingAnchor = {},
-                mode = MapMode.NAVIGATION,
-                routingAnchor = VehicleAnchorPosition.BOTTOM_RIGHT,
-                freeDrivingAnchor = VehicleAnchorPosition.TOP_CENTER,
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
-            )
-        }
-        composeRule.onNodeWithContentDescription("Location options").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Vehicle position (navigation)").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Bottom right").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Vehicle position (free driving)").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Top center").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun anchorPickerOffersTheFiveByThreeGridWithCurrentMarked() {
-        var selected: VehicleAnchorPosition? = null
-        composeRule.setContent {
-            LocationOptionsOverlay(
-                longPressTimeoutMs = 500,
-                onSetLongPressTimeoutMs = {},
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                mode = MapMode.NAVIGATION,
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = { selected = it },
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
-            )
-        }
-        composeRule.onNodeWithContentDescription("Location options").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Vehicle position (navigation)").performScrollTo().performClick()
-        composeRule.waitForIdle()
-
-        // All 15 presets appear with the shared enum labels (label parity with
-        // the Android Auto picker, spec: location-options-ui — Picker labels
-        // match Android Auto). Each is a clickable cell inside the dialog and
-        // displayed: weighted cells share the dialog width as five equal
-        // columns (regression: fixed 76.dp cells overflowed the AlertDialog
-        // content width on phones, clipping the grid to a ragged ~3-4 columns).
-        for (anchor in VehicleAnchorPosition.entries) {
-            val cell = composeRule.onAllNodes(
-                hasAnyAncestor(isDialog()) and hasText(anchor.label) and hasClickAction()
-            ).onFirst()
-            cell.performScrollTo().assertIsDisplayed()
-        }
-
-        // Picking replaces the current anchor and reports the selection.
-        composeRule.onNodeWithText(VehicleAnchorPosition.BOTTOM_LEFT.label).performClick()
-        composeRule.waitForIdle()
-        assertEquals(VehicleAnchorPosition.BOTTOM_LEFT, selected)
-    }
-
-    @Test
-    fun anchorPickerFreeDrivingReportsSelection() {
-        var selected: VehicleAnchorPosition? = null
-        composeRule.setContent {
-            LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
-                longPressTimeoutMs = 500,
-                onSetLongPressTimeoutMs = {},
-                mode = MapMode.FREE_DRIVE,
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = { selected = it },
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
-            )
-        }
-        composeRule.onNodeWithContentDescription("Location options").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Vehicle position (free driving)").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText(VehicleAnchorPosition.BOTTOM_CENTER.label).performClick()
-        composeRule.waitForIdle()
-        assertEquals(VehicleAnchorPosition.BOTTOM_CENTER, selected)
-    }
-
-    // --- Usual maximum speed per vehicle (spec: location-options-ui — Vehicle maximum speed
-    // sliders in the options sheet) ---
-
-    /** All three sliders, scrolled into view: the sheet's content scrolls. */
-    private fun assertMaxSpeedSlidersVisible() {
-        composeRule.onNodeWithText("Routing speed").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("carMaxSpeedSlider").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("bicycleMaxSpeedSlider").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("footMaxSpeedSlider").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun threeMaximumSpeedSlidersAreShown() {
-        openSheet()
-
-        assertMaxSpeedSlidersVisible()
     }
 
     /**
@@ -537,163 +322,6 @@ class LocationOptionsOverlayComposeTest {
         assertEquals(true, gps)
     }
 
-    /** Spec: `routing-avoidance` — the sheet shows the switches, reflecting the stored values. */
-    @Test
-    fun theAvoidanceSwitchesAreShownAndReportAGesture() {
-        var ferries: Boolean? = null
-
-        openSheet(
-            avoidTolls = true,
-            onSetAvoidFerries = { ferries = it }
-        )
-
-        for (tag in listOf("avoidTollsSwitch", "avoidFerriesSwitch", "avoidUnpavedSwitch")) {
-            composeRule.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
-        }
-
-        // A stored value is what the switch shows: a row that rendered its default would fail here.
-        composeRule.onNodeWithTag("avoidTollsSwitch")
-            .onChildren()
-            .filterToOne(isToggleable())
-            .assertIsOn()
-        composeRule.onNodeWithTag("avoidUnpavedSwitch")
-            .onChildren()
-            .filterToOne(isToggleable())
-            .assertIsOff()
-
-        composeRule.onNodeWithTag("avoidFerriesSwitch")
-            .onChildren()
-            .filterToOne(isToggleable())
-            .performClick()
-
-        assertEquals(true, ferries)
-    }
-
-    @Test
-    fun theRangesAreTheOnesTheSheetOffers() {
-        // The bounds the spec names, written out here: `eachSliderCoversEveryWholeValueOfItsRange`
-        // reads the table, so it moves with a change to it and cannot catch one. This case can.
-        // (spec: location-options-ui — Each slider covers its vehicle's full range).
-        assertEquals(30, MaxSpeedRange.CAR.minKmh)
-        assertEquals(160, MaxSpeedRange.CAR.maxKmh)
-        assertEquals(5, MaxSpeedRange.BICYCLE.minKmh)
-        assertEquals(40, MaxSpeedRange.BICYCLE.maxKmh)
-        assertEquals(2, MaxSpeedRange.FOOT.minKmh)
-        assertEquals(15, MaxSpeedRange.FOOT.maxKmh)
-    }
-
-    @Test
-    fun slidersShowTheStoredValues() {
-        openSheet(carMaxSpeedKmh = 90, bicycleMaxSpeedKmh = 20, footMaxSpeedKmh = 4)
-
-        // The value is read from the state, not from a default: a stored value is what the user sees
-        // (spec: location-options-ui — Values are readable from the sheet).
-        composeRule.onNodeWithText("90 km/h").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("20 km/h").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("4 km/h").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun slidersAreReachableInBrowse() {
-        openSheet(mode = MapMode.BROWSE)
-
-        assertMaxSpeedSlidersVisible()
-    }
-
-    @Test
-    fun slidersAreReachableInFreeDrive() {
-        openSheet(mode = MapMode.FREE_DRIVE)
-
-        assertMaxSpeedSlidersVisible()
-    }
-
-    @Test
-    fun slidersAreReachableInNavigation() {
-        openSheet(mode = MapMode.NAVIGATION)
-
-        assertMaxSpeedSlidersVisible()
-    }
-
-    @Test
-    fun eachSliderCoversEveryWholeValueOfItsRange() {
-        val reported = mutableMapOf<String, MutableList<Int>>()
-        composeRule.setContent {
-            LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
-                longPressTimeoutMs = 500,
-                onSetLongPressTimeoutMs = {},
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                // Start away from both bounds: a slider does not report a value it already holds,
-                // so a bound could not be observed from it.
-                carMaxSpeedKmh = MaxSpeedRange.CAR.midKmh,
-                onSetCarMaxSpeed = { reported.getOrPut("car") { mutableListOf() }.add(it) },
-                bicycleMaxSpeedKmh = MaxSpeedRange.BICYCLE.midKmh,
-                onSetBicycleMaxSpeed = { reported.getOrPut("bicycle") { mutableListOf() }.add(it) },
-                footMaxSpeedKmh = MaxSpeedRange.FOOT.midKmh,
-                onSetFootMaxSpeed = { reported.getOrPut("foot") { mutableListOf() }.add(it) },
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
-                mode = MapMode.BROWSE
-            )
-        }
-        composeRule.onNodeWithContentDescription("Location options").performClick()
-        composeRule.waitForIdle()
-
-        for ((key, tag, range) in listOf(
-            Triple("car", "carMaxSpeedSlider", MaxSpeedRange.CAR),
-            Triple("bicycle", "bicycleMaxSpeedSlider", MaxSpeedRange.BICYCLE),
-            Triple("foot", "footMaxSpeedSlider", MaxSpeedRange.FOOT)
-        )) {
-            // The ends of the track are the ends of the range: the left edge reports the lower
-            // bound, the right edge the upper one. Exact, so the bound is not inferred from a
-            // drag's stopping point.
-            composeRule.onNodeWithTag(tag)
-                .performScrollTo()
-                .performTouchInput { click(Offset(centerLeft.x + 1f, center.y)) }
-            composeRule.waitForIdle()
-            assertEquals(
-                "$key left edge selects the lower bound",
-                range.minKmh,
-                reported[key]!!.last()
-            )
-
-            composeRule.onNodeWithTag(tag)
-                .performScrollTo()
-                .performTouchInput { click(Offset(centerRight.x - 1f, center.y)) }
-            composeRule.waitForIdle()
-            assertEquals(
-                "$key right edge selects the upper bound",
-                range.maxKmh,
-                reported[key]!!.last()
-            )
-
-            // A drag across the track reports whole km/h values, all inside the range (1 km/h
-            // precision, no coarser step) and spanning most of it.
-            composeRule.onNodeWithTag(tag)
-                .performScrollTo()
-                .performTouchInput { swipe(centerLeft, centerRight, durationMillis = 400) }
-            composeRule.waitForIdle()
-
-            val dragged = reported[key].orEmpty()
-            assertTrue("$key slider must report values while dragged", dragged.isNotEmpty())
-            assertTrue(
-                "$key reports only whole km/h inside ${range.minKmh}..${range.maxKmh}: $dragged",
-                dragged.all { it in range.minKmh..range.maxKmh }
-            )
-            val span = range.maxKmh - range.minKmh
-            assertTrue(
-                "$key drag spans most of its range (was ${dragged.max() - dragged.min()} of $span)",
-                dragged.max() - dragged.min() >= span * 4 / 5
-            )
-        }
-    }
-
     /**
      * The long-press timeout row, scrolled into view: the sheet's content scrolls, and the
      * requirement is that the control renders in every mode, not only where it was added
@@ -735,24 +363,8 @@ class LocationOptionsOverlayComposeTest {
         val reported = mutableListOf<Int>()
         composeRule.setContent {
             LocationOptionsOverlay(
-                routingAnchor = VehicleAnchorPosition.CENTER,
-                onSetRoutingAnchor = {},
                 longPressTimeoutMs = 500,
                 onSetLongPressTimeoutMs = { reported.add(it) },
-                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
-                onSetFreeDrivingAnchor = {},
-                carMaxSpeedKmh = 120,
-                onSetCarMaxSpeed = {},
-                bicycleMaxSpeedKmh = 15,
-                onSetBicycleMaxSpeed = {},
-                footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {},
-                avoidTolls = false,
-                onSetAvoidTolls = {},
-                avoidFerries = false,
-                onSetAvoidFerries = {},
-                avoidUnpaved = false,
-                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 availableStyles = listOf("standard"),
                 styleSheet = "standard",

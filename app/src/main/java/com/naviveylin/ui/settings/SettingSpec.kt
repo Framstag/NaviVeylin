@@ -35,7 +35,14 @@ data class SettingChoice(
      * is its stylesheet's file name without the postfix (spec: `map-styles` — "Style display name is
      * file name without postfix"), so a style option shows its key rather than a translated string.
      */
-    @param:StringRes val labelRes: Int? = null
+    @param:StringRes val labelRes: Int? = null,
+    /**
+     * The option's text when the value carries it: the vehicle anchors' labels come from
+     * [com.naviveylin.core.VehicleAnchorPosition.label], the same source the car's picker reads, so
+     * the two pickers cannot drift (spec: `settings-surface` — "The phone edits the settings Android
+     * Auto owns").
+     */
+    val label: String? = null
 )
 
 /** Where a [SettingControl.LINK] row sends the user (design D1: a link row's target). */
@@ -57,8 +64,12 @@ sealed interface SettingControlPayload {
     /** The ≤ 4 inline options of a [SettingControl.CHOICE] row. */
     data class Choice(val choices: List<SettingChoice>) : SettingControlPayload
 
-    /** The options a [SettingControl.SELECT] row lists on its own sub-surface. */
-    data class Select(val choices: List<SettingChoice>) : SettingControlPayload
+    /**
+     * The options a [SettingControl.SELECT] row lists on its own sub-surface, in [columns] columns:
+     * one is a list, five reproduces the vehicle anchors' 5×3 grid (design D5; spec:
+     * `settings-surface` — "A finite value set is presented as options, never only by cycling").
+     */
+    data class Select(val choices: List<SettingChoice>, val columns: Int = 1) : SettingControlPayload
 }
 
 /**

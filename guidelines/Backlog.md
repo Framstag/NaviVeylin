@@ -110,8 +110,10 @@ the decision verdict, or when this run recorded a child of it cut at a bound —
 175.0 Mtok on two containers that closed nothing, one of them on a single child a bound ended). The verdict writes
 nothing to the tracker, for the reason `blocked` writes nothing: the label or the record it names is already visible
 where the refusal read it. It clears itself — the decision arm on the first run whose labels say no decision stands,
-the bound arm with the run that recorded the cut — and a container with two workable children is screened as before,
-because the rule is about a container with nothing left that can close and not about a second slot beside work.
+the bound arm with the run that recorded the cut — and the bound arm is one slot per container per run: once this
+run recorded a child of a container cut at a bound, a later screen of the same run refuses any further child of that
+container, so a container with two workable children is screened as before only while no child of it has been cut
+this run.
 
 **Rule: a container's child carries a type of its own.** GitHub groups a container's sub-issues by type, so a child
 that carries none does not appear under its container at all — nine children of a finished epic read as an empty epic

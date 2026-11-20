@@ -3168,6 +3168,10 @@ from the verdict the round recorded, never from the round count alone — and th
 maximum, from the state it already reads, and SHALL print the share of its landings that reddened `main` from the
 score the state records for each landing, never from the tracker (issues #247, #709).
 
+It SHALL also name, beside that share, how many of the run's review rounds were handed a part the run's own input
+cap cut — read from the scale the round's record carries (`metrics.reviewInput`) — so that a round which decided on
+the head of its diff is not counted as a round that read all of it (issue #936).
+
 It SHALL also state the two figures the state holds and no line printed: the gate share of the items' own wall —
 each item's recorded gate bucket divided by its own recorded wall, in tenths, with the worst two items named — and the
 window that lies outside every item, taken from the run's recorded start and stop and given as the time and the share
@@ -3208,6 +3212,16 @@ run then blocked carries the same count as one whose round 1 passed.
   `reviewRounds` 0
 - **THEN** that item is counted as never reviewed and is not in the denominator of the round-1 pass rate
 - **Case**: `report#trendFiguresFromState`
+
+#### Scenario: A round the input cap cut is counted beside the rate
+
+- **WHEN** a run's report is printed for a state whose items record the scale the input cap cut from their round
+  (`metrics.reviewInput`, written by `state.sh done --review-input`) on some rounds and nothing on others
+- **THEN** the `review:` line prints the round-1 pass rate with the number of items whose round was handed a cut
+  part in parentheses after it — `3/3 first rounds passed (2 truncated)` — beside the undecided and never-reviewed
+  buckets it already printed, and a run no cap cut prints the rate with no parenthetical at all, because an empty
+  record is no cut and a `0` there would be a measurement nobody made
+- **Case**: `report#aCutRoundIsCountedBesideTheRate`
 
 #### Scenario: A figure nobody measured prints as absent, not as zero
 

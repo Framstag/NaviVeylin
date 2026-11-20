@@ -1,0 +1,8 @@
+LOOP-VERDICT: closed
+LOOP-CHANGE: fix-demo
+LOOP-ROOT-CAUSE: the fixture has exactly one cause
+LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)
+LOOP-GATE: tests=1 failures=0 (fixture)
+LOOP-PROBE-SWEEP: attribution_ms=6194 sweep_ms=16125 procs=1010
+LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: ?? demo-owned.txt — read while the child was alive at 2026-11-17T11:28:52Z
+LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none

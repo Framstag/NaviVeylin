@@ -1,0 +1,6 @@
+# The case at a pool of forty instances, on the tree before the fix (HEAD 7ecab8e6)
+# command: for each instance, bash tools/loop/tests/loop-selftest.sh --case run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+dir: scratch/head-pool40
+result: 0 passed, 40 failed of 40 instances
+run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 2354316 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none
+  the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 2354316 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none

@@ -1,0 +1,217 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+  24| # Usage: evidence-check.sh <change-dir> [--table <file>] [--root .] [--conf <file>] [--scan <paths>]
+  25| #                           [--xml-dir <path>] [--selftest]
+  26| #   --scan / --xml-dir override the two values the project's configuration names, for a tree that is not this one.
+  27| set -euo pipefail
+  28| 
+  29| usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; }
+  30| 
+  31| # The recorded `§ → issue` table: the migration wrote it into its change directory, and archiving moved that
+  32| # directory under `openspec/changes/archive/`. Either location is the same record.
+  33| find_table() {
+  34|   local root="$1" candidate
+  35|   for candidate in "$root"/openspec/changes/*/import-evidence.md "$root"/openspec/changes/archive/*/import-evidence.md; do
+  36|     [ -f "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
+  37|   done
+  38|   return 1
+  39| }
+  40| 
+  41| # One key's value from a project configuration, read and never sourced — the same rule `loop_tmp_dir_for` follows
+  42| # (`tools/loop/lib.sh`): a check looks at a tree, it does not run that tree's configuration.
+  43| conf_value() { # <conf> <KEY>
+  44|   sed -n "s/^${2}=\"\\([^\"]*\\)\"[[:space:]]*$/\\1/p" "$1" | tail -1
+  45| }
+  46| 
+  47| SELFTEST_TMP=""
+  48| trap 'if [ -n "$SELFTEST_TMP" ]; then rm -rf "$SELFTEST_TMP"; fi' EXIT
+  49| 
+  50| run_checks() { # <change> <root> <table> <scan-paths> <xml-dir>
+  51|   local change="$1" root="$2" table="$3" scan_paths="$4" xml_dir="$5"
+  52|   local fails=0 warns=0
+  53|   [ -d "$change" ] || { echo "FAIL change dir not found: $change"; return 1; }
+  54|   [ -f "$table" ] || { echo "FAIL reference table not found: $table"; return 1; }
+  55| 
+  56|   local mds
+  57|   mds=$(find "$change" -name '*.md' -type f | sort)
+  58|   [ -n "$mds" ] || { echo "FAIL no markdown artifacts under $change"; return 1; }
+  59| 
+  60|   local mode="live"
+  61|   case "$change" in */openspec/changes/archive/*) mo
+[LOOP-REPEAT-EDIT: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/evidence-check.sh changed since turn 15; the first 2000 of 3753 characters are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+3 matches in 1F:
+
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-the-outside-write-reading-is-one-walk-not-one-process/design.md (3):
+  94- 
+  95- One guideline section states the reading's cost and its walk, and this change updates it in the same pass:
+  96: `guidelines/Backlog.recipes.md` §7a's paragraph carried the mechanism this diff replaces — a `readlink` for every
+  97- process on the host, 1.0 s for 731 with #288's measurement, the writer gone by the reading's end — and now states
+  98- the tree's own: one `find` pass, 163–428 ms for 821–966 processes
+  99- (`.pi/issue-loop/items/950/reader-cost-at-pool40.txt`). `guidelines/Backlog.md` section 7 indexes the loop's
+  100- procedure, and `guidelines/Backlog.recipes.md` sections 7a–7e carry the child, the bounds, the gate, the refusals
+  101: and the leftovers — the sweep and its cost are named in §7a, and §7b names `loop_pids_under` as the cap's
+  102: leftover test. The requirement that owns this rule is the spec's, so the delta below and that §7a paragraph are
+  103- the whole of the documentation this change owes.
+
+Compressed 628 → 330 tokens (-47%)
+patched design.md: 103 lines (+1 -1)
+
+patched design.md: 103 lines (+2 -2)
+exit=0
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 1 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 314 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  agent-issue-loop: update
+Applying changes to openspec/specs/agent-issue-loop/spec.md:
+  ~ 1 modified
+Totals: + 0, ~ 1, - 0, → 0
+Specs updated successfully.
+Change 'fix-the-outside-write-reading-is-one-walk-not-one-process' archived as '2026-11-19-fix-the-outside-write-reading-is-one-walk-not-one-process'.
+exit=0
+openspec/changes/archive/2026-11-19-fix-the-outside-write-reading-is-one-walk-not-one-process
+a-case-name-resolves-to-one-harness
+archive
+loop-protocol-core-in-java
+run-event-stream-is-typed
+run-sh-is-split-along-the-stream
+2897:The reader that names the processes standing in a tree SHALL answer with one walk of `/proc` rather than a call per
+1
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+started pid=2842925
+LOOP-GATE-BASE: 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 (from the base branch main)
+LOOP-GATE-TREE: head=a194b2d9c6c6968b27d1c39ef293926610b0b2c3 diff=b7f2154c94f4295b
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=2842925
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS census#theCensusRefusesNothing
+PASS run#childPastItsContextBoundIsCut
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+PASS run#aCloseOverARedGateIsWaivedOrBlocked
+PASS run#aWorkerAtTheCheckpointWithNoWorkRunsOn
+PASS run#aWorkerBelowItsCheckpointIsNotSplit
+PASS run#aContextCutWorkerIsContinuedByItsOwnRun
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+PASS census#aRunDoesNotConsultTheCensus
+PASS run#aCutWhosePatchDoesNotApplyIsLeftCut
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+PASS run#aCutRunsItsGateOnTheKeptWork
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS run#theQuotaSwitchIsExplicit
+PASS run#eachRoleIsBoundedByItsOwnContext
+loop-selftest: state 38 cases 423.10 s
+loop-selftest: prescreen 42 cases 298.36 s
+loop-selftest: worktree 28 cases 240.09 s
+loop-selftest: evidence 1 cases 0.45 s
+loop-selftest: prompt 22 cases 602.30 s
+loop-selftest: run 166 cases 4757.94 s
+loop-selftest: clean 14 cases 164.83 s
+loop-selftest: labels 9 cases 122.54 s
+loop-selftest: gate 42 cases 91.43 s
+loop-selftest: driver 36 cases 132.85 s
+loop-selftest: mutation 3 cases 16.26 s
+loop-selftest: measure 5 cases 5.61 s
+loop-selftest: adapter 12 cases 9.52 s
+loop-selftest: trim 3 cases 1.00 s
+loop-selftest: look 3 cases 1.50 s
+loop-selftest: policy 1 cases 2.08 s
+loop-selftest: report 43 cases 285.61 s
+loop-selftest: usage 4 cases 1.40 s
+loop-selftest: phase 3 cases 6.58 s
+loop-selftest: repeat 8 cases 4.94 s
+loop-selftest: census 8 cases 10.88 s
+loop-selftest: 1 of 491 cases failed — 508.49 s
+gate: tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 — 509s
+LOOP-GATE-BASERED-MEASURE:tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 — measuring this step on 0b62e579692b in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+1115:FAIL run#childUsageIsRecordedPerItem
+---
+1115:FAIL run#childUsageIsRecordedPerItem
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+  landing #21 c39f9b4e5abf88f30ab5c964f06e5b3dc9d7f15c: unscored — the pipeline runs of this commit could not be read
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+  every child of the item is counted, in one number: the gate child, the tail child and the reviewer: expected '6', got '8'
+FAIL run#childUsageIsRecordedPerItem
+PASS report#aRolesTokensRecordTheModelThatAnswered
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OTEK94/cases/4/tree/case.2l33Us/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (5c22d53f2e71c979 → 273e9f5c4c22ca99); a field was edited outside this script
+PASS report#aCallThatNamesTheGateIsNotAGateRun
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OTEK94/cases/4/tree/case.2l33Us/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (5c22d53f2e71c979 → 273e9f5c4c22ca99); a field was edited outside this script
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+PASS report#aCheckTheGateWouldRunIsTheGateTime
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS run#eachRoleIsBoundedByItsOwnContext
+loop-selftest: state 38 cases 423.10 s
+loop-selftest: prescreen 42 cases 298.36 s
+loop-selftest: worktree 28 cases 240.09 s
+loop-selftest: evidence 1 cases 0.45 s
+loop-selftest: prompt 22 cases 602.30 s
+loop-selftest: run 166 cases 4757.94 s
+loop-selftest: clean 14 cases 164.83 s
+loop-selftest: labels 9 cases 122.54 s
+loop-selftest: gate 42 cases 91.43 s
+loop-selftest: driver 36 cases 132.85 s
+loop-selftest: mutation 3 cases 16.26 s
+loop-selftest: measure 5 cases 5.61 s
+loop-selftest: adapter 12 cases 9.52 s
+loop-selftest: trim 3 cases 1.00 s
+loop-selftest: look 3 cases 1.50 s
+loop-selftest: policy 1 cases 2.08 s
+loop-selftest: report 43 cases 285.61 s
+loop-selftest: usage 4 cases 1.40 s
+loop-selftest: phase 3 cases 6.58 s
+loop-selftest: repeat 8 cases 4.94 s
+loop-selftest: census 8 cases 10.88 s
+loop-selftest: 1 of 491 cases failed — 508.49 s
+gate: tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 — 509s
+LOOP-GATE-BASERED-MEASURE:tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 — measuring this step on 0b62e579692b in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list — 0s
+gate-pool: 2 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+# tools/issues/tests/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
+D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
+D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
+D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1209 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 13s, tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 509s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/loop/tests/loop-mutations-selftest.sh 120s, bash tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 31s, tools/tests/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 131s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9
+
+# the gate child's own closing answer
+Gate finished — tally in log. Report:
+
+**Phase E complete:**
+- **Findings applied (all, one pass):** BLOCKING — `guidelines/Backlog.recipes.md` section 7a paragraph rewritten to tree's own mechanism/measurement/reason (`find` one pass, 163–428 ms for 821–966 procs, order #288 fixed still holds); `design.md` "No guideline section states…" corrected — section 7a now named among documents owed. NOTEs — `tools/loop/lib.sh:720` figure attribution corrected (12 206–14 968 ms readlink, 16 125 ms whole sweep, 6 194 ms child tree); `run.sh` `pid_ppid` redirections reordered so diagnostic reaches stderr; `run.sh` "same one pass" comment → one pass per reader; `proposal.md` "no second reading of the same fact" → one walk per reader; `tasks.md` 4.1 unsupported `--check … 150` claim dropped; `tasks.md` 5.2/6.1 + `worker-report.md` claims now cite records (`openspec-validate.txt` "is valid", `bash-n.txt` exit=0, `evidence-check.log` PASS); `pool-fix-40-0b62e579.txt` wording points at the assertion, not kept transcripts; `scratch/probe-head/full-2733415.txt` copied into change `evidence/` + item dir. No finding left unapplied.
+- **Records produced:** `bash-n.txt` (exit=0), `openspec-validate.txt` (valid), `evidence-check.log` (**PASS**, 2nd run after §7a→"section 7a" fix — `§7` tokens had no table row).
+- **Archived:** `openspec/changes/archive/2026-11-19-fix-the-outside-write-reading-is-one-walk-not-one-process/`, `openspec archive --yes` merged requirement into `openspec/specs/agent-issue-loop/spec.md:2897` + new scenario.
+- **Gate:** started detached (nohup refused, `&` kept), polled to tally. Failing step = base-red measurement `--from-git 0b62e579`, case `run#childUsageIsRecordedPerItem` (`expected '6', got '8'`). Not repaired — evidence, not retry.
+
+```
+LOOP-CHANGE: fix-the-outside-write-reading-is-one-walk-not-one-process
+LOOP-ROOT-CAUSE: `loop_pids_under` (`tools/loop/lib.sh:717`) answered "who stands in this tree" with one `readlink` per host process (12 206–14 968 ms at a pool of forty) and `outside_write_seen` (`tools/loop/run.sh:1611`) prints `LOOP-OUTSIDE-WRITE-ALIVE:` from that walk after the child's tree is read, so the field reports the moment the walk ended — twelve to fifteen seconds after the difference, when the eight-second writer had already exited — and prints `(none)`.
+LOOP-RED-TEST: run#theWorkersOwnShellWriteIsRecordedAndNotPlaced fails on HEAD — tests=40 failures=40 (pool of forty instances at base 0b62e579, 2026-11-19T00:33:31Z→00:36:11Z; no JUnit XML — the suite prints PASS/FAIL lines, `.pi/issue-loop/items/950/pool-HEAD-40-0b62e579.txt`, instance logs `.pi/issue-loop/items/950/scratch/red2-pool40`; every instance on `LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none`)
+LOOP-GATE: tests=1209 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 13s, tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9 509s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/loop/tests/loop-mutations-selftest.sh 120s, tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 31s, tools/tests/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 131s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 0b62e579692b2a3b1e02382c191f2d67ca0dfad9
+```

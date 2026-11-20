@@ -1,0 +1,12 @@
+# The same case at the same pool of forty instances, on the tree this change leaves (base 0b62e579 + the change,
+# uncommitted). Same command, same host, same window discipline as pool-HEAD-40-0b62e579.txt.
+# command, from the change root (one instance per line, forty in parallel):
+#   bash tools/loop/tests/loop-selftest.sh --case run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+run 1: 2026-11-19T00:38:35Z → 2026-11-19T00:40:41Z — dir: .pi/issue-loop/items/950/scratch/fix3-pool40
+       40 passed, 0 failed of 40 instances
+run 2: 2026-11-19T00:40:44Z → 2026-11-19T00:42:50Z — dir: .pi/issue-loop/items/950/scratch/cost-pool40
+       40 passed, 0 failed of 40 instances
+# the case's new assertion is what holds the reading to its own cost: one
+# `LOOP-OUTSIDE-WRITE-COST: procs=<n> attributed_ms=<n> standers_ms=<n>` line in the transcript
+# (`assert_line_count`, tools/loop/tests/loop-cases.sh) — asserted by all 80 PASS lines of the two runs above; the
+# transcripts themselves were not kept.

@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 425 records (labels: 12.11)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.AdZTJs
+RED    12.11  run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem   (the child chain the run itself started in the project not being a writer)
+       2026-11-19T00:44:55Z — a difference the child's own standing shell did not make must not decide the item: expected 'done', got 'blocked'
+restore 12.11 run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from pool-HEAD-40-b63de90b-verified.txt (2026-11-20T12:41:14Z), which the pool wrote from one named --case per instance:
+     bash tools/loop/tests/loop-selftest.sh --case run#theWorkersOwnShellWriteIsRecordedAndNotPlaced  -  forty of them beside each other, which is
+     the pool the case fails at. A focused --case run writes no XML of its own; the gate tally belongs
+     to the gate child. -->
+<testsuite name="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced" tests="40" failures="39" errors="1" time="0.00" run="2026-11-20T12:41:14Z">
+  <testcase name="instance-10" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3330726 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-11" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3341961 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-12" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340177 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-13" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3330498 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-14" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3342691 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-15" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3335021 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-16" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3337041 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-17" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3339117 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-18" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3331390 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-19" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3339607 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-1" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3342923 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-20" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3344199 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-21" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3334842 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-22" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340934 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-23" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340174 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-24" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3337117 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-25" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3338125 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-26" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3343077 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-27" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3343412 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-28" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340932 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-29" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3341441 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-2" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3339653 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-30" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340705 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-31" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3332615 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-32" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340420 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-33" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3342642 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-34" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3342745 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-35" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340957 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-36" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3337233 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-37" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3331226 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-38" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3339240 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-39" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3331582 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-3" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3343508 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-40" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3332643 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-4" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3340068 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-5" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3338223 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-6" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3335083 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-7" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3342521 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <testcase name="instance-8" classname="run">
+    <error message="loop-selftest: could not read the JDK feature version from: openjdk version &quot;21.0.13&quot; 2026-10-20 LTS"/>
+  </testcase>
+  <testcase name="instance-9" classname="run">
+    <failure message="run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 3331518 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none"/>
+  </testcase>
+  <system-out>pool16: 40 instance(s) of run#theWorkersOwnShellWriteIsRecordedAndNotPlaced — 0 passed, 40 failed (2026-11-20T12:40:26Z)
+</system-out>
+</testsuite>

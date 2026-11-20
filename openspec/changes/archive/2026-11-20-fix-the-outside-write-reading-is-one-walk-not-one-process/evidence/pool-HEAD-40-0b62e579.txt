@@ -1,0 +1,11 @@
+# The case at a pool of forty instances, on the tree before this change (base 0b62e579, 2026-11-19)
+# command, from the change root (one instance per line, forty in parallel, all on one host):
+#   bash tools/loop/tests/loop-selftest.sh --case run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+# window: 2026-11-19T00:33:31Z → 2026-11-19T00:36:11Z
+dir: .pi/issue-loop/items/950/scratch/red2-pool40
+result: 0 passed, 40 failed of 40 instances
+# every instance failed on the same line, with the pid its own staged shell recorded:
+run#theWorkersOwnShellWriteIsRecordedAndNotPlaced|   the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 1586171 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none
+  the reading names the shell that wrote among the processes standing in the project — the shape was found: ' 1586171 ' not found in: LOOP-OUTSIDE-WRITE-ALIVE: (none) · attributed=none
+FAIL run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+loop-selftest: 1 of 1 cases failed

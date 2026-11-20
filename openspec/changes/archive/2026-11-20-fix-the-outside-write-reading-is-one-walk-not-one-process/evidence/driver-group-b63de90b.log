@@ -1,0 +1,7 @@
+2026-11-20T12:41:17Z
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#theCaseBoundScalesWithThePool
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+loop-selftest: driver 37 cases 60.59 s
+loop-selftest: all 37 cases passed (JDK 21, offline, no token, no sandbox) — 15.23 s, selection: --group driver

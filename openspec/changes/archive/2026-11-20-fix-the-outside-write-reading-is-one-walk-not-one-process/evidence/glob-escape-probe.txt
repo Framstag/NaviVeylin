@@ -1,0 +1,5 @@
+stood=349415
+raw_pattern=(none)
+escaped_pattern=/proc/349415/cwd
+loop_pids_under=349415 
+escaped_pattern_text=/tmp/probe-950.szQ3Av/a\[1\]\*x

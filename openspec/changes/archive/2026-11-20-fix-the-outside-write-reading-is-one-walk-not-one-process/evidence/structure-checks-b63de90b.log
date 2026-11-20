@@ -1,0 +1,16 @@
+== plan first lines
+tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+tools/loop/tests/loop-selftest.sh --from-git b63de90b1b413cd7fe9b0452ee95f54c1f55c8eb
+bash tools/loop/tests/loop-mutations.sh --check
+tools/loop/tests/loop-mutations-selftest.sh
+tools/check-doc-values.sh
+tools/tests/check-doc-values-selftest.sh
+tools/check-doc-routes.sh
+tools/tests/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
+tools/check-portability.sh
+tools/tests/check-portability-selftest.sh
+== driver declaration case
+2026-11-20T12:35:56Z
+PASS driver#everyCaseDeclaresTheFilesItCanReach

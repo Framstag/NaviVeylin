@@ -1,0 +1,3 @@
+# openspec validate fix-the-outside-write-reading-is-one-walk-not-one-process --strict (tasks.md 5.2)
+Change 'fix-the-outside-write-reading-is-one-walk-not-one-process' is valid
+exit=0

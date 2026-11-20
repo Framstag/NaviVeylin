@@ -319,7 +319,10 @@ What an item costs, and the floor it is refused by. Measured over the loop's run
 (gate 5–7 min, review 5–10, archive 5, and #138 took 65 because it needed a second review round), a gated-out skip
 10–15 min **with** the cheap-first rule and 20–25 without, a cold loop worktree's first build 11 min (a single test
 class is 1–3 min after that), a forced both-flavor gate 4m42s–6m41s — and that run overwrites the previous run's
-XML evidence, which is why a cited XML is copied into the change's `evidence/` — and one item 100 min
+XML evidence, which is why a cited XML is copied into the change's `evidence/`, and what a shell-gate change cannot
+copy by hand `end-item` copies for it: every XML under `LOOP_GATE_TALLY_DIR` goes into the archived change's
+`evidence/` when that evidence records no passing run (`tools/loop/worktree.sh`, `copy_gate_tally_into_evidence`),
+so the tally's green proof travels in the archive commit adoption reads (issue #979) — and one item 100 min
 (2026-10-19, #126: a worker phase of 83 min plus three review rounds, the item the constant floor could not pay
 for). The floor `state.sh next` refuses by is therefore not a constant: the **cheapest** of the run's own finished
 wall times × 1.5, rounded up — 1.5 being the spread the numbers above already show (65/45 inside the change range,

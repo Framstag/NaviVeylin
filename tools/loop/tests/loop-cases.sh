@@ -123,6 +123,7 @@ LOOP_SHELL_CASES=(
   'worktree#aMissingChangeRefusesTheItem'
   'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved'
   'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved'
+  'worktree#endItemCopiesTheGatesTallyIntoTheEvidence'
   'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
   'worktree#aTrackedEditStillBlocksTheMerge'
   'prescreen#aTierAItemPassesUnchanged'
@@ -910,6 +911,7 @@ loop_run_shell_case() {
     'worktree#aMissingChangeRefusesTheItem') fn=case_worktree_aMissingChangeRefusesTheItem ;;
     'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved') fn=case_worktree_aSetAsideBranchWhosePatchesLandedIsRemoved ;;
     'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved') fn=case_worktree_aSetAsideBranchThatCarriesWorkIsNamedNotRemoved ;;
+    'worktree#endItemCopiesTheGatesTallyIntoTheEvidence') fn=case_worktree_endItemCopiesTheGatesTallyIntoTheEvidence ;;
     'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
     'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
@@ -4231,6 +4233,52 @@ case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue() {
   assert_contains "$out" "adds no single archived change of its own" "the refusal names what the branch lacks"
   assert_not_contains "$out" "fix-foreign" "and it names no change the branch did not add"
   [ ! -f "$p/foreign.txt" ] || fail "another item's change was merged onto the base"
+}
+
+# The green proof of an item whose gate is a shell self-test is the tally that gate wrote and not a file the change's
+# evidence holds: the self-test prints console text, so the only passing testsuite is the XML under the gate's tally
+# directory. Copying it into the archive was the worker's own convention and nothing enforced it, so a worker that
+# cited its gate in prose left a red-only change: `carried_verification` read it as `archived-not-green`, and a
+# finished attempt parked as the owner's question although its gate passed (issue #979). `end-item` now copies the
+# tally into the change's evidence before it takes the archive commit adoption reads. The leg the item asks for is
+# this one: the change whose evidence carries the tally's XML reads as verified, while
+# `run#doesNotMergeAnAttemptWithoutAGreenVerification` keeps the other side.
+case_worktree_endItemCopiesTheGatesTallyIntoTheEvidence() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p w change out
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_state "$p" start 21 --change fix-demo >/dev/null || fail "the state did not name the item's change"
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  change="$w/openspec/changes/archive/2026-01-01-fix-demo"
+  mkdir -p "$change/evidence" "$w/app/build/test-results/loop-gate"
+  printf 'archived\n' > "$change/proposal.md"
+  # the red side the change carries, and the green side only the gate's tally holds — beside a tally file of the same
+  # name as the red one, which the copy must leave as it stands
+  printf '<testsuite tests="1" failures="1" errors="0"></testsuite>\n' > "$change/evidence/TEST-demo-red-on-HEAD.xml"
+  printf '<testsuite tests="780" failures="0" errors="0"></testsuite>\n' \
+    > "$w/app/build/test-results/loop-gate/TEST-demo-gate.xml"
+  printf '<testsuite tests="780" failures="0" errors="0"></testsuite>\n' \
+    > "$w/app/build/test-results/loop-gate/TEST-demo-red-on-HEAD.xml"
+  printf 'the fix\n' > "$w/demo-fix.txt"
+
+  out=$(run_worktree "$p" end-item 21 demo 2>&1) || fail "end-item failed: $out"
+  [ -f "$change/evidence/TEST-demo-gate.xml" ] ||
+    fail "the gate's tally was not copied into the archived change's evidence: $(ls "$change/evidence")"
+  grep -Eq 'failures="1"' "$change/evidence/TEST-demo-red-on-HEAD.xml" ||
+    fail "a file the evidence already holds is not replaced by a tally of the same name"
+  assert_eq "" "$(git -C "$w" status --porcelain)" "the copy travels in the run's own archive commit"
+  out=$(run_worktree "$p" branch-state 21 fix/issue-21-demo 2>&1)
+  assert_contains "$out" "adoptable" "a change whose evidence carries the gate's tally reads as verified"
+  assert_contains "$out" "TEST-demo-gate.xml" "and the verification the branch names is that XML"
+  # a change whose evidence already records a passing run is left as it stands: the second tally this gate writes
+  # must not be added to it
+  printf '<testsuite tests="9" failures="0" errors="0"></testsuite>\n' \
+    > "$w/app/build/test-results/loop-gate/TEST-demo-round2.xml"
+  out=$(run_worktree "$p" end-item 21 demo 2>&1) || fail "the second end-item failed: $out"
+  [ ! -f "$change/evidence/TEST-demo-round2.xml" ] ||
+    fail "a change whose evidence is already green had the tally added to it a second time"
 }
 
 case_worktree_refusesWhenMainAdvanced() {

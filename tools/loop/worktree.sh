@@ -430,6 +430,9 @@ cmd_end_item() {
   # Two commits, in the order the archive requires: the fix first, then the archive with its evidence.
   # The archive travels with the fix, but it is not the fix — a later revert of the fix must not have to
   # revert the record of why it was made.
+  # The gate's tally is copied in before either commit is taken (issue #979): the archive's evidence is what a later
+  # run's `carried_verification` reads, and the branch is the only place the tally survives the run that wrote it.
+  copy_gate_tally_into_evidence
   gitw add -A -- . ':(exclude)openspec/changes/archive' >&2
   # The identity is the run's own (design D1): git refuses a commit with nothing configured, and a fresh
   # runner or container has nothing, so relying on the machine would block the item on its own commit.
@@ -494,6 +497,68 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
   done <<< "$files"
   [ "$passed" -eq 1 ] || return 0
   printf '%s\n' "$files" | sed "s#^openspec/changes/archive/$change/evidence/##" | paste -sd, -
+}
+
+# The tally an item's own gate wrote is where a shell-gate change's green proof actually is (issue #979): each of the
+# gate's steps writes one JUnit XML under the profile's `LOOP_GATE_TALLY_DIR`, the run clears that directory before
+# every child and the gate clears it once more before its first step, and the module's build directory is gitignored —
+# so the XML is this item's and it is in no commit. A change that kept its green proof as console text therefore
+# carried the red side alone, and `carried_verification` above read it as `archived-not-green`: the owner's question
+# about a gate that had passed. The copy belongs to `end-item`, the step that takes the archive commit adoption reads
+# — a change directory written after the gate is a tree the gate never measured (issue #837). It is a copy and not a
+# widening of the predicate: a log line is easier to carry without the run that wrote it than a testsuite is.
+passing_xml_in() { # <directory> → the names of the XML that record a passing run, one per line
+  local dir="$1" f
+  for f in "$dir"/*.xml; do
+    [ -f "$f" ] || continue
+    grep -Eq 'tests="[1-9]' "$f" || continue
+    grep -Eq 'failures="0"' "$f" || continue
+    grep -Eq 'errors="[1-9]"' "$f" && continue
+    printf '%s\n' "${f##*/}"
+  done
+}
+
+# The archived change the run asked this item for: `run.sh` records the name it asked at the item's start
+# (`state.sh start <issue> --change <name>`), the archive prefixes that name with the date, and a correction round may
+# name the archived directory whole. No state, no name — the copy is then nothing to do, never a guess about the tree.
+item_change_dir() { # → the archived change directory this run's item was asked for, or nothing
+  local name dir
+  name=$(bash "$LOOP_DIR/state.sh" get current.change 2>/dev/null) || name=""
+  case "$name" in ''|null) return 0 ;; esac
+  if [ -d "$worktree/openspec/changes/archive/$name" ]; then
+    printf '%s\n' "$worktree/openspec/changes/archive/$name"
+    return 0
+  fi
+  dir=$(find "$worktree/openspec/changes/archive" -mindepth 1 -maxdepth 1 -type d -name "*-$name" 2>/dev/null | head -1)
+  [ -n "$dir" ] && printf '%s\n' "$dir"
+  return 0
+}
+
+# `end-item`'s own step: the change's evidence carries the gate's tally when it carries no green record of its own.
+# Best-effort about *finding* the change and the tally — an item the run never recorded, or a profile that names no
+# tally directory, is nothing to copy and never a change to the item's result — and a die only when the copy the
+# archive needs cannot be written, because a record that is silently thinner is the defect this exists for.
+copy_gate_tally_into_evidence() {
+  local dir tally src f copied=""
+  dir=$(item_change_dir)
+  [ -n "$dir" ] || return 0
+  [ -z "$(passing_xml_in "$dir/evidence")" ] || return 0
+  tally=$(loop_conf_value LOOP_GATE_TALLY_DIR)
+  case "$tally" in
+    '') return 0 ;;
+    /*) src="$tally" ;;
+    *) src="$worktree/$tally" ;;
+  esac
+  [ -d "$src" ] || return 0
+  mkdir -p "$dir/evidence" || loop_die "end-item: could not create $dir/evidence"
+  for f in "$src"/*.xml; do
+    [ -f "$f" ] || continue
+    [ -e "$dir/evidence/${f##*/}" ] && continue
+    cp -p -- "$f" "$dir/evidence/${f##*/}" || loop_die "end-item: could not copy ${f##*/} into $dir/evidence"
+    copied="$copied ${f##*/}"
+  done
+  [ -n "$copied" ] || return 0
+  printf "gate-tally: the gate's tally travelled with the archive —%s\n" "$copied"
 }
 
 # The reviewer's verdict is evidence, and the *round* is evidence too (#262): the answer alone cannot be told

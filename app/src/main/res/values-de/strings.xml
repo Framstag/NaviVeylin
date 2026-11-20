@@ -449,6 +449,11 @@
     <!-- Die Abschnittstitel der Themenseiten (Spezifikation: `settings-surface`). -->
     <string name="settings_section_speech">Sprache</string>
     <string name="settings_section_announcements">Hinweise</string>
+    <string name="settings_section_map_presentation">Darstellung</string>
+    <!-- Die Darstellungszeilen der Themenseite "Karte": der Kartenstil und die Symbol-statt-Icon-
+         Vorliebe, die festlegen, was der aktive Stil zeichnet. -->
+    <string name="settings_help_map_style">Jeder mitgelieferte Kartenstil, sofort auf die Karte angewendet.</string>
+    <string name="settings_help_poi_symbols">Zeichnet das Symbol eines Eintrags statt seines Icons, wo der Stil beides mitbringt.</string>
     <!-- Die Hinweiszeilen unter "Hinweise &amp; Sprache": der Schalter des Autos, die Kurz- und
          Langhilfen und die Endpunkte des Schiebereglers. -->
     <string name="settings_voice_guidance_car">Sprachführung (Android Auto)</string>

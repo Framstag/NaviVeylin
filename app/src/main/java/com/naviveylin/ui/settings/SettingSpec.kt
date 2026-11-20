@@ -30,7 +30,12 @@ enum class SettingControl {
 data class SettingChoice(
     /** The value as it is persisted, so a row never renames what the settings file holds. */
     val key: String,
-    @param:StringRes val labelRes: Int
+    /**
+     * The option's label, or null for a value that carries its own name: a map style's display name
+     * is its stylesheet's file name without the postfix (spec: `map-styles` — "Style display name is
+     * file name without postfix"), so a style option shows its key rather than a translated string.
+     */
+    @param:StringRes val labelRes: Int? = null
 )
 
 /** Where a [SettingControl.LINK] row sends the user (design D1: a link row's target). */

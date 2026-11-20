@@ -11,10 +11,13 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -41,6 +44,7 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AppSettings
 import com.naviveylin.data.AssetCopier
@@ -71,6 +75,7 @@ import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -209,8 +214,11 @@ class SettingsSurfaceTest {
         )
 
         composeRule.onNodeWithText("Copy").assertIsDisplayed()
-        val label = composeRule.onNodeWithText("Copy").getBoundsInRoot()
-        val help = composeRule.onNodeWithText("Cancel").getBoundsInRoot()
+        // A row is one control (its switch toggles from the whole row), so its merged node carries
+        // both texts and the same bounds: the two lines are measured on the unmerged tree, where
+        // each keeps its own place under the row's label.
+        val label = composeRule.onNodeWithText("Copy", useUnmergedTree = true).getBoundsInRoot()
+        val help = composeRule.onNodeWithText("Cancel", useUnmergedTree = true).getBoundsInRoot()
         assertTrue(
             "the help line must render beneath its label, label=$label help=$help",
             label.bottom <= help.top
@@ -650,6 +658,120 @@ class SettingsSurfaceTest {
         )
     }
 
+    // ---- the Karte topic's rows and the behaviour rules they follow (tasks.md 3.1, 3.5) ----
+
+    /**
+     * The map style row is a `SELECT`: its options live on a surface of their own, every bundled
+     * style is listed with the current one marked, and picking one writes the style the map loads
+     * (spec: `settings-surface` — "Map style opens a selection surface"; spec: `map-styles` — "All
+     * bundled styles are selectable"; tasks.md 3.1 `theStyleRowOpensItsSelectionSurface`).
+     */
+    @Test
+    fun theStyleRowOpensItsSelectionSurface() {
+        runBlocking { controller.load() }
+        launchSurface(topic = SettingsTopic.MAP)
+
+        // Nothing of the options is on screen until the row is selected: the row is a sub-surface,
+        // not an inline list.
+        composeRule.onNodeWithTag(SETTINGS_SELECT_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(SETTINGS_ROW_TAG_PREFIX + MAP_STYLE_ROW)
+            .performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SETTINGS_SELECT_TAG).assertIsDisplayed()
+        for (style in BundledMapStyles.USER_SELECTABLE) {
+            composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + style).assertExists()
+        }
+        // The basemap's internal stylesheet is not a user-selectable style, so it is not an option.
+        composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + BundledMapStyles.BASEMAP_STYLE_NAME)
+            .assertDoesNotExist()
+        composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + BundledMapStyles.DEFAULT_STYLE_NAME)
+            .assertIsSelected()
+        composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + "cycle")
+            .assertIsNotSelected()
+
+        composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + "cycle").performClick()
+        awaitStored { settings -> settings.styleSheet == "cycle" }
+
+        // Choosing writes the style and closes the options; the row now names the chosen style.
+        composeRule.onNodeWithTag(SETTINGS_SELECT_TAG).assertDoesNotExist()
+        composeRule.onNodeWithText("cycle").assertIsDisplayed()
+    }
+
+    /**
+     * A switch toggles from the whole row: the label is part of the control's target, not decoration
+     * beside a small toggle (design D5; tasks.md 3.5 `aSwitchTogglesFromTheWholeRow`).
+     */
+    @Test
+    fun aSwitchTogglesFromTheWholeRow() {
+        val section = SettingsSection(SettingsTopic.MAP, android.R.string.ok)
+        launchSurface(
+            root = listOf(
+                SettingsTopicTable(
+                    SettingsTopic.MAP,
+                    listOf(row(key = "poi", section = section))
+                )
+            ),
+            topic = SettingsTopic.MAP
+        )
+
+        switchOf("poi").assertIsOn()
+        composeRule.onNodeWithTag(SETTINGS_ROW_TAG_PREFIX + "poi").assertHasClickAction()
+
+        // The tap lands on the label column, not on the toggle: the row is the target.
+        composeRule.onNodeWithText(label(android.R.string.copy)).performClick()
+        awaitStored { settings -> !settings.keepScreenOn }
+
+        switchOf("poi").assertIsOff()
+    }
+
+    /**
+     * A change on the surface is written as it is made: there is no save action, and the value is in
+     * the settings file while the surface is still open, which is what makes it survive a restart
+     * (spec: `settings-surface` — "A change persists without a save action"; tasks.md 3.5
+     * `aChangePersistsWithoutASaveAction`).
+     */
+    @Test
+    fun aChangePersistsWithoutASaveAction() {
+        // The switch starts on, so the case makes the change the scenario names: POI symbols off —
+        // in the file before the map reads it on its start path.
+        runBlocking { SettingsStorage(context).save(AppSettings(preferSymbolPoiIcons = true)) }
+        val client = setUpMap()
+        composeRule.setContent {
+            SettingsSurfaceHost(
+                controller = viewModel.settingsController,
+                onOpenMapManager = { mapManagerOpened++ },
+                onOpenAbout = { aboutOpened++ }
+            )
+        }
+        composeRule.runOnIdle { viewModel.settingsController.openTopic(SettingsTopic.MAP) }
+        composeRule.waitForIdle()
+
+        switchOf(POI_SYMBOLS_ROW).performScrollTo().assertIsOn()
+        composeRule.onNodeWithText(label(R.string.prefer_symbol_icons)).performClick()
+        awaitStored { settings -> !settings.preferSymbolPoiIcons }
+
+        // One tap was the whole interaction, and the running map took it: the surface writes
+        // through the one writer, so the map follows the document as it is made (no save action,
+        // no restart).
+        assertFalse(
+            "the map's own state follows the surface as it is made",
+            viewModel.uiState.value.preferSymbolPoiIcons
+        )
+        assertEquals(
+            "the renderer is told the new value",
+            false,
+            client.preferSymbolIconsCalls.last()
+        )
+        // The row reads the document again and shows the new value, and the file holds it, which is
+        // what a restart loads.
+        switchOf(POI_SYMBOLS_ROW).assertIsOff()
+        assertFalse(
+            "a change on the surface is in the file with no save action",
+            runBlocking { SettingsStorage(context).load() }.preferSymbolPoiIcons
+        )
+    }
+
     // ---- fixtures ----
 
     private fun launchSurface(
@@ -724,6 +846,10 @@ class SettingsSurfaceTest {
 
         /** The overspeed warning delta the topic's slider edits. */
         const val OVERSPEED_ROW = "overspeed-warning"
+        /** The "Karte" topic's map style row: the `SELECT` whose options open on their own surface. */
+        const val MAP_STYLE_ROW = "map-style"
+        /** The "Karte" topic's POI-symbol switch: the row a change without a save action toggles. */
+        const val POI_SYMBOLS_ROW = "poi-symbols"
     }
 
     /** The map screen's own dependencies, as `MapLayerStackComposeTest` builds them. */

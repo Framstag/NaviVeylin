@@ -494,6 +494,11 @@
          under section titles). A topic's sections are named by the subject its rows share. -->
     <string name="settings_section_speech">Voice</string>
     <string name="settings_section_announcements">Announcements</string>
+    <string name="settings_section_map_presentation">Presentation</string>
+    <!-- The "Karte" topic's presentation rows (spec: `map-styles`): the style picker and the
+         symbol-versus-icon preference, which decide what the active style draws. -->
+    <string name="settings_help_map_style">Every style bundled with the app, applied as you pick it.</string>
+    <string name="settings_help_poi_symbols">Draws an entry\'s symbol instead of its icon where the style carries both.</string>
     <!-- The announcement rows of "Hinweise & Sprache" (spec: `voice-guidance`, spec:
          `settings-surface`): the car's own switch the phone additionally offers, their short help
          lines, the two rows that also carry a long explanation, and the slider's endpoint labels. -->

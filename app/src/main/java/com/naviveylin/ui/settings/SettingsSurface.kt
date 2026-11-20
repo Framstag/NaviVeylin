@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.data.AppSettings
@@ -68,6 +71,12 @@ internal const val SETTINGS_HELP_TAG_PREFIX = "settings-help-"
 
 /** Test handle on the sheet that carries a row's long help text. */
 internal const val SETTINGS_LONG_HELP_TAG = "settings-long-help"
+
+/** Test handle on the surface that carries a `SELECT` row's options. */
+internal const val SETTINGS_SELECT_TAG = "settings-select"
+
+/** Test handle prefix on one option of a `SELECT` row, so a case points at an option, not its text. */
+internal const val SETTINGS_SELECT_OPTION_TAG_PREFIX = "settings-select-option-"
 
 /**
  * The settings surface, hosted on whatever page is showing (design D2, D3; spec: `settings-surface`).
@@ -137,6 +146,9 @@ fun SettingsSurface(
     // A row's long help is text on a surface of its own (design D7): it shows what the short line
     // cannot and writes nothing, so dismissing it leaves the row's value as it was.
     var openHelp by remember { mutableStateOf<Int?>(null) }
+    // A `SELECT` row's options are a surface of their own too, because a set of more than four values
+    // is not an inline list (design D5).
+    var openSelect by remember { mutableStateOf<SettingSpec?>(null) }
     Surface(
         modifier = modifier
             .fillMaxSize()
@@ -154,6 +166,7 @@ fun SettingsSurface(
                     settings = settings,
                     onWrite = onWrite,
                     onOpenHelp = { openHelp = it },
+                    onOpenSelect = { openSelect = it },
                     onOpenMapManager = onOpenMapManager,
                     onOpenAbout = onOpenAbout
                 )
@@ -174,6 +187,41 @@ fun SettingsSurface(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                 ) {
                     Text(stringResource(R.string.settings_help_close))
+                }
+            }
+        }
+        openSelect?.let { row ->
+            val current = row.read(settings)
+            ModalBottomSheet(onDismissRequest = { openSelect = null }) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .selectableGroup()
+                        .testTag(SETTINGS_SELECT_TAG)
+                ) {
+                    (row.payload as? SettingControlPayload.Select)?.choices.orEmpty().forEach { choice ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = choice.key == current,
+                                    role = Role.RadioButton,
+                                    onClick = {
+                                        openSelect = null
+                                        onWrite(row, choice.key)
+                                    }
+                                )
+                                .testTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + choice.key)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = choice.key == current, onClick = null)
+                            Text(
+                                text = choiceLabel(choice),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -250,6 +298,7 @@ private fun SettingsTopicPage(
     settings: AppSettings,
     onWrite: (SettingSpec, String) -> Unit,
     onOpenHelp: (Int) -> Unit,
+    onOpenSelect: (SettingSpec) -> Unit,
     onOpenMapManager: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -275,6 +324,7 @@ private fun SettingsTopicPage(
                     settings = settings,
                     onWrite = onWrite,
                     onOpenHelp = onOpenHelp,
+                    onOpenSelect = onOpenSelect,
                     onOpenMapManager = onOpenMapManager,
                     onOpenAbout = onOpenAbout
                 )
@@ -292,6 +342,10 @@ private fun SettingsTopicPage(
  *
  * A row that declares a long help text carries the button that opens it, and a slider is drawn below
  * its label row with both endpoints named (design D5, D7).
+ *
+ * The row itself is the target of its control: a switch toggles from anywhere on the row and a
+ * `SELECT` row opens its options from anywhere on it, so neither is a small control the user has to
+ * hit (design D5).
  */
 @Composable
 private fun SettingRow(
@@ -299,15 +353,22 @@ private fun SettingRow(
     settings: AppSettings,
     onWrite: (SettingSpec, String) -> Unit,
     onOpenHelp: (Int) -> Unit,
+    onOpenSelect: (SettingSpec) -> Unit,
     onOpenMapManager: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
     val value = row.read(settings)
     val linkTarget = (row.payload as? SettingControlPayload.Open)?.target
+    val rowClick: (() -> Unit)? = when {
+        linkTarget != null -> ({ open(linkTarget, onOpenMapManager, onOpenAbout) })
+        row.control == SettingControl.SWITCH -> ({ onWrite(row, if (value == "on") "off" else "on") })
+        row.control == SettingControl.SELECT -> ({ onOpenSelect(row) })
+        else -> null
+    }
     val rowModifier = Modifier
         .fillMaxWidth()
         .testTag(SETTINGS_ROW_TAG_PREFIX + row.key)
-        .let { if (linkTarget != null) it.clickable { open(linkTarget, onOpenMapManager, onOpenAbout) } else it }
+        .let { if (rowClick != null) it.clickable(onClick = rowClick) else it }
         .padding(horizontal = 16.dp, vertical = 8.dp)
 
     Column(rowModifier) {
@@ -356,7 +417,19 @@ private fun SettingRow(
                     onCheckedChange = { onWrite(row, if (it) "on" else "off") }
                 )
 
-                SettingControl.LINK, SettingControl.SELECT -> Icon(
+                SettingControl.SELECT -> {
+                    Text(
+                        text = valueText(row, value),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null
+                    )
+                }
+
+                SettingControl.LINK -> Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null
                 )
@@ -381,7 +454,7 @@ private fun SettingRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(selected = value == choice.key, onClick = { onWrite(row, choice.key) })
-                    Text(stringResource(choice.labelRes), style = MaterialTheme.typography.bodyMedium)
+                    Text(choiceLabel(choice), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -392,6 +465,14 @@ private fun SettingRow(
         }
     }
 }
+
+/**
+ * An option's label: its own resource, or the value's key when the value carries its name (a map
+ * style's name is its stylesheet's file name — spec: `map-styles`).
+ */
+@Composable
+private fun choiceLabel(choice: SettingChoice): String =
+    choice.labelRes?.let { stringResource(it) } ?: choice.key
 
 /**
  * A bounded slider under its label row (design D5; spec: `settings-surface` — "The overspeed delta is

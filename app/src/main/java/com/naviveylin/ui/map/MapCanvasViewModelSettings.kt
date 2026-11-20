@@ -534,6 +534,41 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
             applyPreferSymbolIcons(preferSymbolPoiIcons,
                                    invalidate = mapRenderer != null)
         }
+        // The settings surface writes through the one writer, not through this view model
+        // (design D2), so from here on the map follows that document: a change made on either
+        // surface reaches the running map as it is made
+        // (spec: `settings-surface` — "A change applies immediately and persists").
+        followSurfaceWrites()
+    }
+}
+
+/**
+ * Follows the one writer's document after the start-up read, so a change the settings surface makes
+ * reaches the running map as it is made: the surface writes through [SettingsController] rather than
+ * through this view model, and without this a new style or symbol preference would show only after a
+ * restart (spec: `settings-surface` — "A change applies immediately and persists"; design D2).
+ *
+ * A field equal to what the map already shows is not applied again, so a write this view model made
+ * through its own setter — and the start-up read above — costs no second stylesheet load.
+ */
+internal fun MapCanvasViewModel.followSurfaceWrites() {
+    viewModelScope.launch {
+        settingsController.settings.collect { settings ->
+            if (settings.styleSheet != _uiState.value.styleSheet) {
+                _uiState.value = _uiState.value.copy(styleSheet = settings.styleSheet)
+                ensureMapStyle(
+                    settings.styleSheet,
+                    resolvedDaylight(),
+                    MapStyleApplyReason.STYLE_SWITCH
+                )
+            }
+            if (settings.preferSymbolPoiIcons != _uiState.value.preferSymbolPoiIcons) {
+                _uiState.value =
+                    _uiState.value.copy(preferSymbolPoiIcons = settings.preferSymbolPoiIcons)
+                applyPreferSymbolIcons(settings.preferSymbolPoiIcons,
+                                       invalidate = mapRenderer != null)
+            }
+        }
     }
 }
 

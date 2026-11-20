@@ -108,6 +108,18 @@ declares satisfies the rule: what an item *is* stays the filer's judgement, so t
 naming the child, its container and the type it lacks — and the `metadata-invariant` row runs that pass once a day
 (`BacklogTooling.recipes.md` §9).
 
+**Rule: an item carrying no type is counted, and the count is driven down — never refused.** `tools/issues/check-metadata.sh`
+names every open item that carries no issue type, one line per item and the same set under one `untyped` field when
+the pass is asked for JSON, and leaves the exit status to the invariants above. A refusal over the legacy backlog is
+a check that is switched off within the week, and the number goes with it, so the census *is* the measure
+(`openspec/specs/issue-backlog/spec.md`, "An item without an issue type is reported"). `tools/issues/list.sh
+--untyped` asks the same question as one query. The command that re-takes the number is
+
+    gh issue list --state open --json number,issueType --limit 200 | jq '[.[]|select(.issueType.name==null)]|length'
+
+and what keeps the report from silently ceasing to fire is a case that drives it both ways,
+`check#untypedItemIsReported` (change `issue-type-census`, D1).
+
 **The analysis's three rows are one area, and one rule is one item.** `sonar-reliability`,
 `sonar-maintainability` and `sonar-duplication` declare `category/code-quality` with their own
 `lifecycle: file+close`, and their identity is the rule a finding breaks: every finding of that rule lands in

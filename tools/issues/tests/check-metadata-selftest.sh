@@ -43,6 +43,7 @@ CASES=(
   'check#aQuotationIsNotAMarker'
   'check#aMarkerLineBesideAQuotationIsTheRecord'
   'check#aDisplacedSettledStateIsReported'
+  'check#untypedItemIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
 )
@@ -226,6 +227,48 @@ case_unrankedIsNotAViolation() {
   expect "and reports no violations" "0" "$(printf '%s' "$CHECK_OUT" | jq -r '.violations | length')"
 }
 
+# The census the change `issue-type-census` adds is a *report*, and the number it prints is the acceptance
+# figure (D1): an open item carrying no issue type is named and the exit status stays the one the invariants
+# set, because a legacy item that never needed the field must not turn every run red. Both directions are
+# asserted — an item that gains a type leaves the census, an item that loses one joins it — and the unreadable
+# document is asserted beside them, because a client that could not answer is the violation's subject and not a
+# tracker in which every item is untyped.
+case_untypedItemIsReported() {
+  run_check --issues "$fixtures/untyped-item.json"
+  expect "an untyped item is not a violation" "0" "$CHECK_STATUS"
+  expect_contains "and the census names it" "#61 untyped:" "$CHECK_OUT"
+  expect_contains "in a line saying what it lacks" "carries no issue type" "$CHECK_OUT"
+  expect_contains "beside no violation, and counted" "· 0 violation(s) · 1 untyped" "$CHECK_OUT"
+
+  run_check --issues "$fixtures/untyped-item.json" --json
+  expect "the JSON form is valid" "0" "$(printf '%s' "$CHECK_OUT" | jq -e . >/dev/null 2>&1; echo $?)"
+  expect "and carries the same set under one field" "61" \
+    "$(printf '%s' "$CHECK_OUT" | jq -r '.untyped | join(",")')"
+  expect "beside no violation" "0" "$(printf '%s' "$CHECK_OUT" | jq -r '.violations | length')"
+
+  # a typed tracker is silent, so the census names the defect and not every item the document holds
+  run_check --issues "$fixtures/typed-item.json"
+  expect "a typed tracker exits 0" "0" "$CHECK_STATUS"
+  expect_not_contains "and nothing is named" "#62 untyped" "$CHECK_OUT"
+  expect_contains "and the count is zero" "· 0 violation(s) · 0 untyped" "$CHECK_OUT"
+
+  # both directions: the untyped item typed leaves the census, and neither direction refuses anything
+  jq '.[0].issueType = {"name": "Task"}' "$fixtures/untyped-item.json" > "$tmp/typed.json"
+  run_check --issues "$tmp/typed.json"
+  expect "the untyped item given a type exits 0" "0" "$CHECK_STATUS"
+  expect_not_contains "and leaves the census" "#61 untyped" "$CHECK_OUT"
+
+  jq '.[0].issueType = null' "$fixtures/typed-item.json" > "$tmp/untyped.json"
+  run_check --issues "$tmp/untyped.json"
+  expect "a type taken away is still not a violation" "0" "$CHECK_STATUS"
+  expect_contains "and the census names it" "#62 untyped:" "$CHECK_OUT"
+
+  # the axis a client could not answer: one violation, and no census of the items that look untyped because of it
+  run_check --issues "$fixtures/no-type-field.json"
+  expect "an unreadable axis exits non-zero" "1" "$CHECK_STATUS"
+  expect_not_contains "and is not censused" "#51 untyped" "$CHECK_OUT"
+}
+
 case_selfCheckIsGreen() {
   # The token-free mode CI runs: the profile's bands, the marker grammar's single home, and the two write
   # paths' refusal to name the opt-in — all on the committed tree, with no tracker.
@@ -244,6 +287,7 @@ if [ -n "$only_case" ]; then
     'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
     'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
     'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
+    'check#untypedItemIsReported') case_untypedItemIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
     *) echo "check-metadata-selftest: no such case: $only_case" >&2; exit 2 ;;
@@ -264,6 +308,7 @@ for name in "${CASES[@]}"; do
     'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
     'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
     'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
+    'check#untypedItemIsReported') case_untypedItemIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
   esac

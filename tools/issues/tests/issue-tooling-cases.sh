@@ -156,6 +156,7 @@ ISSUES_SHELL_CASES=(
   'list#unrankedSelector'
   'list#eligibleOnlyIgnoresTheBand'
   'list#closedItemIsNotASelection'
+  'list#untypedIsQueried'
   'check#markerLabelMismatchFails'
   'check#outOfRangeBandFails'
   'check#neverWritesEligibility'
@@ -164,6 +165,7 @@ ISSUES_SHELL_CASES=(
   'check#aQuotationIsNotAMarker'
   'check#aMarkerLineBesideAQuotationIsTheRecord'
   'check#aDisplacedSettledStateIsReported'
+  'check#untypedItemIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
   'metadata#aTypedChildIsConsistent'
@@ -176,6 +178,7 @@ ISSUES_SHELL_CASES=(
   'create#writesTheTypeItWasGiven'
   'create#writesTheDependencyItWasGiven'
   'update#writesTheTypeItWasGiven'
+  'docs#theFilingSkillsNameTheTypeAxis'
 )
 
 issues_shell_cases() {
@@ -216,6 +219,7 @@ issues_run_shell_case() {
     'create#writesTheTypeItWasGiven') case_create_writesTheTypeItWasGiven ;;
     'create#writesTheDependencyItWasGiven') case_create_writesTheDependencyItWasGiven ;;
     'update#writesTheTypeItWasGiven') case_update_writesTheTypeItWasGiven ;;
+    'docs#theFilingSkillsNameTheTypeAxis') case_docs_theFilingSkillsNameTheTypeAxis ;;
     'create#aChangeThatIsNotReadyIsRefused') case_create_aChangeThatIsNotReadyIsRefused ;;
     'create#aTierBWithNoDecisionIsRefused') case_create_aTierBWithNoDecisionIsRefused ;;
     'create#anEmptyGatePathRefusesTierB') case_create_anEmptyGatePathRefusesTierB ;;
@@ -333,10 +337,11 @@ issues_run_shell_case() {
     'list#unrankedSelector') case_list_unrankedSelector ;;
     'list#eligibleOnlyIgnoresTheBand') case_list_eligibleOnlyIgnoresTheBand ;;
     'list#closedItemIsNotASelection') case_list_closedItemIsNotASelection ;;
+    'list#untypedIsQueried') case_list_untypedIsQueried ;;
     'check#markerLabelMismatchFails'|'check#outOfRangeBandFails'|'check#neverWritesEligibility'|\
       'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|\
       'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
-      'check#aDisplacedSettledStateIsReported'|\
+      'check#aDisplacedSettledStateIsReported'|'check#untypedItemIsReported'|\
       'check#unrankedIsNotAViolation'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
     'metadata#aTypedChildIsConsistent') case_metadata_aTypedChildIsConsistent ;;
     'metadata#anUntypedChildIsAViolation') case_metadata_anUntypedChildIsAViolation ;;
@@ -3193,7 +3198,7 @@ case_metadata_aChildOfAnOrdinaryIssueIsOutOfScope() {
   out=$(run_tool check-metadata.sh --issues "$dir/issues.json" 2>&1) ||
     fail "a child of an ordinary issue was reported: $out"
   assert_contains "$out" "4 issue(s) checked" "the untyped child of an ordinary issue was read"
-  assert_not_contains "$out" "#45" "and nothing is said about its type"
+  assert_not_contains "$out" "#45 untyped-child" "and the container rule says nothing about its type"
   assert_not_contains "$out" "untyped-child" "so a plain parent-child between ordinary issues is not this rule's subject"
   return 0
 }
@@ -3318,6 +3323,36 @@ case_list_closedItemIsNotASelection() {
 
   out=$(run_tool list.sh --eligible-only --include-closed --json) || fail "the opt-in query failed: $out"
   assert_eq "2" "$(jq -r 'length' <<< "$out")" "the opt-in asks for it and gets it"
+  return 0
+}
+
+# The census as one query (change `issue-type-census`, D1): the same set `check-metadata.sh` reports and never
+# refuses, asked of the tracker instead of read item by item. The type is the tracker's field and not a label, so
+# this is the one selector the vocabulary gate does not see — and a closed item is no more a selection here than
+# it is for any other query, which is what tells the census apart from "every item the tracker still holds".
+case_list_untypedIsQueried() {
+  local dir out
+  dir=$(scratch)
+  metadata_issues 4 | jq '.[0].issueType = {name: "Task"}
+                         | .[1].issueType = null
+                         | .[2].issueType = {name: "Bug"}
+                         | .[3].issueType = null
+                         | .[3].state = "CLOSED"' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(run_tool list.sh --untyped --json) || fail "the untyped query failed: $out"
+  assert_eq "2" "$(jq -r '[.[].number] | join(",")' <<< "$out")" "the open item carrying no issue type, and only it: $out"
+
+  # the plain form answers in the shape every other query prints, so a caller that reads lines needs no jq
+  out=$(run_tool list.sh --untyped) || fail "the plain untyped query failed: $out"
+  assert_contains "$out" "#2 " "the untyped item is printed with its number"
+  assert_contains "$out" "1 match(es)" "and the count is the set's, not the backlog's"
+
+  # the same set, narrowed no further: a typed item is not a match, so an empty tracker is an empty answer
+  jq 'map(.issueType = {name: "Task"})' "$dir/issues.json" > "$dir/typed.json"
+  cp "$dir/typed.json" "$dir/issues.json"
+  out=$(run_tool list.sh --untyped --json) || fail "the typed tracker failed: $out"
+  assert_eq "0" "$(jq 'length' <<< "$out")" "a tracker where every item carries a type selects nothing"
   return 0
 }
 
@@ -3822,4 +3857,33 @@ case_update_writesTheTypeItWasGiven() {
   assert_eq "3" "$status" "an undeclared type name is refused"
   assert_contains "$out" "type-opaque" "with the reason the vocabulary gate uses for an unknown value"
   [ ! -s "$log" ] || fail "a refused type still called gh: $(cat "$log")"
+}
+
+# The pointer that was missing is invisible to every other check: the skills are markdown, the writers accept the
+# flags, and nothing read a skill's prose — which is why the repair that first named the axis landed doc-only and
+# could be taken away by the next edit (change `issue-type-census`, D3). One read per skill, in the offline suite,
+# turns that into a red case that names the file instead of a session discovering it while filing.
+case_docs_theFilingSkillsNameTheTypeAxis() {
+  local file skill flag missing sentence
+  for file in create-issue update-issue; do
+    skill="$ISSUES_REPO_ROOT/.pi/skills/$file/SKILL.md"
+    [ -f "$skill" ] || fail "the filer's surface is not at .pi/skills/$file/SKILL.md"
+    missing=""
+    for flag in --type --parent; do
+      grep -qF -- "$flag" "$skill" || missing="$missing $flag"
+    done
+    [ -z "$missing" ] || fail ".pi/skills/$file/SKILL.md no longer names$missing: a filing that follows this skill cannot learn the tracker's classification exists"
+  done
+
+  # The documented minimum is the writer's own: a sentence that lists what a call may carry and leaves these two
+  # out tells a reader that a type-only call is not a call, which `update.sh` accepts (`:162-163`).
+  sentence=$(grep -F 'At least one of' "$ISSUES_REPO_ROOT/.pi/skills/update-issue/SKILL.md" || true)
+  [ -n "$sentence" ] || fail ".pi/skills/update-issue/SKILL.md no longer states the minimum a call may carry"
+  for flag in --type --parent; do
+    case "$sentence" in
+      *"$flag"*) ;;
+      *) fail ".pi/skills/update-issue/SKILL.md's 'At least one of …' sentence does not name $flag, though update.sh accepts a call that carries only it" ;;
+    esac
+  done
+  return 0
 }

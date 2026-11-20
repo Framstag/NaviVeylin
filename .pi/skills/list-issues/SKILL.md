@@ -21,6 +21,7 @@ tools/issues/list.sh --category map-rendering          # one area
 tools/issues/list.sh --status open-device              # waiting for a device
 tools/issues/list.sh --author Framstag                 # filed by one actor
 tools/issues/list.sh --eligible-only                   # authorised for automated work
+tools/issues/list.sh --untyped                         # the census: open items carrying no issue type
 tools/issues/list.sh --class bug --status open --json  # one JSON document
 tools/issues/list.sh --limit 100                       # page size into `gh`
 ```
@@ -44,11 +45,18 @@ One line per match, `#<number> <title> [labels]`, then a count. With `--json`, t
 | `--category` | `category/` — the area; the label that replaced the prose backlog's hand-maintained index |
 | `--status` | `status/` — the lifecycle, read at the moment of the query |
 | `--author` | nothing — it filters the issue's author, the one attributable actor GitHub exposes |
+| `--untyped` | nothing — it filters GitHub's issue *type*, the one classification that is not a label |
 | `--eligible-only` | the project's required labels: authorisation, which only a person grants |
 
 Every `--class`, `--category` and `--status` value is checked against the profile's closed vocabulary first; a
 value the vocabulary does not contain is a refusal (exit 3, `label-opaque`), so a typo cannot silently select
 an empty set.
+
+`--untyped` is the exception the vocabulary gate cannot see, because an issue type is the tracker's own field and
+not a label. It selects the open items that carry none — the set `tools/issues/check-metadata.sh` reports and never
+refuses, since an item filed before the axis had a reader is not a violation of anything (`guidelines/Backlog.md`
+§3). With no residue it prints `0 match(es)`, which is the answer the census aims for rather than an empty
+selection.
 
 ## Exit codes
 

@@ -16,9 +16,14 @@
 # the band is a *label*, so "the top of the queue" is a label query and no body is read; `--unranked` is
 # "the pass has not scored this item yet", which is a legitimate state and not an error.
 #
+# `--untyped` is the census as a query (change `issue-type-census`, D1): the open items that carry no issue type,
+# the same set `check-metadata.sh` reports and never refuses. The type is not a label, so this is the one
+# selector the tracker answers rather than the vocabulary gate — the read names `issueType` beside the fields the
+# other queries use, and still makes one call.
+#
 # Usage: list.sh [--id <n>] [--class <value>] [--category <value>] [--status <value>] [--author <login>]
-#                [--prio <p0,p1,…>] [--unranked] [--eligible-only] [--include-closed] [--json] [--limit <n>]
-#                [--profile <path>]
+#                [--prio <p0,p1,…>] [--unranked] [--untyped] [--eligible-only] [--include-closed] [--json]
+#                [--limit <n>] [--profile <path>]
 #
 # A closed item is not a selection: the query is made against `--state all` (one paged call, and the tracker's own
 # `--state` flag cannot say "open and everything a label asks for" in one call), so the *filter* is here. Closed
@@ -40,6 +45,7 @@ limit=400
 id_arg=""
 prio_filter=""
 unranked=0
+untyped=0
 filters=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -51,11 +57,12 @@ while [ $# -gt 0 ]; do
     --author) need_value "$@"; filters+=("author=${2:-}"); shift 2 ;;
     --prio) need_value "$@"; prio_filter="${2:-}"; shift 2 ;;
     --unranked) unranked=1; shift ;;
+    --untyped) untyped=1; shift ;;
     --eligible-only) eligible_only=1; shift ;;
     --include-closed) include_closed=1; shift ;;
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) issues_die "list: unknown argument $1" ;;
   esac
 done
@@ -121,7 +128,7 @@ if [ -n "$prio_filter" ]; then
 fi
 
 required_json=$(issues_profile_value requiredLabels | jq -R . | jq -s .)
-issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,state)
+issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,state,issueType)
 
 query='[.[]'
 if [ "$include_closed" -eq 0 ]; then
@@ -146,6 +153,12 @@ if [ -n "$prio_filter" ]; then
   query="$query | select([.labels[].name] as \$labels | ($bands_query))"
 elif [ "$unranked" -eq 1 ]; then
   query="$query | select(([.labels[].name | select(startswith(\"${band_namespace}${separator}\"))] | length) == 0)"
+fi
+# The census's other half: an item carrying no type is one whose `issueType` names none. A document that carries
+# no `issueType` key at all reads the same way here, and `check-metadata.sh` is the reader that tells the two
+# apart and names the client that could not answer (`type-axis-unreadable`) — this query only selects.
+if [ "$untyped" -eq 1 ]; then
+  query="$query | select(((.issueType | if type == \"object\" then (.name // \"\") else (. // \"\") end)) == \"\")"
 fi
 if [ "$eligible_only" -eq 1 ]; then
   query="$query | select([.labels[].name] as \$labels | (\$required | all(. as \$r | (\$labels | index(\$r)) != null)))"

@@ -8,6 +8,12 @@
 # This script asserts all six (`issue-metadata-loop`, D1/D7), plus the two things that make the pass safe: the
 # marker's score is inside the model's range, and the pass never wrote the automation opt-in.
 #
+# The type axis is also *counted*, and that count is a report rather than a seventh invariant: every open item
+# carrying no issue type is named, one line per item, and the exit status is the one the other invariants set —
+# an item filed before the axis had a reader is not a violation of anything. A refusal over the legacy backlog
+# would be a check that is switched off within the week, taking the number with it, so the number is the measure
+# (change `issue-type-census`, D1). `tools/issues/list.sh --untyped` asks the same question as one query.
+#
 # Three modes:
 #
 #   (no argument)        the token-free self-check, and the one CI runs: the profile's bands are total and
@@ -42,7 +48,7 @@ while [ $# -gt 0 ]; do
     --write-log) need_value "$@"; write_log="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) issues_die "check-metadata: unknown argument $1" ;;
   esac
 done
@@ -55,6 +61,9 @@ violations=""
 found=0
 checked=0
 checked_labels=0
+# the census, kept apart from `violations` on purpose: it is a number to read, not a refusal (see `report`)
+untyped_json="[]"
+untyped_count=0
 
 violate() { # violate <issue> <code> <detail>
   local issue="$1" code="$2" detail="$3"
@@ -67,10 +76,13 @@ report() {
     local rows
     rows=$(printf '%s' "$violations" | grep -v '^$' | awk -F'\t' \
       '{printf "%s{\"issue\":\"%s\",\"code\":\"%s\",\"detail\":\"%s\"}", (NR > 1 ? "," : ""), $1, $2, $3}')
-    printf '{"checked":%s,"violations":[%s]}\n' "$checked" "$rows"
+    printf '{"checked":%s,"violations":[%s],"untyped":%s}\n' "$checked" "$rows" "$untyped_json"
   else
     printf '%s' "$violations" | grep -v '^$' | awk -F'\t' '{printf "#%s %s: %s\n", $1, $2, $3}'
-    printf 'check-metadata: %s issue(s) checked · %s violation(s)\n' "$checked" "$found"
+    # The census, one line per item: a number to read and a set to act on. It is printed after the violations so
+    # a caller that reads the first lines of a red run still reads the red ones first.
+    printf '%s' "$untyped_json" | jq -r '.[] | "#\(.) untyped: carries no issue type"'
+    printf 'check-metadata: %s issue(s) checked · %s violation(s) · %s untyped\n' "$checked" "$found" "$untyped_count"
   fi
   [ "$found" -eq 0 ] || exit 1
   exit "$ISSUES_EXIT_OK"
@@ -126,7 +138,7 @@ fi
 # ── the per-issue half: the label and the marker, whether they agree, and the settled pair ──────────────
 
 if [ "$mode" = "live" ]; then
-  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent 2>/dev/null) ||
+  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent,state 2>/dev/null) ||
     issues_die "check-metadata: gh could not read the tracker (--live needs a token)"
 elif [ "$mode" = "issues" ]; then
   [ -f "$issues_file" ] || issues_die "check-metadata: no such issue file: $issues_file"
@@ -155,6 +167,26 @@ type_axis=$(printf '%s' "$issues_json" | jq -r '
           (.issueType | if type == "object" then (.name // "") elif type == "string" then . else "" end),
           (.parent | if type == "object" then ((.number // "") | tostring) else ((. // "") | tostring) end) ]
   | @tsv')
+
+# ── the census: every open item with no type is named, and nothing is refused ────────────────────────────────
+#
+# The count this change exists for is the *set*, not a verdict: an item filed before the axis had a reader is not
+# a violation of any invariant above, and a refusal over the legacy backlog is a check that is switched off
+# within a week, taking the number with it (change `issue-type-census`, D1). So the set is computed apart from
+# `violations`, `report` prints it without touching the exit status, and `list.sh --untyped` asks the same
+# question as one query.
+#
+# A document that carries no `issueType` key at all is not a tracker of untyped items: it is a client that could
+# not answer, and `type-axis-unreadable` above already names it. Censusing it would report every item as untyped
+# and turn a broken read into a large number — the failure #911 is about, in the other direction.
+if [ "$read_state" = "readable" ]; then
+  untyped_json=$(printf '%s' "$issues_json" | jq -c '
+    [ .[]
+      | select(((.state // "OPEN") | tostring) != "CLOSED")
+      | select((.issueType | if type == "object" then (.name // "") elif type == "string" then . else "" end) == "")
+      | .number ]')
+  untyped_count=$(printf '%s' "$untyped_json" | jq -r 'length')
+fi
 
 issue_numbers=$(printf '%s' "$issues_json" | jq -r '.[].number')
 # An item's settled state is stated twice: by the label the pre-screen reads as settled, and by the record a

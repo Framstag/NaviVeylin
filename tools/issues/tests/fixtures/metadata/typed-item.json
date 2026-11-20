@@ -1,0 +1,15 @@
+[
+  {
+    "number": 62,
+    "title": "an open item that carries the tracker's classification",
+    "body": "The item the census must not name: an issue type is the tracker's own field, so this one is typed.",
+    "labels": [
+      {
+        "name": "class/bug"
+      }
+    ],
+    "issueType": {
+      "name": "Task"
+    }
+  }
+]

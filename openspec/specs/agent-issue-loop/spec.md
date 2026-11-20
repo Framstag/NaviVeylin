@@ -5267,8 +5267,11 @@ figure, and SHALL ask it of a root deep enough that the root's own length cannot
 The run SHALL cap each part a review round is handed — the change's diff, the round-before-the-gate report
 and the change's own files — at `LOOP_REVIEW_INPUT_MAX_BYTES`, where `0` or no value SHALL be no bound. A
 part over the cap SHALL be handed as its head, cut at a line boundary and marked, the rest named by path and
-line range in an index the round reads by path. A round under it SHALL be handed what it was handed before,
-and a cut SHALL be recorded on the item and printed by the report.
+line range in an index the round reads by path, and that index SHALL be written beside the round's diff. A
+round under it SHALL be handed what it was handed before, and a cut SHALL be recorded on the item and printed
+by the report. The case that names a cut round SHALL fail when the index is not written at all, and a record in
+`tools/loop/tests/loop-mutations.sh` SHALL red on that case — a bound whose index nothing asserts is a bound
+one regression removes in silence.
 
 #### Scenario: A part over the cap is handed as its head and the rest is named
 
@@ -5279,6 +5282,18 @@ and a cut SHALL be recorded on the item and printed by the report.
   which figure and names `review-1.cut.md`, that index names every path the cut left out with its line range, the
   item records the scale (`over the 64 B cap`, the index's name) under `metrics.reviewInput`, and the report
   prints it against the item — so a cut round does not read as a whole one
+- **Case**: `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
+
+#### Scenario: The case that names a cut round fails when the index is not written
+
+- **WHEN** the index's own write (`tools/loop/run.sh:1837`, `} > "$cut_file"`) is redirected to `/dev/null` and
+  `prompt#reviewerInputsAreBoundedAndTheCutIsNamed` runs
+- **THEN** the case fails on the missing index at the existence check beside the round's diff
+  (`tools/loop/tests/loop-cases.sh:4865`), which aborts the case there — the three assertions that read the index
+  it guards, the cap line (`:4871`) and the path the diff part carried and the line range (`:4878`, `:4879`),
+  would fail if they were reached — so mutation record `924.2`
+  (`tools/loop/tests/loop-mutations.sh:1370`) goes red rather than a green case standing over a write nothing
+  asserted
 - **Case**: `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
 
 #### Scenario: A round under the cap is handed what it was handed before

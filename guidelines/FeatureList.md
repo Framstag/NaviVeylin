@@ -175,7 +175,10 @@ stale entry`, `mutation: the classification's two sets and their counts are held
 - **Rule: a capability is classified in the change that writes its delta.** A change that introduces a
   capability classifies it in that same change — when
 it writes the delta spec, not when it archives. `.pi/skills/feature-list` and the tool both tell you the id when
-it is missing, and the tool names the open change that owes the line.
+it is missing, and the tool names the open change that owes the line. When the change's own child misses it, the
+row is the gate child's: `tools/loop/prompts/worker-gate.md` step 2 adds it in the completion that stands before the
+gate, because that child is the last one that may write the tree the gate measures and no phase after it may
+(issue #914).
 
 The split between the two states is report-only: nothing the run writes downstream reads it, so the only thing holding
 it is the suite's assertions on the two figures. Those assertions do notice a changed expression — a mutation of

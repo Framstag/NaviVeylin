@@ -165,6 +165,8 @@ LOOP_SHELL_CASES=(
   'prompt#thePhasePromptsCarryTheirOwnRoute'
   'prompt#thePhasePromptNamesWhatItsShellRefuses'
   'prompt#theGatePromptNamesTheWallAndTheWayThrough'
+  'prompt#theGateChildClassifiesItsOwnDelta'
+  'prompt#theClassificationArmIsBoundedToTheDelta'
   'prompt#aValueArrivesAsTheTextItWasHanded'
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
@@ -964,6 +966,8 @@ loop_run_shell_case() {
     'prompt#thePhasePromptsCarryTheirOwnRoute') fn=case_prompt_thePhasePromptsCarryTheirOwnRoute ;;
     'prompt#thePhasePromptNamesWhatItsShellRefuses') fn=case_prompt_thePhasePromptNamesWhatItsShellRefuses ;;
     'prompt#theGatePromptNamesTheWallAndTheWayThrough') fn=case_prompt_theGatePromptNamesTheWallAndTheWayThrough ;;
+    'prompt#theGateChildClassifiesItsOwnDelta') fn=case_prompt_theGateChildClassifiesItsOwnDelta ;;
+    'prompt#theClassificationArmIsBoundedToTheDelta') fn=case_prompt_theClassificationArmIsBoundedToTheDelta ;;
     'prompt#aValueArrivesAsTheTextItWasHanded') fn=case_prompt_aValueArrivesAsTheTextItWasHanded ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
@@ -5150,6 +5154,48 @@ case_prompt_theGatePromptNamesTheWallAndTheWayThrough() {
     assert_contains "$text" 'tail -n' "…through the range read its own shell allows"
     assert_contains "$text" 'LOOP-GATE-REFUSED' "…naming the refusal a second gate meets instead of a restart"
   done
+  return 0
+}
+
+# The classification line is due while a change is open and red at the gate when it is missing: the check reads an
+# open change's delta specs as well as the shipped set (`tools/gen-feature-list.sh`, the `delta_origins` block), so a
+# change that introduces a capability owes the row before it archives. #898's gate went red on exactly that line —
+# `every shipped spec id must be named by tools/feature-list/specs.json … was:<[settings-surface,
+# settings-taxonomy]>`, two capability specs the change itself had added — and no phase was told to write it. The
+# tail may not repair (issue #914), so the line belongs to the gate child, the last child that writes the tree before
+# the gate, whose completion named no classification at all.
+case_prompt_theGateChildClassifiesItsOwnDelta() {
+  # files: tools/loop/prompts/ tools/feature-list/
+  local text
+  text=$(cat "$LOOP_ENGINE/prompts/worker-gate.md")
+  assert_contains "$text" 'tools/feature-list/specs.json' \
+    "the gate child is told the classification line its change owes (issue #914)"
+  assert_contains "$text" 'tools/feature-list/areas.json' \
+    "…and the area catalogue the row's area is chosen from"
+  assert_contains "$text" 'openspec/changes/{{CHANGE_NAME}}/specs/' \
+    "…and the delta directory its ids are read from, before the archive moves it"
+  assert_contains "$text" 'userVisible' \
+    "…and the field the row's catalogue tag is read from the requirement the delta writes"
+  return 0
+}
+
+# The arm is bounded, and the bound is what keeps a repair from becoming a re-plan: an id the change does not
+# introduce, a second failing check or an area the catalogue does not hold stays the gate's red and the item's
+# `blocked` verdict. The tail keeps its refusal to write — its brief repairs nothing, and the tree the gate measured
+# and the tree a round reads have to be one (issue #837) — so the write is the gate child's and no case hands it to
+# the child that stands after the gate.
+case_prompt_theClassificationArmIsBoundedToTheDelta() {
+  # files: tools/loop/prompts/ tools/feature-list/
+  local gate tail
+  gate=$(cat "$LOOP_ENGINE/prompts/worker-gate.md")
+  tail=$(cat "$LOOP_ENGINE/prompts/worker-tail.md")
+  assert_contains "$gate" 'not this step' \
+    "the arm states that an id this change does not introduce is not its step (issue #914)"
+  assert_contains "$gate" 'blocked' "…and that such a red stays the item's blocked verdict"
+  assert_not_contains "$tail" 'tools/feature-list/specs.json' \
+    "the tail's skeleton names no write of the classification file"
+  assert_contains "$tail" "no path outside the change" \
+    "…and keeps its rule that the tail writes no path outside the change's evidence directory"
   return 0
 }
 

@@ -6,7 +6,8 @@ that diff before the gate — that is the order this run uses, because a finding
 must not cost a gate and then a second full pass (issue #758).
 
 Your job is what is left, and it is three things at most: **apply the findings the reviewer wrote, if there are
-any**, **complete the change** — its evidence, its pointers and its archive, all of it before the gate — and then
+any**, **complete the change** — its evidence, its pointers, the classification line its own delta owes and its
+archive, all of it before the gate — and then
 **run the project's gate once**. You diagnose nothing, you plan nothing, you re-derive nothing, and you repair nothing
 after the gate: it is evidence, not a thing to retry.
 
@@ -78,7 +79,8 @@ with: each is what the process you are started in refuses, before any rule of th
    the gate line's own words rather than widening the change. Do not re-plan, do not re-diagnose, and do not re-read the
    item's whole package for a finding that already says what to do.
 2. **Complete the change before you run the gate.** The gate names the tree it measures and a round's diff names the
-   tree it was written from, and those two names have to be one — so every write to the change directory happens
+   tree it was written from, and those two names have to be one — so every write the completion owes, to the change
+   directory and to the classification file its delta owes a row in, happens
    *now*, before the gate starts, in this order:
    a. copy every test result you cite into the change's own `evidence/` directory (the versioned half) and into
       `{{EVIDENCE_DIR}}`, at the moment it is produced;
@@ -89,7 +91,16 @@ with: each is what the process you are started in refuses, before any rule of th
       bash tools/loop/evidence-check.sh <the change directory> --root .
       ```
 
-   c. archive the change — `{{CHANGE_ROOT}}/openspec/changes/<name>/` → `…/openspec/changes/archive/<date>-<name>/` —
+   c. classify the capability this change's own delta introduces, and only those: read the capability ids under
+      `openspec/changes/{{CHANGE_NAME}}/specs/` — read before `d.` moves the directory into the archive — and the
+      entries in `tools/feature-list/specs.json`, and append one line, in that file's own shape, for each id it does
+      not name. `area` is chosen from `tools/feature-list/areas.json`; `userVisible` and `surfaces` are read from the
+      requirement the delta writes. It is a judgement and not a lookup: a placement rule is not a user-visible
+      capability, and tagging one as such publishes it. The arm is bounded to this change's own ids — an id this
+      change does not introduce, a second failing check, or an area the catalogue does not hold is **not this step**:
+      that red stays the gate's red and the item's `blocked` verdict, never an edit here (issue #914).
+
+   d. archive the change — `{{CHANGE_ROOT}}/openspec/changes/<name>/` → `…/openspec/changes/archive/<date>-<name>/` —
       and confirm the delta merged into the capability spec: `openspec archive --yes`, then check that the directory
       is under the archive and that the capability spec carries the requirement. The date prefix the archive adds is
       what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree reads the

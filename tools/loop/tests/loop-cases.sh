@@ -1533,6 +1533,12 @@ run_report() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/report.sh" "
 # A case that starts the engine asks for the core first: the engine writes through `tools/issues/*.sh`, whose Java
 # core the driver compiles on request rather than before the case list is known (issue #261).
 run_loop() { core_ensure; local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/run.sh" "$@" ); }
+# The same run, with one signal's disposition put back to the default in the process that becomes `run.sh` (issue
+# #978). A suite that was started detached — `nohup`, which is how the gate starts its own steps — hands every case
+# `SIGHUP` **ignored**, and no process in that tree can install a trap for it: POSIX says a shell cannot trap or reset
+# a signal it inherited ignored, so `trap … HUP` succeeds and does nothing. The reset has to happen where the process
+# is started, which is here; `env`'s `--default-signal` is the one caller-side lever a shell has for it.
+run_loop_resetting_hup() { core_ensure; local p="$1"; shift; ( cd "$p" && env --default-signal=HUP bash "$LOOP_ENGINE/run.sh" "$@" ); }
 
 # A profile whose child may run `<seconds>` and no longer (issue #663). The bound the run gives a child is the
 # larger of the floor and what one item's gate owes, so a case that shortens the floor alone would still be given
@@ -16519,8 +16525,8 @@ case_run_interruptedRunEndsTheChildItStarted() {
 # `run.stop` is the reason a report read after this process is gone prints, and 50 of the 105 runs this repository has
 # archived record no stop, 18 of them having worked items (measured 2026-11-07).
 case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p block first status f owner child i alive deadline
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/tests/fixtures/pi tools/loop/run.sh tools/loop/prompts/worker-gate.md tools/pi-child-events.sh tools/tooling.json
+  local d p block first status f owner child i alive deadline sigign line
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_success "$d"
@@ -16535,8 +16541,15 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # How long the wait after the signal allows is not measured here (issue #949): the staging this case pays is a
   # duration this host already stretched while it carried the pool, and #928's ten-times-that deadline ran out at
   # 102 s with nothing recorded. The ceiling is the pool's width instead, which is `stop_wait_deadline`'s.
+  #
+  # The signal's disposition is a stage of its own (issue #978), and the one the gate did not pay: its steps are
+  # started detached with `nohup` (`tools/loop/prompts/worker-gate.md`), so `SIGHUP` is ignored on entry and the run's
+  # own trap cannot be installed in it — the HUP case then waited out its 4800 ticks on a run no signal could end, in
+  # the whole `--from-git` leg, while a focused run of the same tree passed. `run_loop_resetting_hup` puts the
+  # disposition back before `run.sh` starts, and the assertion below fails at once if it ever stops doing so instead of
+  # spending the wait.
   ( export PI_STUB_WAIT="$block"
-    run_loop "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
+    run_loop_resetting_hup "$p" --items 1 --minutes 90 --review off ) > "$d/out" 2>&1 &
   first=$!
   # Held read-write before anything can end the child, so the release below never waits for a reader that is already
   # gone (issue #259 — `labels#trapRemovesInProgressOnSignal` explains the hang that shape cured).
@@ -16556,9 +16569,22 @@ case_run_aHupEndedRunRecordsItsStopAndUnpicksItsItem() {
   # The item has not answered, so the HUP is the only thing that can end the run (issue #860): a case that signals a
   # run which already finished its item measures the gap between two reads and not the HUP path, which is the
   # `expected '129', got '0'` the loop's gate recorded in a 16-case pool. `run.ownerPid` is written after the traps
-  # are installed (`tools/loop/run.sh:718-721`, `:728-730`) and the child writes its pid inside its own action, before
+  # are installed (`tools/loop/run.sh:843-846`, `:853-854`) and the child writes its pid inside its own action, before
   # it blocks on the fifo (`tools/loop/tests/fixtures/pi:106`, `:114-118`), so both facts read here are stages.
   assert_eq "" "$(jq -r '.items[0].result? // ""' "$f" 2>/dev/null)" "the item has not answered when the HUP is sent"
+  # …and so is the disposition `run_loop_resetting_hup` staged (issue #978): a run whose shell inherited `SIGHUP`
+  # ignored cannot trap it and would outlive the signal, which is a fact this case names here rather than at its
+  # deadline. Linux's `/proc` is the only reader of a process's signal mask, so a host without it skips the assertion
+  # instead of guessing.
+  if [ -r "/proc/$owner/status" ]; then
+    sigign=""
+    while IFS= read -r line; do
+      case "$line" in SigIgn:*) sigign="${line#SigIgn:}"; sigign="${sigign//[[:space:]]/}" ;; esac
+    done < "/proc/$owner/status"
+    case "${sigign: -1}" in
+      1|3|5|7|9|b|d|f) fail "the run's shell (pid $owner) ignores SIGHUP, so the trap this case sends its signal to cannot be installed in it (issue #978)" ;;
+    esac
+  fi
   kill -HUP "$owner"
   # The case's own clock, not the suite's (issue #860), under a ceiling that is the pool's width and no duration this
   # host measured (issues #928, #949): a run that does not take the signal leaves this case waiting on a child nothing

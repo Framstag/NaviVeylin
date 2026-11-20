@@ -899,6 +899,19 @@ state under the same clock now, and 16 of 16 pass. `928.1` in `tools/loop/tests/
 width so every host waits the quiet figure again, which is what reds the guard case in a four-case pool; `928.2`
 removes the trap a signalled run answers HUP with so the run genuinely never stops — the HUP case still reds there, at
 its ceiling and with an empty state named, which is the teeth a state-driven wait has to keep.
+**The signal's disposition is the third thing that case stages** (issue #978), and the one its clock cannot buy.
+`SIGHUP` arrives *ignored* in the gate's own tree: its steps are started detached with `nohup`, which sets `SIG_IGN`,
+and the disposition is inherited through every `fork` and `exec` below it. POSIX gives a shell no way to trap or reset
+a signal it was started with ignored — `trap 'on_signal 129 HUP' HUP` succeeds, prints nothing and installs nothing —
+so a run started under `nohup` answers no `HUP` at all. Measured 2026-11-20: a shell started by `nohup` reads
+`SigIgn: 0000000000000005` and a `kill -HUP` of its own pid ends it having run no trap; the same shell started as
+`env --default-signal=HUP` reads `SigIgn: 0000000000000004` and its trap runs (`SigIgn`'s lowest bit is `SIGHUP`). So
+the whole `--from-git` leg spent its 4800 ticks on a run no signal could end while a focused run of the same tree
+passed, and no figure of the wait was at fault. The reset has to happen where the process is started, which is the
+case: `run_loop_resetting_hup` starts `run.sh` through `env --default-signal=HUP`, and the case asserts `SIGHUP`'s bit
+in the run's own `/proc/<pid>/status` before it signals, so a tree that loses the staging reds at that assertion,
+naming the disposition, instead of at the deadline. `tools/loop/run.sh` is not the place for it — a disposition that
+shell inherited ignored is one it cannot change.
 
 Inside that bound the project's gate is what fills the log, and it streams: each suite's output is read from the
 file the suite writes as the suite writes it, and the summary, the tally and the failure text are read from that

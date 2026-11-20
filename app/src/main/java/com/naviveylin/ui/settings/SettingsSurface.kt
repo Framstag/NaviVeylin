@@ -442,18 +442,23 @@ private fun SettingRow(
             }
         }
         // The editors a value with more than two options needs: the inline selection list for a
-        // CHOICE row and the bounded slider for a SLIDER row. They land with the first rows of those
-        // kinds (tasks.md groups 3-5), because a control this group does not render would be a
-        // surface no case can reach; until then the row shows its current value.
+        // CHOICE row and the bounded slider for a SLIDER row.
         if (row.control == SettingControl.CHOICE) {
             (row.payload as? SettingControlPayload.Choice)?.choices.orEmpty().forEach { choice ->
+                // The option's whole row is the target and carries the selection, as a `SELECT`
+                // row's options do on their own surface: the current value is read off the option
+                // rather than off a radio inside it (design D5).
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onWrite(row, choice.key) },
+                        .selectable(
+                            selected = value == choice.key,
+                            role = Role.RadioButton,
+                            onClick = { onWrite(row, choice.key) }
+                        ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = value == choice.key, onClick = { onWrite(row, choice.key) })
+                    RadioButton(selected = value == choice.key, onClick = null)
                     Text(choiceLabel(choice), style = MaterialTheme.typography.bodyMedium)
                 }
             }

@@ -51,10 +51,14 @@ Source: spec `map-modes`.
   drawn under its label row with both endpoints named, a leading
   phone/car icon on a surface-specific row and a chevron on a row that leaves the surface. A switch
   toggles from anywhere on its row and a `SELECT` row (map style) opens its style selection on a
-  sheet of its own with the current one marked; a change is written as it is made, with no save action
-  (cases
+  sheet of its own with the current one marked, while a `CHOICE` row (dark mode, the ambient-light
+  sensitivity) lists its values inline with the current one marked and a row that does not apply to
+  the current document is omitted with its section; a change is written as it is made, with no save
+  action (cases
   `SettingsSurfaceTest#aSwitchTogglesFromTheWholeRow`,
   `SettingsSurfaceTest#theStyleRowOpensItsSelectionSurface`,
+  `SettingsSurfaceTest#theDarkModeRowListsThreeValues`,
+  `SettingsSurfaceTest#theSensitivityRowIsOmittedUnlessDarkModeIsAutomatic`,
   `SettingsSurfaceTest#aChangePersistsWithoutASaveAction`). It opens
   at its root from the map menu's Settings entry (`MapMenu`, between Search and About), from the
   start screen's overflow menu (`MainScreen`) and from the quick sheet's last row, which closes the

@@ -499,6 +499,8 @@
          symbol-versus-icon preference, which decide what the active style draws. -->
     <string name="settings_help_map_style">Every style bundled with the app, applied as you pick it.</string>
     <string name="settings_help_poi_symbols">Draws an entry\'s symbol instead of its icon where the style carries both.</string>
+    <string name="settings_help_dark_mode">On and Off force the presentation; Automatic follows the system night mode and the light sensor.</string>
+    <string name="settings_help_ambient_light">Applies only in Automatic: how readily the light sensor enters dark mode.</string>
     <!-- The announcement rows of "Hinweise & Sprache" (spec: `voice-guidance`, spec:
          `settings-surface`): the car's own switch the phone additionally offers, their short help
          lines, the two rows that also carry a long explanation, and the slider's endpoint labels. -->

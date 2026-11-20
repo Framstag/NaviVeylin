@@ -39,6 +39,7 @@ class MapCanvasViewModelDarkModeTest {
     private lateinit var context: Context
     private lateinit var client: FakeOSMScoutClient
     private lateinit var settingsStorage: SettingsStorage
+    private lateinit var settingsController: SettingsController
     private lateinit var controller: DarkModeController
     private lateinit var viewModel: MapCanvasViewModel
 
@@ -59,10 +60,11 @@ class MapCanvasViewModelDarkModeTest {
         settingsStorage = SettingsStorage(context).also {
             it.ioDispatcher = mainDispatcherRule.dispatcher
         }
+        settingsController = SettingsController(settingsStorage)
         controller = DarkModeController(settingsStorage)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsController = SettingsController(settingsStorage),
+            settingsController = settingsController,
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
@@ -171,6 +173,33 @@ class MapCanvasViewModelDarkModeTest {
         assertEquals(AmbientLightSensitivity.LOW, viewModel.uiState.value.ambientLightSensitivity)
         viewModel.onSetAmbientLightSensitivity(AmbientLightSensitivity.OFF)
         assertEquals(AmbientLightSensitivity.OFF, viewModel.uiState.value.ambientLightSensitivity)
+    }
+
+    /**
+     * A write the settings surface makes reaches the controller that resolves the presentation, so
+     * the dark mode row applies as it is picked instead of only on the next start (spec:
+     * `settings-surface` — "A change applies immediately and persists"; tasks.md 3.2).
+     */
+    @Test
+    fun aSurfaceWriteReachesTheDarkModeController() = runTest(mainDispatcherRule.dispatcher) {
+        settingsController.update {
+            it.copy(
+                darkMode = DarkModePreference.ON,
+                ambientLightSensitivity = AmbientLightSensitivity.HIGH
+            )
+        }
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "the surface's dark mode write reaches the controller, not only the file",
+            DarkModePreference.ON,
+            controller.preference.value
+        )
+        assertEquals(
+            "the surface's sensitivity write reaches the controller, not only the file",
+            AmbientLightSensitivity.HIGH,
+            controller.sensorSensitivity.value
+        )
     }
 
     @Test

@@ -49,6 +49,7 @@ import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AppSettings
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
+import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -658,7 +659,7 @@ class SettingsSurfaceTest {
         )
     }
 
-    // ---- the Karte topic's rows and the behaviour rules they follow (tasks.md 3.1, 3.5) ----
+    // ---- the Karte topic's rows and the behaviour rules they follow (tasks.md 3.1, 3.2, 3.5) ----
 
     /**
      * The map style row is a `SELECT`: its options live on a surface of their own, every bundled
@@ -696,6 +697,70 @@ class SettingsSurfaceTest {
         // Choosing writes the style and closes the options; the row now names the chosen style.
         composeRule.onNodeWithTag(SETTINGS_SELECT_TAG).assertDoesNotExist()
         composeRule.onNodeWithText("cycle").assertIsDisplayed()
+    }
+
+    /**
+     * The dark mode row is an inline `CHOICE`: Off, On and Automatic are listed on the row itself,
+     * the current value marked, and picking one writes the persisted preference a restart reads
+     * (spec: `settings-surface` — "Dark mode lists its three values"; tasks.md 3.2
+     * `theDarkModeRowListsThreeValues`).
+     */
+    @Test
+    fun theDarkModeRowListsThreeValues() {
+        runBlocking { controller.load() }
+        launchSurface(topic = SettingsTopic.MAP)
+
+        val row = SETTINGS_ROW_TAG_PREFIX + DARK_MODE_ROW
+        composeRule.onNodeWithTag(row).performScrollTo()
+        // The three values are on the row itself: not behind a sub-surface, and not reachable only
+        // by repeated taps (design D5).
+        for (labelRes in listOf(R.string.off, R.string.on, R.string.automatic)) {
+            choiceOf(row, labelRes).assertIsDisplayed()
+        }
+        // The current value is the one marked, and it is the one the document holds.
+        choiceOf(row, R.string.automatic).assertIsSelected()
+        choiceOf(row, R.string.off).assertIsNotSelected()
+        choiceOf(row, R.string.on).assertIsNotSelected()
+
+        choiceOf(row, R.string.on).performClick()
+        awaitStored { settings -> settings.darkMode == DarkModePreference.ON }
+
+        // The row reads the document again and marks the chosen value.
+        choiceOf(row, R.string.on).assertIsSelected()
+        choiceOf(row, R.string.automatic).assertIsNotSelected()
+    }
+
+    /**
+     * The ambient-light sensitivity row rides on Automatic: with dark mode forced On or Off the row
+     * does not apply and is omitted, and it returns as soon as the preference is Automatic again
+     * (spec: `settings-surface` — "An inapplicable section is omitted"; tasks.md 3.2).
+     */
+    @Test
+    fun theSensitivityRowIsOmittedUnlessDarkModeIsAutomatic() {
+        runBlocking { controller.load() }
+        runBlocking { controller.update { it.copy(darkMode = DarkModePreference.OFF) } }
+        launchSurface(topic = SettingsTopic.MAP)
+
+        val darkModeRow = SETTINGS_ROW_TAG_PREFIX + DARK_MODE_ROW
+        val sensitivityRow = SETTINGS_ROW_TAG_PREFIX + SENSITIVITY_ROW
+        composeRule.onNodeWithTag(darkModeRow).performScrollTo()
+        // The page shows the Off document this case wrote, so the missing row below is the omission
+        // it asserts and not a page that rendered before the document arrived.
+        choiceOf(darkModeRow, R.string.off).assertIsSelected()
+        composeRule.onNodeWithTag(sensitivityRow).assertDoesNotExist()
+
+        // Automatic brings the sensitivity row back, with all four of its values.
+        choiceOf(darkModeRow, R.string.automatic).performClick()
+        awaitStored { settings -> settings.darkMode == DarkModePreference.AUTOMATIC }
+        composeRule.onNodeWithTag(sensitivityRow).assertExists()
+        for (labelRes in listOf(
+            R.string.off,
+            R.string.sensitivity_high,
+            R.string.sensitivity_medium,
+            R.string.sensitivity_low
+        )) {
+            choiceOf(sensitivityRow, labelRes).assertExists()
+        }
     }
 
     /**
@@ -750,6 +815,11 @@ class SettingsSurfaceTest {
         switchOf(POI_SYMBOLS_ROW).performScrollTo().assertIsOn()
         composeRule.onNodeWithText(label(R.string.prefer_symbol_icons)).performClick()
         awaitStored { settings -> !settings.preferSymbolPoiIcons }
+        // The collector that applies the document to the map runs on the main dispatcher after the
+        // write landed, so the map's state is awaited like the file is rather than sampled: a sample
+        // that wins the race reads the value the tap replaced.
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        composeRule.waitForIdle()
 
         // One tap was the whole interaction, and the running map took it: the surface writes
         // through the one writer, so the map follows the document as it is made (no save action,
@@ -794,6 +864,10 @@ class SettingsSurfaceTest {
 
     /** A resource-backed label, resolved the way the surface resolves it. */
     private fun label(res: Int): String = context.getString(res)
+
+    /** One option of an inline `CHOICE` list: the row carrying [labelRes] under the row [rowTag]. */
+    private fun choiceOf(rowTag: String, labelRes: Int): SemanticsNodeInteraction =
+        composeRule.onNode(hasText(label(labelRes)) and hasAnyAncestor(hasTestTag(rowTag)))
 
     /** The one switch a row carries: the row's tag is on the label column, the toggle is below it. */
     private fun switchOf(key: String) = composeRule.onNode(
@@ -850,6 +924,10 @@ class SettingsSurfaceTest {
         const val MAP_STYLE_ROW = "map-style"
         /** The "Karte" topic's POI-symbol switch: the row a change without a save action toggles. */
         const val POI_SYMBOLS_ROW = "poi-symbols"
+        /** The "Karte" topic's dark mode row: the inline `CHOICE` of Off, On and Automatic. */
+        const val DARK_MODE_ROW = "dark-mode"
+        /** The ambient-light sensitivity row, which applies only while dark mode is Automatic. */
+        const val SENSITIVITY_ROW = "ambient-light-sensitivity"
     }
 
     /** The map screen's own dependencies, as `MapLayerStackComposeTest` builds them. */

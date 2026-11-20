@@ -550,6 +550,10 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
  *
  * A field equal to what the map already shows is not applied again, so a write this view model made
  * through its own setter — and the start-up read above — costs no second stylesheet load.
+ *
+ * Dark mode's two values reach the presentation through [com.naviveylin.data.DarkModeController]
+ * rather than through the map's own state, so a change the surface makes there is handed to the
+ * controller instead of only to the file the next start reads.
  */
 internal fun MapCanvasViewModel.followSurfaceWrites() {
     viewModelScope.launch {
@@ -567,6 +571,18 @@ internal fun MapCanvasViewModel.followSurfaceWrites() {
                     _uiState.value.copy(preferSymbolPoiIcons = settings.preferSymbolPoiIcons)
                 applyPreferSymbolIcons(settings.preferSymbolPoiIcons,
                                        invalidate = mapRenderer != null)
+            }
+            // The preference and the sensor sensitivity are what [com.naviveylin.data.DarkModeController]
+            // resolves the presentation from, so a surface write has to reach it as it is made;
+            // without this the row would apply only after a restart.
+            if (settings.darkMode != _uiState.value.darkModePreference) {
+                _uiState.value = _uiState.value.copy(darkModePreference = settings.darkMode)
+                darkModeController.restorePreference(settings.darkMode)
+            }
+            if (settings.ambientLightSensitivity != _uiState.value.ambientLightSensitivity) {
+                _uiState.value =
+                    _uiState.value.copy(ambientLightSensitivity = settings.ambientLightSensitivity)
+                darkModeController.restoreSensorSensitivity(settings.ambientLightSensitivity)
             }
         }
     }

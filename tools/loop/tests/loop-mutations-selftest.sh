@@ -2,13 +2,15 @@
 # The mutation harness's self-test — it proves the *harness* (not a change) can go red, on a **throwaway copy**
 # of the engine, so it is safe to run anywhere and costs no mutation of the working tree.
 #
-# Four things are asserted, and each is the harness's own failure mode (`tools/loop/tests/loop-mutations.sh`):
+# Five things are asserted, and each is the harness's own failure mode (`tools/loop/tests/loop-mutations.sh`):
 #
 #   * a mutation whose pattern no longer matches the file is `MUTATION-DID-NOT-APPLY`, exit 1 — never a
 #     silent pass;
 #   * a mutation that lands but that no case notices is `the case did not notice the mutation`, exit 1;
 #   * a mutation that lands and whose case notices it is `RED`, the restore is `green again`, and the copy is
 #     byte-identical to the pristine one when the harness is done;
+#   * a record that is `RED` quotes the assertion the case failed on, and the line of the case's own log it was read
+#     from, not the fixture line the case printed first (issue #964);
 #   * a **file set** bounds the run: it selects exactly the records whose file it names, it says how many of
 #     the declared set it selected, and a set that names no record refuses with exit 2 rather than passing by
 #     running nothing (issue #235: without the bound a change pays all 81 records × two case runs per pass).
@@ -91,6 +93,21 @@ case "$out" in
   *) bad "the restore line: [$out]" ;;
 esac
 copy_is_pristine "the mutated copy is byte-identical to the pristine one again"
+
+# 3b. the record's reason is the assertion the case failed on (issue #964). A `RED` line that quotes the first line a
+# case printed quotes its fixture: `29.8`'s case runs `git init` and fails on a later refusal, and the record archived
+# with item #962 quoted `Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')` instead of the refusal the case
+# failed on (`openspec/changes/archive/2026-11-18-a-path-no-child-wrote-is-not-a-write/evidence/mutation-29.8-red.txt`).
+# The reason also names the line of the case's log it was read from, and that line is not the log's first.
+out=$(timeout 600 bash "$harness" --only 29.8 --engine "$copy_dir" 2>&1)
+status=$?
+check "a record whose case prints before it fails exits zero" "0" "$status"
+if printf '%s\n' "$out" | grep -qE '^ *[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]+Z — case log line ([2-9]|[1-9][0-9]+): the merge was refused on a build directory'; then
+  ok "a red record quotes the assertion the case failed on"
+else
+  bad "a red record quotes the assertion the case failed on — the reason line: [$out]"
+fi
+copy_is_pristine "and the copy is byte-identical again after the record whose reason is read"
 
 # 4. the scratch tree the backups live in: the project's own `.pi/tmp` unless `TMPDIR` moves it, and gone
 # afterwards. A backup on the host's tmpfs is how a full /tmp emptied six engine files on 2026-10-21 (#234).
@@ -203,6 +220,6 @@ if [ "$failures" -ne 0 ]; then
     "$failures" "$cases"
   exit 1
 fi
-printf 'loop-mutations-selftest: all %s cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched\n' \
+printf 'loop-mutations-selftest: all %s cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it quotes the assertion a red case failed on and the case-log line it read it from, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched\n' \
   "$cases"
 exit 0

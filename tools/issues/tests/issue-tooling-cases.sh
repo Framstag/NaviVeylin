@@ -96,6 +96,8 @@ ISSUES_SHELL_CASES=(
   'decisions#theCountIsReportedWithoutReadingTheSet'
   'decisions#theAnswerShapeIsPinnedInTheReader'
   'decisions#everyOptionSaysWhatTheOwnerGetsAndWhatItRisks'
+  'decisions#everyOptionCarriesAScore'
+  'decisions#theScoreTableReadsItsDeltas'
   'decisions#theSheetLeadsWithTheVerdict'
   'decisions#theSheetIsTheFirstThingAfterTheReads'
   'decisions#theListingIsTheAnswerToWhichAreWaiting'
@@ -272,6 +274,8 @@ issues_run_shell_case() {
     'decisions#theCountIsReportedWithoutReadingTheSet') case_decisions_theCountIsReportedWithoutReadingTheSet ;;
     'decisions#theAnswerShapeIsPinnedInTheReader') case_decisions_theAnswerShapeIsPinnedInTheReader ;;
     'decisions#everyOptionSaysWhatTheOwnerGetsAndWhatItRisks') case_decisions_everyOptionSaysWhatTheOwnerGetsAndWhatItRisks ;;
+    'decisions#everyOptionCarriesAScore') case_decisions_everyOptionCarriesAScore ;;
+    'decisions#theScoreTableReadsItsDeltas') case_decisions_theScoreTableReadsItsDeltas ;;
     'decisions#theSheetLeadsWithTheVerdict') case_decisions_theSheetLeadsWithTheVerdict ;;
     'decisions#theSheetIsTheFirstThingAfterTheReads') case_decisions_theSheetIsTheFirstThingAfterTheReads ;;
     'decisions#theListingIsTheAnswerToWhichAreWaiting') case_decisions_theListingIsTheAnswerToWhichAreWaiting ;;
@@ -1325,6 +1329,44 @@ case_decisions_everyOptionSaysWhatTheOwnerGetsAndWhatItRisks() {
   assert_contains "$shape" "| do nothing |" "the skeleton prices deciding nothing as a column beside the options"
 }
 
+# The score is what the owner compares options by (#908 answered 2026-11-20 asked for it): one integer per option,
+# its absolute value the strength of the recommendation and its delta the distance between two options. The rule that
+# makes it checkable rather than decorative is the rubric — six anchors, so a number can be read off the sheet's own
+# columns instead of a feeling — and the order, which is why the table is the sheet's last block and never a column
+# beside the recommendation.
+case_decisions_everyOptionCarriesAScore() {
+  local body shape rec score anchor
+  body=$(decision_reader_body)
+  shape=$(cat "$ISSUES_REPO_ROOT/.pi/skills/answer-decision/references/answer-shape.md")
+  assert_contains "$body" "**The score**" "every option carries a recommendation score, not only a verdict line"
+  assert_contains "$body" "Do nothing is scored too" "the baseline is on the same scale as the options"
+  for anchor in '| 10 |' '| 8–9 |' '| 6–7 |' '| 4–5 |' '| 2–3 |' '| 0–1 |'; do
+    assert_contains "$body" "$anchor" "the rubric's anchor $anchor is missing, and a number with no anchor is a feeling"
+  done
+  assert_contains "$shape" "| option | name | points | what set it |" \
+    "the skeleton dumps the scores in one table, each row naming what set its number"
+  rec=$(grep -n '^\*\*Recommendation: <option>\*\*' <<< "$shape" | head -1 | cut -d: -f1)
+  score=$(grep -n '^## The score' <<< "$shape" | head -1 | cut -d: -f1)
+  [ -n "$rec" ] && [ -n "$score" ] || fail "the score block or the recommendation is missing from the skeleton: rec=$rec score=$score"
+  [ "$rec" -lt "$score" ] || fail "the score table is the sheet's last block, after the recommendation ($rec vs $score)"
+}
+
+# The number is only worth printing if its distance is readable: the absolute value says how strongly an option is
+# recommended and the delta says how far it is from the one above it. A gap of one is a tie (so it names the clause
+# that broke it), two or three is "clearly worse", and four or more says the row was carried by the escalation rather
+# than offered — the reading the prose could not carry, which is what the owner asked for on 2026-11-20.
+case_decisions_theScoreTableReadsItsDeltas() {
+  local body
+  body=$(decision_reader_body)
+  assert_contains "$body" "The recommendation holds the highest number" \
+    "so a sheet whose recommendation is not the top row is a defect of one half or the other"
+  assert_contains "$body" "A delta of 1 is a tie" "a one-point gap is a tie, named rather than smoothed away"
+  assert_contains "$body" "A delta of 2–3 is" "a two- or three-point gap is clearly worse, priced by its own clause"
+  assert_contains "$body" "A delta of 4 or more" "while a four-point gap says the option was carried, not offered"
+  assert_contains "$body" "lets a rejected option outscore the recommended one" \
+    "and the never-list refuses the sheet whose numbers contradict its recommendation"
+}
+
 case_decisions_theSheetLeadsWithTheVerdict() {
   local shape shape_file choice rec solved states options
   shape_file="$ISSUES_REPO_ROOT/.pi/skills/answer-decision/references/answer-shape.md"
@@ -1571,7 +1613,9 @@ case_decision_queue_everyOptionCarriesAnExampleAndTwoViews() {
   assert_contains "$body" "unmeasured" "a claim it could not measure is named as one"
   assert_contains "$body" "**Short term**" "the pro/contra carries the short-term view"
   assert_contains "$body" "**Strategic**" "and the strategic view beside it, never merged into it"
-  assert_contains "$body" "never one score" "which is the sentence forbidding a single ranking"
+  assert_contains "$body" "never one averaged score" "which is the sentence forbidding a single ranking, and the one a"
+  assert_contains "$body" "read off these columns, and is never computed from the two views" \
+    "score beside it: the points are read off the sheet's own columns, not averaged from the two views"
   assert_contains "$body" "**Recommendation: <option>**" "and a recommendation whose rejected options name their clause"
 }
 

@@ -72,9 +72,20 @@ the mechanism and is entered by a named heading only. A code token in the owner'
 
 **Recommendation: <option>** — <one sentence>. Risk <level>: <the clause>. Rejected: <option> because <one
 clause>; <option> because <one clause>. First sign it is going wrong: <the observable>.
+
+## The score (0–10, the last block)
+
+| option | name | points | what set it |
+|---|---|---|---|
+| <A> | <the option's short name, in the owner's words> | <0–10> | <the view that decided — the owner's criteria, the short term or the strategic one — and its clause> |
+| … | | | |
+| do nothing | — | <0–10> | <the clause> |
+
+The recommendation holds the highest number; a delta of 1 is a tie and names the clause that broke it, 2–3 is
+"clearly worse", and 4 or more says the row was carried rather than offered.
 ```
 
-## Before you send it — seven checks
+## Before you send it — eight checks
 
 1. **Does it lead with the answer?** The recommendation is in the third line, before any detail. An owner who reads
    two lines and stops still knows what you think and why.
@@ -87,6 +98,9 @@ clause>; <option> because <one clause>. First sign it is going wrong: <the obser
 6. **Is "do nothing" priced?** The queue does not wait for free, so the baseline has a row.
 7. **Is there a code token in the owner's lane?** Then the sheet is not finished. Move it under "For the
    architect", or say what it means in the reader's words.
+8. **Do the numbers agree with the sheet, and does every row carry its clause?** The recommendation holds the highest
+   score, `do nothing` is on the same scale, no delta is reported without its reading (1 = tie, 2–3 = clearly worse,
+   4+ = carried, not offered), and no row is a number with nothing behind it.
 
 Size: the whole sheet should fit roughly one screen of prose plus the four tables. If it needs more, the item is
 carrying two forks — say so in "The decision actually being asked" rather than answering both.

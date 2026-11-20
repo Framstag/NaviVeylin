@@ -1,0 +1,16 @@
+# revert-check A — the rubric's 2–3 anchor removed: decisions#everyOptionCarriesAScore must go red
+  the rubric's anchor | 2–3 | is missing, and a number with no anchor is a feeling: '| 2–3 |' not found in: ---
+FAIL decisions#everyOptionCarriesAScore
+PASS decisions#everyOptionCarriesAScore
+
+# revert-check B — 'A delta of 4 or more' removed: decisions#theScoreTableReadsItsDeltas must go red
+  while a four-point gap says the option was carried, not offered: 'A delta of 4 or more' not found in: ---
+FAIL decisions#theScoreTableReadsItsDeltas
+PASS decisions#theScoreTableReadsItsDeltas
+
+# revert-check C — the ban reverted to 'never one score': decision-queue#everyOptionCarriesAnExampleAndTwoViews must go red
+  which is the sentence forbidding a single ranking, and the one a: 'never one averaged score' not found in: ---
+FAIL decision-queue#everyOptionCarriesAnExampleAndTwoViews
+PASS decision-queue#everyOptionCarriesAnExampleAndTwoViews
+
+restored: 1 ban sentence, 1 anchor row, 1 delta clause

@@ -1,0 +1,3 @@
+PASS decisions#everyOptionCarriesAScore
+PASS decisions#theScoreTableReadsItsDeltas
+PASS decision-queue#everyOptionCarriesAnExampleAndTwoViews

@@ -187,7 +187,7 @@ or "unmeasured".
 | risk if it is wrong | | | |
 ```
 
-The criteria are the owner's; the two views below are the architect's, and they stay **two views, never one score**:
+The criteria are the owner's; the two views below are the architect's, and they stay **two views, never one averaged score** — the points table at the end of this section is read off these columns, and is never computed from the two views:
 
 **Short term** — what the next run, or this week, actually sees. Priced in this tree's own units: gate minutes for
 the architect, the loop's rounds for the person deciding whether to spend a cycle on it.
@@ -203,6 +203,38 @@ the architect, the loop's rounds for the person deciding whether to spend a cycl
 | | | the count is measured, not guessed: `decisions.sh --json` filtered over the items' bodies and labels for the paths and mechanism the option touches — an unfilled cell says "unmeasured", never a claim | | |
 
 No cell without a basis: each names the measurement or the pointer it rests on, or says "unmeasured".
+
+**The score** — one integer per option, 0–10, filled as the sheet's last table (§10 states where it sits). Two things
+it is for: its **absolute value** says how strong the recommendation is for this item, and the **delta between two
+rows** says how far apart the options are — so an owner reads that a rejected option was never a contender, rather
+than that it lost by a hair.
+
+It is not a second, independent judgement: every point is read off the columns already filled — *does it solve it*,
+the risk level, and the strategic view's "removes the cause, or re-counts it" — so a number that disagrees with the
+sheet's own columns is a defect of the sheet, and the number changes, not the columns:
+
+| points | what the option is, read off the sheet's own columns |
+|---|---|
+| 10 | closes the observation in full, removes the cause, risk Low, and nothing left owed |
+| 8–9 | closes it in full; one of a named residue or a Medium risk, never both |
+| 6–7 | closes it, but re-counts the cause — the symptom moves rather than ends — or buys work that is undone later |
+| 4–5 | *partial*: a residue the item still owes and the cause survives |
+| 2–3 | *no*: the observation stays, or the option buys the symptom |
+| 0–1 | loses the scope, or its risk is unowned and nothing would catch it |
+
+Three rules make the deltas mean what they claim:
+
+- **The recommendation holds the highest number.** A sheet where a rejected option outscores the recommended one is
+  wrong in one of its two halves; say which half changed, rather than leaving the reader to guess.
+- **A delta of 1 is a tie**, and the recommendation names the single clause that broke it. A delta of 2–3 is "clearly
+  worse", priced by that option's own clause. A delta of 4 or more says the option was never a live choice: it is
+  listed because the escalation carried it or the tree suggests it, and the row says so.
+- **Do nothing is scored too**, on the same scale — a baseline with no number is the one row the owner ends up
+  comparing everything else against by eye.
+
+The absolute value is the sheet author's judgement and says so: 9 and 10 both mean "recommended, land it", 0 and 1
+both mean "refused", and the middle is where the residue lives. A row that carries a number and no clause is refused
+on the same ground as a risk level with no clause behind it.
 
 ## 8. Risk, side by side — with the fourth option nobody prices
 
@@ -235,11 +267,11 @@ losers and not of the winner has been sold something:
 ## 10. Stop — one question, and it carries the verdict
 
 Present the sheet from `references/answer-shape.md`, in the skeleton's own order — header, the six contents lines,
-the options, the criteria table, the risk table, the two views, the recommendation — in **one message**, and then
-call `ask_user` once. The choices are the options, each titled with what the owner gets
-(`A — <what you get>`), and the `context` field repeats the recommendation and the risk levels, because the choice
-is made in that dialogue and nowhere else: an owner who must scroll back to remember which option was safe is
-choosing blind. Offer "park — let it wait" as a choice, since it is one of the four outcomes.
+the options, the criteria table, the risk table, the two views, the recommendation, and the score table last — in
+**one message**, and then call `ask_user` once. The choices are the options, each titled with what the owner gets
+(`A — <what you get>`), and the `context` field repeats the recommendation, the risk levels and the score of the recommended option beside
+its nearest rival, because the choice is made in that dialogue and nowhere else: an owner who must scroll back to
+remember which option was safe — or how far ahead it was — is choosing blind. Offer "park — let it wait" as a choice, since it is one of the four outcomes.
 
 One `ask_user` call, and a clarifier that would change which option is recommended rides inside it — never a second
 turn. The item keeps its label and its question and the queue keeps listing it; that is the
@@ -281,7 +313,9 @@ gh issue view <n> --repo <owner>/<repo> --json labels,state
 - offers an option without an example, or prices a pro or a contra with no basis
 - offers an option without saying what the owner gets, whether it closes the stated problem, and its risk
 - names a risk level without the clause that sets it, or states the losers' risks and not the winner's
-- merges the short-term and strategic views into one ranking, or averages them
+- states a score with no clause behind it, lets a rejected option outscore the recommended one, or reports a delta of
+  four or more as though the option were still a live choice
+- merges the short-term and strategic views into one ranking, averages them, or calls their average a score
 - writes a label, a comment or a body directly — `gh issue comment`, `gh issue edit`, `gh issue create`,
   `gh issue close` are all outside it
 - edits code, changes a bound or raises `LOOP_MAX_DECISIONS_DEFAULT` while answering: the answer names the
@@ -351,6 +385,17 @@ the symptom — A is the only one that survives the next bound wave.
 **Recommendation: A** — it removes the question instead of re-counting it; 3 → 10 on 2026-10-20 is the
 measurement that C repeats. First sign it is going wrong: items that were cut are offered a second time without
 their evidence.
+
+| option | name | points | what set it |
+|---|---|---|---|
+| A | a cut produces no question | 9 | strategic: removes the cause; risk Low; the only residue is the re-offer case |
+| B | keep the escalation, count only forks | 5 | owner's criteria: *partial* — the count drops and the pile grows |
+| C | raise the default | 2 | *no*: the observation stays, and the same raise was rejected on 2026-10-20 |
+| D | age the decision | 1 | High, and nothing would catch it — a self-excused queue looks empty |
+| do nothing | — | 0 | the cap keeps refusing every start: the state the owner is already in |
+
+The deltas are what the numbers are for: A − B is 4, so B was carried by the escalation rather than offered; A − D is
+8, and nothing in the sheet argues D at all.
 
 **Answer written.** `answer.sh 788 --continue --decision "A — …"`, naming the branch, its commits, the four
 blocking findings the reviewer left, and "do not re-derive". Verified: `agent/needs-decision` and

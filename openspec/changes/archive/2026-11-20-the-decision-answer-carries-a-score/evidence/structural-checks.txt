@@ -1,0 +1,7 @@
+# structural checks
+LOOP-CHANGE-READY: ok
+⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[8]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+check-portability: OK — 61 engines and 8 templates name no project value (127 value(s) read from the project)
+hygiene findings naming this change: 0
+note: the two >500-character warnings are pre-existing — requirements[7] "A park writes its answer and moves no label" (1337) and requirements[8] "Every writer and reader of an answer shape reads one home" (568). The requirement this change added measures 421.

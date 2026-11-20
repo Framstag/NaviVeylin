@@ -1,0 +1,3 @@
+# the full suite, after the case split (185 cases, offline)
+PASS update#writesTheTypeItWasGiven
+issue-tooling-selftest: all 185 cases passed (JDK 21, offline, no token, HEAD 298d0052, tools e725ee5575df, 2026-11-20T17:57:55Z)

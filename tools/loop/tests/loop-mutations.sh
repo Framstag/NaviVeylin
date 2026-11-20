@@ -1492,6 +1492,12 @@ MUTATIONS=(
   # own refusal is the only thing that can name it.
   '931.1@-@tools/loop/prescreen.sh@prescreen#anIssueTwoOpenChangesNameIsRefused@the finding the screen reads for the item'"'"'s number, so an item whose number two open changes carry is queued and worked — the collision this change exists to find (issue #931)@s|^    collision=.*|    collision=""|'
   '963.1@-@tools/loop/tests/loop-cases.sh@driver#aCallInPipelinePositionIsARead@the list separator that opens a command, so a stage of a pipeline is a call of the name instead of the last word of the command before it (issue #963)@s#" SEP ", line)#" XSEP ", line)#'
+  # 936.1 — the count of cut rounds read back beside the rate (issue #936). The scale a cap cut from a round's input
+  # reached the item's record and the report's per-item line (#924) and no line totalled it, so a round that decided on
+  # 59 % of its diff and one that read all of it printed the same rate: the run of 2026-11-15T19:32:41Z printed
+  # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
+  # names them, so the parenthetical the case asserts is what can say the run was cut at all.
+  '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

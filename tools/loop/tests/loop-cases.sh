@@ -417,6 +417,7 @@ LOOP_SHELL_CASES=(
   'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow'
   'report#theRefusedLandingIsReadFromTheRecord'
   'report#trendFiguresFromState'
+  'report#aCutRoundIsCountedBesideTheRate'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
   'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt'
@@ -1203,6 +1204,7 @@ loop_run_shell_case() {
     'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow') fn=case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow ;;
     'report#theRefusedLandingIsReadFromTheRecord') fn=case_report_theRefusedLandingIsReadFromTheRecord ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
+    'report#aCutRoundIsCountedBesideTheRate') fn=case_report_aCutRoundIsCountedBesideTheRate ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
     'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt') fn=case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt ;;
@@ -15595,6 +15597,46 @@ case_report_trendFiguresFromState() {
   out=$(run_report "$p") || fail "the report failed for the even count"
   assert_contains "$out" "wall:   median 151 s (min 100, max 201) · 2 items" \
     "an even count takes the mean of the two middle walls, rounded to whole seconds"
+}
+
+# A round whose input the run's own cap cut decided on part of what it should have read, and until #936 the rate
+# printed it the same as a round that read all of it: `LOOP_REVIEW_INPUT_MAX_BYTES` cut 59 % of #899's and 53 % of
+# #878's input in the run of 2026-11-15T19:32:41Z, the figures reached the item's record (#924,
+# `metrics.reviewInput`) and the report's per-item line, and the run's best-looking figure — `5/5 first rounds
+# passed` — covered rounds handed the head of their part. The count belongs beside the rate because the two are one
+# claim: six of that run's eleven items had a round cut, so `5/5` was a rate over five items of eleven and the line
+# could not say so.
+case_report_aCutRoundIsCountedBesideTheRate() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out trend
+  p=$(new_project)
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  # Three round-1 passes, two of them on a round whose input the cap cut — the scale the tooling writes, quoted on
+  # two items. The third read every byte and is not counted.
+  run_state "$p" done 21 --result done --verdict closed --wall 41 --rounds 1 --review-verdict PASS \
+    --review-input '1 of 1 parts over the 32000 B cap · 46649 of 78560 B cut (59 %) · review-1.cut.md' >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 52 --rounds 1 --review-verdict PASS >/dev/null
+  run_state "$p" done 23 --result done --verdict closed --wall 63 --rounds 1 --review-verdict PASS \
+    --review-input '1 of 2 parts over the 32000 B cap · 46276 of 87437 B cut (53 %) · review-1.cut.md' >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "review: 3/3 first rounds passed (2 truncated)" \
+    "the rate names how many of the run's rounds were handed a part the cap cut, printed beside the verdicts the rate counts"
+  assert_contains "$trend" "(2 truncated) · 0 undecided · 0 never reviewed" \
+    "and the buckets beside it are the ones the line printed before"
+  # A run whose parts were all under the cap prints the line it always printed: the count is the record's, and a
+  # round the bound never touched records none.
+  init_state "$p" 1 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result done --verdict closed --wall 41 --rounds 1 --review-verdict PASS >/dev/null
+  out=$(run_report "$p") || fail "the report failed for a run no cap cut"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "review: 1/1 first rounds passed · 0 undecided · 0 never reviewed" \
+    "a run no cap cut prints its rate with no truncation count beside it"
+  assert_not_contains "$trend" "first rounds passed (" \
+    "and names no cut at all, because a zero there would be a measurement nobody made"
 }
 
 # A figure nobody measured prints `-` with its reason, never a zero that reads as a measurement — the rule the

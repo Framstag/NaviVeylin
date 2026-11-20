@@ -503,18 +503,24 @@ trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-nu
   def mtok: (. | mtok_n | "\(.) Mtok");
   def mib: ((. / 1048576 * 10 | round) / 10 | "\(.) MiB");
   def items_n: if . == 1 then "1 item" else "\(.) items" end;
-  ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0)}]) as $it
+  # How many rounds of the run were handed a part its own input cap cut (issue #936): the count of items whose record
+  # carries the scale run.sh measured over the three parts of that round (metrics.reviewInput, written by state.sh
+  # done --review-input). An empty record is no cut, so a state written before the field existed records none, and a
+  # run whose parts were all under the cap prints the line it always printed.
+  def cut_note: if . == 0 then "" else " (\(.) truncated)" end;
+  ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0), cut: ((.metrics.reviewInput // "") != "")}]) as $it
   | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
   | [$it[] | select(.v | decided)] as $decided
   | [$it[] | select((.v == "PASS" or .v == "NOTES") and .r == 1)] as $first
   | [$it[] | select((.r >= 1) and ((.v | decided) | not))] as $undecided
   | [$it[] | select(.r == 0)] as $never
+  | ([$it[] | select(.cut)] | length) as $cut
   | ([$it[] | select(.v != "")] | length) as $withVerdict
   | ( if $withVerdict == 0 and ([$it[] | select(.r >= 1)] | length) > 0
         then "- · this state records no review verdict — it was written before the report read one"
       elif ($decided | length) == 0
         then "- · no round of this run ended in a verdict · \($undecided | length) undecided · \($never | length) never reviewed"
-      else "\($first | length)/\($decided | length) first rounds passed · \($undecided | length) undecided · \($never | length) never reviewed" end ) as $review
+      else "\($first | length)/\($decided | length) first rounds passed\($cut | cut_note) · \($undecided | length) undecided · \($never | length) never reviewed" end ) as $review
   | ( if ($walls | length) == 0 then "- · no item recorded a wall time"
       else "median \(($walls | median) | round) s (min \(($walls[0]) | round), max \(($walls[-1]) | round)) · \($walls | length) items" end ) as $wall
   | ([.items[]

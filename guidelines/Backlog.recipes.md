@@ -1809,7 +1809,13 @@ So the state records the round's verdict (`done --review-verdict`) and four thin
 round 1 that passed; a round 1 that refused and whose round 2 passed (in the rate's denominator, in no
 numerator); a round that ended without a verdict (the answer was cut, the run's clock or its role's turn bound
 ended it, it wrote, or the state predates the field — neither a pass nor a refusal, so in no rate); and an item no
-round ran for (`reviewRounds` 0, which is `never reviewed` and not a refused round). The third figure the issue asked for,
+round ran for (`reviewRounds` 0, which is `never reviewed` and not a refused round). Beside those four the line says how
+much of the run the rate is a rate over: since #936 it names how many of the run's rounds were handed a part the input
+cap cut — `LOOP_REVIEW_INPUT_MAX_BYTES` bounds each of the round's three parts, the scale it cut is on the item's
+record (`metrics.reviewInput`, #924), and the rate prints the count in parentheses after the passes, so a run whose
+rounds read the head of their diff prints `5/5 first rounds passed (6 truncated)` rather than a rate that reads as if
+every round saw its whole input. `report#aCutRoundIsCountedBesideTheRate` is the case and mutation record `936.1` what
+proves it notices the count go. The third figure the issue asked for,
 the landings that reddened `main`, is in neither source the report reads: `state.sh done` keeps a landing's
 branch, its commit count and its evidence and no commit, and the `broken-main` sensor identifies its condition by
 job and case, so no `gh` read could attribute a red base to the landing that caused it. The report therefore

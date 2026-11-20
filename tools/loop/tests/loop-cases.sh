@@ -4861,12 +4861,14 @@ case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed() {
   diff="$p/.pi/issue-loop/items/21/review-1.diff"
   cut="$p/.pi/issue-loop/items/21/review-1.cut.md"
   prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
-  [ -f "$diff" ] || fail 'the round's diff was not written'
+  [ -f "$diff" ] || fail "the round's diff was not written"
   [ -f "$cut" ] || fail 'the cut index was not written beside it'
   [ -f "$prompt" ] || fail 'the reviewer prompt was not rendered'
   text=$(cat "$prompt")
   assert_contains "$text" 'Your input this round is bounded' 'the round is told its input is bounded this round'
-  assert_contains "$text" 'Bounded at 64 bytes a part' 'and by which figure, read from the configuration'
+  # The figure is the index's own line, not the prompt's: the prompt is handed the scale, the index states the cap it
+  # was cut at, so the assertion that names the number reads the file the number is written in.
+  assert_contains "$(cat "$cut")" 'Bounded at 64 bytes a part' 'and by which figure, read from the configuration'
   assert_contains "$text" 'review-1.cut.md' 'and the file that names what the cut left out'
   assert_contains "$text" 'Do not page a part past' 'and that the marker is where the reading stops'
   # What the round is handed is the head, and the head says so on its last line.

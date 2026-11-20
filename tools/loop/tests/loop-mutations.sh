@@ -1359,11 +1359,15 @@ MUTATIONS=(
   # report prints the constant for a run nothing was cut from. One record, one invariant.
   #
   # A second record for the index's own write (`} > "$cut_file"` → `> /dev/null`) was written twice and dropped twice:
-  # `--check` confirms the expression applies, yet the case stays green in this harness and in a hand-run of the driver
-  # against a mutated engine copy. A record the case cannot notice is a failure of the harness, not a pass — and the
-  # open question it leaves (the case asserts the index's content, so what the redirected write loses is not visible to
-  # it) belongs in the review, not in a green record.
+  # `--check` confirmed the expression applies, yet the case stayed green in this harness and in a hand-run of the driver
+  # against a mutated engine copy. The mechanism was in the case, not in the harness, and it was two lines: the message
+  # beside the `[ -f "$diff" ]` check read `fail 'the round's diff was not written'`, whose apostrophe closes the quoted
+  # string, so every line from the `[ -f "$cut" ]` check to the state assertions was folded into one command's argument
+  # list and never ran; and once the fold was closed, the assertion that names the cap read the prompt for a line only
+  # the index carries. Both are repaired, so `924.2` is that record: `--only 924.2` over the case as it stood printed
+  # `not-noticed: 1`, and over the case as it now stands `red-when-mutated: 1` (issue #924).
   '924.1@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
+  '924.2@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the index the round reads by path, so a cut round is handed a head whose remainder is named nowhere and a prompt pointing at a file that was never written (issue #924)@s#^  } > "$cut_file"$#  } > /dev/null#'
   # 925.x — the rule the worker prompt stated and nothing counted is a measured bound with a refusal arm (issue #925):
   # the second read of a path one child was handed is counted every time, and the arm `LOOP_REPEAT_READ` records picks
   # what it is answered with. Over the run behind that issue 2 167 of 2 987 reads (72.5 %) were a second read of a path

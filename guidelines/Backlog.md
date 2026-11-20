@@ -375,6 +375,12 @@ lengthens an engine script past its row's bound, shares a name across two files,
 `tools/loop/tests/loop-selftest.sh` and needs the row corrected in the same change, with a reason beside the number
 it moves.
 
+The run's own record stands beside the state file: `loop_emit`, in `tools/loop/lib.sh`, appends one JSON object per
+fact to `$LOOP_RUN_EVENTS` (`run-events.jsonl`, in the state directory) and renders the human line from the same row
+of `tools/loop/events.tsv`. One file holds every run of this project: a run's facts are the rows after its
+`run-start`, and a rotation can split a run across two files, so a rotated record is a lower bound — so a past run
+is counted from its record instead of a transcript. The state file stays the authority; the record is what the run did.
+
 A guard's comment cites the issue that put it there. `tools/loop/census.sh` counts the guards whose cited item is
 closed, whose refusal no case carries, and whose comment cites no issue — the number a person reads before retiring
 one (`guidelines/Backlog.recipes.md` section 7d). No run consults it.

@@ -68,6 +68,17 @@ one bridge) plus a route here.
 - **Rule: the NDK bridge is the only native place that logs through Android.** The bridge links
   `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs —
   libosmscout must stay platform-independent.
+- **Rule: the loop engine's own record is JSON-lines, and a reader counts the record rather than grepping a
+  transcript.** `loop_emit`, in `tools/loop/lib.sh`, appends one JSON object per fact to `$LOOP_RUN_EVENTS`
+  (`<state dir>/run-events.jsonl`, beside the state file) and renders the human line from the same values, so the
+  line and the record cannot disagree. The kinds, the fields each must carry and the format each renders to are
+  declared once in `tools/loop/events.tsv`; an undeclared kind, a missing declared field or a field the row does not
+  declare stops the run rather than printing past the record. An event names identity — an issue, a phase, a path
+  inside the project, a count — and never a position or a secret, and the vocabulary is what the suite reads for
+  that rather than a reviewer's eye. The record is bounded (`LOOP_RUN_EVENTS_MAX_BYTES`) and its rotation is an event
+  of its own; one file holds every run of this project, so a run's facts are the rows after its `run-start` and a
+  rotation can split a run across two files, making a rotated record a lower bound. A number a person quotes from a
+  run's recorded facts — today its header and its phase lines — comes from `jq` over the record, not a transcript line.
 
 ## 3. Kotlin (app) logging
 

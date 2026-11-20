@@ -230,6 +230,12 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   issue, plus the pair a retirement needs. Its numbers are evidence about the engine, not a run's input: the tool
   writes no state and no run reads it. Record the output with the date and the command, as this change's
   `evidence/census-2026-11-16.log` does; a number without the command is not a claim a later reader can re-take.
+- **Rule: a run's own record is an artifact, kept beside its state file.** `loop_emit`, in `tools/loop/lib.sh`,
+  appends one JSON object per fact the run makes visible to `$LOOP_RUN_EVENTS` — `run-events.jsonl` in the state
+  directory, bounded by `LOOP_RUN_EVENTS_MAX_BYTES` and rotated to `<file>.1` with a `record-rotated` event as the new
+  file's first line. A figure a person quotes from a run is read back from that file with `jq` rather than grepped
+  out of the run's transcript, and a record that carries a rotation is quoted as the lower bound it is — the state
+  file stays the authority for the arithmetic the report states.
 
 ### Native verification — new methods, hidden visibility
 

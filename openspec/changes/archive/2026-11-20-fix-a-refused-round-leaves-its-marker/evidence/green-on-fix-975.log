@@ -1,0 +1,26 @@
+green on the change, engine tools/loop of this tree, run 2026-11-20T00:19:37Z
+=== driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+=== run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement
+PASS run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement
+=== run#recordsAFailedReviewOnTheBranch
+PASS run#recordsAFailedReviewOnTheBranch
+=== worktree#aRepairedRefusalDoesNotKeepALandedBranch
+PASS worktree#aRepairedRefusalDoesNotKeepALandedBranch
+=== worktree#refusesABranchWhoseReviewFailed
+PASS worktree#refusesABranchWhoseReviewFailed
+=== worktree#refusesABranchWhoseReviewRoundNeverAnswered
+PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
+=== run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+=== run#announcesAndRecordsTheReviewRound
+PASS run#announcesAndRecordsTheReviewRound
+=== run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+=== run#aCorrectiveRoundIsHandedTheCorrections
+PASS run#aCorrectiveRoundIsHandedTheCorrections
+=== run#thePreGateReviewRunsBeforeTheGate
+PASS run#thePreGateReviewRunsBeforeTheGate
+=== run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides
+PASS run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides
+green end 2026-11-20T00:21:29Z exit=0

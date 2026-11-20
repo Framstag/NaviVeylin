@@ -1,0 +1,26 @@
+red on HEAD 49171faee0afa95b78925ce1e58788a0d2bc857e, engine /home/tim/projects/NaviVeylin/.pi/issue-loop/items/975/scratch/base-engine-975/tools/loop, run 2026-11-20T00:14:25Z
+=== run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement
+run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement|   and the round that answered no is recorded beside it: 'review-failed-round-1.md' not found in: openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement| openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-1-requested.md
+run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement| openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-2-passed.md
+run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement| openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-2-requested.md
+--- run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement[0] (exit 1)
+  and the round that answered no is recorded beside it: 'review-failed-round-1.md' not found in: openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-1-requested.md
+openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-2-passed.md
+openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-2-requested.md
+FAIL run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement
+loop-selftest: 1 of 1 cases failed
+exit=1
+=== worktree#aRepairedRefusalDoesNotKeepALandedBranch
+worktree#aRepairedRefusalDoesNotKeepALandedBranch|   a branch the base carries is swept, whatever it refused on the way to passing: 'removed fix/issue-21-a-repaired-refusal' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#aRepairedRefusalDoesNotKeepALandedBranch| kept fix/issue-21-a-repaired-refusal — the reviewer refused it
+worktree#aRepairedRefusalDoesNotKeepALandedBranch| worktree: 0 landed branch(es) removed · 0 kept (carries work the base does not) · 0 kept (checked out) · 1 kept (the reviewer refused it)
+--- worktree#aRepairedRefusalDoesNotKeepALandedBranch[0] (exit 1)
+  a branch the base carries is swept, whatever it refused on the way to passing: 'removed fix/issue-21-a-repaired-refusal' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+kept fix/issue-21-a-repaired-refusal — the reviewer refused it
+worktree: 0 landed branch(es) removed · 0 kept (carries work the base does not) · 0 kept (checked out) · 1 kept (the reviewer refused it)
+FAIL worktree#aRepairedRefusalDoesNotKeepALandedBranch
+loop-selftest: 1 of 1 cases failed
+exit=1
+red-on-HEAD end 2026-11-20T00:14:36Z

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in
+     red-on-HEAD-975.log, transcribed from that run's own lines, and it is not the runner output. The engine is the
+     item's base (49171faee0afa95b78925ce1e58788a0d2bc857e, `git archive HEAD tools/loop tools/issues` into
+     .pi/issue-loop/items/975/scratch/base-engine-975 and handed to the suite as LOOP_ENGINE) with the case as this
+     change writes it, so this is the reading the fix is red on: HEAD writes the refusal only after the review
+     loop, for the last round, so a round that refused and was repaired leaves its announcement and nothing else.
+     The run ended 2026-11-20T00:14:25Z, exit 1, `1 of 1 cases failed`. -->
+<testsuite name="run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement" tests="1" failures="1" errors="0" timestamp="2026-11-20T00:14:25Z">
+  <testcase name="run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement" classname="run">
+    <failure message="and the round that answered no is recorded beside it: 'review-failed-round-1.md' not found in: openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml"/>
+  </testcase>
+</testsuite>

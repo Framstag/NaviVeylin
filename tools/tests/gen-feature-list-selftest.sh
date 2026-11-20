@@ -3,10 +3,18 @@
 #
 # Builds its own fixture tree in a scratch directory — synthetic specs, a classification, prompt stubs and a
 # stub phrasing command — and drives the tool as a subprocess. It reads no project document and needs no build,
-# no device, no network and no language model, as tools/tests/check-doc-routes-selftest.sh does.
+# no device, no network and no language model, as tools/tests/check-doc-routes-selftest.sh does — except
+# `mutation: …`, the one case that reads this tree's `tools/gen-feature-list.sh` and the mutation set beside this
+# file, because its claim is about those two files and not about a fixture's.
 #
-# Usage: gen-feature-list-selftest.sh [--verbose]
-# Exit 0 when every case passes, 1 when one fails.
+# A case is identified by the name it is recorded with, and `--case <name>` runs that one case: the name is what
+# `openspec/specs/spec-feature-index/spec.md` quotes in its `**Case**:` lines and what a record's `case` field in
+# `tools/tests/gen-feature-list-mutations.json` names, so one string identifies the assertion in all three places.
+# The fixture commands the file shares still run under a filter — only the assertions of the other cases are
+# skipped — because a case here is an assertion over output a shared preamble wrote.
+#
+# Usage: gen-feature-list-selftest.sh [--case <name>] [--verbose]
+# Exit 0 when every case passes, 1 when one fails, 2 when `--case` names no case of this suite.
 set -uo pipefail
 
 root=$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null) || root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -14,7 +22,15 @@ here="$root/tools"
 tool="$here/gen-feature-list.sh"
 
 verbose=0
-[ "${1:-}" = "--verbose" ] && verbose=1
+case_filter=""
+case_matched=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { echo "gen-feature-list-selftest: $1 needs a value" >&2; exit 2; }; case_filter="${2:-}"; shift 2 ;;
+    --verbose) verbose=1; shift ;;
+    *) echo "gen-feature-list-selftest: unknown argument '$1'" >&2; exit 2 ;;
+  esac
+done
 
 work=$(mktemp -d) || { echo "gen-feature-list-selftest: cannot create a scratch directory" >&2; exit 1; }
 trap 'rm -rf "$work"' EXIT
@@ -22,8 +38,17 @@ trap 'rm -rf "$work"' EXIT
 pass=0
 fail=0
 
-ok()  { pass=$((pass + 1)); printf 'ok   %s\n' "$1"; }
+# A case is recorded under its name, and `--case` filters on exactly that string.
+wanted() {
+  [ -z "$case_filter" ] && return 0
+  [ "$case_filter" = "$1" ] || return 1
+  case_matched=1
+  return 0
+}
+
+ok()  { wanted "$1" || return 0; pass=$((pass + 1)); printf 'ok   %s\n' "$1"; }
 bad() {
+  wanted "$1" || return 0
   fail=$((fail + 1))
   printf 'FAIL %s\n' "$1"
   [ -n "${2:-}" ] && printf '     %s\n' "$2"
@@ -331,6 +356,31 @@ grep -q 'classified ahead of its archive' "$work/c.err" && ok "gate: the pending
 grep -q 'stale classification entry' "$work/c.err" && bad "gate: a pending entry is not reported as stale" || ok "gate: a pending entry is not reported as stale"
 rm -rf "$repo/openspec/changes" "$data/specs.json.tmp"
 specs_
+
+# The two sets and their two figures are report-only: nothing downstream reads them, so the figures the block
+# above asserts are the whole of what holds the split (issue #926). An assertion is edited together with the
+# expression beside it, which is what makes a mutation set the thing that holds them: one record per expression,
+# each naming the case it reds. This case — one name, six assertions — pins that the set exists, that every record
+# names the classifier and a case this suite records, that the harness can list the set, and that every record's
+# `search` still quotes exactly one line of the tool — a record whose text has moved reports `MUTATION-DID-NOT-APPLY`
+# only to a run nobody owes, so the check belongs in the suite that runs unattended. The assertions share the name
+# because the delta, this file and `guidelines/FeatureList.md` §4's case list quote one string.
+record_set="$root/tools/tests/gen-feature-list-mutations.json"
+case_name="mutation: the classification's two sets and their counts are held by a record set"
+is "$case_name" "5" \
+  "$(jq '.mutations | length' "$record_set" 2>/dev/null || printf '0')"
+is "$case_name" "5" \
+  "$(jq -r '[.mutations[] | select(.file == "tools/gen-feature-list.sh")] | length' "$record_set" 2>/dev/null || printf '0')"
+is "$case_name" "1" \
+  "$(jq -r '."case-cmd" // empty' "$record_set" 2>/dev/null | grep -c 'gen-feature-list-selftest.sh --case' || true)"
+is "$case_name" "5" \
+  "$(jq -r '.mutations[] | .case // ""' "$record_set" 2>/dev/null \
+     | while IFS= read -r recorded_case; do [ -n "$recorded_case" ] && grep -qF -- "$recorded_case" "${BASH_SOURCE[0]}" && printf 'x\n'; done | grep -c . || true)"
+is "$case_name" "5" \
+  "$(jq -r '.mutations[] | .search' "$record_set" 2>/dev/null \
+     | while IFS= read -r search; do [ "$(grep -cxF -- "$search" "$tool")" = 1 ] && printf 'x\n'; done | grep -c . || true)"
+is "$case_name" "0" \
+  "$(bash "$here/mutate.sh" --mutations "$record_set" --list > "$work/mutation-list.out" 2>&1; printf '%s' "$?")"
 
 jq '.specs.alpha.surfaces = ["tablet"]' "$data/specs.json" > "$data/specs.json.tmp" && mv "$data/specs.json.tmp" "$data/specs.json"
 rc "gate: a surface outside the vocabulary fails the run" 1 run --release 3-1-1-4
@@ -936,6 +986,12 @@ if [ "$fail" -eq 0 ]; then
   printf 'gen-feature-list-selftest: all %d cases passed\n' "$pass"
 else
   printf 'gen-feature-list-selftest: %d of %d cases failed\n' "$fail" "$((pass + fail))"
+fi
+# A filter that names no case of this suite is a usage error, never a pass: the mutation harness reads the exit
+# status, so a misspelled `case` in a record would otherwise report a red case that never ran.
+if [ -n "$case_filter" ] && [ "$case_matched" -eq 0 ]; then
+  echo "gen-feature-list-selftest: no case is named '$case_filter'" >&2
+  exit 2
 fi
 [ "$fail" -eq 0 ] || exit 1
 exit 0

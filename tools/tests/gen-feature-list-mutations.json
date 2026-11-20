@@ -1,0 +1,46 @@
+{
+  "comment": "The revert-check of the catalogue classifier's two report-only states (issue #926): the split of `pending` from `stale` landed as two `comm` sets and two figures, and it was held only by direct assertions on those figures — a set of assertions edited together with the expression beside it, so a swapped set or a count read from the other one left the suite green. One record per expression: which of the two sets a not-shipped id is (`tools/gen-feature-list.sh:205`, `:206`) and which set each figure counts (`:209`, `:210`), plus the set both of them subtract from (`:204`). Run it with `bash tools/mutate.sh --mutations tools/tests/gen-feature-list-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and `tools/loop/loop.conf` declares this set's `--list` against the classifier's paths so a set that no longer parses fails the gate instead of rotting. `case-cmd` runs one named case (`--case {case}`) — a case here is identified by the name it is recorded with, the same string `openspec/specs/spec-feature-index/spec.md` quotes — so a mutation pays one case and not the whole suite. Each `search` is a single line and unique in the file, and the suite's own `mutation:` case asserts that, because the runner's replacement is literal and line-based and a record whose text has moved fails only a run nobody owes.",
+  "case-cmd": "bash tools/tests/gen-feature-list-selftest.sh --case '{case}'",
+  "mutations": [
+    {
+      "label": "926.1",
+      "case": "gate: a stale entry is reported",
+      "file": "tools/gen-feature-list.sh",
+      "search": "not_shipped=$(comm -13 <(printf '%s\\n' \"$shipped_ids\") <(printf '%s\\n' \"$classified_ids\"))",
+      "replace": "not_shipped=$(comm -12 <(printf '%s\\n' \"$shipped_ids\") <(printf '%s\\n' \"$classified_ids\"))",
+      "why": "the ids the classification names that the shipped set does not are the not-shipped set both states are computed from, so taking the intersection instead leaves a stale entry uncounted and the figure that should report it green"
+    },
+    {
+      "label": "926.2",
+      "case": "gate: a delta-only classification is reported as pending, not as stale",
+      "file": "tools/gen-feature-list.sh",
+      "search": "pending=$(comm -12 <(printf '%s\\n' \"$delta_ids\") <(printf '%s\\n' \"$not_shipped\"))",
+      "replace": "pending=$(comm -23 <(printf '%s\\n' \"$not_shipped\") <(printf '%s\\n' \"$delta_ids\"))",
+      "why": "a pending entry is a not-shipped id an open change's delta spec introduces, so the intersection is the set that reports one; the remainder is the stale state and counting it as pending is the conflation issue #926 removed"
+    },
+    {
+      "label": "926.3",
+      "case": "gate: a delta-only classification is not a stale entry",
+      "file": "tools/gen-feature-list.sh",
+      "search": "stale=$(comm -23 <(printf '%s\\n' \"$not_shipped\") <(printf '%s\\n' \"$delta_ids\"))",
+      "replace": "stale=$(comm -12 <(printf '%s\\n' \"$not_shipped\") <(printf '%s\\n' \"$delta_ids\"))",
+      "why": "a stale entry is a not-shipped id no open change introduces — the remainder — so the intersection is the pending state, and reporting a capability on its way as one that has left is the defect this split exists for"
+    },
+    {
+      "label": "926.4",
+      "case": "gate: a delta-only classification is reported as pending, not as stale",
+      "file": "tools/gen-feature-list.sh",
+      "search": "pending_n=$(printf '%s\\n' \"$pending\" | grep -c . || true)",
+      "replace": "pending_n=$(printf '%s\\n' \"$stale\" | grep -c . || true)",
+      "why": "the pending figure counts the pending set, so reading it from the stale one prints the wrong state's number while both sets stay correct — one regression the direct assertions on the two figures cannot see"
+    },
+    {
+      "label": "926.5",
+      "case": "gate: a delta-only classification is not a stale entry",
+      "file": "tools/gen-feature-list.sh",
+      "search": "stale_n=$(printf '%s\\n' \"$stale\" | grep -c . || true)",
+      "replace": "stale_n=$(printf '%s\\n' \"$pending\" | grep -c . || true)",
+      "why": "the stale figure counts the stale set, so reading it from the pending one prints a capability on its way as one that has left, which is exactly the reading issue #926 was filed against"
+    }
+  ]
+}

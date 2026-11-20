@@ -169,13 +169,24 @@ Cases: `gate: an unclassified shipped spec id fails the run`, `gate: an unclassi
 named`, `gate: the open change that owes the line is named`, `gate: an archived change's delta is not read`,
 `gate: a classified delta passes before it ships`, `gate: a stale classification entry does not fail the run`,
 `gate: a delta-only classification is reported as pending, not as stale`, `gate: a delta-only classification is not a
-stale entry`,
+stale entry`, `mutation: the classification's two sets and their counts are held by a record set`,
 `gate: a user-visible spec with no renderable surface fails`, `gate: not exactly one car-only area fails the run`.
 
 - **Rule: a capability is classified in the change that writes its delta.** A change that introduces a
   capability classifies it in that same change — when
 it writes the delta spec, not when it archives. `.pi/skills/feature-list` and the tool both tell you the id when
 it is missing, and the tool names the open change that owes the line.
+
+The split between the two states is report-only: nothing the run writes downstream reads it, so the only thing holding
+it is the suite's assertions on the two figures. Those assertions do notice a changed expression — a mutation of
+either `comm` set or of either count reds them (measured 2026-11-20, `tools/tests/gen-feature-list-mutations.json`
+run against the base suite: five of five records red) — but an assertion is edited together with the expression
+beside it, which is how the split itself landed. `tools/tests/gen-feature-list-mutations.json` is the versioned form
+that outlives such a pair edit: one record per expression, each naming the case it reds, run by
+`bash tools/mutate.sh --mutations tools/tests/gen-feature-list-mutations.json` (`.pi/skills/mutation-runner`), and
+`tools/loop/loop.conf` names it against the classifier's path so the gate lists it. The suite's own `mutation:` case
+pins that every record still quotes exactly one line of the tool, so a record a moved expression orphaned fails the
+gate instead of waiting for a run nobody owes.
 
 ## 5. Car support is a tag; the car platform has one area
 

@@ -460,9 +460,13 @@ jobs:
       # The gate above is one call of a tool whose 115 cases decide what it reads and refuses. The suite ran
       # nowhere in CI and nowhere in the loop's gate until issue #101: a case that pins the gate's behaviour could
       # pass in isolation and the next change to the tool would learn nothing. Offline, seconds, no Gradle.
+      # The classifier's two report-only states (`pending`, `stale`) are held by
+      # `tools/tests/gen-feature-list-mutations.json` since issue #926 — its `--list` runs here too, so a set that no
+      # longer parses fails the pipeline instead of rotting.
       - name: Check feature-list tooling
         run: |
           bash tools/tests/gen-feature-list-selftest.sh
+          bash tools/mutate.sh --mutations tools/tests/gen-feature-list-mutations.json --list
 
       # ── documentation routes ───────────────────────────────────
       # AGENTS.md's Documentation Map is the only route from "what I am changing" to the guideline

@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 429 records (labels: 924.1 924.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.4XqT4h
+RED    924.1  prompt#reviewerInputsAreBoundedAndTheCutIsNamed   (the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924))
+       2026-11-20T05:29:59Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-052943')
+restore 924.1 prompt#reviewerInputsAreBoundedAndTheCutIsNamed green again
+RED    924.2  prompt#reviewerInputsAreBoundedAndTheCutIsNamed   (the index the round reads by path, so a cut round is handed a head whose remainder is named nowhere and a prompt pointing at a file that was never written (issue #924))
+       2026-11-20T05:30:38Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261120-053022')
+restore 924.2 prompt#reviewerInputsAreBoundedAndTheCutIsNamed green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

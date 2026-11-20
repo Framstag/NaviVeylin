@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 429 records (labels: 924.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.Il3Rg3
+GREEN  924.2  prompt#reviewerInputsAreBoundedAndTheCutIsNamed   <-- the case did not notice the mutation
+restore 924.2 prompt#reviewerInputsAreBoundedAndTheCutIsNamed green again
+
+red-when-mutated: 0 · not-noticed: 1 · restore-failures: 0

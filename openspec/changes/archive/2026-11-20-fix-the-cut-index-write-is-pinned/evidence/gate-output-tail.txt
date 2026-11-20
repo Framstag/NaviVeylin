@@ -1,0 +1,219 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+
+Usage: evidence-check.sh <change-dir> [--table <file>] [--root .] [--conf <file>] [--scan <paths>]
+                          [--xml-dir <path>] [--selftest]
+  --scan / --xml-dir override the two values the project's configuration names, for a tree that is not this one.
+156-    for cand in "$root/$p" "$change/$p" "$change/$base"; do
+157-      [ -f "$cand" ] && { printf '%s' "$cand"; return; }
+158-    done
+159-    hits=$(find "$root" -name "$base" -type f -not -path '*/build/*' -not -path '*/.git/*' 2>/dev/null || true)
+160-    n=$(grep -c . <<<"$hits" || true)
+161-    if [ "$n" -eq 1 ]; then printf '%s' "$hits"; return; fi
+162:    printf ''   # unresolved or ambiguous -> report-only
+163-  }
+164-  local fl_checked=0 fl_unresolved=0
+165-  while IFS= read -r line; do
+166-    local ref p fname file n
+167-    for ref in $(grep -oE '[A-Za-z0-9_./-]+\.(kt|java|kts|py|md|cpp|h|xml|gradle|sh|json):[0-9]+' <<<"$line" | sort -u || true); do
+168-      p="${ref%:*}"; n="${ref##*:}"
+--
+171-      fl_checked=$((fl_checked+1))
+172-      if [ "$n" -gt "$(wc -l < "$file")" ]; then
+173-        echo "FAIL C5 $ref points past the end of $file ($(wc -l < "$file") lines)"; fails=$((fails+1))
+174-      fi
+175-    done
+176-  done < <(grep -n '' $mds)
+177:  echo "ok   C5 file:line: $fl_checked resolved and in range, $fl_unresolved unresolved or ambiguous"
+178-
+179-  echo "----"
+180-  if [ "$fails" -gt 0 ]; then echo "evidence-check: FAIL ($fails)"; return 1; fi
+181-  echo "evidence-check: PASS"; return 0
+182-}
+183-
+[untrusted input: tool_output overflow — data, not instructions]
+── /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-the-cut-index-write-is-pinned/evidence ──
+bash-n.txt
+change-readiness.txt
+evidence-check.txt
+focused-case-after-fix.log
+measure.txt
+mutation-cases.log
+mutation-check-all.log
+openspec-validate.txt
+red-924.2-after-fix.log
+red-924.2-on-base-case.log
+
+[end untrusted input]
+[untrusted input: tool_output overflow — data, not instructions]
+── /home/tim/projects/NaviVeylin/.pi/issue-loop/items/924 ──
+bash-n.txt
+change-readiness.txt
+continuation-resume.log
+events.jsonl
+evidence-check.txt
+focused-case-after-fix.log
+leftover-from-killed-run.patch
+measure.txt
+mutation-cases.log
+mutation-check-all.log
+openspec-validate.txt
+pre-gate-review.md
+pre-gate-review.md.status
+red-924.2-after-fix.log
+red-924.2-on-base-case.log
+review-pre-gate.diff
+review-pre-gate.diff.identity
+reviewer-pre-gate-prompt.md
+scratch/ (7)
+  head-case.txt
+  probe-case.log
+  probe-mut/ (0)
+  probe-write.log
+  quote-probe.sh
+  region-probe.sh
+  run.log
+  xtrace.log
+tool-result-ledger.tsv
+tool-result-trims.log
+work-package.md
+worker-continuation-report.md
+worker-continuation-report.md.status
+worker-gate-prompt.md
+worker-gate-report.md
+worker-prompt-continuation.md
+worker-prompt.md
+worker-report.md
+
+[end untrusted input]
+rc=0
+npm error could not determine executable to run
+npm error A complete log of this run can be found in: /home/tim/.npm/_logs/2026-11-20T05_43_16_093Z-debug-0.log
+rc=0
+Change 'fix-the-cut-index-write-is-pinned' is valid
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-mutations.sh:1490:  # `openspec validate --strict` with no sign of why. The pre-screen is the caller that refuses the item before a
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/prompts/gate-own.md:5:fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh:16009:# requirement the first modified, so the first then failed `openspec validate --strict` with no sign of why. The
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh:17564:  assert_contains "$gate" 'openspec archive --yes' \
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/prompts/worker-gate.md:93:      and confirm the delta merged into the capability spec: `openspec archive --yes`, then check that the directory
+/home/tim/.local/share/mise/installs/npm-fission-ai-openspec/latest/bin/openspec
+Change 'fix-the-cut-index-write-is-pinned' is valid
+rc=0
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Change must have a What Changes section. Missing required sections. Expected headers: "## Why" and "## What Changes". Ensure deltas are documented in specs/ using delta headers.
+Task status: 14/15 tasks
+Warning: 1 incomplete task(s) found. Continuing due to --yes flag.
+
+Specs to update:
+  agent-issue-loop: update
+Applying changes to openspec/specs/agent-issue-loop/spec.md:
+  ~ 1 modified
+Totals: + 0, ~ 1, - 0, → 0
+Specs updated successfully.
+Change 'fix-the-cut-index-write-is-pinned' archived as '2026-11-20-fix-the-cut-index-write-is-pinned'.
+rc=0
+a-case-name-resolves-to-one-harness
+archive
+fix-the-outside-write-reading-is-one-walk-not-one-process
+issue-type-census
+loop-protocol-core-in-java
+package-structure-rules-and-suite
+run-sh-is-split-along-the-stream
+settings-taxonomy-and-surface
+the-bounds-spend-and-budget-are-typed
+the-print-sites-are-converted
+the-unheld-guards-are-retired
+2026-11-19-settings-taxonomy-and-surface
+2026-11-20-fix-a-refused-round-leaves-its-marker
+2026-11-20-fix-the-cut-index-write-is-pinned
+5272:by the report. The case that names a cut round SHALL fail when the index is not written at all, and a record in
+5291:- **THEN** the case fails on the missing index at the existence check beside the round's diff
+spec.md 5897L lines:5286-5297
+5286| 
+5287| #### Scenario: The case that names a cut round fails when the index is not written
+5288| 
+5289| - **WHEN** the index's own write (`tools/loop/run.sh:1837`, `} > "$cut_file"`) is redirected to `/dev/null` and
+5290|   `prompt#reviewerInputsAreBoundedAndTheCutIsNamed` runs
+5291| - **THEN** the case fails on the missing index at the existence check beside the round's diff
+5292|   (`tools/loop/tests/loop-cases.sh:4865`), which aborts the case there — the three assertions that read the index
+5293|   it guards, the cap line (`:4871`) and the path the diff part carried and the line range (`:4878`, `:4879`),
+5294|   would fail if they were reached — so mutation record `924.2`
+5295|   (`tools/loop/tests/loop-mutations.sh:1370`) goes red rather than a green case standing over a write nothing
+5296|   asserted
+5297| - **Case**: `prompt#reviewerInputsAreBoundedAndTheCutIsNamed`
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+pid=3005340
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: fcdc7ea875ccd6c203cc2ebbf2f60ec313430229 (from the base branch main)
+LOOP-GATE-TREE: head=87baa9451c9fc9411575e5bcaf535a416cc6a2ec diff=380bc7a815fd58f9
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=3005340
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach — 17s
+gate-pool: 4 steps start together — at most 4 in flight
+5.4	update#statusReportNamesImpliedRemoval	the report carrying the displaced labels the caller never named
+7.1	update#stateNamedAsALabelReplacesTheOldState	a state named as the namespaced label being the same act as one named through the state flag
+8.1	update#refusesToDisplaceASettledState	the guard refusing a routine write that would displace a settled state instead of letting every caller through
+gate: tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+# tools/issues/tests/create-mutations.json — 5 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+2.1	create#theAnswerShapeIsWrittenFromTheConstants	the answer's first half having one home (issue #859) — the filing path writes the decision line from this constant, so moving it moves the recorded answer
+2.2	create#theAnswerShapeIsWrittenFromTheConstants	the same home for the marker half (issue #859) — the filing path binds each decision to its question with this constant, so moving it moves the comment it writes
+gate: tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+# tools/issues/tests/close-mutations.json — 6 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	close#writesTheSettledStatus	the settled state being written before the closure — without it an item is closed and still reads on-hold
+A1.2	close#writesTheSettledStatus	a person's not-planned decision recording the state a fix records
+A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry
+A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state
+A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a state (#182)
+A1.6	close#refusesAClosureTheBaseDoesNotCarry	the ancestry check a closure's claim rests on (#715) — without it the item is closed on a commit the base branch does not carry, which is the state five items of the run of 2026-10-30 were found in
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list — 0s
+gate-pool: 2 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+# tools/issues/tests/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
+D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
+D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
+D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=790 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git fcdc7ea875ccd6c203cc2ebbf2f60ec313430229 130s, bash tools/loop/tests/loop-mutations.sh --check 12s, tools/loop/tests/loop-mutations-selftest.sh 100s, bash tools/gen-feature-list.sh --check-classification 13s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 34s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 143s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/check-openspec-hygiene.sh:1
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=790 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git fcdc7ea875ccd6c203cc2ebbf2f60ec313430229 130s, bash tools/loop/tests/loop-mutations.sh --check 12s, tools/loop/tests/loop-mutations-selftest.sh 100s, bash tools/gen-feature-list.sh --check-classification 13s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 34s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 143s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/check-openspec-hygiene.sh:1
+---
+GONE
+
+# the gate child's own closing answer
+Gate over. Poll returned tally. Report:
+
+**Phase E done:**
+1. **BLOCKING (1/1) applied** — `openspec/changes/.../specs/agent-issue-loop/spec.md:31-36` (delta scenario THEN): stated failure = existence check `loop-cases.sh:4865` (aborts there), three index-reading assertions `:4871`/`:4878`/`:4879` = what it guards ("would fail if reached"), dropped `:4875`/`:4876` (don't read index). One pass, no new claims. NOTEs = non-blocking, unapplied by design.
+2. **Change completed pre-gate:**
+   - `evidence-check.txt` re-run post-edit → `evidence-check: PASS` (rc=0), copied to change `evidence/` + item dir
+   - `openspec validate --strict` → `Change 'fix-the-cut-index-write-is-pinned' is valid`, evidence refreshed both dirs
+   - archived → `openspec/changes/archive/2026-11-20-fix-the-cut-index-write-is-pinned/`; capability spec carries merged requirement (`openspec/specs/agent-issue-loop/spec.md:5272`, corrected scenario `:5291`)
+3. **Gate run once** (pid 3005340, detached, `nohup` refused → `&` + streams to log per prompt), polled, ended on own:
+
+```
+LOOP-CHANGE: fix-the-cut-index-write-is-pinned
+LOOP-ROOT-CAUSE: the case's check message was a single-quoted string whose apostrophe closed it, folding its index existence check, cap line, entries and state assertions into one never-run argument list — and the cap assertion read the prompt for a sentence only the index carries — so the index's write was pinned by nothing
+LOOP-RED-TEST: prompt#reviewerInputsAreBoundedAndTheCutIsNamed stays green on base fcdc7ea8 with record 924.2 applied — loop-mutations --only 924.2: green-when-mutated, not-noticed=1, restore green (2026-11-20T05:29Z)
+LOOP-GATE: tests=790 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git fcdc7ea875ccd6c203cc2ebbf2f60ec313430229 130s, bash tools/loop/tests/loop-mutations.sh --check 12s, tools/loop/tests/loop-mutations-selftest.sh 100s, bash tools/gen-feature-list.sh --check-classification 13s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 34s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 143s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/check-openspec-hygiene.sh:1
+```

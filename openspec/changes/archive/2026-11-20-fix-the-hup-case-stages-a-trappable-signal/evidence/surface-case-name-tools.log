@@ -1,0 +1,3 @@
+LOOK: 5 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'aHupEndedRunRecordsItsStopAndUnpicksItsItem'
+LOOK-FILE: tools/loop/tests/loop-cases.sh 3
+LOOK-FILE: tools/loop/tests/loop-mutations.sh 2

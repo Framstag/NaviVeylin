@@ -12,8 +12,9 @@ HUP trap, `kill -HUP` against it does nothing to it, and the case that sends it 
 Focused, the same case runs under a shell that does not ignore `SIGHUP`, the trap installs, and it passes.
 
 The measurement (`dispositions.log`, `dispositions-reset.log` in this change's `evidence/`): the same probe shell reads
-`SigIgn: 0000000000000005` under `nohup` and is ended by `kill -HUP` of its own pid having run no trap; started as
-`env --default-signal=HUP` under `nohup` it reads `SigIgn: 0000000000000004` and its trap runs.
+`SigIgn: 0000000000000005` under `nohup`, and a `kill -HUP` of its own pid changes nothing — no trap runs and the shell
+lives on to print its `DONE` line; started as `env --default-signal=HUP` under `nohup` it reads
+`SigIgn: 0000000000000004` and its trap runs.
 
 ## The alternatives the evidence eliminated
 
@@ -21,6 +22,9 @@ The measurement (`dispositions.log`, `dispositions-reset.log` in this change's `
   written by `loop_state init` (`run.sh:853-854`) after the traps (`run.sh:843-846`). A pid read from a state that
   names a stranger would leave *this* run alive and *that* stranger alive too; here the run whose state the case read
   was the one still alive at its deadline. And the disposition finding explains the same readings with no race at all.
+  The measurement the item asked for — the pid the case signalled beside the pid the state names at that instant, and
+  the case's `WAIT_STOP_SEEN`/`WAIT_ITEM_SEEN` per tick — was not taken; this elimination rests on the construction
+  above and on the red→green differential, not on it.
 - **The trap ran and the child it ends is not the one it owns, the item's half (b).** `on_exit` ends the child group
   and the heartbeat *before* it writes the stop and the item, and both endings are bounded (`lib.sh`: 25 × 0.2 s then
   `KILL`, 10 × 0.2 s then `KILL`). A trap that ran therefore records within seconds of the signal, not 480 s later, and
@@ -41,8 +45,10 @@ child's pid.**
 
 1. `tools/loop/tests/loop-cases.sh:1534-1539` — `run_loop_resetting_hup`, the case runner started through
    `env --default-signal=HUP`, so the process that becomes `run.sh` begins with `SIGHUP` at its default and its own
-   trap installs. A variant rather than a change to `run_loop` (169 call sites): the disposition is a fact about the
-   signal a case sends, and only this case sends `SIGHUP`.
+   trap installs. A variant rather than a change to `run_loop` (169 call sites,
+   `evidence/surface-run-loop-callsites.log`): the disposition is a fact about the signal a case sends, and only this
+   case sends `SIGHUP`. The lever is a GNU coreutils one — `env --default-signal`, which this host's coreutils 9.12
+   has; a host whose `env` lacks the flag cannot start the run this way at all.
 2. `tools/loop/tests/loop-cases.sh:16501-16508` — the HUP case starts its run through it, and its premise sentence is
    corrected: the state's owner is written after the traps, which says nothing about the disposition.
 3. `tools/loop/tests/loop-cases.sh:16531-16543` — the case asserts the disposition it staged, from the run's own
@@ -70,7 +76,8 @@ Nothing the engine reads or writes depends on the staging.
 ## Falsification
 
 With the reset removed and the assertion left in place, the case reds at its staging assertion under `nohup`:
-`FAIL … the run's shell (pid …) ignores SIGHUP, so the trap this case sends its signal to cannot be installed in it
-(issue #978)` (`evidence/revert-check-without-the-reset.log`, 2026-11-20T01:32:20Z). The pair is the proof that the
+`FAIL … the run's shell (pid 1196870) ignores SIGHUP, so the trap this case sends its signal to cannot be installed in it
+(issue #978)` (`evidence/revert-check-without-the-reset.log`; the log carries no timestamp of its own, and its mtime is
+the 2026-11-20T01:32:20Z run). The pair is the proof that the
 assertion —
 not the deadline — is what now holds the mechanism.

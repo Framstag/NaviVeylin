@@ -1,0 +1,28 @@
+Red case, measured (issue #978, round 2 — the reviewer's note on `time="0.00"`).
+
+The red is the case body HEAD ships (`fcdc7ea875ccd6c203cc2ebbf2f60ec313430229`'s
+`tools/loop/tests/loop-cases.sh`), run in a suite whose `SIGHUP` is ignored — the disposition the gate's `nohup`
+hands every step of its own. The case file was the base's copy for the length of the run and put back afterwards
+(`case_file_restored` below is the number of lines `git status --porcelain` reported for it: none).
+
+command: bash hup-ignored-suite.sh --case run#aHupEndedRunRecordsItsStopAndUnpicksItsItem --jobs 1
+exit=1
+elapsed_seconds=36
+started=2026-11-20T02:27:01Z
+ended=2026-11-20T02:27:37Z
+case_file_restored=0
+
+The suite script is `evidence/hup-ignored-suite.sh` — it does `trap '' HUP` before its `exec`, which is the ignored
+disposition `nohup` leaves behind.
+
+The log the run produced is byte-identical to `evidence/red-on-HEAD-nohup-case.log` beside it (`diff` → no
+difference):
+
+    run#aHupEndedRunRecordsItsStopAndUnpicksItsItem|   a run that took HUP did not end inside 300 ticks (30 s for each of the 1 case(s) the pool starts beside this one; status 124) — its stop was '' and its item ''
+    --- run#aHupEndedRunRecordsItsStopAndUnpicksItsItem[0] (exit 1)
+      a run that took HUP did not end inside 300 ticks (30 s for each of the 1 case(s) the pool starts beside this one; status 124) — its stop was '' and its item ''
+    FAIL run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+    loop-selftest: 1 of 1 cases failed
+
+The 36 s is the clock around that one command: the case's own wait is the 300 ticks (30 s at the suite's 0.1 s tick)
+its message names, and the run added the suite's start and the case's setup on top of it.

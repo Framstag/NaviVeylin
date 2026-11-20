@@ -3,9 +3,14 @@
      writes it with the reset and the disposition assertion taken back out — HEAD's case body — inside a suite started
      with `SIGHUP` ignored, which is the disposition the gate's `nohup` hands every step of its own. A focused
      `--case` run of `tools/loop/tests/loop-selftest.sh` writes no XML of its own; the gate's tally is the gate
-     child's to take, and this carrier is the run's own lines. -->
-<testsuite name="run#aHupEndedRunRecordsItsStopAndUnpicksItsItem" tests="1" failures="1" errors="0" time="0.00" run="2026-11-20T01:33:01Z">
-  <testcase name="run#aHupEndedRunRecordsItsStopAndUnpicksItsItem" classname="run">
+     child's to take, and this carrier is the run's own lines.
+     The duration is measured, not assumed: the run was repeated with the clock around the one command that produces
+     the log — `bash hup-ignored-suite.sh --case run#aHupEndedRunRecordsItsStopAndUnpicksItsItem --jobs 1` (the
+     suite script does `trap '' HUP` before its `exec`), 2026-11-20T02:27:01Z → 02:27:37Z, exit 1, 36 s elapsed
+     (`evidence/red-on-HEAD-nohup-case-timed.txt`), and the log that run produced is byte-identical to the one beside
+     this file (`diff` → no difference). -->
+<testsuite name="run#aHupEndedRunRecordsItsStopAndUnpicksItsItem" tests="1" failures="1" errors="0" time="36" run="2026-11-20T02:27:01Z">
+  <testcase name="run#aHupEndedRunRecordsItsStopAndUnpicksItsItem" classname="run" time="36">
     <failure message="a run that took HUP did not end inside 300 ticks (30 s for each of the 1 case(s) the pool starts beside this one; status 124) — its stop was &#39;&#39; and its item &#39;&#39;">FAIL run#aHupEndedRunRecordsItsStopAndUnpicksItsItem</failure>
   </testcase>
   <system-out>run#aHupEndedRunRecordsItsStopAndUnpicksItsItem|   a run that took HUP did not end inside 300 ticks (30 s for each of the 1 case(s) the pool starts beside this one; status 124) — its stop was '' and its item ''

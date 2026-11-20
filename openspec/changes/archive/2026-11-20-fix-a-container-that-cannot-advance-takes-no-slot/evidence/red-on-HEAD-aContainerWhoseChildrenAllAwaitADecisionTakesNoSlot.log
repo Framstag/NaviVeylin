@@ -1,0 +1,5 @@
+prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot|   a container whose remaining child awaits a decision takes no slot: expected 'epic-stalled', got 'eligible'
+--- prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot[0] (exit 1)
+  a container whose remaining child awaits a decision takes no slot: expected 'epic-stalled', got 'eligible'
+FAIL prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot
+loop-selftest: 1 of 1 cases failed

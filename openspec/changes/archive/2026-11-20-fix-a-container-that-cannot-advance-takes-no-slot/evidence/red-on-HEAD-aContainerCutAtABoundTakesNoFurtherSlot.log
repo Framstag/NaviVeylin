@@ -1,0 +1,5 @@
+prescreen#aContainerCutAtABoundTakesNoFurtherSlot|   the container whose child a bound cut takes no further slot: expected 'epic-stalled', got 'eligible'
+--- prescreen#aContainerCutAtABoundTakesNoFurtherSlot[0] (exit 1)
+  the container whose child a bound cut takes no further slot: expected 'epic-stalled', got 'eligible'
+FAIL prescreen#aContainerCutAtABoundTakesNoFurtherSlot
+loop-selftest: 1 of 1 cases failed

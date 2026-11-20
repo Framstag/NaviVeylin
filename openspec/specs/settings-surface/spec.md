@@ -153,7 +153,7 @@ Every change on the surface SHALL apply to the running map without a save action
 - **WHEN** the user switches POI symbols off
 - **THEN** the map reflects it immediately
 - **AND** after an app restart the surface shows the switch off
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#aChangePersistsWithoutASaveAction`
 
 #### Scenario: A shared change reaches the car
 
@@ -192,7 +192,7 @@ A row whose setting has a finite set of values SHALL present those values with t
 
 - **WHEN** the user selects the map style row
 - **THEN** a surface opens listing every available style with the current one marked
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#theStyleRowOpensItsSelectionSurface`
 
 ### Requirement: A numeric range is a slider with labelled endpoints
 
@@ -235,3 +235,14 @@ The settings surface SHALL lay out as a single scrolling column on phone, foldab
 - **WHEN** the surface is opened on a 900 dp wide window
 - **THEN** the rows render in one column at full width
 - **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+
+### Requirement: A switch toggles from its whole row
+
+A row whose control is a switch SHALL toggle when the user taps anywhere on the row, not only on the switch itself, and SHALL write the new value as it toggles.
+
+#### Scenario: Tapping the row toggles its switch
+
+- **WHEN** the user taps the label of a switch row
+- **THEN** the switch moves to its other position
+- **AND** the new value is stored without a save action
+- **Case**: `SettingsSurfaceTest#aSwitchTogglesFromTheWholeRow`

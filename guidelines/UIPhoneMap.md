@@ -50,10 +50,9 @@ Source: spec `map-modes`.
   row that declares a long help text (it opens that text on a sheet of its own, design D7), a slider
   drawn under its label row with both endpoints named, a leading
   phone/car icon on a surface-specific row and a chevron on a row that leaves the surface. A switch
-  toggles from anywhere on its row and a `SELECT` row (map style) opens every bundled style with the
-  current one marked on a sheet of its own; a change is written as it is made, with no save action.
-  The style options are `BundledMapStyles.USER_SELECTABLE`, the list the row declares in
-  `app/src/main/java/com/naviveylin/ui/settings/specs/MapTopic.kt` (cases
+  toggles from anywhere on its row and a `SELECT` row (map style) opens its style selection on a
+  sheet of its own with the current one marked; a change is written as it is made, with no save action
+  (cases
   `SettingsSurfaceTest#aSwitchTogglesFromTheWholeRow`,
   `SettingsSurfaceTest#theStyleRowOpensItsSelectionSurface`,
   `SettingsSurfaceTest#aChangePersistsWithoutASaveAction`). It opens

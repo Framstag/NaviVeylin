@@ -18,8 +18,9 @@ internal val mapPresentationSection =
  * The rows of the "Karte" topic (spec: `settings-taxonomy`, spec: `map-styles`).
  *
  * Map style is more than four values, so it is a `SELECT` row: the surface opens its options on a
- * surface of their own and marks the current one (design D5). The options are the bundled styles in
- * [BundledMapStyles.USER_SELECTABLE] — the basemap's internal stylesheet left out, the same exclusion
+ * surface of their own and marks the current one (design D5). The options come from
+ * [BundledMapStyles.USER_SELECTABLE], a literal list kept in sync with the packaged top-level
+ * `*.oss` files by `AssetCopierTest.bundlesEveryTopLevelStyleSheet` — the basemap's internal stylesheet left out, the same exclusion
  * the quick sheet's style list applies (task 3.1; spec: `map-styles` — "Basemap stylesheet not
  * offered") — and each option's label is its own key, because a style's display name is its file
  * name without the postfix (spec: `map-styles` — "Style display name is file name without

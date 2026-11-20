@@ -434,6 +434,7 @@ LOOP_SHELL_CASES=(
   'clean#endsARunWhoseTreeIsAlreadyDeleted'
   'clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft'
   'clean#reportsAWorktreeNoRunKeeps'
+  'clean#aTreeWhoseNameIsAPatternIsStillRead'
   'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
   'usage#bareValueFlagDoesNotSwallowTheNextFlag'
@@ -1221,6 +1222,7 @@ loop_run_shell_case() {
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
     'clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft') fn=case_clean_suiteThatEndsNormallyEndsTheProcessItsCaseLeft ;;
     'clean#reportsAWorktreeNoRunKeeps') fn=case_clean_reportsAWorktreeNoRunKeeps ;;
+    'clean#aTreeWhoseNameIsAPatternIsStillRead') fn=case_clean_aTreeWhoseNameIsAPatternIsStillRead ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
     'driver#aCaseThatAsksForTheCoreGetsItOrRefuses') fn=case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses ;;
@@ -9775,7 +9777,7 @@ case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
 }
 
 case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced() {
-  # files: tools/loop/tests/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/lib.sh tools/loop/tests/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p note transcript alive shell_pid
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -9824,6 +9826,14 @@ EOF
     "the reading names the shell that wrote among the processes standing in the project — the shape was found"
   assert_contains "$(cat "$transcript")" "attributed=none" \
     "and places no process of the child's own tree, so the difference does not decide the item"
+  # …and the reading states what it cost, which is the half this case could not see (issue #950): the writer above
+  # stands for eight seconds, and a reading that answers in twenty-two — 1 010 processes, 6 194 ms for the child's
+  # tree and 16 125 ms for the sweep, measured at a pool of forty instances — prints `(none)` about a moment that
+  # has passed, honestly and uselessly. One figure per half, with the count the walk paid for, so the transcript
+  # says how far from the difference its own answer arrived.
+  assert_line_count "$(cat "$transcript")" \
+    '^LOOP-OUTSIDE-WRITE-COST: procs=[0-9]+ attributed_ms=[0-9]+ standers_ms=[0-9]+$' 1 \
+    "the reading states the processes it walked and what each of its two halves cost"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {
@@ -16816,6 +16826,37 @@ case_clean_endsARunWhoseTreeIsAlreadyDeleted() {
 # the suite's own scratch root on every exit path; this case is the normal one, with no signal at all: the nested
 # case starts a process in a group of its own at a working directory inside the suite's scratch root and returns
 # while it polls, and the suite must end it before it removes the tree.
+case_clean_aTreeWhoseNameIsAPatternIsStillRead() {
+  # files: tools/loop/lib.sh
+  local d pid reader raw i
+  d=$(scratch)/'a[1]*x'
+  mkdir -p "$d" || fail "the case could not stage a tree whose name carries pattern metacharacters"
+  # A process standing in that tree: the reader matches a link's target against a `find` pattern, so a name holding
+  # `[`, `]` and `*` is the one input that tells a literal match from a pattern (`tools/loop/lib.sh`, issue #950).
+  ( cd "$d" && exec sleep 30 ) &
+  pid=$!
+  i=0
+  while [ "$i" -lt 20 ]; do
+    sleep 0.1
+    [ -d "/proc/$pid" ] && break
+    i=$((i + 1))
+  done
+  reader=$(loop_pids_under "$d" | tr '\n' ' ')
+  case " $reader " in
+    *" $pid "*) ;;
+    *) fail "the reader did not name the process standing in a tree named a[1]*x — it answered '${reader:-(none)}'" ;;
+  esac
+  # …and the tree's own name, asked as `find` reads it unescaped, matches nothing — which is the answer
+  # `loop_glob_escaped` exists to keep the reader from giving.
+  raw=$(find /proc -maxdepth 2 -name cwd -lname "$d" -print 2>/dev/null | tr '\n' ' ')
+  case " $raw " in
+    *" $pid "*) fail "the raw pattern matched the tree, so this case does not stage the escaping it pins" ;;
+  esac
+  kill "$pid" 2>/dev/null
+  wait "$pid" 2>/dev/null
+  return 0
+}
+
 case_clean_suiteThatEndsNormallyEndsTheProcessItsCaseLeft() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested tmp conf pid status out alive i

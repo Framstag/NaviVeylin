@@ -285,8 +285,10 @@ and no line would say so. The run therefore refuses such a host at its own heade
 child exists, and the **suite** refuses it too — a run started by hand on such a host would otherwise record every
 difference and place none, and say nothing (#703).
 The child's own tree is read **before** the list of everyone else standing in the project, because that
-list is a `readlink` for every process on the host — 1.0 s for 731 of them when #288 measured it — and the writer
-the mark is about is gone by the time such a reading ends. Two sweeps were what the placement was built on, and
+list is one `find /proc -maxdepth 2 -name cwd -lname …` pass over `/proc` and not a `readlink` for every process
+on the host — 163–428 ms for 821–966 of them at a pool of forty (issue #950) — and the sweep is the expensive
+half: a reading whose sweep ends after the writer has gone records the moment it ended instead of the
+difference, so the order #288 fixed still holds. Two sweeps were what the placement was built on, and
 the second one listed none of the nine pids the first had listed 1.1 s earlier, so nothing was ever placed. A
 writer is gone when the transcript is written, so a reading taken afterwards attributes nothing: measured
 2026-10-23 while adding it, the exit-time sweep found no process for a child's one-shot write and the case built on

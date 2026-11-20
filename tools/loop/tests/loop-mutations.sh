@@ -138,7 +138,7 @@ MUTATIONS=(
   # `GREEN 12.12 … the case did not notice the mutation` (`evidence/mutation-12.12.log` of the archived change). A
   # record a case cannot notice is not evidence (the rule this file's `13.x` records follow). The ordering stays in
   # `run.sh` and its reason stays in `guidelines/Backlog.md` §7; what it lost is a case, not the behaviour.
-  '12.11@-@tools/loop/run.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$LOOP_WORKTREE" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
+  '12.11@-@tools/loop/run.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$in_worktree" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
   # 12.13 is the run's own prerequisite (issue #703): without it a host whose `pgrep` is absent records every
   # difference in the project's own tree and places none, and the item keeps the outcome its work earned while the
   # deciding half of the rule was never enforced — the suite refuses such a host, a hand-started run does not.

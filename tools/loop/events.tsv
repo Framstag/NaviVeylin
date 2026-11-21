@@ -22,19 +22,47 @@
 # and no kind declares a latitude-, longitude-, pixel-, magnification-, accuracy- or bearing-shaped field
 # (`driver#noEventCarriesACoordinate` reads this column for exactly those words).
 #
-# `# composers` below is the other half of `driver#everyPrintOnlySiteIsConverted`: a `printf` in one of those
-# functions composes a *file's* content or a value handed back to its caller (a prompt, an index, a report line, a
-# token), so it is not a line the run makes visible and the record owes nothing for it — the rule this vocabulary
-# enforces. One file holds every run of this project: a run's facts are the rows after the last `run-start`, and a rotation can split a run across two files.
+# `# composers` and `# renderers` below are the other half of `driver#everyPrintOnlySiteIsConverted`, which reads
+# them against the five files the run is made of (`layout.tsv`'s sourced order, plus the entry): a `printf` in one of
+# those functions is not a line the run makes visible, and the record owes nothing for it.
+#
+#   composers  composes a *file's* content or a value handed back to its caller (a prompt, an index, a report line,
+#              a token, a count, a path, a verdict line), so the line it builds is data and not a fact of the run.
+#   renderers  prints a line the record cannot carry: the writer itself and its refusals (`loop_emit`,
+#              `loop_event_refuse`), the messages a helper prints when it ends the process or when it runs before the
+#              record's path is resolved (`loop_die`, `loop_refuse`, `loop_note`, `loop_resolve`), and the two helpers
+#              that print a value another process produced (`relay`, `loop_indent`).
+#
+# Both lists are read by the case in both directions — a name that is not a function in one of those five files is a
+# red case as well — and the case admits two syntactic classes beside them: a `printf` whose own output is a file
+# (`>`/`>>` to a path, which is that file's content — a transcript, a prompt, a patch) and one whose output is handed
+# to another command (a pipeline, a command substitution), which composes a value the same way a composer does.
 #
 # composers	keep_leftovers tail_after_gate retry_delay_at review_correction_scope review_restart_scope
 # composers	review_restart_note bound_review_inputs review_input_mark review_input_head write_review_diff
 # composers	outside_write_line outside_write_pids bound_key_value project_state child_context child_turns
 # composers	loop_tree_pids review_input_scale_of attribute_red_gate
+# composers	outside_write_seen outside_write_clause_of outside_write_decides item_outside_write_clause
+# composers	blocking_count review_notes review_input_bytes review_input_cut_halved slugify project_state_diff
+# composers	pid_ppid loop_now_ms loop_proc_count review_restart_before_deadline
+# composers	child_turn_bound child_context_bound_key child_context_bound child_agent_cmd_key host_free_mib
+# composers	child_refusal fmt_elapsed child_cap child_role report_verdict flake_probe gate_tally_state
+# composers	loop_tmp_dir_for loop_base_ref loop_unlanded_commits loop_end_pids_under
+# composers	change_readiness_of owner_of_marker
+# composers	loop_conf_value loop_main_worktree loop_event_bound gate_program gate_check_programs
+# composers	child_check_calls loop_ceiling loop_bound_under_ceiling loop_change_family loop_change_path
+# composers	loop_change_archive_dir loop_tree_identity loop_change_restore loop_scratch_paths loop_bytes_of
+# composers	loop_pids_under loop_glob_escaped loop_leftover_patch_of loop_profile loop_open_pull_request_heads
+# composers	loop_commit_identity loop_roles_load loop_role loop_render loop_write_ignore loop_drop_ignorable_writes
+# renderers	loop_emit loop_event_refuse loop_die loop_refuse loop_note loop_resolve relay loop_indent
 #
 # `# outcomes` is the kinds an item's recorded outcome is read from, and the spelling the state file uses for it: the
 # report's cross-check counts these and maps `closed` to the state's `done`, which is the one word the two files spell
 # differently (the line has always read `closed` and the state has always recorded `done`).
+#
+# A duration is carried as `text`, never as `num`: the wall clock is measured in fractional seconds (`2.218`), and
+# `num` admits a whole number only — the field's kind is what a reader may do with the value, and rounding the
+# measurement to fit the field would make the record disagree with the transcript it was read from (issue #907).
 #
 # outcomes	item-result item-blocked item-closed
 kind	fields	format
@@ -43,7 +71,7 @@ run-live-view	state_dir:path	run: the pre-screen runs next and is not instant; l
 run-end	reason:text	stop: %s\n
 item-closed	issue:num+result:ident+branch:ident+rounds:num	item #%s: %s (merged %s — a finished attempt the base did not have) · %s review round(s)\n
 item-blocked	issue:num+result:ident+reason:text	item #%s: %s (%s)\n
-item-result	issue:num+result:ident+detail:text+wall:num+rounds:num	item #%s: %s (%s) · %ss · %s review round(s)\n
+item-result	issue:num+result:ident+detail:text+wall:text+rounds:num	item #%s: %s (%s) · %ss · %s review round(s)\n
 adoption-unrecorded	issue:num	run: #%s — the adoption refusal could not be recorded, so its exclusion stands as the pre-screen read it\n
 worktree-kept	worktree:path	worktree kept for the next run: %s\n
 stop-unauthorised	detail:text	%s\nstop: the identity this run acts as is not authorised — nothing was created\n
@@ -102,5 +130,6 @@ review-announce-unrecorded	round:num+change:ident	run: review round %s could not
 review-answer-cut-retry	round:num+last:text	run: the round %s answer was cut short (%s) — retrying the round once\n
 review-answer-unrecorded	round:num+change:ident	run: the round %s answer could not be recorded on the branch — a later run reads %s as never answered\n
 review-failed-unrecorded	-	run: the failed review could not be recorded on the branch — a later run may adopt it\n
+review-refusal-unrecorded	round:num+change:ident	run: the refusal of round %s could not be recorded on the branch — a later run reads %s as a round nobody answered\n
 record-rotated	bound:num+kept:path	run: the record passed %s bytes and is rotated — the file it replaced is kept at %s\n
 progress	phase:ident+elapsed:text+what:text	loop: %s · %s · %s\n

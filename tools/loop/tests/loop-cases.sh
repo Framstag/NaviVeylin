@@ -422,6 +422,9 @@ LOOP_SHELL_CASES=(
   'report#thePhaseLineNamesTheClockItIsAShareOf'
   'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow'
   'report#theRefusedLandingIsReadFromTheRecord'
+  'report#theRecordAndTheStateAgree'
+  'report#aDifferenceIsNamedBesideTheFigures'
+  'report#aRunWhoseRecordIsAbsentSaysSo'
   'report#trendFiguresFromState'
   'report#aCutRoundIsCountedBesideTheRate'
   'report#noRoundOrWallPrintsDashNotZero'
@@ -471,6 +474,7 @@ LOOP_SHELL_CASES=(
   'driver#everyEngineFileHasOneOwner'
   'driver#anOwnedFunctionIsInItsOwnersFile'
   'driver#aKindIsEmittedOnlyByItsOwner'
+  'driver#everyPrintOnlySiteIsConverted'
   'driver#aDeclarationNamingAnUnknownFileFails'
   'driver#theSelectionFollowsTheOwner'
   'driver#theMovedEngineBehavesAsItDid'
@@ -551,6 +555,8 @@ LOOP_SHELL_CASES=(
   'run#anEventNamesAnIssueAndAPhaseNeverAPosition'
   'driver#noEventCarriesACoordinate'
   'run#aFactPrintedOnceIsRecordedOnce'
+  'run#aConvertedSiteRendersFromItsRecord'
+  'run#aFreeTextReasonSurvivesTheRoundTrip'
 )
 
 loop_shell_cases() {
@@ -1235,6 +1241,9 @@ loop_run_shell_case() {
     'report#thePhaseLineNamesTheClockItIsAShareOf') fn=case_report_thePhaseLineNamesTheClockItIsAShareOf ;;
     'report#theTrendBlockNamesTheGateShareAndTheOutsideWindow') fn=case_report_theTrendBlockNamesTheGateShareAndTheOutsideWindow ;;
     'report#theRefusedLandingIsReadFromTheRecord') fn=case_report_theRefusedLandingIsReadFromTheRecord ;;
+    'report#theRecordAndTheStateAgree') fn=case_report_theRecordAndTheStateAgree ;;
+    'report#aDifferenceIsNamedBesideTheFigures') fn=case_report_aDifferenceIsNamedBesideTheFigures ;;
+    'report#aRunWhoseRecordIsAbsentSaysSo') fn=case_report_aRunWhoseRecordIsAbsentSaysSo ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#aCutRoundIsCountedBesideTheRate') fn=case_report_aCutRoundIsCountedBesideTheRate ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
@@ -1280,6 +1289,7 @@ loop_run_shell_case() {
     'driver#everyEngineFileHasOneOwner') fn=case_driver_everyEngineFileHasOneOwner ;;
     'driver#anOwnedFunctionIsInItsOwnersFile') fn=case_driver_anOwnedFunctionIsInItsOwnersFile ;;
     'driver#aKindIsEmittedOnlyByItsOwner') fn=case_driver_aKindIsEmittedOnlyByItsOwner ;;
+    'driver#everyPrintOnlySiteIsConverted') fn=case_driver_everyPrintOnlySiteIsConverted ;;
     'driver#aDeclarationNamingAnUnknownFileFails') fn=case_driver_aDeclarationNamingAnUnknownFileFails ;;
     'driver#theSelectionFollowsTheOwner') fn=case_driver_theSelectionFollowsTheOwner ;;
     'driver#theMovedEngineBehavesAsItDid') fn=case_driver_theMovedEngineBehavesAsItDid ;;
@@ -1356,6 +1366,8 @@ loop_run_shell_case() {
     'run#anEventNamesAnIssueAndAPhaseNeverAPosition') fn=case_run_anEventNamesAnIssueAndAPhaseNeverAPosition ;;
     'driver#noEventCarriesACoordinate') fn=case_driver_noEventCarriesACoordinate ;;
     'run#aFactPrintedOnceIsRecordedOnce') fn=case_run_aFactPrintedOnceIsRecordedOnce ;;
+    'run#aConvertedSiteRendersFromItsRecord') fn=case_run_aConvertedSiteRendersFromItsRecord ;;
+    'run#aFreeTextReasonSurvivesTheRoundTrip') fn=case_run_aFreeTextReasonSurvivesTheRoundTrip ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -14744,6 +14756,73 @@ case_report_theRefusedLandingIsReadFromTheRecord() {
   fi
 }
 
+# The report's figures come from the state and the record is a second reading of them (#907, D3): the state stays
+# the authority, so `--from-events` prints *beside* the figures and never instead of them — and the source line says
+# which of the two is which, because a reader who had to guess whether a number came from the record or from the
+# state would be reading a report about two documents at once.
+case_report_theRecordAndTheStateAgree() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out rec
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":41,"class":"bug","verdict":"eligible","rank":1},{"issue":42,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 41 --result done --verdict closed >/dev/null
+  run_state "$p" done 42 --result done --verdict closed >/dev/null
+  # The reader asks a record for the fields it names, not for the whole row `events.tsv` declares: a fixture that
+  # carried every field of `run-start` would prove the writer's completeness, which `run#` owns.
+  rec="$p/.pi/issue-loop/run-events.jsonl"
+  printf '{"kind":"run-start","items":2,"minutes":90}\n{"kind":"item-result","issue":41,"result":"done"}\n{"kind":"item-result","issue":42,"result":"done"}\n' > "$rec"
+  out=$(run_report "$p" --from-events) || fail "the report failed"
+  assert_contains "$out" "source: the state file is the authority" \
+    "the report says which reading its figures came from, with the flag given or not"
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -c '^record:' || true)" \
+    "an agreeing record adds no line — the claim is that a healthy run prints none"
+  assert_contains "$out" "closed 2 " "the state's own count is still printed as the figure it always was"
+}
+
+# A difference is named, not summarised (#907, D4): a totals-only line sends a reader through the item table to find
+# which item went missing, so each figure gets its own line carrying both numbers, and the item the record lacks is
+# named by number. The report exits 0 — the difference is a fact about the record, not a refusal of the report.
+case_report_aDifferenceIsNamedBesideTheFigures() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out lines rec
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":41,"class":"bug","verdict":"eligible","rank":1},{"issue":42,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 41 --result done --verdict closed >/dev/null
+  run_state "$p" done 42 --result done --verdict closed >/dev/null
+  rec="$p/.pi/issue-loop/run-events.jsonl"
+  printf '{"kind":"run-start","items":2,"minutes":90}\n{"kind":"item-result","issue":41,"result":"done"}\n' > "$rec"
+  out=$(run_report "$p" --from-events) || fail "the report failed on a record that disagrees"
+  lines=$(printf '%s\n' "$out" | grep '^record:' || true)
+  assert_contains "$lines" "record: closed 1 · the state says 2 — the record lacks #42" \
+    "the difference names both numbers and the item the record lacks"
+  assert_eq "1" "$(printf '%s\n' "$lines" | grep -c . || true)" \
+    "one difference is one line: the figures that agree print nothing"
+  assert_contains "$out" "closed 2 " "the figure below the line is still the state's, not the record's"
+}
+
+# An absent record is said to be absent (#907, spec: never counted as agreement): a report that stayed silent about a
+# record it could not read would be claiming agreement it never checked, and silence is exactly what an agreeing
+# record prints — so the two states would be indistinguishable.
+case_report_aRunWhoseRecordIsAbsentSaysSo() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out rec
+  p=$(new_project)
+  init_state "$p" 1 90
+  printf '[{"issue":43,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 43 --result done --verdict closed >/dev/null
+  rec="$p/.pi/issue-loop/run-events.jsonl"
+  rm -f "$rec" "$rec.1"
+  out=$(run_report "$p" --from-events) || fail "the report failed on a run with no record"
+  assert_contains "$out" "record: absent" "the report says the record is absent"
+  assert_contains "$out" "$rec" "and names the path it looked at, so the reader can look at it too"
+  assert_not_contains "$out" "the state says" "no figure is cross-checked, so no difference is claimed either"
+  assert_contains "$out" "closed 1 " "the state's figures are printed all the same — the record is never the authority"
+}
+
 # An action list is empty only when the state and git say so — and it says it, rather than leaving the
 # question unanswered by omission.
 case_report_emptyRunSaysNone() {
@@ -18948,6 +19027,93 @@ layout_owned_refusals() { # <engine dir> → one line per function whose definit
   done
 }
 
+print_site_refusals() { # <engine dir> → one line per line the run's five files print and do not record
+  local dir=$1 files declared f n defined
+  if [ ! -f "$dir/events.tsv" ]; then
+    printf 'events.tsv: the run has no vocabulary (%s)\n' "$dir/events.tsv"
+    return 0
+  fi
+  declared=$(print_declared_names "$dir")
+  # The five files the run is made of: the four `layout.tsv` orders, which is the order the entry sources, and the
+  # entry itself. A print site in one of them is a line the run makes visible, so the record owes an event for it.
+  files=$(printf '%s\n%s\n' \
+    "$(layout_rows "$dir" | awk -F'\t' '$3 ~ /^[0-9]+$/ { print $3 "\t" $1 }' | sort -n | cut -f2)" run.sh)
+  for f in $files; do
+    awk -v DECL="$declared" -v F="$f" "$(print_site_awk)" "$dir/$f" 2>/dev/null
+  done
+  # The other direction: a name declared as a composer or a renderer that no file the run is made of defines is a
+  # licence to print granted to nothing, which is how the declaration stops matching the engine it describes.
+  defined=$(for f in $files; do
+    awk '/^[A-Za-z_][A-Za-z0-9_]*\(\)/ { n = $1; sub(/\(.*/, "", n); print n }' "$dir/$f" 2>/dev/null
+  done | sort -u)
+  for n in $declared; do
+    printf '%s\n' "$defined" | grep -qxF -- "$n" \
+      || printf 'events.tsv: %s is declared as a composer or a renderer and no file the run is made of defines it\n' "$n"
+  done
+}
+
+print_declared_names() { # <engine dir> → the composer and renderer names events.tsv declares, one per line
+  awk -F'\t' '$0 ~ /^# (composers|renderers)\t/ {
+    for (i = 2; i <= NF; i++) { n = split($i, a, " "); for (j = 1; j <= n; j++) print a[j] }
+  }' "$1/events.tsv"
+}
+
+print_site_awk() { # → the program `print_site_refusals` reads a file with: a print site and its function
+  cat <<'SITE_AWK'
+BEGIN {
+  n = split(DECL, names, " ")
+  for (i = 1; i <= n; i++) decl[names[i]] = 1
+}
+{ L[FNR] = $0 }
+# A command substitution, parentheses and all — `$( … )` nests, `$(( … ))` doubly — so the text is walked rather
+# than matched: what is left is the statement's own shape.
+function strip_subs(s,   out, i, rest, k, c, depth, end) {
+  out = ""
+  while ((i = index(s, "$(")) > 0) {
+    out = out substr(s, 1, i - 1)
+    rest = substr(s, i + 1)
+    depth = 0; end = 0
+    for (k = 1; k <= length(rest); k++) {
+      c = substr(rest, k, 1)
+      if (c == "(") depth++
+      else if (c == ")") { depth--; if (depth == 0) { end = k; break } }
+    }
+    if (end == 0) { out = out s; break }
+    s = substr(rest, end + 1)
+  }
+  return out s
+}
+END {
+  fn = "(top level)"
+  for (i = 1; i <= FNR; i++) {
+    line = L[i]
+    if (line ~ /^[A-Za-z_][A-Za-z0-9_]*\(\)/) { fn = line; sub(/\(.*/, "", fn) }
+    else if (line == "}") fn = "(top level)"
+    if (line ~ /^[ \t]*#/) continue
+    # A `printf` or an `echo` in command position: at the head of the line, after a `;`, an `&`, a `|`, a `(`, or the
+    # `then`/`do`/`else` of a one-line block. A name that merely spells one of them is not a print.
+    if (line !~ /(^|[ \t;&|()])(printf|echo)[ \t]/) continue
+    stmt = line; j = i
+    while (stmt ~ /\\$/ && j < FNR) { j++; stmt = stmt " " L[j] }
+    # A command substitution hands the value to the statement around it and a pipeline hands it to the next command:
+    # neither is a line the run makes visible, so neither is owed an event. Quoted literals go first, so a `|` or a
+    # `>` a format carries is not read as shell syntax.
+    body = strip_subs(stmt)
+    if (body != stmt) continue
+    shape = body
+    gsub(/\047[^\047]*\047/, "\"Q\"", shape)
+    gsub(/"[^"]*"/, "\"Q\"", shape)
+    sub(/^.*(printf|echo)[ \t]+"Q"/, "", shape)
+    if (shape ~ /\|/) continue
+    # `>`/`>>` to a path is that path's content (a transcript, a prompt, a patch), not a line of the run.
+    if (shape ~ /(^|[^>])>>?[ \t]*[^&]/) continue
+    if (fn in decl) continue
+    printf "%s:%d\t%s\t%s\n", F, i, fn, line
+  }
+}
+SITE_AWK
+}
+
 layout_kind_refusals() { # <engine dir> → one line per event kind whose emit site and whose row's owners disagree
   local dir=$1 f kinds emitted n
   layout_rows "$dir" | while IFS= read -r row; do
@@ -19043,6 +19209,53 @@ case_driver_aKindIsEmittedOnlyByItsOwner() {
   printf 'a.sh\t10\t1\t-\tone_fn\titem\nb.sh\t10\t2\t-\tone_fn\tgate\n' > "$d/layout.tsv"
   out=$(layout_kind_refusals "$d")
   assert_eq "" "$out" "each kind in its own emitter's cell is what the case asks for"
+  return 0
+}
+
+# Every line the run makes visible is one the record carries (the change `the-print-sites-are-converted`, D2). The
+# case reads the five files the run is made of for a `printf` or an `echo` that is neither an emit nor a rendering
+# the vocabulary declares, and reads the declaration the other way round too, so a composer named for a function the
+# engine no longer has is red as well.
+case_driver_everyPrintOnlySiteIsConverted() {
+  # files: tools/loop/ tools/loop/events.tsv tools/loop/layout.tsv
+  local out d
+  out=$(print_site_refusals "$LOOP_ENGINE")
+  assert_eq "" "$out" "every line the run prints is an emit, a rendering one owns, or a value handed to a file or a caller"
+
+  d=$(scratch)
+  printf 'run-start\titems:num\tagent-issue-loop: items=%s\n' > "$d/events.tsv"
+  printf 'one.sh\t10\t1\t-\t-\t-\n' > "$d/layout.tsv"
+  : > "$d/run.sh"
+  printf 'one() {\n  printf \047the run started with %%s items\\n\047 3\n}\n' > "$d/one.sh"
+  out=$(print_site_refusals "$d")
+  assert_contains "$out" "one.sh:2" \
+    "a print site the record does not carry is named by file and line: $out"
+  assert_contains "$out" "$(printf 'one.sh:2\tone\t')" "and by the function it sits in: $out"
+
+  printf 'one() {\n  loop_emit run-start items=3\n}\n' > "$d/one.sh"
+  out=$(print_site_refusals "$d")
+  assert_eq "" "$out" "an emit site is not a print site, and the run's own file prints nothing here"
+
+  # The two syntactic classes the case admits: a printf whose output is a file, and one handed to another command.
+  printf 'one() {\n  printf \047items=%%s\\n\047 3 >> "$2"\n  printf \047%%s\\n\047 3 | jq .\n  n=$(printf \047%%03d\047 3)\n}\n' > "$d/one.sh"
+  out=$(print_site_refusals "$d")
+  assert_eq "" "$out" "a print that writes a file, is piped, or is substituted composes a value and is admitted"
+
+  # …and the same line to a stream is a line the run makes visible, which the admission must not swallow.
+  printf 'one() {\n  printf \047items=%%s\\n\047 3 >&2\n}\n' > "$d/one.sh"
+  out=$(print_site_refusals "$d")
+  assert_contains "$out" "one.sh:2" "a line printed to stderr is no more recorded than one printed to stdout: $out"
+
+  # A rendering the vocabulary declares is one emit owns: `loop_note` prints another process's text.
+  printf '# renderers\tloop_note\nkind\tfields\tformat\nrun-start\titems:num\tagent-issue-loop: items=%%s\n' > "$d/events.tsv"
+  printf 'loop_note() {\n  printf \047%%s\\n\047 "$*" >&2\n}\n' > "$d/one.sh"
+  out=$(print_site_refusals "$d")
+  assert_eq "" "$out" "a declared rendering owns its printf"
+
+  # …but a declaration naming a function no file the run is made of defines grants that licence to nothing.
+  printf '# renderers\tloop_note loop_relay\nkind\tfields\tformat\nrun-start\titems:num\tagent-issue-loop: items=%%s\n' > "$d/events.tsv"
+  out=$(print_site_refusals "$d")
+  assert_contains "$out" "loop_relay" "a declared rendering the engine does not define is refused, by name: $out"
   return 0
 }
 
@@ -22620,6 +22833,23 @@ loop_emit "\$@"
 EOF
 }
 
+recorded_line() { # <record> <kind> → the vocabulary row's line, rendered from the last event of that kind
+  local rec=$1 kind=$2 row fields fmt f
+  local -a values=()
+  row=$(awk -F'\t' -v k="$kind" '$1 == k { print }' "$LOOP_ENGINE/events.tsv")
+  [ -n "$row" ] || return 1
+  fields=$(printf '%s\n' "$row" | cut -f2)
+  fmt=$(printf '%s\n' "$row" | cut -f3)
+  [ -n "$fields" ] && [ "$fields" != '-' ] || fields=''
+  for f in ${fields//+/ }; do
+    values+=("$(jq -sr --arg k "$kind" --arg f "${f%%:*}" \
+      '[.[] | select(.kind == $k)][-1] | .[$f] | tostring' "$rec")")
+  done
+  # The format is the vocabulary's, which is the point: a printf's argument is a value the record carries.
+  # shellcheck disable=SC2059
+  printf "$fmt" "${values[@]}"
+}
+
 # An undeclared kind is not a typo the run prints past: the record would be missing an observation while the run
 # reported success, which is the whole defect this change is about, so the writer stops the run (exit 3, design D4)
 # and names the kind it was handed.
@@ -22749,6 +22979,55 @@ case_run_aFactPrintedOnceIsRecordedOnce() {
   recorded=$(sed -n 's/^LOOP_RUN_EVENTS_MAX_BYTES=\([0-9][0-9]*\).*/\1/p' "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
   assert_eq "$recorded" "$(jq -r 'select(.kind == "run-start") | .record_max' "$rec" | head -1)" \
     "and the bound it names is the recorded one"
+}
+
+# The other half of the rule (the change `the-print-sites-are-converted`, D2): a site that prints a run fact renders
+# its line from the values it recorded, so the line a reader reads is the record's own text and no second composition
+# sits beside it. The case takes every kind the run wrote, renders the vocabulary's format with the values the record
+# carries, and asks the run's own output for that line exactly once — a line the record would not reproduce is a site
+# that composes its text twice.
+case_run_aConvertedSiteRendersFromItsRecord() {
+  # files: tools/loop/lib.sh tools/loop/run.sh tools/loop/events.tsv tools/loop/loop.conf tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out rec kind line n compared=0
+  p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  init_state "$p" 1 90
+  out=$(run_loop "$p" --items 0 --minutes 0 --review off --dry-run 2>&1) || fail "the run failed: $out"
+  rec="$p/.pi/issue-loop/run-events.jsonl"
+  [ -s "$rec" ] || fail "the run wrote no record at $rec"
+  for kind in $(jq -r '.kind' "$rec" | sort -u); do
+    line=$(recorded_line "$rec" "$kind") || fail "the record holds $kind and the vocabulary declares no such kind"
+    [ -n "$line" ] || continue
+    compared=$((compared + 1))
+    n=$(printf '%s\n' "$out" | grep -cxF -- "$line" || true)
+    assert_eq "1" "$n" "the $kind line is the record's own text and is printed once: '$line' in: $out"
+  done
+  [ "$compared" -ge 3 ] || fail "the run recorded $compared kinds with a line — too few to show that a site renders from its record"
+  # …and the record is where the header's numbers came from, not a copy written beside the line: the printed header's
+  # `items` is the event's field, and the two cannot drift without this case being red.
+  assert_contains "$out" "items=0 " "the header's items is printed: $out"
+  assert_eq "0" "$(jq -r 'select(.kind == "run-start") | .items' "$rec" | head -1)" \
+    "…and it is the number the record carries"
+}
+
+# A reason the run did not write is free text — a quote, a comma, a newline — and it reaches the record whole and the
+# line unescaped (the change `the-print-sites-are-converted`, case `run#aFreeTextReasonSurvivesTheRoundTrip`): the
+# record is JSON lines and the escape is JSON's, so the reader of the printed line sees the text and the reader of the
+# record reads it back.
+case_run_aFreeTextReasonSurvivesTheRoundTrip() {
+  # files: tools/loop/lib.sh tools/loop/events.tsv tools/pi-child-events.sh tools/tooling.json
+  local p d rec out status reason
+  p=$(new_project); d=$(scratch); rec="$d/run-events.jsonl"
+  emit_driver "$p" "$rec"
+  reason=$(printf 'the quota ran out — "hold on", said the child\nand the run ended')
+  status=0
+  out=$( ( cd "$p" && bash "$p/.pi/emit.sh" run-end reason="$reason" ) 2>&1 ) || status=$?
+  assert_eq "0" "$status" "a reason carrying a quote and a newline is recorded: $out"
+  assert_eq "1" "$(jq -s 'length' "$rec")" "the record holds one line for the one fact"
+  assert_eq "$reason" "$(jq -rs '.[0].reason' "$rec")" "and the reason reads back whole from the record"
+  assert_contains "$(cat "$rec")" '\nand the run ended' "the record carries the newline escaped, as JSON needs it"
+  assert_eq "$(printf 'stop: %s\n' "$reason")" "$out" "the printed line is the text the record carries, unescaped"
+  assert_not_contains "$out" '\nand the run ended' "and no escape reaches the printed line: $out"
 }
 
 # A container whose children cannot close is a slot the run spends and cannot collect (#938). Measured on the run of

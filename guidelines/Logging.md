@@ -77,8 +77,12 @@ one bridge) plus a route here.
   inside the project, a count — and never a position or a secret, and the vocabulary is what the suite reads for
   that rather than a reviewer's eye. The record is bounded (`LOOP_RUN_EVENTS_MAX_BYTES`) and its rotation is an event
   of its own; one file holds every run of this project, so a run's facts are the rows after its `run-start` and a
-  rotation can split a run across two files, making a rotated record a lower bound. A number a person quotes from a
-  run's recorded facts — today its header and its phase lines — comes from `jq` over the record, not a transcript line.
+  rotation can split a run across two files, making a rotated record a lower bound. **Every line the engine prints
+  for a run fact is one of these rows** (issue #907): a site that printed without recording failed the suite
+  (`driver#everyPrintOnlySiteIsConverted`) and was converted rather than kept beside an emit, so a reader may take
+  any run's line from the record instead of a transcript. A number a person quotes from a run comes from `jq` over the
+  record, not a transcript line — and `report.sh --from-events` prints that reading beside the figures it derives
+  from the state, which stays the authority.
 
 ## 3. Kotlin (app) logging
 

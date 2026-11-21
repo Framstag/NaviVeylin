@@ -47,7 +47,7 @@
 #
 # Exit: 0 ok, 2 usage.
 #
-# Usage: report.sh [--state <file>] [--json]
+# Usage: report.sh [--state <file>] [--json] [--from-events]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -55,10 +55,12 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$here/lib.sh"
 
 json=0
+from_events=0
 state_opt=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
+    --from-events) from_events=1; shift ;;
     --state) need_value "$@"; state_opt="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,/^set -uo pipefail/p' "$0"; exit 0 ;;
     *) loop_die "report: unknown argument $1" ;;
@@ -75,8 +77,54 @@ if [ -n "$state_opt" ]; then
 fi
 [ -f "$state_file" ] || loop_die "report: no run state at $state_file"
 
+# ── the record's own reading (#907, the change `the-print-sites-are-converted`) ───────────────────────────────
+# The state stays the authority for every figure this report derives — three shipped requirements name it — and
+# `--from-events` adds the record's second reading beside them: the counts recomputed from the JSON lines the run
+# wrote, one difference line per figure the two disagree about, and the first item the record lacks. Nothing here
+# replaces a figure, and a difference does not refuse the report: it is evidence about the vocabulary, and a person
+# asking a finished run what it did gets the answer whether the record is complete or not (D3). The record's path is
+# the state's, without its `.json`, as `lib.sh` derives the writer's from `LOOP_STATE_FILE` — so an archived state
+# reads the record that was archived beside it, and the rotation's kept file is read first when it is there.
+record_file="${state_file%.json}-events.jsonl"
+record_present=0
+if [ -f "$record_file" ] || [ -f "$record_file.1" ]; then record_present=1; fi
+record_counts='{}'
+record_byissue='{}'
+record_missing='[]'
+if [ "$from_events" -eq 1 ] && [ "$record_present" -eq 1 ]; then
+  # The outcome events are the record's spelling of what each item became, and one occurrence per item is what a
+  # count is: an item may carry two outcome events (`item-closed` for an attempt the base already had, `item-result`
+  # for the round that landed it), so the last event per issue decides and the vocabulary's `closed` maps to the
+  # state's `done`.
+  # One reading of the record gives both shapes a figure needs: `byIssue` is the last outcome per issue, which is what
+  # "did the record see this item at all" asks, and `counts` is how many items landed on each outcome, which is what a
+  # run-level figure asks. Deriving one from the other re-reads the stream twice and lets the two disagree.
+  record_reading=$({ [ -f "$record_file.1" ] && cat "$record_file.1"; cat "$record_file"; } 2>/dev/null |
+    jq -cs '[ .[]
+      | select(.kind == "item-result" or .kind == "item-blocked" or .kind == "item-closed")
+      | { issue: (.issue | tostring),
+          outcome: (if .kind == "item-closed" then "done"
+                    elif .kind == "item-blocked" then "blocked"
+                    else .result end) } ]
+      | (reduce .[] as $e ({}; .[$e.issue] = $e.outcome)) as $byIssue
+      | { byIssue: $byIssue,
+          counts: (reduce ($byIssue | to_entries[]) as $k ({}; .[$k.value] = ((.[$k.value] // 0) + 1))) }' 2>/dev/null) \
+    || record_reading='{}'
+  record_counts=$(printf '%s' "$record_reading" | jq -c '.counts // {}' 2>/dev/null) || record_counts='{}'
+  record_byissue=$(printf '%s' "$record_reading" | jq -c '.byIssue // {}' 2>/dev/null) || record_byissue='{}'
+  record_missing=$(jq -c --argjson seen "$record_byissue" \
+    '[ .items[] | (.issue | tostring) ] | map(select($seen[.] == null))' "$state_file" 2>/dev/null) \
+    || record_missing='[]'
+fi
+
 if [ "$json" -eq 1 ]; then
-  jq -c '{run, items, excluded, budgetLeft: (.run.items - (.items | length))}' "$state_file"
+  if [ "$from_events" -eq 1 ]; then
+    jq -c --argjson counts "$record_counts" --argjson missing "$record_missing" --argjson present "$record_present" \
+      '{run, items, excluded, budgetLeft: (.run.items - (.items | length)),
+        record: {present: ($present == 1), counts: $counts, missing: $missing}}' "$state_file"
+  else
+    jq -c '{run, items, excluded, budgetLeft: (.run.items - (.items | length))}' "$state_file"
+  fi
   exit "$LOOP_OK"
 fi
 
@@ -97,6 +145,11 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
   "$(jq -r '.run.maxDecisions' "$state_file")" \
   "$(jq -r '.run.base | .[0:12]' "$state_file")"
 
+# Where every figure below comes from (D3): the state is the run's authority, and the record the run wrote is the
+# second reading `--from-events` asks it against. The line is printed whether the flag was given or not, so a reader
+# of a report knows what the numbers are before learning that another reading of them exists.
+printf 'source: the state file is the authority for every figure below · the record is a cross-check (--from-events)\n\n'
+
 # The bounds every figure below was measured against (issue #815): the character bound an item's tool results were
 # cut at, and the two context bounds its `context` column is read against. They are printed beside the budget for the
 # reason the budget is: a run at another bound is a different run, and a state whose record does not name it leaves a
@@ -114,6 +167,45 @@ printf 'bounds: result bound %s · context warn %s · context max %s\n\n' \
 # measured 2026-10-20, a later 30-minute run had re-initialised the state file and the report printed
 # `budget left -421 min` about a 480-minute run it knew nothing about (issue #207).
 is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
+
+# The record's second reading of the run-level counts (#907, the change `the-print-sites-are-converted`, D3/D4). The
+# state is the authority — this prints beside it and never instead of it — and agreement adds no line at all: the
+# claim is that a healthy run prints none, so a line saying "0 differences" would be a figure nobody reads. A
+# difference names both numbers and the first item the record lacks, because a totals-only line sends a reader
+# through the item table to find which one went missing.
+record_crosscheck() { # → the difference lines, or the line that says the record is absent
+  local rec_items fig r s lacks missing_n missing_first count=0
+  [ "$from_events" -eq 1 ] || return 0
+  if [ "$record_present" -eq 0 ]; then
+    printf 'record: absent — %s holds no record, so no figure here is cross-checked and no agreement is claimed\n\n' \
+      "$record_file"
+    return 0
+  fi
+  rec_items=$({ [ -f "$record_file.1" ] && cat "$record_file.1"; cat "$record_file"; } 2>/dev/null |
+    jq -s '[.[] | select(.kind == "run-start")] | (.[-1].items // "")' 2>/dev/null) || rec_items=""
+  missing_n=$(printf '%s' "$record_missing" | jq -r 'length' 2>/dev/null) || missing_n=0
+  is_num "$missing_n" || missing_n=0
+  missing_first=$(printf '%s' "$record_missing" | jq -r '.[0] // ""' 2>/dev/null) || missing_first=""
+  for fig in items closed blocked cut skipped; do
+    case "$fig" in
+      items) r="$rec_items"; s="$items" ;;
+      closed) r=$(printf '%s' "$record_counts" | jq -r '.done // 0'); s="$closed" ;;
+      blocked) r=$(printf '%s' "$record_counts" | jq -r '.blocked // 0'); s="$blocked" ;;
+      cut) r=$(printf '%s' "$record_counts" | jq -r '.cut // 0'); s="$cut" ;;
+      skipped) r=$(printf '%s' "$record_counts" | jq -r '.skipped // 0'); s="$skipped" ;;
+    esac
+    [ "$r" = "$s" ] && continue
+    lacks=""
+    if [ "$missing_n" -gt 0 ]; then
+      lacks=" — the record lacks #$missing_first"
+      [ "$missing_n" -eq 1 ] || lacks="$lacks (and $((missing_n - 1)) more)"
+    fi
+    printf 'record: %s %s · the state says %s%s\n' "$fig" "${r:--}" "$s" "$lacks"
+    count=$((count + 1))
+  done
+  [ "$count" -eq 0 ] || printf '\n'
+  return 0
+}
 
 # Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
 # two consecutive refusals, the remaining-time floor) and the run records it, so the report and the state
@@ -181,6 +273,8 @@ else
   printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$deadline_at"
 fi
+# …and the record's own reading of the same figures, where `--from-events` asked for it (D3).
+record_crosscheck
 
 printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
   elif [ "$owner_gone" -eq 1 ]; then printf 'the run that wrote this state is gone — its process (pid %s) is not running and it recorded no reason' "$owner_pid";

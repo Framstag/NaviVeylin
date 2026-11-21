@@ -947,6 +947,20 @@ of several prints each step whole under its own `gate: <command>` … `— <n>s`
 `tools/gate-attribute.sh` attributes a failure and its step from, and a failing step still fails the gate with its own
 numbers.
 
+The lever a reader reaches here — raising the pool above 4 — is refused (issue #946). The profile of 2026-11-16
+(`tools/loop/gate.sh --base-red --base c3545cfc07b6`) timed 59 steps in 1 772 s of step time, and the cost is not
+distributed the way the lever assumes: five steps of 60 s or more hold 1 540 s (87 %) —
+`tools/loop/tests/loop-selftest.sh --from-git` 828 s, `./gradlew test -PforceTests -PjvmTestsOnly
+--no-build-cache` 423 s, and 109 s, 99 s and 81 s — and each is a single process, so a wider pool cannot shorten
+one; the 46 steps under 10 s hold 54 s (3 %), and that is the entire surface the pool can overlap. Raising
+`LOOP_GATE_POOL_JOBS` from 4 to 8 or 16 therefore moves the pre-flight's wall clock by seconds at best, while it
+multiplies the host's load and the flakiness of the wall-clock cases
+(`run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock`); the value stays 4. What does move the number is the
+`--from-git` leg's own cost, the lazy per-step base-red (#944, landed) and the compiled step's configuration
+(#945, open). If the lever is ever revisited, the case it owes is
+`gate#thePoolSizeIsPaidForByTheStepsItOverlaps`: the pool's gain over serial is bounded by the sum of the steps
+that can overlap, and this profile offers 54 s of them.
+
 **A gate step is held to a bound of its own.** The run bounds the child and the self-test bounds a case, and a
 *step* of the gate had no clock at all: measured 2026-10-25 (issue #311), one `tools/loop/tests/loop-selftest.sh` step held a
 worker for its whole `LOOP_CHILD_MAX_SECONDS` — the item's gate log already read `LOOP-GATE: tests=558 failures=0

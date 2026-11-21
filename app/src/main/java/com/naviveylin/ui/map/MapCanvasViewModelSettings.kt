@@ -443,6 +443,13 @@ internal fun MapCanvasViewModel.wireDarkPresentation() {
  * Loads the persisted settings once, off the main thread.
  */
 internal fun MapCanvasViewModel.wirePersistedSettings() {
+    // Follow the one writer from the start, not from the end of the read below: the flow's first
+    // emission is then the defaults this state already holds, so subscribing costs no call, and a
+    // change the user makes while the read is in flight is never mistaken for a document newer
+    // than the map's own value (spec: `settings-surface` — "A change applies immediately and
+    // persists"). Subscribed after the read, the flow's first document is the one that read
+    // published, which can be older than a change already on its way to the same writer.
+    followSurfaceWrites()
     // Load persisted settings
     viewModelScope.launch {
         val settings = settingsController.load()
@@ -534,26 +541,25 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
             applyPreferSymbolIcons(preferSymbolPoiIcons,
                                    invalidate = mapRenderer != null)
         }
-        // The settings surface writes through the one writer, not through this view model
-        // (design D2), so from here on the map follows that document: a change made on either
-        // surface reaches the running map as it is made
-        // (spec: `settings-surface` — "A change applies immediately and persists").
-        followSurfaceWrites()
+        settingsReadDone = true
     }
 }
 
 /**
- * Follows the one writer's document after the start-up read, so a change the settings surface makes
- * reaches the running map as it is made: the surface writes through [SettingsController] rather than
- * through this view model, and without this a new style or symbol preference would show only after a
- * restart (spec: `settings-surface` — "A change applies immediately and persists"; design D2).
+ * Follows the one writer's document, so a change the settings surface makes reaches the running map
+ * as it is made: the surface writes through [SettingsController] rather than through this view model,
+ * and without this a new style or symbol preference would show only after a restart (spec:
+ * `settings-surface` — "A change applies immediately and persists"; design D2).
  *
- * A field equal to what the map already shows is not applied again, so a write this view model made
- * through its own setter — and the start-up read above — costs no second stylesheet load.
+ * It subscribes before the start-up read and applies nothing until that read is [settingsReadDone], so
+ * the `StateFlow` replay is never mistaken for a change and a document another screen published does
+ * not pre-empt the start-up path. After that, a field equal to what the map already shows is not
+ * applied again, so a write this view model made through its own setter costs no second stylesheet load.
  */
 internal fun MapCanvasViewModel.followSurfaceWrites() {
     viewModelScope.launch {
         settingsController.settings.collect { settings ->
+            if (!settingsReadDone) return@collect
             if (settings.styleSheet != _uiState.value.styleSheet) {
                 _uiState.value = _uiState.value.copy(styleSheet = settings.styleSheet)
                 ensureMapStyle(

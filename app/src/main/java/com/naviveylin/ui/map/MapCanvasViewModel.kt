@@ -435,6 +435,13 @@ class MapCanvasViewModel @Inject constructor(
     internal var preferSymbolNative: Boolean = false
 
     /**
+     * Set once the start-up settings read has applied its document. Until then the follower of the one
+     * writer applies nothing: the flow can carry a document another screen published, and applying it
+     * before the read's own fields would load a stylesheet or push a flag before the start-up path does.
+     */
+    internal var settingsReadDone = false
+
+    /**
      * Set once the user changes the preference in this session. The start-up settings load then leaves
      * the value alone: it can resume after the change (a settings read is a suspension point), and the
      * user's newer choice must not be overwritten by the persisted one it replaced.

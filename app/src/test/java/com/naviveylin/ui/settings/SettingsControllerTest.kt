@@ -4,10 +4,13 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.data.AppSettings
 import com.naviveylin.data.SettingsStorage
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlin.coroutines.CoroutineContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +62,52 @@ class SettingsControllerTest {
         assertEquals(false, loaded.laneHintsEnabled)
         assertEquals("winter-sports", loaded.styleSheet)
         assertEquals("the flow holds what the reader was handed", loaded, controller.settings.value)
+    }
+
+    @Test
+    fun aLateLoadDoesNotPublishOverANewerWrite() = runTest {
+        val storage = storage()
+        // The file's dispatcher is driven by hand, so the test owns the interleaving: the read
+        // returns before the write begins and the read's continuation arrives after the write
+        // published — the document it holds is the one the write replaced.
+        val io = QueuedDispatcher()
+        storage.ioDispatcher = io
+        val controller = SettingsController(storage)
+        val seen = mutableListOf<Boolean>()
+        val collector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            controller.settings.collect { seen += it.preferSymbolPoiIcons }
+        }
+
+        launch { controller.load() }
+        runCurrent()
+        io.runNext()
+
+        launch(UnconfinedTestDispatcher(testScheduler)) {
+            controller.update { it.copy(preferSymbolPoiIcons = true) }
+        }
+        io.runNext()
+
+        runCurrent()
+
+        assertEquals(
+            "the stale read publishes no document, so the write is one emission",
+            listOf(false, true),
+            seen
+        )
+        assertEquals(true, controller.settings.value.preferSymbolPoiIcons)
+        assertEquals("the write reached the settings file", true, storage().load().preferSymbolPoiIcons)
+        collector.cancel()
+    }
+
+    /** A dispatcher whose tasks run only when the test says so. */
+    private class QueuedDispatcher : CoroutineDispatcher() {
+        private val tasks = ArrayDeque<Runnable>()
+
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            tasks.addLast(block)
+        }
+
+        fun runNext() = tasks.removeFirst().run()
     }
 
     @Test

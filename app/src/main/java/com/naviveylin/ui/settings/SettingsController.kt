@@ -2,6 +2,7 @@ package com.naviveylin.ui.settings
 
 import com.naviveylin.data.AppSettings
 import com.naviveylin.data.SettingsStorage
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,14 @@ class SettingsController @Inject constructor(
      */
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
+    /**
+     * How many writes have begun. A read that started before one of them holds a document that
+     * write is about to replace, so publishing it would hand the hosts a value the file no longer
+     * holds — the map's follow path then applies the value the user just changed away from
+     * (spec: `dark-mode` — A user change outranks an in-flight settings read).
+     */
+    private val writesStarted = AtomicInteger(0)
+
     private val _surfaceState = MutableStateFlow<SettingsSurfaceState>(SettingsSurfaceState.Closed)
 
     /** Which page of the settings surface is showing. */
@@ -45,11 +54,16 @@ class SettingsController @Inject constructor(
      *
      * A host calls this once on its start path; the map screen keeps its own in-flight-read wins rule
      * around the returned value (spec: `dark-mode` — A user change outranks an in-flight settings
-     * read), so the value is returned as well as published.
+     * read), so the value is returned as well as published. The value is published only while no
+     * write has begun since this read did: a write in flight owns the document the file is about to
+     * hold, and a stale read published over it would be applied by every follower of [settings].
      */
     suspend fun load(): AppSettings {
+        val started = writesStarted.get()
         val loaded = storage.load()
-        _settings.value = loaded
+        if (writesStarted.get() == started) {
+            _settings.value = loaded
+        }
         return loaded
     }
 
@@ -61,6 +75,9 @@ class SettingsController @Inject constructor(
      * [settings] then emits — one write, one emission, no in-memory copy ahead of the file.
      */
     suspend fun update(transform: (AppSettings) -> AppSettings) {
+        // Before the transaction suspends: a read that is in flight now must not publish the
+        // document this write replaces.
+        writesStarted.incrementAndGet()
         var written = _settings.value
         storage.update { current -> transform(current).also { written = it } }
         _settings.value = written

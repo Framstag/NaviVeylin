@@ -1,0 +1,6 @@
+run#aPreGateRoundItsCapHalvedIsSkipped|   a diff the cap cut past half launches no round before the gate: expected '0', got '1'
+--- run#aPreGateRoundItsCapHalvedIsSkipped[0] (exit 1)
+  a diff the cap cut past half launches no round before the gate: expected '0', got '1'
+FAIL run#aPreGateRoundItsCapHalvedIsSkipped
+loop-selftest: 1 of 1 cases failed
+exit=1

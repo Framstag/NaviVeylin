@@ -179,7 +179,11 @@ child_context() { # child_context <events file> <lines already read> → "<large
   total=$(wc -l < "$f" 2>/dev/null) || true
   case "$total" in ''|*[!0-9]*) total=0 ;; esac
   case "$done_lines" in ''|*[!0-9]*) done_lines=0 ;; esac
-  [ "$total" -ge "$done_lines" ] || done_lines=0
+  # A count below the seed is a stream that was **rewritten** under this child — the adapter rotates it when it passes
+  # its byte bound — and not a child whose lines begin at 0: reading from the head would hand this child every earlier
+  # child's reading as its own, which is what ended item #1004's gate child 28 s in at another session's 201 443
+  # (issue #1010). Nothing is read here; the caller re-anchors the seed at this child's own `session` event.
+  if [ "$total" -lt "$done_lines" ]; then printf '0 %s\n' "$total"; return 0; fi
   max=0
   if [ "$total" -gt "$done_lines" ]; then
     blob=$(tail -n +$((done_lines + 1)) "$f" 2>/dev/null | head -n $((total - done_lines)) | jq -s -c '
@@ -191,6 +195,20 @@ child_context() { # child_context <events file> <lines already read> → "<large
     max=$blob
   fi
   printf '%s %s\n' "$max" "$total"
+}
+
+# Where this child's own session stands in the item's stream (issue #1010). Every child of an item appends to one
+# stream, and the adapter rotates it — dropping the oldest lines — so the line count a child was seeded with can stop
+# naming a line of the file while it runs. The last `session` event is then the boundary between the earlier children
+# and this one: what stands after it is this child's own, and what stands before it is another child's reading. `0`
+# is no session in the file, which is a rotation that took this child's own event with it rather than a file whose head
+# is this child's: the caller refuses to read instead of starting at line 1.
+child_session_line() { # child_session_line <events file> → the line the last `session` event stands on (0: none)
+  local f="${1:-}" line
+  [ -n "$f" ] && [ -f "$f" ] || { printf '0\n'; return 0; }
+  line=$(grep -nE '^\{"type": *"session"' "$f" 2>/dev/null | tail -1 | cut -d: -f1)
+  case "$line" in ''|*[!0-9]*) line=0 ;; esac
+  printf '%s\n' "$line"
 }
 
 # Why a child that answered nothing may have answered nothing (issue #828): a provider that refuses every request
@@ -258,7 +276,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_bound ctx_bound_key checks_max checks_seen=0 checks_done=0 chk_new chk_read chk_done
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_prev ctx_anchor ctx_bound ctx_bound_key checks_max checks_seen=0 checks_done=0 chk_new chk_read chk_done
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -477,11 +495,26 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     # every further turn costs several times the first and that is a decision, not a slower convergence. Both are off
     # at `0`, which is why the whole block is skipped when neither key is recorded.
     if [ "$item_context_warn" -gt 0 ] || [ "$ctx_bound" -gt 0 ]; then
+      ctx_prev=$ctx_lines
       ctx_read=$(child_context "${LOOP_CHILD_EVENTS:-}" "$ctx_lines")
       ctx_new=${ctx_read%% *}
       ctx_lines=${ctx_read##* }
       case "$ctx_new" in ''|*[!0-9]*) ctx_new=0 ;; esac
       case "$ctx_lines" in ''|*[!0-9]*) ctx_lines=0 ;; esac
+      # A stream that rotated under this child left the count it was seeded with above the file's own: the seed is
+      # re-anchored at this child's `session` event, which is the boundary between the children before it and this one
+      # (issue #1010). The re-read then covers this child's lines from that boundary, and a rotation that took the
+      # child's own event with it leaves the count where the refusal put it — this child's remaining lines only.
+      if [ "$ctx_lines" -lt "$ctx_prev" ]; then
+        ctx_anchor=$(child_session_line "${LOOP_CHILD_EVENTS:-}")
+        if [ "$ctx_anchor" -gt 0 ]; then
+          ctx_read=$(child_context "${LOOP_CHILD_EVENTS:-}" "$((ctx_anchor - 1))")
+          ctx_new=${ctx_read%% *}
+          ctx_lines=${ctx_read##* }
+          case "$ctx_new" in ''|*[!0-9]*) ctx_new=0 ;; esac
+          case "$ctx_lines" in ''|*[!0-9]*) ctx_lines=0 ;; esac
+        fi
+      fi
       if [ "$ctx_new" -gt "$ctx_max" ]; then ctx_max=$ctx_new; fi
       if [ "$item_context_warn" -gt 0 ] && [ "$ctx_warned" -eq 0 ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
         ctx_warned=1

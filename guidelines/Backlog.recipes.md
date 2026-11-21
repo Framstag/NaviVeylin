@@ -90,6 +90,11 @@ reality — it records as not yet applicable), and the child that runs the gate 
 findings in one pass and then runs the item's **one** gate. The round before the gate is **not** a round of
 `--max-review-rounds`: it refuses nothing, it never blocks the item, and its report stays in the item's directory; the
 round the budget bounds is the one after the gate, which is where a change is judged on its verification as well.
+It is also skipped when the input cap `LOOP_REVIEW_INPUT_MAX_BYTES` cut more than half of the whole input the round
+would read — the one share the scale line records across every bounded part (issue #969): a share cut past half is a
+diff whose middle the round cannot see. The item records the share the cap took and the skip, the
+gate child decides the diff itself, and `report.sh` counts the skip as a class of its own on the `review:` line, never
+as `undecided`, whose meaning is a round that ran and did not answer.
 `--pre-gate-review off` (`LOOP_PRE_GATE_REVIEW_DEFAULT`) keeps the older shape — one child from the diagnosis to the
 gate — and is folded to `off` by every run with `--review off`, because a run with no reviewer has none to place in
 front of the gate. A change child that runs the gate anyway is read as it always was: the run does not re-run a gate,

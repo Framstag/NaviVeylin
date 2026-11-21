@@ -389,7 +389,7 @@ frame or a viewport through a test-only setter.
 - **WHEN** a ViewModel is initialised, given a surface size and asked to render
 - **THEN** `renderViewport` carries the viewport of the frame the renderer emitted, and `renderedBitmap` is
   the bitmap that frame carried, and both were published by the collector and not by a test hook
-- **Case**: `MapCanvasViewModelFrameHarnessTest#aFrameLandsThroughTheFrameCollector`
+- **Case**: `app: MapCanvasViewModelFrameHarnessTest` "a frame lands through the frame collector"
 
 #### Scenario: A walked step is the magnification the renderer rendered
 
@@ -397,4 +397,4 @@ frame or a viewport through a test-only setter.
   advances the walk
 - **THEN** every walk step equals the magnification of the frame that produced it, every step is within the
   window of the frame before it, and the last step lands exactly on the recorded target
-- **Case**: `MapCanvasViewModelZoomWalkTest#aLargeChangeWalksAndLandsExactlyOnTheTarget`
+- **Case**: `app: MapCanvasViewModelZoomWalkTest` "a large change walks and lands exactly on the target"

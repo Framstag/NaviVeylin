@@ -57,6 +57,14 @@
       "search": "      if (tolower($0) ~ /^##[ \\t]+open decisions[ \\t]*$/) { ins = 1; heading = NR; next }",
       "replace": "      if (tolower($0) ~ /^##[ \\t]+open questions[ \\t]*$/) { ins = 1; heading = NR; next }",
       "why": "the checker reads the `## Open decisions` declaration and never the meaning of a section, so the deferral 8 of 15 in-flight designs carried is not a refusal; a checker that read `## Open Questions` would refuse 53 % of the open set"
+    },
+    {
+      "label": "every-refusal-has-a-mutation",
+      "case": "readiness#everyRefusalHasAMutation",
+      "file": "tools/tests/check-change-readiness-mutations.json",
+      "search": "      \"label\": \"surface-command-missing\",",
+      "replace": "      \"label\": \"surface-command-missing-renamed\",",
+      "why": "the list is what makes the checker's refusals falsifiable, so it falsifies itself: renaming one label leaves that refusal without a record and `readiness#everyRefusalHasAMutation` fails, which is the one direction no other record can cover"
     }
   ]
 }

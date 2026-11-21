@@ -360,6 +360,12 @@ artifacts and nothing else and prints one `LOOP-CHANGE-READY:` verdict, refusing
 vocabulary, the cases and the mutation list are the capability `change-readiness`. It judges a declaration and never
 the meaning of a section, so a `## Open Questions` entry that defers is not a refusal.
 
+The **unclaimed case count** is the number read beside that verdict: `tools/check-case-names.sh` resolves every
+`**Case**:` line in a shipped spec to the one declared harness that runs it (`tools/case-harnesses.json`), refuses a
+name no row lists and a full name two rows share, and prints the cases no scenario names as `unclaimed=` — a count,
+never a refusal, because a case may prove its harness rather than a requirement. Both numbers come from the same
+kind of declaration, so a filing path quotes neither from memory.
+
 The same writer asks the item the question the shapes answer, and it is a refusal rather than a warning, because a
 warning is a thing a session learns to ignore. A finding carries **one** shape: a `cause` — the `file:line` of the
 mechanism, the case that exercises it and the tallies that case reported — makes it tier A, and a `change` — the

@@ -304,4 +304,4 @@ render as that key.
 
 - **WHEN** the German resource set is validated against the English default
 - **THEN** every `description_label_*` key of `values/` SHALL exist in `values-de/`
-- **Case**: `GermanTranslationCompletenessTest.everyEnglishStringHasGermanTranslation`
+- **Case**: `app: GermanTranslationCompletenessTest.everyEnglishStringHasGermanTranslation`

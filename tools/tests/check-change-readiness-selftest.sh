@@ -25,6 +25,7 @@
 #   readiness#oneVerdictLine           exactly one `LOOP-CHANGE-READY:` line, exit 0 only for `ok`
 #   readiness#wordingIsNotAVerdict     prose that reads like a fork is not a refusal
 #   readiness#changeUnreadable         a change directory with no `design.md` — `change-unreadable`
+#   readiness#everyRefusalHasAMutation   each refusal has a record, each record names a case and a unique line
 #
 # Every case carries an id, so a task item or a mutation record can quote one instead of a sentence;
 # `--case <id>` runs exactly one of them (that is what `tools/tests/check-change-readiness-mutations.json` uses).
@@ -60,6 +61,7 @@ CASES=(
   'readiness#oneVerdictLine'
   'readiness#wordingIsNotAVerdict'
   'readiness#changeUnreadable'
+  'readiness#everyRefusalHasAMutation'
 )
 
 if [ "$list_only" -eq 1 ]; then
@@ -325,6 +327,42 @@ cp "$tmp/declared-none/proposal.md" "$tmp/unreadable/proposal.md"
 expect readiness#changeUnreadable \
   "a change directory with no design.md is refused by name, not crashed on" 1 \
   "change-unreadable=design.md" "$tmp/unreadable"
+
+# ── the mutation list keeps its own promise ───────────────────────────────────────────────────────────────
+# Every refusal the checker can print has one record whose mutation stops it firing, and every record names a case
+# this suite really has and a search line that occurs exactly once in its file — the runner's replacement is
+# literal, so a record that names a case this suite does not carry (or a search that matches twice) would run
+# something other than the falsification it claims. `tools/loop/loop.conf` maps this list to the checker's path,
+# so the list is read here rather than trusted.
+if [ -z "$case_filter" ] || [ "$case_filter" = 'readiness#everyRefusalHasAMutation' ]; then
+  problems=""
+  muts="$root/tools/tests/check-change-readiness-mutations.json"
+  printf '%s\n' "${CASES[@]}" > "$tmp/cases.txt"
+  sed -n 's/^[[:space:]]*record \([a-z][a-z-]*\).*/\1/p' "$check" | sort -u > "$tmp/refusals.txt"
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    jq -e --arg l "$name" 'any(.mutations[]; .label == $l)' "$muts" >/dev/null 2>&1 \
+      || problems="$problems\n        the refusal '$name' has no record in the mutation list"
+  done < "$tmp/refusals.txt"
+  while IFS=$(printf '\037') read -r label caseid file search; do
+    [ -n "${label:-}" ] || continue
+    grep -qxF -- "$caseid" "$tmp/cases.txt" \
+      || problems="$problems\n        the record '$label' names the case '$caseid', which this suite does not carry"
+    if [ ! -f "$root/$file" ]; then
+      problems="$problems\n        the record '$label' names the file '$file', which does not exist"
+    else
+      n=$(grep -cF -- "$search" "$root/$file")
+      [ "$n" = 1 ] || problems="$problems\n        the record '$label' searches a line that occurs $n times in '$file', not once"
+    fi
+  done < <(jq -r '.mutations[] | "\(.label)\u001f\(.case)\u001f\(.file)\u001f\(.search)"' "$muts")
+  if [ -z "$problems" ]; then
+    echo "PASS  readiness#everyRefusalHasAMutation — every refusal the checker prints has one record, and every record names a case this suite carries and a unique search line"
+    pass=$((pass + 1))
+  else
+    printf 'FAIL  readiness#everyRefusalHasAMutation — the mutation list does not cover the checker:%b\n' "$problems"
+    failures=$((failures + 1))
+  fi
+fi
 
 if [ -n "$case_filter" ] && [ "$pass" -eq 0 ] && [ "$failures" -eq 0 ]; then
   echo "check-change-readiness-selftest: no case with the id '$case_filter'" >&2

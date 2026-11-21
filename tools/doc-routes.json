@@ -752,7 +752,8 @@
         "Backlog.md §5 \"a block asks its own question.\"",
         "Backlog.md §5 \"a stale skip asks its own question, and is never parked on a bare hold.\"",
         "Backlog.md §5 \"a reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.\"",
-        "Backlog.md §5 \"the queue reads the whole labelled set, and refuses one it could not cover.\""
+        "Backlog.md §5 \"the queue reads the whole labelled set, and refuses one it could not cover.\"",
+        "Backlog.md §3 \"the same screen judges the container, not only the child — and a container nothing can close is refused as\""
       ]
     },
     {
@@ -853,7 +854,8 @@
         "BuildEvidence.md §11 \"iterate with focused suites and drive the device with one reusable script\"",
         "BuildEvidence.md §4d \"the loop records which tree fails the case its gate named\"",
         "BuildEvidence.md §4d \"a red the base carried is subtracted from the tally, by pair\"",
-        "BuildEvidence.md §4f \"re-take the guard census before a cleanup, and quote the command with the date.\""
+        "BuildEvidence.md §4f \"re-take the guard census before a cleanup, and quote the command with the date.\"",
+        "BuildEvidence.md §4f \"a run's own record is an artifact, kept beside its state file.\""
       ]
     },
     {
@@ -894,7 +896,8 @@
         "BuildTests.md §6i \"a case that needs a landed map frame drives the production path, and no test-only setter publishes one.\"",
         "BuildTests.md §6i \"a case that renders without reporting a surface size asserts nothing lands, and why.\"",
         "BuildTests.md §6i \"drive the scheduler past the renderer's debounce window.\"",
-        "BuildTests.md §6i \"the pixels are the fake client's, and the bitmap is the renderer's overrun buffer.\""
+        "BuildTests.md §6i \"the pixels are the fake client's, and the bitmap is the renderer's overrun buffer.\"",
+        "BuildTests.md §6 \"a scenario names a case that resolves to exactly one harness.\""
       ]
     },
     {
@@ -1275,7 +1278,8 @@
         "Logging.md §2 \"the search request line is written once per request at `Info`.\"",
         "Logging.md §3 \"a log or diagnostics line never carries a coordinate.\"",
         "Logging.md §3 \"a failure never carries its own wording across a layer boundary.\"",
-        "Logging.md §3 \"a failed route calculation's cause is measured, not guessed.\""
+        "Logging.md §3 \"a failed route calculation's cause is measured, not guessed.\"",
+        "Logging.md §2 \"the loop engine's own record is JSON-lines, and a reader counts the record rather than grepping a transcript.\""
       ]
     },
     {

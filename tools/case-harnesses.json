@@ -1,0 +1,331 @@
+{
+  "comment": "The declared harnesses of `tools/check-case-names.sh`: one row per suite that runs cases, and the names each row declares are the only names a shipped spec's `**Case**:` line may resolve to. `kind` is how the names are read: `file` greps `pattern` (with `prefix`) out of `path`, `command` runs `command` and reads the names it prints, and `classes` reads one case per test method from `roots` (`.path`, `.module`, optional `.qualifier` such as `device`). `groups` is the set of case-group prefixes the row claims — a group two rows claim is a DECLARED fact and is printed once, never refused; an identical full name in two rows IS refused. `exclude` is a delegation: the row prints the names but another row's bodies run them, and the check refuses an exclusion that hides a name no other row declares. The four shipped rows the change names are `loop`, `sensors`, `issues-core` and `gradle`; the rest are the suites a shipped spec already cites, and a suite added to the tree with no row here is a name that resolves to nothing — the check names it rather than trusting it.",
+  "harnesses": [
+    {
+      "id": "loop",
+      "kind": "command",
+      "command": ["bash", "tools/loop/tests/loop-selftest.sh", "--list"],
+      "groups": ["adapter", "census", "clean", "driver", "evidence", "gate", "labels", "look", "measure", "mutation", "phase", "policy", "prescreen", "prompt", "repeat", "report", "run", "state", "trim", "usage", "worktree"],
+      "why": "`tools/loop/**` is the loop's own suite, the largest case set in the tree; `--list` prints its array, so a case added to the suite is declared on the same commit that adds it."
+    },
+    {
+      "id": "sensors",
+      "kind": "command",
+      "command": ["bash", "tools/sensors/tests/sensor-selftest.sh", "--list"],
+      "groups": ["Registry", "close", "create", "guard", "hotspot", "layers", "lib", "reopen", "report", "run", "sensors", "update", "workflow"],
+      "why": "the sensor tooling's shell cases; `run` is shared with the loop row on purpose — two lifecycle suites both name a group `run`, and the shared claim is declared here rather than renamed."
+    },
+    {
+      "id": "issues-core",
+      "kind": "command",
+      "command": ["bash", "tools/issues/tests/issue-tooling-selftest.sh", "--list"],
+      "groups": ["Bands", "Fingerprint", "Policy", "Profile", "Taxonomy", "TodoSections", "WorkPackage", "adapter", "answer", "basis", "check", "classify", "close", "create", "decision-queue", "decisions", "docs", "duplicates", "import", "labels", "lib", "list", "metadata", "policy", "prioritise", "queue", "shaping", "surface", "update"],
+      "exclude": "^check#",
+      "why": "the issue tooling's Java cases (`tools/issues/core/Cases.java`) plus its shell cases; the `check#*` names are printed here because the shell runner delegates them to `check-metadata`, whose row owns the bodies, so they are excluded from this row and a `hinges` refusal fires if the metadata row ever stops declaring one."
+    },
+    {
+      "id": "check-metadata",
+      "kind": "command",
+      "command": ["bash", "tools/issues/tests/check-metadata-selftest.sh", "--list"],
+      "groups": ["check"],
+      "why": "the metadata checker's falsification: it owns the `check#*` bodies the issue tooling's runner delegates to."
+    },
+    {
+      "id": "resolve-stale",
+      "kind": "command",
+      "command": ["bash", "tools/issues/tests/resolve-stale-selftest.sh", "--list"],
+      "groups": ["classifier", "pipeline", "prescreen", "resolver"],
+      "why": "the stale-citation repair, whose cases the issue tooling's runner also names; that row excludes them."
+    },
+    {
+      "id": "gradle",
+      "kind": "classes",
+      "roots": [
+        {"path": "app/src/test", "module": "app"},
+        {"path": "app/src/androidTest", "module": "app", "qualifier": "device"},
+        {"path": "auto/src/test", "module": "auto"},
+        {"path": "core/src/test", "module": "core"},
+        {"path": "buildSrc/src/test", "module": "buildSrc"},
+        {"path": "architecture/src/test", "module": "architecture"},
+        {"path": "osmscout-client-java/src/test", "module": "osmscout-client-java"}
+      ],
+      "groups": ["app", "app(device)", "auto", "core", "buildSrc", "architecture", "osmscout-client-java"],
+      "why": "the Gradle test trees: a case is one test method, `Class.method` or `Class#method`, and a test class with no method is itself a case; a bare `Class` form is declared only where no second module of this row holds the same class name, so a bare reference to a class two modules hold is refused instead of guessed."
+    },
+    {
+      "id": "native",
+      "kind": "classes",
+      "roots": [
+        {"path": "app/src/main/cpp/libosmscout/Tests/src", "module": "libosmscout"}
+      ],
+      "groups": ["libosmscout"],
+      "bare": false,
+      "why": "the submodule's Catch2 suite: `TEST_CASE` carries a sentence, not an identifier, so a case is its translation unit's class — `libosmscout: RouteStepModelTest` — and no method form is declared because the suite names none."
+    },
+    {
+      "id": "build-inputs",
+      "kind": "command",
+      "command": ["bash", "tools/tests/build-inputs-selftest.sh", "--list"],
+      "groups": ["inputs", "workflow"],
+      "why": "the build-input elision cases."
+    },
+    {
+      "id": "change-readiness",
+      "kind": "command",
+      "command": ["bash", "tools/tests/check-change-readiness-selftest.sh", "--list"],
+      "groups": ["readiness"],
+      "why": "the readiness checker's refusals, one case per refusal; this change's own cases live here."
+    },
+    {
+      "id": "glossary",
+      "kind": "command",
+      "command": ["bash", "tools/tests/check-glossary-selftest.sh", "--list"],
+      "groups": ["glossary"],
+      "why": "the glossary declaration's cases."
+    },
+    {
+      "id": "portability",
+      "kind": "command",
+      "command": ["bash", "tools/tests/check-portability-selftest.sh", "--list"],
+      "groups": ["adapter", "check", "discovery", "foreign", "policy", "portability", "porting", "preconditions"],
+      "why": "the portability check's cases; its `check` group is the tool's own, not the metadata checker's `check#*`."
+    },
+    {
+      "id": "sonar-workflow",
+      "kind": "command",
+      "command": ["bash", "tools/tests/check-sonar-workflow-selftest.sh", "--list"],
+      "groups": ["sonar-workflow"],
+      "why": "the Sonar workflow's declared triggers and exclusions."
+    },
+    {
+      "id": "sonar-findings",
+      "kind": "command",
+      "command": ["bash", "tools/tests/sonar-findings-selftest.sh", "--list"],
+      "groups": ["sonar-findings"],
+      "why": "the Sonar finding triage cases."
+    },
+    {
+      "id": "gen-glossary",
+      "kind": "command",
+      "command": ["bash", "tools/tests/gen-glossary-selftest.sh", "--list"],
+      "groups": ["glossary", "projection"],
+      "why": "the glossary generator's cases; its `glossary` group is shared with the checker's row as declared."
+    },
+    {
+      "id": "action-runtimes",
+      "kind": "file",
+      "path": "tools/tests/check-action-runtimes-selftest.sh",
+      "pattern": "(action-runtimes|runtimes)#[A-Za-z0-9_]+",
+      "groups": ["action-runtimes", "runtimes"],
+      "why": "a suite that declares its cases in its header and its `case_*` functions, with no array and no `--list`, so the header is the declaration this row reads."
+    },
+    {
+      "id": "doc-routes",
+      "kind": "file",
+      "path": "tools/tests/check-doc-routes-selftest.sh",
+      "pattern": "(layers|read|routes|routed-read|rules)#[A-Za-z0-9_-]+",
+      "groups": ["layers", "read", "routes", "routed-read", "rules"],
+      "why": "same shape: the header declares the ids the `expect` calls use."
+    },
+    {
+      "id": "doc-values",
+      "kind": "file",
+      "path": "tools/tests/check-doc-values-selftest.sh",
+      "pattern": "values#[A-Za-z0-9_]+",
+      "groups": ["values"],
+      "why": "same shape."
+    },
+    {
+      "id": "jvm-test-graph",
+      "kind": "file",
+      "path": "tools/tests/check-jvm-test-graph-selftest.sh",
+      "pattern": "buildGraph#[A-Za-z0-9_]+",
+      "groups": ["buildGraph"],
+      "why": "same shape."
+    },
+    {
+      "id": "openspec-hygiene",
+      "kind": "file",
+      "path": "tools/tests/check-openspec-hygiene-selftest.sh",
+      "pattern": "artifact-hygiene#[A-Za-z0-9_]+",
+      "groups": ["artifact-hygiene"],
+      "why": "same shape."
+    },
+    {
+      "id": "rule-routes",
+      "kind": "file",
+      "path": "tools/tests/check-rule-routes-selftest.sh",
+      "pattern": "routes#[A-Za-z0-9_]+",
+      "groups": ["routes"],
+      "why": "same shape."
+    },
+    {
+      "id": "todo-references",
+      "kind": "file",
+      "path": "tools/tests/check-todo-references-selftest.sh",
+      "pattern": "refcheck#[A-Za-z0-9_]+",
+      "groups": ["refcheck"],
+      "why": "same shape."
+    },
+    {
+      "id": "vcpkg-cache",
+      "kind": "file",
+      "path": "tools/tests/ci-vcpkg-cache-selftest.sh",
+      "pattern": "vcpkg-cache#[A-Za-z0-9_]+",
+      "groups": ["vcpkg-cache"],
+      "why": "same shape."
+    },
+    {
+      "id": "dex-gate-graph",
+      "kind": "file",
+      "path": "tools/tests/check-dex-gate-graph-selftest.sh",
+      "pattern": "dexGateGraph#[A-Za-z0-9_]+",
+      "groups": ["dexGateGraph"],
+      "why": "same shape."
+    },
+    {
+      "id": "gate-artifacts",
+      "kind": "file",
+      "path": "tools/tests/check-gate-artifacts-selftest.sh",
+      "pattern": "#[A-Za-z][A-Za-z0-9_]+",
+      "prefix": "gateArtifacts",
+      "groups": ["gateArtifacts"],
+      "why": "its ids are built as `gateArtifacts#$case_x`, so the header's suffix list is the only literal occurrence of each full name; the prefix restores the full form."
+    },
+    {
+      "id": "compose-sandbox",
+      "kind": "file",
+      "path": "tools/tests/check-compose-sandbox-rule-selftest.sh",
+      "pattern": "sandbox#[A-Za-z0-9_]+",
+      "groups": ["sandbox"],
+      "why": "same shape."
+    },
+    {
+      "id": "submodule-pin",
+      "kind": "file",
+      "path": "tools/tests/check-submodule-pin-selftest.sh",
+      "pattern": "submodule#[A-Za-z0-9_]+",
+      "groups": ["submodule"],
+      "why": "same shape."
+    },
+    {
+      "id": "gen-feature-list",
+      "kind": "file",
+      "path": "tools/tests/gen-feature-list-selftest.sh",
+      "pattern": "(alpha|beta|delta|epsilon|zeta|eta|theta)#[A-Za-z0-9_]+",
+      "groups": ["alpha", "beta", "delta", "epsilon", "zeta", "eta", "theta"],
+      "why": "same shape."
+    },
+    {
+      "id": "look",
+      "kind": "command",
+      "command": ["bash", "tools/tests/look-selftest.sh", "--list"],
+      "groups": ["look", "policy", "adapter"],
+      "why": "its `--list` prints wildcard forms (`look#*`) — the one row whose names are patterns rather than ids; it resolves no spec reference today and is declared so the row exists before a spec cites it."
+    },
+    {
+      "id": "project-metrics",
+      "kind": "file",
+      "path": "tools/tests/project-metrics-report-selftest.sh",
+      "pattern": "metrics#[A-Za-z0-9_]+",
+      "groups": ["metrics"],
+      "why": "same shape."
+    },
+    {
+      "id": "declared-cases",
+      "kind": "file",
+      "path": "tools/tests/declared-cases-selftest.sh",
+      "pattern": "declared#[A-Za-z0-9_]+",
+      "groups": ["declared"],
+      "why": "same shape."
+    },
+    {
+      "id": "prune-native",
+      "kind": "file",
+      "path": "tools/tests/prune-native-configs-selftest.sh",
+      "pattern": "prune#[A-Za-z0-9_]+",
+      "groups": ["prune"],
+      "why": "same shape."
+    },
+    {
+      "id": "gate-timings",
+      "kind": "file",
+      "path": "tools/tests/gate-timings-selftest.sh",
+      "pattern": "timings#[A-Za-z0-9_]+",
+      "groups": ["timings"],
+      "why": "same shape."
+    },
+    {
+      "id": "mutate",
+      "kind": "file",
+      "path": "tools/tests/mutate-selftest.sh",
+      "pattern": "toy#[A-Za-z0-9_]+",
+      "groups": ["toy"],
+      "why": "the mutation runner's toy suite."
+    },
+    {
+      "id": "measure-highlight",
+      "kind": "file",
+      "path": "tools/tests/measure-highlight-selftest.sh",
+      "pattern": "highlight#[A-Za-z0-9_]+",
+      "groups": ["highlight"],
+      "why": "same shape."
+    },
+    {
+      "id": "loop-mutations",
+      "kind": "file",
+      "path": "tools/loop/tests/loop-mutations.sh",
+      "pattern": "(loopMutation|mutations)#[A-Za-z0-9_]+",
+      "groups": ["loopMutation", "mutations"],
+      "why": "the loop's mutation records, one per case a mutation must redden."
+    },
+    {
+      "id": "sensor-mutations",
+      "kind": "file",
+      "path": "tools/sensors/tests/sensor-mutations.sh",
+      "pattern": "(sensorMutation|mutations)#[A-Za-z0-9_]+",
+      "groups": ["sensorMutation", "mutations"],
+      "why": "the sensors' mutation records."
+    },
+    {
+      "id": "build-inputs-mutations",
+      "kind": "file",
+      "path": "tools/tests/build-inputs-mutations.sh",
+      "pattern": "(inputMutation|mutations)#[A-Za-z0-9_]+",
+      "groups": ["inputMutation", "mutations"],
+      "why": "the build-input mutation records."
+    },
+    {
+      "id": "loop-spend",
+      "kind": "file",
+      "path": "tools/loop/tests/loop-spend-selftest.sh",
+      "pattern": "spend#[A-Za-z0-9_-]+",
+      "groups": ["spend"],
+      "why": "the spend report, split out of the loop's main array: its ids appear in its `--case` and `expect` calls, so its own file is the declaration."
+    },
+    {
+      "id": "loop-quota",
+      "kind": "file",
+      "path": "tools/loop/tests/loop-quota-selftest.sh",
+      "pattern": "quota#[A-Za-z0-9_-]+",
+      "groups": ["quota"],
+      "why": "the quota/pacing reader, split out of the loop's main array the same way."
+    },
+    {
+      "id": "probe",
+      "kind": "file",
+      "path": "openspec/changes/archive/2026-10-22-fix-openspec-strict-rules-unread/evidence/probe.sh",
+      "pattern": "(theEntryDocumentStates[A-Za-z]+|theEntryDocumentNames[A-Za-z]+)",
+      "prefix": "probe#",
+      "groups": ["probe"],
+      "why": "the archived change's probe: it printed the two `probe#*` names the documentation-ownership spec cites, and the file is still in the tree, so the reference resolves to the script that ran it rather than to an invented suite."
+    },
+    {
+      "id": "case-names",
+      "kind": "command",
+      "command": ["bash", "tools/tests/check-case-names-selftest.sh", "--list"],
+      "groups": ["traceability"],
+      "why": "this check's own falsification — the one row that must never be trusted without being run."
+    }
+  ]
+}

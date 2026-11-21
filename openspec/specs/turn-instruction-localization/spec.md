@@ -51,13 +51,13 @@ words in a description, and their wording SHALL follow the move the step reports
 
 - **WHEN** the step leaves the roundabout at exit 3
 - **THEN** the short description SHALL be the localized exit string with the count (English "Exit 3", German "Ausfahrt 3")
-- **Case**: `core: TurnInstructionLocalizerTest` "roundabout leave at exit 3 is localized from the instruction's exit ordinal"
+- **Case**: `core: ManeuverLabelTest` "a roundabout leave names its ordinal"
 
 #### Scenario: Roundabout leave with no exit count
 
 - **WHEN** the step leaves a roundabout and carries no exit ordinal
 - **THEN** the short description SHALL still be produced, and SHALL NOT be empty or carry an invented number
-- **Case**: `core: TurnInstructionLocalizerTest` "roundabout leave without an exit ordinal is still worded"
+- **Case**: `core: ManeuverLabelTest` "a roundabout leave without an ordinal does not invent one"
 
 #### Scenario: Motorway enter
 
@@ -69,14 +69,14 @@ words in a description, and their wording SHALL follow the move the step reports
 - **WHEN** the step keeps left onto another motorway
 - **THEN** the short description SHALL be the localized keep string (English "Keep left", German "Links halten")
 - **AND** it SHALL be chosen from the step's kind and move, not from any published text
-- **Case**: `core: ManoeuvreLabelTest` "a motorway change is worded keep-left from its kind and move"
+- **Case**: `core: ManeuverLabelTest` "a motorway change is worded as a keep onto the next motorway"
 
 #### Scenario: Motorway leave
 
 - **WHEN** the step leaves a motorway
 - **THEN** the short description SHALL be the localized leave-motorway string (English "Leave motorway", German "Autobahn verlassen")
 - **AND** it SHALL be chosen from the step's kind, not from any published text
-- **Case**: `core: ManoeuvreLabelTest` "a motorway leave is worded from its kind"
+- **Case**: `core: ManeuverLabelTest` "a motorway manoeuvre without a destination keeps today's wording"
 
 ### Requirement: Shared resources for phone and Auto
 The instruction strings SHALL live in the `:core` module resources so the phone app and the Android Auto variant resolve the identical strings for every locale (label parity).

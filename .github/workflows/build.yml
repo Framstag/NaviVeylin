@@ -441,6 +441,18 @@ jobs:
           bash tools/check-openspec-hygiene.sh
           bash tools/tests/check-openspec-hygiene-selftest.sh
 
+      # ── case-name traceability ────────────────────────────────
+      # Every `**Case**:` line in a shipped spec names a case that exactly one declared harness
+      # (`tools/case-harnesses.json`) runs. A name no harness lists is refused with its file, line,
+      # scenario and name; a full name two harnesses list is refused with both; a case no scenario
+      # names is a count, never a refusal (issue #896). The check is NOT in the loop's gate on
+      # purpose — a spec-wide invariant must not redden one item's gate — so this step is where it
+      # runs on every pull request, beside the artifact rules it shares a subject with.
+      - name: Check case-name traceability
+        run: |
+          bash tools/check-case-names.sh
+          bash tools/tests/check-case-names-selftest.sh
+
       # ── capability classification ──────────────────────────────
       # TODO.md §157 / issue #101: nothing forced a change to classify the capability spec it
       # archives, so the mistake surfaced at the next generation instead. Three instances are on

@@ -305,6 +305,8 @@ LOOP_SHELL_CASES=(
   'run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement'
   'run#announcesAndRecordsTheReviewRound'
   'run#thePreGateReviewRunsBeforeTheGate'
+  'run#aPreGateRoundItsCapHalvedIsSkipped'
+  'run#aPreGateRoundUnderHalfItsCapStillRuns'
   'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides'
   'run#aPreGateReviewEndedAtItsBoundNamesIt'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
@@ -1104,6 +1106,8 @@ loop_run_shell_case() {
     'run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement') fn=case_run_aRefusedRoundLeavesAnAnswerBesideItsAnnouncement ;;
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#thePreGateReviewRunsBeforeTheGate') fn=case_run_thePreGateReviewRunsBeforeTheGate ;;
+    'run#aPreGateRoundItsCapHalvedIsSkipped') fn=case_run_aPreGateRoundItsCapHalvedIsSkipped ;;
+    'run#aPreGateRoundUnderHalfItsCapStillRuns') fn=case_run_aPreGateRoundUnderHalfItsCapStillRuns ;;
     'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides') fn=case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides ;;
     'run#aPreGateReviewEndedAtItsBoundNamesIt') fn=case_run_aPreGateReviewEndedAtItsBoundNamesIt ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
@@ -10376,6 +10380,137 @@ EOF
   assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$state")" \
     "the round before the gate is not a round of the review budget"
 }
+
+# The round before the gate reads a diff its own cap halved (issue #969). The cap cuts each part of the round's input
+# at `LOOP_REVIEW_INPUT_MAX_BYTES`, and a part cut past half is a diff whose middle the round cannot see: it spends its
+# turns hunting what it was not handed until `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE` ends it. In the run of
+# 2026-11-18T22:18Z the cap cut 5 of 8 review inputs — 67 % of #901's, 67 % of #902's, 47 % of #894's, 38 % of #931's,
+# 5 % of #963's — and 3 of its 4 pre-gate rounds ended at the bound with no verdict, 60.3 Mtok (25 % of the run's
+# 240.6 Mtok). A larger cap moves the cut rather than removing it, so the share the cut already measured is read as
+# the round's precondition: past half, no child is launched and the item records why, while the gate child and the
+# item's first round run exactly as they did.
+case_run_aPreGateRoundItsCapHalvedIsSkipped() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf order extra out state pct scale
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The order the work happened in, written by the children themselves: the point of the case is which children the
+  # run started, and the stub is the only place a child's own start is observable at all.
+  order="$d/order.log"; : > "$order"
+  extra=$(cat <<EOF
+case "\$1" in
+  worker-prompt.md) awk 'BEGIN { for (i = 1; i <= 100; i++) printf "line %03d of the diff the cap cuts\n", i }' >> demo-fix.txt ;;
+  worker-gate-prompt.md) printf 'gate\n' >> $(printf '%q' "$order") ;;
+  reviewer-prompt-*) printf 'review\n' >> $(printf '%q' "$order") ;;
+  reviewer-pre-gate-prompt*) printf 'pre-gate\n' >> $(printf '%q' "$order") ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  # A cap the staged diff is mostly over: 100 lines of a new file, cut back to its head at 1 000 B.
+  conf="$d/halved.conf"
+  sed -e 's/^LOOP_REVIEW_INPUT_MAX_BYTES=.*/LOOP_REVIEW_INPUT_MAX_BYTES=1000/' "$LOOP_CONF" > "$conf" ||
+    fail 'could not write the loop configuration'
+  grep -qx 'LOOP_REVIEW_INPUT_MAX_BYTES=1000' "$conf" || fail 'this case could not set the cap in loop.conf'
+  export LOOP_CONF="$conf"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+
+  # The round is not launched: no prompt is rendered for it and no child is started on it. Both halves are asserted,
+  # because a prompt the run rendered and did not start would still be a round it paid to compose.
+  assert_eq "0" "$(grep -c '^prompt: reviewer-pre-gate-prompt' "$PI_STUB_LOG" || true)" \
+    "a diff the cap cut past half launches no round before the gate"
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt.md" ] &&
+    fail 'the run composed the prompt of the round it had just skipped'
+  # And what decided it is still on disk, so a later reader re-takes the figure from the record.
+  scale=$(cat "$p/.pi/issue-loop/items/21/review-pre-gate.scale" 2>/dev/null || true)
+  pct=$(printf '%s\n' "$scale" | sed -n 's/.* (\([0-9]*\) %).*/\1/p')
+  [ -n "$pct" ] || fail "the skipped round recorded no share of what the cap cut: $scale"
+  [ "$pct" -gt 50 ] || fail "the case staged a cut under half ($pct %), so it is not the halved run it claims: $scale"
+  [ -f "$p/.pi/issue-loop/items/21/review-pre-gate.cut.md" ] ||
+    fail 'the index of what the cap cut was not written beside the scale'
+
+  # The item records the skip and the share beside its other review fields.
+  assert_eq "skip" "$(jq -r '[.steps[] | select(.name == "pre-gate-review")][0].status' "$state")" \
+    "the item records the round as skipped"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "pre-gate-review")][0].note' "$state")" 'its input is halved' \
+    "and the reason names the share that decided it"
+  # The share is in the step's note and not in `metrics.reviewInput`: that field carries the cut of the round the
+  # review budget ran (round 1 cuts the same diff at the same cap), and overwriting it here would say the skipped
+  # round was one the budget read.
+  assert_contains "$(jq -r '[.steps[] | select(.name == "pre-gate-review")][0].note' "$state")" 'B cut (' \
+    "and the reason carries the figure the cap cut, not just its name"
+  assert_contains "$(jq -r '.items[0].metrics.reviewInput' "$state")" 'review-1.cut.md' \
+    "the field the item keeps for a cut is round 1's, which is the round the budget read"
+
+  # The gate child and the item's first round still run, in that order: the round is advisory by its own contract, so
+  # the item's one gate decides it, and the round that reads the same diff for the review budget is untouched.
+  assert_eq "gate review" "$(paste -sd' ' "$order")" \
+    "the gate child and round 1 run, in that order, on the diff the skipped round never read"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$state")" \
+    "round 1 is the round the review budget records"
+  assert_eq "done" "$(jq -r '.items[0].result' "$state")" "and the item closes on its gate"
+
+  # The report names the skip as its own class: not `undecided` (no round ran and did not answer) and not `never
+  # reviewed` (which is what an item with no round of the budget would otherwise read as).
+  out=$(run_report "$p") || fail 'the report failed'
+  assert_contains "$out" "1 pre-gate round skipped" "the report counts the skipped round as its own class"
+  assert_contains "$out" "1/1 first rounds passed" "and round 1's verdict is the item's class"
+}
+
+# The other half of the same rule (issue #969): a cut under half is a diff a round reads whole enough to judge, so it
+# still runs — #963's 5 % cut is the population the rule must keep, and skipping it would drop a round that was going
+# to answer. The case stages a real cut (the cap removes bytes, and the scale records the share) and asserts the share
+# it staged is under half, so a fixture that drifted past the figure cannot pass as this case.
+case_run_aPreGateRoundUnderHalfItsCapStillRuns() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf extra out f pct scale refuse
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The round refuses the diff with no blocking finding: the item's record then carries **its** verdict and not round
+  # 1's, so `reviewVerdict` is what this case reads the round by.
+  refuse="$d/pre-gate-fail.txt"
+  printf 'LOOP-BLOCKING: 0\nVERDICT: FAIL\n' > "$refuse"
+  extra=$(cat <<EOF
+case "\$1" in
+  worker-prompt.md) awk 'BEGIN { for (i = 1; i <= 100; i++) printf "line %03d of the diff the cap cuts\n", i }' >> demo-fix.txt ;;
+  reviewer-pre-gate-prompt*) cp $(printf '%q' "$refuse") "\$PI_STUB_REPORT_REVIEWER" ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  # The item ends on its gate, so no round of the review budget runs and the pre-gate round's verdict is the one the
+  # item keeps.
+  printf 'LOOP-VERDICT: blocked\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-GATE: tests=1 failures=2 (the gate)\nLOOP-DECISION: fix the failing case, or abandon the item | recommended: fix it\n' \
+    > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  conf="$d/under-half.conf"
+  sed -e 's/^LOOP_REVIEW_INPUT_MAX_BYTES=.*/LOOP_REVIEW_INPUT_MAX_BYTES=3200/' "$LOOP_CONF" > "$conf" ||
+    fail 'could not write the loop configuration'
+  grep -qx 'LOOP_REVIEW_INPUT_MAX_BYTES=3200' "$conf" || fail 'this case could not set the cap in loop.conf'
+  export LOOP_CONF="$conf"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+
+  assert_eq "1" "$(grep -c '^prompt: reviewer-pre-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "a diff the cap cut under half is still read before the gate"
+  scale=$(cat "$p/.pi/issue-loop/items/21/review-pre-gate.scale" 2>/dev/null || true)
+  pct=$(printf '%s\n' "$scale" | sed -n 's/.* (\([0-9]*\) %).*/\1/p')
+  [ -n "$pct" ] || fail "the round was cut and the run recorded no share of it: $scale"
+  [ "$pct" -lt 50 ] || fail "the case staged a cut past half ($pct %), so it is not the under-half run it claims: $scale"
+  # Its verdict is the one the item records, and no skip is recorded beside it.
+  assert_eq "FAIL" "$(jq -r '.items[0].metrics.reviewVerdict' "$f")" \
+    "the verdict of the round that read the under-half diff is the one the item keeps"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "and it is counted as a round of the review budget"
+  assert_eq "ok" "$(jq -r '[.steps[] | select(.name == "pre-gate-review")][0].status' "$f")" \
+    "the step the skipped round writes is not written for this one"
+  out=$(run_report "$p") || fail 'the report failed'
+  assert_not_contains "$out" "pre-gate round" "and the report counts no round skipped"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item still ends on its gate, not on the round"
+}
+
 
 # The round before the gate is advisory by its own words (`prompts/pre-gate-review.md`): what it may do is hand
 # findings to the child that runs the gate, and it is not a round of the review budget. An answer that never arrived

@@ -1918,6 +1918,22 @@ review_input_scale_of() { # <diff file> → the recorded scale, or nothing
   if [ -f "$label.scale" ]; then cat "$label.scale" 2>/dev/null || true; fi
 }
 
+# Whether the share the scale line records is past half — the precondition the round before the gate is read on
+# (issue #969). The figure is the one the line already carries (`… cut (68 %) …`), so the decision and the record are
+# the same string and a later reader re-takes it from `<round>.scale` or from the item's `metrics.reviewInput`; no
+# measurement is taken here and no key is added. A round whose input is cut past half reads a diff with its middle
+# missing and spends its turns hunting the part it cannot see: 5 of 8 review inputs in the run of 2026-11-18T22:18Z
+# were cut, and 3 of its 4 pre-gate rounds ended at `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE=110` turns with no verdict.
+# Half and not "any cut": #963's 5 % cut is a diff a round reads whole enough to judge, and skipping it would drop a
+# round that was going to answer. An empty or unreadable scale is no cut and skips nothing.
+review_input_cut_halved() { # <the recorded scale> → true when more than half of a part was cut
+  local scale="${1:-}" pct
+  [ -n "$scale" ] || return 1
+  pct=$(printf '%s\n' "$scale" | sed -n 's/.* (\([0-9][0-9]*\) %).*/\1/p' | tail -1)
+  case "$pct" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$pct" -gt 50 ]
+}
+
 # ── the round a bound ended is restarted in this run (issue #918) ───────────────────────────────────────────────
 #
 # A round the run's own bound ended is `cut`, and the item is left for the next run — right about the item, and wrong
@@ -3249,6 +3265,11 @@ while true; do
   # handed to a person. The round is recorded `unanswered` and the gate child decides the item, which is what it was
   # going to do anyway.
   pre_gate_unanswered=0
+  # Whether the round was skipped because its own input was halved (issue #969), and the sentence the item's record
+  # keeps for it. `pre_gate_report` stays empty on a skip, so no arm below reads a report that was never written.
+  pre_gate_skipped=0
+  pre_gate_skip_reason=""
+  pre_gate_report=""
   # What the round%ss input bound cut, in the words `bound_review_inputs` composed (issue #924): empty when every
   # part of this item%ss rounds was under the cap, and the figures the pre-gate round read when it was the one over it.
   review_input_cut_scale=""
@@ -3347,6 +3368,25 @@ while true; do
         # No round ran before this one, so the bound covers the two parts there are: the diff and the change's files.
         review_inputs=$(bound_review_inputs "$diff_file" "")
         review_input_cut_scale=$(review_input_scale_of "$diff_file")
+        # ── the round is skipped when its own input is halved (issue #969) ────────────────────────────────────────
+        #
+        # A diff cut past half is one whose middle the round cannot see, and it spends its turns hunting the part it
+        # was not handed: 5 of the 8 review inputs of the run 2026-11-18T22:18Z were cut (68 % of #901's, 67 % of
+        # #902's, 47 % of #894's, 38 % of #931's, 5 % of #963's) and 3 of its 4 pre-gate rounds ended at
+        # `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE=110` turns with no verdict — 60.3 Mtok, 25 % of that run's 240.6
+        # Mtok. A larger cap does not answer it: #901's part is 98 662 B and #902's 149 838 B, so the cap moves the cut
+        # rather than removing it. What is read instead is the share the cut already measured, which is why the
+        # decision and the item's record are the same string (`metrics.reviewInput`): past half, the round is skipped
+        # and the reason is recorded. The gate child decides the item on the diff itself — the round is advisory by its
+        # own contract — and the item's first round reads the same diff whether this one ran or not.
+        if review_input_cut_halved "$review_input_cut_scale"; then
+          pre_gate_skipped=1
+          pre_gate_skip_reason="the round before the gate was skipped: its input is halved — $review_input_cut_scale — so it cannot read the diff whole and the gate child decides the item on it"
+          progress note "#${issue} $pre_gate_skip_reason"
+        fi
+        # The arm below keeps the indentation it had before the guard: it is one block, and moving eighty lines whose
+        # text did not change is a diff the reader pays for and learns nothing from.
+        if [ "$pre_gate_skipped" -eq 0 ]; then
         before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
           { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
         pre_gate_report="$item_dir/pre-gate-review.md"
@@ -3427,6 +3467,7 @@ while true; do
             pre_gate_unanswered=1
           fi
         fi
+        fi
       fi
       if [ -z "$pre_gate_refusal" ] && [ "$head_now" != "$base" ]; then
         # What the round found, in the shape the post-gate round is read in: only an explicit refusal with a count
@@ -3444,10 +3485,16 @@ while true; do
         if [ "$pre_gate_verdict" = FAIL ] && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
           pre_gate_findings="$pre_gate_report"
         fi
-        loop_state step A --name pre-gate-review --status ok \
-          --note "the diff was read before the gate: $(if [ "$pre_gate_verdict" = unanswered ]; then
-            printf 'the round before the gate answered nothing, so it records `unanswered` and the gate child decides the item'
-          elif [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+        # The step the item keeps for this round: the diff read before the gate, or the skip its own input bought
+        # (issue #969) — the status the report counts as its own class on the `review:` line.
+        if [ "$pre_gate_skipped" -eq 1 ]; then
+          loop_state step A --name pre-gate-review --status skip --note "$pre_gate_skip_reason" >/dev/null
+        else
+          loop_state step A --name pre-gate-review --status ok \
+            --note "the diff was read before the gate: $(if [ "$pre_gate_verdict" = unanswered ]; then
+              printf 'the round before the gate answered nothing, so it records `unanswered` and the gate child decides the item'
+            elif [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+        fi
         if [ "$pre_gate_verdict" = unanswered ]; then
           progress note "#${issue} the round before the gate answered nothing twice — the round is recorded unanswered and the gate child decides the item"
         fi
@@ -3460,7 +3507,7 @@ while true; do
           "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)"
           "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)"
           "RED_TEST=$(report_field "$gate_report" LOOP-RED-TEST)"
-          "FINDINGS_PATH=${pre_gate_findings:-$(if [ "$pre_gate_verdict" = unanswered ]; then printf 'none — the round before the gate never answered, so nothing was handed forward'; else printf 'none — the round read before the gate found no blocking finding'; fi)}"
+          "FINDINGS_PATH=${pre_gate_findings:-$(if [ "$pre_gate_verdict" = unanswered ]; then printf 'none — the round before the gate never answered, so nothing was handed forward'; elif [ "$pre_gate_skipped" -eq 1 ]; then printf 'none — the round before the gate was skipped: its input is halved, so this child decides the item on the diff itself'; else printf 'none — the round read before the gate found no blocking finding'; fi)}"
         )
         render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
           "${gate_prompt_values[@]}"

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case run#aContinuationEndedOnTheSameCeilingStopsTooWide" tests="1" failures="0" errors="0" time="9" run="2026-11-21T02:55:21Z">
+  <system-out>PASS run#aContinuationEndedOnTheSameCeilingStopsTooWide </system-out>
+</testsuite>

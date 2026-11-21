@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case run#aContinuationEndedOnTheSameCeilingStopsTooWide" tests="1" failures="1" errors="0" time="9" run="2026-11-21T02:54:53Z">
+  <system-out>worktree: 1 landed branch(es) removed · 0 kept (carries work the base does not) · 1 kept (checked out) · 0 kept (the reviewer refused it): expected 'skipped', got 'cut' FAIL run#aContinuationEndedOnTheSameCeilingStopsTooWide loop-selftest: 1 of 1 cases failed </system-out>
+</testsuite>

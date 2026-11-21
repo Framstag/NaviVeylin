@@ -113,7 +113,14 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   (`AutoFavoritesProvider.snapshotIfResolved`) and `FavoritesScreenObservations`
   publishes it before the hop, so the row stands only for a store the provider has
   not resolved — on device the published state then arrives in 1–9 ms instead of
-  623–1719 ms.
+  623–1719 ms. **The row's other deadline is the observation itself** (issue #995):
+  the readiness it waits on was produced by one `init` call outside the screen —
+  the session's warmup step — so a warmup that timed out, was cancelled or failed
+  left every favourites screen on the row for its lifetime. The observation
+  therefore initialises an unready store itself, once per started period, inside
+  that same hop and from the file the warmup opens (one `FAVORITES_FILE`), retries
+  the hop once after a fault, and reports an unavailable row instead of the loading
+  row when its retry faults too.
 - **Rule: host callbacks retain state only.** `onSurfaceAvailable` buffers the surface
   DPI (`RendererGate.surfaceDpi`) and hands it to the renderer as that renderer's
   projection DPI — resolving the client from a callback is forbidden even when the

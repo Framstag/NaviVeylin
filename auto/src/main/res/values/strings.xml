@@ -77,6 +77,8 @@
     <string name="favorites_save_hint">Save favorites from the map to see them here</string>
     <string name="no_starred_favorites">No starred favorites</string>
     <string name="starred_hint">Star favorites from the map to see them here</string>
+    <string name="favorites_unavailable">Favorites unavailable</string>
+    <string name="favorites_unavailable_hint">The favorites could not be read. Open this list again to retry</string>
     <string name="no_log_entries">No log entries yet</string>
     <string name="refresh">Refresh</string>
     <string name="error">Error</string>

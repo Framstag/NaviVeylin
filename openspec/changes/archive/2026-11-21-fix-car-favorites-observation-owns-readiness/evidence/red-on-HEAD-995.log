@@ -1,0 +1,30 @@
+Issue #995 — red runs on HEAD (66d7618f), tree without the production change.
+
+Command
+-------
+./gradlew :auto:testDebugUnitTest --tests '*FavoritesScreenObservationsTest*'
+  (run before the production change; the new cases use only API that exists on HEAD)
+
+Transcript tail
+---------------
+> Task :auto:testDebugUnitTest FAILED
+    com.naviveylin.auto.FavoritesScreenObservationsTest$anObservationFaultIsRetriedOnceAndTheListPublishes ...
+10 tests completed, 2 failed
+BUILD FAILED in 54s
+65 actionable tasks: 36 executed, 29 from cache
+
+XML tally — TEST-com.naviveylin.auto.FavoritesScreenObservationsTest.xml
+----------------------------------------------------------------------
+tests="10" skipped="0" failures="2" errors="0"
+
+Cases and their assertion messages
+---------------------------------
+anUnreadyStoreIsInitialisedOnceAndItsRowsRender
+  java.lang.AssertionError: the observation must initialise the store it reads, exactly once per
+  started period: [] expected:<1> but was:<0>
+
+anObservationFaultIsRetriedOnceAndTheListPublishes
+  java.lang.AssertionError: the faulting hop must be attempted twice:
+  [favoriteLocations, groupOrder, starredOrder, storeReady] expected:<2> but was:<1>
+
+The other eight cases of the class, and the whole of FavoritesScreenTest, were green on HEAD.

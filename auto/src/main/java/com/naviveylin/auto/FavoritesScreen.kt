@@ -86,6 +86,12 @@ class FavoritesScreen(
     private val screenObservations = FavoritesScreenObservations(
         observations = observations,
         favoritesProvider = favoritesProvider,
+        // The store the screen reads is the one the session's warmup opens: one path, one file
+        // (issue #995). Passing it here is what lets the observation establish the store itself when
+        // no warmup produced its readiness.
+        favoritesPath = carContext.applicationContext.filesDir
+            .resolve(FAVORITES_FILE)
+            .absolutePath,
         backgroundDispatcher = backgroundDispatcher,
         onFavorites = ::onFavorites
     )
@@ -123,6 +129,14 @@ class FavoritesScreen(
      */
     private var storeReady = false
     private var loaded = false
+
+    /**
+     * Whether the store could not be observed at all (spec `auto-favorites` — A store that cannot be
+     * observed is reported, not left loading; issue #995). The loading row means "initialising", a claim
+     * the screen cannot keep once its observation ended without a state, so this state renders the
+     * unavailable row instead.
+     */
+    private var storeUnavailable = false
 
     init {
         enableBackNavigation()
@@ -177,17 +191,17 @@ class FavoritesScreen(
      * favourites, the stored group order, the stored starred order and the store's readiness, applied
      * together and rendered in place (spec: auto-favorites — favorites appear without re-entering the
      * screen, and a reorder updates the rows/headers in place).
+     *
+     * The failed state is the one the observation publishes when it could not produce the others (issue
+     * #995): the screen reports the store as unavailable rather than as still loading (spec `auto-favorites`
+     * — A store that cannot be observed is reported, not left loading).
      */
-    private fun onFavorites(
-        favorites: Map<String, List<FavoriteLocation>>,
-        order: List<String>,
-        starred: List<StarredFavoriteLocation>,
-        ready: Boolean
-    ) {
-        favoritesData = favorites
-        groupOrder = order
-        starredOrder = starred
-        storeReady = ready
+    private fun onFavorites(state: FavoritesListState) {
+        favoritesData = state.favorites
+        groupOrder = state.groupOrder
+        starredOrder = state.starredOrder
+        storeReady = state.storeReady
+        storeUnavailable = state.failed
         loaded = true
         invalidate()
     }
@@ -204,10 +218,15 @@ class FavoritesScreen(
                     .build()
             )
 
-        // Three states, in this order (spec: auto-favorites — The favourites list distinguishes a
-        // loading store from an empty one; design D3): the loading row while nothing has been published
-        // or the store is not initialised yet; then either the list or, only for a store that is ready
-        // and genuinely empty, the empty state.
+        // Four states, in this order (spec: auto-favorites — The favourites list distinguishes a loading
+        // store from an empty one; design D3; and — A store that cannot be observed is reported, not left
+        // loading, issue #995): the unavailable row when the observation could not produce a state; the
+        // loading row while nothing has been published or the store is not initialised yet; then either
+        // the list or, only for a store that is ready and genuinely empty, the empty state.
+        if (storeUnavailable) {
+            builder.setSingleList(unavailableList())
+            return builder.build()
+        }
         if (!loaded || !storeReady) {
             builder.setSingleList(loadingList())
             return builder.build()
@@ -365,6 +384,19 @@ class FavoritesScreen(
     /** The loading row of an uninitialised store (spec: auto-favorites). */
     private fun loadingList(): ItemList = ItemList.Builder()
         .addItem(Row.Builder().setTitle(carContext.getString(R.string.loading)).build())
+        .build()
+
+    /**
+     * The store whose observation failed, its one retry included (spec `auto-favorites` — A store that
+     * cannot be observed is reported, not left loading; issue #995).
+     */
+    private fun unavailableList(): ItemList = ItemList.Builder()
+        .addItem(
+            Row.Builder()
+                .setTitle(carContext.getString(R.string.favorites_unavailable))
+                .addText(carContext.getString(R.string.favorites_unavailable_hint))
+                .build()
+        )
         .build()
 
     /** A ready store that genuinely holds nothing (spec: auto-favorites — Empty favorites state). */

@@ -1,0 +1,27 @@
+gate#aStoppedStepIsNamedBeforeItsBound|   the gate names a step that is stopped while it is stopped, not at its bound: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE-STEP-BOUND: 10s per step — a step that reaches it is ended, named and counted as an error
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE-BASE: 8a1aef5de9c9354df140ef0b59c9f361f92e7cc7 (from --base)
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE-TREE: head=9dc9ed47dea6268779eb37fbbf969d2fdb2a288b diff=3d96e1b9a404715b
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/tally run=204917
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/tally/gate.log
+gate#aStoppedStepIsNamedBeforeItsBound| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh
+gate#aStoppedStepIsNamedBeforeItsBound| notes: a case that stops its own group
+gate#aStoppedStepIsNamedBeforeItsBound| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/gate.sh: Zeile 757: 205065 Getötet                   ( $cmd; printf '%s\n' "$?" > "$status_file" ) > "$stream" 2>&1 < /dev/null
+gate#aStoppedStepIsNamedBeforeItsBound| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh — 10s — the step overran its bound of 10s and was ended
+gate#aStoppedStepIsNamedBeforeItsBound| LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh 10s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh: expected '1', got '0'
+--- gate#aStoppedStepIsNamedBeforeItsBound[0] (exit 1)
+  the gate names a step that is stopped while it is stopped, not at its bound: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 10s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 8a1aef5de9c9354df140ef0b59c9f361f92e7cc7 (from --base)
+LOOP-GATE-TREE: head=9dc9ed47dea6268779eb37fbbf969d2fdb2a288b diff=3d96e1b9a404715b
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/tally run=204917
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/tally/gate.log
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh
+notes: a case that stops its own group
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/gate.sh: Zeile 757: 205065 Getötet                   ( $cmd; printf '%s\n' "$?" > "$status_file" ) > "$stream" 2>&1 < /dev/null
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh — 10s — the step overran its bound of 10s and was ended
+LOOP-GATE: tests=0 failures=0 errors=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh 10s) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xz1nar/cases/0/tree/case.wOqM1y/suite.sh: expected '1', got '0'
+FAIL gate#aStoppedStepIsNamedBeforeItsBound
+loop-selftest: 1 of 1 cases failed

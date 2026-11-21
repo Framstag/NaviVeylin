@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the runner's own summary — tools/loop/tests/loop-selftest.sh writes no JUnit XML. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case gate#aStoppedStepIsNamedBeforeItsBound" tests="1" failures="1" errors="0" timestamp="2026-11-21T02:07:40Z">
+  <properties>
+    <property name="source" value="tools/loop/tests/loop-mutations.sh --only 948.1 — the case run with the change's arm disarmed, which is the base commit's behaviour (evidence/mutation-948-1.log); the literal pre-fix run is evidence/red-on-HEAD.log"/>
+  </properties>
+  <testcase name="gate#aStoppedStepIsNamedBeforeItsBound" classname="loop-selftest">
+    <failure message="the gate names a step that is stopped while it is stopped, not at its bound: … gate: …/suite.sh — 10s — the step overran its bound of 10s and was ended …"/>
+  </testcase>
+  <system-out>FAIL gate#aStoppedStepIsNamedBeforeItsBound loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

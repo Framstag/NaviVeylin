@@ -1,0 +1,20 @@
+# re-taken on the tree the change is applied to, 2026-11-21T02:10:32Z, base 8e3861c4
+== bash -n ==
+tools/loop/gate.sh ok
+tools/loop/tests/loop-cases.sh ok
+tools/loop/tests/loop-mutations.sh ok
+== openspec validate fix-a-stopped-step-is-named --strict ==
+Change 'fix-a-stopped-step-is-named' is valid
+rc=0
+== tools/check-doc-routes.sh ==
+check-doc-routes: all 356 section references resolve, all 8 skill references resolve
+rc=0
+== tools/check-doc-values.sh ==
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+rc=0
+== the guideline paragraph, read back ==
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines for 'A step that is stopped rather than running is named'
+LOOK-FILE: guidelines/Backlog.recipes.md 1
+guidelines/Backlog.recipes.md:963:**A step that is stopped rather than running is named while it is stopped.** The bound answers a step that never
+== the case, on this tree ==
+PASS gate#aStoppedStepIsNamedBeforeItsBound

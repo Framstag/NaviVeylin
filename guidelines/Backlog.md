@@ -397,11 +397,14 @@ anchor below. Each anchor names a section number this document carries, so a cit
 reader lands on the phase they need. A tier-B item's prepared change reaches the child as its `ITEM_CHANGE` block (§7a).
 
 Two files describe the engine before a person edits it, and both are declarations the loop's suite reads:
-`tools/loop/layout.tsv` carries one row per script under `tools/loop/` — its line bound and the order the entry sources
-it at — and `tools/loop/shared.tsv` carries one row per name one engine file assigns and another reads. A change that
-lengthens an engine script past its row's bound, shares a name across two files, or alters the source order reddens
-`tools/loop/tests/loop-selftest.sh` and needs the row corrected in the same change, with a reason beside the number
-it moves.
+`tools/loop/layout.tsv` carries one row per script under `tools/loop/` — its line bound, the order the entry sources
+it at, the functions it owns and the event kinds it prints — and `tools/loop/shared.tsv` carries one row per name one
+engine file assigns and another reads. The layout row is also where a person fixing the engine looks first: the
+behaviour a report line or a refusal comes from lives in the file whose `owns` cell names its function, so the edit
+and the case declarations that follow it name the same file. A change that lengthens an engine script past its row's
+bound, defines a function in a file that does not own it, prints a kind its row does not carry, shares a name across
+two files, or alters the source order reddens `tools/loop/tests/loop-selftest.sh` and needs the row corrected in the
+same change, with a reason beside the number it moves.
 
 The run's own record stands beside the state file: `loop_emit`, in `tools/loop/lib.sh`, appends one JSON object per
 fact to `$LOOP_RUN_EVENTS` (`run-events.jsonl`, in the state directory) and renders the human line from the same row

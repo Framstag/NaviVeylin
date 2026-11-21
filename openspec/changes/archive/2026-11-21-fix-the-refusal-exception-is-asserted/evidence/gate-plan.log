@@ -1,0 +1,15 @@
+2026-11-21T05:46:03Z
+tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+tools/loop/tests/loop-selftest.sh --from-git 8e3861c4c0c8bff22a36ff291e30385b7497f420
+bash tools/loop/tests/loop-mutations.sh --check
+tools/loop/tests/loop-mutations-selftest.sh
+tools/check-portability.sh
+tools/tests/check-portability-selftest.sh
+tools/tests/mutate-selftest.sh
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+tools/issues/tests/issue-tooling-selftest.sh
+tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list

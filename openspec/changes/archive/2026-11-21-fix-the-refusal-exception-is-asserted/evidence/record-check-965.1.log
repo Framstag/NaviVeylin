@@ -1,0 +1,5 @@
+2026-11-21T05:45:37Z
+loop-mutations: selected 1 of 432 records (labels: 965.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.POCQFT
+loop-mutations: all 1 cases passed — every selected record applies to the file it names
+exit=0

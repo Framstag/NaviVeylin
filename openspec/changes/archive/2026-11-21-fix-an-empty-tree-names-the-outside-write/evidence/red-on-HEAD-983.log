@@ -1,0 +1,8 @@
+base: 8e3861c4 (HEAD, detached worktree .pi/tmp/head-983)
+the case is the change's own; run.sh is HEAD's, without the fix
+
+run#anEmptyTreeWithAnOutsideWriteNamesThePaths|   …and an item whose child wrote the project's own tree says where the work went: 'the work is in the caller's tree' not found in: reported success but the tree is still at the base commit — nothing was committed
+--- run#anEmptyTreeWithAnOutsideWriteNamesThePaths[0] (exit 1)
+  …and an item whose child wrote the project's own tree says where the work went: 'the work is in the caller's tree' not found in: reported success but the tree is still at the base commit — nothing was committed
+FAIL run#anEmptyTreeWithAnOutsideWriteNamesThePaths
+loop-selftest: 1 of 1 cases failed

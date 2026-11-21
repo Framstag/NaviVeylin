@@ -158,6 +158,8 @@ ISSUES_SHELL_CASES=(
   'list#unrankedSelector'
   'list#eligibleOnlyIgnoresTheBand'
   'list#closedItemIsNotASelection'
+  'list#untypedIsQueried'
+  'docs#theFilingSkillsNameTheTypeAxis'
   'check#markerLabelMismatchFails'
   'check#outOfRangeBandFails'
   'check#neverWritesEligibility'
@@ -167,6 +169,7 @@ ISSUES_SHELL_CASES=(
   'check#aMarkerLineBesideAQuotationIsTheRecord'
   'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
+  'check#untypedItemIsReported'
   'check#selfCheckIsGreen'
   'metadata#aTypedChildIsConsistent'
   'metadata#anUntypedChildIsAViolation'
@@ -337,11 +340,13 @@ issues_run_shell_case() {
     'list#unrankedSelector') case_list_unrankedSelector ;;
     'list#eligibleOnlyIgnoresTheBand') case_list_eligibleOnlyIgnoresTheBand ;;
     'list#closedItemIsNotASelection') case_list_closedItemIsNotASelection ;;
+    'list#untypedIsQueried') case_list_untypedIsQueried ;;
+    'docs#theFilingSkillsNameTheTypeAxis') case_docs_theFilingSkillsNameTheTypeAxis ;;
     'check#markerLabelMismatchFails'|'check#outOfRangeBandFails'|'check#neverWritesEligibility'|\
       'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|\
       'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
       'check#aDisplacedSettledStateIsReported'|\
-      'check#unrankedIsNotAViolation'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
+      'check#unrankedIsNotAViolation'|'check#untypedItemIsReported'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
     'metadata#aTypedChildIsConsistent') case_metadata_aTypedChildIsConsistent ;;
     'metadata#anUntypedChildIsAViolation') case_metadata_anUntypedChildIsAViolation ;;
     'metadata#aChildOfAnOrdinaryIssueIsOutOfScope') case_metadata_aChildOfAnOrdinaryIssueIsOutOfScope ;;
@@ -3231,13 +3236,14 @@ case_metadata_anUntypedChildIsAViolation() {
 case_metadata_aChildOfAnOrdinaryIssueIsOutOfScope() {
   local dir out
   dir=$(scratch)
-  # the untyped child of an ordinary issue is the item this rule must not reach
+  # the untyped child of an ordinary issue is the item this rule must not reach: the census names it (#45), which
+  # is the other rule's report and not a violation, so the assertions here are about the invariant's line
   jq '[.[] | select(.number != 43)]' "$(metadata_children_fixture)" > "$dir/issues.json"
 
   out=$(run_tool check-metadata.sh --issues "$dir/issues.json" 2>&1) ||
     fail "a child of an ordinary issue was reported: $out"
   assert_contains "$out" "4 issue(s) checked" "the untyped child of an ordinary issue was read"
-  assert_not_contains "$out" "#45" "and nothing is said about its type"
+  assert_not_contains "$out" "#45 untyped-child" "no violation is reported about the child's type"
   assert_not_contains "$out" "untyped-child" "so a plain parent-child between ordinary issues is not this rule's subject"
   return 0
 }
@@ -3362,6 +3368,47 @@ case_list_closedItemIsNotASelection() {
 
   out=$(run_tool list.sh --eligible-only --include-closed --json) || fail "the opt-in query failed: $out"
   assert_eq "2" "$(jq -r 'length' <<< "$out")" "the opt-in asks for it and gets it"
+  return 0
+}
+
+# The census's query (`issue-type-census`, D1): the open items carrying no issue type — the set
+# `check-metadata.sh` reports, answered as a list instead of a count. One read of the tracker, no body, and the
+# closed entries out of it, exactly as every other selection treats them.
+case_list_untypedIsQueried() {
+  local dir out numbers
+  dir=$(scratch)
+  metadata_issues 3 | jq '.[0].issueType = {"name": "Task"}
+                          | .[2].issueType = {"name": "Bug"}
+                          | .[2].state = "CLOSED"' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(run_tool list.sh --untyped --json) || fail "the census query failed: $out"
+  numbers=$(jq -r '[.[].number] | join(",")' <<< "$out")
+  assert_eq "2" "$numbers" "one open item carries no type, and the closed one is not a selection"
+
+  out=$(run_tool list.sh --untyped) || fail "the human form of the census query failed: $out"
+  assert_contains "$out" "#2 a fixture issue, number 2" "the query names the item"
+  assert_contains "$out" "1 match(es)" "and counts it"
+  return 0
+}
+
+# The route, as a case (D3, item #912): the two skills a filing session is routed to name the tracker's own
+# classification. The repair that followed the nine unlinked siblings was doc-only, and nothing read a skill's
+# prose — so the pointer that was missing could be taken away again without a red run. This case reads the two
+# files, offline and token-free, and is what makes the loss loud.
+case_docs_theFilingSkillsNameTheTypeAxis() {
+  local file flag
+  for file in .pi/skills/create-issue/SKILL.md .pi/skills/update-issue/SKILL.md; do
+    [ -f "$ISSUES_REPO_ROOT/$file" ] || fail "the filing skill $file is missing"
+    for flag in --type --parent; do
+      grep -qF -- "$flag" "$ISSUES_REPO_ROOT/$file" ||
+        fail "$file no longer names $flag, so a filing that follows it cannot carry the type axis"
+    done
+  done
+  # and the documented minimum, not merely a mention: `update.sh` accepts either field, so the sentence that says
+  # what an update must carry names both (task 3.2).
+  grep -q 'At least one of.*--type.*--parent' "$ISSUES_REPO_ROOT/.pi/skills/update-issue/SKILL.md" ||
+    fail "update-issue/SKILL.md's 'at least one of …' sentence no longer lists --type and --parent"
   return 0
 }
 

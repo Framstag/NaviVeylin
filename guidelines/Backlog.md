@@ -100,6 +100,21 @@ body's `tier:` record: `tier` says whether an item is worked as a cause or as a 
 what the tracker calls it, and an item may be either tier under any type — an Epic is a container whatever the
 shape of its children.
 
+**Rule: the same screen judges the container, not only the child — and a container nothing can close is refused as**
+**one.** Refusing the container and refusing each child that awaits a decision are two halves of one judgement, and a
+container whose children the run cannot collect from is not work at any level: a candidate that would otherwise be
+queued is refused with the verdict `epic-stalled` when every child the screen saw under its container is refused with
+the decision verdict, or when this run recorded a child of it cut at a bound — and the record names the decision or
+`KEY=VALUE` the container waits for (cases `prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot` and
+`prescreen#aContainerCutAtABoundTakesNoFurtherSlot`, issue #938: the run of 2026-11-15T19:32:41Z spent 51.3 of its
+175.0 Mtok on two containers that closed nothing, one of them on a single child a bound ended). The verdict writes
+nothing to the tracker, for the reason `blocked` writes nothing: the label or the record it names is already visible
+where the refusal read it. It clears itself — the decision arm on the first run whose labels say no decision stands,
+the bound arm with the run that recorded the cut — and the bound arm is one slot per container per run: once this
+run recorded a child of a container cut at a bound, a later screen of the same run refuses any further child of that
+container, so a container with two workable children is screened as before only while no child of it has been cut
+this run.
+
 **Rule: a container's child carries a type of its own.** GitHub groups a container's sub-issues by type, so a child
 that carries none does not appear under its container at all — nine children of a finished epic read as an empty epic
 although `parent` and `subIssues.totalCount` were both correct (measured 2026-11-14, issue #911). Any type the account
@@ -107,6 +122,19 @@ declares satisfies the rule: what an item *is* stays the filer's judgement, so t
 `tools/issues/check-metadata.sh` is the pass that reports a child of a `roles.containerType` item carrying no type,
 naming the child, its container and the type it lacks — and the `metadata-invariant` row runs that pass once a day
 (`BacklogTooling.recipes.md` §9).
+
+**The census is reported and never refused, and the number is re-taken rather than remembered.** Every open item
+carrying no issue type is a *report* `tools/issues/check-metadata.sh` prints — one line per item, counted in its
+summary, and the same set under its `--json` `untyped` field — and it never sets the exit status: the items a
+project has not typed are the backlog's shape, and a check that stays red over them is switched off instead. A
+container's child is a violation once the container is typed (§3's rule above), because there a correct link reads
+as an empty container; an ordinary item without a type is only the census. `tools/issues/list.sh --untyped` is the
+same set as one query, and the number is read back with the query itself:
+
+```bash
+gh issue list --state open --json number,issueType --limit 200 \
+  | jq '[.[] | select(.issueType.name == null)] | length'
+```
 
 **The analysis's three rows are one area, and one rule is one item.** `sonar-reliability`,
 `sonar-maintainability` and `sonar-duplication` declare `category/code-quality` with their own
@@ -332,6 +360,12 @@ artifacts and nothing else and prints one `LOOP-CHANGE-READY:` verdict, refusing
 vocabulary, the cases and the mutation list are the capability `change-readiness`. It judges a declaration and never
 the meaning of a section, so a `## Open Questions` entry that defers is not a refusal.
 
+The **unclaimed case count** is the number read beside that verdict: `tools/check-case-names.sh` resolves every
+`**Case**:` line in a shipped spec to the one declared harness that runs it (`tools/case-harnesses.json`), refuses a
+name no row lists and a full name two rows share, and prints the cases no scenario names as `unclaimed=` — a count,
+never a refusal, because a case may prove its harness rather than a requirement. Both numbers come from the same
+kind of declaration, so a filing path quotes neither from memory.
+
 The same writer asks the item the question the shapes answer, and it is a refusal rather than a warning, because a
 warning is a thing a session learns to ignore. A finding carries **one** shape: a `cause` — the `file:line` of the
 mechanism, the case that exercises it and the tallies that case reported — makes it tier A, and a `change` — the
@@ -369,11 +403,14 @@ anchor below. Each anchor names a section number this document carries, so a cit
 reader lands on the phase they need. A tier-B item's prepared change reaches the child as its `ITEM_CHANGE` block (§7a).
 
 Two files describe the engine before a person edits it, and both are declarations the loop's suite reads:
-`tools/loop/layout.tsv` carries one row per script under `tools/loop/` — its line bound and the order the entry sources
-it at — and `tools/loop/shared.tsv` carries one row per name one engine file assigns and another reads. A change that
-lengthens an engine script past its row's bound, shares a name across two files, or alters the source order reddens
-`tools/loop/tests/loop-selftest.sh` and needs the row corrected in the same change, with a reason beside the number
-it moves.
+`tools/loop/layout.tsv` carries one row per script under `tools/loop/` — its line bound, the order the entry sources
+it at, the functions it owns and the event kinds it prints — and `tools/loop/shared.tsv` carries one row per name one
+engine file assigns and another reads. The layout row is also where a person fixing the engine looks first: the
+behaviour a report line or a refusal comes from lives in the file whose `owns` cell names its function, so the edit
+and the case declarations that follow it name the same file. A change that lengthens an engine script past its row's
+bound, defines a function in a file that does not own it, prints a kind its row does not carry, shares a name across
+two files, or alters the source order reddens `tools/loop/tests/loop-selftest.sh` and needs the row corrected in the
+same change, with a reason beside the number it moves.
 
 The run's own record stands beside the state file: `loop_emit`, in `tools/loop/lib.sh`, appends one JSON object per
 fact to `$LOOP_RUN_EVENTS` (`run-events.jsonl`, in the state directory) and renders the human line from the same row

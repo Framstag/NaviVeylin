@@ -1,0 +1,25 @@
+# task 3.2: the parent gitlink is the whole of the commit (2db7087e)
+# date: 2026-11-21T13:22:20Z
+# note: HEAD has since moved to 242dac9a docs: the case-name rules land in change-readiness (#896), another writer's change; the pin is read from 2db7087e
+$ git show --stat --oneline 2db7087e
+2db7087e fix: a motorway entry through a link is the entry, not the turn (#993)
+ app/src/main/cpp/libosmscout | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+$ git ls-tree 2db7087e app/src/main/cpp/libosmscout
+160000 commit d1fefc13ea8d195d6042a1d3d5f83f539188da5c	app/src/main/cpp/libosmscout
+
+$ git diff 2db7087e^ 2db7087e -- app/src/main/cpp/libosmscout
+diff --git a/app/src/main/cpp/libosmscout b/app/src/main/cpp/libosmscout
+index c89db28f..d1fefc13 160000
+--- a/app/src/main/cpp/libosmscout
++++ b/app/src/main/cpp/libosmscout
+@@ -1 +1 @@
+-Subproject commit c89db28f7b13ca619d6f415ed90ba2c2303a6af3
++Subproject commit d1fefc13ea8d195d6042a1d3d5f83f539188da5c
+
+$ git -C app/src/main/cpp/libosmscout log --oneline -1
+d1fefc13e client: a motorway entry through a link is the entry, not the turn
+
+$ ./tools/check-submodule-pin.sh
+check-submodule-pin: d1fefc13ea8d is on refs/remotes/origin/naviveylin-local

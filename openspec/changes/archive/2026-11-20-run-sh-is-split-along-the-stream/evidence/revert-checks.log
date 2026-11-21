@@ -1,0 +1,42 @@
+loop-mutations: selected 6 of 434 records (labels: 892.1 892.2 892.3 892.4 892.5 892.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.M3zG4K
+RED    892.1  driver#noEngineFileExceedsItsBound   (the bound a row records, so a file that grows past the number someone argued for is a red case instead of a fact nobody measures)
+       2026-11-19T22:38:54Z — every engine file is inside the bound its row records: expected '', got 'layout.tsv: run.sh is 2659 lines, past its bound of 2658'
+restore 892.1 driver#noEngineFileExceedsItsBound green again
+RED    892.2  driver#anOwnedFunctionIsInItsOwnersFile   (one owner per file, so a function the table assigns to another file cannot sit in the entry)
+       2026-11-19T22:38:58Z — every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: run.sh defines child_cap and its row does not own it'
+restore 892.2 driver#anOwnedFunctionIsInItsOwnersFile green again
+RED    892.3  driver#theSharedNamesAreDeclared   (one assigner per shared name, so a second file assigning a name the declaration gives to another leaves the declaration disagreeing with the scripts)
+       2026-11-19T22:39:05Z — the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: progress is declared and no file a second one reads assigns it'
+restore 892.3 driver#theSharedNamesAreDeclared green again
+RED    892.4  driver#theSourceOrderIsDeclared   (the declared source order, so an entry that sources the chain in another order is refused instead of losing a function at run time, on a device, at the cost of an item)
+       2026-11-19T22:39:10Z — every engine script sources the declared order: expected '', got 'layout.tsv: run.sh sources "lib.sh evidence.sh leftovers.sh evidence.sh" and the table declares "lib.sh evidence.sh leftovers.sh child.sh"'
+restore 892.4 driver#theSourceOrderIsDeclared green again
+RED    892.5  driver#aCallToALaterFilesFunctionFails   (the call order the split introduces, so a call into a file sourced later is refused statically rather than on a path no case drives)
+       2026-11-19T22:39:15Z — no engine script calls a function of a file it has not sourced yet: expected '', got 'evidence.sh calls child_cap at line 11, which child.sh defines and it never sources'
+restore 892.5 driver#aCallToALaterFilesFunctionFails green again
+RED    892.6  driver#theSelectionFollowsTheOwner   (the narrowing a file set does through the declarations, so a driver that selects the whole suite for one owner is red instead of quietly restoring the wide gate)
+       2026-11-19T22:39:21Z — the selection for tools/loop/evidence.sh is the whole suite (499 cases)
+restore 892.6 driver#theSelectionFollowsTheOwner green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0
+RED    892.1  driver#noEngineFileExceedsItsBound   (the entry row%ss bound set one line below the file%ss length, so a file that outgrows the number its row declares is not refused (issue #892))
+       2026-11-20T10:35:47Z — every engine file is inside the bound its row records: expected '', got 'layout.tsv: run.sh is 2666 lines, past its bound of 2665'
+restore 892.1 driver#noEngineFileExceedsItsBound green again
+RED    892.2  driver#anOwnedFunctionIsInItsOwnersFile   (a function the table gives to another file, defined in the entry, so a body the move left behind is not a diff a reader can see (issue #892))
+       2026-11-20T10:35:52Z — every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: run.sh defines child_cap and its row does not own it'
+restore 892.2 driver#anOwnedFunctionIsInItsOwnersFile green again
+RED    892.3  driver#theSharedNamesAreDeclared   (a second definition of a name `lib.sh` already assigns, so two files own one name and the declaration the table carries stops being the set the engine shares (issue #892))
+       2026-11-20T10:35:58Z — the declaration equals the names the engine's files share, in both directions: expected '', got 'shared.tsv: progress is declared and no file a second one reads assigns it'
+restore 892.3 driver#theSharedNamesAreDeclared green again
+RED    892.4  driver#theSourceOrderIsDeclared   (the entry%ss `child.sh` source line, replaced by a second `evidence.sh`, so the chain the table declares and the chain the entry loads part company and a call to the last file reads as one to a file loaded twice (issue #892))
+       2026-11-20T10:36:05Z — every engine script sources the declared order: expected '', got 'layout.tsv: run.sh sources "lib.sh evidence.sh leftovers.sh evidence.sh" and the table declares "lib.sh evidence.sh leftovers.sh child.sh"'
+restore 892.4 driver#theSourceOrderIsDeclared green again
+RED    892.5  driver#aCallToALaterFilesFunctionFails   (a call to `child.sh`%ss `child_cap` from a file the entry sources before it, so a function is read before the file that defines it is loaded (issue #892))
+       2026-11-20T10:36:09Z — no engine script calls a function of a file it has not sourced yet: expected '', got 'evidence.sh calls child_cap at line 2, which child.sh defines and it never sources'
+restore 892.5 driver#aCallToALaterFilesFunctionFails green again
+RED    892.6  driver#theSelectionFollowsTheOwner   (the guard a file set that names nothing is answered by, so every case is selected for every delta and the declaration the split exists to narrow selects the whole suite again (issue #892))
+       2026-11-20T10:36:15Z — the selection for tools/loop/evidence.sh is the whole suite (502 cases)
+restore 892.6 driver#theSelectionFollowsTheOwner green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0

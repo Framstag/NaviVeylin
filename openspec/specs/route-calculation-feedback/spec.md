@@ -180,7 +180,7 @@ behind, and a comment SHALL describe the mechanism it teaches rather than name t
 
 - **WHEN** the `:auto` module's default string resources are read
 - **THEN** the keys `loading_map_data` and `preparing_navigation` SHALL be absent
-- **Case**: `GermanTranslationCompletenessTest.retiredWaitNoticeStringsAreGone`
+- **Case**: `auto: GermanTranslationCompletenessTest.retiredWaitNoticeStringsAreGone`
 
 ### Requirement: A notice the navigation view replaces stays visible for a minimum dwell
 

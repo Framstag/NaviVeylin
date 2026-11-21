@@ -1,0 +1,41 @@
+# the base tree at 66d7618f, clean, running the two cases the gate named (guidelines/BuildEvidence.md §4d)
+# date: 2026-11-21T12:44:13Z
+# the linked worktree cannot own the submodule's git dir, so the submodule's working tree is copied in; d1fefc13e touches C++ only, so the JVM classpath the cases read is the base's
+# -PjvmTestsOnly is the gate step's own property: the base worktree has no vcpkg checkout
+    java.lang.AssertionError: Failed to assert the following: (ToggleableState = 'On')
+    Semantics of the node:
+    Node #26 at (l=343.0, t=229.0, r=395.0, b=261.0)px
+    Role = 'Switch'
+    Focused = 'false'
+    ToggleableState = 'Off'
+    Actions = [OnClick, RequestFocus]
+    MergeDescendants = 'true'
+    Has 3 siblings
+    Selector used: ((ToggleableState is defined) && (hasAnyAncestorThat(TestTag = 'settings-row-poi-symbols')))
+        at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:265)
+        at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:255)
+        at androidx.compose.ui.test.AssertionsKt.assertIsOn(Assertions.kt:70)
+        at com.naviveylin.ui.settings.SettingsSurfaceTest.aChangePersistsWithoutASaveAction(SettingsSurfaceTest.kt:750)
+
+2 tests completed, 2 failed
+
+> Task :app:testAutomotiveDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testAutomotiveDebugUnitTest'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.base-tree/app/build/reports/tests/testAutomotiveDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 3m 45s
+103 actionable tasks: 51 executed, 52 up-to-date
+--- the two cases' JUnit XML in the base tree (app/build/test-results/testAutomotiveDebugUnitTest/) ---
+<testsuite name="com.naviveylin.ui.map.SymbolIconPreferenceTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-11-21T12:47:10.410Z" hostname="dingens" time="38.548">
+  <testcase name="aChangeReachesTheClientOnceAndIsPersisted" classname="com.naviveylin.ui.map.SymbolIconPreferenceTest" time="36.49">
+    <failure message="java.lang.AssertionError: expected:&lt;[true]&gt; but was:&lt;[true, false, true]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: expected:&lt;[true]&gt; but was:&lt;[true, false, true]&gt;
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-11-21T12:47:10.565Z" hostname="dingens" time="46.965">
+  <testcase name="aChangePersistsWithoutASaveAction" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="44.862">
+    <failure message="java.lang.AssertionError: Failed to assert the following: (ToggleableState = 'On')&#10;Semantics of the node:&#10;Node #26 at (l=343.0, t=229.0, r=395.0, b=261.0)px&#10;Role = 'Switch'&#10;Focused = 'false'&#10;ToggleableState = 'Off'&#10;Actions = [OnClick, RequestFocus]&#10;MergeDescendants = 'true'&#10;Has 3 siblings&#10;Selector used: ((ToggleableState is defined) &amp;&amp; (hasAnyAncestorThat(TestTag = 'settings-row-poi-symbols')))&#10;" type="java.lang.AssertionError">java.lang.AssertionError: Failed to assert the following: (ToggleableState = 'On')

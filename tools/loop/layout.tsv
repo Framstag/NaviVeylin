@@ -9,20 +9,27 @@
 #        growth only, so raising one is a one-line diff with a reason beside it rather than a refactor.
 # order  the position the entry sources the file at, or `-` when the entry does not source it. Every engine script
 #        sources `lib.sh`, which is the whole of the order today.
-# note   the order the move will use. `run-sh-is-split-along-the-stream` splits `run.sh` into owner files and adds
-#        their rows beneath `lib.sh`, taking orders 2..n; this table is the one place that changes when it does.
+# note   what the row is for, and what last moved a bound. The split of `run.sh` into owner files
+#        (`run-sh-is-split-along-the-stream`) is what put `child.sh`, `evidence.sh` and `leftovers.sh` beneath
+#        `lib.sh` at orders 2..4.
+# owns   every function the file defines, one owner per name — `driver#anOwnedFunctionIsInItsOwnersFile` reads this
+#        cell against the file in both directions.
+# kinds  every event kind the file emits with `progress`, or `-` — `driver#aKindIsEmittedOnlyByItsOwner` reads it.
 #
-# file	bound	order	note
-census.sh	252	-	the census is a reader beside the entry: no run sources it
-evidence-check.sh	368	-	-
-gate.sh	1169	-	the base-red measurement the gate now takes (issue #944) added 103 lines to a 832-line file; the split in `run-sh-is-split-along-the-stream` takes them out again with the rest of the entry's halves
-labels.sh	297	-	-
-lib.sh	1520	1	the run's own writer (issue #894) added 140 lines to a 1077-line file; bound re-stated as its size plus the quarter above; the split's files follow this row, at orders 2..n
-loop-clean.sh	482	-	-
-measure.sh	268	-	-
-phase.sh	265	-	-
-prescreen.sh	860	-	-
-report.sh	1304	-	the retried-items figure the trend prints (issue #970) added 7 lines to a 1036-line file; bound re-stated as its size plus the quarter above
-run.sh	4742	-	the entry: it sources the order above and is sourced by nothing
-state.sh	1788	-	-
-worktree.sh	1414	-	-
+# file	bound	order	note	owns	kinds
+census.sh	252	-	the census is a reader beside the entry: no run sources it	phrase_of entry_json json_array	-
+child.sh	984	4	the child's supervision: the four bounds, the pid rules, the prompt it is started with, `run_child`, the tail that follows the gate	child_cap child_turn_bound child_context_bound_key child_context_bound child_ended_by_context_bound host_free_mib child_agent_cmd_key child_turns child_context child_refusal child_role run_child tail_after_gate render_prompt gate_step_text change_readiness_of render_reviewer_prompt record_cut_round record_rework_cut retry_delay_at	-
+evidence-check.sh	368	-	-	usage find_table conf_value run_checks selftest main	-
+evidence.sh	962	2	what the run records and reads back: the report vocabulary, the outside-write rule, the tree's pids, the review's scope and its diff	block report_lines report_field bound_key_value report_verdict last_line answer_complete gate_answered change_answered flake_probe attribute_red_gate blocking_count review_notes slugify project_state project_state_diff outside_write_clause outside_write_clause_of loop_tree_pids pid_stands_outside_worktree pid_ppid pid_left_the_worktree loop_now_ms loop_proc_count outside_write_pids outside_write_line outside_write_decides item_outside_write_clause outside_write_seen write_review_diff review_correction_scope review_input_bytes review_input_head review_input_mark bound_review_inputs review_input_scale_of review_input_cut_halved review_restart_before_deadline review_restart_scope review_restart_note clear_stale_test_results	-
+gate.sh	1169	-	the base-red measurement the gate now takes (issue #944) added 103 lines to a 832-line file	session_key_of log_line say follow_stream profile_beside_engine gate_base_ok matches owe_pairs gate_release_tally gate_take_tally failing_cases base_red_had base_red_of shared_cases base_tree measure_step_base start_step wave_wait finish_step run_wave	-
+labels.sh	297	-	-	-	-
+leftovers.sh	528	3	what the run keeps, adopts, merges and discards: the kept worktree, the landed branch, the markers and the retry	adopt_finished_attempt merge_committed_branch score_landings adopt_finished_exclusions keep_leftovers gate_the_kept_work worktree_is_dirty owner_of_marker own_leftovers_of recorded_here recorded_leftovers_of submodule_only_dirt place_submodule_pin retry_start_item discard_kept_worktree push_branch	note
+lib.sh	1520	1	the run's own writer (issue #894) added 140 lines to a 1077-line file; bound re-stated as its size plus the quarter above, and the split's files follow this row, at orders 2..4	fmt_elapsed progress loop_die loop_refuse loop_note gate_tally_state loop_resolve loop_main_worktree loop_path_outside_tree loop_tmp_resolve loop_tmp_dir_for loop_same_dir loop_conf_value loop_event_refuse loop_events_load loop_event_bound loop_event_rotate loop_emit gate_program gate_check_programs gate_command_jq bound_class_jq child_check_calls loop_base_ref loop_landed_on_base loop_ceiling loop_bound_under_ceiling loop_change_family loop_change_path loop_change_archive_dir loop_tree_identity loop_change_identity loop_change_restore loop_scratch_paths loop_bytes_of loop_scratch_remove loop_end_group loop_end_pid loop_pids_under loop_glob_escaped loop_end_pids_under loop_unlanded_commits loop_leftover_patch_of loop_own_branches loop_remote_branches loop_worktree_branches loop_profile loop_issue_json loop_open_pull_request_heads loop_issue_tool loop_commit_identity loop_required_labels loop_roles_load loop_role loop_shaping_verdicts loop_compat_profile_value loop_state loop_labels loop_render loop_write_ignore loop_is_ignorable_write loop_drop_ignorable_writes project_state_differs	-
+loop-clean.sh	482	-	-	say leftover_pids	-
+measure.sh	268	-	-	say item attr_of tally_of tally_dir say_change	-
+phase.sh	265	-	-	phase_path_from_root	-
+prescreen.sh	860	-	-	vocabulary is_refused_class is_settled_status label_value blocked_by_of stale_citations_of cited_symbols_of states_the_fix_lands_in_the_submodule previous_attempt_branch_of branch_question_answered	-
+report.sh	1320	-	the retried-items figure the trend prints (issue #970) grew a 1056-line file	is_num bound_share decisions	-
+run.sh	3497	-	the entry: it sources the order above and is sourced by nothing; the replay onto main (2026-11-21) left #894's typed record and the arms #950/#969 added inside the entry, so its bound is its 2 797 lines plus the quarter	escalate_prescreen_decisions end_run on_exit on_signal stop_run	commit gate item note pre-screen worktree
+state.sh	1788	-	-	state_resolve need_jq now_epoch iso_utc recorded_bound digest_of write_state patch_state require_state keep_replaced_state cmd_init cmd_get cmd_show cmd_next cmd_queue cmd_start cmd_record_change_copy cmd_record_resume cmd_set_base base_red_read cmd_base_red cmd_base_red_step cmd_base_red_used cmd_stop cmd_hold cmd_step cmd_done cmd_score_landings num_or_null repeat_withheld repeat_reads child_usage_json cmd_adoption_refused cmd_report cmd_lock cmd_unlock	-
+worktree.sh	1414	-	-	gitw gitr state_base submodule_pin module_holds fetch_pin_from_root sync_submodule cmd_check_module_pin cmd_sync_module cmd_create base_ref check_base check_checkout copy_named_change resume_from_leftover record_resume continue_from_leftover cmd_start_item cmd_end_item carried_change carried_verification carried_review_state branch_state_of cmd_branch_state leftover_name set_aside_branch cmd_set_aside landing_args landing_refuses_the_dirt cmd_adopt_item cmd_merge_item cmd_record_review_round cmd_record_review_failure prune_base sweep_base branch_added_changes branch_carries_refused_review branch_is_landed cmd_prune_landed cmd_release_branch cmd_head cmd_status cmd_strip_scratch cmd_remove	-

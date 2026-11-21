@@ -26,7 +26,7 @@ SENSOR_CASES=(
   'run#theWindowDoesNotSelectThePreviousTicksRow'
   'run#rowsSelectsSeveralRows'
   'run#rowsRefusesAnUndeclaredId'
-  'run#dryRunTouchesNothing'
+  'run#aDryRunWritesNothingToTheTracker'
   'run#errorPostsNothingAndFails'
   'run#errorIsNeverTreatedAsClear'
   'run#noBaselineFileWritten'
@@ -128,7 +128,7 @@ sensor_run_case() {
     'run#theWindowDoesNotSelectThePreviousTicksRow') case_run_theWindowDoesNotSelectThePreviousTicksRow ;;
     'run#rowsSelectsSeveralRows') case_run_rowsSelectsSeveralRows ;;
     'run#rowsRefusesAnUndeclaredId') case_run_rowsRefusesAnUndeclaredId ;;
-    'run#dryRunTouchesNothing') case_run_dryRunTouchesNothing ;;
+    'run#aDryRunWritesNothingToTheTracker') case_run_aDryRunWritesNothingToTheTracker ;;
     'run#errorPostsNothingAndFails') case_run_errorPostsNothingAndFails ;;
     'run#errorIsNeverTreatedAsClear') case_run_errorIsNeverTreatedAsClear ;;
     'run#noBaselineFileWritten') case_run_noBaselineFileWritten ;;
@@ -793,7 +793,7 @@ case_run_rowsRefusesAnUndeclaredId() {
   assert_empty "$(cat "$log")" "nothing runs and nothing is written for an undeclared id"
 }
 
-case_run_dryRunTouchesNothing() {
+case_run_aDryRunWritesNothingToTheTracker() {
   local dir findings log out status
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
   issues_fixture "$dir" '[]'

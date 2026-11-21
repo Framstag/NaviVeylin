@@ -178,7 +178,9 @@ background work SHALL release it before it returns.
 - **WHEN** the coverage row's arithmetic — the last instruction counter of the module's Kover report against the
   row's 70 % floor — is applied to the `auto` module's report
 - **THEN** the module SHALL be at or above the floor
-- **Case**: `coverage-floor-probe#theAutoModulesInstructionCoverageReachesTheFloor`
+- **Case**: none — the floor is arithmetic over the module's own Kover report, taken by the gate; the probe that
+  first took it (`coverage-floor-probe`) was a hand-written result file in an archived change, so no harness in the
+  tree declares a case for it
 
 #### Scenario: The free-driving screen's template is the map-only template
 

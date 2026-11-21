@@ -8,15 +8,22 @@
 # This script asserts all six (`issue-metadata-loop`, D1/D7), plus the two things that make the pass safe: the
 # marker's score is inside the model's range, and the pass never wrote the automation opt-in.
 #
+# Beside those it reports a **census**: every open item carrying no issue type, named in human mode and under one
+# `--json` field, and never in the exit status — the tracker's shape is measured, an item is not refused for
+# lacking the field (`issue-type-census`, D1).
+#
 # Three modes:
 #
 #   (no argument)        the token-free self-check, and the one CI runs: the profile's bands are total and
-#                        well formed, the marker grammar has one home, and neither write path can name or
-#                        pass a reserved label. No network, no token, no tracker.
+#                        well formed, the marker grammar has one home, neither write path can name or pass a
+#                        reserved label, and the census is wired — the committed untyped fixture is named, so a
+#                        report that stopped firing is caught here rather than reading as a quiet tracker. No
+#                        network, no token, no tracker.
 #   --live               read the tracker through `gh issue list --state all` (needs a token) and check the
 #                        per-issue invariants on every issue — the type axis included, which is why the read
-#                        names `issueType` and `parent` and still makes one call. Its unattended caller is the
-#                        sensors pipeline's `metadata-invariant` row (`guidelines/BacklogTooling.md` §9, issue
+#                        names `issueType` and `parent`, and the census included, which is why it names `state`
+#                        too (a closed item is not the open backlog's shape). One call. Its unattended caller is
+#                        the sensors pipeline's `metadata-invariant` row (`guidelines/BacklogTooling.md` §9, issue
 #                        #292); run by hand it is `helper/backlog-pass.sh`.
 #   --issues <file>      the same per-issue checks over a JSON array — what the offline cases and this
 #                        script's own selftest drive.
@@ -42,7 +49,7 @@ while [ $# -gt 0 ]; do
     --write-log) need_value "$@"; write_log="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) issues_die "check-metadata: unknown argument $1" ;;
   esac
 done
@@ -55,6 +62,8 @@ violations=""
 found=0
 checked=0
 checked_labels=0
+untyped=""
+untyped_count=0
 
 violate() { # violate <issue> <code> <detail>
   local issue="$1" code="$2" detail="$3"
@@ -64,13 +73,15 @@ violate() { # violate <issue> <code> <detail>
 
 report() {
   if [ "$json" -eq 1 ]; then
-    local rows
+    local rows census
     rows=$(printf '%s' "$violations" | grep -v '^$' | awk -F'\t' \
       '{printf "%s{\"issue\":\"%s\",\"code\":\"%s\",\"detail\":\"%s\"}", (NR > 1 ? "," : ""), $1, $2, $3}')
-    printf '{"checked":%s,"violations":[%s]}\n' "$checked" "$rows"
+    census=$(printf '%s' "$untyped" | grep -v '^$' | paste -sd, -)
+    printf '{"checked":%s,"violations":[%s],"untyped":[%s]}\n' "$checked" "$rows" "$census"
   else
     printf '%s' "$violations" | grep -v '^$' | awk -F'\t' '{printf "#%s %s: %s\n", $1, $2, $3}'
-    printf 'check-metadata: %s issue(s) checked · %s violation(s)\n' "$checked" "$found"
+    printf '%s' "$untyped" | grep -v '^$' | awk '{printf "#%s untyped: carries no issue type\n", $1}'
+    printf 'check-metadata: %s issue(s) checked · %s violation(s) · %s untyped\n' "$checked" "$found" "$untyped_count"
   fi
   [ "$found" -eq 0 ] || exit 1
   exit "$ISSUES_EXIT_OK"
@@ -119,14 +130,24 @@ if [ -n "$write_log" ]; then
   checked_labels=$((checked_labels + 1))
 fi
 
+# The census's wiring, in the mode CI runs: the same per-issue half a tracker goes through names the committed
+# untyped fixture, and its typed neighbour stays silent (that direction is the case's, in
+# `tests/check-metadata-selftest.sh`). A report that stopped firing would otherwise read as a quiet tracker.
 if [ "$mode" = "self" ]; then
+  census_fixtures="$root/tools/issues/tests/fixtures/metadata"
+  if census_probe=$(bash "$0" --issues "$census_fixtures/untyped-item.json" 2>&1) &&
+     printf '%s\n' "$census_probe" | grep -q '#[0-9][0-9]* untyped:'; then
+    :
+  else
+    violate "census" "not-wired" "the untyped fixture is not named by the report"
+  fi
   report
 fi
 
 # ── the per-issue half: the label and the marker, whether they agree, and the settled pair ──────────────
 
 if [ "$mode" = "live" ]; then
-  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent 2>/dev/null) ||
+  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent,state 2>/dev/null) ||
     issues_die "check-metadata: gh could not read the tracker (--live needs a token)"
 elif [ "$mode" = "issues" ]; then
   [ -f "$issues_file" ] || issues_die "check-metadata: no such issue file: $issues_file"
@@ -149,6 +170,17 @@ read_state=$(printf '%s' "$issues_json" | jq -r '
   else "unreadable" end')
 if [ "$read_state" = "unreadable" ]; then
   violate "document" "type-axis-unreadable" "the type axis could not be read: the document carries no issueType field"
+fi
+# The census over the same read: every open item carrying no issue type. It is a report, so nothing here touches
+# the exit status (D1) — 60 legacy items must not turn a run red — and `--json` carries the same set under one
+# field, so the acceptance number is read with `jq` and not by eye. Closed items are out of the set because the
+# axis is a statement about the open backlog, and `--live` reads `--state all`.
+if [ "$read_state" = "readable" ]; then
+  untyped=$(printf '%s' "$issues_json" | jq -r '
+    .[] | select((.state // "OPEN") != "CLOSED")
+        | select((.issueType | if type == "object" then (.name // "") elif type == "string" then . else "" end) == "")
+        | .number')
+  untyped_count=$(printf '%s' "$untyped" | grep -c '[0-9]' || true)
 fi
 type_axis=$(printf '%s' "$issues_json" | jq -r '
   .[] | [ (.number | tostring),

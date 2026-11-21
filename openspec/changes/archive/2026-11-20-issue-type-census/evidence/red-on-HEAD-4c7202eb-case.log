@@ -1,0 +1,14 @@
+  ok   an untyped item does not turn the check red
+  FAIL and the census names it: [#61 untyped:] not found in: check-metadata: 1 issue(s) checked · 0 violation(s)
+  FAIL in a line saying what it lacks: [carries no issue type] not found in: check-metadata: 1 issue(s) checked · 0 violation(s)
+  FAIL beside no violation, and counted: [· 0 violation(s) · 1 untyped] not found in: check-metadata: 1 issue(s) checked · 0 violation(s)
+  ok   the JSON form is valid
+jq: error (at <stdin>:0): Cannot iterate over null (null)
+  FAIL and carries the same set under one field: expected [61] got []
+  ok   a typed copy exits 0
+  ok   and is not named
+  FAIL and the census is empty: [· 0 untyped] not found in: check-metadata: 1 issue(s) checked · 0 violation(s)
+  ok   the typed fixture exits 0
+  ok   and is not named
+  ok   its type taken away still exits 0
+  FAIL and the census names it again: [#62 untyped:] not found in: check-metadata: 1 issue(s) checked · 0 violation(s)

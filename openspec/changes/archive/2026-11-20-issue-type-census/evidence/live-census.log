@@ -1,0 +1,7 @@
+the census after the backfill, taken 2026-11-20T22:00:51Z, HEAD 4c7202ebb6c0
+--- the proposal's surface command
+open items with no issue type: 0
+--- tools/issues/check-metadata.sh --live | tail -n 1
+check-metadata: 400 issue(s) checked · 1 violation(s) · 0 untyped
+--- tools/issues/list.sh --untyped
+0 match(es)

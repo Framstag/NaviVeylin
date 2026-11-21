@@ -1,0 +1,20 @@
+# the five suites the collector's neighbours own, on the patched tree
+# date: 2026-11-21T12:15:54Z
+# tree: submodule d1fefc13e (clean)
+1/5 libosmscout:Check route postprocessor RUNNING       
+2/5 libosmscout:Check route step time     RUNNING       
+3/5 libosmscout:Check route step model    RUNNING       
+4/5 libosmscout:Check route failure kind  RUNNING       
+5/5 libosmscout:Check route start         RUNNING       
+1/5 libosmscout:Check route postprocessor OK              0.02s
+All tests passed (138 assertions in 10 test cases)
+2/5 libosmscout:Check route step time     OK              0.01s
+All tests passed (19 assertions in 5 test cases)
+3/5 libosmscout:Check route step model    OK              0.01s
+All tests passed (156 assertions in 18 test cases)
+4/5 libosmscout:Check route failure kind  OK              0.01s
+All tests passed (24 assertions in 3 test cases)
+5/5 libosmscout:Check route start         OK              0.01s
+All tests passed (20 assertions in 5 test cases)
+Ok:                5   
+Fail:              0   

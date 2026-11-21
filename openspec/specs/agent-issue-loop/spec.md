@@ -3568,7 +3568,10 @@ and a command whose argument is the gate's own path, and a `--plan` call, SHALL 
 ### Requirement: The diff is read before the gate, and a fresh child runs the one gate
 
 An item's gate SHALL be run by a child of its own, after the diff has been read by a reviewer that is not the child
-that wrote it, so a finding a reader can make from the diff is not paid for by a gate and a second full pass.
+that wrote it, so a finding a reader can make from the diff is not paid for by a gate and a second full pass — except
+when the input cap removed more than half of the whole input the round would read, where that round SHALL NOT be
+launched, the item SHALL record the share that decided it, and the gate and the item's first round SHALL run either
+way.
 
 #### Scenario: The round is read before the gate child is started
 
@@ -3626,6 +3629,19 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 - **THEN** the checklist it prints is the gate child's own prompt and the call names that file, because the run
   defers the gate to that child
 - **Case**: `phase#oneCallPrintsThePhaseState`
+
+#### Scenario: A halved diff launches no round
+
+- **WHEN** `LOOP_REVIEW_INPUT_MAX_BYTES` removed more than half of the whole input the round would read
+  (`review_input_cut_scale`, the share over every bounded part)
+- **THEN** no pre-gate child is launched, the item records the share and the skip, and the gate and round 1 still run
+- **Case**: `run#aPreGateRoundItsCapHalvedIsSkipped`
+
+#### Scenario: A small cut still launches the round
+
+- **WHEN** the cap removed less than half of that whole input (5 % is the share `#963`'s record carries)
+- **THEN** the pre-gate round runs, and its verdict is the one the item records
+- **Case**: `run#aPreGateRoundUnderHalfItsCapStillRuns`
 
 ### Requirement: A child is bounded by its own role's turns
 
@@ -6055,3 +6071,125 @@ run's base with a clean status — that silence spent no phase and keeps the ite
 - **THEN** no relaunch happens inside the item, and the transient class the run already spends re-runs the item from the
   queue
 - **Case**: `run#aChildThatNeverStartedIsRetriedBeforeTheRunStops`
+
+### Requirement: An empty tree names the difference the run recorded
+
+The reason and the step the run writes for a tree still at the run's base SHALL name the difference the run recorded
+in the project's own tree while that child ran, when the item's record carries one, and SHALL say that if that
+difference is the item's work it is in the caller's tree and not on the item's branch. The clause SHALL qualify the
+arm's own sentence and SHALL place the difference on no child. An item whose record carries no reading SHALL get none.
+
+#### Scenario: An empty tree with a recorded write names the paths
+
+- **WHEN** a child reports success, leaves the item's tree at the run's base, and the run's outside-write reading
+  recorded paths changed in the project's own tree while that child ran
+- **THEN** the item is still blocked `uncommitted` on the sentence the arm writes, the reason adds that if the
+  difference is the item's work it is in the caller's tree and not on the item's branch, and it names the paths the
+  reading recorded — while the verdict and the placement of the difference stay what the requirement for an
+  unattributable difference makes them, because this clause is a sentence and not evidence
+- **Case**: `run#anEmptyTreeWithAnOutsideWriteNamesThePaths`
+
+#### Scenario: A record with no reading keeps the sentence
+
+- **WHEN** the same tree at the base is read for a child that wrote nothing into the project's own tree
+- **THEN** the reason is the arm's own sentence, with no clause about the caller's tree
+- **Case**: `run#childClaimWithoutCommitIsBlocked`
+
+### Requirement: A container that cannot advance takes no slot
+
+The pre-screen SHALL judge a candidate's container as well as the candidate, and SHALL refuse with the verdict
+`epic-stalled` any candidate it would otherwise queue whose container the run cannot advance: every child the
+screen saw under it awaits a decision, or this run recorded a child of it cut at a bound. The record SHALL name
+what the container waits for, and the verdict SHALL write nothing to the tracker and clear without a write of
+the run's (issue #938).
+
+#### Scenario: A container whose remaining children await a decision is not worked
+
+- **WHEN** the eligible set holds a child of a container whose other children the screen saw are all refused with
+  the decision verdict
+- **THEN** that child is refused as `epic-stalled` instead of being queued, and the reason names the items whose
+  decisions the container waits for
+- **AND** the children that await the decisions keep their own verdict, so the refusal is the child's and not a
+  re-judgement of theirs
+- **AND** an item in no container, and the only child of a container, are screened exactly as before
+- **AND** the refusal holds only while the labels say a decision stands, so the first run whose labels no longer do
+  screens the child as before
+- **Case**: `prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot`
+
+#### Scenario: A container whose child a bound cut takes no further slot
+
+- **WHEN** the run recorded a child of a container as cut at a bound, and a later pre-screen of the same run reaches
+  another child of that container, or the child the bound ended
+- **THEN** the candidate is refused as `epic-stalled`, with the reason naming the child the bound ended and the
+  `KEY=VALUE` it was cut at, so the container takes no second slot in that run
+- **AND** the cut item's own record keeps the cut it made, because the refusal is the screen's and rewrites no state
+- **AND** a container none of whose children this run recorded as cut at a bound keeps its children screened as
+  before
+- **Case**: `prescreen#aContainerCutAtABoundTakesNoFurtherSlot`
+
+### Requirement: The engine's files are named, and each name has one owner
+
+Each file of the loop's engine SHALL be declared in one layout table with the functions it owns and the event kinds it may emit. A function SHALL belong to exactly one file. A function defined in a file that does not own it, and a kind emitted by a file that does not own it, SHALL fail the suite.
+
+#### Scenario: Every engine file has exactly one owner
+
+- **WHEN** the suite reads the layout table and the engine's files
+- **THEN** every file the engine sources has a row, and no row names a file the engine does not source
+- **Case**: `driver#everyEngineFileHasOneOwner`
+
+#### Scenario: A function lives in its owner's file
+
+- **WHEN** a function is defined in a file other than the one the table names as its owner
+- **THEN** the case fails and names the function, its owner and the file it was found in
+- **Case**: `driver#anOwnedFunctionIsInItsOwnersFile`
+
+#### Scenario: A kind is emitted only by its owner
+
+- **WHEN** a file emits an event kind the table does not list for it
+- **THEN** the case fails and names the kind, the emitting file and the owning file
+- **Case**: `driver#aKindIsEmittedOnlyByItsOwner`
+
+### Requirement: A case's declared files follow the split
+
+A case SHALL declare the engine file its behaviour lives in, using a name the layout table carries, and SHALL NOT declare a file the table does not carry. A delta to one owner's file SHALL select that owner's cases and not the whole suite.
+
+#### Scenario: A declaration naming an unknown file fails
+
+- **WHEN** a case declares a file name the layout table does not carry
+- **THEN** the case-list check fails and names the declaration and the case
+- **Case**: `driver#aDeclarationNamingAnUnknownFileFails`
+
+#### Scenario: The selection follows the owner
+
+- **WHEN** the suite is asked for the cases a delta to one engine file can reach
+- **THEN** the selection is a strict subset of the suite and contains the cases whose behaviour that file carries
+- **Case**: `driver#theSelectionFollowsTheOwner`
+
+#### Scenario: The behaviour of a moved function is unchanged
+
+- **WHEN** the whole suite runs against the split engine
+- **THEN** every case that passed before the move passes after it
+- **Case**: `driver#theMovedEngineBehavesAsItDid`
+
+### Requirement: A step is measured in the project's environment, not the item session's
+
+The gate SHALL remove from a step's environment the facts the loop hands one child of the item — the result bound and
+its arm, the child's session name, its trim record, its repeat ledger, its event stream — and the switch that starts no
+measurement of its own, so a step whose command runs the loop's own suite is measured as the project's command and not
+as that child. The facts the gate reads itself SHALL stay in the gate's environment.
+
+#### Scenario: A step is handed none of the item session's facts
+
+- **WHEN** the gate runs a step while it was started in the environment a child of the item hands it — the result
+  bound and its arm, the session's name, its trim record, its repeat ledger, its event stream, and the switch a
+  base-red measurement sets
+- **THEN** the step is handed none of them, while the gate's own reading of the facts it keeps is unchanged
+- **Case**: `gate#aStepIsNotHandedTheItemsSession`, `gate#aThirdFullRunInOneSessionIsRefused`
+
+#### Scenario: The loop's own suite is measured as the project's command
+
+- **WHEN** a gate started in a child's environment measures the loop's own suite on a tree at the run's base
+- **THEN** the case that holds a plain result read from a gate log path is handed all of it, and the case that asserts
+  a nested gate measured its step's base state passes — the two names the leg was red for at every base the run
+  recorded
+- **Case**: `adapter#theResultBoundExemptsGateEvidence`, `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt`

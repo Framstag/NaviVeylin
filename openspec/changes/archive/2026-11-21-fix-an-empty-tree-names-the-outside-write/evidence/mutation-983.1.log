@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 433 records (labels: 983.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.Z3Uv6n
+RED    983.1  run#anEmptyTreeWithAnOutsideWriteNamesThePaths   (the clause that names the caller's tree and the paths the run recorded, so an item whose child wrote the project's own tree is reported as one that committed nothing (issue #983))
+       2026-11-21T07:49:02Z — case log line 1: …and an item whose child wrote the project's own tree says where the work went: 'the work is in the caller's tree' not found in: reported success but the tree is still at the base commit — nothing was committed
+restore 983.1 run#anEmptyTreeWithAnOutsideWriteNamesThePaths green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

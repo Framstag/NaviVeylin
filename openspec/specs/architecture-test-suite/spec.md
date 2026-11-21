@@ -17,7 +17,7 @@ A run of the check alone SHALL complete without compiling the app.
 
 - **WHEN** the structure check is invoked on a clean checkout with no Android device attached
 - **THEN** it completes and reports a verdict
-- **Case**: `ArchitectureSuiteTest#suiteRunsWithoutDeviceOrAppBuild`
+- **Case**: `StructureScopeTest#suiteRunsWithoutDeviceOrAppBuild`
 
 #### Scenario: A violation fails the check
 
@@ -41,7 +41,7 @@ SHALL be reported like a violation in a main source.
 
 - **WHEN** a file in `:app`, which is an application module and not a library, violates a declared rule
 - **THEN** the check fails naming that file
-- **Case**: `StructureScopeTest#violationInAppModuleIsReported`
+- **Case**: `StructureScopeTest#violationInTheAppModuleIsReported`
 
 ### Requirement: A violation names the file, the import and the rule
 
@@ -54,7 +54,7 @@ check.
 
 - **WHEN** a `feature/navigation` file imports a `feature/route` package
 - **THEN** the report names the file, the imported package, the file's declared kind and the disjunction rule
-- **Case**: `ViolationReportTest#violationNamesFileImportAndRule`
+- **Case**: `FeatureRuleTest#violationNamesFileImportAndRule`
 
 ### Requirement: The baseline is shrink-only
 

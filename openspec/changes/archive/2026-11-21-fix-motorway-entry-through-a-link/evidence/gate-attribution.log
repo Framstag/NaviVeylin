@@ -1,0 +1,10 @@
+# the mechanical half of the red gate's attribution (guidelines/BuildEvidence.md §4d), on the loop gate's own log
+# date: 2026-11-21T12:49:16Z
+verdict: tests=0 failures=2 errors=0 — 1 failing step
+step: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+case: SymbolIconPreferenceTest > aChangeReachesTheClientOnceAndIsPersisted
+others: SettingsSurfaceTest > aChangePersistsWithoutASaveAction
+file:line: not named by this log
+error: not named by this log
+flake: not recorded — this tree keeps no flake list
+rerun: ./gradlew :app:testAutomotiveDebugUnitTest --tests "SymbolIconPreferenceTest" -PforceTests -PjvmTestsOnly --no-build-cache

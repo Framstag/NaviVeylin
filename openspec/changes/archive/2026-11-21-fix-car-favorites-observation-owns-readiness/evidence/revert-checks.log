@@ -1,0 +1,62 @@
+Issue #995 — revert-checks (one mutation per invariant, ran 2026-11-21)
+
+Case set of every run (both classes the guard protects):
+  ./gradlew :auto:testDebugUnitTest --tests '*FavoritesScreenObservationsTest*' \
+                                    --tests '*FavoritesScreenTest*'
+
+5.1 Invariant: an unready store is initialised by the observation (once per started period).
+    Mutation:  FavoritesScreenObservations.attemptResolution — the `if (!ready.value)` branch disabled
+               with `&& false` (marker: REVERT-CHECK MUTATION (task 5.1)).
+    Red run:
+      FavoritesScreenObservationsTest > anUnreadyStoreIsInitialisedOnceAndItsRowsRender FAILED
+      49 tests completed, 1 failed
+      BUILD FAILED in 21s
+      XML  FavoritesScreenObservationsTest tests="11" skipped="0" failures="1" errors="0"
+           FavoritesScreenTest             tests="38" skipped="0" failures="0" errors="0"
+      message="java.lang.AssertionError: the observation must initialise the store it reads, exactly
+              once per started period: [] expected:<1> but was:<0>"
+    Restored (reverse edit; marker count 0).
+
+5.2 Invariant: a faulting resolution hop is retried once, and the second attempt publishes.
+    Mutation:  FavoritesScreenObservations.resolveSources — `if (true) return first` before the retry
+               (marker: REVERT-CHECK MUTATION (task 5.2)).
+    Red run:
+      FavoritesScreenObservationsTest > anObservationFaultIsRetriedOnceAndTheListPublishes FAILED
+      49 tests completed, 1 failed
+      BUILD FAILED in 21s
+      XML  FavoritesScreenObservationsTest tests="11" skipped="0" failures="1" errors="0"
+           FavoritesScreenTest             tests="38" skipped="0" failures="0" errors="0"
+      message="java.lang.AssertionError: the faulting hop must be attempted twice: [storeReady]
+              expected:<2> but was:<1>"
+    Restored (reverse edit; marker count 0).
+
+5.3 Invariant: a store whose observation faulted twice is reported as unavailable, not left loading.
+    Mutation:  FavoritesScreenObservations — the failure state's `publishOnce(...)` replaced by a bare
+               `return@observe` (marker: REVERT-CHECK MUTATION (task 5.3)).
+    Red run — both cases the invariant protects:
+      FavoritesScreenObservationsTest > aStoreThatFailsTwiceIsReportedAsUnavailable FAILED
+      FavoritesScreenTest > anUnavailableStoreRendersTheUnavailableRow FAILED
+      49 tests completed, 2 failed
+      BUILD FAILED in 22s
+      XML  FavoritesScreenObservationsTest tests="11" skipped="0" failures="1" errors="0"
+           FavoritesScreenTest             tests="38" skipped="0" failures="1" errors="0"
+      message="java.lang.AssertionError: the failure state must reach the screen exactly once: []
+              expected:<1> but was:<0>"
+      message="java.lang.AssertionError: expected:<[Favorites unavailable]> but was:<[Loading...]>"
+    Restored (reverse edit; marker count 0).
+
+Restore verified
+----------------
+  grep -rn 'REVERT-CHECK MUTATION' auto/ openspec/changes/fix-car-favorites-observation-owns-readiness/
+  → no match (exit 1)
+
+Green re-run, forced
+--------------------
+  ./gradlew :auto:testDebugUnitTest --tests '*FavoritesScreenObservationsTest*' \
+                                    --tests '*FavoritesScreenTest*' --rerun-tasks
+  BUILD SUCCESSFUL in 1m 19s
+  65 actionable tasks: 65 executed
+  XML  FavoritesScreenObservationsTest tests="11" skipped="0" failures="0" errors="0"
+                                       timestamp="2026-11-21T12:02:45.696Z"
+       FavoritesScreenTest             tests="38" skipped="0" failures="0" errors="0"
+                                       timestamp="2026-11-21T12:02:52.797Z"

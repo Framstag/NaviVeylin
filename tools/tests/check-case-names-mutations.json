@@ -1,0 +1,38 @@
+{
+  "comment": "The revert-check of the case-name traceability rule (`tools/check-case-names.sh`, issue #896): one record per rule the check states, so each refusal is proven to fire on the line that stops it. Run it with `bash tools/mutate.sh --mutations tools/tests/check-case-names-mutations.json`; `.pi/skills/revert-check` owns the rule and `.pi/skills/mutation-runner` owns how. `case-cmd` runs one named case of the check's own self-test (`--case {case}`), so a mutation pays one case and not the suite. Every search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards. The four rules are: a name no harness lists is refused (record 1), a full name two harnesses list is refused (record 2), a row whose list is absent is refused instead of read as empty (record 3), and an unclaimed case is a number that refuses nothing (record 4).",
+  "case-cmd": "bash tools/tests/check-case-names-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "unresolved-name-is-refused",
+      "case": "traceability#aNameNoHarnessRunsIsRefused",
+      "file": "tools/check-case-names.sh",
+      "search": "    if (!(nm in decl)) { print \"unresolved\\t\" $2 \"\\t\" $3 \"\\t\" $4 \"\\t\" $5 \"\\t\" nm; next }",
+      "replace": "    if (0) { print \"unresolved\\t\" $2 \"\\t\" $3 \"\\t\" $4 \"\\t\" $5 \"\\t\" nm; next }",
+      "why": "a `**Case**:` line naming a case no declared harness lists is the dead reference this capability exists to refuse; without the refusal the check would resolve a name that exists nowhere and report ok"
+    },
+    {
+      "label": "duplicate-full-name-is-refused",
+      "case": "traceability#aDuplicateFullNameIsRefused",
+      "file": "tools/check-case-names.sh",
+      "search": "if (c > 1) print k \"\\t\" n[k]",
+      "replace": "if (c > 99) print k \"\\t\" n[k]",
+      "why": "an identical full name in two harnesses makes the resolution a coin toss, so it is refused with both names rather than resolved from whichever row was read last"
+    },
+    {
+      "label": "absent-list-is-refused",
+      "case": "traceability#aRowWhoseListIsAbsentIsRefused",
+      "file": "tools/check-case-names.sh",
+      "search": "  if [ -z \"$path\" ] || [ ! -f \"$root/$path\" ]; then problem rows \"$id — $path is not in the tree\"; return; fi",
+      "replace": "  if false; then problem rows \"$id — $path is not in the tree\"; return; fi",
+      "why": "a row whose case list has moved or been deleted would otherwise declare nothing and read as an empty harness, which turns every one of its spec references into a dead reference the check cannot see"
+    },
+    {
+      "label": "an-unclaimed-case-never-refuses",
+      "case": "traceability#anUnclaimedCaseNeverRefuses",
+      "file": "tools/check-case-names.sh",
+      "search": "    for (c in cases) if (!(c in claimed)) print \"unclaimed\\t\" c",
+      "replace": "    for (c in cases) if (!(c in claimed)) print \"unresolved\\t\" c",
+      "why": "a case that proves its harness rather than a requirement is not a defect: the count is printed and the exit status stays 0, because a check that refused 5985 unclaimed cases would be turned off in a day"
+    }
+  ]
+}

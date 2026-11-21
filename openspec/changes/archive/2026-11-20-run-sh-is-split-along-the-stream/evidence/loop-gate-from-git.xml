@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --from-git 4b53a442" tests="518" failures="0" errors="0" time="560" run="797219">
+  <system-out>loop-selftest: repeat 8 cases 5.72 s loop-selftest: census 8 cases 11.78 s loop-selftest: all 518 cases passed (JDK 21, offline, no token, no sandbox) — 558.48 s, selection: --from-git 4b53a442</system-out>
+</testsuite>

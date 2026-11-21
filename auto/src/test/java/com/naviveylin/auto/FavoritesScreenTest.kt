@@ -329,6 +329,24 @@ class FavoritesScreenTest {
     }
 
     @Test
+    fun anUnavailableStoreRendersTheUnavailableRow() = runTest(mainDispatcherRule.dispatcher) {
+        // Issue #995 (spec `auto-favorites` — A store that cannot be observed is reported, not left
+        // loading): both resolution attempts fault, so the observation ends with the failure state. The
+        // loading row means "initialising" — a claim the screen must drop once no observation is left to
+        // end it, because the screen would otherwise wait forever.
+        favoritesProvider.failAccessors = true
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        val titles = singleTitles(screen.onGetTemplate())
+        assertEquals(listOf(carContext.getString(R.string.favorites_unavailable)), titles)
+        assertTrue(
+            "an unavailable store must not keep a loading row, got $titles",
+            !titles.contains(carContext.getString(R.string.loading))
+        )
+    }
+
+    @Test
     fun readinessCompletesWhileOpenUpdatesInPlace() = runTest(mainDispatcherRule.dispatcher) {
         favoritesProvider.ready.value = false
         favoritesProvider.flow.value = mapOf("Favorites" to listOf(fav("Home")))
@@ -939,7 +957,17 @@ class FavoritesScreenTest {
          */
         val ready = MutableStateFlow(true)
 
-        override fun storeReady(): StateFlow<Boolean> = ready
+        /**
+         * Whether every source accessor faults (issue #995: a store that cannot be observed is reported
+         * as unavailable, not left loading). Both resolution attempts fault, so the screen is handed the
+         * observation's failure state.
+         */
+        var failAccessors = false
+
+        override fun storeReady(): StateFlow<Boolean> {
+            if (failAccessors) throw IllegalStateException("provider unavailable")
+            return ready
+        }
 
         override suspend fun init(filePath: String) = true
         override suspend fun addFavorite(name: String, lat: Double, lon: Double) = true

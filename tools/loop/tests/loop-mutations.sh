@@ -111,7 +111,7 @@ MUTATIONS=(
   # child-start line — the command and its directory — and not on its tail: the tail gained the child's own
   # completion record (`.status`, issue #227), and a record that quotes the whole line is orphaned by the next
   # edit to any part of it (issue #264).
-  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
+  '9.9@-@tools/loop/child.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
   '9.10@-@tools/loop/run.sh@run#reviewerWriteInvalidatesTheRound@the reviewer read-only comparison@s|^      if \[ "$read_only" = "on" \] && \[ "$before" != "$after" \]; then|      if false; then|'
   '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-propose openspec-apply-change build-app run-tests revert-check|'
   # 9.12 is issue #787's invariant: the cap's refusal written as the run's own stop reason. The record removes the
@@ -123,11 +123,11 @@ MUTATIONS=(
   # label or the lock, which the case asserts around it.
   '9.13@-@tools/loop/run.sh@run#aHupEndedRunRecordsItsStopAndUnpicksItsItem@the run recording the signal it took as its own stop (issue #755)@s|^    loop_state stop "interrupted by SIG\${signal_taken}" >&2 \|\| true$|    : # the mutation records no signal|'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
-  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$worktree" \&\& $child_cmd "$1"; printf|'
-  '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'
+  '12.2@-@tools/loop/child.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$worktree" \&\& $child_cmd "$1"; printf|'
+  '12.3@-@tools/loop/child.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'
   '12.4@-@tools/loop/run.sh@run#strictOutsideWriteDiscardsTheReviewRound@the round discarded on a difference the run can place or was told to judge@s|^      if outside_write_decides; then$|      if false; then|'
   '12.9@-@tools/loop/run.sh@run#strictOutsideWriteBlocksTheItem@the strict run turning the difference into a verdict about the item@s|^  elif outside_write_decides; then$|  elif false; then|'
-  '12.10@-@tools/loop/run.sh@run#aWriterTheRunCanPlaceBlocksTheItem@the reading taken while the child runs, which is what ties a write to it@s|^          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null \|\| true$|          : # the mutation takes no reading while the child runs|'
+  '12.10@-@tools/loop/child.sh@run#aWriterTheRunCanPlaceBlocksTheItem@the reading taken while the child runs, which is what ties a write to it@s|^          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null \|\| true$|          : # the mutation takes no reading while the child runs|'
   # 12.11 is issue #288's second half: without it, the run's own child chain — started in the project by
   # `run_child`, so it stands there for the whole item — marks every difference in that tree, and a peer's write
   # decides an item whose work was never touched. Its pair 12.12 (`for pid in $(loop_tree_pids …)` replaced by the
@@ -138,7 +138,7 @@ MUTATIONS=(
   # `GREEN 12.12 … the case did not notice the mutation` (`evidence/mutation-12.12.log` of the archived change). A
   # record a case cannot notice is not evidence (the rule this file's `13.x` records follow). The ordering stays in
   # `run.sh` and its reason stays in `guidelines/Backlog.md` §7; what it lost is a case, not the behaviour.
-  '12.11@-@tools/loop/run.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$in_worktree" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
+  '12.11@-@tools/loop/evidence.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$in_worktree" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
   # 12.13 is the run's own prerequisite (issue #703): without it a host whose `pgrep` is absent records every
   # difference in the project's own tree and places none, and the item keeps the outcome its work earned while the
   # deciding half of the rule was never enforced — the suite refuses such a host, a hand-started run does not.
@@ -150,9 +150,9 @@ MUTATIONS=(
   '13.2@-@tools/loop/run.sh@run#leftoverBranchIsRecordedNotDropped@the pre-screen verdicts that need a decision being escalated by the run@s|^  \[ -n "$decision_agent" \] \|\| return 0$|  return 0|'
   '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
-  '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^  git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|  : # the mutation discards no tracked change|;;s|^  git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|  : # the mutation discards no untracked file|'
-  '13.8@-@tools/loop/run.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^  if \[ -n "\$(loop_conf_value LOOP_SUBMODULE_PATH)" \] && \[ -f "\$worktree/.gitmodules" \]; then$|  if false; then|'
-  '13.9@-@tools/loop/run.sh@run#resetWorktreeNamesTheDirtItCannotDiscard@the repair naming what it could not discard instead of announcing a clean tree@s|^  if \[ -n "\$reset_after" \]; then$|  if false; then|'
+  '13.5@-@tools/loop/leftovers.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^  git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|  : # the mutation discards no tracked change|;;s|^  git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|  : # the mutation discards no untracked file|'
+  '13.8@-@tools/loop/leftovers.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^  if \[ -n "\$(loop_conf_value LOOP_SUBMODULE_PATH)" \] && \[ -f "\$worktree/.gitmodules" \]; then$|  if false; then|'
+  '13.9@-@tools/loop/leftovers.sh@run#resetWorktreeNamesTheDirtItCannotDiscard@the repair naming what it could not discard instead of announcing a clean tree@s|^  if \[ -n "\$reset_after" \]; then$|  if false; then|'
   # 13.10 is the one distinction the mid-run refusal cannot read from the tree (issue #664): dirt this run ended
   # itself is already written to the item's patch, so that tree may be discarded and the start retried — the dirt
   # of another item is not, and still stops the run (`run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`).
@@ -162,8 +162,8 @@ MUTATIONS=(
   # predicate is a reading of the run's own state, and the record is the patch written before anything is thrown away;
   # `run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn` is red on each alone — 271.1 leaves the tree dirty (the run
   # stops as it did until this change), 271.2 writes no record and the run stops over it instead of discarding.
-  '271.1@-@tools/loop/run.sh@run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn@the item this run recorded read out of its own state, so that item leftovers stop the run again — the 262 minutes of 2026-11-10T08:19:24Z@s|^  \[ "\$(jq -r --argjson i .*$|  [ 1 -eq 2 ]|'
-  '271.2@-@tools/loop/run.sh@run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn@the patch written before the work is discarded, so a tree is cleaned of work nothing records (issue #308)@s|^  keep_leftovers "\$1"$|  : # the mutation writes no record|'
+  '271.1@-@tools/loop/leftovers.sh@run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn@the item this run recorded read out of its own state, so that item leftovers stop the run again — the 262 minutes of 2026-11-10T08:19:24Z@s|^  \[ "\$(jq -r --argjson i .*$|  [ 1 -eq 2 ]|'
+  '271.2@-@tools/loop/leftovers.sh@run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn@the patch written before the work is discarded, so a tree is cleaned of work nothing records (issue #308)@s|^  keep_leftovers "\$1"$|  : # the mutation writes no record|'
   # 13.11 is the reason a retry answered with, which is not the dirt it was retried over (issue #664, round 2): the
   # retry's line was printed and dropped, so a start refused for its branch was recorded as "the worktree is not
   # clean" with an empty list of files, on a tree the run had just cleaned itself.
@@ -232,7 +232,7 @@ MUTATIONS=(
   # *first* one: rendered last, the paths the section names survive as literal placeholders and the round that
   # exists to verify corrections points its reviewer at a file called `{{DIFF_PATH}}` (item #245's round-1 review).
   # Two expressions, because the defect is an order: the pair is deleted from the head and appended after the last.
-  '40.3@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the correction section substituted before the paths it names@s|^    "CORRECTION_SCOPE=\${2:-}" "PRE_GATE=\${3:-}" \\$|    "LOOP_REORDERED=1" \\|;;s|^    "REVIEW_EXCLUDE=\${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=\${child_max:-2700}"$|& \\\n    "CORRECTION_SCOPE=${2:-}" "PRE_GATE=${3:-}"|'
+  '40.3@-@tools/loop/child.sh@run#aCorrectiveRoundIsHandedTheCorrections@the correction section substituted before the paths it names@s|^    "CORRECTION_SCOPE=\${2:-}" "PRE_GATE=\${3:-}" \\$|    "LOOP_REORDERED=1" \\|;;s|^    "REVIEW_EXCLUDE=\${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=\${child_max:-2700}"$|& \\\n    "CORRECTION_SCOPE=${2:-}" "PRE_GATE=${3:-}"|'
   '20.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@`alreadyEscalated` following the label rather than the hold@s|^    if \[ "$awaiting_label" -eq 1 \]; then$|    if true; then|'
   '20.2@-@tools/loop/prescreen.sh@prescreen#escalatedItemKeepsItsBranchAsEvidence@the awaiting clause not overwriting the branch the adoption path reads@s|^  if \[ "$verdict" = "$queued_verdict" \] && \[ "$awaiting_decision" -eq 1 \]; then$|  if [ "$awaiting_decision" -eq 1 ]; then|'
   '21.1@-@tools/loop/prescreen.sh@prescreen#aHoldWithNoDecisionIsNotADecision@a hold with no recorded decision reported as a hold rather than as a decision@s|^      verdict="$held_verdict"$|      verdict="$decision_verdict"|'
@@ -248,12 +248,12 @@ MUTATIONS=(
   '260.1@-@tools/loop/prescreen.sh@prescreen#theQueueIsWrittenInRankOrder@the sort that makes the rank the order the run works@s#^records=$(printf .%s. "$ranked" | jq -c .sort_by.*$#records="$ranked"#'
   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
-  '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsCut@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'
+  '23.1@-@tools/loop/child.sh@run#childOutlastingTheWallClockIsCut@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'
   # 23.2 is issue #227's bound: the run's own deadline ends a child instead of the cap alone. The `stop_run` the
   # same arm writes has no record of its own: on the ordinary path `next` overwrites it with the deadline it names
   # anyway, so a mutation of that line goes unnoticed — its value is the run killed between the child and `next`,
   # which no case reaches deterministically.
-  '23.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the deadline that ends a child outliving the run@s|^    if \[ "\$deadline_epoch" -gt 0 \] \&\& \[ "\$now" -ge "\$deadline_epoch" \]; then$|    if false; then|'
+  '23.2@-@tools/loop/child.sh@run#childIsEndedAtTheRunsDeadline@the deadline that ends a child outliving the run@s|^    if \[ "\$deadline_epoch" -gt 0 \] \&\& \[ "\$now" -ge "\$deadline_epoch" \]; then$|    if false; then|'
   '24.1@-@tools/loop/run.sh@run#hostBelowTheFloorBlocksTheItemAndStops@the host read that records a starved item instead of starting it (issue #209)@s|^  if \[ -n "\$free_mib" \] && \[ "\$free_mib" -lt "\$min_free_mib" \]; then$|  if false; then|'
   # The adapter sits beside the engine (`tools/pi-child-events.sh`, named by `LOOP_AGENT_CMD`), so its record
   # reaches it through `../` and resolves against the engine directory like every other file here. One string
@@ -284,11 +284,11 @@ MUTATIONS=(
   '29.6@-@tools/loop/run.sh@run#aReviewersDecisionOutranksTheWorkers@the reviewer decision kept ahead of the worker one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      decision_field="$worker_decision"#'
   # 29.7–29.9 — a path no child of the run could have written is not a write (issues #958, #962): the filter is read
   # at the source of each reading, so removing it where the readings differ decides the phase on an editor's swap file.
-  '29.7@-@tools/loop/run.sh@run#anEditorSwapFileIsNotAChildsWrite@the filter applied where the two project-tree readings differ (issue #958)@s#^  if project_state_differs "$before" "$after"; then$#  if [ "$before" != "$after" ]; then#'
+  '29.7@-@tools/loop/child.sh@run#anEditorSwapFileIsNotAChildsWrite@the filter applied where the two project-tree readings differ (issue #958)@s#^  if project_state_differs "$before" "$after"; then$#  if [ "$before" != "$after" ]; then#'
   '29.8@-@tools/loop/worktree.sh@worktree#anIdeBuildDirectoryDoesNotBlockTheMerge@the landing reading the tree as the filter leaves it (issue #962)@s#^  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes untracked)$#  dirty=$(gitr status --porcelain -uall)#'
   # 29.9 — the run's own reading without `-uall`: an untracked directory collapses to `?? newmodule/`, no pattern
   # matches that name, and a language server's build output stops the item again (issue #958).
-  '29.9@-@tools/loop/run.sh@run#anEditorSwapFileIsNotAChildsWrite@the run reading its own tree file by file, so a build directory an untracked parent hides is not a difference (issue #958)@s@^  git -C "\$LOOP_ROOT" status --porcelain -uall 2>/dev/null$@  git -C "\$LOOP_ROOT" status --porcelain 2>/dev/null@'
+  '29.9@-@tools/loop/evidence.sh@run#anEditorSwapFileIsNotAChildsWrite@the run reading its own tree file by file, so a build directory an untracked parent hides is not a difference (issue #958)@s@^  git -C "\$LOOP_ROOT" status --porcelain -uall 2>/dev/null$@  git -C "\$LOOP_ROOT" status --porcelain 2>/dev/null@'
   # 29.10 — the landing dropping a *tracked* entry too: the filter becomes a licence to merge over a tracked edit whose
   # name it covers, which `worktree#aTrackedEditStillBlocksTheMerge` refuses (issue #962).
   '29.10@-@tools/loop/worktree.sh@worktree#aTrackedEditStillBlocksTheMerge@the landing dropping only untracked entries, so a modified tracked file the pattern covers still refuses (issue #962)@s#^  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes untracked)$#  dirty=$(gitr status --porcelain -uall | loop_drop_ignorable_writes)#'
@@ -407,14 +407,14 @@ MUTATIONS=(
   # lock change took 41.x first (`#265`), and a label names one invariant for good.
   '43.1@-@tools/loop/tests/loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
   '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop/tests/loop-mutations\.sh --check;##'
-  '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1" \&\& printf|'
+  '43.3@-@tools/loop/child.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1" \&\& printf|'
   # 44.1 is the cap reaching further than the child's process group. The group is what `set -m` gives the child,
   # and a descendant that called `setsid` is in no group the two signals name: measured 2026-10-22 (issue #272),
   # the mutation harness a child had started kept mutating and restoring the worktree until seven minutes after
   # the run had recorded the child as ended, its last restore leaving the tree dirty for the next run. The sweep
   # is the same `loop_pids_under` test the self-test's teardown and `loop-clean.sh` report with, run over the
   # tree the survivor still names as its working directory.
-  '44.1@-@tools/loop/run.sh@run#detachedProcessInTheWorktreeIsEndedByTheCap@the cap ending the processes the child left working in the tree, and naming each one (issue #272)@s|^    sweep=\$(loop_end_pids_under "$LOOP_WORKTREE")$|    sweep=""|'
+  '44.1@-@tools/loop/child.sh@run#detachedProcessInTheWorktreeIsEndedByTheCap@the cap ending the processes the child left working in the tree, and naming each one (issue #272)@s|^    sweep=\$(loop_end_pids_under "$LOOP_WORKTREE")$|    sweep=""|'
   # 45.1 — the commit that outlived the child it belongs to. Measured 2026-10-22 (issue #271): the worker of
   # #262 was ended by the cap at 23:48 with mutation 19.2 applied, `end-item` committed that tree 18 s later, and
   # the dead arm stayed on `origin/fix/issue-262-…` until a person amended it by hand at 05:05. The mutation
@@ -586,8 +586,8 @@ MUTATIONS=(
   # 60.1 puts the whole second back in the poll — the run's wait outlasts a child that has already answered — and
   # 60.2 drops the elapsed-second test, so the heartbeat reports on every look and the configured interval stops
   # meaning seconds.
-  '60.1@-@tools/loop/run.sh@run#theWaitEndsWhenTheChildDoes@the wait looking for the completion record below a whole second (issue #259)@s|^    sleep "\$poll"$|    sleep 1|'
-  '60.2@-@tools/loop/run.sh@run#theProgressLineKeepsItsInterval@the heartbeat'"'"'s test on elapsed seconds rather than on the look it was woken by (issue #259)@s|^      \[ "\$elapsed" -ge "\$next" \] \|\| continue$|      : # the mutation reports on every look|'
+  '60.1@-@tools/loop/child.sh@run#theWaitEndsWhenTheChildDoes@the wait looking for the completion record below a whole second (issue #259)@s|^    sleep "\$poll"$|    sleep 1|'
+  '60.2@-@tools/loop/child.sh@run#theProgressLineKeepsItsInterval@the heartbeat'"'"'s test on elapsed seconds rather than on the look it was woken by (issue #259)@s|^      \[ "\$elapsed" -ge "\$next" \] \|\| continue$|      : # the mutation reports on every look|'
   # 61.x — the measuring block carries the suite's declared case count and the gate's own timing, and both tasks
   # state the rule a quoted number follows (issue #244). Measured 2026-10-21 over `.pi/issue-loop/items/*/
   # reviewer-report-1.md`: 11 PASS against 29 FAIL, 147 `UNPROVEN` claims in the round-1 reports, most of them
@@ -610,7 +610,7 @@ MUTATIONS=(
   '62.2@-@tools/loop/tests/loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
   '62.3@-@tools/loop/tests/loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
   '62.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
-  '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue"$|    : # the mutation keeps no patch|'
+  '62.5@-@tools/loop/child.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue"$|    : # the mutation keeps no patch|'
   # 62.6 pinned the patch a **refused** start kept (issue #308). That refusal no longer ends a run whose owner this run
   # recorded — its work is written to the patch and discarded, and `run#aRefusedStartKeepsTheLeftoversItFound` is gone with
   # the arm it described. What the record protected is 271.2, and 62.5 still pins the cap-ended child's patch.
@@ -638,7 +638,7 @@ MUTATIONS=(
   # record beside the stream (`( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 < /dev/null &`), and a
   # record that quoted the `printf` would have to carry a `\n` through `sed`'s own escaping. What the mutation restores
   # is the shape, not the line.
-  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  ( \$cmd;.*>"\$stream" 2>&1 < /dev/null &$|  \$cmd 2>\&1 \| tee "\$stream" \&|'
+  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^    \$cmd; printf .*$|    \$cmd 2>\&1 < /dev/null \| cat > "\$stream"; printf "%s\\n" "\$?" > "\$status_file" ) \&|'
 
   # 947.1 — the step's stdin is the empty device (issue #947). A step inherited the gate's stdin, which for a run
   # started from a shell is a terminal, and the group `set -m` gives the step is a *background* group there: measured
@@ -660,7 +660,7 @@ MUTATIONS=(
   # round and 542 s of phases = 2 704 s against the 2 700 s constant, and the child was ended 8 s after its green
   # `gate-summary.xml` was written; #664 and #666 ended the same way. The mutation keeps the floor and drops the
   # derivation, so the case reads a child given less than its own item's gate costs.
-  '64.1@-@tools/loop/run.sh@run#theChildCapIsNeverBelowWhatOneItemsGateOwes@the bound that follows what one item'"'"'s gate owes (issue #663)@s|^  if \[ "\$owes" -gt "\$floor" \]; then .*$|  : # the mutation keeps the floor|'
+  '64.1@-@tools/loop/child.sh@run#theChildCapIsNeverBelowWhatOneItemsGateOwes@the bound that follows what one item'"'"'s gate owes (issue #663)@s|^  if \[ "\$owes" -gt "\$floor" \]; then .*$|  : # the mutation keeps the floor|'
   # 64.2 — the other clock the run answers "may this item start?" with (issue #663). `next` refuses an item the
   # remaining budget cannot pay for, and the floor below what one item's gate owes lets an item start that pays for
   # its gate and loses the phases after a green round: the bound's own loss through the other door.
@@ -811,12 +811,12 @@ MUTATIONS=(
   # 77.1 is the role-scoped command a project records instead of one command for every child. The head of the line
   # `run_child` resolves is the resolution itself: with it gone every child is back on `LOOP_AGENT_CMD`, which is the
   # shape before the key existed — so the case that names the invariant must see the reviewer's child move.
-  '77.1@-@tools/loop/run.sh@state#aRolesOwnCommandStartsOnlyThatRolesChild@the role-scoped agent command that lets one role run on a command of its own@s#^  if \[ -n "\$.*then child_cmd="\$role_cmd"; fi$#  : the mutation keeps every child on the project command#'
+  '77.1@-@tools/loop/child.sh@state#aRolesOwnCommandStartsOnlyThatRolesChild@the role-scoped agent command that lets one role run on a command of its own@s#^  if \[ -n "\$.*then child_cmd="\$role_cmd"; fi$#  : the mutation keeps every child on the project command#'
   # 77.2 is the chain that resolution is read through (issue #821): a role's own key, the key of the role it belongs to,
   # then the project's one — with the item's class refining the role it is spelled after. The candidate walk that
   # returns the first recorded key is the chain; with it gone every child is back on `LOOP_AGENT_CMD`, which is what the
   # case's first assertion measures (the round before the gate is started on the reviewer's key it inherits).
-  '77.2@-@tools/loop/run.sh@state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo@the chain that gives a role the key of its head role rather than the project one (issue #821)@s#^    if \[ -n "\$(loop_conf_value "\$candidate" | tr -d .\[:space:\].)" \]; then printf .%s. "\$candidate"; return 0; fi$#    if false; then :; fi#'
+  '77.2@-@tools/loop/child.sh@state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo@the chain that gives a role the key of its head role rather than the project one (issue #821)@s#^    if \[ -n "\$(loop_conf_value "\$candidate" | tr -d .\[:space:\].)" \]; then printf .%s. "\$candidate"; return 0; fi$#    if false; then :; fi#'
 
   # 78.x — a run reports the shape it spent its budget in, and names an item below the recorded floor (issue #757).
   # Measured over the archive: 36 825 tool calls in 33 183 turns, 1.11 per turn, at 78 k tokens a turn and 97 % cache
@@ -834,7 +834,7 @@ MUTATIONS=(
   # was paid for by a gate it did not need and then by a full rework pass. Four sites, each with the case that owns the
   # shape: which section the change child's prompt is handed, the block that runs the round and the gate child at all,
   # the hand-off of the findings to that child, and the outcome arm a round the run cut records.
-  '79.1@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the section `worker.md` is handed, so the change child is told which end its session has (issue #758)@s|^  if \[ "\${1:-off}" = on \]; then cat "\$LOOP_DIR/prompts/gate-deferred.md"; else cat "\$LOOP_DIR/prompts/gate-own.md"; fi$|  if false; then cat "$LOOP_DIR/prompts/gate-deferred.md"; else cat "$LOOP_DIR/prompts/gate-own.md"; fi|'
+  '79.1@-@tools/loop/child.sh@run#thePreGateReviewRunsBeforeTheGate@the section `worker.md` is handed, so the change child is told which end its session has (issue #758)@s|^  if \[ "\${1:-off}" = on \]; then cat "\$LOOP_DIR/prompts/gate-deferred.md"; else cat "\$LOOP_DIR/prompts/gate-own.md"; fi$|  if false; then cat "$LOOP_DIR/prompts/gate-deferred.md"; else cat "$LOOP_DIR/prompts/gate-own.md"; fi|'
   '79.2@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the block that reads the diff before the gate and starts the child that runs it (issue #758)@s|^  if \[ "\$pre_gate" = on \] \&\& \[ "\$worker_exit" -eq 0 \] \&\& \[ "\$worker_write_decides" -eq 0 \]; then$|  if false; then|'
   '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758; the reading moved to the verdict reader with issue #793)@s|^        if \[ "\$pre_gate_verdict" = FAIL \] && \[ -n "\$blocking" \] && \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
   '79.4@-@tools/loop/run.sh@run#aPreGateReviewEndedAtItsBoundNamesIt@the outcome arm a bound the run enforces records on a round it cut, so a round the deadline or a spend bound ended is left for the next run instead of closing (issues #758, #953; the case moved when a transport cut stopped taking this arm)@s|^  if \[ -n "\$pre_gate_refusal" \]; then$|  if false; then|'
@@ -853,7 +853,7 @@ MUTATIONS=(
   # written on the branch so the round is not read as one nobody answered, and the queue's second pass the run skips
   # after a cut, which would re-exclude the item whose branch the cut child had just made.
   '80.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the result a round the run ended at a bound records, so it is a block its owner owes an answer to (issue #785)@s|--result cut --verdict cut|--result blocked --verdict blocked|'
-  '80.2@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the cut written on the branch, so the round the run ended is read as one nobody answered and the branch as a question only a person can answer (issues #785, #262)@s|^  bash .*record-review-round .*"\$1" cut >&2.*$|  : # the mutation leaves the round announced and unanswered|'
+  '80.2@-@tools/loop/child.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the cut written on the branch, so the round the run ended is read as one nobody answered and the branch as a question only a person can answer (issues #785, #262)@s|^  bash .*record-review-round .*"\$1" cut >&2.*$|  : # the mutation leaves the round announced and unanswered|'
   '80.3@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the guard that skips the queue second pass after a bound cut an item the run just worked (issue #785)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
   # 81.x — a block the run's own bound caused is no refusal (issue #786): the mechanism itself (81.1) and the streak
   # `next` stops a run on (81.2). The third site — the escalation such a block no longer writes — is gone with the
@@ -870,12 +870,12 @@ MUTATIONS=(
   # `agent/in-progress`; found 17 minutes in, and the child cap would have ended the wait at 45 minutes with an item
   # blocked for a dead child. The mutation drops the liveness reading, so the case sees the wait the tree's poll was
   # — ended by a clock 3 600 s away — and nothing else changes: the record and every clock are untouched.
-  '82.1@-@tools/loop/run.sh@run#aVanishedWriterEndsTheWait@the liveness of the subshell that writes the child record, so a writer that vanished is waited for until a clock (issue #795)@s|^    if \[ ! -e "\$status_file" \] && ! kill -0 "\$child" 2>/dev/null; then$|    if false; then|'
+  '82.1@-@tools/loop/child.sh@run#aVanishedWriterEndsTheWait@the liveness of the subshell that writes the child record, so a writer that vanished is waited for until a clock (issue #795)@s|^    if \[ ! -e "\$status_file" \] && ! kill -0 "\$child" 2>/dev/null; then$|    if false; then|'
   # 83.x — a closing block a reviewer fenced as inline code is a complete answer (issue #793). Measured 2026-11-06 on
   # item #788: both of its pre-gate reports ended `LOOP-BLOCKING: 3` then `VERDICT: FAIL`, each line wrapped in
   # backticks and the file ending on the adapter's newline, and the run read two complete refusals as answers the
   # transport had cut. Without the un-fencing, the same report is a cut answer again.
-  '83.1@-@tools/loop/run.sh@run#aFencedClosingBlockIsACompleteAnswer@the fence taken off a closing line before the report is judged complete (issue #793)@s#^  report_lines "\$1" | grep -qE "\$2" 2>/dev/null$#  grep -qE "\$2" "\$1" 2>/dev/null#'
+  '83.1@-@tools/loop/evidence.sh@run#aFencedClosingBlockIsACompleteAnswer@the fence taken off a closing line before the report is judged complete (issue #793)@s#^  report_lines "\$1" | grep -qE "\$2" 2>/dev/null$#  grep -qE "\$2" "\$1" 2>/dev/null#'
   '84.1@-@tools/loop/gate.sh@gate#theDeclarationCaseIsOwedFirst@the cheap step the gate owes before its suites and its build, so a declaration one path token short is found at the end of the gate again (issue #792)@s|^owe_pairs first "\$first_steps"$|: # the mutation leaves the cheap step to the end|'
 
   # 85.x — the suite states what it cost (issue #782). Measured 2026-11-06 in the change root: `tools/loop/tests/loop-selftest.sh
@@ -891,7 +891,7 @@ MUTATIONS=(
   # failed because the project tree was not clean, and the run escalated the item with the pre-screen's reason —
   # 12 h after its owner had answered the only question it had. The mutation drops the record the exclusion loop
   # writes, so the refusal is back to a line on the terminal and the item is back to a spent decision slot.
-  '86.1@-@tools/loop/run.sh@run#anAdoptionLandsOverADifferenceItCannotPlace@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
+  '86.1@-@tools/loop/leftovers.sh@run#anAdoptionLandsOverADifferenceItCannotPlace@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
   # 87.x — a child has a search tool that runs (issue #796). Measured 2026-11-06 by `evidence/ctx-grep-census.py` over
   # this run archive: 282 of 482 `ctx_grep` calls answered `zsh:1: command not found: rg` (125 of 252 item directories),
   # while the binary sits in the agent's own bin directory — and the recipe every phase prompt and every guideline
@@ -928,7 +928,7 @@ MUTATIONS=(
   # directories. Four invariants: the writer rotates at its bound, the turn count survives a rotation, the report's age
   # gate, and the report's reading of whether an issue still cites the directory.
   '89.1@-@../pi-child-events.sh@adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded@the bound the writer rotates at, so the stream of every item is appended for its whole life again (issue #802)@s#^          \[ "$kept_bytes" -le "$events_bound" \] || rotate_events "$events"$#          :#'
-  '89.2@-@tools/loop/run.sh@run#aRotatedStreamStillCountsTheTurnsItDropped@the turns a rotated stream records added to the ones it still holds, so a child bound falls back to zero whenever the writer rotates (issue #802)@s#"$(( n + r ))"#"$n"#'
+  '89.2@-@tools/loop/child.sh@run#aRotatedStreamStillCountsTheTurnsItDropped@the turns a rotated stream records added to the ones it still holds, so a child bound falls back to zero whenever the writer rotates (issue #802)@s#"$(( n + r ))"#"$n"#'
   '89.3@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the age gate that keeps an item directory an open issue may still cite, so a directory written a minute ago is released (issue #802)@s#-mmin -$(( archive_days \* 1440 ))#-mmin -0#'
   '89.4@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the run state reading of a landed and closed item, so a landed item is released whatever its issue still cites (issue #802)@s#(.metrics.closed // "no") == "yes"#(true)#'
   # 90.1 — the start-time pre-flight refuses a project tree that carries uncommitted work, because the landing step
@@ -1058,7 +1058,7 @@ MUTATIONS=(
   # depending on the change at all (262.3), and the one derivation stops leaving out the generated trees the round's
   # diff leaves out (262.4), which is the state where the gate and the round name two trees on a tree nobody corrected.
   '262.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the tree a full run records, so its record cannot be attributed to the content it measured (issue #819)@s|^    printf '\''%s\\t%s\\t%s\\n'\'' "\$session_key" "\$gate_argv" "\${tree_identity:-head=unknown diff=unknown}" >> "\$runs_record" 2>/dev/null \|\| true$|    printf '\''%s\\t%s\\n'\'' "$session_key" "$gate_argv" >> "$runs_record" 2>/dev/null \|\| true|'
-  '262.2@-@tools/loop/run.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_change_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
+  '262.2@-@tools/loop/evidence.sh@run#aReviewDiffNamesTheTreeItWasWrittenFrom@the identity a round is handed beside its diff, so the reviewer compares a gate against a tree it never saw (issue #819)@s|^  loop_change_identity "\$worktree" "\${base:-\$1}" > "\$2\.identity"$|  true|'
   '262.3@-@tools/loop/lib.sh@gate#aThirdFullRunInOneSessionIsRefused@the digest of the change itself, so a tree corrected after the gate reads as the tree the gate measured (issue #819)@s|^  printf '\''head=%s diff=%s'\'' "\$head" "\$digest"$|  printf '\''head=%s diff=%s'\'' "$head" "0000000000000000"|'
   '262.4@-@tools/loop/lib.sh@gate#theGateAndTheRoundNameOneTree@the path set the one derivation leaves the generated trees out of, so a gate reads its own evidence as a correction of the tree it measured (issue #819)@s|^  loop_tree_identity "\${1:-}" "\${2:-}" "\$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)"$|  loop_tree_identity "${1:-}" "${2:-}"|'
   # 262.5–262.7 are the change's *own* files and the order the run writes them in (issue #837): an open change is
@@ -1184,8 +1184,8 @@ MUTATIONS=(
   # Every one belonged to a role whose work is reading the item — the rework worker and the review round. Three rules,
   # one case each: the role's key is read first (`270.1`), the key the transcript names is the one that fired (`270.2`),
   # and the header prints every role's figure (`270.3`).
-  '270.1@-@tools/loop/run.sh@run#eachRoleIsBoundedByItsOwnContext@the role key read before the item key, so a review round is ended by the item number however much of the item its work may read (measured 2026-11-10: 8 of 9 cuts)@s|^  value=$(loop_conf_value "$(child_context_bound_key "$role")")$|  value=""|'
-  '270.2@-@tools/loop/run.sh@run#eachRoleIsBoundedByItsOwnContext@the key the transcript names, so a child ended by its role reading bound is recorded as having reached the item bound — the field a person reads to know which bound fired (measured 2026-11-10)@s|^  if \[ "$ctx_bound" != "$item_context_max" \]; then ctx_bound_key=$(child_context_bound_key "$role"); fi$|  : # the mutation names the item key for every role|'
+  '270.1@-@tools/loop/child.sh@run#eachRoleIsBoundedByItsOwnContext@the role key read before the item key, so a review round is ended by the item number however much of the item its work may read (measured 2026-11-10: 8 of 9 cuts)@s|^  value=$(loop_conf_value "$(child_context_bound_key "$role")")$|  value=""|'
+  '270.2@-@tools/loop/child.sh@run#eachRoleIsBoundedByItsOwnContext@the key the transcript names, so a child ended by its role reading bound is recorded as having reached the item bound — the field a person reads to know which bound fired (measured 2026-11-10)@s|^  if \[ "$ctx_bound" != "$item_context_max" \]; then ctx_bound_key=$(child_context_bound_key "$role"); fi$|  : # the mutation names the item key for every role|'
   '270.3@-@tools/loop/run.sh@run#eachRoleIsBoundedByItsOwnContext@the per-role figures the header prints, so a bound a run enforces on six roles is a bound it names nowhere and cannot be audited for (issue #842, the same rule the turn bounds follow)@s|^  child_context_bounds="${child_context_bounds:+$child_context_bounds,}$role:$(child_context_bound "$role")"$|  child_context_bounds=""|'
   # …and the rate the cuts are judged by counts them (`270.4`): `cut` exists for exactly one reason, while the
   # mechanism field is kept off a round a review bound ended, so a run whose cuts were all review rounds printed
@@ -1266,7 +1266,7 @@ MUTATIONS=(
   # the reading it needs — a child's own lines rather than the whole stream it shares (`276.2`), without which the
   # continuation is ended on its first reading by the number that ended the child before it.
   '276.1@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the block that continues an item its own context bound cut, so the work is handed to the next run as a patch whose base has moved (issue #851)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] && child_ended_by_context_bound "\$worker_report"; then$|  if false; then|'
-  '276.2@-@tools/loop/run.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the baseline that makes the context bound the child'"'"'s own reading, so a fresh session inherits the number that ended the child before it and the continuation is cut on its first reading (issue #851)@s|^  if \[ -f "\${LOOP_CHILD_EVENTS:-}" \]; then ctx_lines=.*$|  ctx_lines=0|'
+  '276.2@-@tools/loop/child.sh@run#aContextCutWorkerIsContinuedByItsOwnRun@the baseline that makes the context bound the child'"'"'s own reading, so a fresh session inherits the number that ended the child before it and the continuation is cut on its first reading (issue #851)@s|^  if \[ -f "\${LOOP_CHILD_EVENTS:-}" \]; then ctx_lines=.*$|  ctx_lines=0|'
   # 277.x — an action names the item path the tree holds (issue #855). `report.sh` built every item path from the
   # directory the state file sits in, and that directory is the loop root only while the state is the one in place:
   # `state.sh init` keeps the state it replaces under `runs/`, so the report of any finished run printed
@@ -1282,9 +1282,9 @@ MUTATIONS=(
   # case each: the split exists (`278.1`), it is recorded as the checkpoint's continuation rather than the stop's
   # (`278.2`), and it is taken only from a child that has work to continue (`278.3`), so the checkpoint does not become
   # the bound #836 refused to lower.
-  '278.1@-@tools/loop/run.sh@run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound@the checkpoint split itself, so the item keeps paying for the grown context until the stop cuts it and the work is handed to the next run (issue #856)@s|^      if \[ "\$item_context_warn" -gt 0 \] && \[ "\$phase" = worker-prompt \] && \[ "\$ctx_max" -ge "\$item_context_warn" \]; then$|      if false; then|'
+  '278.1@-@tools/loop/child.sh@run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound@the checkpoint split itself, so the item keeps paying for the grown context until the stop cuts it and the work is handed to the next run (issue #856)@s|^      if \[ "\$item_context_warn" -gt 0 \] && \[ "\$phase" = worker-prompt \] && \[ "\$ctx_max" -ge "\$item_context_warn" \]; then$|      if false; then|'
   '278.2@-@tools/loop/run.sh@run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound@the step the checkpoint split records, so a checkpoint continuation is written as the worker-continuation of the stop and a reader cannot tell which reading ended the phase (issue #856)@s|^        \*"the recorded context checkpoint of"\*) continuation_step=worker-checkpoint|        *"the recorded context checkpoint of"*) continuation_step=worker-continuation|'
-  '278.3@-@tools/loop/run.sh@run#aWorkerAtTheCheckpointWithNoWorkRunsOn@the work the tree must carry before the checkpoint ends the child, so a session that has only read is cut at 143 124 and the item loses the stop the profile records (issue #856)@s|^        if \[ "\$ctx_has_work" -eq 1 \]; then$|        if true; then|'
+  '278.3@-@tools/loop/child.sh@run#aWorkerAtTheCheckpointWithNoWorkRunsOn@the work the tree must carry before the checkpoint ends the child, so a session that has only read is cut at 143 124 and the item loses the stop the profile records (issue #856)@s|^        if \[ "\$ctx_has_work" -eq 1 \]; then$|        if true; then|'
   # 854.x — a skip's reason is the line the report prints (issue #854). The skip arm passed the child's sentence as
   # `--root-cause` and the constant `skipped by the worker` as `--note`, and `report.sh` prints the note, so the run
   # of 2026-11-11T11:37:08Z printed `#838 too-wide (skipped by the worker)` and `#844 stale (skipped by the worker)`
@@ -1315,14 +1315,14 @@ MUTATIONS=(
   # column printed `-` for 85 % of them. Every arm now writes its class through one helper, and this record empties
   # the field at that one place: the arm that reads the class out is the whole invariant, so the case's assertion on
   # the recorded class is the one that has to fail.
-  '865.1@-@tools/loop/run.sh@run#anEmptyTreeIsRefusedBeforeTheGateChild@the class written beside a block by the arm that stopped it, so a blocked item reaches the record with a null mechanism and the report table prints `-` in its stop column for it (issue #865)@s|^  stop_reason="\$1"$|  stop_reason=""|'
+  '865.1@-@tools/loop/evidence.sh@run#anEmptyTreeIsRefusedBeforeTheGateChild@the class written beside a block by the arm that stopped it, so a blocked item reaches the record with a null mechanism and the report table prints `-` in its stop column for it (issue #865)@s|^  stop_reason="\$1"$|  stop_reason=""|'
   # 882.x — the checks a child runs by hand are the gate's own work, and nothing bounded them (issue #882).
   # `LOOP_GATE_RUNS_MAX` refuses a second full run through `tools/loop/gate.sh`, while the same work started outside it
   # was priced only after the child had ended, as `metrics.gateRepeat` (issue #857) — 226 such calls held 1.3 h of the
   # 3.1 h gate bucket of the run started 2026-11-13T05:47:11Z. Two rules, one case: the arm that ends a child past the
   # recorded number (`882.1`), and the clause that counts the program a call **runs** rather than every word of it
   # (`882.2`) — a call that only names the gate's own file is read and starts nothing.
-  '882.1@-@tools/loop/run.sh@run#childPastItsCheckBoundIsCut@the arm that ends a child past the recorded check bound, so the checks a child starts by hand are counted in the report and never acted on, and the gate-s work is paid outside the gate (issue #882)@s|^      if \[ "\$checks_seen" -ge "\$checks_max" \]; then$|      if false; then|'
+  '882.1@-@tools/loop/child.sh@run#childPastItsCheckBoundIsCut@the arm that ends a child past the recorded check bound, so the checks a child starts by hand are counted in the report and never acted on, and the gate-s work is paid outside the gate (issue #882)@s|^      if \[ "\$checks_seen" -ge "\$checks_max" \]; then$|      if false; then|'
   '882.2@-@tools/loop/lib.sh@run#childPastItsCheckBoundIsCut@the clause that reads the program a call runs, so a call that only names the path of a program the gate-s checks start is counted as one that ran it and the transcript names four checks where the child ran two (issue #882)@s#select(($prog == $c) or ($prog | endswith("/" + $c)))#select(true)#'
   # 937.x — a programme the gate's map names, run whole, is the gate's work and not one of the child's checks (issue
   # #937). The run started 2026-11-18T22:18:25Z ended 4 of its 11 items at `LOOP_CHILD_CHECKS_MAX=40` while the
@@ -1346,7 +1346,7 @@ MUTATIONS=(
   # block: #849 blocked for 2 714 s on `worktree#keepsSourcesNotBuildOutput`, a red that reproduced at neither head.
   # The probe re-runs the one case the tally named in the item's own worktree (`861.1`), the refusal it stands in
   # front of (`861.2`), and the state backstop a caller that is not `run.sh` meets (`861.3`) — three halves of one rule.
-  '861.1@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
+  '861.1@-@tools/loop/evidence.sh@run#aFlakedCaseIsOffTheBlockedPath@the second look a red case is attributed by, so a case that fails again in the item own worktree is recorded as a flake and the item closes over the delta own red (issue #861)@s|^  ( cd "\$root" && timeout "\$bound" bash -c "\$rerun" ) >/dev/null 2>&1$|  : "\$root" "\$rerun" "\$bound"|'
   '861.2@-@tools/loop/run.sh@run#aFlakedCaseIsOffTheBlockedPath@the exception a flaked answer stands in the waiver place with, so the close over a red tally the second look did not reproduce is refused again and the item blocks (issue #861)@s|^    && \[ "\$gate_attribution" != "flaked" \]; then$|    && true; then|'
   '861.3@-@tools/loop/state.sh@run#aFlakedCaseIsOffTheBlockedPath@the same exception in the state backstop, so a caller that is not run.sh reads two rules for one close and refuses the record the run just made (issue #861)@s|^  elif \[ "\$result" = done \] && \[ "\$(gate_tally_state "\$gate")" = red \] && \[ "\$gate_attribution" != flaked \]; then$|  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then|'
   # 918.x — a round the run%ss bound ended is restarted in this run, in a fresh session on the input the cap already
@@ -1357,8 +1357,8 @@ MUTATIONS=(
   # report%ss, the round still answers and every assertion the case makes still holds, so a record there would be one
   # the case cannot notice, which this harness reports as a failure of the harness rather than a pass.
   '918.1@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the guard that decides whether a round the bound ended is restarted, so the item is handed to the next run again and the reading the bound ended stays the item%ss question (issue #918)@s|&& review_restart_before_deadline; then$|\&\& false; then|'
-  '918.2@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the findings the cut round wrote, so the restarted round is handed the bound and none of what the ended reading had already decided (issue #918)@s|^  findings=.*$|  findings=""|'
-  '918.3@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the line the item keeps of a restart, so a round that answered after one reads in the record exactly as a round that answered first time (issue #918)@s|^    review_restart_line="\$line"$|    review_restart_line=""|'
+  '918.2@-@tools/loop/evidence.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the findings the cut round wrote, so the restarted round is handed the bound and none of what the ended reading had already decided (issue #918)@s|^  findings=.*$|  findings=""|'
+  '918.3@-@tools/loop/evidence.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the line the item keeps of a restart, so a round that answered after one reads in the record exactly as a round that answered first time (issue #918)@s|^    review_restart_line="\$line"$|    review_restart_line=""|'
   # 924.x — the round the reviewer is handed is bounded (issue #924), and the cap is the half a case sees from the
   # outside: with it removed the bounded round hands the whole part again, the item's state records no cut and the
   # report prints the constant for a run nothing was cut from. One record, one invariant.
@@ -1371,8 +1371,8 @@ MUTATIONS=(
   # list and never ran; and once the fold was closed, the assertion that names the cap read the prompt for a line only
   # the index carries. Both are repaired, so `924.2` is that record: `--only 924.2` over the case as it stood printed
   # `not-noticed: 1`, and over the case as it now stands `red-when-mutated: 1` (issue #924).
-  '924.1@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
-  '924.2@-@tools/loop/run.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the index the round reads by path, so a cut round is handed a head whose remainder is named nowhere and a prompt pointing at a file that was never written (issue #924)@s#^  } > "$cut_file"$#  } > /dev/null#'
+  '924.1@-@tools/loop/evidence.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the cap itself, so a round over the recorded size hands the whole part again and the item state records no scale for the report to print (issue #924)@s#^  \[ "$cap" -gt 0 \] || return 0$#  return 0#'
+  '924.2@-@tools/loop/evidence.sh@prompt#reviewerInputsAreBoundedAndTheCutIsNamed@the index the round reads by path, so a cut round is handed a head whose remainder is named nowhere and a prompt pointing at a file that was never written (issue #924)@s#^  } > "$cut_file"$#  } > /dev/null#'
   # 925.x — the rule the worker prompt stated and nothing counted is a measured bound with a refusal arm (issue #925):
   # the second read of a path one child was handed is counted every time, and the arm `LOOP_REPEAT_READ` records picks
   # what it is answered with. Over the run behind that issue 2 167 of 2 987 reads (72.5 %) were a second read of a path
@@ -1503,6 +1503,36 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 938.1 — the container as a unit (issue #938). The screen refused a container and refused each child that awaits a
+  # decision, and nothing joined the two, so a child of a container the run could not advance was handed a slot it
+  # could not return: the run of 2026-11-15T19:32:41Z spent 51.3 of its 175.0 Mtok on two epics that closed nothing.
+  # The record empties the arm that reads this run's own cut, so a container that already spent its slot is screened
+  # exactly as before and its children are queued again.
+  '938.1@-@tools/loop/prescreen.sh@prescreen#aContainerCutAtABoundTakesNoFurtherSlot@the arm that reads the child a bound ended, so a container that already spent its slot this run takes no further one (issue #938)@s#^        | if \$cutChild != null then$#        | if false then#'
+  # 983.1 — the reading a block owes a child that wrote the caller's tree (issue #983). The record drops the clause
+  # that names the difference from both arms that read an empty tree, so the reason says "nothing was committed" of
+  # an item whose work stands in the project's own tree with no path named anywhere — the reading item #894 of the run
+  # of 2026-11-20T09:58:14Z carried as `LOOP-OUTSIDE-WRITE-FIRST: … M tools/loop/layout.tsv; …` and the caller's tree
+  # still holds. `run#anEmptyTreeWithAnOutsideWriteNamesThePaths` is the case that must notice.
+  '983.1@-@tools/loop/run.sh@run#anEmptyTreeWithAnOutsideWriteNamesThePaths@the clause that names the caller'"'"'s tree and the paths the run recorded, so an item whose child wrote the project'"'"'s own tree is reported as one that committed nothing (issue #983)@s|nothing was committed\$(item_outside_write_clause)|nothing was committed|'
+  # 892.x — the split's own rules (issue #892): the layout table's bound, the owner each function belongs to, the
+  # shared-name declaration, the declared source order, a call that reads a file sourced later, and the selection a
+  # delta's file set produces. Each mutates the file the rule lives in — the table for the first, the engine for the
+  # rest — because a rule read by a case over the tree cannot be reached by mutating a fixture.
+  '892.1@-@tools/loop/layout.tsv@driver#noEngineFileExceedsItsBound@the entry row%ss bound set one line below the file%ss length, so a file that outgrows the number its row declares is not refused (issue #892)@s#^run\.sh\t3497\t#run.sh\t2796\t#'
+  '892.2@-@tools/loop/run.sh@driver#anOwnedFunctionIsInItsOwnersFile@a function the table gives to another file, defined in the entry, so a body the move left behind is not a diff a reader can see (issue #892)@s|^#!.*|#!/usr/bin/env bash\nchild_cap() { :; }|'
+  '892.3@-@tools/loop/child.sh@driver#theSharedNamesAreDeclared@a second definition of a name `lib.sh` already assigns, so two files own one name and the declaration the table carries stops being the set the engine shares (issue #892)@s|^#!.*|#!/usr/bin/env bash\nprogress() { :; }|'
+  '892.4@-@tools/loop/run.sh@driver#theSourceOrderIsDeclared@the entry%ss `child.sh` source line, replaced by a second `evidence.sh`, so the chain the table declares and the chain the entry loads part company and a call to the last file reads as one to a file loaded twice (issue #892)@s#^source "\$here/child.sh"$#source "$here/evidence.sh"#'
+  '892.5@-@tools/loop/evidence.sh@driver#aCallToALaterFilesFunctionFails@a call to `child.sh`%ss `child_cap` from a file the entry sources before it, so a function is read before the file that defines it is loaded (issue #892)@s|^#!.*|#!/usr/bin/env bash\nchild_cap|'
+  '892.6@-@tools/loop/tests/loop-selftest.sh@driver#theSelectionFollowsTheOwner@the guard a file set that names nothing is answered by, so every case is selected for every delta and the declaration the split exists to narrow selects the whole suite again (issue #892)@s#^  \[ "\$only_files" = " " \] && return 0$#  return 0#'
+  # 980.1 — the environment a step is measured in (issue #980). The gate handed the step its own environment, so a step
+  # that runs the loop's own suite ran with the item session facts in it: on the leg
+  # `tools/loop/tests/loop-selftest.sh --from-git {base}` the base tree answered a read with `LOOP-ALREADY-READ` (211
+  # characters where 6 000 arrive) and a nested gate could not measure because `LOOP_BASE_RED=off` told it not to,
+  # 859–944 s at every one of the six bases the run's log holds and red at each. The record drops the removal, so the
+  # step is handed the ledger, the session name, the bound, the arm, the record, the stream and the switch again, and
+  # `gate#aStepIsNotHandedTheItemsSession` is what must notice.
+  '980.1@-@tools/loop/gate.sh@gate#aStepIsNotHandedTheItemsSession@the removal of the item session facts from the environment a step is measured in, so a measured suite runs with the ledger, the session name, the result bound and the base-red switch of the child that started the gate (issue #980)@s|^  ( unset "${item_session_vars\[@\]}"$|  ( : # the mutation hands the step the gate session environment|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

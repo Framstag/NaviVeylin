@@ -1,0 +1,27 @@
+red on HEAD 4c7202ebb6c099ef7c409fce747115d10720054f, engine /home/tim/projects/NaviVeylin/.pi/issue-loop/items/912/scratch/base-912/tools/issues, run 2026-11-20T22:00:46Z
+
+=== the case names do not exist on HEAD, so the suite cannot pass them ===
+HEAD tools/issues/tests/check-metadata-selftest.sh --list names check#untypedItemIsReported: 0 occurrence(s)
+HEAD tools/issues/tests/issue-tooling-cases.sh names list#untypedIsQueried: 0 occurrence(s)
+HEAD tools/issues/tests/issue-tooling-cases.sh names check#untypedItemIsReported: 0 occurrence(s)
+HEAD tools/issues/tests/issue-tooling-cases.sh names docs#theFilingSkillsNameTheTypeAxis: 0 occurrence(s)
+
+=== the behaviour each case asserts, run against HEAD engines ===
+--- HEAD check-metadata.sh --issues tools/issues/tests/fixtures/metadata/untyped-item.json
+check-metadata: 1 issue(s) checked · 0 violation(s)
+exit=0
+--- HEAD check-metadata.sh --issues tools/issues/tests/fixtures/metadata/typed-item.json
+check-metadata: 1 issue(s) checked · 0 violation(s)
+exit=0
+--- HEAD check-metadata.sh --issues <the untyped fixture> --json
+{"checked":1,"violations":[]}
+exit=0
+--- HEAD list.sh --untyped
+list: unknown argument --untyped
+exit=2
+
+=== the assertions the two cases make against that output ===
+check#untypedItemIsReported: expect_contains '#61 untyped:' -> the census line is absent
+check#untypedItemIsReported: expect_contains '· 0 violation(s) · 1 untyped' -> the summary carries no count
+check#untypedItemIsReported: jq .untyped -> null: the field is absent
+list#untypedIsQueried: run_tool list.sh --untyped -> 'list: unknown argument --untyped', exit=2

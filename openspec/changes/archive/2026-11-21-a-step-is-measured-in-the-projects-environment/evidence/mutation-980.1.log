@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 440 records (labels: 980.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.MFCXwO
+RED    980.1  gate#aStepIsNotHandedTheItemsSession   (the removal of the item session facts from the environment a step is measured in, so a measured suite runs with the ledger, the session name, the result bound and the base-red switch of the child that started the gate (issue #980))
+       2026-11-21T10:57:48Z — case log line 1: the step ran and reported what it was handed: [LOOP_TOOL_RESULT_MAX_CHARS=4000 LOOP_REPEAT_READ=measure LOOP_CHILD_SESSION=item-worker-gate LOOP_TOOL_RESULT_TRIM_RECORD=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.nHJfIe/cases/0/tree
+restore 980.1 gate#aStepIsNotHandedTheItemsSession green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

@@ -67,10 +67,13 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   - **A `tools/loop/**` delta reads its two tables before it iterates.** The engine is not a text-only `tools/**`
     delta: `run.sh`, `lib.sh` and their siblings are code, so the loop's own suite is its gate
     (`tools/loop/gate.sh`), and the room a change has inside an engine script is a number the tree already
-    carries — the file's row in `tools/loop/layout.tsv` holds its bound beside today's length, and
-    `tools/loop/shared.tsv` holds every name two engine files share. Read the row before the first edit: a
-    delta whose cost the table already shows is estimated before it is iterated, not measured by the suite it
-    spends.
+    carries — the file's row in `tools/loop/layout.tsv` holds its bound beside today's length, the functions that
+    file owns and the event kinds it prints, and `tools/loop/shared.tsv` holds every name two engine files share.
+    Read the row before the first edit: a delta whose cost the table already shows is estimated before it is
+    iterated, not measured by the suite it spends. **The same table is the vocabulary a case's `# files:`
+    declaration is written in**, so the declaration follows the file that owns the behaviour: a delta to one owner's
+    file owes `tools/loop/tests/loop-selftest.sh --files tools/loop/<owner>.sh`, which selects the cases that declare
+    it and not the whole suite.
 - **Rule: look, then measure, before changing code.** A symptom that lives in pixels cannot be settled by
   reading projection, fit or layout code. Look at the artifact, add a coordinate-free diagnostics line
   (numbers — indices, pixels, band, verdict — never a position, spec `auto-diagnostics`), read it on the

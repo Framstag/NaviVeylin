@@ -1,0 +1,15 @@
+# Issue #980's own measurement: the two candidate causes, in a clean tree at base 8e3861c4 (worktree /tmp/basem935)
+
+## candidate (i): the run's LOOP_CONF handed to the measured step
+   LOOP_CONF=<repo>/tools/loop/loop.conf → both cases PASS (not the cause)
+
+## the cause: the child's session environment
+  LOOP_BASE_RED=off → gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt FAILS: expected '0', got '1'
+  LOOP_TOOL_RESULT_LEDGER=<item ledger> LOOP_CHILD_SESSION=… → adapter#theResultBoundExemptsGateEvidence FAILS: expected '6000', got '193' (211 with the item's 18-character session name)
+
+## the two names through a gate, same environment, same tree
+
+## the ledger the item's session carried (sha256/32, turn, size, session, path) — the input that made the adapter case read a repeat
+  44abcf11164bcad0d19d96bb141da275	1	6000	worker-gate-prompt	items/816/gate.log
+
+## the same text without the ledger handed over: 6000 characters arrive

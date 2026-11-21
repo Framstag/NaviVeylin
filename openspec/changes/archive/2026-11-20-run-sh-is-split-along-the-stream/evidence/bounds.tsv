@@ -1,0 +1,14 @@
+# The split's files: length before it, after it, and the bound each row now records (issue #892).
+# before  `git show 49171faee0afa95b78925ce1e58788a0d2bc857e:<file> | wc -l`; a file that did not exist before the
+#         split is `-`
+# after   `wc -l` on the tree this change leaves. Re-taken 2026-11-21 on the replay: the branch's five commits were
+#         replayed onto main 4b53a442, so every file that main grew (the entry's typed record and the arms of #950,
+#         #969, #970 and #983) carries its replayed length here and not the one it had at b63de90
+# bound   the file's column in tools/loop/layout.tsv: the after count + 25 %, rounded up (task 3.3)
+file	before	after	bound
+run.sh	4575	2797	3497
+child.sh	-	787	984
+evidence.sh	-	769	962
+leftovers.sh	-	422	528
+lib.sh	1216	1216	1520
+report.sh	1056	1056	1320

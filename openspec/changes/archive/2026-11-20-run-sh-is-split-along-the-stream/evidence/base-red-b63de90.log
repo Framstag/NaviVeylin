@@ -1,0 +1,295 @@
+driver#anOwnedFunctionIsInItsOwnersFile|   every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: child.sh owns child_cap and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_turn_bound and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_context_bound_key and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_context_bound and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_ended_by_context_bound and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns host_free_mib and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_agent_cmd_key and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_turns and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_context and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_refusal and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns child_role and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns run_child and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns tail_after_gate and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns render_prompt and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns gate_step_text and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns change_readiness_of and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns render_reviewer_prompt and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns record_cut_round and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns record_rework_cut and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: child.sh owns retry_delay_at and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns block and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns report_lines and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns report_field and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns bound_key_value and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns report_verdict and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns last_line and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns answer_complete and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns gate_answered and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns change_answered and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns flake_probe and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns attribute_red_gate and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns blocking_count and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_notes and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns slugify and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns project_state and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns project_state_diff and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns outside_write_clause and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns outside_write_clause_of and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns loop_tree_pids and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns pid_stands_outside_worktree and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns pid_ppid and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns pid_left_the_worktree and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns outside_write_pids and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns outside_write_line and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns outside_write_decides and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns outside_write_seen and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns write_review_diff and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_correction_scope and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_input_bytes and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_input_head and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_input_mark and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns bound_review_inputs and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_input_scale_of and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_restart_before_deadline and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_restart_scope and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns review_restart_note and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: evidence.sh owns clear_stale_test_results and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns adopt_finished_attempt and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns merge_committed_branch and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns score_landings and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns adopt_finished_exclusions and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns keep_leftovers and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns gate_the_kept_work and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns worktree_is_dirty and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns owner_of_marker and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns own_leftovers_of and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns recorded_here and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns recorded_leftovers_of and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns submodule_only_dirt and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns place_submodule_pin and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns retry_start_item and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns discard_kept_worktree and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: leftovers.sh owns push_branch and does not define it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines adopt_finished_attempt and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines adopt_finished_exclusions and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines answer_complete and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines attribute_red_gate and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines block and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines blocking_count and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines bound_key_value and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines bound_review_inputs and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines change_answered and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines change_readiness_of and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_agent_cmd_key and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_cap and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_context and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_context_bound and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_context_bound_key and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_ended_by_context_bound and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_refusal and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_role and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_turn_bound and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines child_turns and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines clear_stale_test_results and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines discard_kept_worktree and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines flake_probe and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines gate_answered and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines gate_step_text and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines gate_the_kept_work and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines host_free_mib and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines keep_leftovers and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines last_line and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines loop_tree_pids and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines merge_committed_branch and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines outside_write_clause and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines outside_write_clause_of and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines outside_write_decides and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines outside_write_line and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines outside_write_pids and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines outside_write_seen and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines owner_of_marker and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines own_leftovers_of and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines pid_left_the_worktree and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines pid_ppid and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines pid_stands_outside_worktree and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines place_submodule_pin and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines project_state and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines project_state_diff and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines push_branch and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines record_cut_round and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines recorded_here and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines recorded_leftovers_of and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines record_rework_cut and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines render_prompt and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines render_reviewer_prompt and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines report_field and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines report_lines and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines report_verdict and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines retry_delay_at and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines retry_start_item and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_correction_scope and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_input_bytes and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_input_head and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_input_mark and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_input_scale_of and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_notes and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_restart_before_deadline and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_restart_note and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines review_restart_scope and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines run_child and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines score_landings and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines slugify and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines submodule_only_dirt and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines tail_after_gate and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines worktree_is_dirty and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: run.sh defines write_review_diff and its row does not own it'
+--- driver#anOwnedFunctionIsInItsOwnersFile[0] (exit 1)
+  every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: child.sh owns child_cap and does not define it
+layout.tsv: child.sh owns child_turn_bound and does not define it
+layout.tsv: child.sh owns child_context_bound_key and does not define it
+layout.tsv: child.sh owns child_context_bound and does not define it
+layout.tsv: child.sh owns child_ended_by_context_bound and does not define it
+layout.tsv: child.sh owns host_free_mib and does not define it
+layout.tsv: child.sh owns child_agent_cmd_key and does not define it
+layout.tsv: child.sh owns child_turns and does not define it
+layout.tsv: child.sh owns child_context and does not define it
+layout.tsv: child.sh owns child_refusal and does not define it
+layout.tsv: child.sh owns child_role and does not define it
+layout.tsv: child.sh owns run_child and does not define it
+layout.tsv: child.sh owns tail_after_gate and does not define it
+layout.tsv: child.sh owns render_prompt and does not define it
+layout.tsv: child.sh owns gate_step_text and does not define it
+layout.tsv: child.sh owns change_readiness_of and does not define it
+layout.tsv: child.sh owns render_reviewer_prompt and does not define it
+layout.tsv: child.sh owns record_cut_round and does not define it
+layout.tsv: child.sh owns record_rework_cut and does not define it
+layout.tsv: child.sh owns retry_delay_at and does not define it
+layout.tsv: evidence.sh owns block and does not define it
+layout.tsv: evidence.sh owns report_lines and does not define it
+layout.tsv: evidence.sh owns report_field and does not define it
+layout.tsv: evidence.sh owns bound_key_value and does not define it
+layout.tsv: evidence.sh owns report_verdict and does not define it
+layout.tsv: evidence.sh owns last_line and does not define it
+layout.tsv: evidence.sh owns answer_complete and does not define it
+layout.tsv: evidence.sh owns gate_answered and does not define it
+layout.tsv: evidence.sh owns change_answered and does not define it
+layout.tsv: evidence.sh owns flake_probe and does not define it
+layout.tsv: evidence.sh owns attribute_red_gate and does not define it
+layout.tsv: evidence.sh owns blocking_count and does not define it
+layout.tsv: evidence.sh owns review_notes and does not define it
+layout.tsv: evidence.sh owns slugify and does not define it
+layout.tsv: evidence.sh owns project_state and does not define it
+layout.tsv: evidence.sh owns project_state_diff and does not define it
+layout.tsv: evidence.sh owns outside_write_clause and does not define it
+layout.tsv: evidence.sh owns outside_write_clause_of and does not define it
+layout.tsv: evidence.sh owns loop_tree_pids and does not define it
+layout.tsv: evidence.sh owns pid_stands_outside_worktree and does not define it
+layout.tsv: evidence.sh owns pid_ppid and does not define it
+layout.tsv: evidence.sh owns pid_left_the_worktree and does not define it
+layout.tsv: evidence.sh owns outside_write_pids and does not define it
+layout.tsv: evidence.sh owns outside_write_line and does not define it
+layout.tsv: evidence.sh owns outside_write_decides and does not define it
+layout.tsv: evidence.sh owns outside_write_seen and does not define it
+layout.tsv: evidence.sh owns write_review_diff and does not define it
+layout.tsv: evidence.sh owns review_correction_scope and does not define it
+layout.tsv: evidence.sh owns review_input_bytes and does not define it
+layout.tsv: evidence.sh owns review_input_head and does not define it
+layout.tsv: evidence.sh owns review_input_mark and does not define it
+layout.tsv: evidence.sh owns bound_review_inputs and does not define it
+layout.tsv: evidence.sh owns review_input_scale_of and does not define it
+layout.tsv: evidence.sh owns review_restart_before_deadline and does not define it
+layout.tsv: evidence.sh owns review_restart_scope and does not define it
+layout.tsv: evidence.sh owns review_restart_note and does not define it
+layout.tsv: evidence.sh owns clear_stale_test_results and does not define it
+layout.tsv: leftovers.sh owns adopt_finished_attempt and does not define it
+layout.tsv: leftovers.sh owns merge_committed_branch and does not define it
+layout.tsv: leftovers.sh owns score_landings and does not define it
+layout.tsv: leftovers.sh owns adopt_finished_exclusions and does not define it
+layout.tsv: leftovers.sh owns keep_leftovers and does not define it
+layout.tsv: leftovers.sh owns gate_the_kept_work and does not define it
+layout.tsv: leftovers.sh owns worktree_is_dirty and does not define it
+layout.tsv: leftovers.sh owns owner_of_marker and does not define it
+layout.tsv: leftovers.sh owns own_leftovers_of and does not define it
+layout.tsv: leftovers.sh owns recorded_here and does not define it
+layout.tsv: leftovers.sh owns recorded_leftovers_of and does not define it
+layout.tsv: leftovers.sh owns submodule_only_dirt and does not define it
+layout.tsv: leftovers.sh owns place_submodule_pin and does not define it
+layout.tsv: leftovers.sh owns retry_start_item and does not define it
+layout.tsv: leftovers.sh owns discard_kept_worktree and does not define it
+layout.tsv: leftovers.sh owns push_branch and does not define it
+layout.tsv: run.sh defines adopt_finished_attempt and its row does not own it
+layout.tsv: run.sh defines adopt_finished_exclusions and its row does not own it
+layout.tsv: run.sh defines answer_complete and its row does not own it
+layout.tsv: run.sh defines attribute_red_gate and its row does not own it
+layout.tsv: run.sh defines block and its row does not own it
+layout.tsv: run.sh defines blocking_count and its row does not own it
+layout.tsv: run.sh defines bound_key_value and its row does not own it
+layout.tsv: run.sh defines bound_review_inputs and its row does not own it
+layout.tsv: run.sh defines change_answered and its row does not own it
+layout.tsv: run.sh defines change_readiness_of and its row does not own it
+layout.tsv: run.sh defines child_agent_cmd_key and its row does not own it
+layout.tsv: run.sh defines child_cap and its row does not own it
+layout.tsv: run.sh defines child_context and its row does not own it
+layout.tsv: run.sh defines child_context_bound and its row does not own it
+layout.tsv: run.sh defines child_context_bound_key and its row does not own it
+layout.tsv: run.sh defines child_ended_by_context_bound and its row does not own it
+layout.tsv: run.sh defines child_refusal and its row does not own it
+layout.tsv: run.sh defines child_role and its row does not own it
+layout.tsv: run.sh defines child_turn_bound and its row does not own it
+layout.tsv: run.sh defines child_turns and its row does not own it
+layout.tsv: run.sh defines clear_stale_test_results and its row does not own it
+layout.tsv: run.sh defines discard_kept_worktree and its row does not own it
+layout.tsv: run.sh defines flake_probe and its row does not own it
+layout.tsv: run.sh defines gate_answered and its row does not own it
+layout.tsv: run.sh defines gate_step_text and its row does not own it
+layout.tsv: run.sh defines gate_the_kept_work and its row does not own it
+layout.tsv: run.sh defines host_free_mib and its row does not own it
+layout.tsv: run.sh defines keep_leftovers and its row does not own it
+layout.tsv: run.sh defines last_line and its row does not own it
+layout.tsv: run.sh defines loop_tree_pids and its row does not own it
+layout.tsv: run.sh defines merge_committed_branch and its row does not own it
+layout.tsv: run.sh defines outside_write_clause and its row does not own it
+layout.tsv: run.sh defines outside_write_clause_of and its row does not own it
+layout.tsv: run.sh defines outside_write_decides and its row does not own it
+layout.tsv: run.sh defines outside_write_line and its row does not own it
+layout.tsv: run.sh defines outside_write_pids and its row does not own it
+layout.tsv: run.sh defines outside_write_seen and its row does not own it
+layout.tsv: run.sh defines owner_of_marker and its row does not own it
+layout.tsv: run.sh defines own_leftovers_of and its row does not own it
+layout.tsv: run.sh defines pid_left_the_worktree and its row does not own it
+layout.tsv: run.sh defines pid_ppid and its row does not own it
+layout.tsv: run.sh defines pid_stands_outside_worktree and its row does not own it
+layout.tsv: run.sh defines place_submodule_pin and its row does not own it
+layout.tsv: run.sh defines project_state and its row does not own it
+layout.tsv: run.sh defines project_state_diff and its row does not own it
+layout.tsv: run.sh defines push_branch and its row does not own it
+layout.tsv: run.sh defines record_cut_round and its row does not own it
+layout.tsv: run.sh defines recorded_here and its row does not own it
+layout.tsv: run.sh defines recorded_leftovers_of and its row does not own it
+layout.tsv: run.sh defines record_rework_cut and its row does not own it
+layout.tsv: run.sh defines render_prompt and its row does not own it
+layout.tsv: run.sh defines render_reviewer_prompt and its row does not own it
+layout.tsv: run.sh defines report_field and its row does not own it
+layout.tsv: run.sh defines report_lines and its row does not own it
+layout.tsv: run.sh defines report_verdict and its row does not own it
+layout.tsv: run.sh defines retry_delay_at and its row does not own it
+layout.tsv: run.sh defines retry_start_item and its row does not own it
+layout.tsv: run.sh defines review_correction_scope and its row does not own it
+layout.tsv: run.sh defines review_input_bytes and its row does not own it
+layout.tsv: run.sh defines review_input_head and its row does not own it
+layout.tsv: run.sh defines review_input_mark and its row does not own it
+layout.tsv: run.sh defines review_input_scale_of and its row does not own it
+layout.tsv: run.sh defines review_notes and its row does not own it
+layout.tsv: run.sh defines review_restart_before_deadline and its row does not own it
+layout.tsv: run.sh defines review_restart_note and its row does not own it
+layout.tsv: run.sh defines review_restart_scope and its row does not own it
+layout.tsv: run.sh defines run_child and its row does not own it
+layout.tsv: run.sh defines score_landings and its row does not own it
+layout.tsv: run.sh defines slugify and its row does not own it
+layout.tsv: run.sh defines submodule_only_dirt and its row does not own it
+layout.tsv: run.sh defines tail_after_gate and its row does not own it
+layout.tsv: run.sh defines worktree_is_dirty and its row does not own it
+layout.tsv: run.sh defines write_review_diff and its row does not own it'
+FAIL driver#anOwnedFunctionIsInItsOwnersFile
+loop-selftest: 1 of 1 cases failed

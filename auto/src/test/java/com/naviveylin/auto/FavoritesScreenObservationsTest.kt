@@ -87,10 +87,50 @@ class FavoritesScreenObservationsTest {
 
         override fun storeReady(): StateFlow<Boolean> {
             accessorThreads += "storeReady" to Thread.currentThread()
+            failIfAsked()
             return ready.asStateFlow()
         }
 
-        override suspend fun init(filePath: String): Boolean = false
+        /**
+         * The path of every `init` call, in order (issue #995: the observation establishes the store it
+         * reads, once per started period). A concurrent queue because the init runs inside the hop.
+         */
+        val initPaths = ConcurrentLinkedQueue<String>()
+
+        /** The thread of every `init` call: the store is initialised off the car-app host thread. */
+        val initThreads = ConcurrentLinkedQueue<Thread>()
+
+        /**
+         * How many source accessor calls throw before the provider behaves again (issue #995: the hop is
+         * retried once after a fault). [Int.MAX_VALUE] makes every attempt fault.
+         */
+        var throwOnAccessorCalls = 0
+
+        /**
+         * The source accessor's fault injection: the transient failure a retried hop has to survive.
+         * A plain unchecked exception, the shape a native refusal or a file read takes.
+         */
+        private fun failIfAsked() {
+            if (throwOnAccessorCalls > 0) {
+                throwOnAccessorCalls--
+                throw IllegalStateException("provider unavailable")
+            }
+        }
+
+        /**
+         * The store's initialisation, as the real one behaves: it publishes the file's contents and ends
+         * the attempt by reporting the store ready (spec `auto-favorites` — The observation establishes
+         * the store it reads).
+         */
+        override suspend fun init(filePath: String): Boolean {
+            initPaths += filePath
+            initThreads += Thread.currentThread()
+            flow.value = mapOf("Default" to listOf(FavoriteLocation("Home", 51.5, 7.5)))
+            order.value = listOf("Default")
+            ready.value = true
+            return true
+        }
+
         override suspend fun addFavorite(name: String, lat: Double, lon: Double): Boolean = false
         override suspend fun removeFavorite(lat: Double, lon: Double): Boolean = false
 
@@ -111,6 +151,12 @@ class FavoritesScreenObservationsTest {
     /** The readiness each applied state carried, so a case can assert what the screen would render. */
     private val readiness = mutableListOf<Boolean>()
 
+    /**
+     * Whether each applied state was the failure state (issue #995: a store that cannot be observed is
+     * reported, not left loading), so a case can assert what the screen would render instead of rows.
+     */
+    private val failures = mutableListOf<Boolean>()
+
     private fun observations() = CarScreenObservations(mainDispatcher.dispatcher)
 
     private fun wiring(
@@ -119,14 +165,21 @@ class FavoritesScreenObservationsTest {
     ) = FavoritesScreenObservations(
         observations = observations,
         favoritesProvider = provider,
+        favoritesPath = FAVORITES_PATH,
         backgroundDispatcher = backgroundDispatcher,
-        onFavorites = { favorites, order, starred, ready ->
-            applied += Triple(favorites, order, starred)
-            readiness += ready
+        onFavorites = { state ->
+            applied += Triple(state.favorites, state.groupOrder, state.starredOrder)
+            readiness += state.storeReady
+            failures += state.failed
         }
     )
 
     private fun favorite(name: String) = mapOf("Default" to listOf(FavoriteLocation(name, 51.5, 7.5)))
+
+    private companion object {
+        /** The favourites file the observation initialises an unready store with. */
+        const val FAVORITES_PATH = "/test/files/favorites.json"
+    }
 
     /**
      * Pump the test scheduler while the resolution's real background dispatcher progresses, until
@@ -135,9 +188,18 @@ class FavoritesScreenObservationsTest {
      * awaits the state it needs, not a proxy of it).
      */
     private fun TestScope.awaitAccessorThreads(expected: Int, timeoutMs: Long = 3_000) {
+        awaitUntil(timeoutMs) { provider.accessorThreads.size >= expected }
+    }
+
+    /**
+     * Pump the test scheduler until [condition] holds, or the [timeoutMs] backstop expires — a case that
+     * asserts a state a real background thread has to produce waits for that state, not for a proxy
+     * (spec `unit-test-suite-runtime`).
+     */
+    private fun TestScope.awaitUntil(timeoutMs: Long = 3_000, condition: () -> Boolean) {
         runBlocking {
             withTimeoutOrNull(timeoutMs) {
-                while (provider.accessorThreads.size < expected) {
+                while (!condition()) {
                     advanceUntilIdle()
                     yield()
                 }
@@ -299,6 +361,108 @@ class FavoritesScreenObservationsTest {
         assertEquals("Home", applied.single().first.values.flatten().single().name)
         assertEquals(listOf("Default"), applied.single().second)
         assertTrue("the state carries the store's readiness", readiness.single())
+    }
+
+    /**
+     * Issue #995 (spec: auto-favorites — The observation establishes the store it reads): the readiness
+     * a car favourites screen renders is produced by the store's one `init` call, and the only car caller
+     * was the session's warmup step. A warmup that timed out before that step, was cancelled or failed
+     * left the process with an unready store, so every favourites screen rendered the loading row for its
+     * whole lifetime. The observation therefore establishes the store it reads, once per started period,
+     * inside the hop that already touches the provider off the host thread.
+     *
+     * On HEAD `init` is never called and nothing is published, so the case fails at its first assertion.
+     */
+    @Test
+    fun anUnreadyStoreIsInitialisedOnceAndItsRowsRender() = runTest(mainDispatcher.dispatcher) {
+        provider.ready.value = false
+        val hostThread = Thread.currentThread()
+        // The production default owns the hop, so the thread the initialisation runs on is the real one
+        // the assertion below is about: a test dispatcher would run it on this case's own thread.
+        wiring(observations(), backgroundDispatcher = Dispatchers.Default).start()
+        awaitUntil { provider.initPaths.isNotEmpty() && applied.isNotEmpty() }
+
+        assertEquals(
+            "the observation must initialise the store it reads, exactly once per started period: " +
+                provider.initPaths.toList(),
+            1,
+            provider.initPaths.size
+        )
+        assertTrue(
+            "the store must be initialised with the screen's favourites file, got " +
+                provider.initPaths.toList(),
+            provider.initPaths.single().endsWith("favorites.json")
+        )
+        assertTrue(
+            "the store was initialised on the car-app host thread",
+            provider.initThreads.none { it === hostThread }
+        )
+        assertEquals(
+            "the initialised store's rows must reach the screen without re-entering it",
+            "Home",
+            applied.last().first.values.flatten().single().name
+        )
+        assertTrue("the applied state must carry the store's readiness", readiness.last())
+    }
+
+    /**
+     * The guard on the case above: the observation initialises only a store that reports itself unready,
+     * so the warmup's own `init` is not repeated by every screen the session opens (spec: auto-favorites —
+     * A ready store is not initialised again).
+     */
+    @Test
+    fun aReadyStoreIsNotInitialisedAgain() = runTest(mainDispatcher.dispatcher) {
+        provider.flow.value = favorite("Home")
+        wiring(observations()).start()
+        advanceUntilIdle()
+
+        assertEquals("a ready store must not be initialised again", 0, provider.initPaths.size)
+        assertEquals("the ready store's rows reach the screen", "Home", applied.last().first.values.flatten().single().name)
+    }
+
+    /**
+     * Issue #995, second half (spec: auto-favorites — A failed resolution is retried once before the
+     * screen is told): a fault inside the observation is confined by [CarScreenObservations] and the
+     * observation was not repeated within the started period, so one transient failure wedged that period.
+     * The hop is therefore retried once, and the list publishes from the second attempt.
+     *
+     * On HEAD the first attempt's throw ends the observation with nothing published, so the case fails.
+     */
+    @Test
+    fun anObservationFaultIsRetriedOnceAndTheListPublishes() = runTest(mainDispatcher.dispatcher) {
+        provider.flow.value = favorite("Home")
+        provider.order.value = listOf("Default")
+        provider.throwOnAccessorCalls = 1
+        wiring(observations()).start()
+        advanceUntilIdle()
+
+        assertEquals(
+            "the faulting hop must be attempted twice: " + provider.accessorThreads.toList().map { it.first },
+            2,
+            provider.accessorThreads.count { it.first == "storeReady" }
+        )
+        assertEquals("the retry's state must reach the screen", "Home", applied.last().first.values.flatten().single().name)
+    }
+
+    /**
+     * The last guard of the seam (spec `auto-favorites` — A store that cannot be observed is reported, not
+     * left loading; issue #995): a store whose observation faulted twice still hands the screen a state, so
+     * the screen can report the store as unavailable instead of keeping a loading row the observation will
+     * never end.
+     */
+    @Test
+    fun aStoreThatFailsTwiceIsReportedAsUnavailable() = runTest(mainDispatcher.dispatcher) {
+        provider.throwOnAccessorCalls = Int.MAX_VALUE
+        wiring(observations()).start()
+        advanceUntilIdle()
+
+        assertEquals(
+            "the failure state must reach the screen exactly once: " + applied,
+            1,
+            applied.size
+        )
+        assertTrue("the applied state must be the failure state", failures.single())
+        assertTrue("no rows may be invented for a store that was not read", applied.single().first.isEmpty())
     }
 
     /**

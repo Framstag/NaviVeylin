@@ -16,9 +16,12 @@
 # the band is a *label*, so "the top of the queue" is a label query and no body is read; `--unranked` is
 # "the pass has not scored this item yet", which is a legitimate state and not an error.
 #
+# `--untyped` is the census's own query (`issue-type-census`, D1): the open items carrying no issue type — the set
+# `check-metadata.sh` reports — so the acceptance number can be read as a list of items rather than a count.
+#
 # Usage: list.sh [--id <n>] [--class <value>] [--category <value>] [--status <value>] [--author <login>]
-#                [--prio <p0,p1,…>] [--unranked] [--eligible-only] [--include-closed] [--json] [--limit <n>]
-#                [--profile <path>]
+#                [--prio <p0,p1,…>] [--unranked] [--untyped] [--eligible-only] [--include-closed] [--json]
+#                [--limit <n>] [--profile <path>]
 #
 # A closed item is not a selection: the query is made against `--state all` (one paged call, and the tracker's own
 # `--state` flag cannot say "open and everything a label asks for" in one call), so the *filter* is here. Closed
@@ -40,6 +43,7 @@ limit=400
 id_arg=""
 prio_filter=""
 unranked=0
+untyped=0
 filters=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -51,11 +55,12 @@ while [ $# -gt 0 ]; do
     --author) need_value "$@"; filters+=("author=${2:-}"); shift 2 ;;
     --prio) need_value "$@"; prio_filter="${2:-}"; shift 2 ;;
     --unranked) unranked=1; shift ;;
+    --untyped) untyped=1; shift ;;
     --eligible-only) eligible_only=1; shift ;;
     --include-closed) include_closed=1; shift ;;
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) issues_die "list: unknown argument $1" ;;
   esac
 done
@@ -121,7 +126,7 @@ if [ -n "$prio_filter" ]; then
 fi
 
 required_json=$(issues_profile_value requiredLabels | jq -R . | jq -s .)
-issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,state)
+issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,state,issueType)
 
 query='[.[]'
 if [ "$include_closed" -eq 0 ]; then
@@ -149,6 +154,11 @@ elif [ "$unranked" -eq 1 ]; then
 fi
 if [ "$eligible_only" -eq 1 ]; then
   query="$query | select([.labels[].name] as \$labels | (\$required | all(. as \$r | (\$labels | index(\$r)) != null)))"
+fi
+# The census's query: the item carries no issue type. `issueType` is a field the pass reads as either an object
+# (`{name: …}`) or a name, so the emptiness test accepts both shapes the seam can answer (`issue-type-census`, D1).
+if [ "$untyped" -eq 1 ]; then
+  query="$query | select((.issueType | if type == \"object\" then (.name // \"\") elif type == \"string\" then . else \"\" end) == \"\")"
 fi
 query="$query]"
 

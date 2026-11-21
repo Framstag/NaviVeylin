@@ -273,6 +273,21 @@ if [ -n "$LOOP_STATE_FILE" ] && [ -r "$LOOP_STATE_FILE" ]; then
 fi
 [ -n "$blocked_within_run" ] || blocked_within_run='[]'
 
+# The child a bound ended (#938), read once for the same reason and from the same record: an epic that spent this
+# run's slot and collected nothing from it takes no further one, and the children it still holds are the candidates
+# that would have spent it. `bound` is the one mechanism a cut carries (`state.sh done --result cut --stop-reason
+# bound`), and an older tree that wrote the same fact as `blocked` with `bound` is read here too (issue #790). A
+# record with no parent is no child of a container and names none.
+cut_within_run='[]'
+if [ -n "$LOOP_STATE_FILE" ] && [ -r "$LOOP_STATE_FILE" ]; then
+  cut_within_run=$(jq -c '
+    [.items[]? | select(.parent != null)
+     | select(.result == "cut" or (.result == "blocked" and (.stopReason // "") == "bound"))
+     | {issue: .issue, parent: .parent, boundKey: (.boundKey // ""), boundValue: (.boundValue // "")}]' \
+    "$LOOP_STATE_FILE" 2>/dev/null) || cut_within_run='[]'
+fi
+[ -n "$cut_within_run" ] || cut_within_run='[]'
+
 # Two open changes describing one item (#931): the pre-screen is where a picked item learns it, because the archive
 # that exposes the collision is the one place a session has already spent its planning half. The reading is the
 # project's artifact check — its own fifth class — so the class keeps one owner and this screen greps that finding
@@ -712,6 +727,43 @@ the item is left open and no child was started: shape $changes_family/${named_ch
      gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done
+
+# ── the container as a unit (#938) ────────────────────────────────────────────────────────────────────────────
+# The screen refuses a container (`container`) and refuses each child that awaits a decision (`needs-decision`), and
+# nothing joined the two: a child of a container the run cannot advance was handed a slot it could not return.
+# Measured on the run of 2026-11-15T19:32:41Z — `epic #895: 0 of 2 children closed · 27.4 Mtok · 28 m 11 s · epic
+# #906: 0 of 1 child closed · 23.9 Mtok · 47 m 50 s` — 51.3 of the run's 175.0 Mtok (29 %) bought no close.
+#
+# Two facts make a container unadvanceable, and each is read from an answer this screen already holds: every child it
+# saw is excluded with the decision verdict (the tracker's labels), or this run recorded a child of it cut at a bound
+# (the run's own record). The verdict is the engine's own word, like `container` and `unreadable`: it names no
+# judgement about a value of the project's vocabulary but about the shape of an epic's work, so it writes no label
+# and reaches no other verdict's branch. It names what it waits for and is cleared by no write of ours — the decision
+# arm when the label it names is gone, the bound arm with the run that recorded the cut.
+records=$(printf '%s' "$records" | jq -c --argjson cut "$cut_within_run" --arg queued "$queued_verdict" \
+  --arg decision "$decision_verdict" '
+  def kin($epic; $self): map(select(.parent != null and ((.parent | tostring) == $epic) and .issue != $self));
+  . as $all
+  | map(
+      if .verdict != $queued or .parent == null then .
+      else
+        ("\(.parent)") as $epic
+        | (.issue) as $self
+        | ($all | kin($epic; $self)) as $kin
+        | ([$cut[] | select((.parent | tostring) == $epic)] | first) as $cutChild
+        | ($kin | map(select(.verdict == $decision))) as $awaiting
+        | ($kin | map(select(.verdict == $queued))) as $workable
+        | if $cutChild != null then
+            .verdict = "epic-stalled"
+            | .evidence = "#\($epic)"
+            | .reason = "the epic #\($epic) spent its slot this run and a bound ended it — #\($cutChild.issue) was cut at \(if ($cutChild.boundKey // "") == "" then "its bound" else "\($cutChild.boundKey)=\($cutChild.boundValue)" end) — so nothing of the epic closes in this run and it takes no further slot"
+          elif (($awaiting | length) > 0) and (($workable | length) == 0) then
+            .verdict = "epic-stalled"
+            | .evidence = "#\($epic)"
+            | .reason = "the epic #\($epic) cannot advance while \(if ($awaiting | length) == 1 then "its remaining child awaits" else "its remaining children await" end) a decision (#\(($awaiting | map(.issue | tostring) | join(", #")))) — nothing of the epic is worked until \(if ($awaiting | length) == 1 then "that decision is" else "those decisions are" end) answered"
+          else . end
+      end)
+')
 
 ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" \
   --argjson leading "$(printf '%s\n' "$priority_categories" | jq -R . | jq -sc .)" \

@@ -487,6 +487,15 @@ printf 'state: %s\n' "$state_file"
 # #865 and 58.8 % for #864, and 45 173 s of window against 22 925 s of item walls — 22 247 s (49.3 %) outside items.
 calls_floor=$(loop_conf_value LOOP_ITEM_CALLS_PER_TURN_MIN)
 printf '%s' "$calls_floor" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || calls_floor=0
+# The round before the gate is skipped when its own input is halved (issue #969), and the skip is a class of its own
+# on the `review:` line, never `undecided` and never `never reviewed`. `undecided` means a round ran and did not
+# answer, which a skipped round did not do — no child ran, so it has no verdict and no wall clock — and `never
+# reviewed` reads as an item nobody paid a round for, which is what the skip's item would otherwise be counted as
+# (`reviewRounds` is 0: no round of the review budget read it). The count is of **rounds**, read from the state's own
+# step record (`run.sh` writes `pre-gate-review` with status `skip`, the status no other writer of that name uses), so
+# it stands beside the item's class and not instead of it: an item whose first round then answered is counted there
+# and its skipped round here, because the two figures answer two questions. A state written before the rule records no
+# such step and prints the line it always printed.
 trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-null}" --argjson pause "$paused_secs" '
   def median:
     if length == 0 then null
@@ -508,19 +517,23 @@ trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-nu
   # done --review-input). An empty record is no cut, so a state written before the field existed records none, and a
   # run whose parts were all under the cap prints the line it always printed.
   def cut_note: if . == 0 then "" else " (\(.) truncated)" end;
-  ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0), cut: ((.metrics.reviewInput // "") != "")}]) as $it
+  ([.items[] | {i: .issue, v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0), cut: ((.metrics.reviewInput // "") != "")}]) as $all
+  | ([.steps[]? | select(.name == "pre-gate-review" and .status == "skip") | .issue] | unique) as $skippedIssues
+  | ([$all[] | . + {skip: ((.i as $x | $skippedIssues | index($x)) != null)}]) as $it
   | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
   | [$it[] | select(.v | decided)] as $decided
   | [$it[] | select((.v == "PASS" or .v == "NOTES") and .r == 1)] as $first
   | [$it[] | select((.r >= 1) and ((.v | decided) | not))] as $undecided
-  | [$it[] | select(.r == 0)] as $never
+  | [$it[] | select(.r == 0 and (.skip | not))] as $never
+  | ([$it[] | select(.skip)] | length) as $skipCount
   | ([$it[] | select(.cut)] | length) as $cut
   | ([$it[] | select(.v != "")] | length) as $withVerdict
+  | (if $skipCount == 0 then "" else " · \($skipCount) pre-gate round\(if $skipCount == 1 then "" else "s" end) skipped" end) as $skip_note
   | ( if $withVerdict == 0 and ([$it[] | select(.r >= 1)] | length) > 0
         then "- · this state records no review verdict — it was written before the report read one"
       elif ($decided | length) == 0
-        then "- · no round of this run ended in a verdict · \($undecided | length) undecided · \($never | length) never reviewed"
-      else "\($first | length)/\($decided | length) first rounds passed\($cut | cut_note) · \($undecided | length) undecided · \($never | length) never reviewed" end ) as $review
+        then "- · no round of this run ended in a verdict · \($undecided | length) undecided · \($never | length) never reviewed\($skip_note)"
+      else "\($first | length)/\($decided | length) first rounds passed\($cut | cut_note) · \($undecided | length) undecided · \($never | length) never reviewed\($skip_note)" end ) as $review
   | ( if ($walls | length) == 0 then "- · no item recorded a wall time"
       else "median \(($walls | median) | round) s (min \(($walls[0]) | round), max \(($walls[-1]) | round)) · \($walls | length) items" end ) as $wall
   | ([.items[]

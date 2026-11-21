@@ -46,6 +46,12 @@ deliberately not a submodule, a package or a published binary (see *What an upda
 
 ## The three files to edit
 
+The list is three files, and only three: the engine's own declarations are not profile. `tools/loop/layout.tsv` —
+one row per engine script, with the line bound it is held to, the position the entry sources it at, the functions it
+owns and the event kinds it prints — and `tools/loop/shared.tsv` — every name one engine file assigns and another
+reads — describe the engine, and a copy carries both unchanged. A project that edits either has changed the engine,
+not its profile, and its suite will say so.
+
 1. **`tools/tooling.json`** — the project profile: `repo`, `allowedAuthors`, `requiredLabels`,
    `reservedLabels`, every namespace's values, the `roles` section (which value of a namespace each
    engine decision means: the loop's pre-screen verdicts, its label transitions, the band the metadata

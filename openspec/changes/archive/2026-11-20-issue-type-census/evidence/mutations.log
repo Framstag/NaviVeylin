@@ -1,0 +1,25 @@
+mutations over /home/tim/projects/NaviVeylin/.pi/worktrees/loop, HEAD 4c7202ebb6c0, run 2026-11-20T22:09:34Z
+
+=== A: the census block disabled ===
+  FAIL and the census names it: [#61 untyped:] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 0 untyped
+  FAIL in a line saying what it lacks: [carries no issue type] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 0 untyped
+  FAIL beside no violation, and counted: [· 0 violation(s) · 1 untyped] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 0 untyped
+  FAIL and carries the same set under one field: expected [61] got []
+  FAIL and the census names it again: [#62 untyped:] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 0 untyped
+FAIL check#untypedItemIsReported
+--- restored; the case passes again: PASS check#untypedItemIsReported
+
+=== B: the census line removed from the report ===
+  FAIL and the census names it: [#61 untyped:] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 1 untyped
+  FAIL in a line saying what it lacks: [carries no issue type] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 1 untyped
+  FAIL and the census names it again: [#62 untyped:] not found in: check-metadata: 1 issue(s) checked · 0 violation(s) · 1 untyped
+FAIL check#untypedItemIsReported
+--- and the no-argument mode, whose report names the census too (exit 1 means the wiring probe
+    caught the removed line before any case did):
+#census not-wired: the untyped fixture is not named by the report
+check-metadata: 0 issue(s) checked · 1 violation(s) · 0 untyped
+exit=1
+
+=== C: --parent taken out of .pi/skills/create-issue/SKILL.md ===
+FAIL docs#theFilingSkillsNameTheTypeAxis
+--- restored; the case passes again: PASS docs#theFilingSkillsNameTheTypeAxis

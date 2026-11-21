@@ -607,35 +607,35 @@ roundabout leave from a motorway change without reading text. A node with no des
 - **WHEN** a route of 19 manoeuvres is calculated
 - **THEN** the route SHALL publish one step per described node, in route order
 - **AND** each step SHALL name its manoeuvre kind and carry the records of that manoeuvre
-- **Case**: `app: RouteStepModelBridgeTest` "a calculated route publishes steps in route order"
+- **Case**: `app(device): RouteStepModelBridgeTest` "a calculated route publishes steps in route order"
 
 #### Scenario: A roundabout leave states its exit ordinal and direction
 
 - **WHEN** a route leaves a roundabout at the third exit, counter-clockwise
 - **THEN** that step SHALL carry exit ordinal 3 and the counter-clockwise direction
 - **AND** neither value SHALL have to be recovered from text
-- **Case**: `app: RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
+- **Case**: `app(device): RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
 
 #### Scenario: A motorway manoeuvre is distinguishable from a plain turn
 
 - **WHEN** a route keeps left onto another motorway
 - **THEN** the step SHALL report a motorway change with its move
 - **AND** a client SHALL NOT have to tell it apart from a plain left turn by its text
-- **Case**: `app: RouteStepModelBridgeTest` "a motorway change is not a plain turn"
+- **Case**: `app(device): RouteStepModelBridgeTest` "a motorway change is not a plain turn"
 
 #### Scenario: Each step carries the leg that ends at it
 
 - **WHEN** a step's leg values are inspected
 - **THEN** its leg distance and leg time SHALL describe the run from the preceding step's manoeuvre to its own
 - **AND** the legs of all steps SHALL sum to the route's length
-- **Case**: `app: RouteStepModelBridgeTest` "step legs sum to the route length"
+- **Case**: `app(device): RouteStepModelBridgeTest` "step legs sum to the route length"
 
 #### Scenario: A step names the database its node belongs to
 
 - **WHEN** a route crosses two map regions
 - **THEN** each step SHALL carry its database identity
 - **AND** the route SHALL publish the mapping from that identity to the map directory
-- **Case**: `app: RouteStepModelBridgeTest` "steps of a cross-database route resolve their database"
+- **Case**: `app(device): RouteStepModelBridgeTest` "steps of a cross-database route resolve their database"
 
 ### Requirement: Live guidance publishes route steps
 
@@ -671,7 +671,7 @@ step.
 - **WHEN** any step is published to a listener
 - **THEN** it SHALL carry no description string for its manoeuvre
 - **AND** a client SHALL be able to word it from the values alone
-- **Case**: `osmscout-client-java: RouteStepModelBridgeTest` "a published step carries no guidance text"
+- **Case**: `app(device): RouteStepModelBridgeTest` "a published step carries no guidance text"
 
 #### Scenario: The next-next hint is a nested step
 
@@ -772,3 +772,36 @@ A step whose route holds no such record for that way SHALL carry none.
 - **AND** every surface keeps the wording it has today for that step
 - **Case**: `app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp` — "A motorway change carries no
   destination when no node carries a record"
+
+### Requirement: A motorway manoeuvre outranks a turn on its node
+
+A published step SHALL state the manoeuvre its node is, not the first manoeuvre a hook reported for it. Where one
+node carries a motorway enter, change or leave beside a turn, the step's kind SHALL be the motorway manoeuvre, and
+the step SHALL keep the records of that node — the signposted destination among them.
+
+#### Scenario: An entry through a link is the entry, not the turn beside it
+
+- **WHEN** a route enters a motorway through a `highway_trunk_link` and the route description carries the link's
+  direction change and the motorway enter on the same node
+- **THEN** the published step SHALL report `motorway_enter`, with the way it leads onto
+- **AND** a client SHALL NOT read the entry as a plain turn
+- **Case**: `app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp` — "A motorway enter through a link is
+  the entry, not the turn"
+
+#### Scenario: The entry keeps the signposted destination its node carries
+
+- **WHEN** the node of such an entry carries a destination record of its own — the ramp's tag or the record the
+  manoeuvre took over from the node it was decided at
+- **THEN** the published step SHALL carry that record
+- **AND** a surface wording the manoeuvre SHALL render the way it leads onto together with it ("Enter onto B 236
+  towards Dortmund"), not as a bare turn
+- **Case**: `app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp` — "A motorway enter through a link is
+  the entry, not the turn"
+
+#### Scenario: A plain turn is still a turn
+
+- **WHEN** a node carries a turn description and no motorway description
+- **THEN** the published step SHALL report `turn`
+- **AND** the ranks SHALL change no other kind a node publishes
+- **Case**: `app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp` — "A description converts into one step
+  per described node, in route order"

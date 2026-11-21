@@ -10,6 +10,14 @@ change, only the document that carries them.
 
 ## 6. Test constraints
 
+- **Rule: a scenario names a case that resolves to exactly one harness.** A `**Case**:` line in a shipped spec
+  names a case some declared suite really runs, and no two suites list the same full name; a case no scenario
+  names is a count and never a refusal. `tools/check-case-names.sh` reads `tools/case-harnesses.json` (one row per
+  suite: the file or command that lists its cases, the groups it claims) and refuses a name no row lists, with the
+  spec file, the line, the scenario and the name; it compares identifiers and reads no sentence. Re-take it with
+  `bash tools/check-case-names.sh`; its falsification is `bash tools/tests/check-case-names-selftest.sh`, and the
+  four rules' mutations are `bash tools/mutate.sh --mutations tools/tests/check-case-names-mutations.json`.
+
 Every sub-section states one family of constraints; read the one your case falls under. §6a "The JNI stub and
 the classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions
 and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion

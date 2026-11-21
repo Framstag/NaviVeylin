@@ -1,0 +1,9 @@
+[
+  {
+    "number": 62,
+    "title": "an item that carries its type",
+    "body": "The same document one type later: the census must not name it.",
+    "labels": [],
+    "issueType": { "name": "Task" }
+  }
+]

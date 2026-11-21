@@ -468,6 +468,9 @@ class NavigationSession : Session() {
                         try {
                             val favoritesFile = File(
                                 carContext.applicationContext.filesDir,
+                                // One declaration of the store's file name, shared with the favourites
+                                // screen's observation, which establishes the store when no warmup
+                                // produced its readiness (issue #995).
                                 FAVORITES_FILE
                             ).absolutePath
                             entryPoint.autoFavoritesProvider().init(favoritesFile)
@@ -1311,8 +1314,9 @@ class NavigationSession : Session() {
         private const val CALCULATION_NOTICE_DELAY_MS = 400L
         private const val MAX_GEOCODE_RESULTS = 1
 
-        /** Same favorites persistence file as the phone app (MapCanvasViewModel). */
-        private const val FAVORITES_FILE = "favorites.json"
+        // The favourites persistence file (same as the phone app's) is declared once for the car path in
+        // FavoritesScreenObservations.kt: the warmup opens it and the favourites screen's observation
+        // initialises an unready store from it, so the two cannot drift apart (issue #995).
 
         /**
          * Cap on cold-start warmup (Hilt entry point + native client build).

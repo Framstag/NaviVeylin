@@ -72,6 +72,8 @@
     <string name="favorites_save_hint">Favoriten von der Karte speichern, um sie hier zu sehen</string>
     <string name="no_starred_favorites">Keine markierten Favoriten</string>
     <string name="starred_hint">Favoriten auf der Karte markieren, um sie hier zu sehen</string>
+    <string name="favorites_unavailable">Favoriten nicht verf\u00fcgbar</string>
+    <string name="favorites_unavailable_hint">Die Favoriten konnten nicht gelesen werden. Liste erneut \u00f6ffnen, um es zu wiederholen</string>
     <string name="no_log_entries">Noch keine Protokolleinträge</string>
     <string name="refresh">Aktualisieren</string>
     <string name="error">Fehler</string>

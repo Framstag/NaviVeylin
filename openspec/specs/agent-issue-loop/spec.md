@@ -5880,6 +5880,12 @@ prompt, and the round is recorded `unanswered` — and leave a refusal's
   retry spends a byte-identical prompt that asks the same question again, and the round is recorded as unanswered
 - **Case**: `prompt#reviewerCarriesTheEightItems`
 
+#### Scenario: A refusal's decision line is not the question the clause forbids
+
+- **WHEN** the reviewer prompt is rendered
+- **THEN** the exception beside the clause says the `LOOP-DECISION` line a refusal owes is part of that contract
+- **Case**: `prompt#reviewerCarriesTheEightItems`
+
 ### Requirement: The prompt that hands a child its gate names the wall and the way through it
 
 The prompt that hands a child its gate SHALL name the wall between one tool call and the gate, and the way through

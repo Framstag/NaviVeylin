@@ -1,0 +1,14 @@
+# the fix in place: NoteKind ranks the manoeuvres a node carries
+# date: 2026-11-21T12:11:59Z
+# tree: submodule d1fefc13e
+[4/6] Generating symbol file libosmscout-client/libosmscout_client.so.1.1.1.p/libosmscout_client.so.1.1.1.symbols
+[5/6] Compiling C++ object Tests/RouteStepModelTest.p/src_RouteStepModelTest.cpp.o
+[6/6] Linking target Tests/RouteStepModelTest
+ninja: Entering directory `/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild'
+ninja: no work to do.
+1/1 libosmscout:Check route step model OK              0.03s
+
+Ok:                1   
+Fail:              0   
+
+Full log written to /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild/meson-logs/testlog.txt

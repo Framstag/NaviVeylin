@@ -1,0 +1,43 @@
+# red on the pin: the collector's first-hook-wins rule, the change's case in place
+# date: 2026-11-21T12:08:16Z
+# tree: submodule c89db28f7, only Tests/src/RouteStepModelTest.cpp from d1fefc13e
+[206/208] Generating symbol file libosmscout-client/libosmscout_client.so.1.1.1.p/libosmscout_client.so.1.1.1.symbols
+[207/208] Compiling C++ object Tests/RouteStepModelTest.p/src_RouteStepModelTest.cpp.o
+[208/208] Linking target Tests/RouteStepModelTest
+ninja: Entering directory `/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild'
+ninja: no work to do.
+1/1 libosmscout:Check route step model FAIL            0.03s   exit status 42
+>>> MESON_TEST_ITERATION=1 LD_LIBRARY_PATH=/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild/libosmscout:/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild/libosmscout-client:/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild/libosmscout-map MSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1 SOURCE_ROOT=/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_summary=1 MALLOC_PERTURB_=115 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1 /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild/Tests/RouteStepModelTest
+――――――――――――――――――――――――――――――――――――― ✀  ―――――――――――――――――――――――――――――――――――――
+Randomness seeded to: 2319138386
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+RouteStepModelTest is a Catch2 v3.16.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+A motorway enter through a link is the entry, not the turn
+-------------------------------------------------------------------------------
+../Tests/src/RouteStepModelTest.cpp:965
+...............................................................................
+
+../Tests/src/RouteStepModelTest.cpp:980: FAILED:
+  REQUIRE( enter.kind==RouteStep::Kind::motorwayEnter )
+with expansion:
+  3 == 6
+
+===============================================================================
+test cases:  18 |  17 passed | 1 failed
+assertions: 152 | 151 passed | 1 failed
+
+――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+
+
+Summary of Failures:
+
+1/1 libosmscout:Check route step model FAIL            0.03s   exit status 42
+
+Ok:                0   
+Fail:              1   
+
+Full log written to /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/hostbuild/meson-logs/testlog.txt

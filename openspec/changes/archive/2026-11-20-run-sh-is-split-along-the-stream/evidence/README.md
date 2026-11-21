@@ -28,6 +28,30 @@ would have stayed in the entry as a `run.sh`-owned duplicate, which is what
 `driver#anOwnedFunctionIsInItsOwnersFile` reports. So each was moved to its owner file before the tally below was
 taken.
 
+## The gate on the replayed tree (2026-11-21)
+
+`gate-replay.log` is one run of `bash tools/loop/gate.sh --base 4b53a442` on the replayed tree (`head=e2ebfdcd`,
+`diff=5786cb98`), taken 2026-11-21T09:12Z…09:37Z:
+
+```
+LOOP-GATE: tests=1265 failures=0 errors=1 — failing: bash tools/gen-feature-list.sh --check-classification
+                          — base-red: tools/check-openspec-hygiene.sh:1
+```
+
+Neither red is this change's. `tools/check-openspec-hygiene.sh` is the run's base red and the gate subtracted it
+(`LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1`). The remaining error is a property of the working tree this
+gate ran in and not of the tree it measures: `openspec/changes/*/` is gitignored, so the open changes on this machine
+(`fix-compound-name-matching`'s `location-search-api`) are in the gate's tree and in no commit. Measured on a clean
+worktree at the base (`git worktree add … 4b53a442`, `base-tree-classification.log`): the same command exits 0 there.
+The gate names the same difference itself — `LOOP-GATE-BASERED-UNMEASURED:bash tools/gen-feature-list.sh
+--check-classification — no clean tree at 4b53a442 to measure it in`.
+
+The whole suite is green on the replayed tree: `loop-gate-from-git.xml` is the gate's own tally for that leg,
+`tests="518" failures="0" errors="0" time="539"`, `loop-selftest: all 518 cases passed — 537.85 s`. The gate writes
+JUnit XML, the 2026-11-20 run had none (the shell suite writes none), and this tally is what makes the branch
+adoptable — `worktree.sh`'s `carried_verification` reads exactly this: a `testsuite` that ran something and failed
+nothing.
+
 ## The red case on HEAD
 
 `driver#anOwnedFunctionIsInItsOwnersFile`, run against the base commit's engine (`git archive b63de90 tools/loop |

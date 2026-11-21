@@ -1293,8 +1293,8 @@ while true; do
           worker_exit=$?
           worker_report="$item_dir/worker-continuation-report.md"
           worker_prompt="$item_dir/worker-prompt-continuation.md"
-          # …and the ceiling this child met is the item's shape when it is the same one that ended the worker before it
-          # (issue #956). Two children have now been measured at the reading one child may hold, so what the item does
+          # …and a ceiling this child met is the item's shape (issue #956): the run has now measured the item in two
+          # children — the worker it continued and this continuation — so what the item does
           # not fit is its own size and not the phase's progress: the outcome arms below record the shaping verdict
           # `too-wide` — the hold a person shapes the item from — instead of a `cut` the next run re-enters at full size,
           # and the reason names the ceiling and what this child listed. The test is the one the first cut is read from,
@@ -2088,7 +2088,7 @@ while true; do
       block refused "$pre_gate_refusal"
     fi
   elif [ "$continuation_too_wide" -eq 1 ]; then
-    # The continuation the run started was ended at the same ceiling the worker it continued met (issue #956), so the
+    # The continuation the run started was ended at a context ceiling (issue #956), so the
     # item has been measured twice at the reading one child may hold: what it does not fit is its own size, not the
     # phase's progress. The verdict is the shaping one — `too-wide`, which the profile's `roles.shapingVerdicts` names
     # and `labels.sh` writes as the shaping label beside the hold — so the item stops re-entering the queue at full
@@ -2097,8 +2097,8 @@ while true; do
     # decision label: a hold is not a question (spec, "A hold is not a decision").
     outcome="skipped"
     skip_verdict=too-wide
-    root_cause="the item does not fit one child's context: the continuation was ended at the same ceiling the worker it
-continued met — ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phases it listed: $continuation_phases}"
+    root_cause="the item does not fit one child's context: the continuation was ended at a context ceiling —
+${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phases it listed: $continuation_phases}"
   elif [ "$last_exit" -ne 0 ]; then
     block child-failed "the $last_child process exited $last_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable

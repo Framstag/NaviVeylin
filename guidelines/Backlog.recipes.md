@@ -162,11 +162,12 @@ What it therefore re-reads of its own work, and the one bound on it. A tool resu
 context at its own size and stays there, so every later turn of that session re-reads it: over the archive the
 children injected **59.2 M characters** of tool output once and re-read 876.4 M tokens of it — 53 % of the 1.66 B
 the archive spent — with a 116.6 k `ctx_read` and a 51.3 k `ctx_shell` at the top (`python3 tools/loop-spend.py`,
-issue #660). A result above `LOOP_TOOL_RESULT_MAX_CHARS` (8 000, the archive's p90 rounded up) is therefore cut to
-its first 8 000 characters and carries one line naming the tool, the size it had and how to read the rest, and the
-trim is recorded beside the child's event stream in the item's directory, where a reader of the item can re-read the
-range the notice names. Nine results in ten are handed over byte for byte: the archive's median result is 825
-characters and 9.0 % of its 22 901 results are above the bound, which is where 14 % of the spend sits
+issue #660). A result above `LOOP_TOOL_RESULT_MAX_CHARS` — the number `tools/loop/loop.conf` records, whose value and
+the measurement behind it are that key's own comment — is therefore cut to its first `<that bound>` characters and
+carries one line naming the tool, the size it had and how to read the rest, and the trim is recorded beside the
+child's event stream in the item's directory, where a reader of the item can re-read the range the notice names. A
+result under the bound is handed over byte for byte: at the 8 000 the bound shipped with, the archive's median result
+was 825 characters and 9.0 % of its 22 901 results were above it, which is where 14 % of the spend sat
 (`LOOP-SPEND-CAP8K`; the probe is `evidence/result-sizes.py` in the change
 `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`, which is archived and so is reached by that path only
 inside the change). The rule is applied where a result passes —

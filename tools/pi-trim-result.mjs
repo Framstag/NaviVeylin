@@ -132,8 +132,8 @@ export const GATE_EVIDENCE_BOUND = 8000;
 /**
  * The bound a **verification** read is held to (issue #886): a repeat whose content changed is the session's own edit
  * coming back, and the file it lands in is not what changed. It is 2 000 characters — a result the archive's median
- * (825) fits inside, and a quarter of the recorded result bound — so a read that hands back what it just edited costs
- * the edit and its neighbourhood rather than the whole file it sits in.
+ * (825) fits inside, and the number the recorded result bound itself holds since #1004 — so a read that hands back
+ * what it just edited costs the edit and its neighbourhood rather than the whole file it sits in.
  */
 export const VERIFICATION_READ_BOUND = 2000;
 

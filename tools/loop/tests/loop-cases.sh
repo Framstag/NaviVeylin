@@ -381,6 +381,7 @@ LOOP_SHELL_CASES=(
   'state#theSpendSurvivesTheLossOfItsDeltaLines'
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
   'trim#aResultUnderTheBoundIsHandedOverWhole'
+  'trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut'
   'trim#theTrimIsRecorded'
   'look#oneCallAnswersTheWholeTree'
   'look#aResultOverTheBoundIsCutAndNamed'
@@ -1203,6 +1204,7 @@ loop_run_shell_case() {
     'state#theSpendSurvivesTheLossOfItsDeltaLines') fn=case_state_theSpendSurvivesTheLossOfItsDeltaLines ;;
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
+    'trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut') fn=case_trim_aResultBetweenTheNewBoundAndTheOldOneArrivesCut ;;
     'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
     'look#oneCallAnswersTheWholeTree') fn=case_look_oneCallAnswersTheWholeTree ;;
     'look#aResultOverTheBoundIsCutAndNamed') fn=case_look_aResultOverTheBoundIsCutAndNamed ;;
@@ -13832,19 +13834,25 @@ case_trim_aResultAboveTheBoundIsTrimmedAndNamed() {
 }
 
 # The bound is a rule about the tail, not about reading (issue #660): most of what a child is handed is small —
-# the archive's median result is 825 characters, its p75 2 917, and only 9.0 % of its 22 901 results are above
-# 8 000 (`evidence/result-sizes.log` in the change `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`). A
-# bound that touched an ordinary result would buy a saving with the content an item is worked from.
+# the archive's median result is 825 characters and its p75 2 917 (`evidence/result-sizes.log` in the change
+# `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`). A bound that touched an ordinary result would buy a
+# saving with the content an item is worked from. The number this arm is measured against is the one the file
+# records and not a literal of its own (issue #1004): a case that passes its own `--bound` cannot tell a tree that
+# recorded the new number from one that still records the old one, so the arm that must stay whole reads the bound
+# the tree stands on.
 case_trim_aResultUnderTheBoundIsHandedOverWhole() {
-  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
-  local d small exact out
+  # files: tools/loop/tests/loop-cases.sh tools/loop/loop.conf tools/pi-trim-result.mjs
+  local d small exact out recorded
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
     || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
   d=$(scratch)
   small="$d/small.txt"
   { head -c 1000 /dev/zero | tr '\0' 'b'; printf 'END\n'; } > "$small"
   out="$d/handed.txt"
-  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound "$recorded" --tool ctx_read \
     --record "$d/trims.log" < "$small" > "$out" \
     || fail "the bound exited non-zero: $(head -3 "$out")"
   assert_eq "$(cat "$small")" "$(cat "$out")" "a result at or under the bound is handed over unchanged"
@@ -13856,15 +13864,50 @@ case_trim_aResultUnderTheBoundIsHandedOverWhole() {
   # not only a result comfortably under it: a `<=` that became `<` would cut a result of exactly <bound>
   # characters to an empty prefix and a notice, and the case above would not notice (review of #660, round 1).
   exact="$d/exact.txt"
-  head -c 8000 /dev/zero | tr '\0' 'c' > "$exact"
+  head -c "$recorded" /dev/zero | tr '\0' 'c' > "$exact"
   out="$d/exact-out.txt"
-  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound "$recorded" --tool ctx_read \
     --record "$d/exact-trims.log" < "$exact" > "$out" \
     || fail "the bound exited non-zero at the boundary: $(head -3 "$out")"
   assert_eq "$(wc -c < "$exact")" "$(wc -c < "$out")" "a result of exactly the bound is handed over whole"
   assert_not_contains "$(cat "$out")" "LOOP-TRIMMED" "with no notice at the boundary either"
   [ ! -s "$d/exact-trims.log" ] \
     || fail "a result of exactly the bound is recorded as trimmed: $(cat "$d/exact-trims.log")"
+  return 0
+}
+
+# The recorded bound is the number a result is cut at, and the arm above cannot prove it moved (issue #1004): it
+# passes the number it read, so a tree that still records the old one is as green as this one. So this case hands the
+# trimmer a result of 3 003 characters — above the 2 000 the tree records and under the 4 000 it recorded before — and
+# asserts it arrives cut and named. On a tree whose recorded bound is above its size it arrives whole, which is the
+# defect the bound was lowered for; and because the size is the fixture's and the bound is the file's, the two numbers
+# are read against each other rather than against a second copy of either.
+case_trim_aResultBetweenTheNewBoundAndTheOldOneArrivesCut() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/loop.conf tools/pi-trim-result.mjs
+  local d mid out recorded size
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
+  d=$(scratch)
+  mid="$d/mid.txt"
+  { head -c 2994 /dev/zero | tr '\0' 'm'; printf 'MID-TAIL\n'; } > "$mid"
+  size=$(wc -c < "$mid" | tr -d ' ')
+  out="$d/mid-out.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound "$recorded" --tool ctx_shell \
+    --record "$d/mid-trims.log" < "$mid" > "$out" \
+    || fail "the bound exited non-zero: $(head -3 "$out")"
+  assert_eq "$(head -c "$recorded" "$mid")" "$(head -c "$recorded" "$out")" \
+    "the first <recorded bound> characters are handed over unchanged"
+  grep -q 'MID-TAIL' "$out" \
+    && fail "nothing past the recorded bound reaches the child's context: the tail of a result of $size characters is in an answer cut at $recorded"
+  assert_contains "$(cat "$out")" "LOOP-TRIMMED" "the cut is named in the result the child reads"
+  assert_contains "$(cat "$out")" "$size" "the line names the size the result had"
+  assert_contains "$(cat "$out")" "$recorded" "and the bound it was cut to"
+  assert_contains "$(cat "$out")" "sed -n" "and how to read the rest, so a reader can re-read the range the notice names"
+  assert_eq "LOOP-TOOL-RESULT-TRIM: ctx_shell chars=$size kept=$recorded" "$(cat "$d/mid-trims.log")" \
+    "and what was cut is recorded against the bound the tree stands on"
   return 0
 }
 
@@ -20892,7 +20935,7 @@ case_phase_oneCallPrintsThePhaseState() {
 # a reader who cannot tell a short answer from a truncated one re-runs the call.
 #
 # What the answer keeps is the phase state and the package's head, so the fixture is asked of a phase whose state leaves
-# room for that head (issue #915). Phase A prints its own checklist — 2 630 bytes of the 4 000 this project records — and
+# room for that head (issue #915). Phase A prints its own checklist — 2 630 bytes of the 4 000 this project then recorded — and
 # with the ten state lines before it the kept window (the bound less the 262-byte notice) ends inside the package's
 # `<<<ISSUE_TEXT` delimiter: 3 696 bytes reach the delimiter and its line plus `PKG-LINE-001` need 27 bytes more than
 # the window has, so the
@@ -20947,7 +20990,7 @@ case_phase_aResultOverTheBoundIsCutAndNamed() {
 # The bound may take the tail and never the identity (issue #927). A child handed an answer whose `fingerprint` never
 # printed cannot tell which package it works from, and the answer cannot either: on a deep worktree root the head was
 # absolute paths — the checklist's, the gate's stream, the package and the evidence directory — so the 4 000 the
-# project records ran out inside the `PACKAGE:` line and the fingerprint line never printed. The same case passed on
+# project then recorded ran out inside the `PACKAGE:` line and the fingerprint line never printed. The same case passed on
 # a short project root and was red in every worktree the loop runs in, so the verdict was decided by the length of a
 # root. Two halves are asserted here, on the same fixture at two root depths:
 #

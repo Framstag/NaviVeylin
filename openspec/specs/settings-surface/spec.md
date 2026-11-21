@@ -105,7 +105,7 @@ The settings surface SHALL expose every persisted setting the phone can change, 
 
 - **WHEN** the user opens the Navigation & Route topic
 - **THEN** the page offers the three vehicle maximum speeds, the three avoidance switches and the vehicle anchors for routing and free driving
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#theNavigationTopicCarriesTheRoutingValues`
 
 #### Scenario: Hinweise & Sprache carries the announcement values
 
@@ -135,14 +135,14 @@ The settings surface SHALL present the car's voice guidance and both car vehicle
 - **WHEN** a car anchor has never been set on the phone
 - **THEN** its row states that it uses the phone's value
 - **AND** the row offers returning to that state after it was set
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceCarAnchorTest#anInheritingAnchorIsShownAsInheriting`
 
 #### Scenario: Returning to the phone value
 
 - **WHEN** the user selects the return-to-phone-value option on a car anchor row
 - **THEN** the car anchor no longer holds its own value
 - **AND** the car follows the phone's anchor from then on
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceCarAnchorTest#returningToThePhoneValueClearsTheCarValue`
 
 ### Requirement: A change applies immediately and persists
 
@@ -208,7 +208,7 @@ A setting with a numeric range SHALL render as a slider that shows its current v
 
 - **WHEN** the car's maximum speed row is displayed
 - **THEN** every whole value from 30 to 160 km/h is reachable
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#theThreeSpeedSlidersKeepTheirRanges`
 
 ### Requirement: A link row leaves the surface
 

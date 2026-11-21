@@ -84,23 +84,23 @@ are open, one tracker item each (#900–#905).
 
 ## 4. Navigation & Route topic — speeds, avoidances, anchors
 
-- [ ] 4.1 Move the three maximum speed sliders into the topic beside the avoidance switches,
+- [x] 4.1 Move the three maximum speed sliders into the topic beside the avoidance switches,
       keeping their ranges and defaults; verify the range case for all three vehicles and that a
       change persists (`SettingsSurfaceTest#theThreeSpeedSlidersKeepTheirRanges`,
       `#aSliderChangePersistsAndSurvivesRestart`), and delete the moved sheet cases.
-- [ ] 4.2 Move the three avoidance switches into the same section and assert they still feed the
+- [x] 4.2 Move the three avoidance switches into the same section and assert they still feed the
       shared routing-profile builder; verify `RoutingProfileBuilderTest` cases stay green and
       `SettingsSurfaceTest#theAvoidanceSwitchesSitBesideTheSpeeds`.
-- [ ] 4.3 Add the phone's anchor rows for routing and free driving with the 5×3 picker unchanged,
+- [x] 4.3 Add the phone's anchor rows for routing and free driving with the 5×3 picker unchanged,
       moving the anchor cases off `LocationOptionsOverlayComposeTest`; verify
       `SettingsSurfaceTest#theAnchorPickerMarksTheConfiguredValue` and
       `#theAnchorLabelsMatchTheCarPicker`.
-- [ ] 4.4 Add the car's own anchor rows with the tri-state ("uses the phone value" / own value /
+- [x] 4.4 Add the car's own anchor rows with the tri-state ("uses the phone value" / own value /
       return to phone value) over `autoRoutingAnchorId` and `autoFreeDrivingAnchorId`; verify
       `SettingsSurfaceCarAnchorTest#anInheritingAnchorIsShownAsInheriting`,
       `#returningToThePhoneValueClearsTheCarValue` and
       `#changingThePhoneAnchorChangesAnInheritingCarAnchor`.
-- [ ] 4.5 Assert the semantic that `null` still means inherit after a phone edit and after a
+- [x] 4.5 Assert the semantic that `null` still means inherit after a phone edit and after a
       reset, and that a set car value survives a phone anchor change; verify
       `SettingsSurfaceCarAnchorTest#aSetCarValueSurvivesAPhoneAnchorChange`.
 

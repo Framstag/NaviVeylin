@@ -218,8 +218,9 @@ Source: change `vehicle-position-presets` (specs `auto-map-layout`,
   labels ("Center", "Bottom right", …) **by construction**: the labels come
   from the single shared `VehicleAnchorPosition` enum in `:core`; no
   per-surface strings.
-- **Rule: the vehicle-position picker's layout deviates by platform; its labels do not.** Layout deviation (justified by platform constraints, §1): the phone picker
-  is a 5×3 grid dialog (touch), the Android Auto picker is a 15-row
+- **Rule: the vehicle-position picker's layout deviates by platform; its labels do not.** Layout deviation (justified by platform constraints, §1): the phone
+  presents the anchor rows in the settings surface's "Navigation & Route" topic, whose select
+  sub-surface lays the 15 presets out in a five-column grid (three rows, touch), and the Android Auto picker is a 15-row
   `ListTemplate` list (car templates cannot host grids). Labels/hierarchy stay
   identical.
 - **Rule: the vehicle-position value is global.** Editing on either surface changes both.

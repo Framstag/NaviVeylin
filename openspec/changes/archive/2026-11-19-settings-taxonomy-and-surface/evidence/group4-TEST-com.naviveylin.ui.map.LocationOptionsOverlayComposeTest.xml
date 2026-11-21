@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-11-21T15:57:40.022Z" hostname="dingens" time="4.083">
+  <properties/>
+  <testcase name="freeDriveHeaderShowsDrivingSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.424"/>
+  <testcase name="longPressTimeoutSliderIsReachableInFreeDrive" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.226"/>
+  <testcase name="sheetShowsTheSymbolIconPreferenceOffByDefault" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.228"/>
+  <testcase name="theVoiceAndGpsSwitchesAreShownAndReportAGesture" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.233"/>
+  <testcase name="symbolIconToggleReportsTheChange" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.244"/>
+  <testcase name="navigationHeaderShowsDrivingSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.223"/>
+  <testcase name="ambientSensitivityReflectsState" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.256"/>
+  <testcase name="overspeedSliderCanSelectZero" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.235"/>
+  <testcase name="sheetShowsMapStyleDropdownWithAllStyles" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.338"/>
+  <testcase name="longPressTimeoutSliderIsReachableInBrowse" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.217"/>
+  <testcase name="dropdownSelectionReportsStyle" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.361"/>
+  <testcase name="browseHeaderShowsBrowseAndBrowseSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.333"/>
+  <testcase name="ambientSensitivityRendersAndReports" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.21"/>
+  <testcase name="longPressTimeoutSliderShowsAndWritesTheValue" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.212"/>
+  <testcase name="sheetHasNoModeSwitchControl" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.17"/>
+  <testcase name="longPressTimeoutSliderIsReachableInNavigation" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.166"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

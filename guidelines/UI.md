@@ -142,12 +142,14 @@ row of the declaration a reader points at, not a review note and not a suite fai
   **voice** switch is per surface (both default **on**); the **GPS announcements** switch is **one
   shared value** edited from either surface and default **off**, and a GPS state is spoken only after
   it has held 5 s, so a flapping fix announces the state it settles on rather than every edge.
-- **Rule: the routing and handling values are phone-only, and the phone edits each where it lives.**
-  The overspeed delta and the map long-press delay SHALL be configurable in the phone's
-  location-options sheet, and the maximum speed per vehicle, the three avoidance choices and the
-  phone's two vehicle anchors in the phone's settings surface under "Navigation & Route"; the car
-  reads the same stored values but carries no control for them (no car surface has a long-press
-  gesture).
+- **Rule: a value a car surface cannot edit is edited on the phone, and a car anchor restores from the
+  phone.** The maximum speed per vehicle and the three avoidance choices SHALL be edited in the phone's
+  settings surface under "Navigation & Route" only; the car reads the same stored values but carries no
+  control for either. That topic also carries the phone's two vehicle anchors and the car's own two — a car
+  row shows "Uses the phone value" while the car holds none, so a value the car set can be returned to
+  inheriting from the phone. The car's two rows are the car-owned values the phone edits from that topic;
+  the overspeed delta is the other value a car surface also edits, and the map long-press delay is
+  phone-only, because no car surface has a long-press gesture.
 
 
 ## 9. Dark mode (phone + Android Auto)

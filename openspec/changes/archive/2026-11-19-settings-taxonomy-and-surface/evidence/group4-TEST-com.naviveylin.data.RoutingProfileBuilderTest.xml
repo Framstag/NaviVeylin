@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.RoutingProfileBuilderTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-21T15:56:44.033Z" hostname="dingens" time="0.009">
+  <properties/>
+  <testcase name="theBuilderStillCarriesTheVehiclesOwnSpeed" classname="com.naviveylin.data.RoutingProfileBuilderTest" time="0.007"/>
+  <testcase name="eachStoredChoiceReachesTheProfile" classname="com.naviveylin.data.RoutingProfileBuilderTest" time="0.0"/>
+  <testcase name="choicesAreIndependent" classname="com.naviveylin.data.RoutingProfileBuilderTest" time="0.0"/>
+  <testcase name="theChoicesApplyToEveryVehicle" classname="com.naviveylin.data.RoutingProfileBuilderTest" time="0.0"/>
+  <testcase name="defaultSettingsAskForNoAvoidance" classname="com.naviveylin.data.RoutingProfileBuilderTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -32,7 +32,7 @@ give.
 | the phone map — modes, overlays, layering, the route-planning card | `UIPhoneMap.md` §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11 — sub-sections §7a 3.4 kB, §7b 8.0 kB, §8a 1.9 kB, §8b 3.3 kB, §8c 3.5 kB (measured 2026-10-31) |
 | phone surfaces — the details dialog, search, favourites | `UIPhone.md` §5, §6a, §12, §13, §14, §15, §16, §17, §18, §19, §20 — sub-section §6a 6.9 kB (measured 2026-11-14) |
 | car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 5.6 kB, §6b 6.1 kB (measured 2026-11-14) |
-| parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6, §8d "Cross-variant map presentation" 7.3 kB (measured 2026-11-20) |
+| parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6, §8d "Cross-variant map presentation" 7.6 kB (measured 2026-11-21) |
 | dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
 | the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 11.0 kB, §8b 3.0 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 6.0 kB (measured 2026-11-21); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
 | a surface that must live while a phone and a car session are both active | `MapCar.md` §18, `UIPhoneMap.md` §10a "Phone surface while a car session is active" 2.4 kB (measured 2026-10-29) |

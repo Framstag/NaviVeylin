@@ -55,12 +55,12 @@ avoidance control of its own.
 - **WHEN** the user opens the settings surface's Navigation & Route topic
 - **THEN** it shows avoid toll roads, avoid ferry routes and avoid unpaved roads beside the vehicle speed
 - **AND** each switch reflects the stored value
-- **Case**: none — the switch cases are written when the switches move (tasks.md group 4)
+- **Case**: `SettingsSurfaceTest#theAvoidanceSwitchesSitBesideTheSpeeds`
 
 #### Scenario: The car uses the phone's choices
 - **WHEN** the phone stores avoid toll roads on and a destination is acquired on the car
 - **THEN** the car's route calculation requests toll avoidance
-- **Case**: none — the switch cases are written when the switches move (tasks.md group 4)
+- **Case**: `RoutingProfileBuilderTest#theChoicesApplyToEveryVehicle`
 
 ### Requirement: A choice the data cannot express changes nothing
 

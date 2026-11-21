@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceCarAnchorTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-21T15:59:15.225Z" hostname="dingens" time="0.977">
+  <properties/>
+  <testcase name="aSetCarValueSurvivesAPhoneAnchorChange" classname="com.naviveylin.ui.settings.SettingsSurfaceCarAnchorTest" time="0.404"/>
+  <testcase name="changingThePhoneAnchorChangesAnInheritingCarAnchor" classname="com.naviveylin.ui.settings.SettingsSurfaceCarAnchorTest" time="0.207"/>
+  <testcase name="anInheritingAnchorIsShownAsInheriting" classname="com.naviveylin.ui.settings.SettingsSurfaceCarAnchorTest" time="0.19"/>
+  <testcase name="returningToThePhoneValueClearsTheCarValue" classname="com.naviveylin.ui.settings.SettingsSurfaceCarAnchorTest" time="0.166"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

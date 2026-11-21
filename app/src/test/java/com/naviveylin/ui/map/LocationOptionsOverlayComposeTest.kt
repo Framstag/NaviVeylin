@@ -7,19 +7,12 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.filterToOne
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onChildren
 import com.naviveylin.core.BundledMapStyles
-import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -27,7 +20,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipe
 import androidx.compose.ui.geometry.Offset
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
@@ -60,11 +52,6 @@ class LocationOptionsOverlayComposeTest {
         onSetStyleSheet: (String) -> Unit = {},
         preferSymbolPoiIcons: Boolean = false,
         onSetPreferSymbolPoiIcons: (Boolean) -> Unit = {},
-        // Usual maximum speed per vehicle: the sheet's own defaults, overridable so a case can
-        // assert that a stored value is what the sliders show (spec: location-options-ui).
-        // Routing avoidance: overridable so a case can assert that a stored choice is what the
-        // switches show and that a toggle is reported back (spec: `routing-avoidance` — The phone
-        // edits the choices and the car reads them).
         // The long-press timeout row: overridable so a case can assert that the configured value
         // is what the slider shows and that a move is reported back (spec: location-options-ui —
         // Long-press timeout control).

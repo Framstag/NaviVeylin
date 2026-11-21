@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="prompt#theTooWideRowCountsTheSurfaceBeforeTheVerdict" tests="1" failures="1" errors="0" timestamp="2026-11-21T03:54:29Z">
+  <testcase classname="loop-selftest" name="prompt#theTooWideRowCountsTheSurfaceBeforeTheVerdict">
+    <failure message="row 5 decides the too-wide verdict by a count and not by a fresh judgement (issue #959): 'counted, not judged' not found in: # Worker — one item, phases A–D"/>
+  </testcase>
+</testsuite>

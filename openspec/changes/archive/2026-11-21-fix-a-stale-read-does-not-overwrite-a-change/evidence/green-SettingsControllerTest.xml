@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsControllerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:37.151Z" hostname="dingens" time="0.413">
+  <properties/>
+  <testcase name="aWriteLandsOnceAndEmits" classname="com.naviveylin.ui.settings.SettingsControllerTest" time="0.137"/>
+  <testcase name="aWriteAppliesToThePersistedDocument" classname="com.naviveylin.ui.settings.SettingsControllerTest" time="0.076"/>
+  <testcase name="aLoadPublishesThePersistedDocument" classname="com.naviveylin.ui.settings.SettingsControllerTest" time="0.071"/>
+  <testcase name="aLateLoadDoesNotPublishOverANewerWrite" classname="com.naviveylin.ui.settings.SettingsControllerTest" time="0.116"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

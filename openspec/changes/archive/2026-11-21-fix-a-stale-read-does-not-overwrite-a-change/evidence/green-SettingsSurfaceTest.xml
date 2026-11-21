@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:47.136Z" hostname="dingens" time="7.12">
+  <properties/>
+  <testcase name="theAnchorLabelsMatchTheCarPicker" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.523"/>
+  <testcase name="theMapKeepsRenderingWhileTheSurfaceIsOpen" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.305"/>
+  <testcase name="theMapManagerRowOpensTheMapManager" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.237"/>
+  <testcase name="aTopicPageShowsSections" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.234"/>
+  <testcase name="theMapMenuOpensTheRoot" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.413"/>
+  <testcase name="aLongHelpOpensWithoutChangingTheValue" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.412"/>
+  <testcase name="theRootShowsSixTopicsAndNoSettingRow" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.271"/>
+  <testcase name="theSheetRowClosesTheSheetAndOpensTheSurface" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.452"/>
+  <testcase name="theAvoidanceSwitchesSitBesideTheSpeeds" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.344"/>
+  <testcase name="theNavigationTopicCarriesTheRoutingValues" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.318"/>
+  <testcase name="theAnchorPickerMarksTheConfiguredValue" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.344"/>
+  <testcase name="aSharedRowCarriesNoSurfaceIcon" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.239"/>
+  <testcase name="theThreeSpeedSlidersKeepTheirRanges" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.278"/>
+  <testcase name="theStartScreenMenuOpensTheRoot" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.365"/>
+  <testcase name="theOverspeedSliderOffersOneKilometreSteps" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.276"/>
+  <testcase name="aChangePersistsWithoutASaveAction" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.306"/>
+  <testcase name="aSwitchTogglesFromTheWholeRow" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.236"/>
+  <testcase name="theStyleRowOpensItsSelectionSurface" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.27"/>
+  <testcase name="aShortHelpLineSitsUnderTheLabel" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.25"/>
+  <testcase name="anInapplicableSectionIsOmitted" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.221"/>
+  <testcase name="aSliderChangePersistsAndSurvivesRestart" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.246"/>
+  <testcase name="dismissingReturnsTheUntouchedMap" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.242"/>
+  <testcase name="theAboutRowOpensTheDialog" classname="com.naviveylin.ui.settings.SettingsSurfaceTest" time="0.311"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

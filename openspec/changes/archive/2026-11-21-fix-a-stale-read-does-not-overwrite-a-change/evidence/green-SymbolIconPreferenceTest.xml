@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.SymbolIconPreferenceTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:26.004Z" hostname="dingens" time="12.785">
+  <properties/>
+  <testcase name="aChangeReachesTheClientOnceAndIsPersisted" classname="com.naviveylin.ui.map.SymbolIconPreferenceTest" time="10.978"/>
+  <testcase name="theDefaultValueIssuesNoNativeCall" classname="com.naviveylin.ui.map.SymbolIconPreferenceTest" time="0.085"/>
+  <testcase name="thePersistedValueIsAppliedAtStartup" classname="com.naviveylin.ui.map.SymbolIconPreferenceTest" time="0.128"/>
+  <testcase name="eachChangeIsPushedOnce" classname="com.naviveylin.ui.map.SymbolIconPreferenceTest" time="0.128"/>
+  <testcase name="aChangeDiscardsTheTilesRenderedWithThePreviousPreference" classname="com.naviveylin.ui.map.SymbolIconPreferenceTest" time="0.608"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

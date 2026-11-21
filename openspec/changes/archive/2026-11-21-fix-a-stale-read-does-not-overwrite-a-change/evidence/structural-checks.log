@@ -1,0 +1,17 @@
+== bash tools/check-change-readiness.sh openspec/changes/fix-a-stale-read-does-not-overwrite-a-change
+LOOP-CHANGE-READY: ok
+exit=0
+== bash tools/check-case-names.sh
+CASE-NAMES: ok harnesses=41 lines=1545 named=1340 none=123 unnamed=82 unclaimed=5981
+exit=0
+== bash tools/check-openspec-hygiene.sh
+::error file=openspec/changes/a-case-name-resolves-to-one-harness/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/run-event-stream-is-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/settings-taxonomy-and-surface/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-bounds-spend-and-budget-are-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-print-sites-are-converted/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Every capability spec states its Purpose.
+exit=1
+== bash tools/check-doc-routes.sh
+check-doc-routes: all 356 section references resolve, all 8 skill references resolve
+exit=0

@@ -1,0 +1,16 @@
+# after the change — focused suites, run from the change root
+./gradlew :app:testMobileDebugUnitTest -PjvmTestsOnly -PforceTests --tests 'com.naviveylin.ui.settings.*' --tests 'com.naviveylin.ui.map.SymbolIconPreferenceTest' --tests 'com.naviveylin.ui.map.DarkModeLateRestoreTest' :auto:testDebugUnitTest --tests 'com.naviveylin.auto.StartupScreensTest'
+BUILD SUCCESSFUL in 40s (2026-11-21T17:14:23Z-17:14:48Z)
+green-DarkModeLateRestoreTest.xml: <testsuite name="com.naviveylin.ui.map.DarkModeLateRestoreTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:14:23.472Z" hostname="dingens" time="13.571">
+green-SettingsControllerTest.xml: <testsuite name="com.naviveylin.ui.settings.SettingsControllerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:14:37.575Z" hostname="dingens" time="0.293">
+green-SettingsSurfaceTest.xml: <testsuite name="com.naviveylin.ui.settings.SettingsSurfaceTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:14:48.384Z" hostname="dingens" time="7.163">
+green-StartupScreensTest.xml: <testsuite name="com.naviveylin.auto.StartupScreensTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:14:23.550Z" hostname="dingens" time="17.893">
+green-SymbolIconPreferenceTest.xml: <testsuite name="com.naviveylin.ui.map.SymbolIconPreferenceTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:14:23.848Z" hostname="dingens" time="13.689">
+
+# continuation re-verification, same command (2026-11-21T17:17Z)
+BUILD SUCCESSFUL in 57s
+<testsuite name="com.naviveylin.ui.settings.SettingsControllerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:37.151Z"
+<testsuite name="com.naviveylin.ui.settings.SettingsSurfaceTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:47.136Z"
+<testsuite name="com.naviveylin.ui.map.SymbolIconPreferenceTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:26.004Z"
+<testsuite name="com.naviveylin.ui.map.DarkModeLateRestoreTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:25.585Z"
+<testsuite name="com.naviveylin.auto.StartupScreensTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-21T17:17:01.752Z"

@@ -285,6 +285,7 @@ LOOP_SHELL_CASES=(
   'run#aChildIsGivenOneScratchDirectory'
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
   'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced'
+  'run#anEmptyTreeWithAnOutsideWriteNamesThePaths'
   'run#mergesOverADifferenceItCannotPlace'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#strictOutsideWriteBlocksTheItem'
@@ -1085,6 +1086,7 @@ loop_run_shell_case() {
     'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
     'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced') fn=case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced ;;
     'run#mergesOverADifferenceItCannotPlace') fn=case_run_mergesOverADifferenceItCannotPlace ;;
+    'run#anEmptyTreeWithAnOutsideWriteNamesThePaths') fn=case_run_anEmptyTreeWithAnOutsideWriteNamesThePaths ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
@@ -7346,6 +7348,11 @@ case_run_childClaimWithoutCommitIsBlocked() {
   assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "the item was recorded"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim without a commit is blocked"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "base commit" "the reason names what was missing"
+  # …and a record that carries no outside-write reading keeps the sentence as it is (issue #983): the clause the
+  # sibling case `run#anEmptyTreeWithAnOutsideWriteNamesThePaths` reads is a qualification, not a replacement, and a
+  # child that wrote nowhere else must not be told its work is in the caller's tree.
+  assert_not_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "caller's tree" \
+    "a child that wrote nothing outside its tree carries no claim about the caller's tree"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
 }
 
@@ -9925,6 +9932,37 @@ EOF
   assert_line_count "$(cat "$transcript")" \
     '^LOOP-OUTSIDE-WRITE-COST: procs=[0-9]+ attributed_ms=[0-9]+ standers_ms=[0-9]+$' 1 \
     "the reading states the processes it walked and what each of its two halves cost"
+}
+
+# A child that writes the caller's own tree instead of its branch (issue #983). Item #894 of the run of
+# 2026-11-20T09:58:14Z wrote six modified paths and one untracked file into `/home/tim/projects/NaviVeylin` by
+# absolute path, left its own tree at the run's base, and answered `LOOP-DIFF-READY`; the run recorded it `blocked`
+# with `stop uncommitted` on "reported success but the tree is still at the base commit — nothing was committed",
+# which reads as an item nobody worked. The record the run already holds says otherwise — its own outside-write
+# reading names every path — so the reason has to carry it, or the work stands uncommitted in the caller's tree with
+# nothing naming it as an item's. The write is staged from the action, which the stub runs after its own
+# `cd "$LOOP_WORKTREE"`, so no ancestor of the writer worked in the worktree: the difference is recorded
+# (`attributed=none`, #704), decides nothing, and the empty tree is what the outcome block reads. The other half — a
+# record that carries no reading keeps today's sentence — is pinned beside `run#childClaimWithoutCommitIsBlocked`.
+case_run_anEmptyTreeWithAnOutsideWriteNamesThePaths() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\nprintf "stray\\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt"\n' > "$d/worker-action.sh"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim with nothing committed is blocked"
+  assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
+    "and the block keeps the class of the arm that stopped it"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  # The sentence stays: the tree is empty and every arm that reads it says so. What follows it is the reading the run
+  # took, because a reader told only "nothing was committed" has no way to find the work at all.
+  assert_contains "$note" "the tree is still at the base commit — nothing was committed" \
+    "the block is still the one the empty tree earns"
+  assert_contains "$note" "the work is in the caller's tree" \
+    "…and an item whose child wrote the project's own tree says where the work went"
+  assert_contains "$note" "demo-owned.txt" "with the path the run's own reading recorded"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {

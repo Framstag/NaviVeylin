@@ -1649,6 +1649,23 @@ outside_write_decides() { # → 0 when the recorded difference decides the phase
     { [ -n "${outside_write_attributed:-}" ] || [ "$strict_outside_write" = "yes" ]; }
 }
 
+# The difference the run recorded while this item's child ran, said where a reason would otherwise report that the
+# item was not worked at all (issue #983): a child that writes the caller's own tree by absolute path — the shape of
+# item #894 of the run of 2026-11-20T09:58:14Z, six modified paths and one untracked file under the project root —
+# leaves the item's branch at the run's base and the work in the caller's tree, and the run read that as `blocked`
+# `uncommitted` on "nothing was committed" with no path named anywhere. The reading is the run's own outside-write
+# walk, already recorded for every phase (`worker_write_note`, then the gate child's and the tail's); what this adds
+# is the sentence that reads the two facts together, so a reader of the reason knows where the work went. It is a
+# qualification and never a replacement: the arm's own sentence stays, and an item whose record carries no reading
+# gets an empty string and keeps exactly what it wrote before.
+item_outside_write_clause() { # → ` — …the work is in the caller's tree…: <reading>` or empty
+  local note="${worker_write_note:-}"
+  [ -n "$note" ] || note="${gate_write_note:-}"
+  [ -n "$note" ] || note="${outside_write_note:-}"
+  [ -n "$note" ] || return 0
+  printf " — the run nevertheless recorded a difference in the project's own tree while that child ran: the work is in the caller's tree and not on the item's branch — %s" "$note"
+}
+
 # The difference read *while the child runs*, with the processes that were alive at that moment and the ones of
 # them that belong to this child's own tree. A write is only evidence about the child when the two coincide, and
 # the child is gone by the time its transcript is written — so the reading has to be taken during its life, from
@@ -3334,7 +3351,7 @@ while true; do
       # one was paid. A child that answered the diff marker did read the item, so what this leaves is the item's own
       # block and not the run's "could not start" stop that the same empty tree beside an answer with nothing in it is.
       if [ "$head_now" = "$base" ]; then
-        empty_tree_reading="the item ends at this reading, before any gate child: the change child stopped at the diff and the tree is still at the base commit, so nothing was committed"
+        empty_tree_reading="the item ends at this reading, before any gate child: the change child stopped at the diff and the tree is still at the base commit, so nothing was committed$(item_outside_write_clause)"
         loop_state step A --name empty-tree --status ok --note "$empty_tree_reading" >/dev/null 2>&1 || true
         progress note "$empty_tree_reading"
       fi
@@ -3738,7 +3755,7 @@ while true; do
       [ "$retry_delay" -eq 0 ] 2>/dev/null || sleep "$retry_delay"
       continue
     fi
-    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}${retry_log_child_start:+; retried $retry_spent_child_start of $retry_max (LOOP_RETRY_MAX=$retry_max, LOOP_RETRY_DELAYS=$retry_delays) — $retry_log_child_start}"
+    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}$(item_outside_write_clause)${retry_log_child_start:+; retried $retry_spent_child_start of $retry_max (LOOP_RETRY_MAX=$retry_max, LOOP_RETRY_DELAYS=$retry_delays) — $retry_log_child_start}"
     break
   fi
   archives=$(git -C "$worktree" diff --name-only "$base"..HEAD -- openspec/changes/archive 2>/dev/null |
@@ -3858,7 +3875,7 @@ while true; do
     # person has to look at instead of the item's tree.
     block child-failed "$phase_failure"
   elif [ "$head_now" = "$base" ]; then
-    block uncommitted "reported success but the tree is still at the base commit — nothing was committed"
+    block uncommitted "reported success but the tree is still at the base commit — nothing was committed$(item_outside_write_clause)"
   elif [ -z "$change" ]; then
     block uncommitted "reported success but no archived change appears in the run's diff"
   elif [ -n "$LOOP_GATE_CMD" ] && [ -n "$gate_claim" ] && [ "$gate_found" -eq 0 ]; then

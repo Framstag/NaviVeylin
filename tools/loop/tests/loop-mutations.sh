@@ -1503,6 +1503,12 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 983.1 — the reading a block owes a child that wrote the caller's tree (issue #983). The record drops the clause
+  # that names the difference from both arms that read an empty tree, so the reason says "nothing was committed" of
+  # an item whose work stands in the project's own tree with no path named anywhere — the reading item #894 of the run
+  # of 2026-11-20T09:58:14Z carried as `LOOP-OUTSIDE-WRITE-FIRST: … M tools/loop/layout.tsv; …` and the caller's tree
+  # still holds. `run#anEmptyTreeWithAnOutsideWriteNamesThePaths` is the case that must notice.
+  '983.1@-@tools/loop/run.sh@run#anEmptyTreeWithAnOutsideWriteNamesThePaths@the clause that names the caller'"'"'s tree and the paths the run recorded, so an item whose child wrote the project'"'"'s own tree is reported as one that committed nothing (issue #983)@s|nothing was committed\$(item_outside_write_clause)|nothing was committed|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

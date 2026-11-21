@@ -17505,6 +17505,19 @@ case_gate_theCompiledStepIsTheCommandItsPathAsks() {
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_contains "$plan" "whole-build" "a compiled path no pair names asks the profile's own command: $plan"
   assert_not_contains "$plan" "build-one" "and no pair's command it does not match: $plan"
+
+  # A mixed delta owes both: the pair's command for the path the pair names, and the profile's own command for the
+  # compiled path beside it — a pair answers its own paths and never silences the rest of the delta (issue #945).
+  printf 'class D\n' > "$p/app/src/main/kotlin/D.kt"
+  printf 'class E\n' > "$p/core/src/main/kotlin/E.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a paired source beside an uncovered one' >/dev/null 2>&1 \
+    || fail "could not commit the fourth change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "build-one" "the pair's command is owed inside a mixed delta: $plan"
+  assert_contains "$plan" "whole-build" "and the compiled path no pair names keeps the profile's own command: $plan"
+  assert_not_contains "$plan" "build-both" "and no pair the delta does not match: $plan"
+  assert_eq "2" "$(printf '%s\n' "$plan" | grep -c '^\(build-\|whole-build\)')" "exactly the pair's command and the default are owed: $plan"
   return 0
 }
 

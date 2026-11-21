@@ -1003,8 +1003,9 @@ flavours — answered every compiled path alike, and asked the same suites of a 
 rewrote a flavour's manifest: measured 2026-11-16, 423 s of the run's 1 772 s pre-flight and 515 s, 567 s, 663 s and
 1 800 s (its bound, overrun) across one night's item gates (issue #945). `LOOP_GATE_COMPILED_STEPS` carries
 `<glob>|<command>` pairs, the shape `LOOP_GATE_SUITES` already carries; the **first** pair whose glob matches the
-delta names the one compiled step the gate owes, and `LOOP_GATE_COMPILED_CMD` is what a compiled path no pair names
-owes, so the pairs narrow the build rather than silence it. The pairs are `BuildEvidence.md` §4b's scope block — the
+delta names the compiled step its paired paths owe, and `LOOP_GATE_COMPILED_CMD` is what a compiled path no pair names
+owes — beside that pair's command when a mixed delta also touches an uncovered path — so the pairs narrow the build
+rather than silence it. The pairs are `BuildEvidence.md` §4b's scope block — the
 `:app` suite of exactly those flavours the delta can affect, one flavour for the sources the two share — because that
 rule already bound the routine gate and this profile did not apply it. The cases are
 `gate#theCompiledStepIsTheCommandItsPathAsks` and `gate#theProfileAsksOneFlavourForSharedSources`, and

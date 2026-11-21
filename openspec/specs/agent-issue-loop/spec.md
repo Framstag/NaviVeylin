@@ -6055,3 +6055,34 @@ run's base with a clean status — that silence spent no phase and keeps the ite
 - **THEN** no relaunch happens inside the item, and the transient class the run already spends re-runs the item from the
   queue
 - **Case**: `run#aChildThatNeverStartedIsRetriedBeforeTheRunStops`
+
+### Requirement: The compiled step is the command its path asks for
+
+The gate SHALL take the command a compiled delta owes from the profile, per path: the first `<glob>|<command>` pair
+whose glob matches one of the delta's paths SHALL name the step those paths owe, and the profile's default SHALL be
+owed beside it for every compiled path no pair matches. A compiled path SHALL NOT be answered by two commands,
+because the gate runs one compiled step at a time and the two share the build directory.
+
+#### Scenario: A compiled path owes the command the profile's first matching pair names
+
+- **WHEN** the profile names a pair for a module's shared source set and a wider pair for one flavour's source set, and
+  the gate is asked, without running anything, what a delta in each asks
+- **THEN** each delta owes the command of the first pair its own path matches, exactly one compiled command is named,
+  and a compiled path neither pair matches owes the profile's default command
+- **Case**: `gate#theCompiledStepIsTheCommandItsPathAsks`
+
+#### Scenario: A mixed delta owes the pair's command and the profile's default together
+
+- **WHEN** a delta touches a path one pair names and, in the same round, a compiled path no pair names, and the gate is
+  asked, without running anything, what it owes
+- **THEN** both the pair's command and the profile's default command are named, and no pair whose glob the delta does
+  not match is
+- **Case**: `gate#theCompiledStepIsTheCommandItsPathAsks`
+
+#### Scenario: The profile asks one flavour for the sources the flavours share
+
+- **WHEN** a delta touches a source both `:app` flavours share, and then a resource of the automotive flavour's own
+  source set, and the gate is asked what each owes
+- **THEN** the shared source owes the base flavour's suite and names no suite of the other flavour, and the automotive
+  resource owes both flavours' suites
+- **Case**: `gate#theProfileAsksOneFlavourForSharedSources`

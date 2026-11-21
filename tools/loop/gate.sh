@@ -325,23 +325,40 @@ owed=""
 # Which build a compiled delta owes (issue #945). `LOOP_GATE_COMPILED_PATTERNS` said *whether* a delta is compiled and
 # nothing about *which* build it asks: one command answered every compiled path, so a delta in one source set paid
 # every flavour's suite and paid it again on every round. The profile's pairs answer it instead — the first pair whose
-# glob matches the delta names the build — and `LOOP_GATE_COMPILED_CMD` is the command owed when no pair matches, so
-# the pairs narrow the build and never silence it. One command is returned, because a tree owing two builds pays for
-# both and the build directory those two share is why the compiled step runs alone (spec `agent-issue-loop`, "The
-# gate runs the steps that share nothing together").
-compiled_owed() { # → the command the delta's compiled path asks, from the profile's first matching pair
-  local glob cmd p
+# glob matches the delta names the build — and `LOOP_GATE_COMPILED_CMD` is owed *beside* that pair whenever a compiled
+# path of the delta matches no pair at all, so the pairs narrow the build and never silence it: a delta touching
+# `core/` beside `app/src/**` keeps asking the whole-repository command for core's suite. Every command is one line,
+# the dedupe below keeps each of them one step, and they run one at a time — the build directory two of them share is
+# why the compiled step runs alone (spec `agent-issue-loop`, "The gate runs the steps that share nothing together").
+compiled_owed() { # → every command this delta's compiled paths ask, one per line: the profile's first matching pair, and its default beside that pair when a compiled path matches no pair
+  local glob cmd p pair_cmd="" uncovered=0 covered
   if [ -n "$compiled_steps" ]; then
     while IFS='|' read -r glob cmd; do
       [ -n "${glob:-}" ] && [ -n "${cmd:-}" ] || continue
       while IFS= read -r p; do
         [ -n "$p" ] || continue
         # shellcheck disable=SC2254 # the same: a pattern from the profile
-        case "$p" in $glob) printf '%s' "${cmd//\{base\}/$base}"; return 0 ;; esac
+        case "$p" in $glob) [ -n "$pair_cmd" ] || pair_cmd=${cmd//\{base\}/$base} ;; esac
       done <<< "$paths"
     done < <(printf '%s\n' "$compiled_steps" | tr ';' '\n')
   fi
-  printf '%s' "${compiled_cmd//\{base\}/$base}"
+  # The union: a compiled path no pair names owes the profile's default beside the pair's command, never instead of
+  # it — the pair answered only the paths it matched, and the default dropped here is the suite a mixed delta stops
+  # asking (issue #945).
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    matches "$compiled_patterns" "$p" || continue
+    covered=0
+    while IFS='|' read -r glob cmd; do
+      [ -n "${glob:-}" ] && [ -n "${cmd:-}" ] || continue
+      # shellcheck disable=SC2254 # the same: a pattern from the profile
+      case "$p" in $glob) covered=1; break ;; esac
+    done < <(printf '%s\n' "$compiled_steps" | tr ';' '\n')
+    if [ "$covered" -eq 0 ]; then uncovered=1; break; fi
+  done <<< "$paths"
+  [ -n "$pair_cmd" ] && printf '%s\n' "$pair_cmd"
+  if [ -z "$pair_cmd" ] || [ "$uncovered" -eq 1 ]; then printf '%s\n' "${compiled_cmd//\{base\}/$base}"; fi
+  return 0
 }
 # A pair list is read one `<glob>|<command>` pair at a time, in the order the profile wrote it, so the order of the
 # owed steps is a value of the profile and not of this engine. Each owed step also carries *which* list owed it —
@@ -389,8 +406,12 @@ if [ -n "$compiled_patterns" ]; then
   while IFS= read -r p; do
     [ -n "$p" ] || continue
     if matches "$compiled_patterns" "$p"; then
-      compiled_one=$(compiled_owed)
-      [ -z "$compiled_one" ] || owed="$owed"$'compiled\t'"$compiled_one"$'\n'
+      # Every command the compiled paths ask — the pair's and, inside a mixed delta, the default beside it — one line
+      # each, so the dedupe below still gives each command one step (issue #945).
+      while IFS= read -r compiled_one; do
+        [ -n "$compiled_one" ] || continue
+        owed="$owed"$'compiled\t'"$compiled_one"$'\n'
+      done <<< "$(compiled_owed)"
       break
     fi
   done <<< "$paths"

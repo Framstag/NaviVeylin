@@ -5946,7 +5946,7 @@ case_gate_aPipelineCheckIsOwedByItsPaths() {
 # on #289: of the reader edges measured for `Check portability` and `Check issue tooling`, none was owed by a
 # command of the reading step.
 case_gate_aPathACheckReadsOwesThatStepsCommandSet() {
-  # files: tools/loop/ tools/loop/loop.conf tools/loop/gate.sh tools/loop/worktree.sh tools/loop/tests/loop-selftest.sh tools/issues/ tools/issues/create.sh tools/issues/check-metadata.sh tools/check-portability.sh tools/tests/check-portability-selftest.sh tools/tests/mutate-selftest.sh tools/mutate.sh tools/tests/portability-mutations.json tools/issues/tests/issue-tooling-selftest.sh tools/issues/tests/status-mutations.json tools/sensors/ tools/sensors/sensors.json tools/build-inputs.sh tools/tests/build-inputs-selftest.sh tools/tests/build-inputs-mutations.sh tools/tooling.json tools/pi-child-events.sh
+  # files: tools/loop/ tools/loop/loop.conf tools/loop/gate.sh tools/loop/worktree.sh tools/loop/tests/loop-selftest.sh tools/issues/ tools/issues/create.sh tools/issues/check-metadata.sh tools/check-portability.sh tools/tests/check-portability-selftest.sh tools/tests/mutate-selftest.sh tools/mutate.sh tools/tests/portability-mutations.json tools/issues/tests/issue-tooling-selftest.sh tools/issues/tests/status-mutations.json tools/sensors/ tools/sensors/sensors.json tools/build-inputs.sh tools/tests/build-inputs-selftest.sh tools/tests/build-inputs-mutations.sh tools/tooling.json tools/pi-child-events.sh tools/case-harnesses.json tools/check-case-names.sh tools/tests/check-case-names-selftest.sh tools/tests/check-case-names-mutations.json
   local d p conf base plan
   d=$(scratch); p=$(new_project)
   conf="$LOOP_ENGINE/loop.conf"
@@ -6011,6 +6011,28 @@ case_gate_aPathACheckReadsOwesThatStepsCommandSet() {
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_contains "$plan" "tools/check-portability.sh" "an engine in the portability check's set owes it: $plan"
   assert_contains "$plan" "tools/tests/check-portability-selftest.sh" "and its suite: $plan"
+
+  # 6. `tools/case-harnesses.json`, the registry the case-name checker reads (issue #1000). That checker is
+  #    deliberately *not* owed by a spec-wide path — it is not in the loop's gate, because a spec-wide invariant
+  #    must not redden one item's gate. Its own definition and this registry are the two narrow reader edges the map
+  #    does carry: a delta that edits the checker's grammar is the delta whose cases must run.
+  printf '{"rows": []}\n' > "$p/tools/case-harnesses.json"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the case registry' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/check-case-names.sh" "the registry owes the check that reads it: $plan"
+  assert_contains "$plan" "tools/tests/check-case-names-selftest.sh" "and the suite that proves it: $plan"
+  # …and the narrowness is the point: a delta that touches a shipped spec must not owe that step, which is the
+  # reason the check is not in the loop's gate at all (its own header, issue #1000).
+  mkdir -p "$p/openspec/specs/agent-issue-loop"
+  printf '# a spec\n' > "$p/openspec/specs/agent-issue-loop/spec.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a shipped spec' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_not_contains "$plan" "tools/check-case-names.sh" \
+    "a spec delta owes the spec checks that read it and not the case-name step: $plan"
   return 0
 }
 

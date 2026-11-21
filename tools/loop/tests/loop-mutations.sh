@@ -1503,6 +1503,11 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 945.1 — the compiled step's command, read per path (issue #945). One command answered every compiled path, so a
+  # delta in one source set asked every flavour's suite: 423 s of the run's 1 772 s pre-flight, measured 2026-11-16.
+  # The mutation reads no pair at all, which is the state before the fix — the profile's whole-repository command is
+  # owed for every compiled delta again — and the case that names it is the one asserting the narrow command.
+  '945.1@-@tools/loop/gate.sh@gate#theCompiledStepIsTheCommandItsPathAsks@the pairs that name which build a compiled delta owes, so a delta in one source set asks one flavour (issue #945)@s|^  if \[ -n "\$compiled_steps" \]; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

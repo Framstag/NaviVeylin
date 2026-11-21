@@ -399,7 +399,8 @@ gate_program() { # → the program the gate's command starts
 
 # The programs the gate's **own** checks start (issue #857). The profile's map names them — the suites and structural
 # checks a delta owes (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`) and the build's own gate
-# (`LOOP_GATE_COMPILED_CMD`) — and it is the map `gate.sh --plan` reads, so nothing here names a project path (D16).
+# (`LOOP_GATE_COMPILED_CMD`, and the per-path commands `LOOP_GATE_COMPILED_STEPS` names beside it) — and it is the map
+# `gate.sh --plan` reads, so nothing here names a project path (D16).
 # A child that runs one of those commands by hand pays the gate's work outside `gate.sh`, and the bucket that prices
 # the gate cannot leave it in ordinary tool time: measured on item #849's own stream, one `./tools/loop/gate.sh` at
 # 823 s and four check calls a child ran by hand for 674 s — 304 s, 310 s, 39 s and 21 s — all four standing before
@@ -415,6 +416,7 @@ gate_check_programs() { # → the programs the gate's checks start, one per line
   {
     loop_conf_value LOOP_GATE_CMD; printf '\n'
     loop_conf_value LOOP_GATE_COMPILED_CMD; printf '\n'
+    loop_conf_value LOOP_GATE_COMPILED_STEPS | tr ';' '\n' | sed -e 's/^[^|]*|//'
     loop_conf_value LOOP_GATE_SUITES | tr ';' '\n' | sed -e 's/^[^|]*|//'
     loop_conf_value LOOP_GATE_FIRST_STEPS | tr ';' '\n' | sed -e 's/^[^|]*|//'
     printf '\n'

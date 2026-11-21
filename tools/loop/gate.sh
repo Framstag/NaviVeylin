@@ -12,6 +12,9 @@
 #
 #   LOOP_GATE_COMPILED_CMD       the build's own gate, run only when a compiled path changed
 #   LOOP_GATE_COMPILED_PATTERNS  the globs that make a path compiled
+#   LOOP_GATE_COMPILED_STEPS     `<glob>|<command>` pairs, `;`-separated: the first pair a compiled delta matches
+#                                names the one compiled step it owes (issue #945) — `LOOP_GATE_COMPILED_CMD` is owed
+#                                when no pair matches
 #   LOOP_GATE_SUITES             `<glob>|<command>` pairs, `;`-separated: the suites a path pulls in
 #   LOOP_GATE_FIRST_STEPS        the same shape, read before the build and before every suite: a step that
 #                                refuses a delta in seconds is not left to the end of the gate
@@ -110,6 +113,7 @@ fi
 
 compiled_cmd=$(loop_conf_value LOOP_GATE_COMPILED_CMD)
 compiled_patterns=$(loop_conf_value LOOP_GATE_COMPILED_PATTERNS)
+compiled_steps=$(loop_conf_value LOOP_GATE_COMPILED_STEPS)
 first_steps=$(loop_conf_value LOOP_GATE_FIRST_STEPS)
 suites=$(loop_conf_value LOOP_GATE_SUITES)
 tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
@@ -318,6 +322,27 @@ matches() { # <space-separated globs> <path>
 }
 
 owed=""
+# Which build a compiled delta owes (issue #945). `LOOP_GATE_COMPILED_PATTERNS` said *whether* a delta is compiled and
+# nothing about *which* build it asks: one command answered every compiled path, so a delta in one source set paid
+# every flavour's suite and paid it again on every round. The profile's pairs answer it instead — the first pair whose
+# glob matches the delta names the build — and `LOOP_GATE_COMPILED_CMD` is the command owed when no pair matches, so
+# the pairs narrow the build and never silence it. One command is returned, because a tree owing two builds pays for
+# both and the build directory those two share is why the compiled step runs alone (spec `agent-issue-loop`, "The
+# gate runs the steps that share nothing together").
+compiled_owed() { # → the command the delta's compiled path asks, from the profile's first matching pair
+  local glob cmd p
+  if [ -n "$compiled_steps" ]; then
+    while IFS='|' read -r glob cmd; do
+      [ -n "${glob:-}" ] && [ -n "${cmd:-}" ] || continue
+      while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        # shellcheck disable=SC2254 # the same: a pattern from the profile
+        case "$p" in $glob) printf '%s' "${cmd//\{base\}/$base}"; return 0 ;; esac
+      done <<< "$paths"
+    done < <(printf '%s\n' "$compiled_steps" | tr ';' '\n')
+  fi
+  printf '%s' "${compiled_cmd//\{base\}/$base}"
+}
 # A pair list is read one `<glob>|<command>` pair at a time, in the order the profile wrote it, so the order of the
 # owed steps is a value of the profile and not of this engine. Each owed step also carries *which* list owed it —
 # `first`, `compiled` or `suite` — because the three lists are not run the same way (issue #801): a first step refuses
@@ -354,13 +379,20 @@ owe_pairs() { # <kind> <";"-separated `<glob>|<command>` pairs> [every] → ever
 if [ "$base_red_mode" -eq 1 ]; then
   owe_pairs first "$first_steps" every
   [ -z "$compiled_cmd" ] || owed="$owed"$'compiled\t'"${compiled_cmd//\{base\}/$base}"$'\n'
+  # …and every pair's command, because a step the pre-flight has not measured is a step no later gate can subtract:
+  # each of them is the byte-identical command the gate will name for the delta that matches it.
+  owe_pairs compiled "$compiled_steps" every
   owe_pairs suite "$suites" every
 else
 owe_pairs first "$first_steps"
-if [ -n "$compiled_patterns" ] && [ -n "$compiled_cmd" ]; then
+if [ -n "$compiled_patterns" ]; then
   while IFS= read -r p; do
     [ -n "$p" ] || continue
-    if matches "$compiled_patterns" "$p"; then owed="$owed"$'compiled\t'"${compiled_cmd//\{base\}/$base}"$'\n'; break; fi
+    if matches "$compiled_patterns" "$p"; then
+      compiled_one=$(compiled_owed)
+      [ -z "$compiled_one" ] || owed="$owed"$'compiled\t'"$compiled_one"$'\n'
+      break
+    fi
   done <<< "$paths"
 fi
 if [ -n "$suites" ]; then

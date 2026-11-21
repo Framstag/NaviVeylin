@@ -51,7 +51,9 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   `speed-up-build-test-gate`, spec `build-test-gate` — "Gate runs the affected flavors") — **both** when it
   modifies `app/src/automotive/**`, a flavor's manifest or resources, the flavor definitions in
   `app/build.gradle.kts`, or native inputs; **one** (`mobile`, the base flavor) for a change that touches only
-  sources the two flavors share.
+  sources the two flavors share. The loop's gate applies this through `LOOP_GATE_COMPILED_STEPS` in
+  `tools/loop/loop.conf`, the pairs whose first matching glob names the one compiled step a delta owes
+  (`Backlog.recipes.md` §7c; issue #945).
 - **Rule: before a change is called complete, run both flavors with every shipped ABI built** — the reduced
   form is an iteration form and must not be reported as a full gate. `build/gate-timings.json` (§2c) shows how
   many suites a run actually executed.

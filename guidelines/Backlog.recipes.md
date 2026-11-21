@@ -758,8 +758,8 @@ thirds of its clock inside the gate and a run that paid it reading printed the s
 `LOOP_ITEM_TOKENS_WARN` was added to cure one level down (#662). The item's record now carries the three splits,
 read from the stream `state.sh done` already opens: `metrics.phases` (the turns' own `durationMs` as model time, the
 `tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) or one of
-the checks the profile's own map names (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`) as the
-gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
+the checks the profile's own map names (`LOOP_GATE_SUITES`, `LOOP_GATE_FIRST_STEPS`, `LOOP_GATE_COMPILED_CMD`,
+`LOOP_GATE_COMPILED_STEPS`) as the gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
 and a tool's the execution after it), `metrics.gateRepeat` beside it (the part of that gate no `gate.sh` call paid —
 the checks a child ran by hand, narrowed to a case since issue #937, counted and timed, `null` where a child ran none,
 issue #857: 674 s in the four
@@ -935,8 +935,9 @@ the read-only engine — each resolves a scratch tree of its own (`mktemp -d` pe
 own — and only the build has to be alone, because it owns the build directory the suites read through the
 environment. The gate ran all five steps in one serial loop until issue #801: `run_step` held one output file, one
 status record and one clock for the whole gate, so four independent suites were added instead of overlapped. The
-engine now carries each owed step with the kind of list that owed it — `LOOP_GATE_FIRST_STEPS` and
-`LOOP_GATE_COMPILED_CMD` run alone, and the suites that follow run up to `LOOP_GATE_POOL_JOBS` at a time (default 4;
+engine now carries each owed step with the kind of list that owed it — `LOOP_GATE_FIRST_STEPS` and the compiled
+step (`LOOP_GATE_COMPILED_STEPS`' first matching pair, else `LOOP_GATE_COMPILED_CMD`) run alone, and the suites that
+follow run up to `LOOP_GATE_POOL_JOBS` at a time (default 4;
 `1` is the serial gate) — and each step keeps its own output, status, clock, tally, bound and console block, recorded
 in the profile's order once the wave has drained. Measured on this host by the change's own probe (`evidence/pool-probe.sh`
 in the change for issue #801): the same three 3 s stub suites cost **10 s** of gate wall clock with the pool at 1 —
@@ -995,6 +996,19 @@ A tally's name is the command that wrote it, and it is never a dotfile: the prof
 records the build as well as `find` and `grep -r` do. Measured 2026-10-23 (issue #278): the name had kept the
 leading `.`, and the round-3 reviewer of #273 counted five files where the directory held six, refusing a round on
 a tally that was present.
+
+**Which build a compiled delta owes is the profile's, per path.** `LOOP_GATE_COMPILED_PATTERNS` said *whether* a
+delta is compiled and nothing about *which* build it asks, so one command — `./gradlew test`, every module and both
+flavours — answered every compiled path alike, and asked the same suites of a delta in one source set as of one that
+rewrote a flavour's manifest: measured 2026-11-16, 423 s of the run's 1 772 s pre-flight and 515 s, 567 s, 663 s and
+1 800 s (its bound, overrun) across one night's item gates (issue #945). `LOOP_GATE_COMPILED_STEPS` carries
+`<glob>|<command>` pairs, the shape `LOOP_GATE_SUITES` already carries; the **first** pair whose glob matches the
+delta names the one compiled step the gate owes, and `LOOP_GATE_COMPILED_CMD` is what a compiled path no pair names
+owes, so the pairs narrow the build rather than silence it. The pairs are `BuildEvidence.md` §4b's scope block — the
+`:app` suite of exactly those flavours the delta can affect, one flavour for the sources the two share — because that
+rule already bound the routine gate and this profile did not apply it. The cases are
+`gate#theCompiledStepIsTheCommandItsPathAsks` and `gate#theProfileAsksOneFlavourForSharedSources`, and
+`tools/loop/tests/loop-mutations.sh` 945.1 the record that keeps them.
 
 **The directory a run writes its tallies into is that run's.** The directory is one path the profile names
 (`LOOP_GATE_TALLY_DIR`) — one per tree, not one per run — and that is what made a step file of one run readable as

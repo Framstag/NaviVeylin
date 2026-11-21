@@ -213,6 +213,8 @@ LOOP_SHELL_CASES=(
   'driver#theTimesFigureIsAskedForNotAssumed'
   'gate#anArchivedArtefactOwesNoBuild'
   'gate#aModuleResourceOwesTheBuild'
+  'gate#theCompiledStepIsTheCommandItsPathAsks'
+  'gate#theProfileAsksOneFlavourForSharedSources'
   'gate#theGateNamesTheProfileItRead'
   'gate#theChildReadsTheProfileOfTheTreeItWorksIn'
   'gate#aThirdFullRunInOneSessionIsRefused'
@@ -1012,6 +1014,8 @@ loop_run_shell_case() {
     'driver#theTimesFigureIsAskedForNotAssumed') fn=case_driver_theTimesFigureIsAskedForNotAssumed ;;
     'gate#anArchivedArtefactOwesNoBuild') fn=case_gate_anArchivedArtefactOwesNoBuild ;;
     'gate#aModuleResourceOwesTheBuild') fn=case_gate_aModuleResourceOwesTheBuild ;;
+    'gate#theCompiledStepIsTheCommandItsPathAsks') fn=case_gate_theCompiledStepIsTheCommandItsPathAsks ;;
+    'gate#theProfileAsksOneFlavourForSharedSources') fn=case_gate_theProfileAsksOneFlavourForSharedSources ;;
     'gate#theGateNamesTheProfileItRead') fn=case_gate_theGateNamesTheProfileItRead ;;
     'gate#theChildReadsTheProfileOfTheTreeItWorksIn') fn=case_gate_theChildReadsTheProfileOfTheTreeItWorksIn ;;
     'gate#aThirdFullRunInOneSessionIsRefused') fn=case_gate_aThirdFullRunInOneSessionIsRefused ;;
@@ -17424,10 +17428,15 @@ case_gate_anArchivedArtefactOwesNoBuild() {
 # without it, because `for glob in $1` had already replaced the pattern with the names it matched.
 case_gate_aModuleResourceOwesTheBuild() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
-  local d p base plan compiled
+  local d p base plan compiled shared
   d=$(scratch); p=$(new_project)
   compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
   [ -n "$compiled" ] || fail "the profile names no compiled command, so this case would prove nothing"
+  # `app/src/**` is a source set both flavors share, so since issue #945 the profile's pairs name the command it asks
+  # rather than the whole-repository one; this case's rule is that the build is *owed*, and the glob is the one the
+  # delta below is written to match.
+  shared=$(profile_value LOOP_GATE_COMPILED_STEPS | tr ';' '\n' | awk -F'|' '$1 == "app/src/*" { print $2 }')
+  [ -n "$shared" ] || fail "the profile's pairs name no command for the sources both flavors share"
 
   mkdir -p "$p/app/src/main/res/values"
   printf '<resources/>\n' > "$p/app/src/main/res/values/strings.xml"
@@ -17435,7 +17444,7 @@ case_gate_aModuleResourceOwesTheBuild() {
     || fail "could not commit the change in the throwaway repository"
   base=$(git -C "$p" rev-parse HEAD~1)
   plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
-  assert_contains "$plan" "$compiled" "a module's resource still owes the build: $plan"
+  assert_contains "$plan" "$shared" "a module's resource still owes the build: $plan"
 
   printf '<lint><issue id="UnusedResources"/>\n' > "$p/app/lint.xml"
   git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a lint configuration' >/dev/null 2>&1 \
@@ -17443,6 +17452,96 @@ case_gate_aModuleResourceOwesTheBuild() {
   base=$(git -C "$p" rev-parse HEAD~1)
   plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_contains "$plan" "$compiled" "a module's lint configuration still owes the build: $plan"
+  return 0
+}
+
+# The compiled step's command is the profile's, per path (issue #945). `LOOP_GATE_COMPILED_PATTERNS` says *whether* a
+# delta owes the build and said nothing about *which* one: the profile carried one command, so a delta in one source
+# set asked every flavour's suite, and paid it again on every round — 423 s of the run's 1 772 s pre-flight and
+# 515–1 800 s in the item gates of run 2026-11-15T19:32:41Z (the item's own grep over that run's record).
+# `LOOP_GATE_COMPILED_STEPS` carries `<glob>|<command>` pairs: the first pair whose glob matches the delta names the
+# one compiled step the gate owes, and `LOOP_GATE_COMPILED_CMD` stays the command a compiled path no pair names owes,
+# so a list narrows the build and never silences it.
+case_gate_theCompiledStepIsTheCommandItsPathAsks() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base plan
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=whole-build\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*/src/*"\n'
+    printf 'LOOP_GATE_COMPILED_STEPS="app/src/automotive/*|build-both;app/src/*|build-one"\n'
+  } >> "$conf"
+
+  # A source the two flavors share asks the narrow command, and only it: one compiled step is owed, not one per pair.
+  mkdir -p "$p/app/src/main/kotlin"
+  printf 'class A\n' > "$p/app/src/main/kotlin/A.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a shared source' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "build-one" "the first pair the delta matches names the compiled step: $plan"
+  assert_not_contains "$plan" "build-both" "and the wider pair's command is not owed beside it: $plan"
+  assert_not_contains "$plan" "whole-build" "and not the command the pairs replace: $plan"
+  assert_eq "1" "$(printf '%s\n' "$plan" | grep -c '^build-')" "one compiled step is owed, not one per pair: $plan"
+
+  # A flavour's own source asks the wider command, and not the narrow one.
+  mkdir -p "$p/app/src/automotive/kotlin"
+  printf 'class B\n' > "$p/app/src/automotive/kotlin/B.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a flavour source' >/dev/null 2>&1 \
+    || fail "could not commit the second change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "build-both" "a flavour's own source asks both flavours' suite: $plan"
+  assert_not_contains "$plan" "build-one" "and not the one-flavour command: $plan"
+
+  # A compiled path no pair names asks the profile's own command: the list is a narrowing, never a silence.
+  mkdir -p "$p/core/src/main/kotlin"
+  printf 'class C\n' > "$p/core/src/main/kotlin/C.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a source no pair names' >/dev/null 2>&1 \
+    || fail "could not commit the third change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "whole-build" "a compiled path no pair names asks the profile's own command: $plan"
+  assert_not_contains "$plan" "build-one" "and no pair's command it does not match: $plan"
+  return 0
+}
+
+# The profile's pairs are `guidelines/BuildEvidence.md` §4b's scope block, and nothing compared the two copies: the
+# routine gate owes "the `:app` unit-test suite of exactly those distribution flavors whose inputs the change can
+# affect" (spec `build-test-gate`, "Gate runs the affected flavors"), while the profile ran `./gradlew test` — every
+# module and every flavour — for every compiled path, a superset of what the rule asks and the step that cost the
+# most in the profile. This case pins the profile to the rule it already owes: a source both flavors share asks the
+# base flavour's suite, and the automotive source set asks both.
+case_gate_theProfileAsksOneFlavourForSharedSources() {
+  # files: tools/loop/loop.conf tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json
+  local d p base plan
+  d=$(scratch); p=$(new_project)
+  [ -n "$(profile_value LOOP_GATE_COMPILED_STEPS)" ] \
+    || fail "the profile names no compiled step pairs, so every flavour's suite is asked whatever the delta is"
+
+  mkdir -p "$p/app/src/main/kotlin"
+  printf 'class A\n' > "$p/app/src/main/kotlin/A.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a shared source' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" ":app:testMobileDebugUnitTest" \
+    "a source both flavors share asks the base flavour's suite: $plan"
+  assert_not_contains "$plan" ":app:testAutomotiveDebugUnitTest" \
+    "and not the automotive suite its inputs cannot reach: $plan"
+
+  mkdir -p "$p/app/src/automotive/res/values"
+  printf '<resources/>\n' > "$p/app/src/automotive/res/values/strings.xml"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a flavour resource' >/dev/null 2>&1 \
+    || fail "could not commit the second change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" ":app:testAutomotiveDebugUnitTest" \
+    "the automotive resource asks its own flavour's suite: $plan"
+  assert_contains "$plan" ":app:testMobileDebugUnitTest" \
+    "and the base flavour's suite with it: $plan"
   return 0
 }
 
@@ -19086,15 +19185,16 @@ case_gate_theDeclarationCaseIsOwedFirst() {
   local d p base plan first suite build compiled prompt
   d=$(scratch); p=$(new_project)
   # The build's own command is the profile's, never a literal this engine owns, so the portability check has no edge
-  # to report here.
+  # to report here. The fixture's compiled file sits in `core/`, a path no pair of the profile narrows: this case's
+  # rule is the order of the steps, and a narrowed file would make it read a second mapping (issue #945).
   compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
   [ -n "$compiled" ] || fail "the profile names no compiled command, so this case would prove nothing"
 
   # One delta that writes a case and touches a compiled file: the reach case is owed by the first path and the build
   # and the suites by the others, which is the only shape in which "first" can be read as an order.
-  mkdir -p "$p/app/src/main" "$(dirname "$p/tools/loop/tests/loop-cases.sh")"
+  mkdir -p "$p/core/src/main" "$(dirname "$p/tools/loop/tests/loop-cases.sh")"
   printf '# a case\n' > "$p/tools/loop/tests/loop-cases.sh"
-  printf 'class App\n' > "$p/app/src/main/App.kt"
+  printf 'class App\n' > "$p/core/src/main/App.kt"
   git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a case and a compiled file' >/dev/null 2>&1 \
     || fail "could not commit the change in the throwaway repository"
   base=$(git -C "$p" rev-parse HEAD~1)

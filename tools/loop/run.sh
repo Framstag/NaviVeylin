@@ -1921,12 +1921,12 @@ review_input_scale_of() { # <diff file> → the recorded scale, or nothing
 # Whether the share the scale line records is past half — the precondition the round before the gate is read on
 # (issue #969). The figure is the one the line already carries (`… cut (68 %) …`), so the decision and the record are
 # the same string and a later reader re-takes it from `<round>.scale` or from the item's `metrics.reviewInput`; no
-# measurement is taken here and no key is added. A round whose input is cut past half reads a diff with its middle
-# missing and spends its turns hunting the part it cannot see: 5 of 8 review inputs in the run of 2026-11-18T22:18Z
-# were cut, and 3 of its 4 pre-gate rounds ended at `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE=110` turns with no verdict.
+# measurement is taken here and no key is added. A round whose input is cut past half cannot read the diff whole; the
+# record of 2026-11-18T22:18Z does not make such a cut the cause of the rounds that ended at the bound — none of the
+# three pre-gate rounds `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE=110` ended had its pre-gate input cut past half.
 # Half and not "any cut": #963's 5 % cut is a diff a round reads whole enough to judge, and skipping it would drop a
 # round that was going to answer. An empty or unreadable scale is no cut and skips nothing.
-review_input_cut_halved() { # <the recorded scale> → true when more than half of a part was cut
+review_input_cut_halved() { # <the recorded scale> → true when the recorded share is past half
   local scale="${1:-}" pct
   [ -n "$scale" ] || return 1
   pct=$(printf '%s\n' "$scale" | sed -n 's/.* (\([0-9][0-9]*\) %).*/\1/p' | tail -1)
@@ -3370,11 +3370,11 @@ while true; do
         review_input_cut_scale=$(review_input_scale_of "$diff_file")
         # ── the round is skipped when its own input is halved (issue #969) ────────────────────────────────────────
         #
-        # A diff cut past half is one whose middle the round cannot see, and it spends its turns hunting the part it
-        # was not handed: 5 of the 8 review inputs of the run 2026-11-18T22:18Z were cut (68 % of #901's, 67 % of
-        # #902's, 47 % of #894's, 38 % of #931's, 5 % of #963's) and 3 of its 4 pre-gate rounds ended at
-        # `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE=110` turns with no verdict — 60.3 Mtok, 25 % of that run's 240.6
-        # Mtok. A larger cap does not answer it: #901's part is 98 662 B and #902's 149 838 B, so the cap moves the cut
+        # A diff cut past half is one whose middle the round cannot see. The record does not make such a cut the cause
+        # of the rounds that ended: of the three pre-gate rounds the run 2026-11-18T22:18Z ended at
+        # `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE=110`, none had its pre-gate input cut past half — while the cap cut
+        # 5 of that run's 8 review inputs and `reviewer-pre-gate` spent 60.3 Mtok, 25 % of its 240.6 Mtok. A larger
+        # cap does not answer it: #901's part is 98 662 B and #902's 149 838 B, so the cap moves the cut
         # rather than removing it. What is read instead is the share the cut already measured, which is why the
         # decision and the item's record are the same string (`metrics.reviewInput`): past half, the round is skipped
         # and the reason is recorded. The gate child decides the item on the diff itself — the round is advisory by its

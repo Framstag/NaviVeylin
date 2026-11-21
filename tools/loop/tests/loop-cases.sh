@@ -10382,13 +10382,13 @@ EOF
 }
 
 # The round before the gate reads a diff its own cap halved (issue #969). The cap cuts each part of the round's input
-# at `LOOP_REVIEW_INPUT_MAX_BYTES`, and a part cut past half is a diff whose middle the round cannot see: it spends its
-# turns hunting what it was not handed until `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE` ends it. In the run of
-# 2026-11-18T22:18Z the cap cut 5 of 8 review inputs — 67 % of #901's, 67 % of #902's, 47 % of #894's, 38 % of #931's,
-# 5 % of #963's — and 3 of its 4 pre-gate rounds ended at the bound with no verdict, 60.3 Mtok (25 % of the run's
-# 240.6 Mtok). A larger cap moves the cut rather than removing it, so the share the cut already measured is read as
-# the round's precondition: past half, no child is launched and the item records why, while the gate child and the
-# item's first round run exactly as they did.
+# at `LOOP_REVIEW_INPUT_MAX_BYTES`, and an input cut past half is a diff whose middle the round cannot see. The record
+# of 2026-11-18T22:18Z does not make such a cut the cause of a round ending at `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE`:
+# the three pre-gate rounds that ended there with no verdict had no pre-gate input cut past half. The same record has
+# the cap cutting 5 of 8 review inputs — 67 % of #901's, 67 % of #902's, 47 % of #894's, 38 % of #931's, 5 % of #963's
+# — and `reviewer-pre-gate` spending 60.3 Mtok (25 % of the run's 240.6 Mtok). A larger cap moves the cut rather than
+# removing it, so the share the cut already measured is read as the round's precondition: past half, no child is
+# launched and the item records why, while the gate child and the item's first round run exactly as they did.
 case_run_aPreGateRoundItsCapHalvedIsSkipped() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf order extra out state pct scale

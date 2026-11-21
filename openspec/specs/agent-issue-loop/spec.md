@@ -3568,7 +3568,10 @@ and a command whose argument is the gate's own path, and a `--plan` call, SHALL 
 ### Requirement: The diff is read before the gate, and a fresh child runs the one gate
 
 An item's gate SHALL be run by a child of its own, after the diff has been read by a reviewer that is not the child
-that wrote it, so a finding a reader can make from the diff is not paid for by a gate and a second full pass.
+that wrote it, so a finding a reader can make from the diff is not paid for by a gate and a second full pass — except
+when the input cap removed more than half of the whole input the round would read, where that round SHALL NOT be
+launched, the item SHALL record the share that decided it, and the gate and the item's first round SHALL run either
+way.
 
 #### Scenario: The round is read before the gate child is started
 
@@ -3626,6 +3629,19 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 - **THEN** the checklist it prints is the gate child's own prompt and the call names that file, because the run
   defers the gate to that child
 - **Case**: `phase#oneCallPrintsThePhaseState`
+
+#### Scenario: A halved diff launches no round
+
+- **WHEN** `LOOP_REVIEW_INPUT_MAX_BYTES` removed more than half of the whole input the round would read
+  (`review_input_cut_scale`, the share over every bounded part)
+- **THEN** no pre-gate child is launched, the item records the share and the skip, and the gate and round 1 still run
+- **Case**: `run#aPreGateRoundItsCapHalvedIsSkipped`
+
+#### Scenario: A small cut still launches the round
+
+- **WHEN** the cap removed less than half of that whole input (5 % is the share `#963`'s record carries)
+- **THEN** the pre-gate round runs, and its verdict is the one the item records
+- **Case**: `run#aPreGateRoundUnderHalfItsCapStillRuns`
 
 ### Requirement: A child is bounded by its own role's turns
 

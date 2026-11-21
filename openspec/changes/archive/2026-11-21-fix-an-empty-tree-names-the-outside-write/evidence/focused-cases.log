@@ -1,0 +1,16 @@
+PASS run#anEmptyTreeWithAnOutsideWriteNamesThePaths
+PASS run#childClaimWithoutCommitIsBlocked
+PASS run#anEmptyTreeIsRefusedBeforeTheGateChild
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#anEmptyTreeWithAnOutsideWriteNamesThePaths
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+loop-selftest: run 3 cases 41.56 s
+loop-selftest: all 3 cases passed (JDK 21, offline, no token, no sandbox) — 14.26 s, selection: --case run#*OutsideWrite*
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+PASS run#aChildThatNeverStartedIsRetriedBeforeTheRunStops
+PASS run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop
+PASS run#theRetryCapIsSpentAndTheRunStops
+PASS run#anEmptyAnswerOverACommitIsTheChangePhasesFailure

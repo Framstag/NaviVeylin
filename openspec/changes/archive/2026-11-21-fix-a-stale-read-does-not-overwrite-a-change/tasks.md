@@ -44,7 +44,7 @@ hosts share one writer" that this delta keeps.
 ## 4. The change the requirement owns
 
 - [x] 4.1 `openspec/changes/fix-a-stale-read-does-not-overwrite-a-change/specs/settings-surface/spec.md`
-  — one ADDED requirement, "A superseded document never reaches the map", whose two scenarios name
+  — one ADDED requirement, "A superseded document is never published", whose two scenarios name
   exactly the two cases above.
   Verify: `./tools/loop/measure.sh --change fix-a-stale-read-does-not-overwrite-a-change` prints
   `LOOP-MEASURE-CHANGE fix-a-stale-read-does-not-overwrite-a-change scenarios=2 cases=2 unnamed=0`

@@ -1,4 +1,4 @@
-# Proposal — a settings document the writer has superseded never reaches the map
+# Proposal — a settings document the writer has superseded is never published
 
 ## Why
 
@@ -33,7 +33,8 @@ the new one.
 **The owning requirement.** `openspec/specs/settings-surface/spec.md:147` — "A change applies
 immediately and persists", and `openspec/specs/dark-mode/spec.md:199` — "A user change outranks an
 in-flight settings read", whose rule extends to the document a read publishes. The change adds one
-requirement to `settings-surface`: a document the writer has superseded never reaches the map.
+requirement to `settings-surface`: a document the writer superseded is never published, and the map's
+follower applies the writer's publications only after the start-up read completes.
 
 **The owning guideline section.** `guidelines/UIPhone.md` section 20 "Phone settings surface", the rule
 "both hosts share one writer" (`UIPhone.md:313`): the map reads `SettingsController.settings` and
@@ -42,7 +43,7 @@ writer's decision rather than a follower's replay.
 
 **Surface count.** `tools/look.sh 'followSurfaceWrites|SettingsController\.settings|_settings\.value'`
 → `11 matches in 7 files`: two production files (`MapCanvasViewModelSettings.kt`,
-`SettingsController.kt`), one guideline section that states the rule (`UIPhone.md:314`), the open
+`SettingsController.kt`), one guideline section that states the rule (`UIPhone.md:313`), the open
 change's own records, and one archived landing note. One case is added
 (`SettingsControllerTest#aLateLoadDoesNotPublishOverANewerWrite`), two existing cases are the ones the
 defect reddens (`SymbolIconPreferenceTest#aChangeReachesTheClientOnceAndIsPersisted`,

@@ -1,0 +1,245 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+ openspec/specs/settings-surface/spec.md                            | 6 +++---
+ 4 files changed, 11 insertions(+), 10 deletions(-)
+[73 lines omitted]
+-document the hosts see, and a read that lost the race to a write publishes nothing.
++The one writer publishes one document: a document the writer superseded is never published, and the
++map's follower applies the writer's publications only after the start-up read completes.
+
+ #### Scenario: A change made before the read completes reaches the client once
+[lean-ctx: full output -> /home/tim/.config/lean-ctx/tee/cd__home_tim_projects_NaviVeylin__pi_wor_fd50a08b.log (redacted, 24h TTL)]
+
+Compressed 1496 → 145 tokens (-90%)
+exit=0
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-StartupScreensTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-SymbolIconPreferenceTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/measure.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/red-SettingsControllerTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/red-SymbolIconPreferenceTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/review-failed-round-1.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/specs/settings-surface/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/tasks.md
+LOOP-MEASURE-PATH openspec/specs/routing-avoidance/spec.md
+LOOP-MEASURE-PATH openspec/specs/settings-surface/spec.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/tests/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=525 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE ambiguous open=a-case-name-resolves-to-one-harness,fix-a-dirty-base-tree-stops-the-run,fix-a-refused-pool-is-recorded,fix-the-compiled-step-is-the-command-its-path-asks,fix-the-gate-child-classifies-the-delta-it-archives,loop-protocol-core-in-java,package-structure-rules-and-suite,run-event-stream-is-typed,settings-taxonomy-and-surface,the-bounds-spend-and-budget-are-typed,the-print-sites-are-converted,the-run-fault-block-asks-no-question,the-unheld-guards-are-retired — 13 changes are open, so the block names them and measures none: pass --change <name>
+LOOP-MEASURE-END
+exit=0
+./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+tools/check-compose-sandbox-rule.sh
+tools/tests/check-compose-sandbox-rule-selftest.sh
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-values.sh
+tools/tests/check-doc-values-selftest.sh
+tools/check-doc-routes.sh
+tools/tests/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
+tools/check-openspec-hygiene.sh
+tools/tests/check-openspec-hygiene-selftest.sh
+exit=0
+69:LOOP-MEASURE-SUITE cases=525 cmd=tools/loop/tests/loop-selftest.sh --list
+70:LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+71:LOOP-MEASURE-CHANGE 2026-11-21-fix-a-stale-read-does-not-overwrite-a-change scenarios=2 cases=2 unnamed=0
+72:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-DarkModeLateRestoreTest.xml tests=2 failures=0
+73:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-SettingsControllerTest.xml tests=4 failures=0
+74:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-SettingsSurfaceTest.xml tests=23 failures=0
+75:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-StartupScreensTest.xml tests=7 failures=0
+76:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/green-SymbolIconPreferenceTest.xml tests=5 failures=0
+77:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/red-SettingsControllerTest.xml tests=4 failures=1
+78:LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/evidence/red-SymbolIconPreferenceTest.xml tests=5 failures=1
+79:LOOP-MEASURE-SURFACE surface: 1 case added, 2 cases reddened, 0 fixtures — `tools/look.sh 'followSurfaceWrites|SettingsController\.settings|_settings\.value'` (11 matches in 7 files)
+evidence-check exit=0
+hygiene exit=1
+doc-routes exit=0
+doc-values exit=0
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 294 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+---hygiene---
+::error file=openspec/changes/a-case-name-resolves-to-one-harness/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/run-event-stream-is-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/settings-taxonomy-and-surface/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-bounds-spend-and-budget-are-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-print-sites-are-converted/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Every capability spec states its Purpose.
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+(no output)
+> Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateMobileDebugUnitTestConfig UP-TO-DATE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :osmscout-client-java:test
+> Task :architecture:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:testAutomotiveDebugUnitTest
+> Task :core:testDebugUnitTest
+> Task :auto:testDebugUnitTest
+> Task :core:test
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: c3d2ebd3ee2851780eee68b45d5d0cb1c19fa66e (from the base branch main)
+LOOP-GATE-TREE: head=6738dde13dbf71f45d25feb86a86fb8702677e9b diff=c5d934fa87ca91dc
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=1032306
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/tests/check-todo-references-selftest.sh            the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 201 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 12750 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 1s
+gate: tools/check-openspec-hygiene.sh
+::error file=openspec/changes/a-case-name-resolves-to-one-harness/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/run-event-stream-is-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/settings-taxonomy-and-surface/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-bounds-spend-and-budget-are-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-print-sites-are-converted/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Every capability spec states its Purpose.
+gate: tools/check-openspec-hygiene.sh — 0s
+LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1
+gate: tools/tests/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 11 cases passed (throwaway OpenSpec trees, no Gradle)
+gate: tools/tests/check-openspec-hygiene-selftest.sh — 0s
+LOOP-GATE: tests=50 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 378s, tools/check-compose-sandbox-rule.sh 1s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s) — base-red: tools/check-openspec-hygiene.sh:1
+copied=0
+round2-bash_tools_gen-feature-list.sh_--check-classification.xml
+round2-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+round2-tools_check-compose-sandbox-rule.sh.xml
+round2-tools_check-doc-routes.sh.xml
+round2-tools_check-doc-values.sh.xml
+round2-tools_check-openspec-hygiene.sh.xml
+round2-tools_check-todo-references.sh.xml
+round2-tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml
+round2-tools_tests_check-compose-sandbox-rule-selftest.sh.xml
+round2-tools_tests_check-doc-routes-selftest.sh.xml
+round2-tools_tests_check-doc-values-selftest.sh.xml
+round2-tools_tests_check-openspec-hygiene-selftest.sh.xml
+worker-prompt-round2.md
+worker-report-round2.md
+round2-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml 4L lines:1-6
+   1| <?xml version="1.0" encoding="UTF-8"?>
+   2| <testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="0" time="378" run="1032306">
+   3|   <system-out>BUILD SUCCESSFUL in 6m 18s 171 actionable tasks: 19 executed, 152 up-to-date Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html</system-out>
+   4| </testsuite>
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-09-07-share-location-support/design.md:77:- [Stale pending share if user never reaches the map screen] → in-memory only, cleared on process death; acceptable
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-10-13-fix-stale-zoom-walk-step/proposal.md:5:A magnification the app commits while no zoom animation is pending never reaches the map: the render
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/specs/settings-surface/spec.md:250:### Requirement: A superseded document is never published
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/tasks.md:47:  — one ADDED requirement, "A superseded document is never published", whose two scenarios name
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/specs/settings-surface/spec.md:11:### Requirement: A superseded document is never published
+spec.md 30L lines:1-20
+   1| # Spec Delta — settings-surface
+   2| 
+   3| ## Purpose
+   4| 
+   5| Owns the phone's settings surfaces: the bounded quick sheet the map's gear opens, the full-height
+   6| settings surface behind it, how each kind of row behaves there, and the phone's access to the
+   7| settings Android Auto owns.
+   8| 
+   9| ## ADDED Requirements
+  10| 
+  11| ### Requirement: A superseded document is never published
+  12| 
+  13| The one writer publishes one document: a document the writer superseded is never published, and the
+  14| map's follower applies the writer's publications only after the start-up read completes.
+  15| 
+  16| #### Scenario: A change made before the read completes reaches the client once
+  17| 
+  18| - **WHEN** the user sets the icon-versus-symbol preference while the start-up settings read is still in
+  19|   flight
+  20| - **THEN** the native client receives that value once for the one change, not the replaced value before
+
+Compressed 336 → 245 tokens (-27%)
+ok
+ .../proposal.md                                                    | 7 ++++---
+ .../specs/settings-surface/spec.md                                 | 6 +++---
+ .../tasks.md                                                       | 2 +-
+ openspec/specs/settings-surface/spec.md                            | 6 +++---
+ 4 files changed, 11 insertions(+), 10 deletions(-)
+ M openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/proposal.md
+ M openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/specs/settings-surface/spec.md
+ M openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/tasks.md
+ M openspec/specs/settings-surface/spec.md
+
+# the gate child's own closing answer
+Correction round done. Gate green.
+
+## Round 2 — the one correction the refusing round asked for
+
+**Finding answered:** the shipped ADDED requirement over-promised for the map ("A superseded document never reaches the map" / "The map SHALL follow only documents the one writer published"), and the diff's own code contradicts it (`SettingsController.kt:67` still returns the replaced document; `MapCanvasViewModelSettings.kt:562` drops the writer's publication inside the map's start-up window).
+
+**Narrowed to the guarantee the diff delivers** — the reviewer's own words: *"a document the writer superseded is never published, and that the map's follower applies the writer's publications only after the start-up read completes"*.
+
+```
+### Requirement: A superseded document is never published
+
+The one writer publishes one document: a document the writer superseded is never published, and the
+map's follower applies the writer's publications only after the start-up read completes.
+```
+
+**4 files, 11 insertions, 10 deletions** (the change is already archived; it stays where it is):
+- `openspec/specs/settings-surface/spec.md:250-253` — shipped requirement title+body
+- `openspec/changes/archive/2026-11-21-fix-a-stale-read-does-not-overwrite-a-change/specs/settings-surface/spec.md:11-14` — same text, alike
+- `…/proposal.md:1,36` — headline + the sentence naming the requirement
+- `…/tasks.md:47` — the quoted requirement title
+
+**Truth in this tree:** `SettingsController.kt:62-66` publishes only while no write began (`writesStarted`, `:45`); `MapCanvasViewModelSettings.kt:562` `if (!settingsReadDone) return@collect`, set at `:544` after the read. Scenarios and cases untouched — the reviewer PASSed both.
+
+**Measurements (quoted):**
+- `LOOP-MEASURE-CHANGE 2026-11-21-fix-a-stale-read-does-not-overwrite-a-change scenarios=2 cases=2 unnamed=0`
+- `LOOP-MEASURE-SURFACE surface: 1 case added, 2 cases reddened, 0 fixtures — tools/look.sh 'followSurfaceWrites|SettingsController\.settings|_settings\.value' (11 matches in 7 files)`
+- `LOOP-MEASURE-SUITE cases=525 cmd=tools/loop/tests/loop-selftest.sh --list`
+- `LOOP-GATE-BASE: c3d2ebd3ee2851780eee68b45d5d0cb1c19fa66e (from the base branch main)`
+- `LOOP-GATE-TREE: head=6738dde13dbf71f45d25feb86a86fb8702677e9b diff=c5d934fa87ca91dc`
+- `LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1` — the five `x-issue:` errors are five *other* open change dirs; ours carries `x-issue: 986`
+- `evidence-check: PASS` (C1 §references 0 exempted, C2 4 pairs confirmed, C5 294 file:line resolved)
+
+**Artifacts:** `gate.log`, `round2-*.xml` (12 tallies), `measure-round2.log`, `gate-plan-round2.log` in the item dir; round-1 evidence untouched.
+
+**NOTEs (round 1, outside this correction):** no restore-clean marker carried; task 3.1's mutation record does not say whether the `settingsReadDone` hunks stood in the red run; the proposal's surface count claims `SettingsSurfaceTest` as reddened with no red XML for it in this change (support is the item's ISSUE_TEXT); `StartupScreensTest#diagnosticsScreenShowsNewestFirst` stays green and unexplained by this change.
+
+```
+LOOP-CHANGE: fix-a-stale-read-does-not-overwrite-a-change
+LOOP-ROOT-CAUSE: `MapCanvasViewModel.wirePersistedSettings` subscribed to the one writer's `StateFlow` only after its start-up read, so the replay re-applied the document that read published (the value a user change had already replaced), and `SettingsController.load` published a document a later write had superseded.
+LOOP-RED-TEST: SettingsControllerTest#aLateLoadDoesNotPublishOverANewerWrite fails on HEAD (the item's base c3d2ebd3) — XML tests=4 failures=1 (2026-11-21T17:11:22.489Z, evidence/red-SettingsControllerTest.xml)
+LOOP-GATE: tests=50 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 378s, tools/check-compose-sandbox-rule.sh 1s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s) — base-red: tools/check-openspec-hygiene.sh:1
+```

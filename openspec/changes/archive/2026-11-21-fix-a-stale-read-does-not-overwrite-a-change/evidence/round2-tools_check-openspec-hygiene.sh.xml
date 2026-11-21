@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-openspec-hygiene.sh" tests="0" failures="0" errors="1" time="0" run="1032306">
+  <system-out>::error file=openspec/changes/the-bounds-spend-and-budget-are-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed ::error file=openspec/changes/the-print-site</system-out>
+</testsuite>

@@ -1,7 +1,32 @@
 # Evidence — the split, measured on the tree it leaves
 
-Every number below was taken on 2026-11-20 in the change root, on the tree this change leaves with its files
-uncommitted, against the run's base `b63de90b1b413cd7fe9b0452ee95f54c1f55c8eb`. The logs are beside this file.
+Every number below was taken in the change root on the tree this change leaves. The first cut measured it against
+the run's base `b63de90b1b413cd7fe9b0452ee95f54c1f55c8eb` on 2026-11-20; the replay measured the same tree again on
+main `4b53a442` on 2026-11-21, and the re-taken figures are the ones below. The logs are beside this file.
+
+## The replay onto main (2026-11-21)
+
+The change was finished on 2026-11-20 and cut its review round there, and main moved on before it landed. The
+recorded decision (option A of 2026-11-21) is that the finished split is **replayed** onto the current base and
+proved again there, not re-cut: the five commits of
+`fix/issue-892-run-child-is-393-lines-inside-a-3793-lin` were rebased from `b63de90` onto `4b53a442`, and the tree
+they carry is the one this evidence measures.
+
+Six files conflicted, and each was resolved by what it carries rather than by which side won:
+
+| file | what the replay did |
+|---|---|
+| `tools/loop/run.sh` | main's new `outside-write` and review-input block was **not** kept in the entry: the entry's copy of a moveable function is the defect this change exists to prevent, so the block went to `tools/loop/evidence.sh` where its owner's row names it, and the entry lost it |
+| `tools/loop/evidence.sh` | took main's newer bodies of `pid_ppid`, `pid_left_the_worktree` and `outside_write_seen` (#950), and the four functions main added after the split was cut — `loop_now_ms`, `loop_proc_count` (#950), `item_outside_write_clause` (#983), `review_input_cut_halved` (#969) — each under the owner row its activity names |
+| `tools/loop/layout.tsv` | the split's columns kept; every bound whose file main grew re-taken as its replayed length + 25 %, and the `owns` cells extended with the six `lib.sh` functions #894 added and the four `evidence.sh` gained here |
+| `tools/loop/shared.tsv` | the union, read against the replayed tree: `loop_emit` and `LOOP_EVENT_DEFAULT_MAX_BYTES` (#894) keep `run.sh` as their reader, `child_check_calls` keeps `child.sh`, and the two new cross-boundary calls get their rows |
+| `tools/loop/tests/loop-cases.sh` | one case declaration is the union of both sides (`run#theWorkersOwnShellWriteIsRecordedAndNotPlaced` reaches `lib.sh` on main and the split's owner files here) |
+| `tools/loop/tests/loop-mutations.sh` | the `892.x` records stand beside main's `938.1` and `983.1`; record 12.11 keeps the split's target (`evidence.sh`) and takes main's new call text, and 892.1 names the re-taken bound |
+
+The one thing the replay refuses to do is move a function back: a body main had added after the split was cut
+would have stayed in the entry as a `run.sh`-owned duplicate, which is what
+`driver#anOwnedFunctionIsInItsOwnersFile` reports. So each was moved to its owner file before the tally below was
+taken.
 
 ## The red case on HEAD
 
@@ -52,15 +77,18 @@ child this tree starts.
 the after count + 25 % rounded up:
 
 ```
-run.sh        4425 → 2666 lines, bound 3333
+run.sh        4575 → 2813 lines, bound 3517
 child.sh          - →  787 lines, bound  984
-evidence.sh       - →  680 lines, bound  850
+evidence.sh       - →  769 lines, bound  962
 leftovers.sh      - →  422 lines, bound  528
+lib.sh         1216 → 1216 lines, bound 1520
+report.sh      1056 → 1056 lines, bound 1320
 ```
 
-The three new files hold 1889 lines against the entry's 2666, and the four hold 4555 against `run.sh`'s 4425, so
-the move added 130 lines: the four file headers, the two-line source guard each new file carries, and the blank
-lines between them. No function body was rewritten — `driver#theMovedEngineBehavesAsItDid` loads the declared
+The three new files hold 1978 lines beside the entry's 2813, so the split's four files hold 4791 against the 4575
+the entry was on main — 216 lines added by the move: the four file headers, the source guard each new file carries,
+the blank lines between them, and the four functions `main` added after the split was cut and the replay placed in
+their owner's file. No function body was rewritten — `driver#theMovedEngineBehavesAsItDid` loads the declared
 chain in one shell and asserts every function each row owns is defined once it loads, and the whole suite is the
 behavioural proof.
 

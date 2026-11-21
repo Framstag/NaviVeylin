@@ -86,6 +86,4 @@ of the task, not of the case.
   `driver#theSelectionFollowsTheOwner` must fail; restore, forced green. One case's re-pointed `tools/loop/**`
   declaration stays consistent with the selection it produces, so the widening is the mutation, not one
   declaration.
-- [x] 5.8 The unrelated defects this work finds are named in `evidence/README.md` § "Defects the work found and
-  did not fix", for the run to file with `.pi/skills/create-issue` — an unattended child opens no issue.ner` must fail; restore, forced green.
 - [x] 5.8 File every unrelated defect this work finds with `.pi/skills/create-issue`.

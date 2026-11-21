@@ -263,6 +263,16 @@ child_ended_by_context_bound() { # <report> → 0 when that child's own LOOP-TIM
   esac
   return 1
 }
+
+# What a child the ceiling ended listed (issue #956). Such a child writes no report block — the run ended it, so
+# there is no `LOOP-DECISION` and no `LOOP-RED-TEST` — and what it did leave is the prose it had written when the
+# bound's own line was appended: measured 2026-11-17, #894's continuation report states the shape in that prose
+# ("sections 2.2-2.6, 3.x and 4.x do not fit one child's context bound") and asks for the phases to become items of
+# their own, which is the list a person reshapes the item from. The run's own lines are appended after that prose, so
+# they are excluded here: the line read is the child's, from the report the run already holds.
+continuation_listing() { # <report> → the child's own last line, or nothing when it wrote none
+  sed -n '/^LOOP-[A-Z][A-Z-]*: /!p' "$1" 2>/dev/null | sed -e 's/[[:space:]]*$//' -e '/^$/d' | tail -1
+}
 # What the header names, for the reason the per-role turn bounds are named there: a bound a run enforces and does not
 # print is a bound nobody can audit (issue #842).
 child_context_bounds=""
@@ -3025,6 +3035,10 @@ while true; do
   # never the path, so the continuation needs no arm of its own below.
   worker_report="$item_dir/worker-report.md"
   worker_prompt="$item_dir/worker-prompt.md"
+  # Whether the continuation this run started was ended at the same ceiling the worker it continued met, and what that
+  # child listed when it was (issue #956): read where the continuation ends and decided by the outcome arms below.
+  continuation_too_wide=0
+  continuation_phases=""
   run_child "$item_dir/worker-prompt.md" "$worker_report"
   worker_exit=$?
   loop_state step A --name worker --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
@@ -3040,8 +3054,12 @@ while true; do
   # records `outcome: no-apply`), because the base had moved under them between the runs. A patch applied in the run that
   # cut it is a continuation, in the one tree it was taken from; the same patch one run later is a coin toss.
   #
-  # Exactly one continuation per item, and only while the run's own deadline has not passed. A second context cut is the
-  # item's `cut` — that ceiling is what keeps this from being a loop that never ends an item — and a continuation started
+  # Exactly one continuation per item, and only while the run's own deadline has not passed. A context ceiling that
+  # ends the continuation too is the item's shape rather than a second cut (issue #956: the run of 2026-11-17T10:58Z
+  # continued four items from a killed run's kept patch and paid 78.7 Mtok of its 120.3 Mtok for none of them, each of
+  # them stopped at 142 576–143 943 against the recorded 143 124), so that reading is recorded too wide with the
+  # shaping verdict below and no third child is started — which is what keeps this from being a loop that never ends
+  # an item. A continuation started
   # after the deadline would be ended on its first second, replacing the bound's own reason with the clock's, which is the
   # distinction #829 and #785 paid for.
   if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] && child_ended_by_context_bound "$worker_report"; then
@@ -3086,6 +3104,16 @@ while true; do
           worker_exit=$?
           worker_report="$item_dir/worker-continuation-report.md"
           worker_prompt="$item_dir/worker-prompt-continuation.md"
+          # …and the ceiling this child met is the item's shape when it is the same one that ended the worker before it
+          # (issue #956). Two children have now been measured at the reading one child may hold, so what the item does
+          # not fit is its own size and not the phase's progress: the outcome arms below record the shaping verdict
+          # `too-wide` — the hold a person shapes the item from — instead of a `cut` the next run re-enters at full size,
+          # and the reason names the ceiling and what this child listed. The test is the one the first cut is read from,
+          # so no new vocabulary is introduced to name a context split.
+          if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] && child_ended_by_context_bound "$worker_report"; then
+            continuation_too_wide=1
+            continuation_phases=$(continuation_listing "$worker_report")
+          fi
           loop_state step A --name "$continuation_step" \
             --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
             --note "exit $worker_exit · from $continuation_patch, applied onto $(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null | cut -c1-12)" >/dev/null
@@ -3826,6 +3854,18 @@ while true; do
     else
       block refused "$pre_gate_refusal"
     fi
+  elif [ "$continuation_too_wide" -eq 1 ]; then
+    # The continuation the run started was ended at the same ceiling the worker it continued met (issue #956), so the
+    # item has been measured twice at the reading one child may hold: what it does not fit is its own size, not the
+    # phase's progress. The verdict is the shaping one — `too-wide`, which the profile's `roles.shapingVerdicts` names
+    # and `labels.sh` writes as the shaping label beside the hold — so the item stops re-entering the queue at full
+    # size instead of paying the same ceiling again on a fresh branch. The reason names the ceiling the second child
+    # reached and the phases that child itself listed, because reshaping the item is the answer, and it writes no
+    # decision label: a hold is not a question (spec, "A hold is not a decision").
+    outcome="skipped"
+    skip_verdict=too-wide
+    root_cause="the item does not fit one child's context: the continuation was ended at the same ceiling the worker it
+continued met — ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phases it listed: $continuation_phases}"
   elif [ "$last_exit" -ne 0 ]; then
     block child-failed "the $last_child process exited $last_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable

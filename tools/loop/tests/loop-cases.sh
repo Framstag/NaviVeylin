@@ -510,6 +510,7 @@ LOOP_SHELL_CASES=(
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
   'run#childPastItsContextBoundIsCut'
   'run#aContextCutWorkerIsContinuedByItsOwnRun'
+  'run#aContinuationEndedOnTheSameCeilingStopsTooWide'
   'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound'
   'run#aWorkerBelowItsCheckpointIsNotSplit'
   'run#aWorkerAtTheCheckpointWithNoWorkRunsOn'
@@ -1300,6 +1301,7 @@ loop_run_shell_case() {
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
     'run#childPastItsContextBoundIsCut') fn=case_run_childPastItsContextBoundIsCut ;;
     'run#aContextCutWorkerIsContinuedByItsOwnRun') fn=case_run_aContextCutWorkerIsContinuedByItsOwnRun ;;
+    'run#aContinuationEndedOnTheSameCeilingStopsTooWide') fn=case_run_aContinuationEndedOnTheSameCeilingStopsTooWide ;;
     'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound') fn=case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound ;;
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
     'run#aWorkerAtTheCheckpointWithNoWorkRunsOn') fn=case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn ;;
@@ -21213,20 +21215,20 @@ EOF
   assert_contains "$(cat "$report")" "at 210000 tokens" "and the reading it reached, from the child's own stream"
   assert_not_contains "$(cat "$report")" "the child exceeded" \
     "the wall clock took no part in it — the recorded one still had 45 min to run"
-  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "an item whose child crossed the bound is recorded cut, not blocked (issue #790)"
-  assert_eq "cut" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
-    "and its verdict is the cut too, which is what the run's own report counts"
-  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
-    "the context bound is a bound the run enforced, so the cut keeps it as its mechanism"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "two children the context ceiling ended are the item's shape: it is skipped, not blocked, and not left as a cut the\n    next run re-enters at full size (issue #956)"
+  assert_eq "too-wide" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "with the shaping verdict the profile names, which is what the run's own report counts"
+  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$(state_file "$p")")" \
+    "and no bound rides beside it: the ceiling measured the item's size, not a phase the next run resumes"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "context bound of 200000 tokens" \
-    "and the reason on the item carries the reading, not only the exit status"
+    "while the reason on the item carries the reading, not only the exit status"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   # …and the item was **continued** by the run that cut it before it was left (issue #851): the patch the first child's
-  # work was kept in is applied by the same run, onto the same branch, and one more child reads it. That child is
-  # held on the same fifo and its own stream crosses the same bound, so it is cut too — and the ceiling is what the
-  # last four assertions are about: exactly one continuation, and the item stays `cut` rather than becoming a loop
-  # that never ends it.
+  # work was kept in is applied by the same run, onto the same branch, and one more child reads it. That child is held
+  # on the same fifo and its own stream crosses the same ceiling, so it is ended there too — and the ceiling is what the
+  # last three assertions are about: exactly one continuation, and the item stops on its shape instead of becoming a
+  # loop that never ends it (issue #956).
   log=$(cat "$PI_STUB_LOG")
   assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
     "the run that cut the worker continues the item itself, exactly once: $out"
@@ -21241,8 +21243,8 @@ EOF
     "the continuation is bounded the same way, and its own transcript says which bound ended it"
   assert_eq "applied" "$(jq -r '.resumes["21"].outcome // ""' "$(state_file "$p")")" \
     "the work the cut child left was applied in the run that cut it, not handed to the next one as a patch: $out"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "continued the item in the run that cut it" \
-    "and the item's own record says so, so a reader is not told the next run is the one that resumes it"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "does not fit one child's context" \
+    "and the note says what a second ceiling is a reading of, so a reader is not told the next run is the one that resumes it"
   return 0
 }
 
@@ -21345,6 +21347,114 @@ EOF
   assert_contains "$(jq -r '.items[0].note' "$f")" "continued the item in the run that cut it" \
     "and its note says the same, so the record and the report agree about who resumed the phase"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a skipped item"
+  return 0
+}
+
+# A continuation the same ceiling ended is the item's shape and not a second cut (issue #956). The run of
+# 2026-11-17T10:58Z → 16:25Z continued four items from a killed run's kept patch (#917, #950, #894, #911) and paid
+# 78.7 Mtok of its 120.3 Mtok for none of them: each of the four reached a reading of 142 576–143 943 against the
+# recorded 143 124, the guards recorded `blocked` with `bound` beside it, and the next run picked the same item up at
+# full size. Two children the ceiling ended have measured the item's *size*, not a phase's progress, so the run stops
+# it on the shaping verdict `too-wide` — a hold, not a question — and names the ceiling and the phases that child
+# listed, which is what a person reshapes the item from.
+case_run_aContinuationEndedOnTheSameCeilingStopsTooWide() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo first_fixture second_fixture action pid i status out f log note report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
+  # The first worker stops at the checkpoint (150 000, above the recorded 143 124 and below the 200 000 stop) and
+  # leaves work, which is what starts the continuation; the continuation then crosses the stop itself (210 000).
+  # That is the shape the item is about: one item, measured twice at the reading a child may hold.
+  first_fixture="$d/first.jsonl"
+  cat > "$first_fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":150000,"output":10,"cacheRead":0,"cacheWrite":0}}
+JSON
+  second_fixture="$d/second.jsonl"
+  cat > "$second_fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":210000,"output":10,"cacheRead":0,"cacheWrite":0}}
+JSON
+  report="$p/.pi/issue-loop/items/21/worker-continuation-report.md"
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md)
+    cat "$first_fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'the work the checkpoint ended\n' > demo-fix.txt
+    ;;
+  worker-prompt-continuation.md)
+    # The phases this child lists, written where a child's own words land (its stdout is the report) and before the
+    # crossing that ends it, so what the item's reason names is what that child said.
+    printf 'sections 2.2-2.6, 3.x and 4.x do not fit one child\047s context bound\n' >> "$report"
+    cat "$second_fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    printf 'the work the second child left\n' > demo-fix-second.txt
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do
+    grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null || {
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run cut the worker at the checkpoint and started no continuation from the work it kept: $(cat "$d/out")"
+  }
+  # The continuation is held on the fifo rather than released: the crossing it wrote is what the run's wait reads, so
+  # the ceiling ends it and the item is decided by the run instead of by a report that child would print next.
+  for i in $(seq 1 600); do
+    [ -n "$(jq -r '.items[0].result // ""' "$(state_file "$p")" 2>/dev/null)" ] && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  printf 'go\n' >&8 2>/dev/null || true
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  f=$(state_file "$p")
+  assert_eq "0" "$status" "the run that stopped the item on its own shape is not a failed run: $out"
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "2" "$(grep -c '^prompt: ' <<<"$log" || true)" \
+    "the item is two children and no third: $out"
+  assert_contains "$(cat "$report")" \
+    "the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000 tokens" \
+    "the continuation's own transcript names the ceiling it reached"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$f")" \
+    "the item is skipped on its shape, not left as another cut for the next run: $out"
+  assert_eq "too-wide" "$(jq -r '.items[0].verdict' "$f")" \
+    "with the shaping verdict the profile names, which is the word a person reshapes the item from"
+  note=$(jq -r '.items[0].note // ""' "$f")
+  assert_contains "$note" "does not fit one child" "the reason says what the second ceiling measured"
+  assert_contains "$note" "sections 2.2-2.6, 3.x and 4.x do not fit one child's context bound" \
+    "and carries the phases the child itself listed"
+  assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$f")" \
+    "no bound rides beside it, because the verdict is the item's shape and not the clock's cut"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-shaping" "the item is marked for the shaping inbox"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "status/on-hold" "and held, which is the label a shaping verdict writes"
+  assert_eq "0" "$(grep -c 'agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "while no decision label is written: a hold is not a question"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a held item"
   return 0
 }
 

@@ -1687,8 +1687,14 @@ of its own budget unspent, with both patches in hand — and the next attempt ap
 records `outcome: no-apply`), because the base had moved between the runs. So the run applies the patch itself, onto
 the branch's own `HEAD`, and starts **one** continuation child from it (`worker-prompt-continuation.md`, step
 `worker-continuation`, the role `worker` and its bounds unchanged); the item is then that child's answer as any item
-is. Three limits make it safe: a second context cut of the same item is the item's `cut` — one continuation per item,
-so the loop always ends an item — a patch the applier does not take leaves the item `cut` with the non-apply recorded
+is. Three limits make it safe: one continuation per item, and a continuation the same ceiling ends stops the item on
+the shaping verdict `too-wide` rather than as a second `cut` (issue #956: the run of 2026-11-17T10:58Z → 16:25Z
+continued four items — #917, #950, #894 and #911 — from a killed run's kept patch, paid 78.7 Mtok of its 120.3 Mtok
+(65.4 %) and closed none, each reaching 142 576–143 943 against the recorded 143 124; a second child the ceiling ended
+has measured the item's *size*, so the `cut` it used to record handed the item back to the next run at full size.
+The reason names the ceiling and the phases that child listed, and the hold it writes is the shaping inbox's —
+`too-wide` is one of the profile's `roles.shapingVerdicts` — never a decision); a patch the applier does not take
+leaves the item `cut` with the non-apply recorded
 (#754's own answer, and the shape of a child the bound ended before it wrote anything, whose patch carries no hunk),
 and no continuation is started once the run's deadline has passed: `run_child` would end it on its first second and
 record the **clock** where the context bound fired, which is the distinction #829 and #785 are about. The reading the

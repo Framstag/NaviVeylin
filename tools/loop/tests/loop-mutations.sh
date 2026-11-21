@@ -1503,6 +1503,11 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 956.1 — a continuation the same ceiling ended is the item's shape (issue #956). The record puts the guards back in
+  # charge of that reading, which is the tree this change was filed on: the item is blocked with `bound` beside it and
+  # the next run re-enters it at full size — the reading the run of 2026-11-17T10:58Z paid 78.7 Mtok for over four items
+  # (#917, #950, #894, #911) and closed none, each of them stopped at 142 576–143 943 against the recorded 143 124.
+  '956.1@-@tools/loop/run.sh@run#aContinuationEndedOnTheSameCeilingStopsTooWide@the arm that records the shaping verdict when the continuation meets the same ceiling, so the item is handed to the next run at full size instead of being shaped (issue #956)@s|^  elif \[ "\$continuation_too_wide" -eq 1 \]; then$|  elif false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

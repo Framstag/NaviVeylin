@@ -169,6 +169,7 @@ LOOP_SHELL_CASES=(
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
   'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen'
+  'run#aDirtyBaseTreeStopsTheRunBeforeItsFirstItem'
   'run#blockedItemAsksItsOwnQuestion'
   'run#aBlockedItemCarriesTheWorkersDecision'
   'run#aReviewersDecisionOutranksTheWorkers'
@@ -988,6 +989,7 @@ loop_run_shell_case() {
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
     'run#aDirtyProjectTreeIsRefusedBeforeThePreScreen') fn=case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen ;;
+    'run#aDirtyBaseTreeStopsTheRunBeforeItsFirstItem') fn=case_run_aDirtyBaseTreeStopsTheRunBeforeItsFirstItem ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
     'run#aBlockedItemCarriesTheWorkersDecision') fn=case_run_aBlockedItemCarriesTheWorkersDecision ;;
     'run#aReviewersDecisionOutranksTheWorkers') fn=case_run_aReviewersDecisionOutranksTheWorkers ;;
@@ -5697,6 +5699,51 @@ case_run_aDirtyProjectTreeIsRefusedBeforeThePreScreen() {
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
   assert_eq "" "$(cat "$GH_STUB_RECORD" 2>/dev/null || true)" "no label was written — no adoption was attempted and nothing was escalated"
   [ -f "$p/tools/wip-notes.txt" ] || fail "the refusal discarded the file it found"
+
+  # The reading behind that refusal is the landing's own since #988 (`lib.sh`'s `loop_project_dirt`), so the start
+  # drops the paths no child of the run could have written, exactly as the merge does before it decides (#962): an
+  # editor's swap file is not a refusal, and the two heads read one rule instead of two that disagreed.
+  local p2 d2 out2 status2
+  p2=$(new_project); d2=$(scratch)
+  printf 'swap\n' > "$p2/tools/wip-notes.txt.swp"
+  out2=$(run_loop "$p2" --items 0 --minutes 90 2>&1); status2=$?
+  assert_eq "0" "$status2" "a swap file no child of the run could have written does not refuse the run"
+  assert_not_contains "$out2" "the run cannot tell its own leftover" \
+    "so the refusal is not printed over a write the landing drops too"
+  return 0
+}
+
+# The start's reading of the project tree was the whole of what the loop asked (#798), and it ran once: #938's child
+# wrote six paths into the caller's project tree at 00:23 of the run of 2026-11-20T19:57:16Z, and every item after it
+# paid its whole budget and its gate and was then refused by the landing on the same list (#948, #956, #965, #969) —
+# 112.1 Mtok of the four items' own spending and about 3.5 h of that run, none of it landable (issue #988). So the
+# reading is taken again at the head of every item, through the landing's own reader, and the item is not started at
+# all: it stays the queue's head, nothing is recorded for it, and no child is paid for. The dirt arrives with the run's
+# first tracker read — the window a person's edit occupies, the same seam the adoption case uses — because a tree that
+# is already dirty when the run starts is the start's refusal, before the pre-screen.
+case_run_aDirtyBaseTreeStopsTheRunBeforeItsFirstItem() {
+  # files: tools/issues/tests/fixtures/gh tools/loop/lib.sh tools/loop/run.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local d p out status f reason
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  mkdir -p "$d/bin"
+  printf '#!/usr/bin/env bash\ncase "$*" in *"issue list"*) printf "wip/\\n" >> "%s" ;; esac\nexec %s "$@"\n' \
+    "$p/.gitignore" "$LOOP_ISSUE_FIXTURES/gh" > "$d/bin/gh"
+  chmod +x "$d/bin/gh"
+  export PATH="$d/bin:$PATH"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  f=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose project tree is dirtied under it ends on its own report, not on a refusal"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started for the item"
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" ".gitignore" "the recorded stop names the path the tree carries"
+  assert_contains "$reason" "#21" "and the item it would not start"
+  assert_contains "$out" ".gitignore" "the printed report names the path too"
+  assert_eq "1" "$(jq -r '.queue | length' "$f")" "the item stays the queue's head, so the next start works it on a cleaned tree"
+  assert_eq "0" "$(jq -r '.items | length' "$f")" "and nothing is recorded for it, because nothing was done to it"
+  assert_contains "$(git -C "$p" status --porcelain -- .gitignore)" "M .gitignore" "the dirt is still the owner's: the refusal discarded nothing"
   return 0
 }
 

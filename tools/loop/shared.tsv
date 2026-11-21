@@ -106,6 +106,7 @@ loop_open_pull_request_heads	lib.sh	worktree.sh
 loop_own_branches	lib.sh	loop-clean.sh worktree.sh
 loop_pids_under	lib.sh	evidence.sh
 loop_profile	lib.sh	run.sh child.sh prescreen.sh
+loop_project_dirt	lib.sh	run.sh
 LOOP_REFUSE	lib.sh	run.sh leftovers.sh state.sh worktree.sh
 loop_refuse	lib.sh	state.sh worktree.sh
 loop_remote_branches	lib.sh	worktree.sh

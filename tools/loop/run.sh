@@ -632,16 +632,15 @@ pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
 #     worktree's dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may be an edit its owner
 #     made while no run was live, and no reading available here tells the two apart — the run's own leftovers are its
 #     items' patches, which git ignores. So the refusal names the paths and discards nothing.
-project_dirt=$(git -C "$LOOP_ROOT" status --porcelain 2>/dev/null)
 # …less the run's own state directory, which this process wrote seconds ago: it locked and initialised the state above,
 # so a project that does not ignore `.pi/` would have every run refuse itself. The directory is the run's, not the
-# owner's, and the two are told apart without a reading: this process created it (issue #798).
+# owner's, and the two are told apart without a reading: this process created it (issue #798). The reading itself is
+# `lib.sh`'s `loop_project_dirt`, shared with the head of every item (issue #988), so the start and an item's head
+# cannot come to disagree about what dirt is — it is the landing's own reading, and a tracked file that changed
+# refuses whatever its name (#962).
 state_rel="${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
 state_dir_rel=$(dirname "$state_rel")
-project_dirt=$(printf '%s\n' "$project_dirt" | awk -v sd="$state_dir_rel" 'NF {
-  p = $0; sub(/^.../, "", p); sub(/\/$/, "", p)
-  if (p == sd || index(p, sd "/") == 1 || index(sd, p "/") == 1) next
-  print }')
+project_dirt=$(loop_project_dirt "$LOOP_ROOT" "$state_dir_rel")
 if [ -n "$project_dirt" ]; then
   loop_emit project-dirty
   loop_indent "$project_dirt"
@@ -965,6 +964,24 @@ while true; do
   # a landing the run never asked of it.
   merge_refused_branch=""
   merge_refused_paths=()
+  # The project tree, read at this head and for the reason the start's own reading is taken for (issue #988): an
+  # item is only worth its budget on a tree the landing can take. The start reads that tree once, and that was the
+  # whole of what the loop asked — until #938's child wrote six paths into the caller's project tree at 00:23 of the
+  # run of 2026-11-20T19:57:16Z. Every item after it paid its whole budget and its gate and was then refused by the
+  # landing on the same list (#948, #956, #965, #969) — the four items' 112.1 Mtok of that run's 309.2 and about 4 h
+  # of its 11.3, as the item records it, none of it landable. The reading is the landing's (`lib.sh`'s
+  # `loop_project_dirt`), so the guard refuses exactly what the merge would, and no child is started: nothing is
+  # recorded for the item, so it stays the queue's head and the next start works it on the tree a person has cleaned.
+  item_dirt=$(loop_project_dirt "$LOOP_ROOT" "$state_dir_rel")
+  if [ -n "$item_dirt" ]; then
+    loop_emit project-dirty
+    loop_indent "$item_dirt"
+    loop_emit project-dirty-list
+    loop_emit project-dirty-command root="$LOOP_ROOT"
+    item_dirt_paths=$(printf '%s' "$item_dirt" | sed 's/^...//' | tr '\n' ' ')
+    stop_run "the project tree carries uncommitted work at the head of #$issue, before its first child: ${item_dirt_paths% } — the landing step merges into this tree and refuses dirt there, so the item is not started and no child is paid for; commit or discard these paths and re-run"
+    break
+  fi
   # The host is read again for every item, because memory is what the previous item's own gate may have spent,
   # and it is read *before* the item's first child exists: below the recorded floor the item is recorded
   # `blocked` with the measurement and the number it was compared against, and the run stops. A run on a starved

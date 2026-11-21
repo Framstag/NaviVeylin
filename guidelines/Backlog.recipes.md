@@ -1466,6 +1466,16 @@ dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may
 run was live, and nothing the run can read tells the two apart, so the refusal discards nothing. Measured over this
 loop's archive (#798): four items were recorded `unmergeable` for a tree the landing step refused only after their
 budget and their gate (#668, #675, #769, #782), the last of them for two files that cost one run and two items.
+The reading is taken again at the **head of every item**, through the same function (`lib.sh`'s `loop_project_dirt`,
+so the start and an item's head cannot come to disagree about what dirt is): a project tree carrying such a path when the
+queue's head is about to start ends the run there, with the paths and the item in the stop reason and nothing
+recorded for the item — it stays the queue's head and the next start works it on a tree a person has cleaned, while
+the start's own refusal is the one that runs before the pre-screen. Measured (issue #988): #938's child wrote six
+paths into the caller's project tree at 00:23 of the run of 2026-11-20T19:57:16Z, and the four items after it paid
+their whole budget and their gate before the landing refused the same list (#948, #956, #965, #969) — 112.1 Mtok
+of that run's 309.2 and about 4 h of its 11.3, none of it landable. The case is
+`run#aDirtyBaseTreeStopsTheRunBeforeItsFirstItem`, whose mutations are `tools/loop/tests/loop-mutations.sh` 988.1 and
+988.2 — the head guard, and the landing filter the reading it shares drops.
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
 decision, taken on what a stranger to the run can check. A review round is part of that record, in both
 directions: the run commits the round onto the branch before its reviewer starts and commits the answer when

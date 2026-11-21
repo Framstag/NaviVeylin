@@ -1533,6 +1533,20 @@ MUTATIONS=(
   # step is handed the ledger, the session name, the bound, the arm, the record, the stream and the switch again, and
   # `gate#aStepIsNotHandedTheItemsSession` is what must notice.
   '980.1@-@tools/loop/gate.sh@gate#aStepIsNotHandedTheItemsSession@the removal of the item session facts from the environment a step is measured in, so a measured suite runs with the ledger, the session name, the result bound and the base-red switch of the child that started the gate (issue #980)@s|^  ( unset "${item_session_vars\[@\]}"$|  ( : # the mutation hands the step the gate session environment|'
+  # 988.1 — the project tree read at the head of every item (issue #988). The start reads that tree once, and that was
+  # the whole of what the loop asked (#798): #938's child wrote six paths into the caller's project tree at 00:23 of the
+  # run of 2026-11-20T19:57:16Z, and the four items after it paid their whole budget and their gate before the landing
+  # refused the same list (#948, #956, #965, #969) — the four items' 112.1 Mtok of that run's 309.2, as the item
+  # records it, none of it landable. The
+  # sed removes the head guard alone, so an item meets a tree the landing would refuse, and
+  # `run#aDirtyBaseTreeStopsTheRunBeforeItsFirstItem` fails on the child it asserts nobody started and on the stop the
+  # state no longer carries.
+  '988.1@-@tools/loop/run.sh@run#aDirtyBaseTreeStopsTheRunBeforeItsFirstItem@the project tree read at the head of every item, so an item is not started on a tree the landing step would refuse (issue #988)@s|^  if \[ -n "\$item_dirt" \]; then$|  if false; then|'
+  # 988.2 — the reading the start and an item head share is the landing one (#962): a path no child of the run could
+  # have written is dropped before either decides. The sed turns the filter off (`awk 1` passes every porcelain line),
+  # so a swap file becomes dirt and the start refuses a tree the merge would take — the second half of
+  # `run#aDirtyProjectTreeIsRefusedBeforeThePreScreen` names it.
+  '988.2@-@tools/loop/lib.sh@run#aDirtyProjectTreeIsRefusedBeforeThePreScreen@the drop of the writes no child of the run could have written from the reading the start and an item head share, so a swap file refuses the run over a tree the merge would take (issue #988)@s#| loop_drop_ignorable_writes untracked |#| awk 1 |#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

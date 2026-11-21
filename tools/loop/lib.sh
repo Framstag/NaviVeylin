@@ -1221,6 +1221,20 @@ loop_drop_ignorable_writes() { # [untracked] — stdin: porcelain lines → the 
   done
 }
 
+# The project's own tree as the **landing** reads it (issue #988): the status a merge onto the base refuses dirt
+# from, with the paths no child of the run could have written dropped (`loop_drop_ignorable_writes`, the landing's
+# own rule, #962) and the run's own state directory taken out, because this process wrote it (#798) — that directory
+# is the one difference from `worktree.sh`'s two readings, and it is a path no merge can be refused over in a tree
+# that ignores `.pi/`. One reader for the two heads that ask the question — the run's start and every item's — so
+# the two cannot come to disagree about what dirt is: it is the landing's own reading.
+loop_project_dirt() { # <root> <the run's state directory, relative to root> → the porcelain lines the landing refuses
+  git -C "$1" status --porcelain -uall 2>/dev/null | loop_drop_ignorable_writes untracked |
+    awk -v sd="$2" 'NF {
+      p = $0; sub(/^.../, "", p); sub(/\/$/, "", p)
+      if (p == sd || index(p, sd "/") == 1 || index(sd, p "/") == 1) next
+      print }'
+}
+
 # The two readings compared as the filter leaves them: an editor that writes into the project tree changes them without
 # changing anything a child of this run could have written, and a reader that compares the raw pair decides the phase
 # on that difference alone (issues #958, #962).

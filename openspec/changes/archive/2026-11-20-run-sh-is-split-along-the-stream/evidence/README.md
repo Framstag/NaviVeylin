@@ -101,7 +101,7 @@ child this tree starts.
 the after count + 25 % rounded up:
 
 ```
-run.sh        4575 → 2813 lines, bound 3517
+run.sh        4575 → 2797 lines, bound 3497
 child.sh          - →  787 lines, bound  984
 evidence.sh       - →  769 lines, bound  962
 leftovers.sh      - →  422 lines, bound  528
@@ -109,8 +109,8 @@ lib.sh         1216 → 1216 lines, bound 1520
 report.sh      1056 → 1056 lines, bound 1320
 ```
 
-The three new files hold 1978 lines beside the entry's 2813, so the split's four files hold 4791 against the 4575
-the entry was on main — 216 lines added by the move: the four file headers, the source guard each new file carries,
+The three new files hold 1978 lines beside the entry's 2797, so the split's four files hold 4775 against the 4575
+the entry was on main — 200 lines added by the move: the four file headers, the source guard each new file carries,
 the blank lines between them, and the four functions `main` added after the split was cut and the replay placed in
 their owner's file. No function body was rewritten — `driver#theMovedEngineBehavesAsItDid` loads the declared
 chain in one shell and asserts every function each row owns is defined once it loads, and the whole suite is the

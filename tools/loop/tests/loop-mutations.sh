@@ -1519,7 +1519,7 @@ MUTATIONS=(
   # shared-name declaration, the declared source order, a call that reads a file sourced later, and the selection a
   # delta's file set produces. Each mutates the file the rule lives in — the table for the first, the engine for the
   # rest — because a rule read by a case over the tree cannot be reached by mutating a fixture.
-  '892.1@-@tools/loop/layout.tsv@driver#noEngineFileExceedsItsBound@the entry row%ss bound set one line below the file%ss length, so a file that outgrows the number its row declares is not refused (issue #892)@s#^run\.sh\t3517\t#run.sh\t2812\t#'
+  '892.1@-@tools/loop/layout.tsv@driver#noEngineFileExceedsItsBound@the entry row%ss bound set one line below the file%ss length, so a file that outgrows the number its row declares is not refused (issue #892)@s#^run\.sh\t3497\t#run.sh\t2796\t#'
   '892.2@-@tools/loop/run.sh@driver#anOwnedFunctionIsInItsOwnersFile@a function the table gives to another file, defined in the entry, so a body the move left behind is not a diff a reader can see (issue #892)@s|^#!.*|#!/usr/bin/env bash\nchild_cap() { :; }|'
   '892.3@-@tools/loop/child.sh@driver#theSharedNamesAreDeclared@a second definition of a name `lib.sh` already assigns, so two files own one name and the declaration the table carries stops being the set the engine shares (issue #892)@s|^#!.*|#!/usr/bin/env bash\nprogress() { :; }|'
   '892.4@-@tools/loop/run.sh@driver#theSourceOrderIsDeclared@the entry%ss `child.sh` source line, replaced by a second `evidence.sh`, so the chain the table declares and the chain the entry loads part company and a call to the last file reads as one to a file loaded twice (issue #892)@s#^source "\$here/child.sh"$#source "$here/evidence.sh"#'

@@ -6,7 +6,7 @@
 #         #969, #970 and #983) carries its replayed length here and not the one it had at b63de90
 # bound   the file's column in tools/loop/layout.tsv: the after count + 25 %, rounded up (task 3.3)
 file	before	after	bound
-run.sh	4575	2813	3517
+run.sh	4575	2797	3497
 child.sh	-	787	984
 evidence.sh	-	769	962
 leftovers.sh	-	422	528

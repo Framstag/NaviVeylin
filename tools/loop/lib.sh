@@ -104,6 +104,20 @@ loop_note() {
   printf '%s\n' "$*" >&2
 }
 
+# The two ways the run shows a value it did not compose: `relay` prints what another process printed (a `worktree.sh`
+# or `issues` answer the caller reads as text — a refusal, a start, a restore), and `loop_indent` prints a captured
+# value's lines two spaces in, the list a refusal names under its own line. Neither composes a fact: the fact is the
+# header line above it or the process's own words, and the record carries those. They exist so a run-source file holds
+# no bare `printf` for either, which is what lets `driver#everyPrintOnlySiteIsConverted` read a file and not a person's
+# memory of which lines were data (events.tsv, `# renderers`).
+relay() { # relay [--stderr] <text>… — another process's output, printed as it came
+  if [ "${1:-}" = --stderr ]; then shift; printf '%s\n' "$*" >&2; else printf '%s\n' "$*"; fi
+}
+
+loop_indent() { # loop_indent <text> — a captured value's lines, two spaces in
+  printf '%s\n' "$1" | sed 's/^/  /'
+}
+
 # What a gate tally says about the run it measured (issue #811). The tally is free text the run writes — a child's
 # `LOOP-GATE` line, the count of tallies the run found, `skipped (no gate configured)`, `not run — …` — so the
 # one predicate every reader of it needs is read out of the text and never out of a second field: `red` when it

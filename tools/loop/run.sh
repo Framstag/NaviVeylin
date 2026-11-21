@@ -268,8 +268,7 @@ loop_emit run-start items="$items" minutes="$minutes" review="$review" pre_gate=
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
 # were interrupted by hand inside that window. The two views that exist while a run works are named here, so the
 # answer does not depend on the operator remembering them.
-printf 'run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory %s\n' \
-  "$(dirname "$LOOP_STATE_FILE")"
+loop_emit run-live-view state_dir="$(dirname "$LOOP_STATE_FILE")"
 
 # The state is written below, after the identity and the lock: the lock is what keeps one run per
 # repository, and the state it would replace belongs to the run that is working.
@@ -357,7 +356,7 @@ end_run() {
     if [ "$reset_worktree" -eq 0 ]; then
       bash "$LOOP_DIR/worktree.sh" strip-scratch || true
     fi
-    printf 'worktree kept for the next run: %s\n' "$worktree"
+    loop_emit worktree-kept worktree="$worktree"
   fi
   # The branches the loop made are the run's leftovers too, and the next reader should not have to run a command
   # to learn which are dead refs (issue #239): the run sweeps the ones whose patches the base already holds. It
@@ -379,11 +378,11 @@ end_run() {
 preflight_out=$(loop_issue_tool policy.sh preflight 2>&1)
 preflight_status=$?
 if [ "$preflight_status" -eq 3 ]; then
-  printf '%s\nstop: the identity this run acts as is not authorised — nothing was created\n' "$preflight_out"
+  loop_emit stop-unauthorised detail="$preflight_out"
   exit "$LOOP_STOP"
 fi
 if [ "$preflight_status" -ne 0 ]; then
-  printf '%s\n' "$preflight_out" >&2
+  relay --stderr "$preflight_out"
   loop_die "run: the preflight could not be evaluated (exit $preflight_status)"
 fi
 
@@ -492,7 +491,7 @@ base=$(loop_state get run.base)
 # refusal that ends a run *before* it works an item — the checkout guard below — because a function is a command
 # only once its definition has executed.
 stop_run() { # <reason> — printed and recorded, then the caller breaks or exits
-  printf 'stop: %s\n' "$1"
+  loop_emit run-end reason="$1"
   loop_state stop "$1" >/dev/null 2>&1 || true
 }
 
@@ -507,10 +506,9 @@ stop_run() { # <reason> — printed and recorded, then the caller breaks or exit
 #    branch, a closure claiming a fix that never reached the base (issue #301's review, 2026-10-24).
 checkout_ref=$(git -C "$LOOP_ROOT" symbolic-ref --quiet --short HEAD 2>/dev/null) || checkout_ref=""
 if [ "$checkout_ref" != "$(loop_base_ref)" ]; then
-  printf 'refusing to start: the project tree is on %s, and the landing step merges into it\n' \
-    "${checkout_ref:-a detached HEAD}"
-  printf 'the base branch is %s — switch this tree to it and run again:\n' "$(loop_base_ref)"
-  printf '  git -C %s switch %s\n' "$LOOP_ROOT" "$(loop_base_ref)"
+  loop_emit refuse-tree-on-branch ref="${checkout_ref:-a detached HEAD}"
+  loop_emit refuse-switch-to-base base="$(loop_base_ref)"
+  loop_emit refuse-switch-command root="$LOOP_ROOT" base="$(loop_base_ref)"
   stop_run "the project tree is checked out on ${checkout_ref:-a detached HEAD}, not the base branch $(loop_base_ref) — the landing step merges into this tree, so switch to it and re-run"
   bash "$LOOP_DIR/report.sh"
   exit "$LOOP_REFUSE"
@@ -525,10 +523,10 @@ fi
 #     (`gate.sh`'s `measure_step_base`). Nothing is measured here, and this block only says which mode the run is in.
 case "$(loop_conf_value LOOP_BASE_RED)" in
   off|no|0)
-    printf 'base-red: off (LOOP_BASE_RED=off) — a step red on this run%s base will be charged to the item that carries it\n' "'"
+    loop_emit base-red-off
     ;;
   *)
-    printf 'base-red: measured by the gate that first needs a step — no pre-flight runs at the start\n'
+    loop_emit base-red-measured
     ;;
 esac
 
@@ -555,7 +553,7 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
   marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
   owner_item=$(owner_of_marker "$marker")
   if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
-    printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
+    loop_emit reset-discarding worktree="$worktree"
     if ! discard_kept_worktree reset-worktree "$leftovers"; then
       # The repair's refusal ends the run too, and a run whose end is not recorded is the shape of a crash once
       # this process is gone: the report reads `run.stop`, so the refusal is written as the run's own (#787).
@@ -574,16 +572,16 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
   elif [ "$dry_run" -eq 0 ] && submodule_only_dirt "$leftovers" && place_submodule_pin; then
     # The module on another pin is not work, so the repair above is not owed to it and no flag is needed to take
     # it: the pin the base records is placed and the run goes on, instead of ending under an item nobody owns.
-    printf 'the kept worktree held no work — only the module on another pin, and the pin its base records is placed\n'
+    loop_emit kept-worktree-no-work
   else
-    printf 'refusing to start: the kept worktree %s is not clean — a previous run left work behind\n' "$worktree"
-    printf '%s\n' "$leftovers" | sed 's/^/  /'
+    loop_emit kept-worktree-dirty worktree="$worktree"
+    loop_indent "$leftovers"
     if [ -n "$owner_item" ]; then
-      printf 'the leftovers belong to #%s (branch %s)\n' "$owner_item" "$marker"
+      loop_emit leftovers-owner issue="$owner_item" branch="$marker"
     else
-      printf 'the worktree is on %s, which names no item — nothing is attributed\n' "${marker:-an unknown branch}"
+      loop_emit leftovers-owner-unknown marker="${marker:-an unknown branch}"
     fi
-    printf 'repair: run.sh --reset-worktree discards them, and names them before it does; nothing is committed or discarded without that flag\n'
+    loop_emit leftovers-repair
     if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
       # The label is recorded with the item only if the escalation actually wrote it, so the report and the
       # tracker cannot disagree (issue #177).
@@ -616,12 +614,12 @@ fi
 #     the run stopped under no item. `worktree.sh` owns the rule and the repair it names; this step only pays it at
 #     the start rather than after the queue is built.
 pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
-  printf '%s\n' "$pin_out"
+  relay "$pin_out"
   stop_run "the base records a submodule pin no clone this host holds: $(printf '%s' "$pin_out" | head -1)"
   bash "$LOOP_DIR/report.sh"
   exit "$LOOP_REFUSE"
 }
-[ -z "$pin_out" ] || printf '%s\n' "$pin_out"
+[ -z "$pin_out" ] || relay "$pin_out"
 
 # 5c. the project tree's uncommitted work, read once the arm above has had its say: a base whose gitlink names a
 #     commit no clone holds puts the module's path in this tree's status, and that is the pin arm's refusal — with the
@@ -645,11 +643,11 @@ project_dirt=$(printf '%s\n' "$project_dirt" | awk -v sd="$state_dir_rel" 'NF {
   if (p == sd || index(p, sd "/") == 1 || index(sd, p "/") == 1) next
   print }')
 if [ -n "$project_dirt" ]; then
-  printf 'refusing to start: the project tree carries uncommitted work, and the landing step merges into it\n'
-  printf '%s\n' "$project_dirt" | sed 's/^/  /'
-  printf 'the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded here\n'
-  printf 'commit or discard these paths and run again — the list:\n'
-  printf '  git -C %s status --porcelain\n' "$LOOP_ROOT"
+  loop_emit project-dirty
+  loop_indent "$project_dirt"
+  loop_emit project-dirty-cannot-tell
+  loop_emit project-dirty-list
+  loop_emit project-dirty-command root="$LOOP_ROOT"
   project_dirt_paths=$(printf '%s' "$project_dirt" | sed 's/^...//' | tr '\n' ' ')
   stop_run "the project tree carries uncommitted work the landing step would merge over: ${project_dirt_paths% } — the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded; commit or discard them and re-run"
   bash "$LOOP_DIR/report.sh"
@@ -676,10 +674,9 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   decision_list=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
     jq -r --arg label "$decision_label" \
       '.[] | select([.labels[].name] | index($label)) | "#\(.number) \(.title)"')
-  printf 'refusing to start: %s of the %s item(s) that await a decision are candidates, and the cap is %s\n' \
-    "$open_decisions" "${labelled_decisions:-$open_decisions}" "$max_decisions"
-  [ -z "$decision_list" ] || printf '%s\n' "$decision_list" | sed 's/^/  /'
-  printf 'nothing new is produced while decisions accumulate — decide these first\n'
+  loop_emit decisions-cap open="$open_decisions" labelled="${labelled_decisions:-$open_decisions}" max="$max_decisions"
+  [ -z "$decision_list" ] || loop_indent "$decision_list"
+  loop_emit decisions-accumulate
   # A refusal that leaves without recording itself is the shape of a crash once this process is gone: `report.sh`
   # reads `run.stop`, and an empty one prints "it was killed and recorded no stop" — the arm #227 repaired on the
   # pre-screen's path (#787).
@@ -693,7 +690,7 @@ fi
 
 # 7. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
 if [ "$items" -eq 0 ]; then
-  printf 'nothing eligible: the run was started with --items 0 (an empty budget is not a failure)\n'
+  loop_emit nothing-eligible-empty-budget
   end_run
   exit "$LOOP_OK"
 fi
@@ -727,7 +724,7 @@ escalate_prescreen_decisions
 case "$prescreen_status" in
   0) ;;
   3)
-    printf 'nothing eligible: the pre-screen found no candidate this run may work\n'
+    loop_emit nothing-eligible-queue
     end_run
     exit "$LOOP_OK"
     ;;
@@ -742,11 +739,11 @@ case "$prescreen_status" in
 esac
 
 if [ "$dry_run" -eq 1 ]; then
-  printf '\ndry run: what would happen, and nothing else\n'
+  loop_emit dry-run-head
   jq -r '.queue[] | "  rank \(.rank)\(if .pinned then " pinned" else "" end) · #\(.issue) [\(.class)/\(.category)] \(.title)"' "$LOOP_STATE_FILE"
   jq -r '.excluded[] | "  excluded #\(.issue) \(.verdict): \(.reason)"' "$LOOP_STATE_FILE"
   bash "$LOOP_DIR/report.sh"
-  printf 'dry run: no worktree, no label and no agent process was created or started\n'
+  loop_emit dry-run-end
   exit "$LOOP_OK"
 fi
 
@@ -760,7 +757,7 @@ if [ -f "$worktree/.pi/loop-env.sh" ]; then
   source "$worktree/.pi/loop-env.sh"
   export VCPKG_ROOT
 fi
-printf 'worktree: %s on %s from %s\n' "$worktree" "$branch" "${base:0:12}"
+loop_emit worktree-started worktree="$worktree" branch="$branch" base="${base:0:12}"
 progress worktree "ready — $(basename "$worktree") on $branch from ${base:0:12}"
 
 
@@ -951,7 +948,7 @@ while true; do
     # the truth for the whole wait instead of counting the pause as spent budget for its length.
     loop_state hold --seconds "$hold_seconds" --reason "$hold_reason" >/dev/null 2>&1 ||
       loop_note "run: the pause could not be recorded in the state — the deadline is not extended by it"
-    printf 'pause: %s — waiting %ss, then asking again\n' "$hold_reason" "$hold_seconds"
+    loop_emit pause reason="$hold_reason" seconds="$hold_seconds"
     sleep "$hold_seconds"
     continue
   fi
@@ -978,7 +975,7 @@ while true; do
   if [ -n "$free_mib" ] && [ "$free_mib" -lt "$min_free_mib" ]; then
     shortfall="the host has ${free_mib} MiB available, below the recorded floor of ${min_free_mib} MiB (LOOP_MIN_FREE_MIB) — the item was not started"
     loop_state done "$issue" --result blocked --verdict blocked --note "$shortfall" >/dev/null
-    printf 'item #%s: blocked (%s)\n' "$issue" "$shortfall"
+    loop_emit item-blocked issue="$issue" result=blocked reason="$shortfall"
     stop_run "$shortfall; free memory and re-run — a starved host cannot become productive by taking the next item"
     break
   fi
@@ -998,8 +995,7 @@ while true; do
   if ! issue_json=$(loop_issue_json "$issue" --comments 2>"${read_err:-/dev/stderr}"); then
     read_error=$(tr '\n' ' ' < "${read_err:-/dev/null}" | sed -e 's/  */ /g' -e 's/ *$//')
     [ -z "$read_err" ] || rm -f "$read_err"
-    printf 'run: the tracker could not be read for #%s — %s (recorded as unreadable, the run continues)\n' \
-      "$issue" "${read_error:-the CLI gave no message}" >&2
+    loop_emit tracker-unreadable issue="$issue" error="${read_error:-the CLI gave no message}" --stderr
     loop_state done "$issue" --result blocked --verdict unreadable \
       --note "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" >&2 || true
     continue
@@ -1023,7 +1019,7 @@ while true; do
   changes_family="${changes_family:-openspec/changes}"
 
   if ! start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" --change "${item_change:-}" 2>&1); then
-    printf '%s\n' "$start_out"
+    relay "$start_out"
     case "$start_out" in
       # The base moved: the base branch is not what this run recorded, so nothing may be branched off it. That is a
       # stop with a reason, not a silent exit — a run that ends without recording why makes its own report read
@@ -1078,8 +1074,7 @@ while true; do
         start_after_discard=0
         retry_refusal=""
         if recorded_leftovers_of "$owner_item" && discard_kept_worktree discard "$leftovers"; then
-          printf 'discarding the work #%s left after this run recorded it — %s, so #%s starts on a clean tree\n' \
-            "$owner_item" "$(loop_leftover_patch_of "$owner_item")" "$issue"
+          loop_emit leftover-discarded issue="$owner_item" patch="$(loop_leftover_patch_of "$owner_item")" starts="$issue"
           # The console scrolls away, so the fact is written where a later reader looks for it: the run's own steps. The
           # item it belongs to already carries its record and its label, which is why this is a step and not a second
           # `done` for the same item — one record per item, and the record was the old arm's too.
@@ -1089,8 +1084,7 @@ while true; do
         elif submodule_only_dirt "$leftovers" && place_submodule_pin; then
           # The module on another pin is not work: nothing inside it was written, so the pin the base records is placed
           # and the start is retried — the case a person met before as "the worktree is not clean" under no item.
-          printf 'the tree was dirty only in the module%s gitlink — the pin the base records is placed, so #%s starts\n' \
-            "'" "$issue"
+          loop_emit gitlink-pin-placed issue="$issue"
           retry_start_item
         fi
         if [ "$start_after_discard" -eq 0 ]; then
@@ -1145,7 +1139,7 @@ while true; do
     *set-aside:*) printf '%s\n' "$start_out" | grep '^set-aside:' || true ;;
   esac
   loop_labels pick "$issue" || {
-    printf 'run: could not mark #%s in progress\n' "$issue" >&2
+    loop_emit progress-mark-failed issue="$issue" --stderr
     stop_run "the in-progress label could not be written on #$issue"
     break
   }
@@ -1157,7 +1151,7 @@ while true; do
   # reports, and `done` records that one beside the item.
   change_hint="${item_change:-$(if [ "$class" = "$propose_class" ]; then printf add; else printf fix; fi)-$slug}"
   loop_state start "$issue" --change "$change_hint" >/dev/null || {
-    printf 'run: could not record #%s as the item in progress\n' "$issue" >&2
+    loop_emit progress-record-failed issue="$issue" --stderr
     stop_run "the state could not name #$issue as the item in progress"
     break
   }
@@ -1381,7 +1375,7 @@ while true; do
       "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
       "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
       "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
-    printf 'run: the change child wrote no line the run reads (%s B) — asking the phase once more\n' "$answer_bytes" >&2
+    loop_emit change-not-answer-retry bytes="$answer_bytes" --stderr
     progress item "#${issue} the change child answered nothing — the phase is asked once more from the tree it stands in (retry $retry_spent_child_start of $retry_max), and its report is written to $item_dir/worker-report-retry.md"
     run_child "$item_dir/worker-prompt-retry.md" "$item_dir/worker-report-retry.md"
     worker_exit=$?
@@ -1574,8 +1568,7 @@ while true; do
         pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
         if [ -z "$pre_gate_deadline" ] && [ -z "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
-          printf 'run: the pre-gate answer was cut short (%s) — retrying the round once\n' \
-            "$(last_line "$pre_gate_report")" >&2
+          loop_emit pre-gate-cut-retry last="$(last_line "$pre_gate_report")" --stderr
           pre_gate_report="$item_dir/pre-gate-review-retry.md"
           render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-retry.md" "" \
             "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs"
@@ -1665,10 +1658,17 @@ while true; do
         if [ "$pre_gate_skipped" -eq 1 ]; then
           loop_state step A --name pre-gate-review --status skip --note "$pre_gate_skip_reason" >/dev/null
         else
+          # The note's own words first, and the step second: a value handed to `--note` is data, and the run's lines
+          # are the record's (`events.tsv`), so this branch composes no line of its own.
+          if [ "$pre_gate_verdict" = unanswered ]; then
+            pre_gate_note='the round before the gate answered nothing, so it records `unanswered` and the gate child decides the item'
+          elif [ -n "$pre_gate_findings" ]; then
+            pre_gate_note="$blocking blocking finding(s) handed to the gate child"
+          else
+            pre_gate_note='no blocking finding'
+          fi
           loop_state step A --name pre-gate-review --status ok \
-            --note "the diff was read before the gate: $(if [ "$pre_gate_verdict" = unanswered ]; then
-              printf 'the round before the gate answered nothing, so it records `unanswered` and the gate child decides the item'
-            elif [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+            --note "the diff was read before the gate: $pre_gate_note" >/dev/null
         fi
         if [ "$pre_gate_verdict" = unanswered ]; then
           progress note "#${issue} the round before the gate answered nothing twice — the round is recorded unanswered and the gate child decides the item"
@@ -1708,8 +1708,7 @@ while true; do
         # this phase's failure — carried to the item's reason by `phase_failure`, never read as the item's tree.
         gate_note="exit $gate_exit"
         if [ "$gate_exit" -eq 0 ] && ! gate_answered "$gate_report"; then
-          printf 'run: the gate answer is not an answer (%s) — retrying the phase once\n' \
-            "$(last_line "$gate_report")" >&2
+          loop_emit gate-not-answer-retry last="$(last_line "$gate_report")" --stderr
           gate_report="$item_dir/worker-gate-report-retry.md"
           gate_prompt="$item_dir/worker-gate-prompt-retry.md"
           render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$gate_prompt" \
@@ -1814,14 +1813,14 @@ while true; do
       retry_delay=$(retry_delay_at "$retry_spent_child_start" "$retry_delays")
       loop_state step A --name answer-empty --status ok \
         --note "the $last_child wrote a 0-byte report over HEAD ${head_now:0:12} (base ${base:0:12}) — asked the same question again, retry $retry_spent_child_start of $retry_max after ${retry_delay} s" >/dev/null 2>&1 || true
-      printf 'run: the %s answered nothing (answer-empty, retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before asking the same question again\n' \
-        "$last_child" "$retry_spent_child_start" "$retry_max" "$retry_delay" "$retry_max" "$retry_delays" >&2
+      loop_emit answer-empty-retry child="$last_child" retry="$retry_spent_child_start" of="$retry_max" \
+        delay="$retry_delay" retry_max="$retry_max" retry_delays="$retry_delays" --stderr
       [ "$retry_delay" -eq 0 ] 2>/dev/null || sleep "$retry_delay"
       run_child "$final_prompt" "$final_report"
       last_exit=$?
       answer_bytes=$(wc -c < "$final_report" 2>/dev/null || printf 0)
       retry_log_answer_empty="attempt 1 wrote 0 B, attempt 2 (exit $last_exit) wrote $answer_bytes B"
-      printf 'run: the answer-empty retry of the %s ended with exit %s and %s B\n' "$last_child" "$last_exit" "$answer_bytes" >&2
+      loop_emit answer-empty-retry-ended child="$last_child" exit="$last_exit" bytes="$answer_bytes" --stderr
       verdict_claim=$(report_field "$final_report" LOOP-VERDICT)
       skip_verdict=$(report_field "$final_report" LOOP-SKIP-VERDICT)
       change_claim=$(report_field "$final_report" LOOP-CHANGE)
@@ -1887,7 +1886,7 @@ while true; do
   if [ "$gate_did_not_pass" -eq 1 ]; then
     gate_restore_line=$(loop_change_restore "$worktree" "$restore_name" 2>&1) || true
     if [ -n "$gate_restore_line" ]; then
-      printf '%s\n' "$gate_restore_line"
+      relay "$gate_restore_line"
       # A refusal is not a restore: it is recorded as a skip, so `state.sh show` does not read an operator-facing
       # refusal as a step that succeeded.
       loop_state step A --name change-restore \
@@ -1955,8 +1954,8 @@ while true; do
       retry_spent_child_start=$((retry_spent_child_start + 1))
       retry_delay=$(retry_delay_at "$retry_spent_child_start" "$retry_delays")
       retry_log_child_start="${retry_log_child_start}${retry_log_child_start:+; }attempt $retry_spent_child_start after ${retry_delay} s: ${child_words:-no words} (${answer_bytes} B)"
-      printf 'run: the %s could not start (retry %s of %s) — waiting %s s (LOOP_RETRY_MAX=%s, LOOP_RETRY_DELAYS=%s) before retrying #%s\n' \
-        "$last_child" "$retry_spent_child_start" "$retry_max" "$retry_delay" "$retry_max" "$retry_delays" "$issue" >&2
+      loop_emit child-start-retry child="$last_child" retry="$retry_spent_child_start" of="$retry_max" \
+        delay="$retry_delay" retry_max="$retry_max" retry_delays="$retry_delays" issue="$issue" --stderr
       [ "$retry_delay" -eq 0 ] 2>/dev/null || sleep "$retry_delay"
       continue
     fi
@@ -2210,8 +2209,7 @@ while true; do
       # a round the run holds, and the warning names what a later run will read instead.
       if [ -n "$change" ]; then
         bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" requested >&2 ||
-          printf 'run: review round %s could not be announced on the branch — a later run may adopt %s as if no review had been asked for\n' \
-            "$round" "$change" >&2
+          loop_emit review-announce-unrecorded round="$round" change="$change" --stderr
       fi
       while :; do
         render_reviewer_prompt "$reviewer_prompt" "$correction_scope" "" "$review_inputs" "$review_restart_section"
@@ -2227,8 +2225,7 @@ while true; do
         # retried — a timeout is read exactly as it was.
         if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
-          printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
-            "$round" "$(last_line "$reviewer_report")" >&2
+          loop_emit review-answer-cut-retry round="$round" last="$(last_line "$reviewer_report")" --stderr
           reviewer_report="$item_dir/reviewer-report-$round$review_attempt-retry.md"
           render_reviewer_prompt "$item_dir/reviewer-prompt-$round$review_attempt-retry.md" "$correction_scope" "" \
             "$review_inputs" "$review_restart_section"
@@ -2348,13 +2345,11 @@ while true; do
       if [ "$review_verdict" = "PASS" ] || [ "$review_verdict" = "NOTES" ]; then
         if [ -n "$change" ]; then
           bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" passed >&2 ||
-            printf 'run: the round %s answer could not be recorded on the branch — a later run reads %s as never answered\n' \
-              "$round" "$change" >&2
+            loop_emit review-answer-unrecorded round="$round" change="$change" --stderr
         fi
       elif [ -n "$change" ]; then
         bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$round" >&2 ||
-          printf 'run: the refusal of round %s could not be recorded on the branch — a later run reads %s as a round nobody answered\n' \
-            "$round" "$change" >&2
+          loop_emit review-refusal-unrecorded round="$round" change="$change" --stderr
       fi
       if [ "$review_verdict" = "PASS" ]; then
         break
@@ -2484,7 +2479,7 @@ while true; do
       # branch (#262), so the refusal answers a round a later run can see was asked.
       if [ -n "$change" ]; then
         bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
-          printf 'run: the failed review could not be recorded on the branch — a later run may adopt it\n' >&2
+          loop_emit review-failed-unrecorded --stderr
       fi
     fi
   fi
@@ -2783,7 +2778,7 @@ question the item asked; a retry costs another attempt, and an abandonment remov
   # A cut names the phase the run ended rather than the change it left: the change is the same one the item's branch
   # carries either way, and what a reader of the line has to tell apart is a cut from a block (issue #785).
   if [ "$outcome" = cut ]; then detail="${blocked_reason:-cut at a bound}"; fi
-  printf 'item #%s: %s (%s) · %ss · %s review round(s)\n' "$issue" "$outcome" "$detail" "$wall" "$review_rounds"
+  loop_emit item-result issue="$issue" result="$outcome" detail="$detail" wall="$wall" rounds="$review_rounds"
   in_progress=""
 
   if [ "$push" = yes ]; then

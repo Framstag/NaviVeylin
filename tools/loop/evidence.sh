@@ -764,6 +764,6 @@ clear_stale_test_results() {
     cleared="${cleared:+$cleared }$rel"
   done < <(find "$worktree" -type d -name test-results -path '*/build/test-results' 2>/dev/null | sort)
   [ -n "$cleared" ] || return 0
-  printf 'run: cleared %s from the worktree before this child — test results an earlier child wrote, which its gate would have counted\n' "$cleared"
+  loop_emit tests-cleared cleared="$cleared"
 }
 

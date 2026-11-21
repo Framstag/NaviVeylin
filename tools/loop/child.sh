@@ -344,7 +344,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   status_file="$2.status"
   rm -f "$status_file"
   started=$(date +%s)
-  printf 'loop: %s started (log %s)\n' "$phase" "$2"
+  loop_emit child-started phase="$phase" log="$2"
   # `set -m` on the one command that starts the child, immediately undone: a background job of a shell with job
   # control is its own process group, which is what lets the cap end the child *and its descendants* — a Gradle
   # gate leaves daemons and test workers behind, and those are the memory the next item needs. Its stdin is
@@ -386,10 +386,10 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       elapsed=$(( SECONDS - hb_base ))
       [ "$elapsed" -ge "$next" ] || continue
       next=$(( elapsed + interval ))
-      printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
-        "$phase" "$(fmt_elapsed "$elapsed")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
-        "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
-        "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
+      loop_emit heartbeat phase="$phase" elapsed="$(fmt_elapsed "$elapsed")" \
+        log_bytes="$(wc -c < "$2" 2>/dev/null || printf 0)" \
+        changed="$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
+        commits="$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)" --stderr
     done ) >&2 &
   hb=$!
   active_hb=$hb
@@ -485,8 +485,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       if [ "$ctx_new" -gt "$ctx_max" ]; then ctx_max=$ctx_new; fi
       if [ "$item_context_warn" -gt 0 ] && [ "$ctx_warned" -eq 0 ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
         ctx_warned=1
-        printf 'LOOP-CONTEXT: the child\047s context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a fresh session at this reading is the cheaper half of the bound below\n' \
-          "$ctx_max" "$item_context_warn"
+        loop_emit context-warn ctx="$ctx_max" warn="$item_context_warn"
       fi
       if [ "$ctx_bound" -gt 0 ] && [ "$ctx_max" -ge "$ctx_bound" ]; then
         ended_by=context
@@ -619,8 +618,8 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   wait "$hb" 2>/dev/null
   active_hb=""
   rm -f "$stop"
-  printf 'loop: %s finished in %s (exit %s, log %s B)\n' "$phase" \
-    "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
+  loop_emit child-finished phase="$phase" elapsed="$(fmt_elapsed $(( $(date +%s) - started )))" exit="$rc" \
+    log_bytes="$(wc -c < "$2" 2>/dev/null || printf 0)"
   after=$(project_state)
   # What the in-time reading found, appended to the child's transcript so the item carries it: the paths as they
   # first differed, and the processes alive then with the ones of this child's own tree marked.
@@ -766,8 +765,7 @@ render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-
 record_cut_round() { # <round>
   [ -n "${change:-}" ] || return 0
   bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$1" cut >&2 ||
-    printf 'run: the cut of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n' \
-      "$1" "$change" >&2
+    loop_emit cut-unrecorded round="$1" change="$change" --stderr
 }
 
 # The same statement for the other child the run ends: the rework worker of a refusing round (issue #788). Its
@@ -777,8 +775,7 @@ record_cut_round() { # <round>
 record_rework_cut() { # <round>
   [ -n "${change:-}" ] || return 0
   bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$1" rework-cut >&2 ||
-    printf 'run: the cut of the rework of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n' \
-      "$1" "$change" >&2
+    loop_emit rework-cut-unrecorded round="$1" change="$change" --stderr
 }
 
 retry_delay_at() { # retry_delay_at <n> <delays> → the n-th delay, or the last one when there are fewer

@@ -235,7 +235,11 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
   directory, bounded by `LOOP_RUN_EVENTS_MAX_BYTES` and rotated to `<file>.1` with a `record-rotated` event as the new
   file's first line. A figure a person quotes from a run is read back from that file with `jq` rather than grepped
   out of the run's transcript, and a record that carries a rotation is quoted as the lower bound it is — the state
-  file stays the authority for the arithmetic the report states.
+  file stays the authority for the arithmetic the report states. Since issue #907 the record is **complete**, not a
+  selection: every run fact the engine prints is a row of it (a print-only site fails
+  `driver#everyPrintOnlySiteIsConverted`), so `report.sh --from-events` can recompute the run-level counts from the
+  record and print them beside the state's — a difference is named on its own line and the state's figure is still the
+  one printed as the answer.
 
 ### Native verification — new methods, hidden visibility
 

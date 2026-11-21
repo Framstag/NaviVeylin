@@ -1,0 +1,140 @@
+# The conversion, and the report's second reading — measured 2026-11-21
+
+Every command below was run from the project root, `/home/tim/projects/NaviVeylin`, in this working tree. The
+figures are what the commands printed; a figure without its command is not one a later reader can re-take.
+
+## 1. No print-only site survives (task 1.6)
+
+    $ bash tools/loop/tests/loop-selftest.sh --case 'driver#everyPrintOnlySiteIsConverted'
+    PASS driver#everyPrintOnlySiteIsConverted
+
+The case reads the five owner files (`run.sh`, `child.sh`, `evidence.sh`, `leftovers.sh`, `lib.sh`) against the
+`# composers` and `# renderers` blocks of `tools/loop/events.tsv`. A line that prints in command position is
+admitted in four ways — it is a `loop_emit` call for a declared kind, it is inside a declared renderer or composer
+(a prompt, an index, a value handed back to its caller), it writes to a **file** (`>` / `>>`), or it is piped or
+substituted. Everything else is refused with `<file>:<line>\t<function>\t<text>`.
+
+Sites converted, by owner file (`git diff` added `loop_emit` call lines):
+
+    45  tools/loop/run.sh
+     7  tools/loop/leftovers.sh
+     6  tools/loop/child.sh
+     1  tools/loop/evidence.sh
+
+Recorded call sites now in each file (`grep -c 'loop_emit '`): `run.sh` 46, `child.sh` 6, `leftovers.sh` 7,
+`evidence.sh` 1, `lib.sh` 3 (the writer, the rotation's own event and the reporter's entry point). No site was kept
+beside its `printf` — the emit replaced it, so there is one composition per fact, which is what makes the record
+complete rather than a second copy of the transcript.
+
+Two vocabulary corrections the conversion forced:
+
+- `item-result`'s `wall` was declared `num` and never emitted until now. The run's wall clock is fractional seconds
+  (`2.218`), and `num` admits a whole number only — the first run through the converted site refused with
+  `LOOP-EMIT-REFUSED: item-result · field wall — declared \`num\` and handed \`2.218\``. The field is `text` now, the
+  kind the vocabulary's other durations (`elapsed`) already carry, and the rendered line is unchanged.
+- `record_crosscheck` is a new function in `report.sh`; its layout row owns it, or `driver#anOwnedFunctionIsInItsOwnersFile`
+  refuses the tree (`layout.tsv: report.sh defines record_crosscheck and its row does not own it`).
+
+## 2. The round trip (task 1.7) and the converted rendering (task 1.6's sibling)
+
+    $ bash tools/loop/tests/loop-selftest.sh --case 'run#aConvertedSiteRendersFromItsRecord'
+    PASS run#aConvertedSiteRendersFromItsRecord
+    $ bash tools/loop/tests/loop-selftest.sh --case 'run#aFreeTextReasonSurvivesTheRoundTrip'
+    PASS run#aFreeTextReasonSurvivesTheRoundTrip
+
+The first compares each recorded kind's rendered line against the line the run printed (a `--items 0 --minutes 0
+--dry-run` run), so a site whose record and output disagree fails. The second emits a stop reason carrying a quote
+and a newline and asserts one parseable JSON object, the reason whole, and the printed line unescaped.
+
+## 3. The report's cross-check (tasks 2.1–2.4)
+
+    $ bash tools/loop/tests/loop-selftest.sh --group report
+    loop-selftest: all 47 cases passed — selection: --group report
+
+The three cases the spec names, and what each drives:
+
+| case | fixture | what it asserts |
+|---|---|---|
+| `report#theRecordAndTheStateAgree` | a state with two closed items and a record that saw both | the `source:` line names the state as the authority; **no** `record:` line is printed |
+| `report#aDifferenceIsNamedBesideTheFigures` | the same state, the record missing one item | `record: closed 1 · the state says 2 — the record lacks #42`, one line, exit 0, the state's own `closed 2` still printed |
+| `report#aRunWhoseRecordIsAbsentSaysSo` | the record file removed | `record: absent — <path> holds no record, so no figure here is cross-checked and no agreement is claimed`, and no difference claimed |
+
+Agreement prints nothing at all: a line saying "0 differences" would be a figure nobody reads, and would make the
+two states — agreeing and unread — indistinguishable. A run's own `--json` carries the whole list of items the record
+lacks (`record: {present, counts, missing}`), because the human line names only the first.
+
+## 4. The revert-checks (tasks 4.2–4.5)
+
+One mutation each, the named case run red, the file restored, the case forced green.
+
+| mutation | case | red output |
+|---|---|---|
+| a print-only line appended to `run.sh` | `driver#everyPrintOnlySiteIsConverted` | `expected '', got 'run.sh:2793\t(top level)\tprintf "a run fact printed and not recorded: %s\n" "$items"'` |
+| the difference loop made to `continue` before printing | `report#aDifferenceIsNamedBesideTheFigures` | `'record: closed 1 · the state says 2 — the record lacks #42' not found in: (empty)` |
+| the guard removed so every figure differs | `report#theRecordAndTheStateAgree` | `an agreeing record adds no line …: expected '0', got '5'` |
+| the absent-record branch silenced | `report#aRunWhoseRecordIsAbsentSaysSo` | `the report says the record is absent` not found |
+| the `\n` escape dropped from `loop_emit`'s text handling | `run#aFreeTextReasonSurvivesTheRoundTrip` | `jq: parse error: Invalid string: control characters from U+0000 through U+001F must be escaped` |
+
+Each mutation was restored from a copy taken before it, and each case was run again green before the next began.
+
+## 5. The record's size, before and after
+
+The record of this project's last runs before the conversion:
+
+    $ stat -c '%s bytes' .pi/issue-loop/run-events.jsonl
+    18510 bytes
+    $ jq -r '.kind' .pi/issue-loop/run-events.jsonl | sort | uniq -c | sort -rn
+         83 progress
+          3 run-start
+    $ wc -l < .pi/issue-loop/run-events.jsonl
+    86
+
+86 events over three runs — the header and the phase lines, the only facts `run.sh` emitted then. **The size of a
+converted run's record is owed once this change lands**: two real runs, their `stat -c %s` and their event count,
+against this 18 510-byte baseline. The claim this change can already support is the one the suite measures — zero
+difference lines over a run whose record is intact, and every printed fact present in the record.
+
+## 6. Variance and limits
+
+- The record is rotated at `LOOP_RUN_EVENTS_MAX_BYTES` (4 MiB), so a rotated record is a lower bound for its run:
+  the cross-check reads `<file>.1` first for that reason, and a divergence that spans a rotation can still be
+  reported as a difference the rotation caused. The suite's fixtures are far below the bound and cannot exercise it.
+- `record_counts` is the **last** outcome event per issue (`item-closed` for an attempt the base already had,
+  `item-result` for the round that landed it), so the count is one per item, not one per event.
+- The cross-check compares `items`, `closed`, `blocked`, `cut` and `skipped`. A per-item token figure has no row in
+  the record yet; the report continues to read it from the state alone, and the difference line will one day name it
+  when a site records it.
+
+## 7. The full suite (task 4.1), and the one case that was red before this change
+
+    $ bash tools/loop/tests/loop-selftest.sh
+    loop-selftest: all 525 cases passed (JDK 21, offline, no token, no sandbox) — 527.56 s
+
+Three full runs were taken. The first two recorded failures the third does not; each is named with what it cost.
+
+**`gate#theMapCoversEveryPipelineStep` was red before this delta and is not.** On a clean worktree of `HEAD`
+(`git worktree add /tmp/nv-head HEAD`, before any file here was applied) the case fails with
+
+    the suite map carries none of these commands the pipeline's Check steps run: tools/check-case-names.sh tools/tests/check-case-names-selftest.sh
+
+Commit `267fdd0d` (issue #896) added that Check step to `.github/workflows/build.yml` and left
+`LOOP_GATE_SUITES` without a row for either command, so `gate.sh --plan` owed nothing for a delta that reddens the
+step. Filed as #1000 and fixed in this tree in its own commit (`3756c8bd`): the map carries the checker's own
+definition, its registry `tools/case-harnesses.json` and its mutation set, and nothing wider — the checker's header
+states it is not in the loop's gate because a spec-wide invariant must not redden one item's gate.
+`gate#aPathACheckReadsOwesThatStepsCommandSet` proves both directions: the registry owes the step's two commands,
+and a delta touching a shipped spec still owes neither. Deleting the six rows reddens both cases; restoring them is
+green.
+
+**One failure was this delta's.** `mutation#everyDeclaredRecordApplies` refused record `16.2` of
+`tools/loop/run.sh` as stale, because the `printf 'stop: %s\n' "$1"` it mutates is now
+`loop_emit run-end reason="$1"`. The record's expression moved onto the emit line — the mutation still deletes the
+printed stop line, which is what `run#stopReasonIsPrintedAndReported` reds on — and `--group mutation` is green
+(3 cases, 3.59 s).
+
+**Three `run#` cases reddened under the suite's own concurrency and passed alone**
+(`aRecordedItemsLeftoversAreKeptAndTheStartGoesOn`, `workPackageCarriesTheRecordedDecision`,
+`staleSkipKeepsTheWorkersQuestion`): each failed with the child-side run refusing to start (`free-mib=1515` against
+the profile's `min-free-mib=1024`, the item then recorded as blocked with no work package). Re-run one at a time
+they pass, and the third full run carried all three green. A red that disappears alone is reported as such, never
+as a pass.

@@ -29,10 +29,10 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
     # Kept for the caller that records the refusal, exactly as `merge_refusal` is kept for the run's own merge
     # (#794): the text `adopt-item` printed is the item's record, not a line for the terminal alone.
     adoption_refusal="$out"
-    printf '%s\n' "$out"
+    relay "$out"
     return "$LOOP_REFUSE"
   }
-  printf '%s\n' "$out"
+  relay "$out"
   # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
   # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
   base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)") || base=""
@@ -63,8 +63,7 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
   # the branch it merged (a cherry-picked adoption is not an ancestor of the base, so git's safe delete
   # refuses it and the branch stays for the sweep — which asks the same question by patch identity).
   bash "$LOOP_DIR/worktree.sh" release-branch "$branch" >&2 || true
-  printf 'item #%s: closed (merged %s — a finished attempt the base did not have) · %s review round(s)\n' \
-    "$issue" "$merged_branch" 0
+  loop_emit item-closed issue="$issue" result=closed branch="$merged_branch" rounds=0
 }
 
 merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed, 5 refused (the reason in merge_refusal)
@@ -101,10 +100,10 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
       [ -n "$refused_path" ] || continue
       merge_refused_paths[${#merge_refused_paths[@]}]="$refused_path"
     done <<< "$(printf '%s\n' "$out" | sed -n '/onto the base:/,$p' | sed '1d')"
-    printf '%s\n' "$out" >&2
+    relay --stderr "$out"
     return "$LOOP_REFUSE"
   }
-  printf '%s\n' "$out"
+  relay "$out"
   # The difference the landing merged over is the item's record of it (#862): a run that lands over work it could not
   # place says so where a reader looks for a reading, beside the ones its children took — `outside-write` for the
   # worker's, `outside-write-gate`, `outside-write-tail` and `outside-write-review-<round>` for the later ones.
@@ -125,7 +124,7 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
     # the branch is the fact the run holds (issue #883), and the refusal named no path.
     merge_refused_branch="$branch"
     merge_refused_paths=()
-    printf '%s\n' "$merge_refusal" >&2
+    relay --stderr "$merge_refusal"
     return "$LOOP_REFUSE"
   fi
   # The branch and its commits are what a later reader checks the closure against: git lists the branch, nothing
@@ -170,8 +169,7 @@ adopt_finished_exclusions() {
     attempt_state=$(bash "$LOOP_DIR/worktree.sh" branch-state "$issue" "$branch" 2>/dev/null | cut -f1)
     [ "$attempt_state" = adoptable ] || continue
     loop_state adoption-refused "$issue" --reason "$adoption_refusal" >/dev/null ||
-      printf 'run: #%s — the adoption refusal could not be recorded, so its exclusion stands as the pre-screen read it\n' \
-        "$issue" >&2
+      loop_emit adoption-unrecorded issue="$issue" --stderr
   done
 }
 
@@ -334,7 +332,7 @@ recorded_leftovers_of() { # recorded_leftovers_of <item> → 0 when this run rec
   keep_leftovers "$1"
   [ -n "$leftover_patch" ] || return 1
   own_leftovers="$own_leftovers$1 "
-  printf 'keeping the work #%s left after this run recorded it: %s\n' "$1" "$leftover_patch"
+  loop_emit leftover-kept issue="$1" patch="$leftover_patch"
   return 0
 }
 
@@ -366,7 +364,7 @@ retry_start_item() { # → 0 when the retried start succeeded; its output is lef
     start_after_discard=1
     return 0
   fi
-  printf '%s\n' "$start_out"
+  relay "$start_out"
   retry_refusal=$(printf '%s' "$start_out" | head -1)
   return 1
 }
@@ -377,7 +375,7 @@ retry_start_item() { # → 0 when the retried start succeeded; its output is lef
 # is a second rule (as `owner_of_marker` says above). The caller prints the line naming what is being discarded.
 discard_kept_worktree() { # discard_kept_worktree <the name this repair prints itself under> <leftovers> → 0 when clean
   local label="${1:-reset-worktree}" leftovers_to_name="${2:-}" reset_after
-  printf '%s\n' "$leftovers_to_name" | sed 's/^/  /'
+  loop_indent "$leftovers_to_name"
   git -C "$worktree" reset -q --hard || loop_die "run: could not reset the kept worktree"
   git -C "$worktree" clean -qfd || loop_die "run: could not clean the kept worktree"
   # Neither verb above reaches a submodule the previous run's building left on another commit, which is dirt this
@@ -398,11 +396,11 @@ discard_kept_worktree() { # discard_kept_worktree <the name this repair prints i
   # module, say), so the repair says so and names it instead of announcing a clean tree the next start refuses.
   reset_after=$(git -C "$worktree" status --porcelain)
   if [ -n "$reset_after" ]; then
-    printf '%s: the reset cannot discard what is left in %s:\n' "$label" "$worktree"
-    printf '%s\n' "$reset_after" | sed 's/^/  /'
+    loop_emit reset-cannot-discard label="$label" worktree="$worktree"
+    loop_indent "$reset_after"
     return 1
   fi
-  printf '%s: %s is clean again — the commits on its branches are left alone\n' "$label" "$worktree"
+  loop_emit reset-clean label="$label" worktree="$worktree"
 }
 
 # The only push in the loop, and only when the run asked to publish (D4): no pull request is opened by
@@ -413,10 +411,10 @@ discard_kept_worktree() { # discard_kept_worktree <the name this repair prints i
 # publishes what still exists; a branch whose work is in the base is a skip, and the run says which it did.
 push_branch() { # push_branch <branch>
   if ! git -C "$worktree" rev-parse --verify --quiet "refs/heads/$1" >/dev/null; then
-    printf 'run: nothing to publish for %s — the run merged it and released the branch, so its work is in the base\n' "$1" >&2
+    loop_emit publish-nothing branch="$1" --stderr
     return 0
   fi
   git -C "$worktree" push --set-upstream origin "$1" >&2 ||
-    printf 'run: the push of %s failed — its commits stay in the run tree, not on the remote\n' "$1" >&2
+    loop_emit publish-failed branch="$1" --stderr
 }
 

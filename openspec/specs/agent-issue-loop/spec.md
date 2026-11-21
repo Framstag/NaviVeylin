@@ -6078,3 +6078,35 @@ arm's own sentence and SHALL place the difference on no child. An item whose rec
 - **WHEN** the same tree at the base is read for a child that wrote nothing into the project's own tree
 - **THEN** the reason is the arm's own sentence, with no clause about the caller's tree
 - **Case**: `run#childClaimWithoutCommitIsBlocked`
+
+### Requirement: A container that cannot advance takes no slot
+
+The pre-screen SHALL judge a candidate's container as well as the candidate, and SHALL refuse with the verdict
+`epic-stalled` any candidate it would otherwise queue whose container the run cannot advance: every child the
+screen saw under it awaits a decision, or this run recorded a child of it cut at a bound. The record SHALL name
+what the container waits for, and the verdict SHALL write nothing to the tracker and clear without a write of
+the run's (issue #938).
+
+#### Scenario: A container whose remaining children await a decision is not worked
+
+- **WHEN** the eligible set holds a child of a container whose other children the screen saw are all refused with
+  the decision verdict
+- **THEN** that child is refused as `epic-stalled` instead of being queued, and the reason names the items whose
+  decisions the container waits for
+- **AND** the children that await the decisions keep their own verdict, so the refusal is the child's and not a
+  re-judgement of theirs
+- **AND** an item in no container, and the only child of a container, are screened exactly as before
+- **AND** the refusal holds only while the labels say a decision stands, so the first run whose labels no longer do
+  screens the child as before
+- **Case**: `prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot`
+
+#### Scenario: A container whose child a bound cut takes no further slot
+
+- **WHEN** the run recorded a child of a container as cut at a bound, and a later pre-screen of the same run reaches
+  another child of that container, or the child the bound ended
+- **THEN** the candidate is refused as `epic-stalled`, with the reason naming the child the bound ended and the
+  `KEY=VALUE` it was cut at, so the container takes no second slot in that run
+- **AND** the cut item's own record keeps the cut it made, because the refusal is the screen's and rewrites no state
+- **AND** a container none of whose children this run recorded as cut at a bound keeps its children screened as
+  before
+- **Case**: `prescreen#aContainerCutAtABoundTakesNoFurtherSlot`

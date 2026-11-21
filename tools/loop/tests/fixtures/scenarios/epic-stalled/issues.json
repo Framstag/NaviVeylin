@@ -1,0 +1,152 @@
+[
+  {
+    "number": 31,
+    "title": "§31 A child whose epic waits for a decision",
+    "body": "<!-- nvid: 31 -->\n\n- **Observed** ✗: the first child of epic #960 waits for a person.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 960
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ]
+  },
+  {
+    "number": 32,
+    "title": "§32 The epic's only workable child",
+    "body": "<!-- nvid: 32 -->\n\n- **Observed** ✗: the second child of epic #960 is work, and its sibling is not.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 960
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 33,
+    "title": "§33 A second child of an epic a bound cut",
+    "body": "<!-- nvid: 33 -->\n\n- **Observed** ✗: the epic #961 already spent its slot this run.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 961
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 34,
+    "title": "§34 The child epic #961 spent its slot on",
+    "body": "<!-- nvid: 34 -->\n\n- **Observed** ✗: the child a bound ended.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 961
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 35,
+    "title": "§35 The only child of an epic",
+    "body": "<!-- nvid: 35 -->\n\n- **Observed** ✗: epic #962 holds nothing else.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "parent": {
+      "number": 962
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  },
+  {
+    "number": 36,
+    "title": "§36 An item in no epic",
+    "body": "<!-- nvid: 36 -->\n\n- **Observed** ✗: an item the tracker gives no parent.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

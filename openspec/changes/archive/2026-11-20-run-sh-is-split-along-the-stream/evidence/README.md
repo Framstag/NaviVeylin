@@ -30,8 +30,8 @@ taken.
 
 ## The gate on the replayed tree (2026-11-21)
 
-`gate-replay.log` is one run of `bash tools/loop/gate.sh --base 4b53a442` on the replayed tree (`head=e2ebfdcd`,
-`diff=5786cb98`), taken 2026-11-21T09:12Z…09:37Z:
+`gate-replay.log` is one run of `bash tools/loop/gate.sh --base 4b53a442` on the replayed tree (`head=438807ac`,
+`diff=96da55cb`), taken 2026-11-21T11:07Z…11:33Z:
 
 ```
 LOOP-GATE: tests=1265 failures=0 errors=1 — failing: bash tools/gen-feature-list.sh --check-classification
@@ -47,7 +47,7 @@ The gate names the same difference itself — `LOOP-GATE-BASERED-UNMEASURED:bash
 --check-classification — no clean tree at 4b53a442 to measure it in`.
 
 The whole suite is green on the replayed tree: `loop-gate-from-git.xml` is the gate's own tally for that leg,
-`tests="518" failures="0" errors="0" time="539"`, `loop-selftest: all 518 cases passed — 537.85 s`. The gate writes
+`tests="518" failures="0" errors="0" time="560"`, `loop-selftest: all 518 cases passed — 558.48 s`. The gate writes
 JUnit XML, the 2026-11-20 run had none (the shell suite writes none), and this tally is what makes the branch
 adoptable — `worktree.sh`'s `carried_verification` reads exactly this: a `testsuite` that ran something and failed
 nothing.

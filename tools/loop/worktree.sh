@@ -475,21 +475,37 @@ carried_change() { # <issue> <branch> <base> → the one archived change the bra
   printf '%s\n' "$dirs"
 }
 
-# A verification record is a JUnit testsuite that ran at least one test and passed all of them. The evidence
-# directory of a *finished* attempt holds the red-on-HEAD XML that reproduced the defect beside the green gate
-# XML — the two real branches issue #176 was measured on carry exactly that — so "green" cannot mean "no XML
-# records a failure": it means "at least one XML records a passing run". A blocked attempt carries no such
-# XML (its only XML is the red one), which is the difference the merge is allowed to act on.
+# A verification record is a measurement that ran and passed, in either of the two shapes this project's gate leaves:
+# a JUnit testsuite that ran at least one test and passed all of them, and the shell suites' own console log — a
+# `PASS <group>#<case>` line and no `FAIL` line, which is the verdict line `tools/loop/tests/loop-selftest.sh` prints
+# and the gate derives its tally from. The evidence directory of a *finished* attempt holds the red-on-HEAD record
+# that reproduced the defect beside the green one — the two real branches issue #176 was measured on carry exactly
+# that — so "green" cannot mean "no record names a failure": it means "at least one record names a passing run". A
+# blocked attempt carries no such record (its only record is the red one), which is the difference the merge is
+# allowed to act on.
+#
+# The log shape is what a `tools/**` item leaves, and it is not a widening to prose (issue #997): that class' gate is
+# the shell suites, and its green proof is the suite's log, so a branch carrying one read `archived-not-green`
+# however green its gate was — measured 2026-11-21 on three branches one run left behind, each with one archived
+# change, `PASS <group>#<case>` and no XML, while the two branches of the same run that carried an XML read
+# `adoptable`. A log with a `FAIL` line is the red proof and stays one.
 carried_verification() { # <branch> <base> <change> → the evidence it carries, or nothing when it is not green
   local branch="$1" change="$3" files name passed=0
   files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null)
-  printf '%s\n' "$files" | grep -q '\.xml$' || return 0
   while IFS= read -r name; do
     [ -n "$name" ] || continue
-    case "$name" in *.xml) ;; *) continue ;; esac
-    gitr show "$branch:$name" 2>/dev/null | grep -Eq 'tests="[1-9]' || continue
-    gitr show "$branch:$name" 2>/dev/null | grep -Eq 'failures="0"' || continue
-    gitr show "$branch:$name" 2>/dev/null | grep -Eq 'errors="[1-9]"' && continue
+    case "$name" in
+      *.xml)
+        gitr show "$branch:$name" 2>/dev/null | grep -Eq 'tests="[1-9]' || continue
+        gitr show "$branch:$name" 2>/dev/null | grep -Eq 'failures="0"' || continue
+        gitr show "$branch:$name" 2>/dev/null | grep -Eq 'errors="[1-9]"' && continue
+        ;;
+      *.log)
+        gitr show "$branch:$name" 2>/dev/null | grep -Eq '^PASS +[A-Za-z][A-Za-z0-9_]*#[A-Za-z]' || continue
+        gitr show "$branch:$name" 2>/dev/null | grep -Eq '^FAIL ' && continue
+        ;;
+      *) continue ;;
+    esac
     passed=1
   done <<< "$files"
   [ "$passed" -eq 1 ] || return 0

@@ -123,6 +123,7 @@ LOOP_SHELL_CASES=(
   'worktree#aMissingChangeRefusesTheItem'
   'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved'
   'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved'
+  'worktree#aShellSuiteLogIsAVerificationRecord'
   'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
   'worktree#aTrackedEditStillBlocksTheMerge'
   'prescreen#aTierAItemPassesUnchanged'
@@ -941,6 +942,7 @@ loop_run_shell_case() {
     'worktree#aMissingChangeRefusesTheItem') fn=case_worktree_aMissingChangeRefusesTheItem ;;
     'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved') fn=case_worktree_aSetAsideBranchWhosePatchesLandedIsRemoved ;;
     'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved') fn=case_worktree_aSetAsideBranchThatCarriesWorkIsNamedNotRemoved ;;
+    'worktree#aShellSuiteLogIsAVerificationRecord') fn=case_worktree_aShellSuiteLogIsAVerificationRecord ;;
     'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
     'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
@@ -4292,6 +4294,55 @@ case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue() {
   assert_contains "$out" "adds no single archived change of its own" "the refusal names what the branch lacks"
   assert_not_contains "$out" "fix-foreign" "and it names no change the branch did not add"
   [ ! -f "$p/foreign.txt" ] || fail "another item's change was merged onto the base"
+}
+
+# `tools/**` is the class the loop works most, and its gate is the shell suites: a green gate leaves the suite's
+# console log, a `PASS <group>#<case>` line and the exit status, and no JUnit file a worker copies by hand. The
+# verification record adoption reads was the JUnit shape alone, so such a branch read `archived-not-green` however
+# green its gate was — measured 2026-11-21 on three branches one run left behind, each carrying one archived change
+# and its `PASS` log, and the two branches of the same run that carried an XML read `adoptable` (issue #997). The
+# `PASS` line is the suite's own case verdict and the line the gate derives its tally from, so a log carrying one,
+# and naming no failing case, is a measurement and not prose.
+case_worktree_aShellSuiteLogIsAVerificationRecord() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p green red out state
+  p=$(new_project)
+  init_state "$p" 1 90
+  green="fix/issue-24-the-shell-suites-green-log"
+  red="fix/issue-25-a-red-shell-log"
+  git -C "$p" switch -c "$green" >/dev/null 2>&1 || fail "could not create the finished attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/proposal.md"
+  printf 'PASS gate#aStoppedStepIsNamedBeforeItsBound\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/evidence/green-case.log"
+  printf 'the shell suite change\n' > "$p/shell-suite-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the shell suites' change (#24)" >/dev/null 2>&1 ||
+    fail "could not commit the shell suite change"
+  git -C "$p" switch -c "$red" main >/dev/null 2>&1 || fail "could not create the red attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-02-fix-a-red-suite-log/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-02-fix-a-red-suite-log/proposal.md"
+  printf 'FAIL gate#theCaseThatStillFails\n' \
+    > "$p/openspec/changes/archive/2026-01-02-fix-a-red-suite-log/evidence/red-on-HEAD.log"
+  printf 'the red change\n' > "$p/red-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: a red suite log (#25)" >/dev/null 2>&1 || fail "could not commit the red change"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+
+  out=$(run_worktree "$p" branch-state 24 "$green" 2>&1)
+  state=$(printf '%s\n' "$out" | cut -f1)
+  assert_eq "adoptable" "$state" "a branch whose green proof is the suite's own PASS log is adoptable: $out"
+  assert_contains "$out" "green-case.log" "and the state names the log it read as the verification"
+
+  # A log that names a failing case is the red proof and not a verification — the refusal a red-only XML earns
+  # stays exactly where it was.
+  assert_eq "archived-not-green" "$(run_worktree "$p" branch-state 25 "$red" 2>/dev/null | cut -f1)" \
+    "a log carrying a failing case's line is not a verification record"
+
+  out=$(run_worktree "$p" adopt-item 24 "$green" 2>&1) || fail "the adoption of the shell-suite branch failed: $out"
+  assert_contains "$out" "green-case.log" "the adoption names the log as the evidence the branch was checked for"
+  [ -f "$p/shell-suite-fix.txt" ] || fail "the adopted change never landed on the base"
+  return 0
 }
 
 case_worktree_refusesWhenMainAdvanced() {

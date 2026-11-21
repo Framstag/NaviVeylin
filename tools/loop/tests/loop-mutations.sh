@@ -1573,6 +1573,11 @@ MUTATIONS=(
   # is then answered with the relative spelling, the shape that turned item #1018's gate red on a green tree
   # (2026-11-22).
   '1009.3@-@tests/loop-selftest.sh@driver#theSuiteDoesNotInheritTheRunsRoots@the line that drops the run'"'"'s own roots before the first case, so the suite inherits the worktree a gate was started in and every case that types an absolute path is answered with a spelling relative to a root it never named (issue #1009)@s|^unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS$|true|'
+  # 956.1 — a continuation the same ceiling ended is the item's shape (issue #956). The record puts the guards back in
+  # charge of that reading, which is the tree this change was filed on: the item is blocked with `bound` beside it and
+  # the next run re-enters it at full size — the reading the run of 2026-11-17T10:58Z paid 78.7 Mtok for over four items
+  # (#917, #950, #894, #911) and closed none, each of them stopped at 142 576–143 943 against the recorded 143 124.
+  '956.1@-@tools/loop/run.sh@run#aContinuationEndedOnTheSameCeilingStopsTooWide@the arm that records the shaping verdict when the continuation meets the same ceiling, so the item is handed to the next run at full size instead of being shaped (issue #956)@s|^  elif \[ "\$continuation_too_wide" -eq 1 \]; then$|  elif false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -201,7 +201,15 @@ case "$item_context_warn" in ''|*[!0-9]*) item_context_warn=0 ;; esac
 item_context_max="${LOOP_ITEM_CONTEXT_MAX:-0}"
 case "$item_context_max" in ''|*[!0-9]*) item_context_max=0 ;; esac
 
-
+# What a child the ceiling ended listed (issue #956). Such a child writes no report block — the run ended it, so
+# there is no `LOOP-DECISION` and no `LOOP-RED-TEST` — and what it did leave is the prose it had written when the
+# bound's own line was appended: measured 2026-11-17, #894's continuation report states the shape in that prose
+# ("sections 2.2-2.6, 3.x and 4.x do not fit one child's context bound") and asks for the phases to become items of
+# their own, which is the list a person reshapes the item from. The run's own lines are appended after that prose, so
+# they are excluded here: the line read is the child's, from the report the run already holds.
+continuation_listing() { # <report> → the child's own last line, or nothing when it wrote none
+  sed -n '/^LOOP-[A-Z][A-Z-]*: /!p' "$1" 2>/dev/null | sed -e 's/[[:space:]]*$//' -e '/^$/d' | tail -1
+}
 # What the header names, for the reason the per-role turn bounds are named there: a bound a run enforces and does not
 # print is a bound nobody can audit (issue #842).
 child_context_bounds=""
@@ -1212,6 +1220,10 @@ while true; do
   # never the path, so the continuation needs no arm of its own below.
   worker_report="$item_dir/worker-report.md"
   worker_prompt="$item_dir/worker-prompt.md"
+  # Whether the continuation this run started was ended at the same ceiling the worker it continued met, and what that
+  # child listed when it was (issue #956): read where the continuation ends and decided by the outcome arms below.
+  continuation_too_wide=0
+  continuation_phases=""
   run_child "$item_dir/worker-prompt.md" "$worker_report"
   worker_exit=$?
   loop_state step A --name worker --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
@@ -1231,7 +1243,7 @@ while true; do
   # recorded cap (issue #1022). A continuation reaching the same crossing is the same item spending the same per-turn
   # cost: exactly one continuation bounded the first session of the chain and left every item's context in the band it
   # reached before the checkpoint existed. The cap is what keeps this from being a loop that never ends an item — a chain
-  # at its cap is the item's `cut`, which is the ceiling #956 gives a terminal verdict to — and a continuation started
+  # at its cap is the item's `cut` — and a continuation started
   # after the deadline would be ended on its first second, replacing the bound's own reason with the clock's, which is the
   # distinction #829 and #785 paid for.
   continuations_done=0
@@ -1281,9 +1293,23 @@ while true; do
           worker_exit=$?
           worker_report="$item_dir/worker-continuation-report.md"
           worker_prompt="$item_dir/worker-prompt-continuation.md"
+          # …and the ceiling this child met is the item's shape when it is the same one that ended the worker before it
+          # (issue #956). Two children have now been measured at the reading one child may hold, so what the item does
+          # not fit is its own size and not the phase's progress: the outcome arms below record the shaping verdict
+          # `too-wide` — the hold a person shapes the item from — instead of a `cut` the next run re-enters at full size,
+          # and the reason names the ceiling and what this child listed. The test is the one the first cut is read from,
+          # so no new vocabulary is introduced to name a context split.
+          if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] && child_ended_by_context_bound "$worker_report"; then
+            continuation_too_wide=1
+            continuation_phases=$(continuation_listing "$worker_report")
+          fi
           loop_state step A --name "$continuation_step" \
             --status "$(if [ "$worker_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
             --note "exit $worker_exit · from $continuation_patch, applied onto $(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null | cut -c1-12)" >/dev/null
+          # …and the chain stops on that reading (issue #956): the shape has been measured in two children, so a third
+          # would spend the item's per-turn cost to learn what the first two already said. The session chain's own cap
+          # (#1022) bounds a chain of *progress*; a ceiling is its own end and not a step of one.
+          [ "$continuation_too_wide" -eq 1 ] && break
           ;;
         2)
           # The patch does not apply to the branch's HEAD: nothing is continued and nothing is discarded silently —
@@ -2061,6 +2087,18 @@ while true; do
     else
       block refused "$pre_gate_refusal"
     fi
+  elif [ "$continuation_too_wide" -eq 1 ]; then
+    # The continuation the run started was ended at the same ceiling the worker it continued met (issue #956), so the
+    # item has been measured twice at the reading one child may hold: what it does not fit is its own size, not the
+    # phase's progress. The verdict is the shaping one — `too-wide`, which the profile's `roles.shapingVerdicts` names
+    # and `labels.sh` writes as the shaping label beside the hold — so the item stops re-entering the queue at full
+    # size instead of paying the same ceiling again on a fresh branch. The reason names the ceiling the second child
+    # reached and the phases that child itself listed, because reshaping the item is the answer, and it writes no
+    # decision label: a hold is not a question (spec, "A hold is not a decision").
+    outcome="skipped"
+    skip_verdict=too-wide
+    root_cause="the item does not fit one child's context: the continuation was ended at the same ceiling the worker it
+continued met — ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phases it listed: $continuation_phases}"
   elif [ "$last_exit" -ne 0 ]; then
     block child-failed "the $last_child process exited $last_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable

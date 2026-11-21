@@ -281,6 +281,12 @@ MUTATIONS=(
   '29.1@-@tools/loop/run.sh@run#blockedItemAsksItsOwnQuestion@the question a block asks when the reviewer wrote none (issue #225)@s|^\*\*The decision:\*\* retry the item, or abandon it.*$|:|'
   '29.2@-@../issues/close.sh@labels#closeRemovesTheDecisionLabel@the closure taking the decision label off the item it ends (issue #225)@s|^    remove_args=(--remove-label "\$decision_label_closed")$|    remove_args=()|'
   '29.3@-@tools/loop/run.sh@run#aBlockedItemCarriesTheWorkersDecision@the worker decision read beside the reviewer one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      :#'
+  # 29.4–29.5 — a fault of the run's own child asks the item nothing (issue #961): the classification turns the
+  # three run-fault classes into a cut, and the writer accepts the same three beside the result. Without the first
+  # the item is escalated on a question nobody asked; without the second the cut's own class is refused and the
+  # report's `stop` column prints a dash for every attempt the run's child ended.
+  '29.4@-@tools/loop/run.sh@run#aRunFaultBlockAsksNoQuestion@the classification that ends a run-fault attempt as a cut, with no decision label and no comment (issue #961)@s#^  if \[ -z "$worker_decision" \] && \[ -z "$pre_gate_refusal" \]; then$#  if false; then#'
+  '29.5@-@tools/loop/state.sh@state#aCutNamesTheRunFaultThatEndedIt@the class list of a cut carrying `child-failed`, `uncommitted` and `unverified` beside `bound` (issue #961)@s#^    bound|child-failed|uncommitted|unverified) \[ "$result" = cut \] && cut_fault=1#    bound) [ "$result" = cut ] && cut_fault=1#'
   '29.6@-@tools/loop/run.sh@run#aReviewersDecisionOutranksTheWorkers@the reviewer decision kept ahead of the worker one (issue #960)@s#^      \[ -n "$decision_field" \] || decision_field="$worker_decision"$#      decision_field="$worker_decision"#'
   # 29.7–29.9 — a path no child of the run could have written is not a write (issues #958, #962): the filter is read
   # at the source of each reading, so removing it where the readings differ decides the phase on an editor's swap file.

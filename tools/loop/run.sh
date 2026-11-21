@@ -3875,6 +3875,19 @@ while true; do
   # reports `LOOP_CHILD_TIMEOUT` and the child's own `LOOP-TIMEOUT` line for every bound it enforces — the child
   # clock, the run's deadline and the role's turns — and that arm turns all three into the one word `bound`.
   if [ "$pre_gate_cut" -eq 1 ] || [ "$stop_reason" = bound ]; then outcome="cut"; fi
+  # A fault of the run's own child is not a finding about the item either (issue #961): a claim with no commit, a
+  # report whose gate result the tally does not hold, and a phase that answered nothing each say only that nothing
+  # about the item was measured — the fact a bound's own cut already records one class over (#785, #790). With no
+  # decision in hand the block holds no question, so the attempt is recorded `cut` with its class beside it and the
+  # next run resumes the item; escalating it spent a decision slot, an owner's attention and a queue entry on the
+  # fork the blocked arm's fallback sentence invented, which is what #894 paid an hour for. `outside-write` stays a
+  # block (the change's design D6): a child that reached beyond its worktree is evidence about the child's reach, not
+  # a measurement that came back empty.
+  if [ -z "$worker_decision" ] && [ -z "$pre_gate_refusal" ]; then
+    case "$stop_reason" in
+      child-failed|uncommitted|unverified) outcome="cut" ;;
+    esac
+  fi
   # Which bound the item's own class was cut at travels beside the class (issue #923): `bound` alone says the run ended
   # the item and not what it had spent, so the archive could be totalled by the class and never by the key — six items
   # a bound ended, and no figure for any of them. The key and the figure are read from the same `LOOP-TIMEOUT` line the
@@ -4440,6 +4453,13 @@ $review_notes_text"
       if [ "$stop_reason" = bound ]; then
         cut_note="$cut_note · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about"
       fi
+      # A cut the run's own child ended says which fault it was, and that the item is asked nothing (issue #961): the
+      # class travels beside the result, and a reader of the item's note must not have to derive the absence of a
+      # question from the absence of a decision label.
+      case "$stop_reason" in
+        child-failed|uncommitted|unverified)
+          cut_note="$cut_note · the run's own child ended this attempt ($stop_reason), so nothing about the item was measured and no decision is owed — the next run resumes it" ;;
+      esac
       if [ -n "$leftover_patch" ]; then
         cut_note="$cut_note · its work is kept at $leftover_patch"
       fi

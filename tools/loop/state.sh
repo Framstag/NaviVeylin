@@ -806,8 +806,8 @@ cmd_done() {
   # `blocked`, so 198.8 M of refusing rounds could only be told from one 22.9 M merge refusal by reading the note).
   # `bound` is the third value (issues #786, #790): the run ended a child of the item at a bound it enforces — the
   # child's role's turns, the child clock or the run's own deadline — which is work the next run resumes and not a
-  # finding about the item. Such an item is recorded `cut`, so `bound` is the one mechanism a cut carries, and the
-  # spend a mechanism is totalled by is the same field on either result.
+  # finding about the item. Such an item is recorded `cut`, so `bound` is one mechanism a cut carries beside the
+  # three run-fault classes (issue #961), and the spend a mechanism is totalled by is the same field on either result.
   # The rest of the vocabulary is one class per arm that blocks (issue #865): `stopReason` was `null` on 108 of the
   # archive's 127 blocked items, so the report's `stop` column printed `-` for 85 % of them and the count the report
   # exists for — the items a bound ended — read 6 of 127. `refused` is a review round that refused the change (the
@@ -825,9 +825,16 @@ cmd_done() {
     *) loop_die "done: --stop-reason must name a block's class — refused, unmergeable, bound, child-blocked, child-failed, outside-write, uncommitted, unverified, unanswered, reviewer-wrote or contradicted" ;;
   esac
   # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too —
-  # except `bound` on a `cut`, which is the same fact one result over (issue #790).
-  [ -z "$stop_reason" ] || [ "$result" = blocked ] || { [ "$result" = cut ] && [ "$stop_reason" = bound ]; } ||
-    loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
+  # except on a `cut`: `bound` is the same fact one result over (issue #790), and the three run-fault classes —
+  # `child-failed`, `uncommitted`, `unverified` — are the fault a cut names instead (issue #961). A class that names a
+  # finding about the item — `refused`, `unmergeable`, `child-blocked`, `outside-write` — stays a block's, because a
+  # cut is by definition not a finding and the record would contradict itself in two fields.
+  cut_fault=0
+  case "$stop_reason" in
+    bound|child-failed|uncommitted|unverified) [ "$result" = cut ] && cut_fault=1 ;;
+  esac
+  [ -z "$stop_reason" ] || [ "$result" = blocked ] || [ "$cut_fault" -eq 1 ] ||
+    loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recording bound or a run-fault class (child-failed, uncommitted, unverified), and this one is $result"
   # Which bound a mechanism names is a figure beside a class and never on its own (issue #923): the key and the value
   # are `loop.conf`'s own, so they are accepted only beside `bound`, and accepted together — a figure with no key is
   # unreadable at the report and a key with no figure is the class twice. The round a bound ended is the other field —

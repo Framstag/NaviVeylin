@@ -1679,6 +1679,25 @@ older state reads it as it always did. Measured 2026-11-05: five of six runs sto
 758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound cuts, and the first run carrying the
 per-role turn bounds ended after 156 of its 480 minutes with three of six items ended at exactly 110 turns.
 
+A **fault of the run's own child** is the same fact one class over (issue #961). `child-failed`, `uncommitted` and
+`unverified` say only that nothing about the item was measured — a child that exited short of a bound or answered
+nothing, a report whose claim the tree does not carry, a gate result the tally does not hold — so an attempt the run
+holds no worker decision and no pre-gate refusal for ends as a `cut` with that class beside it: no decision label,
+no comment, no queue entry, and the next run resumes the item. The block arm said so itself while escalating anyway,
+and the fallback sentence it then wrote — "retry the item, or abandon it" — is the only choice a block with no
+question leaves, so the arm invented the fork it recorded (measured on #894, 2026-11-17: run 1 escalated on its own
+child at 14:06:44Z; run 2 continued the item and its child wrote the real fork at 15:06, into a question fixed an
+hour earlier; `tools/issues/decisions.sh` read 13 items with one carrying that sentence, and the run's census of
+2026-11-05 8 of 18). Two classes stay a block. `outside-write` stays one on purpose: a child that changed the
+project's own tree is evidence about the child's reach, not a measurement that came back empty, and a silent retry
+would remove the only signal that happened. `refused`, `unmergeable` and `child-blocked` stay blocks for the reason
+every class beside a block stays one — they name a finding about the item, and a `cut` claiming one would say two
+contradictory things in two fields, which is why `state.sh` refuses them beside a cut. The rule and the two cases
+that hold it are `run#aRunFaultBlockAsksNoQuestion` and `state#aCutNamesTheRunFaultThatEndedIt`, with
+`run#strictOutsideWriteBlocksTheItem` green as it was, and `tools/loop/tests/loop-mutations.sh` 29.4 and 29.5 the
+records that keep them. How often such an item may be retried is not bounded here (design D4): it is retried each
+run as an item a bound keeps ending is, because a bound that ends an item is already retried by the next one.
+
 The **context** bound is the one of these a run resumes itself (issue #851). The run of 2026-11-11T11:37:08Z cut two
 of its eight items there — #847 at 200 174 tokens after 142 turns, #839 at 200 869 after 125 — keeping 1 010 460 B
 (160 hunks over 5 files) and 1 323 610 B (188 hunks) in their own patches, and the two are 33.08 of the run's 75.45

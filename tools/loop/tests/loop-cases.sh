@@ -47,6 +47,7 @@ LOOP_SHELL_CASES=(
   'state#baseBranchIsAConfigurationKey'
   'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry'
   'state#aBlockedItemNamesTheMechanismThatStoppedIt'
+  'state#aCutNamesTheRunFaultThatEndedIt'
   'state#anAdoptionRefusalIsRecordedBesideTheExclusion'
   'state#defaultsComeFromLoopConf'
   'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst'
@@ -233,7 +234,8 @@ LOOP_SHELL_CASES=(
   'prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite'
   'prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle'
   'run#oneItemOrderIsFixed'
-  'run#childClaimWithoutCommitIsBlocked'
+  'run#aRunFaultBlockAsksNoQuestion'
+  'run#childClaimWithoutCommitIsACut'
   'run#anEmptyTreeIsRefusedBeforeTheGateChild'
   'run#blockedItemIsEscalatedWithItsReason'
   'run#aFailedEscalationWriteIsNamed'
@@ -323,7 +325,7 @@ LOOP_SHELL_CASES=(
   'run#stateNamesTheItemInProgress'
   'run#skipEscalationCarriesTheDecision'
   'run#workPackageCarriesTheRecordedDecision'
-  'run#claimedGateWithoutEvidenceIsBlocked'
+  'run#claimedGateWithoutEvidenceIsACut'
   'run#theGateColumnNamesThisItemsGateResult'
   'run#aSkipIsNoGateToRerun'
   'run#citedEvidenceMustTravelWithTheChange'
@@ -840,6 +842,7 @@ loop_run_shell_case() {
     'state#baseBranchIsAConfigurationKey') fn=case_state_baseBranchIsAConfigurationKey ;;
     'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry') fn=case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry ;;
     'state#aBlockedItemNamesTheMechanismThatStoppedIt') fn=case_state_aBlockedItemNamesTheMechanismThatStoppedIt ;;
+    'state#aCutNamesTheRunFaultThatEndedIt') fn=case_state_aCutNamesTheRunFaultThatEndedIt ;;
     'state#anAdoptionRefusalIsRecordedBesideTheExclusion') fn=case_state_anAdoptionRefusalIsRecordedBesideTheExclusion ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst') fn=case_state_theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst ;;
@@ -1032,7 +1035,8 @@ loop_run_shell_case() {
     'prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite') fn=case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite ;;
     'prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle') fn=case_prompt_thePreGateRoundRefusesOnlyWhatTheGateCannotSettle ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
-    'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
+    'run#aRunFaultBlockAsksNoQuestion') fn=case_run_aRunFaultBlockAsksNoQuestion ;;
+    'run#childClaimWithoutCommitIsACut') fn=case_run_childClaimWithoutCommitIsACut ;;
     'run#anEmptyTreeIsRefusedBeforeTheGateChild') fn=case_run_anEmptyTreeIsRefusedBeforeTheGateChild ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
     'run#aFailedEscalationWriteIsNamed') fn=case_run_aFailedEscalationWriteIsNamed ;;
@@ -1122,7 +1126,7 @@ loop_run_shell_case() {
     'run#stateNamesTheItemInProgress') fn=case_run_stateNamesTheItemInProgress ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
-    'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
+    'run#claimedGateWithoutEvidenceIsACut') fn=case_run_claimedGateWithoutEvidenceIsACut ;;
     'run#theGateColumnNamesThisItemsGateResult') fn=case_run_theGateColumnNamesThisItemsGateResult ;;
     'run#aSkipIsNoGateToRerun') fn=case_run_aSkipIsNoGateToRerun ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
@@ -2632,6 +2636,37 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
     "a mechanism that arrives with the second account does not fill the first record's"
   assert_eq "3" "$(jq -r '.items | length' "$f")" "and the item keeps one record"
+}
+
+# A cut names the fault that ended it (issue #961). The three run-fault classes — `child-failed`, `uncommitted`,
+# `unverified` — say only that nothing about the item was measured, which is the fact a `cut` records, so the writer
+# accepts them beside a cut next to `bound`. A class that names a finding about the item stays a block's: a cut is by
+# definition not a finding, and a record carrying both would say two contradictory things in two fields.
+case_state_aCutNamesTheRunFaultThatEndedIt() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p f out status before
+  p=$(new_project)
+  init_state "$p" 3 90
+  run_state "$p" done 21 --result cut --verdict cut --stop-reason uncommitted >/dev/null ||
+    fail "a cut recording the run-fault class that ended it was refused"
+  run_state "$p" done 22 --result cut --verdict cut --stop-reason bound >/dev/null ||
+    fail "a cut at a bound is still a cut"
+  f=$(state_file "$p")
+  assert_eq "uncommitted" "$(jq -r '.items[] | select(.issue == 21) | .stopReason' "$f")" \
+    "a cut names the run fault that ended it, so the report's stop column prints it instead of a dash"
+  assert_eq "bound" "$(jq -r '.items[] | select(.issue == 22) | .stopReason' "$f")" \
+    "and a bound is still the class of the cut it ends"
+  # A finding's class is refused *before* the record is written, so the state is the byte-identical file it was:
+  # a writer that validated after the patch would leave a cut claiming a finding about the item.
+  before=$(cat "$f")
+  out=$(run_state "$p" done 23 --result cut --verdict cut --stop-reason refused 2>&1); status=$?
+  assert_eq "2" "$status" "a class that names a finding about the item is a usage error beside a cut"
+  assert_contains "$out" "a run-fault class (child-failed, uncommitted, unverified)" \
+    "and the refusal names what a cut may carry"
+  assert_eq "$before" "$(cat "$f")" "and nothing is recorded, so no cut claims a finding"
+  out=$(run_state "$p" done 23 --result cut --verdict cut --stop-reason child-blocked 2>&1); status=$?
+  assert_eq "2" "$status" "the class a blocked verdict writes is refused beside a cut too"
+  assert_eq "$before" "$(cat "$f")" "and that one writes nothing either"
 }
 
 # An adoption the tree refused is recorded on the pre-screen's own entry for that item, never on a record of the
@@ -5419,15 +5454,16 @@ LOOP-DECISION: split the item into the two mechanisms, or retire it?' 'VERDICT: 
 # A blocked verdict that carries no question of its own leaves the run one two-way choice to state — retry the item,
 # or abandon it — so the queue holds something a person can answer rather than a reason nobody can act on (issues
 # #225, #194). The run's own sentence is the last resort: a worker that wrote `LOOP-DECISION` is quoted instead
-# (`run#aBlockedItemCarriesTheWorkersDecision`, #960).
+# (`run#aBlockedItemCarriesTheWorkersDecision`, #960). The child answers the item rather than faulting, so the class is
+# `child-blocked`, which is a finding about the item and stays a block (#961).
 case_run_blockedItemAsksItsOwnQuestion() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out body
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
-  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
-  out=$(run_loop "$p" --items 1 --minutes 90 2>&1)
+  stub_write "$d" 'LOOP-VERDICT: blocked
+LOOP-ROOT-CAUSE: the conversion is 170 sites and one child cannot finish them' 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run failed: $out"
   body=$(grep 'issue comment' "$GH_STUB_RECORD" 2>/dev/null || true)
   assert_contains "$body" 'The decision:' "the escalation carries a decision field, not only a reason"
   assert_contains "$body" 'retry' "the question names the first option"
@@ -7334,19 +7370,54 @@ case_run_oneItemOrderIsFixed() {
   assert_not_contains "$first_argv" "label" "no label-writing argument reaches the child"
 }
 
-case_run_childClaimWithoutCommitIsBlocked() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+# A fault of the run's own child asks the item nothing (issue #961). A claim with no commit says only that nothing
+# about the item was measured, which is the fact a `cut` records, so the attempt ends as a cut with its class beside
+# it and the next run resumes the item: no decision label, no comment, and no queue entry spent on the fork the run's
+# own fallback sentence used to invent for it. `run#blockedItemAsksItsOwnQuestion` owns the block that does hold a
+# question, and `run#strictOutsideWriteBlocksTheItem` the class design D6 keeps a block.
+case_run_aRunFaultBlockAsksNoQuestion() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p state log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The child reports success and leaves the tree where it found it: the fault is the run's own, the report holds no
+  # question about the item, and none is invented for it.
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  state=$(state_file "$p")
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "a fault of the run's own child ends the attempt as a cut"
+  assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "and the class travels beside the result, so the report's stop column names it instead of printing a dash"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" "the item keeps no decision label"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "no decision is owed" \
+    "and the item's own note says that no decision is owed"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "no decision label is written on the tracker"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "and nothing is posted on the item, so the queue is not asked a fork the item never posed"
+}
+
+case_run_childClaimWithoutCommitIsACut() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
-  # a child that reports success and produces nothing: the wrapper must not close the item
+  # a child that reports success and produces nothing: the wrapper must not close the item, and the fault is the
+  # child's own — the item asks nothing about it (#961)
   printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
   out=$(run_loop "$p" --items 1 --minutes 90 2>&1)
   assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "the item was recorded"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim without a commit is blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim without a commit is a cut"
+  assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
+    "and its class travels beside the result"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "base commit" "the reason names what was missing"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "no decision is owed" \
+    "and says the item is asked nothing, so the next run resumes it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
+    "and it keeps no decision label, because the item is asked nothing (#961)"
 }
 
 # The same claim read where the run can still refuse what follows it (issue #797). The outcome block's arm names an empty
@@ -7355,7 +7426,7 @@ case_run_childClaimWithoutCommitIsBlocked() {
 # had been paid — a gate phase is 20–22 min of a 40–50 min item (measured 2026-11-06, `runs/2026-11-06T11:44:21Z.json`).
 # With the gate deferred to a child of its own (issue #758) the run holds the child's answer and the tree *before* that
 # child starts, so an answer that claims a change beside a tree still at the base is refused there: no reviewer, no gate
-# child, no tail, and the item blocked on the reason that arm writes anyway.
+# child, no tail, and the item cut on the reason that arm writes anyway.
 case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out prompts item state
@@ -7373,7 +7444,7 @@ case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
   # `run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault` owns) — so it is named here with the run's own last words.
   assert_eq "1" "$(jq -r '.items | length' "$state")" \
     "the item is recorded — the run said: $(printf '%s' "$out" | grep '^stop:' | tail -1)"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "a claim with nothing committed is blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "a claim with nothing committed is the run's own child's fault, so a cut"
   assert_contains "$(jq -r '.items[0].note' "$state")" \
     "reported success but the tree is still at the base commit — nothing was committed" \
     "and the reason is the one the outcome block's arm already writes"
@@ -7382,8 +7453,8 @@ case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
   # counted 6 of 127 and a reader could not tell a tree that committed nothing from an escalation or a broken child.
   assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$state")" \
     "the block names the class of the arm that stopped it, not a null mechanism"
-  # …and it is stated as the item's block, not as the run's own stop: a child that answered the diff marker read the
-  # item, so nothing here is "no part of it was read".
+  # …and it is stated as the item's own record, not as the run's own stop: a child that answered the diff marker read
+  # the item, so nothing here is "no part of it was read".
   assert_not_contains "$out" "could not start" "the answer is not read as a child that never started"
   # One child and no more: the reviewer and the gate child the split would start, and the tail the gate's own line would
   # start, are exactly what the reading refuses.
@@ -7405,18 +7476,20 @@ case_run_blockedItemIsEscalatedWithItsReason() {
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
-  # a child that reports success and commits nothing: the run blocks the item for a reason that is not a
-  # failed review, and the reason must reach the tracker in the same pass — the state that holds it is
-  # rewritten wholesale by the next run (issue #174)
-  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
-  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  stub_write "$d" 'LOOP-VERDICT: blocked
+LOOP-ROOT-CAUSE: the item needs the owner to pick the route its evidence cannot settle' 'VERDICT: PASS'
+  # the child answers the item rather than faulting, so the class is `child-blocked` — a finding about the item, which
+  # stays a block — and the reason must reach the tracker in the same pass, because the state that holds it is
+  # rewritten wholesale by the next run (issues #174, #961)
+  run_loop "$p" --items 1 --minutes 90 --review off >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is blocked"
+  assert_eq "child-blocked" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
+    "on the class the child's own verdict writes, which is a finding about the item"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "agent/needs-decision" "a blocked item is marked as awaiting a decision"
   assert_contains "$log" "status/on-hold" "and put on hold"
   assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "the block's reason is named in one comment"
-  assert_contains "$log" "base commit" "the comment carries the reason the run blocked it"
+  assert_contains "$log" "needs the owner to pick the route" "the comment carries the reason the run blocked it"
   assert_contains "$log" "fix/issue-21-" "and the branch that carries the attempt"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
   assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
@@ -7433,8 +7506,8 @@ case_run_aFailedEscalationWriteIsNamed() {
   local d p out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
-  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  stub_write "$d" 'LOOP-VERDICT: blocked
+LOOP-ROOT-CAUSE: the item needs the owner to pick the route its evidence cannot settle' 'VERDICT: PASS'
   # The escalation's own label write fails the way a socket does, on every attempt. `pick` adds the in-progress
   # mark and the unpick removes it, so the decision label is the only write this names — the one the block needs
   # most, because an item with no decision label is an item no reader of the tracker knows a question about.
@@ -7442,7 +7515,7 @@ case_run_aFailedEscalationWriteIsNamed() {
   export GH_STUB_TRANSIENT_TIMES=99
   export GH_STUB_TRANSIENT_STATE="$d/transient-count"
   export ISSUES_GH_RETRY_DELAYS="0 0 0"
-  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed"
   unset GH_STUB_TRANSIENT_FAIL GH_STUB_TRANSIENT_TIMES GH_STUB_TRANSIENT_STATE ISSUES_GH_RETRY_DELAYS
   state=$(state_file "$p")
   assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is still recorded blocked"
@@ -7461,15 +7534,15 @@ case_run_aFailedUnpickIsNamed() {
   local d p out state
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
-  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  stub_write "$d" 'LOOP-VERDICT: blocked
+LOOP-ROOT-CAUSE: the item needs the owner to pick the route its evidence cannot settle' 'VERDICT: PASS'
   # Only the write that takes the mark off fails: `pick` adds the label in another call, so the item is worked
   # and marked exactly as usual before this write is refused.
   export GH_STUB_TRANSIENT_FAIL="--remove-label agent/in-progress"
   export GH_STUB_TRANSIENT_TIMES=99
   export GH_STUB_TRANSIENT_STATE="$d/transient-count"
   export ISSUES_GH_RETRY_DELAYS="0 0 0"
-  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed"
   unset GH_STUB_TRANSIENT_FAIL GH_STUB_TRANSIENT_TIMES GH_STUB_TRANSIENT_STATE ISSUES_GH_RETRY_DELAYS
   state=$(state_file "$p")
   assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
@@ -9437,7 +9510,8 @@ ACT
   assert_eq "fail" "$(jq -r '[.steps[] | select(.name == "worker-answer") | .status] | join(",")' "$f")" \
     "the item's steps carry the reading as a failed phase"
   # The item is the phase's, and the reason a person reads names that phase instead of the item's diff.
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$f")" "the item is recorded a cut, because no part of it was measured"
+  assert_eq "child-failed" "$(jq -r '.items[0].stopReason // ""' "$f")" "with the phase's own class beside the result"
   note=$(jq -r '.items[0].note' "$f")
   assert_contains "$note" "the change worker" "the reason names the phase that answered nothing"
   assert_contains "$note" "wrote no answer" "and what it left"
@@ -9445,8 +9519,9 @@ ACT
     "not the item's diff, which claims the child reported success"
   assert_not_contains "$note" "still at the base commit" "nor a tree that committed nothing"
   assert_not_contains "$note" "could not start" "nor the run's own stop, which the empty tree earns"
-  # A block is the item's and reaches its tracker, with the branch that carries the attempt.
-  assert_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" "a blocked item is marked as awaiting a decision"
+  # A cut is not the item's and writes nothing on the tracker (#961): the class and the item's own note are the record.
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "nothing is posted on the item"
+  assert_not_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" "and no decision label is written"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
 }
 
@@ -9554,7 +9629,8 @@ case_run_aPhaseThatAnswersNothingIsThatPhasesFailure() {
   assert_contains "$(jq -r '[.steps[] | select(.name == "worker-gate") | .note] | join(" | ")' "$f")" \
     "exit 0 and no report" "and its note names the reading, not the status"
   # The item is the phase's, and the reason a person reads names that phase instead of the item's own tree.
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$f")" "the item is recorded a cut, because the phase answered nothing"
+  assert_eq "child-failed" "$(jq -r '.items[0].stopReason // ""' "$f")" "with the phase's own class beside the result"
   note=$(jq -r '.items[0].note' "$f")
   assert_contains "$note" "the gate worker" "the reason names the phase that answered nothing"
   assert_contains "$note" "wrote no report" "and what it left"
@@ -10161,7 +10237,7 @@ case "$1" in
 esac
 ACTION
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the first run failed"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the first attempt is blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the first attempt is a cut, because nothing about the item was measured"
   branch=$(git -C "$p" branch --list 'fix/issue-21-*' --format='%(refname:short)')
   [ -n "$branch" ] || fail "the first attempt left no branch behind"
   git -C "$p" merge-base --is-ancestor "$(git -C "$p" rev-parse main)" "$branch" ||
@@ -10932,8 +11008,8 @@ case_run_staleTestResultsAreNotThisChildsGate() {
     fail "the run itself failed: $(cat "$run_log")"
   assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
     "the first item closes on the gate its own worker ran"
-  assert_eq "blocked" "$(jq -r '.items[1].verdict' "$(state_file "$p")")" \
-    "the second item is not closed on a test result its own gate never wrote"
+  assert_eq "cut" "$(jq -r '.items[1].verdict' "$(state_file "$p")")" \
+    "the second item is not closed on a test result its own gate never wrote, so it is a cut"
   assert_contains "$(jq -r '.items[1].note' "$(state_file "$p")")" "the gate's tally directory holds no XML" \
     "the block names the gate result it could not find"
   assert_contains "$(cat "$run_log")" "app/build/test-results" \
@@ -11321,12 +11397,14 @@ case_run_aRecordedItemsLeftoversAreKeptAndTheStartGoesOn() {
   tree="$p/.pi/worktrees/loop"
   patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
   reason=$(jq -r '.run.stop.reason // ""' "$f")
-  # The item whose work the tree holds is recorded once, by its own arm, with its own reason and its own escalation.
+  # The item whose work the tree holds is recorded once, by its own arm, with its own reason. It is a cut rather
+  # than a block (#961): the tree could not take a commit, so nothing about the item was measured — and the work it
+  # left is the one thing the run owes a record of.
   assert_eq "1" "$(jq -r '[.items[] | select(.issue == 21)] | length' "$f")" \
     "the item whose work the tree holds is recorded once, not once per account of it"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and it is blocked, which is what its own arm decided"
-  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel' "$f")" \
-    "with the escalation its arm wrote, so the discard is not a silent one"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$f")" "and it is a cut, which is what its own arm decided"
+  assert_eq "uncommitted" "$(jq -r '.items[0].stopReason // ""' "$f")" "with the class the arm named beside it"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$f")" "and no decision label, because the item is asked nothing"
   # …and the work it left is written down **before** it is discarded (issue #308): the record is the whole reason the
   # dirt is discardable at all.
   [ -f "$patch" ] || fail "the work of an item this run recorded was discarded without a record: $out"
@@ -11344,6 +11422,8 @@ case_run_aRecordedItemsLeftoversAreKeptAndTheStartGoesOn() {
   assert_contains "$reason" "item cap reached (2/2)" "and both items were worked: $reason"
   log=$(cat "$GH_STUB_RECORD")
   assert_eq "0" "$(grep -c 'issue close' <<<"$log" || true)" "nothing is closed on a tree no commit could take"
+  assert_eq "0" "$(grep -c 'issue comment' <<<"$log" || true)" \
+    "and nothing is posted on it, because a cut asks the owner nothing (#961)"
 }
 
 # The dirt a run ended *itself* is not the dirt the mid-run refusal protects (issue #664). `keep_leftovers` writes
@@ -11566,7 +11646,7 @@ case_run_stateNamesTheItemInProgress() {
     "no step is recorded against issue 0"
 }
 
-case_run_claimedGateWithoutEvidenceIsBlocked() {
+case_run_claimedGateWithoutEvidenceIsACut() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
@@ -11584,8 +11664,10 @@ case "$1" in
 esac
 ACTION
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a gate claim with no evidence is blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a gate claim with no evidence is a cut, not a block"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "the gate's tally directory holds no XML" "the reason names what the run looked for"
+  assert_eq "unverified" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
+    "with the class the arm named beside it, since the gate it claims measured nothing"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
 }
 
@@ -11600,8 +11682,8 @@ ACTION
 # children have ended is this item's gate and nothing else.
 #
 # An item that ran no gate is the pair this column has to keep apart (the owner's decision recorded on the item at
-# 2026-11-11T19:18:12Z): a report that *claims* a gate over a directory holding no XML is blocked by the no-evidence
-# arm (`run#claimedGateWithoutEvidenceIsBlocked`), while one that claims no gate at all records the absence as absent —
+# 2026-11-11T19:18:12Z): a report that *claims* a gate over a directory holding no XML is a cut by the no-evidence
+# arm (`run#claimedGateWithoutEvidenceIsACut`), while one that claims no gate at all records the absence as absent —
 # an empty field, not `0 xml` — and `tools/loop/report.sh` reads an empty field as the gate result it has to ask for,
 # so the item appears on the report's "re-run the gate for #N" line.
 case_run_theGateColumnNamesThisItemsGateResult() {
@@ -11727,7 +11809,7 @@ case "$1" in
 esac
 ACTION
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "evidence that does not travel with the change is blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" "evidence that does not travel with the change is a cut"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "carries no evidence" "the reason names the missing half"
 }
 

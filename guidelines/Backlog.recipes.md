@@ -960,6 +960,17 @@ slowest step this host measured: 345 s for the whole build-and-test gate (`guide
 16-core host), against 273 s for all 223 cases of the self-test the same week, and it leaves 900 s of a 2 700 s child
 for the phases the gate is not.
 
+**A step that is stopped rather than running is named while it is stopped.** The bound answers a step that never
+returns, and a step a signal has *stopped* is not that step: it satisfies none of the poll's three ways out (its
+status file, its overrun, its clock) until the bound, and nothing said so — measured 2026-11-16 (issue #948), one
+`tools/loop/gate.sh --base-red` step, `tools/tests/check-dex-gate-graph-selftest.sh`, entered state `T` at 13:03:30Z,
+the base-red log did not grow a single byte for the next 30 minutes, and at 13:33:31Z the bound recorded the step as
+an **overrun** (`rc=124`) for a suite that had never failed. The poll therefore reads the state of each slot's process
+group once a second — one `ps` for the whole wave, because a fork per 0.1 s look is what the bound's own clock refuses
+(issue #259) — and a member in `T`, `t` or `Z` prints one line, once: `gate: <command> — the step is stopped, not
+running (state <letter>); the bound at <n> s is the only thing that will end it`. The bound is still the only thing
+that ends the step: a second authority over a step's clock would be a second bound.
+
 ## §7c The gate and its suite
 
 

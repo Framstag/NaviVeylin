@@ -648,6 +648,15 @@ MUTATIONS=(
   # `gate#aStepCannotReadTheCallersStdin` reads a step that is still inside the gate at its bound.
   '947.1@-@tools/loop/gate.sh@gate#aStepCannotReadTheCallersStdin@the step started with an empty stdin of its own, so no child reads the caller'"'"'s and is stopped by SIGTTIN (issue #947)@s|2>&1 < /dev/null &$|2>\&1 \&|'
 
+  # 948.1 — a step that is stopped rather than running is named while it is stopped (issue #948). The poll ended a
+  # slot on its status file, its overrun or its clock, and a stopped step satisfied none of them: measured
+  # 2026-11-16, the pre-flight's base-red step `tools/tests/check-dex-gate-graph-selftest.sh` sat in state `T` from
+  # 13:03:30Z and nothing was printed until the 1800 s bound at 13:33:31Z — 30 silent minutes, and the bound then
+  # recorded an *overrun* (`rc=124`) for a step that never failed. The mutation keeps the poll's read of the wave's
+  # process groups and disarms the arm that names one, so `gate#aStoppedStepIsNamedBeforeItsBound` reads the silence
+  # the item was filed about.
+  '948.1@-@tools/loop/gate.sh@gate#aStoppedStepIsNamedBeforeItsBound@the arm that names a step whose process group the poll read as stopped (issue #948)@s|^      case "\$stopped_groups" in$|      case "" in|'
+
   # 63.2 — the step's own bound (issue #311). The gate bounded a child through the run's `LOOP_CHILD_MAX_SECONDS` and
   # a case through the suite's `LOOP_CASE_MAX_SECONDS`, and a step through nothing: measured 2026-10-25, one
   # `tools/loop/tests/loop-selftest.sh` step consumed a worker's whole wall-clock and the run ended that child with its gate

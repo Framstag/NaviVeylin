@@ -646,9 +646,11 @@ if [ "$base_red_mode" -eq 1 ]; then
   say "LOOP-BASERED: measuring the profile's ${#owed_cmd[@]} step(s) on ${base:-the tree as it stands} — this pre-flight writes no tally"
 fi
 
-# One slot per running step: its command, its process, its output, its completion record, its clock, and the two facts
-# a reader needs beside the status — whether the bound ended it, and whether its bytes already reached the console.
+# One slot per running step: its command, its process, its output, its completion record, its clock, and the three
+# facts a reader needs beside the status — whether the bound ended it, whether its bytes already reached the console,
+# and whether the poll has already named the step as stopped (issue #948).
 st_cmd=(); st_pid=(); st_stream=(); st_status=(); st_started=(); st_ended=(); st_overran=(); st_announced=(); st_followed=()
+st_stopped=()
 
 start_step() { # <slot> <command> → the step is running, its own files written and its own clock started
   local i=$1 cmd=$2 stream status_file
@@ -662,6 +664,7 @@ start_step() { # <slot> <command> → the step is running, its own files written
   st_overran[i]=0
   st_announced[i]=0
   st_followed[i]=0
+  st_stopped[i]=0
   rm -f "$status_file"
   # `set -m` on the one command that starts the step, immediately undone: a background job of a shell with job
   # control is its own process group, which is what gives the bound a handle on everything the step started — a suite
@@ -683,7 +686,7 @@ start_step() { # <slot> <command> → the step is running, its own files written
 # written its own record or been ended (issue #801). One poll loop over the slots rather than one loop per step keeps
 # a wave of four at the cost of a wave of one.
 wave_wait() { # <slot> … → every step has ended, or was ended at its own bound
-  local slot stream follow_stop follow="" done_all
+  local slot stream follow_stop follow="" done_all stopped_at=-1 stopped_groups="" state
   # A wave of one keeps the follower (issue #269): one writer, so nothing can interleave with it and the console reads
   # the suite's lines while the suite runs. A wave of several does not stream: two writers on one console interleave
   # their bytes, and a failing case would belong to the step that happened to print next — the log's
@@ -701,6 +704,16 @@ wave_wait() { # <slot> … → every step has ended, or was ended at its own bou
   # integer counter: a `date` per 0.1 s look would spend on forks what the granularity buys back (issue #259).
   while :; do
     done_all=1
+    # The state of the wave's process groups is read once a *second*, and in one call for the whole wave (issue #948):
+    # a fork per 0.1 s look is what this poll's own clock refuses (issue #259), and `ps` lists every process already,
+    # so one look answers every slot. A group carries a member that is not running when its state reads `T` (a signal
+    # stopped it), `t` (a debugger holds it) or `Z` (it ended and nobody has reaped it); every other letter is a
+    # process that is still making progress.
+    if [ "$SECONDS" -ne "$stopped_at" ]; then
+      stopped_at=$SECONDS
+      stopped_groups=$(ps -A -o pgid=,stat= 2>/dev/null | awk '$2 ~ /^[TtZz]/ { printf " %s:%s ", $1, substr($2, 1, 1) }') \
+        || stopped_groups=""
+    fi
     for slot in "$@"; do
       # A step's own clock stops where the step ended, not where the wave drained (issue #801): a step that finished
       # first inside a slow wave cost what it cost, and a number that carried its neighbours' wait would be a cost
@@ -719,6 +732,23 @@ wave_wait() { # <slot> … → every step has ended, or was ended at its own bou
         loop_end_group "${st_pid[slot]}"
         continue
       fi
+      # A step that is stopped rather than running satisfies none of the arms above until its bound (issue #948), and
+      # from outside it is indistinguishable from a slow step: measured 2026-11-16, the pre-flight's base-red step
+      # `tools/tests/check-dex-gate-graph-selftest.sh` was found in state `T` at 13:03:30Z and the poll printed
+      # nothing — no console line, no log line, no state change — until its 1800 s bound at 13:33:31Z, which recorded
+      # an *overrun* (`rc=124`) for a step that never failed. One line names it, once; the bound still ends it,
+      # because the bound is this engine's one authority over a step's clock and a second authority would be a second
+      # bound (the item's own scope, issue #948).
+      case "$stopped_groups" in
+        *" ${st_pid[slot]}:"*)
+          if [ "${st_stopped[slot]}" -eq 0 ]; then
+            st_stopped[slot]=1
+            state=${stopped_groups#*" ${st_pid[slot]}:"}
+            state=${state%% *}
+            say "gate: ${st_cmd[slot]} — the step is stopped, not running (state $state); the bound at ${step_max} s is the only thing that will end it"
+          fi
+          ;;
+      esac
       done_all=0
     done
     [ "$done_all" -eq 1 ] && break

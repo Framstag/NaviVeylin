@@ -192,6 +192,7 @@ LOOP_SHELL_CASES=(
   'gate#aStepEndsWithItsCommandNotWithItsWatchers'
   'gate#aStepCannotReadTheCallersStdin'
   'gate#aStepIsBoundedAndTheOverrunNamesIt'
+  'gate#aStoppedStepIsNamedBeforeItsBound'
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
@@ -991,6 +992,7 @@ loop_run_shell_case() {
     'gate#aStepEndsWithItsCommandNotWithItsWatchers') fn=case_gate_aStepEndsWithItsCommandNotWithItsWatchers ;;
     'gate#aStepCannotReadTheCallersStdin') fn=case_gate_aStepCannotReadTheCallersStdin ;;
     'gate#aStepIsBoundedAndTheOverrunNamesIt') fn=case_gate_aStepIsBoundedAndTheOverrunNamesIt ;;
+    'gate#aStoppedStepIsNamedBeforeItsBound') fn=case_gate_aStoppedStepIsNamedBeforeItsBound ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
@@ -6341,6 +6343,73 @@ SUITE
   assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="0"' \
     "with no case invented for the step that did not report one"
   assert_contains "$out" "LOOP-GATE: tests=" "the gate still prints its one verdict line: $out"
+  return 0
+}
+
+# A step that is stopped rather than running is named before its bound (issue #948). The poll ends a slot on its
+# status file, on its overrun and on its clock, and a step a signal has *stopped* satisfies none of the three until
+# the bound: measured 2026-11-16, the pre-flight's base-red step `tools/tests/check-dex-gate-graph-selftest.sh` was
+# found in state `T` (`do_signal_stop`) at 13:03:30Z and the poll printed nothing for thirty minutes — no console
+# line, no log line, no state change — until its 1800 s bound fired at 13:33:31Z and recorded the step as an
+# *overrun* (`rc=124`) although it never failed. The suite below stops itself, so what the engine must name is a
+# member of the step's process group; the case reads the line while the gate is still inside the step, and then
+# lets the bound end it, because the bound is the only thing that may end a step.
+case_gate_aStoppedStepIsNamedBeforeItsBound() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out rc pid i seen lines
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=10\n'
+  } >> "$conf"
+  # A suite that stops itself, while the subshell the gate started around it stays in `wait` — the shape a `SIGTTIN` on
+  # a reading child has, and the shape the incident's base-red step had. It writes no record, so the poll's only ways
+  # out of the slot are the bound and the line this case asks for, and a poll that read the slot's leader alone would
+  # read state `S` and name nothing: what is stopped is a member of the step's group, not the group's leader.
+  cat > "$d/suite.sh" <<'SUITE'
+printf 'notes: a case that stops itself\n'
+kill -STOP $$
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  log="$d/gate.log"
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 &
+  pid=$!
+  # Read while the gate still holds the step: six seconds is under the ten-second bound the profile names here, so a
+  # line found inside that window is a line printed before the bound rather than the overrun's own line.
+  seen=0
+  for ((i = 0; i < 60; i++)); do
+    kill -0 "$pid" 2>/dev/null || break
+    if grep -q 'the step is stopped, not running' "$log" 2>/dev/null; then seen=1; break; fi
+    sleep 0.1
+  done
+  # Waited for, rather than killed: the bound ends the step's whole group (`SIGKILL` after its grace), and a case that
+  # returned before that would leave a stopped process behind for the pool's own sweep.
+  wait "$pid"; rc=$?
+  out=$(cat "$log")
+  lines=$(printf '%s\n' "$out" | grep -c 'the step is stopped, not running')
+  assert_eq "1" "$seen" "the gate names a step that is stopped while it is stopped, not at its bound: $out"
+  assert_eq "1" "$lines" "and it names it once, so a stopped step is a line in the log and not a flood: $out"
+  assert_contains "$out" "gate: bash $d/suite.sh — the step is stopped, not running (state T)" \
+    "the line names the step and the state the poll read: $out"
+  assert_contains "$out" "the bound at 10 s is the only thing that will end it" \
+    "and names the bound as the only thing that will end it: $out"
+  # A reader of the evidence reads the gate's own log, not a console a `--quiet` run never printed: the line has to be
+  # in both (`say`'s two halves), which is what the incident's base-red log lacked.
+  assert_contains "$(cat "$d/tally/gate.log" 2>/dev/null)" "the step is stopped, not running (state T)" \
+    "and the gate's own log carries the line, not only the console: $(cat "$d/tally/gate.log" 2>/dev/null)"
+  assert_contains "$out" "the step overran its bound of 10s and was ended" \
+    "the bound still ends the step, so a stop is reported and never answered by a second authority: $out"
+  assert_eq "1" "$rc" "a step the bound ended still fails the gate: $out"
   return 0
 }
 

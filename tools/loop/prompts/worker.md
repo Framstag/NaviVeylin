@@ -218,7 +218,7 @@ run's pre-screen already decided what a script can decide; these are the judgeme
 | 2 | one root cause explains the symptom, or for `{{PROPOSE_CLASS}}` one missing capability explains the item | `needs-diagnosis` |
 | 3 | exactly one change follows — no trade-off, no option, no design fork, no reversal of a recorded owner decision | `needs-decision` |
 | 4 | it is a falsifiable WHEN/THEN that is false on HEAD — for `{{PROPOSE_CLASS}}`, the acceptance scenario fails because the capability is absent | `unspecifiable` |
-| 5 | it fits one capability delta and one change (bounded files) | `too-wide` |
+| 5 | it fits one capability delta and one change, **counted, not judged**: the census Phase A step 5 took prints `LOOK: <n> matches in <m> files`, one site is ten turns — the read it owes, the edit, its own case and the correction a red case asks for — and the change fits only while `<n>` is no more than a tenth of the turns the child that works it is given (`LOOP_CHILD_TURNS_MAX_WORKER`, `tools/loop/loop.conf`) | `too-wide`, recorded as `surface: <n> sites over <m> files against <t> turns` beside the census command that printed it, with the split the child proposes: each child named, the sites of the census it takes, and the epic the children are filed under |
 | 6 | correctness is decidable by a host test | `needs-device` |
 | 7 | *(a non-defect)* an existing capability owns the delta — or `{{PROPOSE_CLASS}}` adds one small requirement — and the red case asserts a number, count, absence or acceptance scenario, not "better" | `not-spec-shaped` |
 

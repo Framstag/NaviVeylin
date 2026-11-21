@@ -400,6 +400,19 @@ input and not a gate, and the category beside it is ranked the same way: the pro
 queue in the classes `firstCategoryClasses` names (harness bugs), and their other classes are mixed in one after
 every `firstCategoryEvery` item.
 
+Row 5 of that gate, `too-wide`, was the one row that named no measure — `it fits one capability delta and one change
+(bounded files)` — so the refusal was a judgement each child took from scratch while the admission cost nothing to
+take. The run started 2026-11-17T10:58Z priced the two halves: its six refusals (`too-wide`, `needs-diagnosis` three
+times, `needs-decision`, `stale`) cost 8.29 Mtok together at a mean of 140 s, while the four items the same gate
+admitted onto one 4 379-line engine file cost 78.7 Mtok — 65.4 % of the run — and all four ended `blocked`, their own
+reports saying the change does not fit one child. The row is therefore a count the child takes from the census it
+already has (`tools/look.sh '<the rule>'`, the surface pass of Phase A) and not a second reading of the tree: one
+site is ten turns — the read it owes, the edit, its own case and the correction a red case asks for — so a surface
+past a tenth of `LOOP_CHILD_TURNS_MAX_WORKER` names more work than the child that works it is given. A `too-wide`
+skip carries that count (`surface: <n> sites over <m> files against <t> turns`) and the split it proposes — each
+child, the sites of the census it takes, and the epic the children are filed under — because a refusal that names
+no children leaves the item exactly where it was (issue #959).
+
 **One label overrides that order, and it is the only per-item lever the queue has.** An item carrying the profile's
 `roles.nextUpAgent` value (`agent/next-up` here, written by a person through `update.sh --label`) leads the queue: the
 pinned items take the first ranks in the class order and issue-number order every other stream keeps, and everything

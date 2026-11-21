@@ -1503,6 +1503,13 @@ MUTATIONS=(
   # `5/5 first rounds passed` while six of its eleven items had a round cut. The record empties the one figure that
   # names them, so the parenthetical the case asserts is what can say the run was cut at all.
   '936.1@-@tools/loop/report.sh@report#aCutRoundIsCountedBesideTheRate@the count of rounds whose input the cap cut, printed beside the rate, so a round handed 59 % of a part reads as one that read all of it (issue #936)@s#^  def cut_note: .*$#  def cut_note: "";#'
+  # 959.1 — row 5 of the eligibility gate names a measure (issue #959). The row read `it fits one capability delta and
+  # one change (bounded files)` and named no measure, so `too-wide` was a judgement each child took from scratch: the
+  # run of 2026-11-17T10:58Z spent 8.29 Mtok on six refusals and 78.7 Mtok (65.4 %) on the four items the same gate
+  # admitted onto one 4 379-line engine file, each of which ended `blocked` on the change not fitting one child. The
+  # record removes the bound the count is read against, so the census prints a number nothing compares and the row is
+  # an estimate again.
+  '959.1@-@tools/loop/prompts/worker.md@prompt#theTooWideRowCountsTheSurfaceBeforeTheVerdict@the bound row 5 reads its census against, so the count Phase A took is compared with nothing and the verdict is a judgement again (issue #959)@s|no more than a tenth of the turns|no more than the turns|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

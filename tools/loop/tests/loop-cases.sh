@@ -159,6 +159,7 @@ LOOP_SHELL_CASES=(
   'prompt#reviewerInputsAreBoundedAndTheCutIsNamed'
   'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'
   'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
+  'prompt#theTooWideRowCountsTheSurfaceBeforeTheVerdict'
   'prompt#iterationProtocolNamesTheChangeSurface'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
@@ -958,6 +959,7 @@ loop_run_shell_case() {
     'prompt#reviewerInputsAreBoundedAndTheCutIsNamed') fn=case_prompt_reviewerInputsAreBoundedAndTheCutIsNamed ;;
     'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton') fn=case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton ;;
     'prompt#workerNamesTheChangeSurfaceBeforeThePlan') fn=case_prompt_workerNamesTheChangeSurfaceBeforeThePlan ;;
+    'prompt#theTooWideRowCountsTheSurfaceBeforeTheVerdict') fn=case_prompt_theTooWideRowCountsTheSurfaceBeforeTheVerdict ;;
     'prompt#iterationProtocolNamesTheChangeSurface') fn=case_prompt_iterationProtocolNamesTheChangeSurface ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
@@ -4960,6 +4962,33 @@ case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
   assert_contains "$text" 'Count the surface before the plan is fixed' "the worker counts the surface before it plans"
   assert_contains "$text" "tools/look.sh '<the rule>'" "and is handed the call that counts it, which the policy every child is started with allows (issue #796)"
   assert_contains "$text" 'surface:' "and the record its proposal carries"
+}
+
+# Issue #959: row 5 asked whether an item "fits one capability delta and one change (bounded files)" and named no
+# measure, so `too-wide` was a judgement each child took from scratch — cheap when taken, expensive when not. The run of
+# 2026-11-17T10:58Z paid 8.29 Mtok for six refusals and 78.7 Mtok (65.4 %) for the four items the same gate admitted onto
+# one 4 379-line engine file, all four of which ended `blocked` on the change not fitting one child. The census row 5
+# names is the one Phase A already takes, so the row costs no second reading; the record is what the next run reads.
+case_prompt_theTooWideRowCountsTheSurfaceBeforeTheVerdict() {
+  # files: tools/loop/prompts/ tools/loop/tests/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p text prompt
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'counted, not judged' \
+    "row 5 decides the too-wide verdict by a count and not by a fresh judgement (issue #959)"
+  assert_contains "$text" 'LOOK: <n> matches in <m> files' \
+    "and names the census Phase A already took as that count, so the row costs no second reading"
+  assert_contains "$text" 'a tenth of the turns' \
+    "and the bound the count is read against"
+  assert_contains "$text" 'LOOP_CHILD_TURNS_MAX_WORKER' \
+    "which is the turns the worker role is given, named as the key the child reads it from"
+  assert_contains "$text" 'surface: <n> sites over <m> files' \
+    "and the record the skip carries, so a later reader reads a number rather than an estimate"
+  assert_contains "$text" 'the epic the children are filed under' \
+    "and the split the refusal proposes, which is what refiles the item as children (issue #959)"
 }
 
 # The rule has one home for its text (`guidelines/BuildGate.md` §2a, the iteration protocol) and one for the act

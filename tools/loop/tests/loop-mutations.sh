@@ -1483,6 +1483,13 @@ MUTATIONS=(
   # record re-opens the permission the clause removes, which is the reading the round had before it landed; the
   # pre-gate round inherits the same file, so one record stands for both rounds' clause.
   '954.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerCarriesTheEightItems@the clause that says the round is non-interactive, so a child answers the round with a question the run reads as a cut-short answer (issue #954)@s|never ask a question|feel free to ask a question|'
+  # 965.1 — the exception that clause carries (issue #965). #954's clause forbade any question of the round's own,
+  # and the contract the same file states (`:165`, `:172`) requires a refusal to end with a `LOOP-DECISION` line, so
+  # the clause landed with an exception — and nothing asserted it: the clause's three phrases stay green with the
+  # sentence deleted, which leaves the reviewer told never to end on the one line the shipped requirement
+  # (`openspec/specs/agent-issue-loop/spec.md:5866-5867`) demands of a refusal, the defect issue #894 measured. The record
+  # deletes the sentence, so the exception is falsified by a record rather than trusted.
+  '965.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerCarriesTheEightItems@the exception that leaves a refusal its LOOP-DECISION line to the contract it points at, so the clause forbids the line the contract requires of every refusal (issue #965)@/^the `LOOP-DECISION` line a refusal owes is part of that contract/,/^you are putting to anyone[.]$/d'
   # 917.x — the cases file's own hunks name the cases they sit in (issue #917). Two invariants, one per record: a
   # hunk inside a case body owes that case and not the 853-883 s whole set (#890, #861), and a hunk no case body
   # holds — a shared helper — still owes the whole set. 917.1 puts the leg back whole, so both stub cases run where

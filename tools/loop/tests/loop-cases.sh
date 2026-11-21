@@ -4796,6 +4796,14 @@ case_prompt_reviewerCarriesTheEightItems() {
   assert_contains "$(cat "$prompt")" "never ask a question" "and that a question is not an answer"
   assert_contains "$(cat "$prompt")" "an answer that is a question is a cut-short answer" \
     "and what the run reads such an answer as"
+  # Issue #965: the clause carries an exception, and nothing asserted it. A refusal is read by the run's own reader
+  # as the four lines its contract names, one of them `LOOP-DECISION`, so a clause read as "never end on a question"
+  # forbids the line `tools/loop/prompts/reviewer.md`'s contract (`:165`, `:172`) and the requirement
+  # `agent-issue-loop` ships (`openspec/specs/agent-issue-loop/spec.md:5866-5867`) demand of every refusal — the defect
+  # issue #894 measured. The sentence the exception lives in is asserted here, because the clause's own three
+  # phrases are green with it deleted: `965.1` deletes it and this assertion is what goes red.
+  assert_contains "$(cat "$prompt")" 'the `LOOP-DECISION` line a refusal owes is part of that contract' \
+    "and that a refusal's LOOP-DECISION line is not the question the clause forbids"
 }
 
 # Issue #236: the reviewer's task said what to judge and nothing about what it may run, so the natural-looking

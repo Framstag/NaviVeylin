@@ -410,10 +410,21 @@ outside_write_decides() { # → 0 when the recorded difference decides the phase
 # says a difference nobody can place is not evidence about one child (`agent-issue-loop`, "A difference the run cannot
 # attribute does not decide the item"): a peer session writes the same tree. So the sentence says where the work is
 # *if* the difference is this item's, and never that the child wrote it.
-item_outside_write_clause() { # → ` — …if that difference is this item's work it is in the caller's tree…: <reading>`
-  local note="${worker_write_note:-}"
-  [ -n "$note" ] || note="${gate_write_note:-}"
-  [ -n "$note" ] || note="${outside_write_note:-}"
+#
+# The reading a reason that names one child gets is that child's own (issue #991). The stop that writes "the
+# $last_child exited …" holds the change child's reading in `worker_write_note`, so the default order would append a
+# reading taken around a different child than the sentence speaks of, under the words "while that child ran". An
+# argument replaces that order instead of seeding it: an empty reading from the child the sentence names means there is
+# no clause to write about that child — not that another child's reading may stand in its name.
+item_outside_write_clause() { # [<the reading taken around the child the sentence names>] → ` — …if that difference is this item's work it is in the caller's tree…: <reading>`
+  local note
+  if [ "$#" -gt 0 ]; then
+    note="$1"
+  else
+    note="${worker_write_note:-}"
+    [ -n "$note" ] || note="${gate_write_note:-}"
+    [ -n "$note" ] || note="${outside_write_note:-}"
+  fi
   [ -n "$note" ] || return 0
   printf " — the run nevertheless recorded a difference in the project's own tree while that child ran: if that difference is this item's work it is in the caller's tree and not on the item's branch — %s" "$note"
 }

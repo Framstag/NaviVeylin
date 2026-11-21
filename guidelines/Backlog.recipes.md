@@ -1355,6 +1355,15 @@ sentence says where the work is *if* the difference is this item's, and never th
 after 3.27 Mtok and 69 turns, while nine of its paths stood in the caller's tree and nothing named them as an item's
 work. Cases `run#anEmptyTreeWithAnOutsideWriteNamesThePaths` and `run#childClaimWithoutCommitIsBlocked`, record 983.1.
 
+Which reading each site reads (issue #991): the two arms above name no child in their sentence, so they read that order.
+The run's own stop names one — "the child could not start — the $last_child exited …" — and its clause is the reading
+that child's own `run_child` took, because a reading taken around an earlier child would be reported under the words
+"while that child ran" against a child it says nothing about. That reading may be empty while an earlier child's is
+not, and then the stop writes no clause at all rather than another child's difference in its name. Cases
+`run#aStopThatNamesAChildReadsThatChildsOwnWrite` and `run#aStopWhoseChildWroteNothingGetsNoClause`, records 991.1 and
+991.2; the arm reaches them only over a tree at the run's base with no verdict line and the retry budget spent, which
+is why the cases stage that shape rather than a worked item.
+
 What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
 — `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run
 attributes the refusal before it ends on it. The worktree's own branch marker names the item whose branch the tree

@@ -287,6 +287,8 @@ LOOP_SHELL_CASES=(
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
   'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced'
   'run#anEmptyTreeWithAnOutsideWriteNamesThePaths'
+  'run#aStopThatNamesAChildReadsThatChildsOwnWrite'
+  'run#aStopWhoseChildWroteNothingGetsNoClause'
   'run#mergesOverADifferenceItCannotPlace'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#strictOutsideWriteBlocksTheItem'
@@ -1107,6 +1109,8 @@ loop_run_shell_case() {
     'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced') fn=case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced ;;
     'run#mergesOverADifferenceItCannotPlace') fn=case_run_mergesOverADifferenceItCannotPlace ;;
     'run#anEmptyTreeWithAnOutsideWriteNamesThePaths') fn=case_run_anEmptyTreeWithAnOutsideWriteNamesThePaths ;;
+    'run#aStopThatNamesAChildReadsThatChildsOwnWrite') fn=case_run_aStopThatNamesAChildReadsThatChildsOwnWrite ;;
+    'run#aStopWhoseChildWroteNothingGetsNoClause') fn=case_run_aStopWhoseChildWroteNothingGetsNoClause ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
@@ -10118,6 +10122,79 @@ case_run_anEmptyTreeWithAnOutsideWriteNamesThePaths() {
   assert_contains "$note" "if that difference is this item's work it is in the caller's tree" \
     "…and an item whose child wrote the project's own tree says where the work went"
   assert_contains "$note" "demo-owned.txt" "with the path the run's own reading recorded"
+}
+
+# The run's own stop names one child — "the child could not start — the $last_child exited …" — and the clause it
+# appends must be the reading taken around that child and no other (issue #991). The clause's default order prefers
+# the change child's reading, which is right where the sentence names no child; here the sentence names the gate
+# child, so a change child's earlier write must not stand under the words "while that child ran". Narrow arm: the
+# tree is at the base, the answer carries no verdict line and the retry budget is spent — the gate child reaches it by
+# rewinding the branch to the base it was handed, and writes a path of its own into the project's own tree first.
+case_run_aStopThatNamesAChildReadsThatChildsOwnWrite() {
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p base sf reason conf
+  d=$(scratch); p=$(new_project)
+  base=$(git -C "$p" rev-parse HEAD)
+  # Zero retries: this case is about the stop the shape earns, and the budgeted retry that would run the item again
+  # first is the sibling `run#theRetryCapIsSpentAndTheRunStops`.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=0/' "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The change child makes the change and writes `demo-owned.txt` into the project's own tree; the gate child answers
+  # nothing, rewinds the branch to the base it was handed and writes a path of its own there — a new name on each of
+  # its attempts, because a phase that answered nothing is asked once more and a path the previous attempt already
+  # wrote is no difference to the second attempt's own reading. Both readings are the run's own, and only the gate
+  # child's is about the child the stop names.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' \
+    "case \"\$1\" in
+       worker-prompt.md) printf 'stray\n' >> \"\$LOOP_CHILD_ROOT/demo-owned.txt\" ;;
+       worker-gate*) n=\$(cat \"$d/gate-attempts\" 2>/dev/null || printf 0); n=\$((n + 1)); printf '%s\\n' \"\$n\" > \"$d/gate-attempts\";
+                     printf 'late\n' >> \"\$LOOP_CHILD_ROOT/demo-gate-\$n.txt\"; git reset --hard $base >/dev/null 2>&1 ;;
+     esac"
+  : > "$d/no-answer.txt"
+  export PI_STUB_REPORT_GATE="$d/no-answer.txt"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  unset PI_STUB_REPORT_GATE
+  sf=$(state_file "$p")
+  reason=$(jq -r '.run.stop.reason // ""' "$sf")
+  assert_contains "$reason" "could not start" "the stop an empty tree with no verdict line earns"
+  assert_contains "$reason" "the gate worker" "…whose sentence names the child that ran last"
+  assert_contains "$reason" "demo-gate-" "and the clause appended to it is that child's own reading"
+  assert_not_contains "$reason" "demo-owned.txt" \
+    "never a reading taken around the change child, which is not the child the sentence speaks of"
+}
+
+# The other half of the same sentence (issue #991): a stop that names the last child carries a clause only when the
+# reading it holds is that child's own. The change child wrote into the project's own tree and the gate child did not,
+# so the difference the item carries was recorded around a child the stop does not name — under the words "while that
+# child ran" there is nothing to say, and the stop keeps the sentence it wrote before the clause existed.
+case_run_aStopWhoseChildWroteNothingGetsNoClause() {
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p base sf reason conf
+  d=$(scratch); p=$(new_project)
+  base=$(git -C "$p" rev-parse HEAD)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_RETRY_MAX=.*/LOOP_RETRY_MAX=0/' "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The change child writes into the project's own tree and commits its change; the gate child answers nothing and
+  # rewinds the branch, and writes nothing outside the tree it stands in.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' \
+    "case \"\$1\" in
+       worker-prompt.md) printf 'stray\n' >> \"\$LOOP_CHILD_ROOT/demo-owned.txt\" ;;
+       worker-gate*) git reset --hard $base >/dev/null 2>&1 ;;
+     esac"
+  : > "$d/no-answer.txt"
+  export PI_STUB_REPORT_GATE="$d/no-answer.txt"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  unset PI_STUB_REPORT_GATE
+  sf=$(state_file "$p")
+  reason=$(jq -r '.run.stop.reason // ""' "$sf")
+  assert_contains "$reason" "could not start" "the stop the empty tree earns is still the one that is written"
+  assert_contains "$reason" "the gate worker" "and it names the child that ran last"
+  assert_not_contains "$reason" "caller's tree" "a child that wrote nothing outside its tree carries no clause"
+  assert_not_contains "$reason" "demo-owned.txt" "…and never the change child's reading under that child's name"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {

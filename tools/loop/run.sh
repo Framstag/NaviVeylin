@@ -1959,7 +1959,7 @@ while true; do
       [ "$retry_delay" -eq 0 ] 2>/dev/null || sleep "$retry_delay"
       continue
     fi
-    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}$(item_outside_write_clause)${retry_log_child_start:+; retried $retry_spent_child_start of $retry_max (LOOP_RETRY_MAX=$retry_max, LOOP_RETRY_DELAYS=$retry_delays) — $retry_log_child_start}"
+    stop_run "the child could not start — the $last_child exited $last_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}${refused_by:+ — refused by $refused_by}$(item_outside_write_clause "${outside_write_note:-}")${retry_log_child_start:+; retried $retry_spent_child_start of $retry_max (LOOP_RETRY_MAX=$retry_max, LOOP_RETRY_DELAYS=$retry_delays) — $retry_log_child_start}"
     break
   fi
   archives=$(git -C "$worktree" diff --name-only "$base"..HEAD -- openspec/changes/archive 2>/dev/null |

@@ -1515,6 +1515,12 @@ MUTATIONS=(
   # of 2026-11-20T09:58:14Z carried as `LOOP-OUTSIDE-WRITE-FIRST: … M tools/loop/layout.tsv; …` and the caller's tree
   # still holds. `run#anEmptyTreeWithAnOutsideWriteNamesThePaths` is the case that must notice.
   '983.1@-@tools/loop/run.sh@run#anEmptyTreeWithAnOutsideWriteNamesThePaths@the clause that names the caller'"'"'s tree and the paths the run recorded, so an item whose child wrote the project'"'"'s own tree is reported as one that committed nothing (issue #983)@s|nothing was committed\$(item_outside_write_clause)|nothing was committed|'
+  # 991.x — the reading a reason that names one child gets (issue #991). The stop at the bottom of the run names
+  # `$last_child` and appends the clause, and the clause's default order prefers the change child's reading, taken
+  # around a different child than the sentence speaks of. One record per half: the argument that hands the stop that
+  # child's own reading, and the guard that keeps an empty reading from falling back to another child's.
+  '991.1@-@tools/loop/run.sh@run#aStopThatNamesAChildReadsThatChildsOwnWrite@the argument that hands the stop the reading taken around the child its sentence names, so a change child%ss write is reported under the gate child%ss name (issue #991)@s#item_outside_write_clause "${outside_write_note:-}"#item_outside_write_clause#'
+  '991.2@-@tools/loop/evidence.sh@run#aStopWhoseChildWroteNothingGetsNoClause@the guard that keeps a passed reading from falling back to another child%ss, so a child that wrote nothing outside its tree is given the change child%ss difference under its own name (issue #991)@s|^  if \[ "\$#" -gt 0 \]; then$|  if false; then|'
   # 892.x — the split's own rules (issue #892): the layout table's bound, the owner each function belongs to, the
   # shared-name declaration, the declared source order, a call that reads a file sourced later, and the selection a
   # delta's file set produces. Each mutates the file the rule lives in — the table for the first, the engine for the

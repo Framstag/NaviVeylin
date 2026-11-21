@@ -1,0 +1,11 @@
+=== tree: /tmp/basem935 at 8e3861c4c0c8bff22a36ff291e30385b7497f420, gate.sh = HEAD's (unpatched)
+=== command: LOOP_CONF=g935.conf LOOP_TOOL_RESULT_LEDGER=ledger2.tsv LOOP_CHILD_SESSION=worker-gate-prompt LOOP_BASE_RED=off LOOP_TOOL_RESULT_MAX_CHARS=6000 gate.sh --base-red --base 8e3861c4c0c8bff22a36ff291e30385b7497f420
+LOOP-BASERED: measuring the profile's 2 step(s) on 8e3861c4c0c8bff22a36ff291e30385b7497f420 — this pre-flight writes no tally
+adapter#theResultBoundExemptsGateEvidence|   a plain result read from a gate log path is held as gate evidence: expected '6000', got '211'
+  a plain result read from a gate log path is held as gate evidence: expected '6000', got '211'
+FAIL adapter#theResultBoundExemptsGateEvidence
+gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt| LOOP-GATE: tests=3 failures=1 errors=0 (./suite-one 0s, ./suite-two 0s) — failing: ./suite-one: expected '0', got '1'
+FAIL notes#aCaseThatWasRed
+LOOP-GATE: tests=3 failures=1 errors=0 (./suite-one 0s, ./suite-two 0s) — failing: ./suite-one: expected '0', got '1'
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+LOOP-BASERED: tests=2 failures=2 errors=0 (bash tools/loop/tests/loop-selftest.sh --case adapter#theResultBoundExemptsGateEvidence 1s, bash tools/loop/tests/loop-selftest.sh --case gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt 1s) — failing: bash tools/loop/tests/loop-selftest.sh --case adapter#theResultBoundExemptsGateEvidence bash tools/loop/tests/loop-selftest.sh --case gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt

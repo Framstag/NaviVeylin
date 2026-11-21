@@ -203,6 +203,7 @@ LOOP_SHELL_CASES=(
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
   'gate#aBaseRedStepIsSubtractedAndNamed'
   'gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt'
+  'gate#aStepIsNotHandedTheItemsSession'
   'gate#aPooledWavePrintsEachStepWholeWhenItEnds'
   'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes'
   'gate#aSecondGateRefusesWhileOneRuns'
@@ -1015,6 +1016,7 @@ loop_run_shell_case() {
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
     'gate#aBaseRedStepIsSubtractedAndNamed') fn=case_gate_aBaseRedStepIsSubtractedAndNamed ;;
     'gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt') fn=case_gate_theBaseStateIsMeasuredWhenTheGateFirstNeedsIt ;;
+    'gate#aStepIsNotHandedTheItemsSession') fn=case_gate_aStepIsNotHandedTheItemsSession ;;
     'gate#aPooledWavePrintsEachStepWholeWhenItEnds') fn=case_gate_aPooledWavePrintsEachStepWholeWhenItEnds ;;
     'gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes') fn=case_gate_aCarrierAnotherRunWroteIsNotReadAsThisOnes ;;
     'gate#aSecondGateRefusesWhileOneRuns') fn=case_gate_aSecondGateRefusesWhileOneRuns ;;
@@ -6909,6 +6911,105 @@ SUITE
   assert_contains "$out" 'LOOP-GATE-BASERED:./suite-one:1' "and subtracts the same pair from the record: $out"
   case "$out" in *'LOOP-GATE-BASERED-UNMEASURED:'*)
     fail "a step the record holds was reported as unmeasured: $out" ;; esac
+  return 0
+}
+
+# A step is measured in the *project's* environment, never the item session's (issue #980). The gate is a child of the
+# item like every other, and until this case existed it handed the step its own environment: the result bound and the
+# repeat arm, the session's name, its trim record and its repeat ledger, its event stream, and — in a measurement —
+# `LOOP_BASE_RED=off`. A step that runs the loop's own suite therefore ran with the item's session facts in it, and two
+# of the suite's cases read them instead of their own: measured 2026-11-21, on the leg
+# `tools/loop/tests/loop-selftest.sh --from-git {base}`, red at all six bases the run's log holds, 859–944 s each — a leg
+# no clean tree was ever green at. `adapter#theResultBoundExemptsGateEvidence` was answered `LOOP-ALREADY-READ` (211
+# characters where the 6 000 arrive when the ledger is not handed over) and
+# `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt` could not measure because the switch told its nested gate not to
+# (expected '0', got '1'). The case reads the gate's own declaration and asserts each name on one cheap step, so a fact
+# added to the list is covered the moment it is declared, and a fact the adapter exports without the list carrying it
+# is named before any step runs.
+case_gate_aStepIsNotHandedTheItemsSession() {
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base canary var out rc vars handed seen declared
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  canary="$d/canary"
+  # The step reports what it was handed, one line per fact, into a canary file: the gate keeps a suite's stdout to
+  # itself, and a step's output is read from its own file, so a canary is the one place a case can read it from. The
+  # value printed for an absent variable is `<unset>`, so a variable the gate handed over empty is still a red.
+  #
+  # The names are the gate's own declaration, read out of it rather than copied: a fact added to `item_session_vars` is
+  # one the case then asserts, and a fact the adapter exports for a child but the list does not carry is named by the
+  # second check below — the class is closed at the adapter's exports plus the switch, so a fact that leaks in between
+  # the two is caught here instead of by paying the leg (issue #980).
+  # The class the case asserts: the gate's own declaration, read out of it rather than copied, so a fact added to
+  # `item_session_vars` is one the case then asserts. A tree that declares no list is the tree before this rule — the
+  # class is then read from the adapter's exports and the switch instead, so the case names the facts the step was
+  # handed rather than failing on a missing declaration. The second check closes the other side: a fact the adapter
+  # exports for every child of the item and the list does not carry is named before any step runs (issue #980).
+  declared=$(sed -n 's/^[[:space:]]*export \(LOOP_[A-Za-z_]*\)=.*$/\1/p' "$LOOP_ENGINE/../pi-child-events.sh" | sort -u)
+  [ -n "$declared" ] || fail "the adapter exports no LOOP_ fact, so the class this case checks has no source"
+  vars=$(sed -n '/^item_session_vars=(/,/)[[:space:]]*$/p' "$LOOP_ENGINE/gate.sh" \
+    | sed -e '1s/^item_session_vars=(//' -e 's/\\[[:space:]]*$//' -e 's/)[[:space:]]*$//' \
+    | tr -s '[:space:]' ' ')
+  [ -n "$vars" ] || vars="$(printf '%s\n' $declared | tr '\n' ' ')LOOP_CHILD_EVENTS LOOP_BASE_RED"
+  for var in $declared; do
+    case " $vars " in
+      *" $var "*) ;;
+      *) fail "$var is exported for every child of the item and is not in the gate's item_session_vars, so a step is handed it" ;;
+    esac
+  done
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf ': > %s/canary\n' "$d"
+    printf 'printf "RAN=1\\n" >> %s/canary\n' "$d"
+    for var in $vars; do
+      printf 'printf "%%s=%%s\\n" %s "${%s-<unset>}" >> %s/canary\n' "$var" "$var" "$d"
+    done
+  } > "$d/step.sh"
+  chmod +x "$d/step.sh"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_FIRST_STEPS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|%s/step.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=1\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the base' >/dev/null 2>&1 \
+    || fail "could not commit the base in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD)
+  # The change the step is owed by: a path this profile gates, in a commit of its own — a gate asked for a delta
+  # against its own HEAD owes nothing at all, and a step that never runs proves no absence.
+  printf 'a changed note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  # The environment exactly as a child of the item hands it to this gate — every fact `run.sh` and
+  # `tools/pi-child-events.sh` export for one child, and the switch a base-red measurement sets — so a step that sees
+  # any of it is a step measured in the item's session.
+  rc=0
+  out=$( cd "$p" && \
+    LOOP_CONF="$conf" \
+    LOOP_TOOL_RESULT_MAX_CHARS=6000 \
+    LOOP_REPEAT_READ=refuse \
+    LOOP_CHILD_SESSION=item-worker-gate \
+    LOOP_TOOL_RESULT_TRIM_RECORD="$d/tool-result-trims.log" \
+    LOOP_TOOL_RESULT_LEDGER="$d/tool-result-ledger.tsv" \
+    LOOP_CHILD_EVENTS="$d/events.jsonl" \
+    LOOP_BASE_RED=off \
+    bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ) || rc=$?
+  assert_eq "0" "$rc" "the step is measured whatever session the gate was started in: $out"
+  handed=$(cat "$canary" 2>/dev/null || true)
+  seen=$(printf '%s' "$handed" | tr '\n' ' ')
+  # The step ran at all, so the absences below are absences and not an empty canary.
+  assert_contains "$handed" 'RAN=1' \
+    "the step ran and reported what it was handed: [$seen] ($out)"
+  for var in $vars; do
+    assert_contains "$handed" "$var=<unset>" \
+      "a measured step is the project's command and not a child of the item session, so it is handed no $var — it saw [$seen] ($out)"
+  done
   return 0
 }
 

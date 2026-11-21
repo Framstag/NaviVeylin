@@ -1,0 +1,37 @@
+gate#aStepIsNotHandedTheItemsSession|   a measured step is the project's command and not a child of the item session, so it is handed no LOOP_CHILD_SESSION — it saw [RAN=1 LOOP_CHILD_SESSION=item-worker-gate LOOP_REPEAT_READ=measure LOOP_TOOL_RESULT_LEDGER=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-ledger.tsv LOOP_TOOL_RESULT_MAX_CHARS=4000 LOOP_TOOL_RESULT_TRIM_RECORD=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-trims.log LOOP_CHILD_EVENTS=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/events.jsonl LOOP_BASE_RED=off] (LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/tools/loop/loop.conf)
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE-STEP-BOUND: 30s per step — a step that reaches it is ended, named and counted as an error
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE-POOL: at most 1 suite step(s) in flight at once — the first steps and the build run alone
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE-BASE: 686ef4f3155ed9470608c0ef9fd1a98a72fa1bc8 (from --base)
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE-TREE: head=7182fa53ca234df344fa955e854ffe02428eca3e diff=9e04edcaf5035a2d
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tally run=1048362
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tally/gate.log
+gate#aStepIsNotHandedTheItemsSession| gate: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/step.sh
+gate#aStepIsNotHandedTheItemsSession| gate: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/step.sh — 0s
+gate#aStepIsNotHandedTheItemsSession| LOOP-GATE: tests=0 failures=0 errors=0 (/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/step.sh 0s)): 'LOOP_CHILD_SESSION=<unset>' not found in: RAN=1
+gate#aStepIsNotHandedTheItemsSession| LOOP_CHILD_SESSION=item-worker-gate
+gate#aStepIsNotHandedTheItemsSession| LOOP_REPEAT_READ=measure
+gate#aStepIsNotHandedTheItemsSession| LOOP_TOOL_RESULT_LEDGER=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-ledger.tsv
+gate#aStepIsNotHandedTheItemsSession| LOOP_TOOL_RESULT_MAX_CHARS=4000
+gate#aStepIsNotHandedTheItemsSession| LOOP_TOOL_RESULT_TRIM_RECORD=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-trims.log
+gate#aStepIsNotHandedTheItemsSession| LOOP_CHILD_EVENTS=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/events.jsonl
+gate#aStepIsNotHandedTheItemsSession| LOOP_BASE_RED=off
+--- gate#aStepIsNotHandedTheItemsSession[0] (exit 1)
+  a measured step is the project's command and not a child of the item session, so it is handed no LOOP_CHILD_SESSION — it saw [RAN=1 LOOP_CHILD_SESSION=item-worker-gate LOOP_REPEAT_READ=measure LOOP_TOOL_RESULT_LEDGER=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-ledger.tsv LOOP_TOOL_RESULT_MAX_CHARS=4000 LOOP_TOOL_RESULT_TRIM_RECORD=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-trims.log LOOP_CHILD_EVENTS=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/events.jsonl LOOP_BASE_RED=off] (LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 30s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 1 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 686ef4f3155ed9470608c0ef9fd1a98a72fa1bc8 (from --base)
+LOOP-GATE-TREE: head=7182fa53ca234df344fa955e854ffe02428eca3e diff=9e04edcaf5035a2d
+LOOP-GATE-TALLY: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tally run=1048362
+LOOP-GATE-LOG: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tally/gate.log
+gate: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/step.sh
+gate: /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/step.sh — 0s
+LOOP-GATE: tests=0 failures=0 errors=0 (/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/step.sh 0s)): 'LOOP_CHILD_SESSION=<unset>' not found in: RAN=1
+LOOP_CHILD_SESSION=item-worker-gate
+LOOP_REPEAT_READ=measure
+LOOP_TOOL_RESULT_LEDGER=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-ledger.tsv
+LOOP_TOOL_RESULT_MAX_CHARS=4000
+LOOP_TOOL_RESULT_TRIM_RECORD=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/tool-result-trims.log
+LOOP_CHILD_EVENTS=/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.XwNNKT/cases/0/tree/case.cCGQ8U/events.jsonl
+LOOP_BASE_RED=off
+FAIL gate#aStepIsNotHandedTheItemsSession
+loop-selftest: 1 of 1 cases failed

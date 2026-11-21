@@ -638,7 +638,7 @@ MUTATIONS=(
   # record beside the stream (`( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 < /dev/null &`), and a
   # record that quoted the `printf` would have to carry a `\n` through `sed`'s own escaping. What the mutation restores
   # is the shape, not the line.
-  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  ( \$cmd;.*>"\$stream" 2>&1 < /dev/null &$|  \$cmd 2>\&1 \| tee "\$stream" \&|'
+  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^    \$cmd; printf .*$|    \$cmd 2>\&1 < /dev/null \| cat > "\$stream"; printf "%s\\n" "\$?" > "\$status_file" ) \&|'
 
   # 947.1 — the step's stdin is the empty device (issue #947). A step inherited the gate's stdin, which for a run
   # started from a shell is a terminal, and the group `set -m` gives the step is a *background* group there: measured
@@ -1525,6 +1525,14 @@ MUTATIONS=(
   '892.4@-@tools/loop/run.sh@driver#theSourceOrderIsDeclared@the entry%ss `child.sh` source line, replaced by a second `evidence.sh`, so the chain the table declares and the chain the entry loads part company and a call to the last file reads as one to a file loaded twice (issue #892)@s#^source "\$here/child.sh"$#source "$here/evidence.sh"#'
   '892.5@-@tools/loop/evidence.sh@driver#aCallToALaterFilesFunctionFails@a call to `child.sh`%ss `child_cap` from a file the entry sources before it, so a function is read before the file that defines it is loaded (issue #892)@s|^#!.*|#!/usr/bin/env bash\nchild_cap|'
   '892.6@-@tools/loop/tests/loop-selftest.sh@driver#theSelectionFollowsTheOwner@the guard a file set that names nothing is answered by, so every case is selected for every delta and the declaration the split exists to narrow selects the whole suite again (issue #892)@s#^  \[ "\$only_files" = " " \] && return 0$#  return 0#'
+  # 980.1 — the environment a step is measured in (issue #980). The gate handed the step its own environment, so a step
+  # that runs the loop's own suite ran with the item session facts in it: on the leg
+  # `tools/loop/tests/loop-selftest.sh --from-git {base}` the base tree answered a read with `LOOP-ALREADY-READ` (211
+  # characters where 6 000 arrive) and a nested gate could not measure because `LOOP_BASE_RED=off` told it not to,
+  # 859–944 s at every one of the six bases the run's log holds and red at each. The record drops the removal, so the
+  # step is handed the ledger, the session name, the bound, the arm, the record, the stream and the switch again, and
+  # `gate#aStepIsNotHandedTheItemsSession` is what must notice.
+  '980.1@-@tools/loop/gate.sh@gate#aStepIsNotHandedTheItemsSession@the removal of the item session facts from the environment a step is measured in, so a measured suite runs with the ledger, the session name, the result bound and the base-red switch of the child that started the gate (issue #980)@s|^  ( unset "${item_session_vars\[@\]}"$|  ( : # the mutation hands the step the gate session environment|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

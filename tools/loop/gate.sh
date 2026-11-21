@@ -650,6 +650,27 @@ fi
 # a reader needs beside the status — whether the bound ended it, and whether its bytes already reached the console.
 st_cmd=(); st_pid=(); st_stream=(); st_status=(); st_started=(); st_ended=(); st_overran=(); st_announced=(); st_followed=()
 
+# ── the environment a step is measured in (issue #980) ─────────────────────────────────────────────────────────
+# A step is a project command, never a child of the item's session: the facts `tools/pi-child-events.sh` hands a
+# *child* — the result bound and its arm, the session's name, its trim record and its repeat ledger — the item's event
+# stream, and this gate's own base-red switch are not the measured command's business, and are removed from its
+# environment here. The class is closed at those seven names: `run.sh` also exports the run's `LOOP_STATE_FILE` and
+# `LOOP_WORKTREE` to a child, and they stay — dropping them is a second change, with its own measurement of what a
+# nested gate a step starts may write into the run's record.
+#
+# Measured 2026-11-21, and this is why the removal is a rule rather than a courtesy: a step that runs the loop's own
+# suite inherits whichever session started the gate, and the suite's cases read those facts instead of their own. On
+# the leg `tools/loop/tests/loop-selftest.sh --from-git {base}` the base tree ran with the item's ledger, so a read the
+# case makes at `items/816/gate.log` came back as `LOOP-ALREADY-READ` (211 characters where 6 000 arrive when the name
+# is not handed over), and with `LOOP_BASE_RED=off` in its environment the nested gate inside
+# `gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt` could not measure the base state the case asserts it measured
+# (`expected '0', got '1'`). Both are the same defect — the gate measured a command in the gate's own session — and it
+# made the whole leg red at every base the run recorded, all six in `.pi/issue-loop/base-red.log`, 859–944 s each (#980):
+# one leg that no clean tree is green at. `LOOP_CHILD_EVENTS` is cleared with them: the stream is the item's child's,
+# and a step that wrote into it would put its own lines in the record a later reader attributes the item by.
+item_session_vars=(LOOP_TOOL_RESULT_MAX_CHARS LOOP_REPEAT_READ LOOP_CHILD_SESSION LOOP_TOOL_RESULT_TRIM_RECORD \
+  LOOP_TOOL_RESULT_LEDGER LOOP_CHILD_EVENTS LOOP_BASE_RED)
+
 start_step() { # <slot> <command> → the step is running, its own files written and its own clock started
   local i=$1 cmd=$2 stream status_file
   st_cmd[i]=$cmd
@@ -675,7 +696,8 @@ start_step() { # <slot> <command> → the step is running, its own files written
   # step was ended by its bound 30 minutes later — 75 minutes of a 600-minute budget, with the run looking like a slow
   # step because a stopped child prints nothing.
   set -m
-  ( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 < /dev/null &
+  ( unset "${item_session_vars[@]}"
+    $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 < /dev/null &
   st_pid[i]=$!
   set +m
 }

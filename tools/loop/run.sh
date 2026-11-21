@@ -1658,12 +1658,18 @@ outside_write_decides() { # → 0 when the recorded difference decides the phase
 # is the sentence that reads the two facts together, so a reader of the reason knows where the work went. It is a
 # qualification and never a replacement: the arm's own sentence stays, and an item whose record carries no reading
 # gets an empty string and keeps exactly what it wrote before.
-item_outside_write_clause() { # → ` — …the work is in the caller's tree…: <reading>` or empty
+#
+# The clause is conditional and places nothing (review round 1, 2026-11-21). The reading it names is usually the one
+# the run declined to place — `attributed=none`, which is what item #894's own record carries — and this loop's spec
+# says a difference nobody can place is not evidence about one child (`agent-issue-loop`, "A difference the run cannot
+# attribute does not decide the item"): a peer session writes the same tree. So the sentence says where the work is
+# *if* the difference is this item's, and never that the child wrote it.
+item_outside_write_clause() { # → ` — …if that difference is this item's work it is in the caller's tree…: <reading>`
   local note="${worker_write_note:-}"
   [ -n "$note" ] || note="${gate_write_note:-}"
   [ -n "$note" ] || note="${outside_write_note:-}"
   [ -n "$note" ] || return 0
-  printf " — the run nevertheless recorded a difference in the project's own tree while that child ran: the work is in the caller's tree and not on the item's branch — %s" "$note"
+  printf " — the run nevertheless recorded a difference in the project's own tree while that child ran: if that difference is this item's work it is in the caller's tree and not on the item's branch — %s" "$note"
 }
 
 # The difference read *while the child runs*, with the processes that were alive at that moment and the ones of

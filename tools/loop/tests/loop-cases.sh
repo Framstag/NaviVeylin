@@ -9960,7 +9960,7 @@ case_run_anEmptyTreeWithAnOutsideWriteNamesThePaths() {
   # took, because a reader told only "nothing was committed" has no way to find the work at all.
   assert_contains "$note" "the tree is still at the base commit — nothing was committed" \
     "the block is still the one the empty tree earns"
-  assert_contains "$note" "the work is in the caller's tree" \
+  assert_contains "$note" "if that difference is this item's work it is in the caller's tree" \
     "…and an item whose child wrote the project's own tree says where the work went"
   assert_contains "$note" "demo-owned.txt" "with the path the run's own reading recorded"
 }

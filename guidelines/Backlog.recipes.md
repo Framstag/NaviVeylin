@@ -1327,13 +1327,28 @@ HEAD against the run's base, so it is taken where the run itself makes the commi
 stops at the diff, the run commits that tree and reads the HEAD it just made, and a HEAD still at the base ends the
 item there (`tools/loop/run.sh:2075`). Nothing follows that reading: the reviewer and the gate child are already
 guarded on the same HEAD, the tail is guarded on it too, and the item is recorded `blocked` on "reported success but
-the tree is still at the base commit — nothing was committed" — the reason the outcome block's own arm writes, kept
-there as the invariant rather than written twice. It is not the never-started stop above: a child that answered the
-diff marker did read the item, and its own claim is what says so. Measured 2026-11-06 (issue #797): eight records over
-the archive carried that reason, each read after every child of its item had been paid for (1 915 s for #260, 1 422 s
-for #319, 916 s for #721), and with the gate deferred the same tree beside an answer that claims a diff left no item
-record at all — the tail's empty answer was read as "the child could not start".
-`run#anEmptyTreeIsRefusedBeforeTheGateChild` is the case, and `tools/loop/tests/loop-mutations.sh` 91.1 the record that keeps it.
+the tree is still at the base commit — nothing was committed" — the reason the outcome block's own arm writes as
+well, so the two sites carry one sentence and not two readings. It is not the never-started stop above: a child that
+answered the diff marker did read the item, and its own claim is what says so. Measured 2026-11-06 (issue #797):
+eight records over the archive carried that reason, each read after every child of its item had been paid for
+(1 915 s for #260, 1 422 s for #319, 916 s for #721), and with the gate deferred the same tree beside an answer that
+claims a diff left no item record at all — the tail's empty answer was read as "the child could not start".
+`run#anEmptyTreeIsRefusedBeforeTheGateChild` is the case, and `tools/loop/tests/loop-mutations.sh` 91.1 the record that
+keeps it.
+
+What that reason says when the work went to the caller's tree (issue #983): both arms above, and the run's own
+"could not start" stop, append one clause built from the reading the item already holds —
+`item_outside_write_clause` reads `worker_write_note`, then the gate child's and the tail child's, and answers
+`the run nevertheless recorded a difference in the project's own tree while that child ran: if that difference is this
+item's work it is in the caller's tree and not on the item's branch — <the paths>`. It is a qualification and never a
+replacement: the arm's own sentence stays, and an item whose record carries no reading gets an empty clause and keeps
+exactly what it wrote before. The clause is conditional because the reading it names is usually the one the run
+declined to place — `attributed=none` is what item #894's own record carries, and a peer session writes the same tree,
+which is the judgement the requirement "A difference the run cannot attribute does not decide the item" owns — so the
+sentence says where the work is *if* the difference is this item's, and never that the child wrote it. Measured
+2026-11-20 (issue #983): item #894 of the run 09:58:14Z→17:19:36Z ended `blocked` / `uncommitted` on the bare sentence
+after 3.27 Mtok and 69 turns, while nine of its paths stood in the caller's tree and nothing named them as an item's
+work. Cases `run#anEmptyTreeWithAnOutsideWriteNamesThePaths` and `run#childClaimWithoutCommitIsBlocked`, record 983.1.
 
 What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
 — `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run

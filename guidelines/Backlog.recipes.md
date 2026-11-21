@@ -1459,7 +1459,8 @@ question *before* it writes `status/fixed-by`, because a refusal that arrives at
 settled on a fix the tree does not have and the pre-screen never revisits a settled item. A closure that names no
 commit asserts no landing (a person's not-planned retirement, a check's metric closure) and is untouched.
 The same pre-flight reads that tree's **uncommitted work**, because every merge the landing step makes lands there
-and refuses dirt: a run whose project tree carries a modified, staged or untracked path git does not ignore is
+and refuses dirt: a run whose project tree carries a modified, staged or untracked path git does not ignore — read
+as the landing step reads it, so a write no child of the run could have written does not refuse the start — is
 refused at exit 5 before the pre-screen, before any item and before any adoption, with the paths printed and
 recorded in the stop reason `report.sh` prints. It is a refusal and not a cleanup: the kept worktree's
 dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may be its owner's edit made while no

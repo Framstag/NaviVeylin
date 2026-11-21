@@ -2514,10 +2514,11 @@ one named case, SHALL take no lease.
 A run SHALL record the base branch's commit as the base every item descends from, never the tree's checked-out
 commit. `LOOP_BASE_REF` SHALL be a key of the project's own configuration, `main` when it names none, written so
 an inherited value wins over it. A run whose project tree is on any other branch, or on a detached HEAD, SHALL be
-refused before the pre-screen, and so SHALL a run whose project tree carries uncommitted work — a modified, staged or
-untracked path git does not ignore — because the landing step merges into that tree and both of its merges refuse
-dirt there. A stop on a base that no longer matches SHALL name the two commits and SHALL make no claim about when the
-base moved.
+refused before the pre-screen, and so SHALL a run whose project tree carries uncommitted work — a modified, staged
+or untracked path git does not ignore — read the way the landing step reads it, so a write no child of the run
+could have written does not refuse the run, because the landing step merges into that tree and both of its merges
+refuse dirt there. A stop on a base that no longer matches SHALL name the two commits and SHALL make no claim about
+when the base moved.
 
 #### Scenario: A checkout off the base branch is refused before the pre-screen
 
@@ -2529,7 +2530,9 @@ base moved.
 
 #### Scenario: A project tree carrying uncommitted work is refused before the pre-screen
 
-- **WHEN** a run starts and the project tree it would merge the item into carries one uncommitted file
+- **WHEN** a run starts and the project tree it would merge the item into carries one uncommitted file the landing
+  step would refuse — a write no child of the run could have written does not refuse it, the start reading the tree
+  through the landing's own reading
 - **THEN** it is refused before the pre-screen is run, before any item is started and before any previous attempt's
   branch is adopted, the path it found is printed and is the stop reason the run records — so the printed report names
   it too — and nothing is discarded: the refusal states that the run cannot tell its own leftover from an edit its
@@ -6237,3 +6240,21 @@ The report SHALL be able to recompute the run-level counts from the run's record
 - **WHEN** the report is asked for the record's reading of a run whose record file is absent
 - **THEN** it says the record is absent and makes no claim of agreement
 - **Case**: `report#aRunWhoseRecordIsAbsentSaysSo`
+
+### Requirement: No item is started on a project tree the landing step would refuse
+
+At the head of every item, and before that item's first child exists, the project's own tree SHALL be read again
+through the reading the landing step applies to the tree it merges into — the one the start reads it with too. A run whose project tree carries a path the landing step would refuse SHALL stop there, with the paths and the
+item in the stop reason, SHALL record nothing for it so it stays the queue's head, SHALL discard nothing, and SHALL
+NOT close, adopt or escalate anything over it.
+
+#### Scenario: A project tree dirtied under the run stops it at an item's head
+
+- **WHEN** a run's queue holds an item, and the project tree the landing step would merge that item into carries
+  one modified, tracked file before the item's first child exists
+- **THEN** the run stops with the path it found and the item it would have started in the stop reason, no agent
+  process is started for the item, nothing is recorded for it so it stays the queue's head, and the dirt is still
+  the owner's — the refusal discarded nothing
+- **Case**: `run#aDirtyBaseTreeStopsTheRunBeforeItsFirstItem`
+
+---

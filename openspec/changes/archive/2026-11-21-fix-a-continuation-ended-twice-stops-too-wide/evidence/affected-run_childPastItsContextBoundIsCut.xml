@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case run#childPastItsContextBoundIsCut" tests="1" failures="0" errors="0" time="10" run="2026-11-21T02:55:32Z">
+  <system-out>PASS run#childPastItsContextBoundIsCut </system-out>
+</testsuite>

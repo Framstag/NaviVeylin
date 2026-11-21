@@ -1,0 +1,218 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+LOOK-FILE: openspec/changes/archive/2026-10-20-fix-loop-report-answers/proposal.md 2
+LOOK-FILE: openspec/changes/archive/2026-10-20-fix-loop-report-answers/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded/evidence/round-2-corrections.txt 1
+LOOK-FILE: openspec/changes/archive/2026-10-22-fix-loop-lock-is-taken-before-anything-is-written/proposal.md 2
+LOOK-FILE: openspec/changes/archive/2026-10-22-fix-loop-lock-is-taken-before-anything-is-written/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-05-loop-selftest-allows-an-empty-delta/proposal.md 2
+LOOK-FILE: openspec/changes/archive/2026-11-05-loop-selftest-allows-an-empty-delta/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-06-loop-suite-cost-is-reported/evidence/evidence-check.txt 5
+LOOK-FILE: openspec/changes/archive/2026-10-31-guideline-backlog-layers/proposal.md 4
+LOOK-FILE: openspec/changes/archive/2026-10-31-guideline-backlog-layers/evidence/rebuild.py 1
+LOOK-FILE: openspec/changes/archive/2026-10-31-guideline-backlog-layers/design.md 1
+LOOK: 2 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/loop-protocol-core-in-java for 'Backlog.md.*§7'
+LOOK-FILE: openspec/changes/loop-protocol-core-in-java/proposal.md 1
+LOOK-FILE: openspec/changes/loop-protocol-core-in-java/tasks.md 1
+openspec/changes/loop-protocol-core-in-java/proposal.md:79:- `guidelines/Backlog.md` §7 (loop procedure) — the protocol's one owner, for the person fixing a verdict.
+openspec/changes/loop-protocol-core-in-java/tasks.md:80:- [ ] 6.1 `guidelines/Backlog.md` §7 names the core as the protocol's one owner. Verify
+LOOK: 7 matches in 3 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-a-continuation-ended-twice-stops-too-wide for '§7'
+LOOK-FILE: openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md 4
+LOOK-FILE: openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/design.md 2
+LOOK-FILE: openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/tasks.md 1
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md:34:`guidelines/Backlog.recipes.md` §7e "Leftovers, the report and the queue" — the paragraph at `:1690`, which before
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md:51:`guidelines/Backlog.md` §3, `guidelines/Backlog.md` §4, `guidelines/Backlog.md` §5, `guidelines/Backlog.md` §7,
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md:53:change's own `guidelines/Backlog.recipes.md` §7e.
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md:56:`guidelines/Backlog.recipes.md` §7e `:1690` (the paragraph realigned), `openspec/specs/agent-issue-loop/spec.md` (one
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/design.md:72:`guidelines/Backlog.recipes.md` §7e. Nothing is migrated and no state file gains a key, so a reverted tree reads the
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/design.md:84:(`guidelines/Backlog.recipes.md` §7e), one spec requirement (`agent-issue-loop`, "The bound on a child is priced in
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/tasks.md:43:- [x] 4.1 `guidelines/Backlog.recipes.md` §7e (`:1690`): the "Three limits make it safe" paragraph realigned — one
+Successfully replaced 2 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/design.md.
+Successfully replaced 3 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md.
+Successfully replaced 1 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/tasks.md.
+FAIL C1 dangling §7 in openspec/changes/fix-a-continuation-ended-twice-stops-too-wide (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+ok   C2 test tallies: 7 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 324 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (1)
+EXIT=1
+LOOK: 2 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-a-continuation-ended-twice-stops-too-wide for '§7'
+LOOK-FILE: openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md 2
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md:51:`guidelines/Backlog.md` §3, `guidelines/Backlog.md` §4, `guidelines/Backlog.md` §5, `guidelines/Backlog.md` §7,
+openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md:54:reads, archives no row 7; the guideline's §7 is named here for the map alone).
+Successfully replaced 2 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/fix-a-continuation-ended-twice-stops-too-wide/proposal.md.
+ok   C1 §references: 9 checked, 1 exempted as archived pointers
+ok   C2 test tallies: 7 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 324 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+EVIDEXIT=0
+  Backlog.md §1
+  Backlog.md §14
+  Backlog.md §14 "a reversal is recorded, not deleted."
+  Backlog.md §3
+  Backlog.md §3 "a container's child carries a type of its own."
+  Backlog.md §3 "one item is one issue, and everything a reader selects on is a label."
+  Backlog.md §3 "priority is a stored fact with a recorded basis, not a number recomputed on every reading."
+  Backlog.md §3 "The analysis's three rows are one area, and one rule is one item."
+  Backlog.md §3 "the tracker's own classification is an axis of its own, and a container is never work."
+  Backlog.md §4
+  Backlog.md §4 "an invariant is stated with the observation that would falsify it."
+  Backlog.md §5
+  Backlog.md §5 "a block asks its own question."
+  Backlog.md §5 "a closure leaves no decision label behind."
+  Backlog.md §5 "an answer reaches the next worker's package."
+  Backlog.md §5 "a park is recognised by its own mark, and the answer's shape is no evidence."
+  Backlog.md §5 "a park writes its answer and moves no label."
+  Backlog.md §5 "a reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree."
+  Backlog.md §5 "a stale skip asks its own question, and is never parked on a bare hold."
+  Backlog.md §5 "the queue reads the whole labelled set, and refuses one it could not cover."
+  Backlog.md §7
+  BacklogTooling.md §9
+  BuildGate.md §2a
+ROUTEEXIT=0
+
+Compressed 532 → 495 tokens (-7%)
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  agent-issue-loop: update
+Applying changes to openspec/specs/agent-issue-loop/spec.md:
+  ~ 1 modified
+Totals: + 0, ~ 1, - 0, → 0
+Specs updated successfully.
+Change 'fix-a-continuation-ended-twice-stops-too-wide' archived as '2026-11-21-fix-a-continuation-ended-twice-stops-too-wide'.
+EXIT=0
+── /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-21-fix-a-continuation-ended-twice-stops-too-wide ──
+design.md
+evidence/ (12)
+  affected-run_aContextCutWorkerIsContinuedByItsOwnRun.log
+  affected-run_aContextCutWorkerIsContinuedByItsOwnRun.xml
+  affected-run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound.log
+  affected-run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound.xml
+  affected-run_childPastItsContextBoundIsCut.log
+  affected-run_childPastItsContextBoundIsCut.xml
+  after-change.log
+  after-change.xml
+  measure.txt
+  red-on-HEAD-8e3861c4.log
+  red-on-HEAD-8e3861c4.xml
+  tally.sh
+proposal.md
+specs/ (0)
+  agent-issue-loop/ (1)
+    spec.md
+tasks.md
+785:- **WHEN** a worker skips an item with a hold verdict — `unspecifiable`, `too-wide`, `not-spec-shaped` or
+801:state has several writers — the worker's hold verdicts (`unspecifiable`, `too-wide`, `not-spec-shaped`,
+1276:(`unspecifiable`, `too-wide`, `not-spec-shaped`, `needs-target`) SHALL keep the bare hold it writes. A `stale`
+3810:The run SHALL bound a child in what a turn costs, not in how many turns it takes: it SHALL read the largest context the child's **own** lines of its stream reported (`input + cacheRead`, or a compaction's `tokensBefore`, whichever is greater) — the lines standing before it started are the baseline, because every child of an item appends to one stream — in the wait that enforces the clock and the t [... omitted end of long line]
+3838:  status, records the item `skipped` with the shaping verdict `too-wide`, writes no `bound` stop reason and keeps
+3841:  same bound, so the item stops on the shaping verdict `too-wide` and no third child starts (issue #956)
+3853:#### Scenario: A continuation the same ceiling ended stops the item too wide
+3858:- **THEN** the run starts no third child, records the item `skipped` with the verdict `too-wide`, its note naming the
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+STARTED
+PASS  the portability set declares 5.4
+PASS  the portability set declares 5.5
+PASS  the portability set declares 5.6
+PASS  the portability set declares 5.7
+PASS  the portability set declares 6.1
+PASS  the portability set declares 6.2
+PASS  the portability set declares 6.3
+PASS  the portability set declares 6.4
+PASS  the portability set declares 6.5
+PASS  the portability set declares 6.6
+PASS  the portability set declares 6.7
+PASS  the portability set declares 7.1
+PASS  the portability set declares 7.2
+PASS  the portability set declares 4.1
+PASS  the portability set names the check's own self-test as its gate
+
+mutate-selftest: 37 passed, 0 failed
+gate: tools/tests/mutate-selftest.sh — 1s
+gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+# tools/tests/portability-mutations.json — 18 mutation(s), case command: bash tools/tests/check-portability-selftest.sh --case {case}
+5.1	portability#valueSetIsReadNotHardCoded	the value set is read from the profile, not hard-coded
+5.2	portability#excludesTheAdapterAndFixtures	the source adapter is excluded from the engine set
+5.3	discovery#fromASubdirectory	the profile is resolved from the working tree, not from $HOME
+5.3b	discovery#fromAWorktree	…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)
+5.4	discovery#ignoresGithubRepositoryEnv	GITHUB_REPOSITORY does not override the working tree
+5.5	foreign#profileDiffersFromOurs	the synthetic project's repository differs from this one
+5.6	foreign#emptyGateCommandStillRunsThePhases	the prompt substitutes the project's gate command instead of owning one
+5.7	porting#everyCommandInTheRecipeRuns	every command in the porting recipe runs
+6.1	portability#plantedValueInEveryNamespaceFails	every namespace's value set is read and forbidden, not the category's alone
+6.2	portability#plantedSubmodulePathFails	the submodule path is read from loop.conf, not named in the engine
+6.3	portability#authorisationLabelIsTheOneException	the reserved label is asserted as the one read-only exception, not tolerated
+6.4	preconditions#refusesOutsideAGitTree	the suite refuses when its root is not a git working tree
+6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
+6.6	preconditions#runsInALinkedWorkingTree	a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)
+6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)
+7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)
+7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project's base branch is its own configuration value, not the engine's default (issue #303)
+4.1	portability#testsDirectoryIsNotScanned	the engine set skips the tooling's test code by directory, not by a file-name suffix, so a test file with no suffix is never scanned (#740)
+gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list — 1s
+gate-pool: 4 steps start together — at most 4 in flight
+5.4	update#statusReportNamesImpliedRemoval	the report carrying the displaced labels the caller never named
+7.1	update#stateNamedAsALabelReplacesTheOldState	a state named as the namespaced label being the same act as one named through the state flag
+8.1	update#refusesToDisplaceASettledState	the guard refusing a routine write that would displace a settled state instead of letting every caller through
+gate: tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+# tools/issues/tests/create-mutations.json — 5 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+2.1	create#theAnswerShapeIsWrittenFromTheConstants	the answer's first half having one home (issue #859) — the filing path writes the decision line from this constant, so moving it moves the recorded answer
+2.2	create#theAnswerShapeIsWrittenFromTheConstants	the same home for the marker half (issue #859) — the filing path binds each decision to its question with this constant, so moving it moves the comment it writes
+gate: tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+# tools/issues/tests/close-mutations.json — 6 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	close#writesTheSettledStatus	the settled state being written before the closure — without it an item is closed and still reads on-hold
+A1.2	close#writesTheSettledStatus	a person's not-planned decision recording the state a fix records
+A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry
+A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state
+A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a state (#182)
+A1.6	close#refusesAClosureTheBaseDoesNotCarry	the ancestry check a closure's claim rests on (#715) — without it the item is closed on a commit the base branch does not carry, which is the state five items of the run of 2026-10-30 were found in
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list — 0s
+gate-pool: 2 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+# tools/issues/tests/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
+D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
+D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
+D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1248 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 14s, tools/loop/tests/loop-selftest.sh --from-git 8e3861c4c0c8bff22a36ff291e30385b7497f420 518s, bash tools/loop/tests/loop-mutations.sh --check 16s, tools/loop/tests/loop-mutations-selftest.sh 128s, bash tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 29s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 137s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 8e3861c4c0c8bff22a36ff291e30385b7497f420 — base-red: tools/check-openspec-hygiene.sh:1
+
+# the gate child's own closing answer
+Gate finished. Findings: all 4 BLOCKING + NOTEs applied in one pass; evidence copied, pointer check PASS (`evidence-check: PASS`, `ROUTEEXIT=0`), change archived to `openspec/changes/archive/2026-11-21-fix-a-continuation-ended-twice-stops-too-wide`, delta merged into `openspec/specs/agent-issue-loop/spec.md` (requirement + corrected scenario + new scenario present).
+
+Applied:
+- BLOCKING 1 — `childPastItsContextBoundIsCut` scenario clause now states `skipped` / `too-wide` / no stop reason
+- BLOCKING 2 — body, run note and arm comment now name one trigger: continuation ended at a context ceiling
+- BLOCKING 3 — guideline paragraph + design alternative restated to what the run shows (5 continued / 4 blocked, `cut 0`, `bound 0 of 14`, no `LOOP-TIMEOUT`), arm's evidence cited as `run#childPastItsContextBoundIsCut`
+- BLOCKING 4 — `design.md` gained `## Open decisions` / `none`
+- NOTEs — stale `:1688`/`:1689` pointers → `:1690`, §7e citations repointed by line (C1 convention), derived reading set named, unproven "13 commits" figure dropped, undercount corrected to five, tracker re-entry claim dropped, surface stated as base's
+
+Gate ran once, detached, completed. Quoted as it stands:
+
+LOOP-CHANGE: fix-a-continuation-ended-twice-stops-too-wide
+LOOP-ROOT-CAUSE: the reading a second child the ceiling ended is the item's size, and the run read it as a bound enforced on a phase — `cut` with `bound` beside it — so the shaping vocabulary that exists and is wired (`too-wide` → `agent/needs-shaping`) was never written on that arm
+LOOP-RED-TEST: run#aContinuationEndedOnTheSameCeilingStopsTooWide fails on HEAD — XML tests=1 failures=1 (2026-11-21T02:54:53Z)
+LOOP-GATE: tests=1248 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 14s, tools/loop/tests/loop-selftest.sh --from-git 8e3861c4c0c8bff22a36ff291e30385b7497f420 518s, bash tools/loop/tests/loop-mutations.sh --check 16s, tools/loop/tests/loop-mutations-selftest.sh 128s, tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 29s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 137s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 8e3861c4c0c8bff22a36ff291e30385b7497f420 — base-red: tools/check-openspec-hygiene.sh:1

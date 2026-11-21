@@ -30,8 +30,10 @@ taken.
 
 ## The gate on the replayed tree (2026-11-21)
 
-`gate-replay.log` is one run of `bash tools/loop/gate.sh --base 4b53a442` on the replayed tree (`head=438807ac`,
-`diff=96da55cb`), taken 2026-11-21T11:07Z…11:33Z:
+`gate-replay.log` is one run of `bash tools/loop/gate.sh --base 4b53a442` on the replayed tree, taken
+2026-11-21T11:07Z…11:33Z. The gate's own line names the tree it measured as `head=438807ac diff=96da55cb`; the
+history was re-attributed to the account's protected address after that run (a commit authored with the clone's own
+address is refused at push time, GH007), so that commit is `6d732f98` on `main` and its tree is unchanged:
 
 ```
 LOOP-GATE: tests=1265 failures=0 errors=1 — failing: bash tools/gen-feature-list.sh --check-classification

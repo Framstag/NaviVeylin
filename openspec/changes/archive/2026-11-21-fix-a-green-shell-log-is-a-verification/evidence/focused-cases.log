@@ -1,0 +1,18 @@
+# the cases this delta reaches, on the change as it stands, at 2026-11-21T18:59:57Z
+== tools/loop/tests/loop-selftest.sh --group worktree
+loop-selftest: worktree 30 cases 89.25 s
+loop-selftest: all 30 cases passed (JDK 21, offline, no token, no sandbox) — 20.68 s, selection: --group worktree
+== tools/loop/tests/loop-selftest.sh --group driver
+loop-selftest: driver 45 cases 109.95 s
+loop-selftest: all 45 cases passed (JDK 21, offline, no token, no sandbox) — 22.83 s, selection: --group driver
+== tools/loop/tests/loop-selftest.sh --group prescreen
+loop-selftest: prescreen 44 cases 324.98 s
+loop-selftest: all 44 cases passed (JDK 21, offline, no token, no sandbox) — 24.32 s, selection: --group prescreen
+== tools/loop/tests/loop-selftest.sh --case *Adopt*
+loop-selftest: state 1 cases 1.82 s
+loop-selftest: worktree 1 cases 0.65 s
+loop-selftest: run 1 cases 10.71 s
+loop-selftest: all 3 cases passed (JDK 21, offline, no token, no sandbox) — 10.77 s, selection: --case *Adopt*
+== tools/loop/tests/loop-selftest.sh --case *GreenVerification*
+loop-selftest: run 1 cases 6.30 s
+loop-selftest: all 1 cases passed (JDK 21, offline, no token, no sandbox) — 6.35 s, selection: --case *GreenVerification*

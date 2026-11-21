@@ -1,0 +1,3 @@
+# on the change, at 2026-11-21T18:59:31Z — `tools/loop/tests/loop-selftest.sh --case worktree#aShellSuiteLogIsAVerificationRecord`
+PASS worktree#aShellSuiteLogIsAVerificationRecord
+exit=0

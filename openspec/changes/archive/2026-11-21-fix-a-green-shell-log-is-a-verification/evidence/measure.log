@@ -1,0 +1,4 @@
+LOOP-MEASURE-SUITE cases=528 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-green-shell-log-is-a-verification scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 18 fixtures left as they stand, 1 engine function changed — `tools/look.sh

@@ -1,0 +1,6 @@
+# red on the base commit be56d860, at 2026-11-21T18:54:44Z — `tools/loop/tests/loop-selftest.sh --case worktree#aShellSuiteLogIsAVerificationRecord`
+worktree#aShellSuiteLogIsAVerificationRecord|   a branch whose green proof is the suite's own PASS log is adoptable: archived-not-green	2026-01-01-fix-a-shell-suite-log	: expected 'adoptable', got 'archived-not-green'
+--- worktree#aShellSuiteLogIsAVerificationRecord[0] (exit 1)
+  a branch whose green proof is the suite's own PASS log is adoptable: archived-not-green	2026-01-01-fix-a-shell-suite-log	: expected 'adoptable', got 'archived-not-green'
+FAIL worktree#aShellSuiteLogIsAVerificationRecord
+loop-selftest: 1 of 1 cases failed

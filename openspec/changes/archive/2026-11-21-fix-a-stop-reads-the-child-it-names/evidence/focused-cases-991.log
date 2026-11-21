@@ -1,0 +1,7 @@
+base: 50b05f46 + this change (tools/loop/run.sh, tools/loop/evidence.sh, tools/loop/tests/loop-cases.sh)
+
+PASS run#aStopThatNamesAChildReadsThatChildsOwnWrite
+PASS run#aStopWhoseChildWroteNothingGetsNoClause
+PASS run#anEmptyTreeWithAnOutsideWriteNamesThePaths
+PASS run#childClaimWithoutCommitIsBlocked
+PASS driver#everyCaseDeclaresTheFilesItCanReach

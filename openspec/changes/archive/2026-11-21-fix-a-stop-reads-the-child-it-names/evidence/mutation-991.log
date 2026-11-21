@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 442 records (labels: 991.1 991.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.X4etVX
+RED    991.1  run#aStopThatNamesAChildReadsThatChildsOwnWrite   (the argument that hands the stop the reading taken around the child its sentence names, so a change child%ss write is reported under the gate child%ss name (issue #991))
+       2026-11-21T18:16:59Z — case log line 1: never a reading taken around the change child, which is not the child the sentence speaks of: 'demo-owned.txt' should not appear in: the child could not start — the gate worker exited 0 with an answer of 360 B and no verdict line, leaving t
+restore 991.1 run#aStopThatNamesAChildReadsThatChildsOwnWrite green again
+RED    991.2  run#aStopWhoseChildWroteNothingGetsNoClause   (the guard that keeps a passed reading from falling back to another child%ss, so a child that wrote nothing outside its tree is given the change child%ss difference under its own name (issue #991))
+       2026-11-21T18:17:13Z — case log line 1: a child that wrote nothing outside its tree carries no clause: 'caller's tree' should not appear in: the child could not start — the gate worker exited 0 with an answer of 0 B and no verdict line, leaving the tree at the base — the run neve
+restore 991.2 run#aStopWhoseChildWroteNothingGetsNoClause green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

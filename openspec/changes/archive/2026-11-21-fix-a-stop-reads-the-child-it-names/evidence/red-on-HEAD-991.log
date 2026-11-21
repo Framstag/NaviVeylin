@@ -1,0 +1,11 @@
+base: 50b05f46 (HEAD of the item worktree)
+the two cases are the change own; tools/loop/run.sh and tools/loop/evidence.sh are HEAD, without the fix
+
+--- run#aStopThatNamesAChildReadsThatChildsOwnWrite[0] (exit 1)
+  never a reading taken around the change child, which is not the child the sentence speaks of: 'demo-owned.txt' should not appear in: the child could not start — the gate worker exited 0 with an answer of 360 B and no verdict line, leaving the tree at the base: LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: ?? demo-gate-2.txt — the run nevertheless recorded a difference in the project's own tree while that child ran: if that difference is this item's work it is in the caller's tree and not on the item's branch — the project tree changed while this process ran: ?? demo-owned.txt — read while the child was alive at 2026-11-21T18:11:08Z
+FAIL run#aStopThatNamesAChildReadsThatChildsOwnWrite
+loop-selftest: 1 of 1 cases failed
+--- run#aStopWhoseChildWroteNothingGetsNoClause[0] (exit 1)
+  a child that wrote nothing outside its tree carries no clause: 'caller's tree' should not appear in: the child could not start — the gate worker exited 0 with an answer of 0 B and no verdict line, leaving the tree at the base — the run nevertheless recorded a difference in the project's own tree while that child ran: if that difference is this item's work it is in the caller's tree and not on the item's branch — the project tree changed while this process ran: ?? demo-owned.txt — read while the child was alive at 2026-11-21T18:11:16Z
+FAIL run#aStopWhoseChildWroteNothingGetsNoClause
+loop-selftest: 1 of 1 cases failed

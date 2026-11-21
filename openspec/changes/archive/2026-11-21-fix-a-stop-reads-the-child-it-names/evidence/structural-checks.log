@@ -1,0 +1,23 @@
+== openspec validate fix-a-stop-reads-the-child-it-names --strict
+Change 'fix-a-stop-reads-the-child-it-names' is valid
+exit=0
+
+== tools/check-openspec-hygiene.sh
+::error file=openspec/changes/a-case-name-resolves-to-one-harness/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/run-event-stream-is-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/settings-taxonomy-and-surface/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-bounds-spend-and-budget-are-typed/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/the-print-sites-are-converted/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Every capability spec states its Purpose.
+exit=1
+
+== tools/look.sh section list of the guideline the delta amends
+LOOK: 7 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines/Backlog.recipes.md for '^## '
+LOOK-FILE: guidelines/Backlog.recipes.md 7
+guidelines/Backlog.recipes.md:10:## §2 The participants and the flow
+guidelines/Backlog.recipes.md:49:## §7a Running one item: the script, the child and the package
+guidelines/Backlog.recipes.md:320:## §7b What an item costs, and the bounds on it
+guidelines/Backlog.recipes.md:968:## §7c The gate and its suite
+guidelines/Backlog.recipes.md:1225:## §7d Refusals, records and the landing
+guidelines/Backlog.recipes.md:1601:## §7e Leftovers, the report and the queue
+guidelines/Backlog.recipes.md:1946:## §8 The human lane

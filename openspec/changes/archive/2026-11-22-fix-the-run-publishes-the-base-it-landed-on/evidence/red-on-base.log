@@ -1,0 +1,5 @@
+worktree#publishesTheBaseItLandedOn|   a run asked to publish leaves the remote's base carrying its last landing, not where a person left it: expected '1149c774c0c7a459ee69248d7f59e7b653e6fa3f', got 'ca04c782b7b59417fe4717269a154118f151ef8f'
+--- worktree#publishesTheBaseItLandedOn[0] (exit 1)
+  a run asked to publish leaves the remote's base carrying its last landing, not where a person left it: expected '1149c774c0c7a459ee69248d7f59e7b653e6fa3f', got 'ca04c782b7b59417fe4717269a154118f151ef8f'
+FAIL worktree#publishesTheBaseItLandedOn
+loop-selftest: 1 of 1 cases failed

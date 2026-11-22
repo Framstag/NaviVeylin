@@ -165,6 +165,13 @@ export function inTheTree(token, cwd) {
   }
   if (path.startsWith("../")) return false;
   path = path.replace(/^\.\//, "");
+  // A log is not the tree, wherever it sits. `guidelines/BuildGate.md` §2b reads the loop's own failure log by range and
+  // that file is `ki_processing_failures.log` at the repository root — machine-local, untracked, and under no generated
+  // segment, so no rule above excludes it (`guidelines/Build.md` §10's `/tmp/build-app.log` is outside the root and needs
+  // no exemption). Named as a fact about the file, not about the verb: `tail -n` had the same allowance for the same
+  // reason. Measured 2026-11-22: without this line `policy#aShellTreeSearchIsRefusedAndARecipeIsNot` is red on `main`
+  // (issue #1024).
+  if (/\.log$/i.test(path)) return false;
   return !path.split("/").some((segment) => NOT_THE_TREE.has(segment));
 }
 

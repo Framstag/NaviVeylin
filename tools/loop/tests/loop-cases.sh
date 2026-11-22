@@ -24029,14 +24029,16 @@ case_policy_aRangeReadOfATrackedFileIsRefusedAndALogIsNot() {
 
   # `sed -i` writes a file and `sed -e`/`sed` filter a stream; a quiet `sed` whose script is a substitution prints no
   # range either, so none of them reads a range of the tree, and a `sed` that names no path reads the pipe it stands in.
-  # The log under `/tmp` is the one `guidelines/Build.md` §10 reads, and the item directory is the loop's own
-  # artefact — a relative token inside one names no file of the tree.
+  # The log the gate reads back is `ki_processing_failures.log` at the root — untracked, machine-local, under no generated
+  # segment — and `/tmp/build-app.log` is the one outside the tree; neither is a file of the tree, so neither is refused.
+  # The item directory is the loop's own artefact — a relative token inside one names no file of the tree either.
   while IFS= read -r cmd; do
     [ -n "$cmd" ] || continue
     out=$(node "$rule" --command "$cmd" 2>&1); status=$?
     assert_eq "0" "$status" "a range read that names no file of the tree is left alone (exit $status): $cmd -- $out"
     assert_contains "$out" "ALLOWED" "and it is handed to the child unchanged: $cmd -- $out"
   done <<'RANGES'
+sed -n '1,180p' ki_processing_failures.log
 sed -n '100,130p' /tmp/build-app.log
 sed -n '100,230p' .pi/issue-loop/items/1006/worker-prompt.md
 adb logcat -d | sed -n '1,20p'

@@ -162,14 +162,22 @@ What it therefore re-reads of its own work, and the one bound on it. A tool resu
 context at its own size and stays there, so every later turn of that session re-reads it: over the archive the
 children injected **59.2 M characters** of tool output once and re-read 876.4 M tokens of it — 53 % of the 1.66 B
 the archive spent — with a 116.6 k `ctx_read` and a 51.3 k `ctx_shell` at the top (`python3 tools/loop-spend.py`,
-issue #660). A result above `LOOP_TOOL_RESULT_MAX_CHARS` (8 000, the archive's p90 rounded up) is therefore cut to
-its first 8 000 characters and carries one line naming the tool, the size it had and how to read the rest, and the
-trim is recorded beside the child's event stream in the item's directory, where a reader of the item can re-read the
-range the notice names. Nine results in ten are handed over byte for byte: the archive's median result is 825
-characters and 9.0 % of its 22 901 results are above the bound, which is where 14 % of the spend sits
-(`LOOP-SPEND-CAP8K`; the probe is `evidence/result-sizes.py` in the change
-`2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`, which is archived and so is reached by that path only
-inside the change). The rule is applied where a result passes —
+issue #660). A result above `LOOP_TOOL_RESULT_MAX_CHARS` is therefore cut to its first `<bound>` characters and
+carries one line naming the tool, the size it had, the bound and how to read the rest, and the trim is recorded
+beside the child's event stream in the item's directory, where a reader of the item can re-read the range the notice
+names. The bound is a rule about the tail and the tail is where the volume is: over that archive `ctx_shell` carried
+19.6 M of the 32.0 M characters the children were injected with, at 2.0 k per call, against `ctx_read`'s 9.3 M at
+1.5 k (issue #1004), while the median result is 825 characters and its p75 is 2 917, so the bound at 2 000 sits
+between the two and the cut reaches from the 75th percentile up. `tools/loop/loop.conf` records **2 000** since
+#1004 — the number is that file's and no case carries it as a literal, because the arm that must stay whole is the
+one a looser recorded value would break — and not 1 000, which starts cutting the JUnit line and the stack frame
+`BuildEvidence.md` §4d attributes a red run with. Gate evidence is not what decides it: a gate log and a suite XML
+are held at `GATE_EVIDENCE_BOUND` (8 000) by `tools/pi-trim-result.mjs` whatever this key records, so the number
+here is the ordinary result's. The 8 000 the key shipped with until #815 was the archive's p90 rounded up, and the
+shares that earned it are that 8 000's: nine results in ten handed over byte for byte, and 9.0 % of the archive's
+22 901 results above it carrying 14 % of the spend (`LOOP-SPEND-CAP8K`; the probe is
+`evidence/result-sizes.py` in the change `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`, which is archived
+and so is reached by that path only inside the change). The rule is applied where a result passes —
 `tools/pi-trim-result.mjs`, loaded by the adapter with every child — and not by asking the child to read less: the
 prompt has asked for that since #246, and the archive still records `LOOP-SPEND-READS calls=4798 duplicate=2174` —
 45 % of its reads are a second read of a path it already read. `0` disables it, and a ported project that deletes

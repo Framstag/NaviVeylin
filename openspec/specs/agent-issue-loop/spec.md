@@ -3036,9 +3036,16 @@ result passes from the tool to the child — not by asking the child to read les
 #### Scenario: A result at or under the bound is handed over whole
 
 - **WHEN** a child's tool returns at most the recorded bound
-- **THEN** the result reaches the context byte for byte, with no notice and no record, so the bound costs nothing
-  to the nine results in ten the archive measured under it
+- **THEN** the result reaches the context byte for byte, with no notice and no record, so a result the bound does not
+  cut costs nothing
 - **Case**: `trim#aResultUnderTheBoundIsHandedOverWhole`
+
+#### Scenario: A result between the recorded bound and the one it replaced arrives cut
+
+- **WHEN** a child's tool returns more characters than the project records but fewer than a bound it recorded before
+- **THEN** the result is cut at the recorded bound and named, so the number the file holds and not an earlier one
+  decides what the child is handed
+- **Case**: `trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut`
 
 #### Scenario: The trim is recorded for the item
 

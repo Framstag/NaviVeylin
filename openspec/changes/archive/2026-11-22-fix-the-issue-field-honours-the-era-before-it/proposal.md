@@ -32,7 +32,7 @@ cases assert what the base already does — the two fixtures this change realign
 
 **The single fix.** Read the change's own `created:` (`tools/check-openspec-hygiene.sh:126`) and, when it states a
 day before `2026-11-19` — the day the rule landed, `c7de199f` — report the directory instead of refusing it
-(`:131-133`), with the date the check read named in the output (`:155-157`). The boundary is one constant (`:45-48`).
+(`:131-132`), with the date the check read named in the output (`:155-156`). The boundary is one constant (`:48`).
 The refusal keeps every change written on or after that day, and every change that states no `created:` at all,
 because a directory that states no era cannot be read as belonging to one.
 
@@ -45,11 +45,11 @@ and so does the same call with `--path docs`: the rule's normative home is the c
 is where this change's delta lands. `AGENTS.md` "OpenSpec Workflow" lists the artifact classes CI gates and does not
 name this one — a pre-existing omission, reported as a `NOTE:` rather than repaired here.
 
-surface: 2 files changed, 1 case added, 2 fixtures realigned — `tools/look.sh "no 'x-issue:' field"` reports 189
-matches in 39 files, and exactly two of
-them are the tree's own — the check and its case file; the rest are archived changes' evidence and open changes'
-logs, which quote the message rather than assert the rule. So the delta is two files and one capability spec, and
-the estimate is set against that count, not against the first file the plan names.
+surface: 2 files changed, 1 case added, 2 fixtures realigned — `tools/look.sh "no 'x-issue:' field" --files` reports
+191 matches in 41 files (`evidence/look-surface.log`, 2026-11-22T20:30:17Z), and exactly two of
+that command's files are the tree's own — `tools/check-openspec-hygiene.sh` and its case file; the rest are archived
+changes' evidence and open changes' logs, which quote the message rather than assert the rule. So the delta is two
+files and one capability spec, and the estimate is set against that count, not against the first file the plan names.
 
 ## What Changes
 

@@ -12,8 +12,8 @@ of this tree's open directories are in exactly that state (`created: 2026-11-14`
 ## D1 — where the era is read from
 
 **Chosen: the `created:` line of the change's own `.openspec.yaml`** (`:126`), compared against one constant
-(`:45-48`, `2026-11-19` — the day the rule landed, `c7de199f`), and reported instead of refused when it is earlier
-(`:131-133`). The report prints the date it read (`:155-157`), so the claim is checkable by the reader who meets it.
+(`:48`, `2026-11-19` — the day the rule landed, `c7de199f`), and reported instead of refused when it is earlier
+(`:131-132`). The report prints the date it read (`:155-156`), so the claim is checkable by the reader who meets it.
 
 The alternatives the evidence eliminates:
 
@@ -64,13 +64,17 @@ without moving that case's verdict.
 
 ## Blast radius
 
-- `.github/workflows/build.yml:439-442` — the CI step runs the check and its case file; both exit 0 after this
-  change, where the check exits 1 on a trunk whose open set predates the field.
+- `.github/workflows/build.yml:439-442` — the CI step runs the check and its case file; both exit 0 over the
+  tracked open set after this change (`evidence/check-tracked-open.log`, `evidence/green-selftest.log`), where the
+  check exits 1 on a trunk whose open set predates the field. The worktree's own reading still exits 1, on one
+  concurrent session's directory that states no era (`evidence/check.log`), so the claim is about the committed tree
+  and not about every working copy.
 - `tools/loop/prescreen.sh:301-302` — reads the check's finding for a collision and filters
   `^::error::… name one issue (#…)`; the era's line is not an `::error` and begins with no annotation, so it cannot
   reach that filter.
-- The 19 open change directories of this worktree — verdicts unchanged except the five that gain a report line
-  instead of a refusal. The one directory carrying no `.openspec.yaml` at all
+- The 17 open change directories of this worktree — 12 declaring an issue and 5 that predate the field
+  (`evidence/check-tracked-open.log`) — verdicts unchanged except the five that gain a report line instead of a
+  refusal. The one directory carrying no `.openspec.yaml` at all
   (`openspec/changes/fix-the-checkpoint-splits-the-items-chain`) is still refused: it states no `created:`, so it
   belongs to no era, which is D1's own rule and not a gap in it. It is a concurrent session's open change, ignored by
   `.gitignore:82`, and it is absent from the committed tree, so the CI reading does not see it

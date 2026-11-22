@@ -1,0 +1,5 @@
+# tools/look.sh "no 'x-issue:' field" --files — the surface reading proposal.md quotes, taken from the change root
+# 2026-11-22T20:30:17Z (transcribed from the run's own summary and LOOK-FILE lines)
+LOOK: 191 matches in 41 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'no 'x-issue:' field'
+LOOK-FILE: tools/check-openspec-hygiene.sh 1
+LOOK-FILE: tools/tests/check-openspec-hygiene-selftest.sh 3

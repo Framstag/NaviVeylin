@@ -8,17 +8,20 @@
   `#aChangeNamingNoIssueIsRefused` to `2026-11-20`. Parent: `documentation-ownership`, "An open change names the
   issue it is for" — scenario "A change written before the field was required is reported".
   Verify: `bash tools/tests/check-openspec-hygiene-selftest.sh --case 'artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported'`
-  is red on the base checker (`evidence/red-on-base-single.log`, `tests=1 failures=1`, 2026-11-21T19:38:56Z), and the
-  base reading of the whole case file is `1 of 12 cases failed` (`evidence/red-on-base.log`).
+  is red on the base checker (`evidence/red-on-base-single.log`, `.xml`: `tests=1 failures=1`,
+  2026-11-22T20:14:10Z), and the base reading of the whole case file is `1 of 12 cases failed`
+  (`evidence/red-on-base.log`).
 
 ## 2. The check
 
-- [x] 2.1 `tools/check-openspec-hygiene.sh` — read `created:` from the change's own `.openspec.yaml` (`:130`), hold
-  the boundary in one constant (`:65`), report a change whose `created:` is earlier instead of refusing it
-  (`:135-137`), print the era's line with the directory and the date it read (`:160`), and state the era in the
-  class's header comment. Parent: the same requirement. Verify: the check exits 0 over this tree and names the five
-  pre-era directories (`evidence/check.log`); no compiled file is touched, so this is the structural check of the
-  file it edits and no build is owed (`guidelines/Build.md` §2, the scope block).
+- [x] 2.1 `tools/check-openspec-hygiene.sh` — read `created:` from the change's own `.openspec.yaml` (`:126`), hold
+  the boundary in one constant (`:48`), report a change whose `created:` is earlier instead of refusing it
+  (`:131-132`), print the era's line with the directory and the date it read (`:155-156`), and state the era in the
+  class's header comment (`:111-113`). Parent: the same requirement. Verify: the check exits 0 over the tree's tracked
+  open set and names the five pre-era directories (`evidence/check-tracked-open.log`); over this worktree it exits 1
+  on the one open change that states no era and belongs to a concurrent session (`evidence/check.log`); no compiled
+  file is touched, so this is the structural check of the file it edits and no build is owed
+  (`guidelines/Build.md` §2, the scope block).
 - [x] 2.2 Verify the case file passes over the repaired check.
   Verify: `bash tools/tests/check-openspec-hygiene-selftest.sh` — all 12 cases (`evidence/green-selftest.log`).
 
@@ -43,8 +46,9 @@
 ## 5. Handover
 
 - [x] 5.1 Leave the change unarchived for the gate child (the gate is not this session's), with its evidence beside
-  it. Verify: the diff is the two files and the change directory, and `bash tools/check-openspec-hygiene.sh` over the
-  tree is green before handover.
+  it. Verify: the diff is the two files and the change directory, and `bash tools/check-openspec-hygiene.sh` exits 0
+  over the tree's tracked open set before handover (`evidence/check-tracked-open.log`), while this worktree's own
+  reading exits 1 on the concurrent session's directory that states no era (`evidence/check.log`).
 
 ## 6. The change child's own phase, taken by the continuation session
 

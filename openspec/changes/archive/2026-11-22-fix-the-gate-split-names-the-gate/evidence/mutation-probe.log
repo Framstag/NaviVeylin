@@ -1,0 +1,9 @@
+1008.1	spend#aFocusedSuiteRunIsNotTheItemsGate	the suite admitted to the gate's predicate — the defect `GATE_RE` carried, so the split lands on the suite's turn (84 000) instead of the gate's (47 000)
+  RED(exit 1)  1 occurrence(s) replaced in tools/loop-spend.py
+  GREEN(exit 0)  restored, and the case passes again
+1008.2	spend#aFocusedSuiteRunIsNotTheItemsGate	the gate's own program dropped from the predicate, so no call is a gate run: no session gated, and the share prints 0 rather than the tail after the gate's turn
+  RED(exit 1)  1 occurrence(s) replaced in tools/loop-spend.py
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 2 mutation(s) run, 2 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

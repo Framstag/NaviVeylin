@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red case's tally on the base: the three cases are this change's own, the tree is base commit
+     1a5dede26c1b69bede01f2a4273d979002b494f4 with only the cases applied (the HEAD `tools/loop-spend.py` beside the
+     new selftest, in a copy outside the worktree), and the run was taken at 2026-11-22T12:50:18Z.
+     `tools/loop/tests/loop-spend-selftest.sh` prints its verdict, not a JUnit file, so this file carries the tally
+     the run recorded (`3 of 30 cases failed`, exit 1) as a testsuite; the verbatim output of that run is
+     evidence/red-on-HEAD.log beside this file. Derived from that log, not a re-run. -->
+<testsuite name="tools/loop/tests/loop-spend-selftest.sh" tests="30" failures="3" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-22T12:50:18Z"/>
+    <property name="base" value="1a5dede26c1b69bede01f2a4273d979002b494f4"/>
+  </properties>
+  <testcase classname="spend" name="spend#aFocusedSuiteRunIsNotTheItemsGate">
+    <failure message="the split is at the gate, not at a call that reads its file: expected '47000', got '95000'"/>
+  </testcase>
+  <testcase classname="spend" name="spend#theFocusedRunsTailIsStatedBesideTheGates">
+    <failure message="the suite's own tail is printed beside the gate's: expected '84000', got '' (no `suite=` key)"/>
+  </testcase>
+  <testcase classname="spend" name="spend#jsonCarriesBothVerificationPositions">
+    <failure message="--json carries both positions: expected '47000 84000', got '' (KeyError: 'afterFirstSuite')"/>
+  </testcase>
+</testsuite>

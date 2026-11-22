@@ -1,0 +1,22 @@
+{
+  "comment": "The two mutations issue #1008's case owes (tasks 3.2): the suite admitted back into the gate's predicate, and the gate's own program dropped from it. One mutation per invariant, `spend#aFocusedSuiteRunIsNotTheItemsGate` must go red on each, the file is restored and the case must go green again. Run with `bash tools/mutate.sh --mutations openspec/changes/<this change>/evidence/spend-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. Every search is a single line and unique in its file.",
+  "case-cmd": "bash tools/loop/tests/loop-spend-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "1008.1",
+      "case": "spend#aFocusedSuiteRunIsNotTheItemsGate",
+      "file": "tools/loop-spend.py",
+      "search": "    if program(command) != GATE_PROGRAM:",
+      "replace": "    if program(command) not in (GATE_PROGRAM, SUITE_PROGRAM):",
+      "why": "the suite admitted to the gate's predicate — the defect `GATE_RE` carried, so the split lands on the suite's turn (84 000) instead of the gate's (47 000)"
+    },
+    {
+      "label": "1008.2",
+      "case": "spend#aFocusedSuiteRunIsNotTheItemsGate",
+      "file": "tools/loop-spend.py",
+      "search": "    if program(command) != GATE_PROGRAM:",
+      "replace": "    if program(command) != 'a-gate-that-is-not-this-one':",
+      "why": "the gate's own program dropped from the predicate, so no call is a gate run: no session gated, and the share prints 0 rather than the tail after the gate's turn"
+    }
+  ]
+}

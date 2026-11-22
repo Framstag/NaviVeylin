@@ -6312,3 +6312,25 @@ is the change's red proof and leaves the branch unverified.
   read, the branch is merged onto the base with the log named as the evidence it was checked for, and a log that
   names a failing case instead is not read as green, so a red proof never adopts the branch it reports on
 - **Case**: `worktree#aShellSuiteLogIsAVerificationRecord`
+
+### Requirement: A result older than the recorded age leaves the request under a line that outlives it
+
+A tool result that has stood in a child's transcript for as many assistant turns as the project records or more
+(`LOOP_TOOL_RESULT_AGE_TURNS`) SHALL NOT be carried into that child's next request: it SHALL be replaced, in the
+request only, by one line naming the tool, the path it read, the size it had and the call that reads a range of it
+again. The transcript the session stores SHALL keep the result whole, because it is what an evidence check and the
+item's record read, and the rule SHALL be applied on the agent's own hook over a copy of the messages rather than by
+rewriting what the session holds. The volume the rule withholds SHALL be appended once, with the tool and both sizes,
+to the record the adapter already names for a trim, beside the child's own event stream. The number SHALL be the
+project's, read from `tools/loop/loop.conf` by the adapter the way it reads the size bound, and `0` SHALL mean that
+every request stands exactly as the session holds it — the arm a project that records no key is handed, because a rule
+that withdraws a result the child still needs costs more than the turns it saves.
+
+#### Scenario: A result older than the recorded age leaves the request, and the transcript keeps it
+
+- **WHEN** a child's result arrives at one turn and the same child's request is built the recorded number of turns
+  later, and again one turn short of it
+- **THEN** the earlier request carries the result whole, the later one carries one line naming the tool, the path it
+  read, the size it had and the range that reads it again, the session's own messages still hold the result byte for
+  byte, and the withheld volume is appended to the trim record beside the child's event stream
+- **Case**: `trim#aResultOlderThanTheAgeIsStubbedAndNamed`

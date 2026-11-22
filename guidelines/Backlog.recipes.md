@@ -202,7 +202,7 @@ the adapter owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`,
 That bound and the repeat rule both decide what a result puts into the context **when it arrives**, so neither of them
 can take one out again: a result a child was handed at turn 3 is still in its transcript at turn 40, and 57 % of the
 871 Mtok this archive spent is `toolResults`, 496.9 Mtok of it re-read (`python3 tools/loop-spend.py --json`, issue
-#1002). So a third rule drops a result older than `LOOP_TOOL_RESULT_AGE_TURNS` assistant turns out of the **request** —
+#1002). So a third rule drops a result that has stood for `LOOP_TOOL_RESULT_AGE_TURNS` assistant turns or more out of the **request** —
 pi's own `context` hook, which is handed a copy of the messages, so the transcript an evidence check reads keeps the
 whole text — and replaces it with one line naming the tool, the path it read, its size and the call that reads a range
 of it again, the withheld volume landing in the same record as the trim. `tools/loop/loop.conf` records **20**: over the

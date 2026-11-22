@@ -186,11 +186,13 @@ case "$child_checks_bound" in ''|*[!0-9]*) child_checks_bound=0 ;; esac
 # 140 and p90 273, a 5x spend over a 2x range of turns. The reading that varies already exists
 # (`tools/loop/state.sh`'s `child_usage_json`, the largest `input + cacheRead` a turn reported), but only the report
 # reads it, after the item is over. So the run reads it too, where the wall clock and the turn count are already
-# enforced, and takes two decisions from it: a checkpoint line at `LOOP_ITEM_CONTEXT_WARN` (nothing is ended) and an
-# end at `LOOP_ITEM_CONTEXT_MAX`. Measured over the 300 item records of `.pi/issue-loop/run.json` and `runs/*.json`
-# (2026-11-05): the largest context per item is p50 107 669, p75 143 124, p90 174 984, p95 191 815, maximum 244 764.
-# The checkpoint is the p75, recorded exactly as measured, the way the token band records its own; it flags about a
-# quarter of the items and costs one line. The maximum is 200 000 — above the p95 and at the window every provider
+# enforced, and takes two decisions from it: a checkpoint at `LOOP_ITEM_CONTEXT_WARN`, at which the item's first worker
+# is split and continued (issue #856), and an end at `LOOP_ITEM_CONTEXT_MAX`. Measured over the 300 item records of
+# `.pi/issue-loop/run.json` and `runs/*.json` (2026-11-05): the largest context per item is p50 107 669, p75 143 124,
+# p90 174 984, p95 191 815, maximum 244 764. The checkpoint was drawn at that p75 while it only printed a line; since
+# it ends the child, the reading is the split's own (issue #1003, the table in `tools/loop/loop.conf`): 90 000, where
+# the baseline a split pays again is outweighed by the turns it saves. The maximum is 200 000 — above the p95 and at
+# the window every provider
 # this project runs sits at, where a turn costs 1.86x the archive's median turn (200 000 / 107 669) — and 10 of the
 # 300 recorded items (3.3 %) reached it. Both are `0` or absent = no bound, the shape `LOOP_MIN_FREE_MIB` and
 # `LOOP_ITEM_TOKENS_WARN` have, so a project that records neither owes nothing by them (D16).
@@ -1217,7 +1219,7 @@ while true; do
 
   # ── the bound ended this worker: this run continues the item, it does not hand it forward (issue #851) ─────────────
   #
-  # The bound is not the defect. `LOOP_ITEM_CONTEXT_MAX` stays 200 000 and the checkpoint stays 143 124 (#836), and a
+  # The bound is not the defect. `LOOP_ITEM_CONTEXT_MAX` stays 200 000 and the checkpoint sits at 90 000 (#1003), and a
   # child the run ended is never committed (#754). What cost the run of 2026-11-11T11:37:08Z 33.08 of its 75.45 Mtok
   # (44 %) was **when** the work was resumed: it cut #847 at 200 174 tokens after 142 turns and #839 at 200 869 after
   # 125, kept 1 010 460 B and 1 323 610 B of their work in their own patches, closed neither, and then stopped `queue

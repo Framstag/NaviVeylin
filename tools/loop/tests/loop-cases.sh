@@ -530,6 +530,7 @@ LOOP_SHELL_CASES=(
   'run#childPastItsContextBoundIsCut'
   'run#aContextCutWorkerIsContinuedByItsOwnRun'
   'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound'
+  'run#theCheckpointIsTheSplitsOwnReading'
   'run#aWorkerBelowItsCheckpointIsNotSplit'
   'run#aWorkerAtTheCheckpointWithNoWorkRunsOn'
   'run#aCutWhosePatchDoesNotApplyIsLeftCut'
@@ -1341,6 +1342,7 @@ loop_run_shell_case() {
     'run#childPastItsContextBoundIsCut') fn=case_run_childPastItsContextBoundIsCut ;;
     'run#aContextCutWorkerIsContinuedByItsOwnRun') fn=case_run_aContextCutWorkerIsContinuedByItsOwnRun ;;
     'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound') fn=case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound ;;
+    'run#theCheckpointIsTheSplitsOwnReading') fn=case_run_theCheckpointIsTheSplitsOwnReading ;;
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
     'run#aWorkerAtTheCheckpointWithNoWorkRunsOn') fn=case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn ;;
     'run#aCutWhosePatchDoesNotApplyIsLeftCut') fn=case_run_aCutWhosePatchDoesNotApplyIsLeftCut ;;
@@ -22005,7 +22007,7 @@ case_run_childPastItsContextBoundIsCut() {
   # its `3`: the recorded policy is `loop.conf`'s, and the case asserts the engine enforces what the profile says.
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
   grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   # The child's own stream, in the shape the adapter keeps: one usage record per streamed update and one `turn_end`
@@ -22057,7 +22059,7 @@ EOF
   assert_eq "0" "$status" "a child the run itself ended is not a failed run"
   assert_contains "$out" "item-context-max=200000" "the run's header names the context bound it enforces"
   assert_contains "$out" "LOOP-CONTEXT:" "and the checkpoint the run can take for free is taken once"
-  assert_contains "$out" "LOOP_ITEM_CONTEXT_WARN records 143124" "naming the recorded checkpoint, not a number of its own"
+  assert_contains "$out" "LOOP_ITEM_CONTEXT_WARN records 90000" "naming the recorded checkpoint, not a number of its own"
   assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the cut"
   report="$p/.pi/issue-loop/items/21/worker-report.md"
   [ -f "$report" ] || fail "the item kept no transcript of the child the context bound ended"
@@ -22113,7 +22115,7 @@ case_run_aContextCutWorkerIsContinuedByItsOwnRun() {
   conf="$d/loop.conf"
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
   grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
   # The first worker leaves real work in the tree and its own stream crosses the bound while the case holds it; the
   # continuation is released by the case and answers with a report **of its own**, which is what makes the assertion
@@ -22216,9 +22218,9 @@ case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound() {
   conf="$d/loop.conf"
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
-  grep -qx 'LOOP_ITEM_CONTEXT_WARN=143124' "$conf" || fail "this case could not record the checkpoint in loop.conf"
-  # 150 000 is above the recorded checkpoint (143 124) and below the stop (200 000), so the split is the only bound
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_WARN=90000' "$conf" || fail "this case could not record the checkpoint in loop.conf"
+  # 150 000 is above the recorded checkpoint (90 000) and below the stop (200 000), so the split is the only bound
   # this child can reach: a tree that does not take the checkpoint leaves the run waiting on the stub until the
   # case's own margin ends it, which is what makes this case red on the tree before the fix.
   fixture="$d/events.jsonl"
@@ -22279,7 +22281,7 @@ EOF
   assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the split"
   report="$p/.pi/issue-loop/items/21/worker-report.md"
   [ -f "$report" ] || fail "the item kept no transcript of the worker the checkpoint ended"
-  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded context checkpoint of 143124 tokens (LOOP_ITEM_CONTEXT_WARN) at 150000 tokens" \
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 150000 tokens" \
     "the transcript names the checkpoint and the reading it reached, in the child's own words"
   assert_not_contains "$(cat "$report")" "recorded context bound of" \
     "and names the checkpoint rather than the stop the child never reached"
@@ -22312,6 +22314,94 @@ EOF
   return 0
 }
 
+# The checkpoint is the split's own reading, not the p75 it was drawn at (issue #1003). A split pays the session's
+# baseline a second time and saves only the turns after the crossing, so the reading most items reach is not the
+# reading that saves the most: drawn at the p75, the one item in four that reaches it has already paid the expensive
+# window before the split, and the split saves only what comes after it. This case pins 90 000 and holds the child at
+# 95 000 — between the recorded checkpoint and the old p75 of 143 124 — which is the reading a p75 checkpoint let run
+# on to the stop having saved nothing.
+case_run_theCheckpointIsTheSplitsOwnReading() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  local d p fifo fixture action pid i status out f log report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The recorded profile is the one the run reads — no copy carries a shortened value here — because the number this
+  # case is about is the one `loop.conf` records, and a case that wrote its own would pin the engine to a reading
+  # nobody measured.
+  grep -qx 'LOOP_ITEM_CONTEXT_WARN=90000' "$LOOP_CONF" \
+    || fail "loop.conf records no 90000 checkpoint: the split is not drawn where the baseline it pays is outweighed"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$LOOP_CONF" \
+    || fail "loop.conf records no 200000 stop beside the checkpoint"
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":95000,"output":10,"cacheRead":0,"cacheWrite":0}}
+JSON
+  printf '%s\n' \
+    'LOOP-VERDICT: skipped' \
+    'LOOP-SKIP-VERDICT: needs-diagnosis' \
+    'LOOP-ROOT-CAUSE: the work the checkpoint ended stands in the tree, and what it still owes is a diagnosis' \
+    'LOOP-RED-TEST: none — the continuation changed nothing' > "$d/continuation-report.txt"
+  export PI_STUB_REPORT_CONTINUATION="$d/continuation-report.txt"
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'the work the checkpoint ended\n' > demo-fix.txt
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do
+    grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null || {
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run left a 95 000-token worker to the stop: the checkpoint it records is not below the window it splits"
+  }
+  printf 'go\n' >&8 2>/dev/null || true
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "the run that split the worker at its checkpoint is not a failed run: $out"
+  assert_contains "$out" "LOOP-CONTEXT:" "the checkpoint is named for a worker between it and the old p75"
+  assert_contains "$out" "LOOP_ITEM_CONTEXT_WARN records 90000" "and names the value the profile records, not a number of its own"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the worker the checkpoint ended"
+  assert_contains "$(cat "$report")" "the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 95000 tokens" \
+    "the transcript names the reading the checkpoint ended it at"
+  f=$(state_file "$p")
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "worker-checkpoint")] | length' "$f")" \
+    "and the continuation is recorded as the checkpoint's own step"
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$f")" \
+    "the item is decided by the continuation's answer, not by the checkpoint that ended the first child: $out"
+  assert_eq "needs-diagnosis" "$(jq -r '.items[0].verdict' "$f")" \
+    "and by its verdict, which is a word only that report carries"
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "with exactly one continuation child started from the work it left"
+  return 0
+}
+
 # …and the half the ceiling needs (issue #856): a worker that stays below the recorded checkpoint keeps its one
 # session. Without this case the split could be made unconditional at every reading and the case above would still
 # pass, which is the shape a mutation on the comparison would find.
@@ -22327,14 +22417,14 @@ LOOP-RED-TEST: none — nothing was changed' 'VERDICT: PASS'
   conf="$d/loop.conf"
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
-  grep -qx 'LOOP_ITEM_CONTEXT_WARN=143124' "$conf" || fail "this case could not record the checkpoint in loop.conf"
-  # 100 000 is below the recorded checkpoint, and the child is held for three seconds rather than answering at once,
-  # so the run takes its whole-second reading and has the 100 000 in hand while the child still runs — a split at any
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_WARN=90000' "$conf" || fail "this case could not record the checkpoint in loop.conf"
+  # 60 000 is below the recorded checkpoint, and the child is held for three seconds rather than answering at once,
+  # so the run takes its whole-second reading and has the 60 000 in hand while the child still runs — a split at any
   # reading would end it here.
   fixture="$d/events.jsonl"
   cat > "$fixture" <<'JSON'
-{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":100000,"output":10,"cacheRead":0,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":60000,"output":10,"cacheRead":0,"cacheWrite":0}}
 JSON
   action="$d/child.sh"
   cat > "$action" <<EOF
@@ -22352,7 +22442,7 @@ EOF
   status=$?
   out=$(cat "$d/out")
   assert_eq "0" "$status" "the run whose worker stayed below the checkpoint is not a failed run: $out"
-  assert_not_contains "$out" "LOOP-CONTEXT:" "no checkpoint line is printed below the recorded 143124"
+  assert_not_contains "$out" "LOOP-CONTEXT:" "no checkpoint line is printed below the recorded 90000"
   report="$p/.pi/issue-loop/items/21/worker-report.md"
   [ -f "$report" ] || fail "the item kept no transcript of the worker that ended by itself"
   assert_not_contains "$(cat "$report")" "LOOP-TIMEOUT" "the child below the checkpoint is ended by nothing but its own answer"
@@ -22369,7 +22459,7 @@ EOF
 
 # …and the split is taken only from a child that has something to continue from (issue #856): a worker that reaches
 # the checkpoint having written nothing is not ended there, because the continuation is the kept patch applied onto
-# the branch's HEAD and an empty patch is no continuation — ending it would cut the item at 143 124, below the
+# the branch's HEAD and an empty patch is no continuation — ending it would cut the item at 90 000, below the
 # recorded stop of 200 000, which is the bound #836 refused to lower. The case holds the child past its crossing, so
 # a tree that splits on the reading alone ends it and the assertions read that as the cut it is.
 case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn() {
@@ -22384,8 +22474,8 @@ LOOP-RED-TEST: none — nothing was changed' 'VERDICT: PASS'
   conf="$d/loop.conf"
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
-  grep -qx 'LOOP_ITEM_CONTEXT_WARN=143124' "$conf" || fail "this case could not record the checkpoint in loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_WARN=90000' "$conf" || fail "this case could not record the checkpoint in loop.conf"
   fixture="$d/events.jsonl"
   cat > "$fixture" <<'JSON'
 {"type":"turn_end","message":{"role":"assistant"},"usage":{"input":150000,"output":10,"cacheRead":0,"cacheWrite":0}}
@@ -22448,7 +22538,7 @@ case_run_aCutWhosePatchDoesNotApplyIsLeftCut() {
   conf="$d/loop.conf"
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
   grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
   # The worker crosses the bound without writing anything: what `keep_leftovers` writes is the patch's preamble and no
   # hunk, which neither `git apply` nor `--3way` takes (measured on items/16, exit 128, "no valid patches in input").
@@ -22520,7 +22610,7 @@ case_run_aCutRunsItsGateOnTheKeptWork() {
   conf="$d/loop.conf"
   sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
     fail "could not copy loop.conf"
-  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
   grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
   # The run's own gate, as the stub the profile names: it records the tree it was started in and the work that tree
   # holds, and it is the only thing in this case that can say the gate was run at all — the item ends `cut` whether it

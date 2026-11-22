@@ -498,7 +498,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       # …and the checkpoint above the stop is taken rather than only printed (issue #856): the item's first worker is
       # the phase whose session the checkpoint can split, and the continuation #851 landed is the child it is handed
       # to. It is taken only when that child has left work in the tree, because a continuation is the kept patch applied
-      # onto the branch's `HEAD` — with nothing to apply, the split would cut an item at 143 124 that the recorded stop
+      # onto the branch's `HEAD` — with nothing to apply, the split would cut an item at 90 000 that the recorded stop
       # of 200 000 would have let run on, which is the bound #836 refused to lower. The tree is read in the same whole
       # second as the reading and not on every look (the wait looks twenty times a second), so a worker that writes its
       # change after the crossing is split on its next reading rather than missed. The stop's check stands first, so a

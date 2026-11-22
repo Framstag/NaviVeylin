@@ -116,9 +116,11 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   submodule included), `ctx_grep` or `ctx_read` — never a shell `grep`/`head`/`ls`/`sed`/`cat` chain. `--path <file>`
   scopes the walk to one document, which is how that document's section list is read
   (`tools/look.sh '^## ' --path guidelines/Build.md`); that call is the one every phase prompt names, because a tool
-  that fails on the host is not an answer about the tree (issue #796). The child's own policy refuses a shell *tree
-  search* and names the alternatives: `sed -n 'N,Mp'` and `tail -n` to read a range of a known file, and a filter of
-  another command's output (`… | grep -c`), still stand.
+  that fails on the host is not an answer about the tree (issue #796). A range of a known file is that tool's own
+  call — `ctx_read`'s `offset` and `limit` — and every phase prompt names it as the range and puts no shell range read
+  beside it (issue #1007). The child's own policy refuses a shell *tree search* and answers it with the tools; a
+  filter of another command's output (`… | grep -c`) still stands, and `sed -n 'N,Mp'` and `tail -n` are not refused —
+  `guidelines/Build.md` §10 reads a build's log with them — but they are not how a tree question is answered.
 
 ## 2b. Liveness guard and shell recipes
 

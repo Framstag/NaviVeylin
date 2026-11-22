@@ -923,6 +923,17 @@ MUTATIONS=(
   # reads it. One record for the prompt the item names — the reviewer's, whose report is a claim about the text it read.
   '258.1@-@tools/loop/prompts/reviewer.md@prompt#thePhasePromptsCarryTheirOwnRoute@the sentence that names the marker a cut read carries, so a reviewer that holds a window grades it as the file (issue #818)@s#LOOP-TRIMMED#LOOP-WINDOW#'
 
+  # 1007.x — the block that refuses a shell tree search stops handing its alternative back (issue #1007). Measured over
+  # `.pi/issue-loop/items` (47 items, 9 811 read-verb calls): the calls aimed at the child's own prompt are 675 (6.9 %)
+  # for 2 332 026 characters at 3 447 per call — the archive's most expensive class per call, against `ctx_read`'s
+  # 1.5 k — because the block named `sed -n 'N,Mp'` beside the tools and the notice a cut result carries repeated it.
+  # Four records: the bullet, the notice the module emits, one skeleton that quotes it, and the guideline section the
+  # bullet renders.
+  '1007.1@-@tools/loop/prompts/worker.md@prompt#thePhasePromptNamesWhatItsShellRefuses@the range the block hands the child, so the shell read it refuses comes back beside the tool that answers the same question (issue #1007)@s|not a shell call|or a shell call: sed -n '"'"'N,Mp'"'"'|'
+  '1007.2@-@../pi-trim-result.mjs@prompt#thePhasePromptNamesWhatItsShellRefuses@the call the notice hands the child for the rest of a cut result, so the notice a child reads offers the shell read its prompt refuses (issue #1007)@s|the first \${bound} are shown|the first \${bound} are shown, or sed -n '"'"'N,Mp'"'"'|'
+  '1007.3@-@tools/loop/prompts/reviewer.md@prompt#thePhasePromptNamesWhatItsShellRefuses@the sentence that quotes the notice, so the reviewer'"'"'s copy of it offers the shell read the notice stopped naming (issue #1007)@s#(ctx_read mode="lines:N-M")\]`#(ctx_read mode="lines:N-M", or sed -n '"'"'N,Mp'"'"')]`#'
+  '1007.4@-@../../guidelines/BuildGate.md@prompt#thePhasePromptNamesWhatItsShellRefuses@the sentence of the guideline section the block renders, so the guideline section the block renders still answers a range with the shell read the prompt refuses (issue #1007)@s|A range of a known file is that tool|A range of a known file is `sed -n`|'
+
   # 89.x — an item's kept stream is bounded and reported (issue #802). Measured 2026-11-06 over this archive: 254 event
   # streams held 3 483 MiB (p50 11.84, p90 29.88, max 63.47 MiB), and no cleanup arm named the 3 563 MiB of item
   # directories. Four invariants: the writer rotates at its bound, the turn count survives a rotation, the report's age

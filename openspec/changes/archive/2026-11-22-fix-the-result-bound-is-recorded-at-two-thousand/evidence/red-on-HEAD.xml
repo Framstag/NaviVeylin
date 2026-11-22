@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red case's tally on this run's base. The tree is base commit
+     3a39d92a77eb23b4ab58f75246136c4db3d7d4f7 with this change's two case edits applied (the new case, and the
+     under-bound arm rewritten to read the recorded value) and the recorded value put back to 4000 for the length of
+     the run and restored to 2000 after it — so what fails is the delta's own case against the bound the base tree
+     records, and not a re-typed base tree. `tools/loop/tests/loop-selftest.sh` prints its verdict, not a JUnit file,
+     so this file carries the tally that run printed (1 of 4 cases failed, exit 1) as a testsuite. The run's whole
+     output, between a header and an exit line this process wrote, is evidence/red-on-HEAD.log beside it; the tally
+     here is derived from that log, not re-taken.
+     Two readings that log invites and does not support: the failure's haystack is the result as it arrived, which is
+     the whole 3 003 characters — nothing was cut, because 4 000 is above the fixture — and the harness's per-case
+     header the harness prints for a failed slot (three dashes, the slot's own name and its index) names the slot index
+     and not the failing
+     case (`tools/loop/tests/loop-selftest.sh:803`); the failing case is the `FAIL` line naming
+     `trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut`, and the other three cases PASS in the same log. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case trim#*" tests="4" failures="1" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-22T07:20:28Z"/>
+    <property name="base" value="3a39d92a77eb23b4ab58f75246136c4db3d7d4f7"/>
+    <property name="bound" value="4000"/>
+  </properties>
+  <testcase classname="trim" name="trim#theTrimIsRecorded"/>
+  <testcase classname="trim" name="trim#aResultAboveTheBoundIsTrimmedAndNamed"/>
+  <testcase classname="trim" name="trim#aResultUnderTheBoundIsHandedOverWhole"/>
+  <testcase classname="trim" name="trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut">
+    <failure message="nothing past the recorded bound reaches the child's context: 'CUT-AWAY' should not appear in the result the child was handed — the bound the base records (4000) is above the fixture's 3003 characters, so the whole result arrived"/>
+  </testcase>
+</testsuite>

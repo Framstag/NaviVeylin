@@ -1,0 +1,27 @@
+# The structural checks a delta touching no compiled file owes — taken 2026-11-22T07:20:44Z on base 3a39d92 by the continuation process.
+
+== bash -n tools/loop/tests/loop-cases.sh
+exit=0
+
+== node --check tools/pi-trim-result.mjs
+exit=0
+
+== bash tools/check-case-names.sh
+CASE-NAMES: ok harnesses=41 lines=1551 named=1346 none=123 unnamed=82 unclaimed=5981
+exit=0
+
+== bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+
+== ./tools/look.sh 'the 4 000 this project records' --path tools
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools for 'the 4 000 this project records'
+
+== grep -c '# files:.*tools/loop/loop.conf' tools/loop/tests/loop-cases.sh
+126
+
+== git show 3a39d92:tools/loop/tests/loop-cases.sh | grep -c '# files:.*tools/loop/loop.conf'
+124
+
+== openspec validate fix-the-result-bound-is-recorded-at-two-thousand --strict
+Change 'fix-the-result-bound-is-recorded-at-two-thousand' is valid

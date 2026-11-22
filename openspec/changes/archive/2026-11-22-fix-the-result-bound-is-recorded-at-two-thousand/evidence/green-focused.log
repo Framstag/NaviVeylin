@@ -1,0 +1,82 @@
+2026-11-22T07:17:48Z
+# measured with the item session env unset (LOOP_TOOL_RESULT_LEDGER, LOOP_CHILD_SESSION, LOOP_TOOL_RESULT_TRIM_RECORD, LOOP_CHILD_EVENTS, LOOP_REPEAT_READ): this item ledger already holds items/816/gate.log from an earlier run of adapter#theResultBoundExemptsGateEvidence, and the trimmer CLI reads that ledger from the environment, so a second run of that case is answered with LOOP-ALREADY-READ instead of the result it asserts. Named as a NOTE in the item report.
+
+== bash tools/loop/tests/loop-selftest.sh --case trim#*
+PASS trim#aResultAboveTheBoundIsTrimmedAndNamed
+PASS trim#aResultUnderTheBoundIsHandedOverWhole
+PASS trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut
+PASS trim#theTrimIsRecorded
+loop-selftest: trim 4 cases 0.56 s
+loop-selftest: all 4 cases passed (JDK 21, offline, no token, no sandbox) — 0.23 s, selection: --case trim#*
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Ht2BsN/cases/0/tree/case.5heWDU/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (2221bf5eade9fd81 → d2c9b9252be22bc4); a field was edited outside this script
+PASS state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case adapter#theChildIsStartedWithTheResultBound
+PASS adapter#theChildIsStartedWithTheResultBound
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case adapter#theResultBoundExemptsGateEvidence
+PASS adapter#theResultBoundExemptsGateEvidence
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case look#aResultOverTheBoundIsCutAndNamed
+PASS look#aResultOverTheBoundIsCutAndNamed
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case gate#theBlockStaysInsideTheRecordedBound
+PASS gate#theBlockStaysInsideTheRecordedBound
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case phase#aResultOverTheBoundIsCutAndNamed
+PASS phase#aResultOverTheBoundIsCutAndNamed
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case phase#theIdentitySurvivesTheBoundOnAnyRoot
+PASS phase#theIdentitySurvivesTheBoundOnAnyRoot
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case prompt#thePhasePromptsCarryTheirOwnRoute
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0
+
+== re-run by the continuation process at 2026-11-22T07:20:08Z on base 3a39d92a77eb23b4ab58f75246136c4db3d7d4f7, after the pointer edits to proposal.md and design.md
+
+== bash tools/loop/tests/loop-selftest.sh --case 'trim#*'
+PASS trim#theTrimIsRecorded
+PASS trim#aResultAboveTheBoundIsTrimmedAndNamed
+PASS trim#aResultUnderTheBoundIsHandedOverWhole
+PASS trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut
+loop-selftest: all 4 cases passed (JDK 21, offline, no token, no sandbox) — 0.23 s, selection: --case trim#*
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case 'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst'
+PASS state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case 'adapter#theChildIsStartedWithTheResultBound'
+PASS adapter#theChildIsStartedWithTheResultBound
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case 'look#aResultOverTheBoundIsCutAndNamed'
+PASS look#aResultOverTheBoundIsCutAndNamed
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case 'gate#theBlockStaysInsideTheRecordedBound'
+PASS gate#theBlockStaysInsideTheRecordedBound
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case 'phase#aResultOverTheBoundIsCutAndNamed'
+PASS phase#aResultOverTheBoundIsCutAndNamed
+exit=0
+
+== bash tools/loop/tests/loop-selftest.sh --case 'phase#theIdentitySurvivesTheBoundOnAnyRoot'
+PASS phase#theIdentitySurvivesTheBoundOnAnyRoot
+exit=0

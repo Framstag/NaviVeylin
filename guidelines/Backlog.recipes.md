@@ -633,7 +633,7 @@ p90 174 984, p95 191 815, maximum 244 764. The checkpoint is **90 000**, not tha
 reading while the key only printed a line, and since #856 the split pays the session's baseline a second time while it
 saves only the turns after the crossing, so the reading is the split's own — re-taken 2026-11-22 over the 53 items under
 `.pi/issue-loop/items`, as-is 1 055 Mtok, at 143 124 989 Mtok with 28 items split, at 90 000 866 Mtok with 41 split,
-the lowest total of the readings tried (`tools/loop/loop.conf` carries the table). The stop is 200 000, above the p95, where a turn costs 1.86× the archive's
+within 1 Mtok of the lowest total tried, and the highest reading on that plateau (`tools/loop/loop.conf` carries the table). The stop is 200 000, above the p95, where a turn costs 1.86× the archive's
 median largest context; 10 of the 300 recorded items (3.3 %) reached it, and `evidence/context-distribution.txt`
 lists them. Both are `0` or absent =
 no bound, and neither replaces another: the turn bound still ends a session that batches badly at a small context.

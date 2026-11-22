@@ -1,0 +1,9 @@
+policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot|   a range read of a tracked file is refused (exit 0): ALLOWED: expected '3', got '0'
+--- policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot[0] (exit 1)
+  a range read of a tracked file is refused (exit 0): ALLOWED: expected '3', got '0'
+FAIL policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot
+loop-selftest: 1 of 1 cases failed
+# 2026-11-22T19:28:21Z — the case's first assertion, run against `tools/pi-shell-refusal.mjs` as it stands at the run's base
+# abe49a0fa469abb422368df83454a21eaf0cd632 (copied out of the object store with `git show`): the base module answers
+# `node tools/pi-shell-refusal.mjs --command "sed -n '100,130p' guidelines/Build.md"` with ALLOWED and exit 0, so
+# `assert_eq "3" "$status"` reports `expected '3', got '0'` and the case fails before the fix.

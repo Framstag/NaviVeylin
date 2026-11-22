@@ -1,0 +1,51 @@
+# The gate's failing case, and its reproduction on the tree the gate measured (#1006, phase F)
+
+## What the gate printed
+
+Quoted from `.pi/issue-loop/items/1006/worker-tail-report-gate-output.txt`:
+
+```
+974:FAIL policy#aShellTreeSearchIsRefusedAndARecipeIsNot
+loop-selftest: 3 of 540 cases failed — 546.84 s
+1719:LOOP-GATE-BASERED:tools/loop/tests/loop-selftest.sh --from-git abe49a0fa469abb422368df83454a21eaf0cd632:2
+```
+
+It is the `--from-git abe49a0fa469abb422368df83454a21eaf0cd632` step (lines 12–1716 of the gate log). Its base-red credit
+is `:2` — the two `run#…quota…` cases (`run#aQuotaHoldPausesTheRunAndResumesIt`, `run#theQuotaSwitchIsExplicit`, gate
+log 1475 and 1692), which the gate subtracted. **The third failure was not subtracted and is this change's own**: the
+case is in `tools/loop/tests/loop-cases.sh`, a file this delta edits, and it exercises
+`tools/pi-shell-refusal.mjs`, the module this delta rewrote.
+
+## The case as it failed
+
+```
+policy#aShellTreeSearchIsRefusedAndARecipeIsNot|   a call that reads a known file or a stream is left alone (exit 3):
+sed -n '1,180p' ki_processing_failures.log -- REFUSED shell `sed` is not how this tree is read: `ctx_read
+path=<path> offset=<N> limit=<M>` reads the range — and it stops at about 2 000 lines or 50 kB, so a wider range is
+the shell's. A range read of a log outside the tree, an item artefact, `tail -n`, `sed -e`/`sed -i` and a filter of
+another command's output (`… | grep`) stay the shell's.: expected '0', got '3'
+--- policy#aShellTreeSearchIsRefusedAndARecipeIsNot[0] (exit 1)
+FAIL policy#aShellTreeSearchIsRefusedAndARecipeIsNot
+loop-selftest: 1 of 1 cases failed
+```
+
+## Reproduced on this tree, by one case, not the gate
+
+```
+$ bash tools/loop/tests/loop-selftest.sh --case 'policy#aShellTreeSearchIsRefusedAndARecipeIsNot'
+… expected '0', got '3'
+FAIL policy#aShellTreeSearchIsRefusedAndARecipeIsNot
+loop-selftest: 1 of 1 cases failed
+```
+
+## Why it is this change's red and not base-red
+
+`ki_processing_failures.log` is an untracked stray log at the tree root (`git ls-files` names nothing for it; it was
+untracked in `ed5c4958`). This delta's `sed` arm refuses a range read whose path `inTheTree` classifies as the tree, and
+a relative `ki_processing_failures.log` under the tree root is classified as the tree — so the case's arm, which asserts
+that read is "left alone", now fails with this change's own refusal text.
+
+The same case passed on the run's base commit: the base-red measurement of this step
+(`/home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log`) reports `1 of 475 cases failed`, and the case it names is
+`run#aHupEndedRunRecordsItsStopAndUnpicksItsItem` — not this one. Base green, change tree red, on the paths this delta
+edits: this is a red the change answers for, not a waiver.

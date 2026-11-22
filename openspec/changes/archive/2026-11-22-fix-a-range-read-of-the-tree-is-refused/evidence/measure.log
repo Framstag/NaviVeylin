@@ -1,0 +1,35 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=abe49a0fa469abb422368df83454a21eaf0cd632 paths=8 insertions=105 deletions=29
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH guidelines/BuildGate.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker-gate.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker.md
+LOOP-MEASURE-PATH tools/loop/prompts/worker-tail.md
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-PATH tools/pi-child-events.sh
+LOOP-MEASURE-PATH tools/pi-shell-refusal.mjs
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git abe49a0fa469abb422368df83454a21eaf0cd632
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=540 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-range-read-of-the-tree-is-refused scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-a-range-read-of-the-tree-is-refused/evidence/red-on-HEAD.xml tests=1 failures=1 time=2s
+LOOP-MEASURE-SURFACE surface: 1 case (its row, its dispatch arm and its body), 1 export and 2 clauses in `tools/pi-shell-refusal.mjs`,
+LOOP-MEASURE-END

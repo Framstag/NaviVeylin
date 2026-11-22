@@ -1,0 +1,9 @@
+node --check tools/pi-shell-refusal.mjs: ok
+bash -n tools/loop/tests/loop-cases.sh tools/pi-child-events.sh: ok
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+loop-mutations: all 452 cases passed — every selected record applies to the file it names
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+check-doc-routes: all 357 section references resolve, all 8 skill references resolve
+check-portability: OK — 64 engines and 8 templates name no project value (127 value(s) read from the project)
+check-todo-references: 67 citation(s) resolve through the recorded table; 12885 file(s) excluded by the allowlist above
+highlights: 19

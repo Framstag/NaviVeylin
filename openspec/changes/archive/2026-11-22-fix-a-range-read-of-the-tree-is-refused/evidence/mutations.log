@@ -1,0 +1,9 @@
+1	policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot	a range read of a tracked file is refused, so deleting sed from the refused set reddens the tree arm
+  RED(exit 1)  1 occurrence(s) replaced in tools/pi-shell-refusal.mjs
+  GREEN(exit 0)  restored, and the case passes again
+2	policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot	the exemption is about which file, so refusing every sed reddens the arm that reads a log by range
+  RED(exit 1)  1 occurrence(s) replaced in tools/pi-shell-refusal.mjs
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 2 mutation(s) run, 2 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

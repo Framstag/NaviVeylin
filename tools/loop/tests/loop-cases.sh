@@ -210,6 +210,7 @@ LOOP_SHELL_CASES=(
   'gate#aSecondGateRefusesWhileOneRuns'
   'driver#aGroupFilterRunsOnlyItsOwnCases'
   'driver#aFilterThatNamesNoCaseRefuses'
+  'driver#theSuiteDoesNotInheritTheRunsRoots'
   'driver#theListIsFilteredTheSameWayASuiteRunIs'
   'driver#theSummaryNamesWhatEachGroupCost'
   'driver#theTimesFigureIsAskedForNotAssumed'
@@ -1041,6 +1042,7 @@ loop_run_shell_case() {
     'gate#aSecondGateRefusesWhileOneRuns') fn=case_gate_aSecondGateRefusesWhileOneRuns ;;
     'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
     'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
+    'driver#theSuiteDoesNotInheritTheRunsRoots') fn=case_driver_theSuiteDoesNotInheritTheRunsRoots ;;
     'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
     'driver#theSummaryNamesWhatEachGroupCost') fn=case_driver_theSummaryNamesWhatEachGroupCost ;;
     'driver#theTimesFigureIsAskedForNotAssumed') fn=case_driver_theTimesFigureIsAskedForNotAssumed ;;
@@ -17959,6 +17961,26 @@ case_driver_aFilterThatNamesNoCaseRefuses() {
 # The list answers the same question the run does (this change): `--list --group` prints what that group would
 # run, so a worker can size an iteration before paying for it, and an unfiltered list still prints the whole
 # declared set.
+case_driver_theSuiteDoesNotInheritTheRunsRoots() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-trim-result.mjs
+  # A root the run exported is not one a case declared: `readRoots` (`tools/pi-trim-result.mjs`) spells a path under
+  # `LOOP_WORKTREE` relative to it, so a case that types an absolute path is answered with a spelling it never wrote.
+  # The measurement this holds: started from inside the loop's own worktree, four cases went red on a green tree and
+  # green again from a shell that exported nothing (issue #1009, caught by item #1018's gate). The nested run below is
+  # the shape that fails — `LOOP_WORKTREE` set to the root the case's temp dir sits under — so this case is red where
+  # the driver forwards it and green where the driver drops it.
+  local out
+  for v in LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS; do
+    [ -z "${!v:-}" ] || fail "the driver handed the run's own root to the suite: $v=${!v}"
+  done
+  out=$(LOOP_WORKTREE="$LOOP_PROJECT_ROOT" bash "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" \
+    --case 'repeat#aRepeatReadIsNamedNotHandedOverAgain' 2>&1)
+  assert_contains "$out" 'PASS repeat#aRepeatReadIsNamedNotHandedOverAgain' \
+    "a case run under a root the run exported still names the path it typed: $(printf '%s' "$out" | head -3)"
+  assert_not_contains "$out" 'not found in' "and the notice it read was not a relative spelling"
+  return 0
+}
+
 case_driver_theListIsFilteredTheSameWayASuiteRunIs() {
   # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
   local d nested out

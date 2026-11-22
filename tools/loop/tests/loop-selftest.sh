@@ -165,6 +165,16 @@ LOOP_SELFTEST_JOBS="${LOOP_SELFTEST_JOBS:-$caller_jobs}"
 # one to `run.sh`, and a case that inherits the run's would be measuring the run and not the engine.
 unset LOOP_CHILD_EVENTS
 
+# A case never inherits the run's own *roots* either (issue #1009). `readRoots` (`tools/pi-trim-result.mjs`) spells a
+# path under `LOOP_WORKTREE` relative to it — right for a child, which stands in that tree, and unassertable for a case
+# that typed an absolute path, because the notice answers with a spelling the case never wrote. Measured 2026-11-22:
+# started from inside `.pi/worktrees/loop`, `trim#aResultOlderThanTheAgeIsStubbedAndNamed` and three `repeat#…` cases
+# went red on a tree whose plain run was green — item #1018's gate paid for it. `LOOP_WORKTREE_SCRATCH_PATHS` is on the
+# list because the profile assigns it: it is exported again by the `source` above, so unsetting it earlier would be
+# undone. A case that wants a root sets it on its own command line, and `driver#theSuiteDoesNotInheritTheRunsRoots`
+# holds this.
+unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS
+
 # How many cases run at once (issue #260). The value is the invocation's `--jobs`, else the profile's
 # `LOOP_SELFTEST_JOBS`, else the host's CPU count — a host that cannot answer is a pool of one, never a suite that
 # runs nothing.

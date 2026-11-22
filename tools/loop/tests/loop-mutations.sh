@@ -1557,6 +1557,11 @@ MUTATIONS=(
   # 1009.2 — the feed: a shell range read (`sed -n 'N,Mp' <path>`) enters the tally as the range it read, and the
   # record makes that reader return nothing, so 5 211 ranged shell reads in the archive stay invisible to the rule.
   '1009.2@-@../pi-trim-result.mjs@repeat#aShellRangeReadFeedsTheTally@the reader that turns a shell range read into a ledger entry, so the shell reads the rule was widened for are never counted and the tally a report reads is short by every one of them (issue #1009)@s|  const match = SED_RANGE.exec(command);|  const match = null;|'
+  # 1009.3 — the suite's own environment: the driver drops the run's roots before the first case, so a case asserts the
+  # path it typed. The record puts a no-op in place of the `unset`, and the case's nested run — the same root exported —
+  # is then answered with the relative spelling, the shape that turned item #1018's gate red on a green tree
+  # (2026-11-22).
+  '1009.3@-@tests/loop-selftest.sh@driver#theSuiteDoesNotInheritTheRunsRoots@the line that drops the run'"'"'s own roots before the first case, so the suite inherits the worktree a gate was started in and every case that types an absolute path is answered with a spelling relative to a root it never named (issue #1009)@s|^unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS$|true|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

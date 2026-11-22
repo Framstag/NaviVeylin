@@ -515,6 +515,8 @@ LOOP_SHELL_CASES=(
   'repeat#aRepeatIsRecordedAsWhatItWithheld'
   'repeat#anItemsLedgerSpansItsChildren'
   'repeat#theHookWritesTheItemsLedger'
+  'repeat#aPathUnderTheWorktreeIsOneKeyInTwoSpellings'
+  'repeat#aShellRangeReadFeedsTheTally'
   'run#childPastItsTurnBoundIsCut'
   'run#childPastItsCheckBoundIsCut'
   'run#aChildCheckSkipsTheGatesOwnSuite'
@@ -1340,6 +1342,8 @@ loop_run_shell_case() {
     'repeat#aRepeatIsRecordedAsWhatItWithheld') fn=case_repeat_aRepeatIsRecordedAsWhatItWithheld ;;
     'repeat#anItemsLedgerSpansItsChildren') fn=case_repeat_anItemsLedgerSpansItsChildren ;;
     'repeat#theHookWritesTheItemsLedger') fn=case_repeat_theHookWritesTheItemsLedger ;;
+    'repeat#aPathUnderTheWorktreeIsOneKeyInTwoSpellings') fn=case_repeat_aPathUnderTheWorktreeIsOneKeyInTwoSpellings ;;
+    'repeat#aShellRangeReadFeedsTheTally') fn=case_repeat_aShellRangeReadFeedsTheTally ;;
     'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
     'run#childPastItsCheckBoundIsCut') fn=case_run_childPastItsCheckBoundIsCut ;;
     'run#aChildCheckSkipsTheGatesOwnSuite') fn=case_run_aChildCheckSkipsTheGatesOwnSuite ;;
@@ -21854,9 +21858,9 @@ case_repeat_aShellRangeReadFeedsTheTally() {
     printf '%s\n' '  const blocks = out && out.content ? out.content : [{ type: "text", text: fallback }];'
     printf '%s\n' '  return blocks.map((b) => b.text).join("");'
     printf '%s\n' '};'
-    printf '%s\n' 'const range = "FIRST-LINE\\nSECOND-LINE\\n";'
+    printf '%s\n' 'const range = "FIRST-LINE\nSECOND-LINE\n";'
     printf '%s\n' 'await handlers.get("turn_start")();'
-    printf '%s\n' 'const shell = await handlers.get("tool_result")({ toolName: "ctx_shell", input: { command: `sed -n \'1,2p\' ${file}` }, content: [{ type: "text", text: range }] });'
+    printf '%s\n' "const shell = await handlers.get(\"tool_result\")({ toolName: \"ctx_shell\", input: { command: \`sed -n '1,2p' \${file}\` }, content: [{ type: \"text\", text: range }] });"
     printf '%s\n' 'writeFileSync(first, text(shell, range));'
     printf '%s\n' 'const whole = readFileSync(file, "utf8");'
     printf '%s\n' 'await handlers.get("turn_start")();'

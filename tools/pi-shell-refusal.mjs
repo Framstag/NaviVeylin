@@ -16,9 +16,13 @@
 //
 // What it refuses, and what it deliberately leaves alone:
 //
-//   * **Not a range read.** `sed -n 'N,Mp'` and `tail -n <N> <file>` are how `guidelines/Build.md` §10 reads a log by
-//     range and how a build's verdict is read back from `/tmp/build-app.log`. `sed` is not in the verb list at all,
-//     and `tail` with a range flag is allowed whatever it names.
+//   * **A range read of the tree is not a range read of a log.** `sed -n 'N,Mp'` is how `guidelines/Build.md` §10
+//     reads a build log by range, and `tail -n <N> <file>` is how the same log is read back from `/tmp/build-app.log`.
+//     The exemption is about **which file**, and it is the file the rule asks about: a range read of a tracked file is
+//     a read of the tree and is refused, while the log outside it, the item artefact, the pipe's filter and the write
+//     stay (issue #1006 — `sed` had been left out of the verb list entirely, and became the archive's largest call
+//     class: 3 545 calls, 33.7 % of 10 506, 10.78 M characters, against `ctx_read`'s 6 284 at 1.5 k). `tail` keeps its
+//     range allowance whatever it names; moving it is a second verb with its own measurement.
 //   * **Not a stream filter.** `adb logcat -d | grep -E 'Diag/HOST'`, `jq … | awk -F'\t' …`, `echo "$L" | grep -c` read
 //     another command's output, not the tree, and refusing them would delete recipes in `guidelines/Build.md` §10 and
 //     in the skills. Only the **head** of a pipeline is classified.
@@ -46,14 +50,17 @@
 //     implementation of the rule for them to drift from.
 import { pathToFileURL } from "node:url";
 
-/** The verbs whose shell form a tool answers better. `sed` is absent on purpose: `sed -n 'N,Mp'` is a range read. */
-export const REFUSED_VERBS = ["grep", "cat", "head", "tail", "ls", "find", "wc", "awk"];
+/** The verbs whose shell form a tool answers better. `sed`'s quiet arm is a range read of the tree too (issue #1006). */
+export const REFUSED_VERBS = ["grep", "cat", "head", "tail", "sed", "ls", "find", "wc", "awk"];
 
 /** The tools that carry a shell command line. */
 export const SHELL_TOOLS = ["ctx_shell", "shell", "bash"];
 
 /** A directory whose contents are generated or machine-local rather than the tree a search is answered from. */
 const NOT_THE_TREE = new Set(["build", ".gradle", ".kotlin", ".idea", ".cxx", ".pi", "node_modules", "vcpkg"]);
+
+/** The loop's own item directories: a relative name read from inside one is an artefact, not the tree. */
+const ITEM_ARTEFACT = /(^|\/)\.pi\/issue-loop\/items(\/|$)/;
 
 /** Flags of a refused verb that consume the word after them, so a flag's value is not read as a path. */
 const VALUE_FLAGS = new Set(["-e", "-f", "--regexp", "--file", "-A", "-B", "-C", "-m", "--max-count"]);
@@ -148,6 +155,8 @@ export function commandSegments(command) {
 export function inTheTree(token, cwd) {
   if (!token || token.startsWith("-")) return false;
   if (token.includes("$") || token.startsWith("~")) return false;
+  // A child standing in its own item directory (`cd .pi/issue-loop/items/<n>`) names its log, not the tree.
+  if (!token.startsWith("/") && !token.startsWith("../") && ITEM_ARTEFACT.test(String(cwd ?? ""))) return false;
   let path = token;
   if (path.startsWith("/")) {
     const root = String(cwd ?? "").replace(/\/+$/, "");
@@ -180,17 +189,30 @@ export function isRangeRead(segmentWords) {
   return segmentWords.slice(1).some((word) => /^-[nc]?\+?\d+$/.test(word) || /^-[nc]$/.test(word));
 }
 
+/** `sed`'s quiet arm with a line range as its script — `-n '100,130p'` — is the one that prints a range of a file. */
+export function isRangePrint(segmentWords) {
+  const quiet = segmentWords
+    .slice(1)
+    .some((word) => /^--(quiet|silent)$/.test(word) || (/^-[A-Za-z]+$/.test(word) && word.includes("n")));
+  return quiet && segmentWords.some((word) => /^[0-9]+(,[0-9]+)?p$/.test(word));
+}
+
 /** Whether one segment — the verb first, no pipe before it — is the tree search this file refuses. */
 export function refusesSegment(segmentWords, cwd) {
   const verb = segmentWords[0];
   if (!REFUSED_VERBS.includes(verb)) return false;
   if (verb === "tail" && isRangeRead(segmentWords)) return false;
+  // `sed -e …`, `sed -n 's/x/y/p'` and `sed -i` filter a stream or write a file, and their output is no range: only the
+  // quiet arm whose script is a line range reads one, and only a range read of the tree is refused. A `sed` that names
+  // no path reads the pipe it stands in, so it names no file of the tree.
+  if (verb === "sed" && !isRangePrint(segmentWords)) return false;
   // `cat > file` is a write, not a read of the tree; the heredoc body is not the child's command line.
   if (verb === "cat" && segmentWords.some((word) => word.startsWith(">"))) return false;
   const { named, namedByFlag } = operands(segmentWords);
-  // `grep <pattern> <path…>`: the first word is the pattern unless `-e`/`-f` named it, so it is no path of its own.
-  const paths = verb === "grep" && !namedByFlag ? named.slice(1) : named;
-  if (paths.length === 0) return true; // no path named: the tree it stands in is the subject
+  // `grep <pattern> <path…>`: the first word is the pattern unless `-e`/`-f` named it, so it is no path of its own — and
+  // `sed`'s first word is its script, in the same way.
+  const paths = (verb === "grep" || verb === "sed") && !namedByFlag ? named.slice(1) : named;
+  if (paths.length === 0) return verb !== "sed"; // no path named: for every verb but `sed`, the tree it stands in is the subject
   return paths.some((path) => inTheTree(path, cwd));
 }
 
@@ -201,12 +223,14 @@ export function refusalReason(verb) {
     instead = '`ctx_read` reads the file, or `ctx_read mode="lines:N-M"` a range of it';
   } else if (verb === "ls") {
     instead = "`ctx_ls` lists the directory, `tools/look.sh '<regex>' --files` names the files a pattern is in";
+  } else if (verb === "sed") {
+    instead = '`ctx_read path=<path> offset=<N> limit=<M>` reads the range — and it stops at about 2 000 lines or 50 kB, so a wider range is the shell\'s';
   } else {
     instead = "`tools/look.sh '<regex>'` searches the worktree and the submodule in one bounded call, `ctx_grep` searches one path";
   }
   return (
-    `shell \`${verb}\` is not how this tree is read: ${instead}. A range of a known file stays shell's — `
-    + "`sed -n 'N,Mp'`, `tail -n <N> <file>` — and so does a filter of another command's output (`… | grep`)."
+    `shell \`${verb}\` is not how this tree is read: ${instead}. A range read of a log outside the tree, an item `
+    + "artefact, `tail -n`, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's."
   );
 }
 

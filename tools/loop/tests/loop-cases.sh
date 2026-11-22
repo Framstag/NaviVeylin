@@ -392,6 +392,7 @@ LOOP_SHELL_CASES=(
   'look#aSectionIsPrintedAndTheOtherSectionsAreNot'
   'look#aCaseIsPrintedByItsName'
   'policy#aShellTreeSearchIsRefusedAndARecipeIsNot'
+  'policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot'
   'adapter#theChildIsStartedWithTheShellPolicy'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
   'report#headerAndTableShape'
@@ -1225,6 +1226,7 @@ loop_run_shell_case() {
     'look#aSectionIsPrintedAndTheOtherSectionsAreNot') fn=case_look_aSectionIsPrintedAndTheOtherSectionsAreNot ;;
     'look#aCaseIsPrintedByItsName') fn=case_look_aCaseIsPrintedByItsName ;;
     'policy#aShellTreeSearchIsRefusedAndARecipeIsNot') fn=case_policy_aShellTreeSearchIsRefusedAndARecipeIsNot ;;
+    'policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot') fn=case_policy_aRangeReadOfATrackedFileIsRefusedAndALogIsNot ;;
     'adapter#theChildIsStartedWithTheShellPolicy') fn=case_adapter_theChildIsStartedWithTheShellPolicy ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
     'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
@@ -24005,5 +24007,48 @@ EOF
     "and no continuation step is recorded"
   assert_contains "$(jq -r '.items[0].note' "$f")" "reached the recorded context checkpoint" \
     "the item's note names the checkpoint the run reached, and then stopped continuing it"
+  return 0
+}
+
+# The range read the policy left to the shell (issue #1006). `sed -n 'N,Mp'` was exempt because `guidelines/Build.md` §10
+# reads a build log back by range, and the exemption is about **which file** while the rule is about the verb: a range
+# read of a tracked file and of a log under `/tmp` are the same command, so `sed` became the archive's largest call
+# class — 3 545 calls (33.7 %) at 3 041 characters each, against `ctx_read`'s 6 284 at 1 500. The arm that reads the tree
+# is refused and names the call that answers it; the arm the exemption was written for stands, and so do the item
+# artefact, the pipe's filter and the write.
+case_policy_aRangeReadOfATrackedFileIsRefusedAndALogIsNot() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/tests/loop-mutations.sh tools/pi-shell-refusal.mjs tools/look.sh
+  local rule out status
+  rule="$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs"
+  [ -f "$rule" ] || fail "nothing refuses a range read of the tree: tools/pi-shell-refusal.mjs is not in the tree (issue #1006)"
+  out=$(node "$rule" --command "sed -n '100,130p' guidelines/Build.md" 2>&1); status=$?
+  assert_eq "3" "$status" "a range read of a tracked file is refused (exit $status): $out"
+  assert_contains "$out" "REFUSED" "and the refusal is what it prints: $out"
+  assert_contains "$out" '`ctx_read path=<path> offset=<N> limit=<M>`' "and it names the call that reads the range instead: $out"
+  assert_contains "$out" "2 000 lines" "and does not pretend that call has no bound: $out"
+
+  # `sed -i` writes a file and `sed -e`/`sed` filter a stream; a quiet `sed` whose script is a substitution prints no
+  # range either, so none of them reads a range of the tree, and a `sed` that names no path reads the pipe it stands in.
+  # The log under `/tmp` is the one `guidelines/Build.md` §10 reads, and the item directory is the loop's own
+  # artefact — a relative token inside one names no file of the tree.
+  while IFS= read -r cmd; do
+    [ -n "$cmd" ] || continue
+    out=$(node "$rule" --command "$cmd" 2>&1); status=$?
+    assert_eq "0" "$status" "a range read that names no file of the tree is left alone (exit $status): $cmd -- $out"
+    assert_contains "$out" "ALLOWED" "and it is handed to the child unchanged: $cmd -- $out"
+  done <<'RANGES'
+sed -n '100,130p' /tmp/build-app.log
+sed -n '100,230p' .pi/issue-loop/items/1006/worker-prompt.md
+adb logcat -d | sed -n '1,20p'
+sed -n '1,20p'
+sed -i 's/foo/bar/' guidelines/Build.md
+sed -e 's/foo/bar/' guidelines/Build.md
+sed 's/foo/bar/' tools/look.sh
+sed -n 's/foo/bar/p' tools/look.sh
+RANGES
+
+  out=$(node "$rule" --cwd ".pi/issue-loop/items/1006" --command "sed -n '100,130p' gate.log" 2>&1); status=$?
+  assert_eq "0" "$status" "a child standing in its item directory reads its own log by range (exit $status): $out"
+  assert_contains "$out" "ALLOWED" "and the item artefact is not the tree: $out"
   return 0
 }

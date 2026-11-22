@@ -39,6 +39,19 @@
 // the record the bound already writes, so an item's evidence says how much of a repeat's own result the child was not
 // handed, instead of leaving the report to call the raw volume re-injected.
 //
+// The bound and the repeat both decide what a result puts into the context **when it arrives**, so neither of them can
+// take one out again: a result the child was handed at turn 3 is still in the transcript at turn 40, and every turn
+// pays for it. Measured over the archive's 47 items (issue #1002, `python3 tools/loop-spend.py --json`): 57 % of the
+// 871 Mtok the loop spent is `toolResults`, 496.9 Mtok of it re-read; the filter model that prices the same streams
+// puts a rule dropping a result 20 turns after injection at p50 63 k against 114 k, 612 Mtok against 995 (-39 %). So
+// the handler registers a third rule on pi's own `context` hook, which is fired before each request over a copy of
+// the messages: a tool result that has stood in the transcript for `LOOP_TOOL_RESULT_AGE_TURNS` assistant turns is
+// replaced in the **request** by one stub line naming the tool, the path it read, its size and the range that reads it
+// again, and the item's transcript keeps the whole result, because `context` modifies what is sent and not what is
+// stored. The stub is built once per result and reused for the turns that follow, because a set that changes shape
+// from turn to turn re-establishes the provider's cache every turn; what it withheld is appended to the same record,
+// and `0` keeps the rule off.
+//
 // The ledger is the **item's**, not the child's (issue #858). One child process is one session, so a `Map` that lives as
 // long as the hook is one child deep: an item split at its gate starts its gate child on an empty ledger, and every path
 // the worker read is a first read again — whole. Measured on the run of 2026-11-11T11:37:08Z, the rule withheld 1 370 of
@@ -97,6 +110,16 @@ export function recordedRepeatArm(raw) {
   return String(raw ?? "").trim().toLowerCase() === "refuse" ? "refuse" : "measure";
 }
 
+/**
+ * The age bound as the recorded key states it (issue #1002): a positive whole number of turns, or 0 for "no age bound".
+ * A value this file does not understand is 0 — the arm that leaves the child's request exactly as it stands, because a
+ * rule that withdrew a result the child still needs would cost more than the turns it saves.
+ */
+export function recordedAgeTurns(raw) {
+  const n = Number.parseInt(String(raw ?? "").trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /** The line that tells the child what it is reading, and how to read the rest of it. */
 export function trimNotice(tool, total, bound) {
   return `\n[LOOP-TRIMMED: ${tool} returned ${total} characters; the first ${bound} are shown — read the rest in`
@@ -124,6 +147,32 @@ export function repeatRecordLine(tool, total, kept) {
  */
 export function repeatReadRecordLine(tool, turn, arm) {
   return `LOOP-TOOL-RESULT-REPEAT-READ: ${tool} turn=${turn} arm=${arm}\n`;
+}
+
+/**
+ * One line of the same record for a result the age rule dropped from the request (issue #1002): the size that stood in
+ * the transcript and the size of the one line the request carries instead, so `chars - kept` is the volume the rule
+ * withheld. It names no path — the stub the child reads carries that, and a record line with one in it would be a
+ * coordinate in a log.
+ */
+export function ageRecordLine(tool, total, kept) {
+  return `LOOP-TOOL-RESULT-AGE: ${tool} chars=${total} kept=${kept}\n`;
+}
+
+/**
+ * The one line a result older than the age bound is replaced by (issue #1002): the tool, the path it read, the size it
+ * had, the turn it came in at and the call that reads a range of it again — the repeat notice's shape one rule further,
+ * so a child that has learned one has learned both. A tool that reads no named file is named alone; `` for the path is
+ * the whole of the difference.
+ */
+export function ageNotice(tool, size, turn, age, path = "", lines = 0) {
+  const what = path
+    ? `${tool} of ${path} (${size} characters, read at turn ${turn})`
+    : `${tool} (${size} characters, returned at turn ${turn})`;
+  const again = path
+    ? `read a range of it again (ctx_read mode="lines:1-${lines}")`
+    : "call it again if it is still what you need";
+  return `[LOOP-AGED-RESULT: ${what} was dropped from this request after ${age} turns — ${again}]\n`;
 }
 
 /** The bound gate/evidence output is held to instead of the recorded one (§4d): what a red run is attributed from. */
@@ -391,6 +440,67 @@ export function trimContent(content, bound, tool, record, read) {
   return changed ? out : null;
 }
 
+/** The text of a message's text blocks, which is what an age rule measures and replaces (issue #1002). */
+export function messageText(message) {
+  const content = message && message.content;
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((block) => block && block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text)
+    .join("");
+}
+
+/**
+ * The age rule (issue #1002): the messages a request carries with every tool result older than `turns` assistant turns
+ * replaced by its one stub line, or `null` when the rule changed nothing. A result's age is the number of assistant
+ * messages that have been appended after it, so it needs no clock and no timer: the turn a result arrives in is age 0,
+ * and the K-th assistant message after it makes it age K. The stub is built once and held in `ages` against the tool
+ * call, so the turns that follow send the same one line and not a new one each turn. The transcript itself is never
+ * touched: this returns the request's messages and leaves `event.messages` — what the session stores — as it stands,
+ * which is what makes the whole result still readable when an evidence check asks for it.
+ */
+export function ageMessages(messages, turns, record, ages) {
+  if (!(turns > 0) || !Array.isArray(messages) || !ages) return null;
+  let changed = false;
+  const total = messages.filter((message) => message && message.role === "assistant").length;
+  let seen = 0;
+  const out = messages.map((message) => {
+    if (!message || typeof message !== "object") return message;
+    if (message.role === "assistant") {
+      seen += 1;
+      return message;
+    }
+    if (message.role !== "toolResult") return message;
+    const key = message.toolCallId || "";
+    let entry = key ? ages.get(key) : undefined;
+    if (!entry) {
+      const text = messageText(message);
+      entry = { tool: message.toolName || "?", path: "", turn: 0, size: text.length,
+        lines: resultLines(text), stub: "" };
+      if (key) ages.set(key, entry);
+    }
+    // A result this rule has already dropped keeps the line it was dropped with: the prefix a provider caches is not
+    // re-established by a stub that says the same thing in a new shape.
+    if (!entry.stub) {
+      const age = total - seen;
+      if (age < turns) return message;
+      if (isGateEvidence(messageText(message), entry.path)) return message;
+      entry.stub = ageNotice(entry.tool, entry.size, entry.turn, age, entry.path, entry.lines);
+      if (record) {
+        try {
+          appendFileSync(record, ageRecordLine(entry.tool, entry.size, entry.stub.length));
+        } catch {
+          // A record that cannot be written is not a reason to send a result the request cannot afford to re-read.
+        }
+      }
+    }
+    changed = true;
+    return { ...message, content: [{ type: "text", text: entry.stub }] };
+  });
+  return changed ? out : null;
+}
+
 /** The extension factory: one hook, the bound the run recorded, and the ledger of what this item's children read. */
 export default function (pi) {
   // The ledger is the item's (issue #858): the adapter names the file beside the item's event stream, so the child
@@ -403,6 +513,9 @@ export default function (pi) {
   // …and the tally of what this **child** was handed is this process's own, never the item's (issue #925): a second read
   // is a path this process already had, and the item's ledger above answers the other question.
   const child = new Map();
+  // …and what each result this child was handed looked like when it arrived (issue #1002): the age rule names the path a
+  // stub reads its text back from, and the message alone does not carry one.
+  const ages = new Map();
   let turn = 0;
   try {
     pi.on("turn_start", async () => {
@@ -414,20 +527,45 @@ export default function (pi) {
   pi.on("tool_result", async (event) => {
     try {
       const bound = recordedBound(process.env.LOOP_TOOL_RESULT_MAX_CHARS);
-      if (!bound) return undefined;
       const record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
       const tool = event.toolName || "?";
       const read = { path: readPath(tool, event.input), ledger, child, turn: turn || 1, session,
         arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ) };
-      const content = trimContent(event.content, bound, tool, record, read);
+      const content = bound ? trimContent(event.content, bound, tool, record, read) : null;
+      // What the child was handed is what a later turn may drop (issue #1002), and it is recorded whatever the bound
+      // records: the size is the one that stands in the transcript, so a result the bound already cut is remembered at
+      // the size it arrives with, and a run that records no bound still ages its results if it records an age.
+      if (event.toolCallId) {
+        const handed = messageText({ content: content || event.content });
+        ages.set(event.toolCallId, { tool, path: read.path, turn: turn || 1, size: handed.length,
+          lines: resultLines(handed), stub: "" });
+      }
       // What the read tool returned is the item's now, so the child that follows this one finds it: written even when
       // the result itself was handed over unchanged, because a first read is what the next one is measured against.
-      if (read.path && ledgerFile) writeLedger(ledgerFile, ledger);
+      if (bound && read.path && ledgerFile) writeLedger(ledgerFile, ledger);
       return content ? { content } : undefined;
     } catch {
       return undefined; // the result stands as the tool returned it
     }
   });
+  // The age rule (issue #1002): `context` is fired before each request over a copy of the messages, so a result older
+  // than the recorded number of turns leaves the request here and stays whole in the transcript the item's evidence
+  // reads. A hook this pi does not have costs the rule and never the child.
+  try {
+    pi.on("context", async (event) => {
+      try {
+        const turns = recordedAgeTurns(process.env.LOOP_TOOL_RESULT_AGE_TURNS);
+        if (!turns) return undefined;
+        const record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
+        const messages = ageMessages(event && event.messages, turns, record, ages);
+        return messages ? { messages } : undefined;
+      } catch {
+        return undefined; // the request stands as the session holds it
+      }
+    });
+  } catch {
+    // An agent without the hook sends every result whole: the bound and the repeat still hold.
+  }
 }
 
 /**

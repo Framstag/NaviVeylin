@@ -1545,6 +1545,11 @@ MUTATIONS=(
   # one never ends a section at the document's next heading of its own level, the other prints the whole suite for a name.
   '1005.1@-@../look.sh@look#aSectionIsPrintedAndTheOtherSectionsAreNot@the end of a section at the document'"'"'s next `## ` heading, so the section read runs on into the sections beside it and the answer carries two of them (issue #1005)@s|^      if (on) on = 0$|      if (on) on = on|'
   '1005.2@-@../look.sh@look#aCaseIsPrintedByItsName@the name a `--case` reads, so every line of the suite opens a case and the whole file arrives for one name (issue #1005)@s|^    \$0 ~ ENVIRON\["pat"\] { on = 1; hits|    { on = 1; hits|'
+  # 1002.1 — the third rule over a tool result: the bound and the repeat decide what enters the context, and this
+  # rule takes out what has stood there too long (issue #1002). The record removes the age comparison, so a
+  # result is stubbed the turn it arrives instead of after the recorded number of turns, and
+  # `trim#aResultOlderThanTheAgeIsStubbedAndNamed` is what must notice.
+  '1002.1@-@../pi-trim-result.mjs@trim#aResultOlderThanTheAgeIsStubbedAndNamed@the comparison that keeps a young result in the request, so every result is stubbed the turn it arrives and a child that has just been handed a section reads a line about it (issue #1002)@s|      if (age < turns) return message;|      if (false) return message;|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -102,6 +102,16 @@ repeat_arm=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:spa
 case "$repeat_arm" in refuse) ;; *) repeat_arm=measure ;; esac
 export LOOP_REPEAT_READ="$repeat_arm"
 
+# …and how long a result the child was handed once stays in its request (issue #1002). The bound above decides what a
+# result puts into the context when it arrives and the repeat arm decides what a second read is answered with, so
+# neither can take one out again; this key is the third rule's and it is the adapter's, beside the other two, for the
+# same reason (D16). A positive whole number of assistant turns is handed over as it is recorded, `0` — the value a
+# project that records no key or a value this file does not understand is handed — leaves every request as the session
+# holds it, and the extension reads the same grammar `tools/pi-trim-result.mjs` applies.
+age_turns=$(sed -n 's/^LOOP_TOOL_RESULT_AGE_TURNS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+  "$here/loop/loop.conf" 2>/dev/null | tail -1)
+export LOOP_TOOL_RESULT_AGE_TURNS="${age_turns:-0}"
+
 if [ $# -lt 2 ]; then
   printf 'pi-child-events: usage: %s <command> [args…] <prompt-file>\n' "$(basename "$0")" >&2
   exit 2

@@ -383,6 +383,7 @@ LOOP_SHELL_CASES=(
   'trim#aResultUnderTheBoundIsHandedOverWhole'
   'trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut'
   'trim#theTrimIsRecorded'
+  'trim#aResultOlderThanTheAgeIsStubbedAndNamed'
   'look#oneCallAnswersTheWholeTree'
   'look#aResultOverTheBoundIsCutAndNamed'
   'look#aPathScopesTheWalkToIt'
@@ -1210,6 +1211,7 @@ loop_run_shell_case() {
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
     'trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut') fn=case_trim_aResultBetweenTheNewBoundAndTheOldOneArrivesCut ;;
     'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
+    'trim#aResultOlderThanTheAgeIsStubbedAndNamed') fn=case_trim_aResultOlderThanTheAgeIsStubbedAndNamed ;;
     'look#oneCallAnswersTheWholeTree') fn=case_look_oneCallAnswersTheWholeTree ;;
     'look#aResultOverTheBoundIsCutAndNamed') fn=case_look_aResultOverTheBoundIsCutAndNamed ;;
     'look#aPathScopesTheWalkToIt') fn=case_look_aPathScopesTheWalkToIt ;;
@@ -13942,6 +13944,82 @@ case_trim_theTrimIsRecorded() {
   return 0
 }
 
+# The two rules above decide what a result puts into the context **when it arrives**, so neither of them can take one out
+# again: a result a child was handed at turn 3 is still in its transcript at turn 40, and every turn of that session pays
+# to re-read it — 57 % of the 871 Mtok this archive spent is `toolResults`, 496.9 Mtok of it re-read (issue #1002). So the
+# third rule drops a result older than the recorded number of turns out of the **request**, on pi's `context` hook, which
+# is handed a copy of the messages: the transcript the item's evidence reads keeps the whole text, and what replaces it is
+# one line naming the tool, the path it read, its size and the range that reads it again. The case drives the extension
+# itself — the file the adapter loads — because the rule lives on a hook the CLI has no path through.
+case_trim_aResultOlderThanTheAgeIsStubbedAndNamed() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d ext file record harness size aged young off
+  ext="$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs"
+  [ -f "$ext" ] \
+    || fail "nothing drops a result by age: tools/pi-trim-result.mjs is not in the tree (issue #1002)"
+  d=$(scratch)
+  file="$d/section.md"
+  record="$d/trims.log"
+  { printf 'FIRST-LINE\n'; head -c 400 /dev/zero | tr '\0' 'z'; printf '\nLAST-LINE\n'; } > "$file"
+  size=$(wc -c < "$file")
+  harness="$d/age.mjs"
+  # The extension, driven the way a child drives it: one read at turn 1, then the request at two ages — one turn short of
+  # the recorded number and at it. `structuredClone` is the hook's own copy: the array the session holds is not the one
+  # the rule is handed, and the case reads that array back to prove the text is still there.
+  {
+    printf '%s\n' 'import { readFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, extension] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'const turns = Number.parseInt(process.env.LOOP_TOOL_RESULT_AGE_TURNS || "0", 10) || 0;'
+    printf '%s\n' 'const text = readFileSync(file, "utf8");'
+    printf '%s\n' 'await handlers.get("turn_start")();'
+    printf '%s\n' 'const handed = await handlers.get("tool_result")({ toolCallId: "call_1", toolName: "ctx_read", input: { path: file }, content: [{ type: "text", text }] });'
+    printf '%s\n' 'const kept = handed && handed.content ? handed.content : [{ type: "text", text }];'
+    printf '%s\n' 'const session = ['
+    printf '%s\n' '  { role: "user", content: [{ type: "text", text: "read it" }] },'
+    printf '%s\n' '  { role: "assistant", content: [{ type: "text", text: "reading" }] },'
+    printf '%s\n' '  { role: "toolResult", toolCallId: "call_1", toolName: "ctx_read", content: kept },'
+    printf '%s\n' '];'
+    printf '%s\n' 'const ask = async (after) => {'
+    printf '%s\n' '  const messages = JSON.parse(JSON.stringify(session));'
+    printf '%s\n' '  for (let i = 0; i < after; i += 1) messages.push({ role: "assistant", content: [{ type: "text", text: "turn" }] });'
+    printf '%s\n' '  const answer = await handlers.get("context")({ messages });'
+    printf '%s\n' '  return { out: answer && answer.messages ? answer.messages : messages, session: messages };'
+    printf '%s\n' '};'
+    printf '%s\n' 'const line = (m) => (m && m.content && m.content[0] && m.content[0].text) || "";'
+    printf '%s\n' 'const young = await ask(turns > 0 ? turns - 1 : 0);'
+    printf '%s\n' 'const aged = await ask(turns);'
+    printf '%s\n' 'process.stdout.write(`YOUNG: ${young.out === young.session ? "whole" : "changed"}\n`);'
+    printf '%s\n' 'process.stdout.write(`AGED: ${line(aged.out[2])}\n`);'
+    printf '%s\n' 'process.stdout.write(`TRANSCRIPT: ${line(aged.session[2]) === text ? "kept" : "lost"}\n`);'
+  } > "$harness"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_AGE_TURNS=3 LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$ext" > "$d/out.txt" 2>&1 \
+    || fail "the extension exited non-zero on an aged result: $(head -3 "$d/out.txt")"
+  young=$(grep -m1 '^YOUNG:' "$d/out.txt" || true)
+  aged=$(grep -m1 '^AGED:' "$d/out.txt" || true)
+  assert_eq "YOUNG: whole" "$young" "a result one turn short of the age is handed over exactly as it stands"
+  assert_contains "$aged" 'LOOP-AGED-RESULT' "a result older than the age leaves the request under a line that says so"
+  assert_contains "$aged" "$file" "and that line names the path the result was read from"
+  assert_contains "$aged" "$size" "and the size it had"
+  assert_contains "$aged" 'lines:1-' "and the call that reads a range of it again"
+  assert_contains "$(cat "$d/out.txt")" 'TRANSCRIPT: kept' \
+    "the session's own messages still hold the whole result, so an evidence check can read it"
+  assert_contains "$(cat "$record" 2>/dev/null || true)" 'LOOP-TOOL-RESULT-AGE: ctx_read chars=' \
+    "and what it withheld is recorded beside the child's event stream"
+  # `0` is the arm that leaves the request exactly as the session holds it: a project that records no age is not a child
+  # whose results silently vanish.
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_AGE_TURNS=0 LOOP_TOOL_RESULT_TRIM_RECORD="$d/off.log" \
+    node "$harness" "$file" "$ext" > "$d/off.txt" 2>&1 \
+    || fail "the extension exited non-zero with the age rule off: $(head -3 "$d/off.txt")"
+  off=$(grep -m1 '^AGED:' "$d/off.txt" || true)
+  assert_not_contains "$off" 'LOOP-AGED-RESULT' "with no age recorded every request stands as the session holds it"
+  return 0
+}
+
 # The bound reaches a child only if the process that starts it loads the extension (issue #660): the adapter is
 # the one place this project's agent flags live, and every child goes through it, so the word is asserted there
 # and not in a phase — a phase under `tools/loop/**` may name no agent flag (`run#engineNamesNoProjectFact`). What
@@ -13952,8 +14030,8 @@ case_trim_theTrimIsRecorded() {
 # started by hand. That export was the one line no case and no mutation touched in the first round — deleting it
 # left all four other cases green while every trim record silently vanished (review of #660).
 case_adapter_theChildIsStartedWithTheResultBound() {
-  # files: tools/loop/tests/loop-cases.sh tools/loop/loop.conf tools/pi-child-events.sh tools/pi-trim-result.mjs
-  local d prompt recorder got ext line next recorded handed
+  # files: tools/loop/tests/loop-cases.sh tools/loop/loop.conf tools/loop/ tools/pi-child-events.sh tools/pi-trim-result.mjs
+  local d prompt recorder got ext line next recorded handed recorded_age
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   ext="$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs"
   [ -f "$ext" ] \
@@ -13966,6 +14044,7 @@ case_adapter_theChildIsStartedWithTheResultBound() {
     printf '%s\n' '#!/usr/bin/env bash'
     printf '%s\n' 'for a in "$@"; do printf "%s\n" "$a"; done > "$RECORD"'
     printf '%s\n' 'printf "%s\n" "$LOOP_TOOL_RESULT_MAX_CHARS" > "$RECORD.bound"'
+    printf '%s\n' 'printf "%s\n" "$LOOP_TOOL_RESULT_AGE_TURNS" > "$RECORD.age"'
     printf '%s\n' 'printf "%s\n" "${LOOP_TOOL_RESULT_TRIM_RECORD:-}" > "$RECORD.record"'
   } > "$recorder"
   # The stream is unset explicitly: the suite may itself run inside a child whose run exported one, and a "started by
@@ -13988,6 +14067,24 @@ case_adapter_theChildIsStartedWithTheResultBound() {
   [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
   handed=$(cat "$d/argv.txt.bound" 2>/dev/null || true)
   assert_eq "$recorded" "$handed" "the bound the child is handed is the number the project recorded"
+  # …and the age a result leaves the request after (issue #1002) is the number the project recorded too, read from the
+  # same file by the same adapter: a child started with a rule of its own would age results a run did not ask it to.
+  recorded_age=$(sed -n 's/^LOOP_TOOL_RESULT_AGE_TURNS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded_age" ] || fail "the project records no LOOP_TOOL_RESULT_AGE_TURNS in tools/loop/loop.conf"
+  assert_eq "$recorded_age" "$(cat "$d/argv.txt.age" 2>/dev/null || true)" \
+    "the age the child is handed is the number the project recorded"
+  # …and a configuration that records no age hands `0`, the arm that leaves every request as the session holds it: no
+  # child may lose a result by a key nobody wrote.
+  mkdir -p "$d/tools/loop"
+  cp "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" "$d/tools/" \
+    || fail "the adapter's own file is not in the tree: tools/pi-child-events.sh cannot be copied"
+  sed '/^LOOP_TOOL_RESULT_AGE_TURNS=/d' "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" > "$d/tools/loop/loop.conf"
+  env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD -u LOOP_TOOL_RESULT_AGE_TURNS RECORD="$d/noage.txt" \
+    bash "$d/tools/pi-child-events.sh" bash "$recorder" "$prompt" </dev/null >"$d/out-noage" 2>&1 \
+    || fail "the adapter exited non-zero against a configuration that records no age: $(head -3 "$d/out-noage")"
+  assert_eq "0" "$(cat "$d/noage.txt.age" 2>/dev/null || true)" \
+    "a configuration that records no age hands the child 0, the arm that cannot drop a result"
   assert_eq "" "$(cat "$d/argv.txt.record" 2>/dev/null || true)" \
     "a child started by hand, with no event stream, names no record file and writes nothing into the project"
   RECORD="$d/events-argv.txt" LOOP_CHILD_EVENTS="$d/events.jsonl" \

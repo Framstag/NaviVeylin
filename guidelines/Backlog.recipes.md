@@ -199,6 +199,20 @@ prompt has asked for that since #246, and the archive still records `LOOP-SPEND-
 the adapter owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`,
 `trim#aResultAboveTheBoundIsTrimmedAndNamed`).
 
+That bound and the repeat rule both decide what a result puts into the context **when it arrives**, so neither of them
+can take one out again: a result a child was handed at turn 3 is still in its transcript at turn 40, and 57 % of the
+871 Mtok this archive spent is `toolResults`, 496.9 Mtok of it re-read (`python3 tools/loop-spend.py --json`, issue
+#1002). So a third rule drops a result older than `LOOP_TOOL_RESULT_AGE_TURNS` assistant turns out of the **request** —
+pi's own `context` hook, which is handed a copy of the messages, so the transcript an evidence check reads keeps the
+whole text — and replaces it with one line naming the tool, the path it read, its size and the call that reads a range
+of it again, the withheld volume landing in the same record as the trim. `tools/loop/loop.conf` records **20**: over the
+same streams 40 turns reaches −23 % of the window and 20 turns −39 % (p50 63 k against 114 k), while 10 turns reaches
+−48 % at the cost of what a child is still working from. The gain is a floor and not a saving — dropping a message
+changes the conversation prefix, so the provider's cache is re-established once from the drop point, 97 % of that spend
+being `cacheRead` — which is why the drop fires when a result ages and the same set then stays out for the turns that
+follow. `0` disables it, and a project that records no key hands every child the request its session holds
+(`trim#aResultOlderThanTheAgeIsStubbedAndNamed`).
+
 That count used to be readable only offline, in the archive's own streams (issue #814): the item's record now carries
 it, so a report says whether the rule holds without `tools/loop-spend.py` being run first. `state.sh done` counts —
 per session, from the stream it already opens — the file reads whose path the **session** had already read

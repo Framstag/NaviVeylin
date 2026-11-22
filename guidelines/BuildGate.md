@@ -177,6 +177,16 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   `ps -o pid,args | grep 'gradle-wrapper\.ja[r]'` → `kill -9 <pid>`.
 - **Rule: do not use `/tmp` for large map imports.** It is a RAM tmpfs (~7.7 GB quota), so an import there
   competes with the build for memory — use a disk path.
+- **Rule: a rotated child stream still answers every turn — read the pair before calling a figure a lower
+  bound.** Since issue #971 `tools/pi-child-events.sh` replaces the oldest turns of a stream it has to rotate
+  with one `turn_end` record each: the record carries what the spend is counted in (usage, the tool names and
+  their count) and not the payload it was counted from. So `turns`/`calls`/`tokens` read off a rotated stream are
+  the item's figures and not a floor, and its first line states `turns_summarised` and `turns_kept` beside
+  `dropped_bytes`. A record written before the pair existed carries only `dropped_turn_ends`, and a figure read
+  beside that one *is* a lower bound — the report prints those words for it and the pair for the newer record,
+  told apart by the absence of the field rather than by a zero. Anything that reads a stream to price an item
+  (`report.sh`, `state.sh`, `loop-spend.py`) therefore reads the turn records and never the bytes the rotation
+  removed: a figure computed from `dropped_bytes` is a bound nothing can correct.
 
 ## 2c. Gate timing record and baseline
 

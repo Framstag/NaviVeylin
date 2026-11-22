@@ -6334,3 +6334,23 @@ that withdraws a result the child still needs costs more than the turns it saves
   read, the size it had and the range that reads it again, the session's own messages still hold the result byte for
   byte, and the withheld volume is appended to the trim record beside the child's event stream
 - **Case**: `trim#aResultOlderThanTheAgeIsStubbedAndNamed`
+
+### Requirement: Rotation summarises a turn, it does not remove it
+
+A stream rotated past `LOOP_CHILD_EVENTS_MAX_BYTES` SHALL keep one record per turn — turn index, start, tool names and
+count, tokens, timing — replacing the oldest turns' payloads rather than the turns, and its rotation record SHALL
+state the turns summarised and the turns kept.
+
+#### Scenario: A rotated stream answers how many turns it had
+
+- **WHEN** a stream passes the bound and the oldest half is summarised
+- **THEN** the stream carries one record per turn, and the turns, calls and tokens read from it equal the ones the
+  same stream carried before the rotation
+- **Case**: `run#aRotatedStreamKeepsEveryTurn`
+
+#### Scenario: The rotation record states both sides
+
+- **WHEN** a rotation writes its `stream_rotation` record
+- **THEN** the record names `turns_summarised` and `turns_kept` beside the bytes it dropped, and the report prints
+  both
+- **Case**: `run#theRotationNamesTheTurnsItSummarised`

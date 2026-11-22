@@ -1467,7 +1467,10 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
       # two figures of the record are kept apart because they have different shapes: `dropped_turn_ends` is
       # cumulative (a rotation carries the count of the record it replaces), so the greatest is the total;
       # `dropped_bytes` is what that one rotation removed, so the records add up. A stream holding no record yields
-      # null, never the zero that two figures of `0` would read as.
+      # null, never the zero that two figures of `0` would read as. Since issue #971 a rotation summarises the oldest
+      # turns rather than dropping them, so its record carries the pair that says so — `turns_summarised` and
+      # `turns_kept` — read the same way, the greatest of the records: a stream that rotated twice holds the last
+      # record, and its counts are the ones the stream it left behind answers.
       | ([$all[] | select(.type == "stream_rotation")]) as $rot
       | ([$t[] | ((.input // 0) + (.cacheRead // 0))] | max) as $turnMax
       | ([$turnMax // 0, $compacted // 0] | max) as $context
@@ -1506,7 +1509,9 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
          gateRepeat: (if $rep.calls == 0 then null else {calls: $rep.calls, ms: $rep.ms} end),
          streamRotation: (if ($rot | length) == 0 then null
                            else {droppedTurnEnds: ([$rot[] | (.dropped_turn_ends // 0)] | max),
-                                 droppedBytes: ([$rot[] | (.dropped_bytes // 0)] | add)} end)}' "$events" 2>/dev/null) || blob=""
+                                 droppedBytes: ([$rot[] | (.dropped_bytes // 0)] | add),
+                                 turnsSummarised: ([$rot[] | (.turns_summarised // 0)] | max),
+                                 turnsKept: ([$rot[] | (.turns_kept // 0)] | max)} end)}' "$events" 2>/dev/null) || blob=""
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;

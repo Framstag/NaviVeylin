@@ -1,5 +1,9 @@
-# the gate's plan for this delta, taken at the run's own base
-# 2026-11-22T20:17:45Z
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-values.sh
+tools/tests/check-doc-values-selftest.sh
+tools/check-doc-routes.sh
+tools/tests/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
 tools/check-openspec-hygiene.sh
 tools/tests/check-openspec-hygiene-selftest.sh
-plan exit: 0

@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0" errors="0" time="4" run="406693">
+<testsuite name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0" errors="0" time="3" run="749673">
   <system-out>pending (classified ahead of its archive): 0 car-only areas: 1 highlights: 19</system-out>
 </testsuite>

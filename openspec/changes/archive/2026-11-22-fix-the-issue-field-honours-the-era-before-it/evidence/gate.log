@@ -1,9 +1,9 @@
-LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
 LOOP-GATE-BASE: f826cd7a5e4952fc0e5331a32dcea0cb67baa99a (from --base)
-LOOP-GATE-TREE: head=f826cd7a5e4952fc0e5331a32dcea0cb67baa99a diff=a98392b96e68e744
-LOOP-GATE-TALLY: app/build/test-results/loop-gate run=406693
+LOOP-GATE-TREE: head=036e8da8180ff842e5af482a3f8dce14e4233603 diff=c4d5ced5488f9052
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=749673
 LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
 gate-pool: 4 steps start together — at most 4 in flight
 gate: bash tools/gen-feature-list.sh --check-classification
@@ -20,10 +20,10 @@ stale: 4
 pending (classified ahead of its archive): 0
 car-only areas: 1
 highlights: 19
-gate: bash tools/gen-feature-list.sh --check-classification — 4s
+gate: bash tools/gen-feature-list.sh --check-classification — 3s
 gate: tools/check-doc-values.sh
 LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
-gate: tools/check-doc-values.sh — 1s
+gate: tools/check-doc-values.sh — 0s
 gate: tools/tests/check-doc-values-selftest.sh
 PASS  values#proseMatchesTheProfile — LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
 PASS  values#aDriftedValueIsReported — a profile value the section does not state is reported with the figure the section states and the one the profile records
@@ -31,7 +31,7 @@ PASS  values#aRoleWithNoProseRow — a profile role the section states no value 
 PASS  values#aRowTheProfileDoesNotRecord — a stated bound the profile records no key for is reported, so the section cannot promise a value nothing enforces
 PASS  values#aProfileWithoutTheKeysIsRefused — a profile with no turn-bound key is refused instead of read as a tree with nothing to compare
 check-doc-values-selftest: all 5 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
-gate: tools/tests/check-doc-values-selftest.sh — 1s
+gate: tools/tests/check-doc-values-selftest.sh — 0s
 gate: tools/check-doc-routes.sh
 check-doc-routes: all 357 section references resolve, all 8 skill references resolve
 gate: tools/check-doc-routes.sh — 1s
@@ -106,17 +106,17 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 201 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
-check-todo-references: 67 citation(s) resolve through the recorded table; 12920 file(s) excluded by the allowlist above
+check-todo-references: 67 citation(s) resolve through the recorded table; 12934 file(s) excluded by the allowlist above
 gate: tools/check-todo-references.sh — 2s
 gate: tools/check-openspec-hygiene.sh
 ::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
 Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
 Every capability spec states its Purpose.
-gate: tools/check-openspec-hygiene.sh — 0s
-LOOP-GATE-BASERED-MEASURE:tools/check-openspec-hygiene.sh — measuring this step on f826cd7a5e49 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+gate: tools/check-openspec-hygiene.sh — 1s
+LOOP-GATE-BASERED-MEASURE:tools/check-openspec-hygiene.sh — measuring this step on f826cd7a5e49 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/issue-loop/base-red.log
 state: base state of tools/check-openspec-hygiene.sh recorded — 0 case(s) red at f826cd7a5e49
 LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1
 gate: tools/tests/check-openspec-hygiene-selftest.sh
 check-openspec-hygiene-selftest: all 12 cases passed (throwaway OpenSpec trees, no Gradle)
 gate: tools/tests/check-openspec-hygiene-selftest.sh — 0s
-LOOP-GATE: tests=51 failures=0 errors=0 (bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 1s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 9s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s) — base-red: tools/check-openspec-hygiene.sh:1
+LOOP-GATE: tests=51 failures=0 errors=0 (bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 9s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 0s) — base-red: tools/check-openspec-hygiene.sh:1

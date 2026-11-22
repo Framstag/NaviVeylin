@@ -531,6 +531,7 @@ LOOP_SHELL_CASES=(
   'run#aContextCutWorkerIsContinuedByItsOwnRun'
   'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound'
   'run#theCheckpointIsTheSplitsOwnReading'
+  'run#aSecondChildIsNotEndedByAnEarlierSession'
   'run#aWorkerBelowItsCheckpointIsNotSplit'
   'run#aWorkerAtTheCheckpointWithNoWorkRunsOn'
   'run#aCutWhosePatchDoesNotApplyIsLeftCut'
@@ -1343,6 +1344,7 @@ loop_run_shell_case() {
     'run#aContextCutWorkerIsContinuedByItsOwnRun') fn=case_run_aContextCutWorkerIsContinuedByItsOwnRun ;;
     'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound') fn=case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound ;;
     'run#theCheckpointIsTheSplitsOwnReading') fn=case_run_theCheckpointIsTheSplitsOwnReading ;;
+    'run#aSecondChildIsNotEndedByAnEarlierSession') fn=case_run_aSecondChildIsNotEndedByAnEarlierSession ;;
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
     'run#aWorkerAtTheCheckpointWithNoWorkRunsOn') fn=case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn ;;
     'run#aCutWhosePatchDoesNotApplyIsLeftCut') fn=case_run_aCutWhosePatchDoesNotApplyIsLeftCut ;;
@@ -22522,6 +22524,102 @@ EOF
     "and the state carries no checkpoint continuation"
   assert_eq "skipped" "$(jq -r '.items[0].result' "$f")" \
     "the item keeps the worker's own answer rather than a cut at the checkpoint: $out"
+  return 0
+}
+
+# A child's bound is decided by a reading of that child's own lines (issue #1010). Every child of an item appends to
+# one stream, and the adapter rotates that stream when it passes `LOOP_CHILD_EVENTS_MAX_BYTES` — so the line count a
+# child is seeded with can name no line of the file a moment later. Item #1004's gate child was ended 28 s in on
+# 201 443 tokens the round before it had read, while its own turns never passed 23 580, and the run's own record of
+# that item (`runs/2026-11-21T19:40:37Z.json`, `.items[].metrics.streamRotation.droppedBytes=8230492`) shows the stream
+# rotated under the gate child: `child_context`'s reset then read the whole surviving stream as this child's own.
+# Staged here: the round before the gate reports 201 443 — past the item's bound, under its own role's 250 000 — the
+# gate child's own reading is 150 000, up to the checkpoint and below the stop, and the stream shrinks to its records
+# exactly as the rotation leaves it. The gate child must run to its own end, and the run must name 150 000, which is
+# the number a tree that re-reads the earlier session cannot print: it ends the child on 201 443 instead.
+case_run_aSecondChildIsNotEndedByAnEarlierSession() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  local d p conf action out f gate_report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\nLOOP_ITEM_CONTEXT_MAX_REVIEWER_PRE_GATE=250000\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
+  # …and the round this case stages is the pre-gate one, whose role key is its own and inherits the item's when absent:
+  # without this its 201 443 is ended by the item's 200 000 before the gate child is ever started.
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX_REVIEWER_PRE_GATE=250000' "$conf" ||
+    fail "the round before the gate needs its own stop above the 201443 it reads"
+  # The reviewer's own stop has to stand above the item's, or the round this case stages would be ended by its own
+  # reading and would never reach the gate child: that arm is the reading role's 250 000, not this case's choice.
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX_REVIEWER=250000' "$conf" ||
+    fail "this case stages a round above the item's bound, so the reviewer's own stop must stand above it"
+  export LOOP_CONF="$conf"
+  # The change the gate child is started on: the fixture's worker leaves it, and the change child stops at the diff, so
+  # the round before the gate is the child that reads it (`STUB_CHANGE_REPORT`).
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS'
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+case "\$1" in
+  worker-prompt.md)
+    printf '%s\n' '{"type":"session","id":"fixture-worker"}' >> "\$ev"
+    printf '%s\n' '{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":19000,"output":10,"cacheRead":1000,"cacheWrite":0}}' >> "\$ev"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    mkdir -p app/build/test-results/loop-gate
+    printf '<testsuite tests="1" failures="0"></testsuite>\n' > app/build/test-results/loop-gate/TEST-demo.xml
+    printf 'the fix\n' > demo-fix.txt
+    # …held past the run's first whole-second reading, so what bounds this child is read while it still runs.
+    sleep 3
+    ;;
+  reviewer-pre-gate-prompt.md)
+    # …the round that reads the diff: its own reading is past the item's bound and under its own role's stop, and the
+    # deltas beside it are what a rotation drops first.
+    printf '%s\n' '{"type":"session","id":"fixture-pre-gate"}' >> "\$ev"
+    printf '%s\n' '{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":200000,"output":10,"cacheRead":1443,"cacheWrite":0}}' >> "\$ev"
+    printf '%s\n' '{"type":"message_update","usage":{"input":200000,"output":10,"cacheRead":1443,"cacheWrite":0}}' >> "\$ev"
+    printf '%s\n' '{"type":"message_update","usage":{"input":200000,"output":10,"cacheRead":1443,"cacheWrite":0}}' >> "\$ev"
+    # …a third delta, so the rotation below leaves the stream shorter than the count the gate child is seeded with.
+    printf '%s\n' '{"type":"message_update","usage":{"input":200000,"output":10,"cacheRead":1443,"cacheWrite":0}}' >> "\$ev"
+    sleep 3
+    ;;
+  worker-gate-prompt.md)
+    # …and the stream the gate child starts on is rotated to its records, as the adapter leaves it once the stream has
+    # passed its byte bound: the records stay, the deltas go, and the count this child was seeded with no longer names
+    # a line of this file. One `mv` writes it, so the wait sees the stream whole or sees it shrunk — never half a file,
+    # which would make the reading a fact about the fixture's own timing.
+    { grep -vE '"type": ?"message_update"' "\$ev"
+      printf '%s\n' '{"type":"session","id":"fixture-gate"}'
+      printf '%s\n' '{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":140000,"output":10,"cacheRead":10000,"cacheWrite":0}}'
+    } > "\$ev.rotated" && mv "\$ev.rotated" "\$ev"
+    # …and held past that reading too, so the bound is taken while this child still runs.
+    sleep 3
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  gate_report="$p/.pi/issue-loop/items/21/worker-gate-report.md"
+  [ -f "$gate_report" ] || fail "the gate child left no transcript: $out"
+  assert_contains "$(cat "$gate_report")" "LOOP-GATE:" \
+    "the second child ran to its own end and printed the gate line: $(cat "$gate_report")"
+  assert_eq "1" "$(grep -c '^LOOP-CONTEXT: the child.s context reached 150000 tokens' <<<"$out" || true)" \
+    "the run names the second child's own reading, the 150000 its own lines carry: $(grep -E '^(LOOP-|prompt:)' <<<"$out" | tail -30)"
+  assert_eq "0" "$(grep -c '^LOOP-TIMEOUT:' <<<"$out" || true)" \
+    "and no child was ended at a bound: $(grep '^LOOP-TIMEOUT:' <<<"$out" || true)"
+  # The arm beside it (issue #851's rule, which this fix must not weaken): a child's own reading *is* what bounds it,
+  # so the 201 443 of the round before the gate is still named — as that round's reading, never as the gate child's.
+  assert_eq "1" "$(grep -c '^LOOP-CONTEXT: the child.s context reached 201443 tokens' <<<"$out" || true)" \
+    "the round before the gate is still read at its own 201443, under its role's 250000 stop"
+  f=$(state_file "$p")
+  assert_eq "0" "$(jq -r '[.items[] | select(.result == "cut")] | length' "$f")" \
+    "and the item is not written off as cut: $(jq -r '.items[0].note' "$f")"
   return 0
 }
 

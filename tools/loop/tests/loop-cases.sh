@@ -13566,7 +13566,8 @@ case_adapter_theChildIsStartedWithItsToolDirectoryOnPath() {
 # through a child.
 case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded() {
   # files: tools/pi-child-events.sh
-  local d prompt emitter f short aged kept dropped size aged_before aged_after line
+  local d prompt emitter f short aged kept summarised turns size aged_before aged_after line delta_bytes
+  local aged_summarised aged_deltas_before aged_deltas_after
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   d=$(scratch)
   prompt="$d/prompt.md"
@@ -13574,10 +13575,22 @@ case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded() {
   emitter="$d/emitter.sh"
   cat > "$emitter" <<'EMITTER'
 #!/usr/bin/env bash
+# A turn is three deltas, a tool record and a turn record: the deltas are the bulk and the records are what a rotation
+# keeps, so a fixture of records alone has nothing for the delta pass to trim (issue #971).
+pad='................................................................'
 i=0
 while [ "$i" -lt 40 ]; do
   i=$((i + 1))
-  printf '{"type":"turn_end","n":%s,"pad":"%s"}\n' "$i" "0000000000000000000000000000000000000000000000000000000000000000"
+  j=0
+  while [ "$j" -lt 3 ]; do
+    j=$((j + 1))
+    printf '{"type":"message_update","usage":{"input":10,"output":1},"assistantMessageEvent":{"type":"text_delta","delta":"%s"}}\n' "$pad$pad"
+  done
+  printf '{"type":"tool_execution_end","toolCallId":"t%s","toolName":"bash","durationMs":5}\n' "$i"
+  # The `usage` on every `turn_end` is what lets the delta pass go: the rotation drops `message_update` only when every
+  # turn record of the stream carries the usage those updates hold (`state.sh` reads a turn's spend from either), so a
+  # fixture without it would exercise only the summarise pass and leave the payload standing.
+  printf '{"type":"turn_end","message":{"role":"assistant","usage":{"input":10,"output":1}},"n":%s,"pad":"%s"}\n' "$i" "0000000000000000000000000000000000000000000000000000000000000000"
 done
 printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
 EMITTER
@@ -13592,25 +13605,42 @@ EMITTER
     "the newest event survives the rotation"
   assert_eq "1" "$(grep -c '"type":"stream_rotation"' "$f" || true)" \
     "one record stands for every rotation the stream went through"
-  dropped=$(head -n 1 "$f" | jq -r '.dropped_turn_ends // 0')
-  kept=$(grep -c '"type":"turn_end"' "$f" || true)
-  [ "$dropped" -gt 0 ] || fail "the record says it dropped no turn, on a stream that held 40: $dropped"
-  assert_eq "40" "$(( dropped + kept ))" \
-    "what the record dropped plus what the stream still holds is every turn the child took"
-  # The stream is bounded at its bound, not at twice it: the file may pass the count by the one line that pushed it
-  # over before the rotation ran, and by nothing else.
+  # A rotation summarises the oldest turns instead of removing them (issue #971): the record names the turns it
+  # summarised and the turns it kept, and the stream carries one `turn_end` per turn — the summarised ones marked, so
+  # the count of turns is the count of `turn_end` lines and not the residue of a deletion.
+  summarised=$(head -n 1 "$f" | jq -r '.turns_summarised // 0')
+  kept=$(head -n 1 "$f" | jq -r '.turns_kept // 0')
+  turns=$(grep -c '"type":"turn_end"' "$f" || true)
+  [ "$summarised" -gt 0 ] || fail "the record says it summarised no turn, on a stream that held 40: $summarised"
+  assert_eq "40" "$(( summarised + kept ))" \
+    "what the record summarised plus what it kept is every turn the child took"
+  assert_eq "$turns" "$(( summarised + kept ))" \
+    "and the stream carries one record per turn, so the two sides agree with the lines a reader counts"
+  # The bound is the payload's and not the turns' (issue #971): a rotation summarises the oldest turns and keeps one
+  # record per turn, so what the bound still holds is the delta lines — the payload — and the records stand above it,
+  # one per turn plus the tool records a turn wrote. What the bound still forbids is the thing
+  # `aStreamStillOverItsBoundAfterTheDeltaPass` reads: a stream the delta pass leaves over it is cut and recorded, not
+  # left whole.
   line=$(bash "$emitter" </dev/null | LC_ALL=C awk '{ if (length($0) > n) n = length($0) } END { print n + 0 }')
+  delta_bytes=$(grep -E '^\{"type": *("message_update"|"tool_execution_update")' "$f" | wc -c)
   size=$(wc -c < "$f")
-  [ "$size" -le "$(( 2048 + line + 1 ))" ] || fail "the kept stream is not bounded by the recorded 2048 B plus one line: $size B"
+  [ "$delta_bytes" -le "$(( 2048 + line + 1 ))" ] ||
+    fail "the kept stream carries more payload than its bound: $delta_bytes B of delta lines in $size B"
+  assert_eq "40" "$(grep -c '"type":"tool_execution_end"' "$f" || true)" \
+    "and every tool record the turns wrote stands beside them"
 
   # A stream that was *already* past its bound when the child started is rotated by the first event appended to it:
   # the count is seeded from the file's own size, so a child that appends less than a bound still brings an aged file
   # down. Without the seed the bound only ever caps what one child adds, and a file that outgrew its bound — the
   # archive's largest stream, 63.47 MiB — stays whole for the item's whole life, which is the defect this case is for.
+  # A rotation summarises the aged turns rather than dropping them (issue #971), so what it takes off an aged file is its
+  # payload: the turns stand as records while the deltas the aged turns carried are what the bound reclaims.
   aged="$d/aged.jsonl"
   bash "$emitter" </dev/null > "$aged"
   aged_before=$(wc -c < "$aged")
+  aged_deltas_before=$(grep -c '"type":"message_update"' "$aged" || true)
   [ "$aged_before" -gt 2048 ] || fail "the stream written before the child is not past the bound: $aged_before B"
+  [ "$aged_deltas_before" -gt 100 ] || fail "the aged stream is not delta-heavy: $aged_deltas_before payload lines"
   LOOP_CHILD_EVENTS="$aged" LOOP_CHILD_EVENTS_MAX_BYTES=2048 \
     bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out-aged" 2>&1 ||
     fail "the adapter exited non-zero on a stream already past its bound: $(head -3 "$d/out-aged")"
@@ -13618,9 +13648,15 @@ EMITTER
     "a stream already past its bound is rotated by the first event appended to it"
   assert_eq "message_end" "$(tail -n 1 "$aged" | jq -r '.type // ""' 2>/dev/null)" \
     "and the newest event survives that rotation"
+  aged_summarised=$(head -n 1 "$aged" | jq -r '.turns_summarised // 0')
+  [ "$aged_summarised" -ge 40 ] ||
+    fail "the aged stream's own 40 turns were not summarised at the first append: $aged_summarised"
   aged_after=$(wc -c < "$aged")
-  [ "$aged_after" -lt "$aged_before" ] || fail "the child left the aged stream as large as it found it: $aged_before B → $aged_after B"
-  [ "$aged_after" -le "$(( 2048 + line + 1 ))" ] || fail "the aged stream is not bounded after the child appended to it: $aged_after B"
+  aged_deltas_after=$(grep -c '"type":"message_update"' "$aged" || true)
+  [ "$aged_deltas_after" -le "$aged_deltas_before" ] ||
+    fail "the aged stream's payload was not reclaimed: $aged_deltas_before → $aged_deltas_after payload lines, $aged_after B"
+  assert_eq "80" "$(grep -c '"type":"turn_end"' "$aged" || true)" \
+    "and both children's turns stand as records: the aged 40 and the 40 this one took"
 
   # A stream under the bound is kept whole and carries no record: the bound is a bound on the tail, not a rewrite of
   # every item's history (the recorded value is above the median item's whole stream).

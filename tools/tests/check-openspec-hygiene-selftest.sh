@@ -10,7 +10,9 @@
 # already names — `artifact-hygiene#theArchivePlaceholderIsReported`, `#aWrittenPurposePasses` and
 # `#aNestedCapabilitySpecIsReported` — and until this file existed no case answered to any of them. The three the
 # issue-field requirement names (`#theIssueFieldIsReported`, `#twoOpenChangesNamingOneIssueAreRefused`,
-# `#aChangeNamingNoIssueIsRefused`) arrive with it, in the two passes at the end.
+# `#aChangeNamingNoIssueIsRefused`) arrive with it, in the two passes at the end, and so does the era's
+# (`#aChangeWrittenBeforeTheFieldIsReported`, issue #999) — the day before the field was required, read from the
+# change's own `created:` line rather than from a list of directory names.
 #
 # Usage: check-openspec-hygiene-selftest.sh [--root <dir>] [--case <name>]
 #        --case <name>  run one case by its id (`artifact-hygiene#…`, or the bare suffix) — what a
@@ -352,7 +354,7 @@ if selected "artifact-hygiene#$case_k"; then
 total=$((total + 1))
 # the refusal: no field, and a name that carries no number
 nofield="$tmp/tree-no-issue"; clean_tree "$nofield"
-printf 'schema: spec-driven\ncreated: 2026-01-01\n' > "$nofield/openspec/changes/demo/.openspec.yaml"
+printf 'schema: spec-driven\ncreated: 2026-11-20\n' > "$nofield/openspec/changes/demo/.openspec.yaml"
 run "$case_k" "$nofield"
 if [ "$CHECK_RC" = 0 ]; then
   fail_case "artifact-hygiene#$case_k" "a change with no issue field and no issue-prefixed name passed (exit 0)"
@@ -372,7 +374,7 @@ fi
 # a name from before the field: the number it carries is the one read
 prefix="$tmp/tree-issue-prefix"; clean_tree "$prefix"
 mv "$prefix/openspec/changes/demo" "$prefix/openspec/changes/fix-issue-898-a-case-waits"
-printf 'schema: spec-driven\ncreated: 2026-01-01\n' > "$prefix/openspec/changes/fix-issue-898-a-case-waits/.openspec.yaml"
+printf 'schema: spec-driven\ncreated: 2026-11-20\n' > "$prefix/openspec/changes/fix-issue-898-a-case-waits/.openspec.yaml"
 run "$case_k-prefix" "$prefix"
 if [ "$CHECK_RC" != 0 ]; then
   fail_case "artifact-hygiene#$case_k" "a 'fix-issue-<N>-' name with no field was refused (exit $CHECK_RC)"
@@ -428,6 +430,46 @@ if [ "$CHECK_RC" = 0 ]; then
   fail_case "artifact-hygiene#$case_l" "a short context block that names no owner passed (exit 0)"
 elif ! grep -q 'does not name AGENTS.md' "$tmp/$case_l-unowned.out"; then
   fail_case "artifact-hygiene#$case_l" "the finding does not name the missing pointer"
+fi
+fi
+
+# ── case 12 ───────────────────────────────────────────────────────────────────────────────────────────────
+# `artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported` (issue #999): the era before the field. The day is read
+# from the change's own `created:` line, because that is the tree's only statement that the directory was written
+# before the rule — a list of names would be the same fact declared a second time. Three arms, so the case is a
+# boundary and not a permission: written before 2026-11-19 is reported with the date, and written on or after it —
+# or stating no `created:` at all — keeps the refusal.
+case_m=aChangeWrittenBeforeTheFieldIsReported
+if selected "artifact-hygiene#$case_m"; then
+total=$((total + 1))
+# arm 1: written before the field was required — reported, naming the directory and the date it read
+before_era="$tmp/tree-era-before"; clean_tree "$before_era"
+printf 'schema: spec-driven\ncreated: 2026-11-14\n' > "$before_era/openspec/changes/demo/.openspec.yaml"
+run "$case_m" "$before_era"
+if [ "$CHECK_RC" != 0 ]; then
+  fail_case "artifact-hygiene#$case_m" "a change created before the field was required was refused (exit $CHECK_RC)"
+elif ! grep -q 'Written before the field was required' "$tmp/$case_m.out"; then
+  fail_case "artifact-hygiene#$case_m" "the report does not name the era it read"
+elif ! grep -q 'openspec/changes/demo=2026-11-14' "$tmp/$case_m.out"; then
+  fail_case "artifact-hygiene#$case_m" "the report does not name the directory and the date it read"
+fi
+# arm 2: the same tree one day after the boundary — the refusal still holds
+after_era="$tmp/tree-era-after"; clean_tree "$after_era"
+printf 'schema: spec-driven\ncreated: 2026-11-20\n' > "$after_era/openspec/changes/demo/.openspec.yaml"
+run "$case_m-after" "$after_era"
+if [ "$CHECK_RC" = 0 ]; then
+  fail_case "artifact-hygiene#$case_m" "a change created after the field was required passed with no field (exit 0)"
+elif ! grep -q "no 'x-issue:' field" "$tmp/$case_m-after.out"; then
+  fail_case "artifact-hygiene#$case_m" "the refusal for a post-era change does not name the missing field"
+fi
+# arm 3: a change that states no `created:` belongs to no era — refused
+undated="$tmp/tree-era-undated"; clean_tree "$undated"
+printf 'schema: spec-driven\n' > "$undated/openspec/changes/demo/.openspec.yaml"
+run "$case_m-undated" "$undated"
+if [ "$CHECK_RC" = 0 ]; then
+  fail_case "artifact-hygiene#$case_m" "a change stating no 'created:' passed with no field (exit 0)"
+elif ! grep -q "no 'x-issue:' field" "$tmp/$case_m-undated.out"; then
+  fail_case "artifact-hygiene#$case_m" "the refusal for a change stating no era does not name the missing field"
 fi
 fi
 

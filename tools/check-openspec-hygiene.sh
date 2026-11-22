@@ -42,6 +42,11 @@
 #        2 usage, or a root that carries no `openspec/`.
 set -uo pipefail
 
+# The day the `x-issue:` field became a requirement: the rule landed with `c7de199f`, and a change directory
+# written before it was required has no field to carry. One constant, because the fifth class's refusal and its
+# report of the era before it have to name the same day (issue #999).
+issue_field_required_since=2026-11-19
+
 root=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -103,8 +108,11 @@ fi
 # 5. two open changes that name one issue (issue #931). The field is read from the change's own `.openspec.yaml`,
 # never from the directory name and never from the proposal's prose: a name carries the change's claim and the
 # prose says what its author chose to say. `none` is a declaration — a change that answers no item — and a
-# `fix-issue-<N>-` name supplies the number for a directory written before the field existed.
+# `fix-issue-<N>-` name supplies the number for a directory written before the field existed, and a directory
+# whose own `created:` states a day before `2026-11-19` was written in the era before the field was required, so
+# it is reported with the date the check read rather than refused (issue #999).
 issue_rows=""
+era_rows=""
 issue_bad=0
 for change_dir in "$root"/openspec/changes/*/; do
   [ -d "$change_dir" ] || continue
@@ -112,12 +120,17 @@ for change_dir in "$root"/openspec/changes/*/; do
   [ "$change_name" = "archive" ] && continue
   change_rel="openspec/changes/$change_name"
   change_issue=""
+  change_created=""
   if [ -f "$change_dir.openspec.yaml" ]; then
     change_issue=$(sed -n 's/^x-issue:[[:space:]]*//p' "$change_dir.openspec.yaml" | head -1 | tr -d "\"' \t")
+    change_created=$(sed -n 's/^created:[[:space:]]*//p' "$change_dir.openspec.yaml" | head -1 | tr -d "\"' \t")
   fi
   if [ -z "$change_issue" ]; then
     if printf '%s' "$change_name" | grep -qE '^fix-issue-[0-9]+-'; then
       change_issue=$(printf '%s' "$change_name" | sed -E 's/^fix-issue-([0-9]+)-.*/\1/')
+    elif [ -n "$change_created" ] && [ "$change_created" \< "$issue_field_required_since" ]; then
+      era_rows="$era_rows$change_rel=$change_created, "
+      continue
     else
       echo "::error file=$change_rel/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed"
       issue_bad=1
@@ -138,6 +151,9 @@ for claimed in $(printf '%s' "$issue_rows" | cut -f1 | sort -u); do
 done
 if [ "$issue_bad" -eq 0 ]; then
   echo "Every open change names its issue: $(printf '%s' "$issue_rows" | awk -F'\t' '$2 != "" { printf "%s%s=%s", sep, $2, ($1 == "none" ? "none" : "#" $1); sep = ", " }')."
+fi
+if [ -n "$era_rows" ]; then
+  echo "Written before the field was required (created before $issue_field_required_since), reported rather than refused: ${era_rows%, }."
 fi
 
 # 6. a `context:` block that restates the project's facts rather than pointing at `AGENTS.md`. The block is
@@ -172,6 +188,6 @@ else
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "OpenSpec artifacts are consistent: $changes open change(s) carry task markers, the operation guidance is quoted, every open change names its issue, the context block is a pointer, and every capability spec states its Purpose."
+  echo "OpenSpec artifacts are consistent: $changes open change(s) carry task markers, the operation guidance is quoted, every open change names its issue or was written before the field was required, the context block is a pointer, and every capability spec states its Purpose."
 fi
 exit "$fail"

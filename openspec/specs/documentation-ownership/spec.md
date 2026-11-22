@@ -792,7 +792,8 @@ A guideline section that states a bound the project's profile records SHALL stat
 ### Requirement: An open change names the issue it is for
 
 An open change SHALL declare the item it answers in the `x-issue` field of its own `.openspec.yaml`, `none` when no
-item is owed, and a tree SHALL NOT hold two open changes that name one issue.
+item is owed, and a tree SHALL NOT hold two open changes that name one issue. A change whose own `created:` states a
+day before 2026-11-19, when the field was required, SHALL be reported rather than refused.
 
 #### Scenario: A change declares the issue it answers
 
@@ -816,6 +817,17 @@ item is owed, and a tree SHALL NOT hold two open changes that name one issue.
 - **Case**: `artifact-hygiene#aChangeNamingNoIssueIsRefused` — the three states in one case: the refusal, the
   declared `none` beside it, and the number a `fix-issue-898-…` name supplies for a directory written before the
   field existed
+
+#### Scenario: A change written before the field was required is reported
+
+- **WHEN** an open change's `.openspec.yaml` carries `created: 2026-11-14` and the change carries neither an
+  `x-issue` field nor a `fix-issue-<N>-` name
+- **THEN** the artifact check exits 0 and names that directory and the date it read as one written before the field
+  was required, while a change created on or after 2026-11-19, and a change that states no `created:` at all, is
+  still refused
+- **Case**: `artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported` — the era in one case: the pre-era directory
+  reported, the same tree one day after the boundary refused, and a directory stating no `created:` refused because
+  a change that states no era belongs to none
 
 ### Requirement: The project context has one owner
 

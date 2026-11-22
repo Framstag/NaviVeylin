@@ -474,7 +474,7 @@ export function readLedger(file) {
   for (const line of text.split("\n")) {
     const parts = line.split("\t");
     if (parts.length < 5 || !parts[0]) continue;
-    ledger.set(parts.slice(4).join("\t"), {
+    ledger.set(readKey(parts.slice(4).join("\t")), {
       sha: parts[0],
       turn: Number.parseInt(parts[1], 10) || 0,
       size: Number.parseInt(parts[2], 10) || 0,

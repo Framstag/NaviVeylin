@@ -1,0 +1,5 @@
+run#theCheckpointIsTheSplitsOwnReading|   loop.conf records no 90000 checkpoint: the split is not drawn where the baseline it pays is outweighed
+--- run#theCheckpointIsTheSplitsOwnReading[0] (exit 1)
+  loop.conf records no 90000 checkpoint: the split is not drawn where the baseline it pays is outweighed
+FAIL run#theCheckpointIsTheSplitsOwnReading
+loop-selftest: 1 of 1 cases failed

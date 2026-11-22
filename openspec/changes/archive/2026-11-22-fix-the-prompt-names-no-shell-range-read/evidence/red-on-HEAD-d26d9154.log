@@ -1,0 +1,3 @@
+FAIL prompt#thePhasePromptNamesWhatItsShellRefuses
+FAIL trim#aResultAboveTheBoundIsTrimmedAndNamed
+FAIL trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut

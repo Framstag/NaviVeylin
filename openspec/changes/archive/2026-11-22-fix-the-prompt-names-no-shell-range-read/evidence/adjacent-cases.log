@@ -1,0 +1,5 @@
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain
+PASS trim#aResultUnderTheBoundIsHandedOverWhole
+PASS trim#theTrimIsRecorded
+PASS trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut

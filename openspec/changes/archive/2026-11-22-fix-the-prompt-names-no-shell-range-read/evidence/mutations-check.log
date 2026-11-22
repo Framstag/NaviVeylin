@@ -1,0 +1,3 @@
+loop-mutations: selected 33 of 452 records (files: tools/loop/prompts/worker.md tools/loop/prompts/reviewer.md ../pi-trim-result.mjs ../../guidelines/BuildGate.md)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.yIJjmo
+loop-mutations: all 33 cases passed — every selected record applies to the file it names

@@ -1,0 +1,6 @@
+bash -n tools/loop/tests/loop-cases.sh: 0
+bash -n tools/loop/tests/loop-mutations.sh: 0
+node --check tools/pi-trim-result.mjs: 0
+check-doc-routes: all 357 section references resolve, all 8 skill references resolve
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+--- exit 0

@@ -1,0 +1,13 @@
+# `sed -n` lines at base 5e77d751 (git grep -c)
+5e77d7510d536b8f5be27c71cb849d70590d2595:guidelines/BuildGate.md:1
+5e77d7510d536b8f5be27c71cb849d70590d2595:tools/loop/prompts/reviewer.md:1
+5e77d7510d536b8f5be27c71cb849d70590d2595:tools/loop/prompts/worker-gate.md:2
+5e77d7510d536b8f5be27c71cb849d70590d2595:tools/loop/prompts/worker-tail.md:2
+5e77d7510d536b8f5be27c71cb849d70590d2595:tools/loop/prompts/worker.md:2
+5e77d7510d536b8f5be27c71cb849d70590d2595:tools/pi-trim-result.mjs:1
+
+# and in the tree after this change
+tools/loop/prompts/*.md: 0 lines
+guidelines/BuildGate.md:122:  filter of another command's output (`… | grep -c`) still stands, and `sed -n 'N,Mp'` and `tail -n` are not refused —
+tools/pi-trim-result.mjs:299:/** The one script that reads a range of a named file, and takes nothing else: a `sed -n` whose quiet arm carries the
+tools/pi-trim-result.mjs:304: * The range read a shell call makes, or null when the call is not one (issue #1009): a `sed -n '<N>,<M>p' <path>` names a

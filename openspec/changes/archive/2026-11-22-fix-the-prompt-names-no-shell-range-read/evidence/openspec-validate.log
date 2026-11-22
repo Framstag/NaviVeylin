@@ -1,0 +1,7 @@
+Change 'fix-the-prompt-names-no-shell-range-read' has issues
+⚠ [WARNING] agent-issue-loop/spec.md: MODIFIED "A child is told what its own shell and tools refuse": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] agent-issue-loop/spec.md: MODIFIED "A child's tool results are bounded and a trim is named": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show fix-the-prompt-names-no-shell-range-read --json --deltas-only

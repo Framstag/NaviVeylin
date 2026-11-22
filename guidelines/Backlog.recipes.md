@@ -132,7 +132,8 @@ project would otherwise take the `AGENTS.md` it discovers there as a `project_co
 item's own stream, 25 624 of the 33 088 characters of system prompt, 77 % of it — and that section is charged on
 **every** turn: 9 151 of the 17 235 tokens a turn cost (`python3 tools/loop-spend.py`, issue #661). The routing a
 phase genuinely needs is in its own prompt instead (`tools/loop/prompts/worker.md`, `reviewer.md`): the document
-map, the recipe for a document's section list (`tools/look.sh '^## ' --path guidelines/<file>.md`), and where the
+map, the recipe for a document's section list (`tools/look.sh '^## ' --path guidelines/<file>.md`) and the call that
+prints the one section it lists (`tools/look.sh --section '<regex>' --path guidelines/<file>.md`), and where the
 rules, the capabilities and the
 change artifacts live. For a tier-B item the package also carries the change the item was filed with, as its
 `ITEM_CHANGE` block — the name, the path the run copied it to in the worktree, and the readiness checker's verdict
@@ -157,6 +158,20 @@ guideline headers name that call instead of the shell recipe its own policy refu
 (`prompt#thePhasePromptsCarryTheirOwnRoute`). What this tree cannot fix is where `ctx_grep` resolves `rg`: the shell
 it spawns does not carry the caller's `PATH` — the same failure reproduces in an interactive session whose `PATH`
 holds the directory — so that half is an upstream report, and the wrapper is why no item depends on it.
+
+The unit inside the most-read of those files (issue #1005). A section list answers "which headings does this
+document have", and nothing answered "read that one", so the routed child paged the file instead: over the archive's
+47 items (`python3 tools/loop-spend.py`, the item's own model, issue #1005) the nine most-read paths carry 2 224 `sed`
+calls and 5.2 M characters — `tools/loop/tests/loop-cases.sh` 519 calls in 34 items, `tools/loop/run.sh` 331,
+`openspec/specs/agent-issue-loop/spec.md` 205 — and `sed -> sed` appears in 46 of the 47. So the wrapper prints the
+range as well as the walk: `--section '<regex>' --path <file>` prints the one `## ` section the listing showed and its
+body, sub-sections included, and `--case <name>` one `case_<name>() {` body of a suite, which is the unit
+`tools/loop/tests/*` is organised by (`look#aSectionIsPrintedAndTheOtherSectionsAreNot`,
+`look#aCaseIsPrintedByItsName`). Both read a file `--path` already accepted, so there is no new walking rule and no
+new bound — a section is cut at `LOOP_TOOL_RESULT_MAX_CHARS` like any other answer, and a name the file does not hold
+is exit 1 that names it rather than an empty answer. The gain is calls, not characters: a `## §N` section of
+`guidelines/` is 1.3–10.3 kB and can be larger than the chunk it replaces, so the claim is per file — a suite's case
+is small and precise, a guideline's section is the unit the routing named anyway.
 
 What it therefore re-reads of its own work, and the one bound on it. A tool result the child asks for enters its
 context at its own size and stays there, so every later turn of that session re-reads it: over the archive the

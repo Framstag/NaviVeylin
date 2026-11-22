@@ -47,10 +47,11 @@ the whole of it:
 - `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the guideline
   that owns the rule. Find your change's row there, then read the section it names — never the whole file.
 - Every guideline is one document under `guidelines/`, and its section list is the document's own:
-  `tools/look.sh '^## ' --path guidelines/<file>.md` prints it, so you read the section that owns the rule and never
-  the whole document. That wrapper is what a tree question is answered with here: the shell form of it is refused by
-  the policy every child is started with (`tools/pi-shell-refusal.mjs`, its verb list in the block below), and a tool
-  that fails on your host is not an answer about the tree either — the wrapper is a call, not a hint.
+  `tools/look.sh '^## ' --path guidelines/<file>.md` prints it, and `tools/look.sh --section '<regex>' --path
+  guidelines/<file>.md` prints the one section whose heading the regex matches, so you read the section that owns the
+  rule and never the whole document. That wrapper is what a tree question is answered with here: the shell form of it
+  is refused by the policy every child is started with (`tools/pi-shell-refusal.mjs`, its verb list in the block
+  below), and a tool that fails on your host is not an answer about the tree either — the wrapper is a call, not a hint.
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you plan lives in
   `openspec/changes/<change-name>/`, and the evidence it cites is versioned in that change's `evidence/`.
 - The rules a phase like yours breaks most often are the ones measuring them: what the gate's result means and

@@ -1539,6 +1539,12 @@ MUTATIONS=(
   # step is handed the ledger, the session name, the bound, the arm, the record, the stream and the switch again, and
   # `gate#aStepIsNotHandedTheItemsSession` is what must notice.
   '980.1@-@tools/loop/gate.sh@gate#aStepIsNotHandedTheItemsSession@the removal of the item session facts from the environment a step is measured in, so a measured suite runs with the ledger, the session name, the result bound and the base-red switch of the child that started the gate (issue #980)@s|^  ( unset "${item_session_vars\[@\]}"$|  ( : # the mutation hands the step the gate session environment|'
+  # 1005.1 / 1005.2 — the two ranges the wrapper prints (issue #1005). A section list answered "which headings does
+  # this document have" and nothing answered "read that one", so the routed child paged the file instead: over 47
+  # items 2 224 `sed` calls over the nine most-read paths, `sed -> sed` in 46 of them. Each mode has its mutation here —
+  # one never ends a section at the document's next heading of its own level, the other prints the whole suite for a name.
+  '1005.1@-@../look.sh@look#aSectionIsPrintedAndTheOtherSectionsAreNot@the end of a section at the document'"'"'s next `## ` heading, so the section read runs on into the sections beside it and the answer carries two of them (issue #1005)@s|^      if (on) on = 0$|      if (on) on = on|'
+  '1005.2@-@../look.sh@look#aCaseIsPrintedByItsName@the name a `--case` reads, so every line of the suite opens a case and the whole file arrives for one name (issue #1005)@s|^    \$0 ~ ENVIRON\["pat"\] { on = 1; hits|    { on = 1; hits|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

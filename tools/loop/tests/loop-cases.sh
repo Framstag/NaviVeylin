@@ -386,6 +386,8 @@ LOOP_SHELL_CASES=(
   'look#oneCallAnswersTheWholeTree'
   'look#aResultOverTheBoundIsCutAndNamed'
   'look#aPathScopesTheWalkToIt'
+  'look#aSectionIsPrintedAndTheOtherSectionsAreNot'
+  'look#aCaseIsPrintedByItsName'
   'policy#aShellTreeSearchIsRefusedAndARecipeIsNot'
   'adapter#theChildIsStartedWithTheShellPolicy'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
@@ -1211,6 +1213,8 @@ loop_run_shell_case() {
     'look#oneCallAnswersTheWholeTree') fn=case_look_oneCallAnswersTheWholeTree ;;
     'look#aResultOverTheBoundIsCutAndNamed') fn=case_look_aResultOverTheBoundIsCutAndNamed ;;
     'look#aPathScopesTheWalkToIt') fn=case_look_aPathScopesTheWalkToIt ;;
+    'look#aSectionIsPrintedAndTheOtherSectionsAreNot') fn=case_look_aSectionIsPrintedAndTheOtherSectionsAreNot ;;
+    'look#aCaseIsPrintedByItsName') fn=case_look_aCaseIsPrintedByItsName ;;
     'policy#aShellTreeSearchIsRefusedAndARecipeIsNot') fn=case_policy_aShellTreeSearchIsRefusedAndARecipeIsNot ;;
     'adapter#theChildIsStartedWithTheShellPolicy') fn=case_adapter_theChildIsStartedWithTheShellPolicy ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
@@ -20482,6 +20486,128 @@ case_look_aPathScopesTheWalkToIt() {
   out=$(LOOK_ROOT="$tree" bash "$look" '^## ' --path 2>&1); status=$?
   assert_eq "2" "$status" "a bare --path never runs with the value it never got: $out"
   assert_contains "$out" 'needs a value' "and it names the value it is missing: $out"
+  return 0
+}
+
+# A section list is a search of **one document**, and what a child was routed to is **one section** of it (issue
+# #1005): the listing names the heading, and nothing printed the section under it, so the routing's own unit was read
+# back as a page range — over 47 items the archive's nine most-read paths carry 2 224 `sed` calls, `sed -> sed` in 46
+# of the 47. `--section` prints the heading the listing already showed and its body, sub-sections included, and stops
+# at the document's next heading of its own level: the unit is the section, and the other sections are not in the
+# answer.
+case_look_aSectionIsPrintedAndTheOtherSectionsAreNot() {
+  # files: tools/look.sh
+  local d tree look out status size
+  look="$LOOP_PROJECT_ROOT/tools/look.sh"
+  [ -f "$look" ] || fail "nothing answers a tree question in one call: tools/look.sh is not in the tree (issue #687)"
+  d=$(scratch); tree="$d/tree"
+  mkdir -p "$tree/guidelines" "$tree/docs"
+  # One heading per level, each body named after its section, and a sub-section inside §1: the sub-section is the
+  # body's and a `###` heading is not a section of its own.
+  {
+    printf '# A\n\n'
+    printf '## §1 one\n\nONE-BODY\n\n### §1a a sub-section\n\nSUB-BODY\n\n'
+    printf '## §2 two\n\nTWO-BODY\n\n'
+    printf '## §3 three\n\nTHREE-BODY\n'
+  } > "$tree/guidelines/s.md"
+  printf '## §9 elsewhere\n\nELSEWHERE-BODY\n' > "$tree/docs/other.md"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --section '§2 two' --path guidelines/s.md 2>&1); status=$?
+  assert_eq "0" "$status" "one section is one call: $out"
+  assert_contains "$out" 'guidelines/s.md:11:## §2 two' "the section's heading is printed with its line number: $out"
+  assert_contains "$out" 'guidelines/s.md:13:TWO-BODY' "and its body: $out"
+  assert_contains "$out" "of $tree/guidelines/s.md for '§2 two'" "and the answer's first line names what was read: $out"
+  assert_contains "$out" 'LOOK: 1 section ' "and how many sections the pattern printed: $out"
+  assert_not_contains "$out" 'ONE-BODY' "no line of the section before it arrives: $out"
+  assert_not_contains "$out" 'THREE-BODY' "and none of the section after it: $out"
+  assert_not_contains "$out" 'ELSEWHERE-BODY' "and no other document is read: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --section '§1 one' --path guidelines/s.md 2>&1)
+  assert_contains "$out" '### §1a a sub-section' "a sub-section below it belongs to the section: $out"
+  assert_contains "$out" 'SUB-BODY' "and its body does too: $out"
+  assert_not_contains "$out" 'TWO-BODY' "while the next heading of the section's own level ends it: $out"
+
+  # The listing that routes a child is `'^## '`, so a `###` heading is not a section of its own: a pattern that
+  # matches only one says so rather than printing the sub-section as if it were a section.
+  out=$(LOOK_ROOT="$tree" bash "$look" --section '§1a' --path guidelines/s.md 2>&1); status=$?
+  assert_eq "1" "$status" "a sub-section's heading is not a section: $out"
+  assert_contains "$out" 'no section of guidelines/s.md' "a heading that matches nothing says so: $out"
+  assert_not_contains "$out" 'LOOK:' "and prints no answer at all: $out"
+
+  # The bound is the wrapper's own rule (`look#aResultOverTheBoundIsCutAndNamed`), and a section is an answer like
+  # any other: a large one is cut and named rather than handed over whole.
+  {
+    printf '## §4 big\n\n'
+    awk 'BEGIN { for (i = 1; i <= 300; i++) printf "BIG-%03d %s\n", i, "0123456789012345678901234567890123456789" }'
+  } > "$tree/guidelines/big.md"
+  LOOK_ROOT="$tree" LOOP_TOOL_RESULT_MAX_CHARS=900 bash "$look" --section '§4 big' --path guidelines/big.md \
+    > "$d/big.txt" 2>&1; status=$?
+  size=$(wc -c < "$d/big.txt")
+  assert_eq "0" "$status" "a section the bound cuts is still a found section: $(cat "$d/big.txt")"
+  [ "$size" -le 900 ] || fail "a section is cut at the bound it is read under: $size characters against 900"
+  assert_contains "$(cat "$d/big.txt")" 'LOOK-BOUND' "and the cut is named: $(cat "$d/big.txt")"
+  assert_contains "$(cat "$d/big.txt")" 'LOOK: 1 section ' "with the count surviving the cut: $(cat "$d/big.txt")"
+  assert_not_contains "$(cat "$d/big.txt")" 'BIG-300' "and the tail it could not show is not there: $(cat "$d/big.txt")"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --section '§2 two' 2>&1); status=$?
+  assert_eq "2" "$status" "a section is one file's, and --path names none: $out"
+  assert_contains "$out" '--path names none' "and it says which value it is missing: $out"
+  out=$(LOOK_ROOT="$tree" bash "$look" --section '§2 two' --path guidelines 2>&1); status=$?
+  assert_eq "2" "$status" "a directory is not a section's scope: $out"
+  assert_contains "$out" 'is not one' "and the refusal names what it got: $out"
+  out=$(LOOK_ROOT="$tree" bash "$look" --section 2>&1); status=$?
+  assert_eq "2" "$status" "a bare --section never runs with the value it never got: $out"
+  assert_contains "$out" 'needs a value' "and it names the value it is missing: $out"
+  return 0
+}
+
+# A suite is organised by case, and the unit a reader was routed to is one `case_*` body: `tools/loop/tests/
+# loop-cases.sh` was read 47 times inside one item because nothing printed one of them (issue #1005). `--case` prints
+# that body by its name — from its `case_<name>() {` line through the `}` that closes it — so the range a reader had to
+# guess is a call whose answer is the case and one line past it.
+case_look_aCaseIsPrintedByItsName() {
+  # files: tools/look.sh
+  local d tree look out status
+  look="$LOOP_PROJECT_ROOT/tools/look.sh"
+  [ -f "$look" ] || fail "nothing answers a tree question in one call: tools/look.sh is not in the tree (issue #687)"
+  d=$(scratch); tree="$d/tree"
+  mkdir -p "$tree/tools/nested"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'case_two() {\n  printf %s\n}\n' "'two'"
+    printf 'case_one() {\n  printf %s\n}\n' "'one'"
+  } > "$tree/tools/suite.sh"
+  printf 'case_nine() {\n  printf %s\n}\n' "'nine'" > "$tree/tools/nested/other.sh"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --case case_one --path tools/suite.sh 2>&1); status=$?
+  assert_eq "0" "$status" "one case is one call: $out"
+  assert_contains "$out" 'tools/suite.sh:5:case_one() {' "the case is printed from the line that opens it: $out"
+  assert_contains "$out" "tools/suite.sh:6:  printf 'one'" "with its body: $out"
+  assert_contains "$out" 'tools/suite.sh:7:}' "through the brace that closes it: $out"
+  assert_contains "$out" "of $tree/tools/suite.sh for 'case_one'" "and the first line names what was read: $out"
+  assert_contains "$out" 'LOOK: 1 case ' "and how many cases the name printed: $out"
+  assert_not_contains "$out" 'case_two' "no other case of the file arrives: $out"
+  assert_not_contains "$out" 'nine' "and no other file is read: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --case two --path tools/suite.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the name is the case's, with or without its case_ prefix: $out"
+  assert_contains "$out" 'case_two() {' "so the bare name prints the body: $out"
+  assert_not_contains "$out" 'case_one' "and only that one: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --case case_three --path tools/suite.sh 2>&1); status=$?
+  assert_eq "1" "$status" "a name the suite does not hold is a not-found and not a failure: $out"
+  assert_contains "$out" 'no case case_three in tools/suite.sh' "and it names the case and the file it looked in: $out"
+  assert_not_contains "$out" 'LOOK:' "and prints no answer at all: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" --case case_one 2>&1); status=$?
+  assert_eq "2" "$status" "a case is one file's, and --path names none: $out"
+  out=$(LOOK_ROOT="$tree" bash "$look" --case case_one --path tools 2>&1); status=$?
+  assert_eq "2" "$status" "a directory is not a case's scope: $out"
+  out=$(LOOK_ROOT="$tree" bash "$look" --case 'case one' --path tools/suite.sh 2>&1); status=$?
+  assert_eq "2" "$status" "a name that is not a case name is a usage error: $out"
+  out=$(LOOK_ROOT="$tree" bash "$look" --section 'one' --case case_one --path tools/suite.sh 2>&1); status=$?
+  assert_eq "2" "$status" "one call prints one range, so two modes are a usage error: $out"
+  assert_contains "$out" 'one call prints one' "and the refusal says why: $out"
   return 0
 }
 

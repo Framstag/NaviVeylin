@@ -21772,6 +21772,129 @@ case_repeat_aBrokenLedgerLeavesTheResultAsReturned() {
   return 0
 }
 
+# A read is keyed by the file it names and not by the spelling the child typed (issue #1009): over the run's archive,
+# 6 261 of 9 811 read-verb shell calls named a file of the item's tree, and the two spellings of one file sat beside each
+# other in the tally — 1 075 turns in the first ten days of November, 284 of them repeats. The key is the path relative
+# to the root it sits under, and a path under no root keeps its spelling, so a scratch file is not renamed by a root it
+# merely shares a prefix with.
+case_repeat_aPathUnderTheWorktreeIsOneKeyInTwoSpellings() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d wt file out1 out2 harness record
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing keys a read: tools/pi-trim-result.mjs is not in the tree (issue #1009)"
+  d=$(scratch)
+  wt="$d/worktree/loop"
+  mkdir -p "$wt/app"
+  file="$wt/app/notes.md"
+  printf 'FIRST-LINE\nSECOND-LINE\nLAST-LINE\n' > "$file"
+  harness="$d/hook.mjs"
+  # One child, two reads of one file: the absolute path under the worktree first, then the path the child's own working
+  # directory gives it. The text is the same file every time — what differs is only what the tool call was handed.
+  {
+    printf '%s\n' 'import { readFileSync, writeFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, extension, first, second, absolute, relative] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'async function read(spelling) {'
+    printf '%s\n' '  await handlers.get("turn_start")();'
+    printf '%s\n' '  const text = readFileSync(file, "utf8");'
+    printf '%s\n' '  const out = await handlers.get("tool_result")({ toolName: "ctx_read", input: { path: spelling }, content: [{ type: "text", text }] });'
+    printf '%s\n' '  const blocks = out && out.content ? out.content : [{ type: "text", text }];'
+    printf '%s\n' '  return blocks.map((b) => b.text).join("");'
+    printf '%s\n' '}'
+    printf '%s\n' 'writeFileSync(first, await read(absolute));'
+    printf '%s\n' 'writeFileSync(second, await read(relative));'
+  } > "$harness"
+  out1="$d/first.txt"
+  out2="$d/second.txt"
+  record="$d/record.log"
+  LOOP_WORKTREE="$wt" LOOP_REPEAT_READ=refuse LOOP_TOOL_RESULT_MAX_CHARS=8000 \
+    LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$out1" "$out2" "$file" app/notes.md \
+    || fail "the extension exited non-zero on two spellings of one path: $(head -3 "$out2")"
+  assert_eq "$(cat "$file")" "$(cat "$out1")" "the read of the absolute path is handed over whole — it is the first"
+  # The second read is the repeat the first made, so the arm answers it with the range the child holds — named by the key,
+  # not by the spelling that came in, so the child is never sent to read a path its working directory cannot reach.
+  assert_contains "$(cat "$out2")" '[LOOP-REPEAT-READ: app/notes.md ' \
+    "the read of the relative path is answered as the repeat of the same file"
+  assert_contains "$(cat "$out2")" 'as lines:1-3' "and it names the range the earlier read holds"
+  assert_contains "$(cat "$out2")" 'at turn 1' "and the turn that read came in at, not this one"
+  assert_not_contains "$(cat "$out2")" 'SECOND-LINE' "while the text itself is not sent again"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=2 arm=refuse$' "$record" 2>/dev/null || true)" \
+    "and one record line counts the second read, so the figure and the refusal cannot disagree"
+  return 0
+}
+
+# The tally is fed by the shell a child reads a range with (issue #1009): 6 261 read-verb shell calls named a file of the
+# item's tree and not one of them entered the tally, because the hook ran for the read tools alone. A `sed -n '<N>,<M>p'
+# <path>` names a path and the lines it read, which is the shape the tally already keeps for `ctx_read`; what it does not
+# name is the file, so the read that follows is counted and served — the child holds those lines, not the text, and a
+# refusal pointing it at `lines:1-<M>` would name lines it was never handed.
+case_repeat_aShellRangeReadFeedsTheTally() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs
+  local d file out1 out2 harness record
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing keys a shell read: tools/pi-trim-result.mjs is not in the tree (issue #1009)"
+  d=$(scratch)
+  file="$d/section.md"
+  printf 'FIRST-LINE\nSECOND-LINE\nLAST-LINE\n' > "$file"
+  harness="$d/hook.mjs"
+  # A shell range read of the first two lines, then the whole file through a read tool in the next turn. The range text is
+  # what the shell returned; the second block's text is the file as it stands, which is what that call is handed.
+  {
+    printf '%s\n' 'import { readFileSync, writeFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, extension, first, second] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'const text = (out, fallback) => {'
+    printf '%s\n' '  const blocks = out && out.content ? out.content : [{ type: "text", text: fallback }];'
+    printf '%s\n' '  return blocks.map((b) => b.text).join("");'
+    printf '%s\n' '};'
+    printf '%s\n' 'const range = "FIRST-LINE\\nSECOND-LINE\\n";'
+    printf '%s\n' 'await handlers.get("turn_start")();'
+    printf '%s\n' 'const shell = await handlers.get("tool_result")({ toolName: "ctx_shell", input: { command: `sed -n \'1,2p\' ${file}` }, content: [{ type: "text", text: range }] });'
+    printf '%s\n' 'writeFileSync(first, text(shell, range));'
+    printf '%s\n' 'const whole = readFileSync(file, "utf8");'
+    printf '%s\n' 'await handlers.get("turn_start")();'
+    printf '%s\n' 'const read = await handlers.get("tool_result")({ toolName: "ctx_read", input: { path: file }, content: [{ type: "text", text: whole }] });'
+    printf '%s\n' 'writeFileSync(second, text(read, whole));'
+  } > "$harness"
+  out1="$d/range.txt"
+  out2="$d/whole.txt"
+  record="$d/record.log"
+  LOOP_REPEAT_READ=measure LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$out1" "$out2" \
+    || fail "the extension exited non-zero on a range read: $(head -3 "$out2")"
+  assert_eq "$(printf 'FIRST-LINE\nSECOND-LINE')" "$(cat "$out1")" "the shell range read is handed over as the shell returned it"
+  assert_eq "$(cat "$file")" "$(cat "$out2")" "and the whole read that follows is served, because the tally holds it now"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=2 arm=measure$' "$record" 2>/dev/null || true)" \
+    "the read after the range read is counted as the second read of that path"
+  # …and under the arm that withholds, nothing is withheld: a child that held two lines of a file is entitled to the file,
+  # so the refusal never fires on a path whose own read was a range.
+  file="$d/refused.md"
+  printf 'FIRST-LINE\nSECOND-LINE\nLAST-LINE\n' > "$file"
+  LOOP_REPEAT_READ=refuse LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_TRIM_RECORD="$d/refuse.log" \
+    node "$harness" "$file" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/range2.txt" "$d/whole2.txt" \
+    || fail "the extension exited non-zero under the refusal arm: $(head -3 "$d/whole2.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/whole2.txt")" "under refuse the whole read is still served, because the range read was no whole read"
+  assert_not_contains "$(cat "$d/whole2.txt")" 'LOOP-REPEAT-READ' "and no range is named at a child that never held one"
+  assert_eq "1" "$(grep -c '^LOOP-TOOL-RESULT-REPEAT-READ: ctx_read turn=2 arm=refuse$' "$d/refuse.log" 2>/dev/null || true)" \
+    "while the second read is counted under that arm too"
+  # The range read is the child's, not the item's: the tally of what the item holds is keyed by the whole text a read tool
+  # returned, and a range of a file is not that text, so nothing is written beside the item's stream for it.
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_TOOL_RESULT_LEDGER="$d/ledger.tsv" \
+    LOOP_TOOL_RESULT_TRIM_RECORD="$d/ledger-record.log" \
+    node "$harness" "$d/section.md" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d/range3.txt" "$d/whole3.txt" \
+    || fail "the extension exited non-zero with an item ledger named: $(head -3 "$d/whole3.txt")"
+  assert_not_contains "$(cat "$d/ledger.tsv" 2>/dev/null || true)" "$d/section.md" \
+    "a shell range read writes no line to the item's ledger — the item does not hold that text"
+  return 0
+}
+
 # The child's bound was a clock and nothing else (issue #686): over this project's archive the 35 items at ≥250 turns
 # held 878 of 1 982 Mtok — 44 % of everything the archive spent — and every one of them was ended only after 45 min,
 # or not at all. The bound is the recorded per-role `LOOP_CHILD_TURNS_MAX_<ROLE>` (here the worker's), counted from the

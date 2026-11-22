@@ -92,6 +92,7 @@
 // memory.
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { dirname, isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /** The bound as the recorded key states it: a positive whole number of characters, or 0 for "no bound". */
@@ -249,11 +250,76 @@ export function trimResult(text, bound, tool, record, path = "") {
 /** The tools whose result is one named file's content, and so a thing the session can already hold (issue #685). */
 export const READ_TOOLS = ["ctx_read", "read"];
 
-/** The path a read tool was given, or "" when this call is not a read of one named file. */
+/** The shell tools a range read arrives from (issue #1009). */
+export const SHELL_TOOLS = ["ctx_shell", "shell", "bash"];
+
+/**
+ * The roots a read path may be spelled under, longest first, and the one a relative path is taken from (issue #1009):
+ * the item's directory, which sits beside the ledger the adapter names, and the item's worktree, which the run exports
+ * (`LOOP_WORKTREE`, `run.sh:85`) and starts every child in. A root the environment does not name is not one a key can be
+ * taken relative to — the project root is exactly such a root: the run exports no variable for it, so a path spelled
+ * from it keeps the spelling the child typed.
+ */
+export function readRoots(env = process.env) {
+  const roots = [];
+  const add = (path) => {
+    if (typeof path !== "string" || !isAbsolute(path) || path === "/") return;
+    const trimmed = path.replace(/\/+$/, "");
+    if (trimmed && !roots.includes(trimmed)) roots.push(trimmed);
+  };
+  add(dirname(env.LOOP_TOOL_RESULT_LEDGER || "."));
+  add(env.LOOP_WORKTREE || "");
+  return roots.sort((a, b) => b.length - a.length);
+}
+
+/**
+ * The key a read is stored under (issue #1009): the path relative to the root it sits under, so one file read as
+ * `app/Main.kt` and as `<worktree>/app/Main.kt` is one entry and the second read is the repeat it is. A path under no
+ * root — a scratch file, a sibling checkout — keeps the spelling the child typed, because a key invented out of a path
+ * this rule cannot place would name a file the child never read.
+ */
+export function readKey(path, roots = readRoots(), base = process.env.LOOP_WORKTREE || "") {
+  if (typeof path !== "string" || !path) return "";
+  const absolute = isAbsolute(path) ? path : (isAbsolute(base) ? join(base, path) : "");
+  if (!absolute) return path;
+  for (const root of roots) {
+    if (absolute === root) break;
+    if (absolute.startsWith(`${root}/`)) return absolute.slice(root.length + 1);
+  }
+  return path;
+}
+
+/** The path a read tool was given, keyed by `readKey`, or "" when this call is not a read of one named file. */
 export function readPath(tool, input) {
   if (!READ_TOOLS.includes(tool)) return "";
   const path = input && (input.path || input.file_path);
-  return typeof path === "string" && path ? path : "";
+  return typeof path === "string" && path ? readKey(path) : "";
+}
+
+/** The one script that reads a range of a named file, and takes nothing else: a `sed -n` whose quiet arm carries the
+ * range and whose next word is the file. Every other character would make the word a program rather than a path. */
+const SED_RANGE = /(?:^|[|;&(]\s*|\s)sed\s+(?:-[a-zA-Z]*n[a-zA-Z]*|--quiet)\s+(['"]?)(\d+)\s*,\s*(\d+)p\1\s+(?:--\s+)?(['"]?)([^\s'"]+)\4(?=\s|$|[|;&)])/;
+
+/**
+ * The range read a shell call makes, or null when the call is not one (issue #1009): a `sed -n '<N>,<M>p' <path>` names a
+ * path and the lines it read, which is the shape the tally already keeps for a read tool. A word that carries a variable,
+ * a glob or a redirect is no path this rule can key — it would name the lines of one file for the next file a run reads.
+ */
+export function shellRangeRead(tool, input) {
+  if (!SHELL_TOOLS.includes(tool)) return null;
+  const command = input && input.command;
+  if (typeof command !== "string" || !command) return null;
+  const match = SED_RANGE.exec(command);
+  if (!match) return null;
+  const from = Number.parseInt(match[2], 10);
+  const to = Number.parseInt(match[3], 10);
+  if (!(from > 0) || !(to >= from)) return null;
+  const path = match[5];
+  if (!path || path === "-" || /[$*?{}\[\]<>~]/.test(path)) return null;
+  // A command that changed directory before it ran the read names its path from somewhere else than the tree a child is
+  // started in, so that path keeps the spelling it was typed with rather than being taken from the worktree's root.
+  const base = /\bcd\s/.test(command.slice(0, match.index)) ? "" : (process.env.LOOP_WORKTREE || "");
+  return { path: readKey(path, readRoots(), base), from, to };
 }
 
 /** What a ledger entry is measured by: the sha of the whole text the tool returned for that path. */
@@ -296,18 +362,30 @@ export function alreadyReadNotice(path, size, turn, session = "") {
  * under `refuse` it is answered with the earlier result's line range instead of the text. Under `measure` the text is
  * served, and the rules below still apply to it — the content-identical repeat of #685 is a different question (does the
  * item hold this exact content?) asked of a different ledger. `entry` and `refused` are returned so the caller can record
- * whether the child ended up holding the text. The rule never throws: an error hands the text over as the tool returned it.
+ * whether the child ended up holding the text. The key is the one `readKey` gives the path, so the two spellings of one
+ * file are one entry; and a shell range read (`shellRangeRead`) enters the tally as the range it read and is never withheld,
+ * because the child holds those lines and not the file (issue #1009). The rule never throws: an error hands the text over
+ * as the tool returned it.
  */
 export function repeatReadResult(text, read, tool = "?", record = "") {
   try {
-    if (!read || !read.path || !read.child) return { text, refused: false };
+    const key = read && (read.path || (read.shell && read.shell.path));
+    if (!read || !key || !read.child) return { text, refused: false };
     const arm = recordedRepeatArm(read.arm);
-    let entry = read.child.get(read.path);
-    if (!entry) {
-      entry = { turn: read.turn, lines: resultLines(text), size: text.length, handed: false };
-      read.child.set(read.path, entry);
-      return { text, entry, refused: false };
+    let entry = read.child.get(key);
+    // A whole read of a path this child held only a range of is its first read of the whole text, so the entry becomes that
+    // read's: the range a range read stored names lines the child holds and a size it never saw, and a notice built from
+    // them would send it to read a range of a file it was not handed (issue #1009).
+    const first = !entry;
+    const whole = !read.shell;
+    if (first || (entry.range && whole)) {
+      entry = whole
+        ? { turn: read.turn, lines: resultLines(text), size: text.length, handed: false }
+        : { turn: read.turn, lines: read.shell.to, size: text.length, handed: false, range: true };
+      read.child.set(key, entry);
     }
+    if (first) return { text, entry, refused: false };
+    // A second read of a path this child already had is counted, whichever rule answers it and however it was read.
     if (record) {
       try {
         appendFileSync(record, repeatReadRecordLine(tool, read.turn, arm));
@@ -317,8 +395,10 @@ export function repeatReadResult(text, read, tool = "?", record = "") {
     }
     // An earlier read this child was never handed leaves no range to point at, so the arm serves the read and the rules
     // below answer it: a refusal that named lines the child does not hold would send it to read what it cannot.
-    if (arm !== "refuse" || !entry.handed) return { text, entry, refused: false };
-    return { text: repeatReadNotice(read.path, entry.lines, entry.turn, entry.size), entry, refused: true };
+    // A range read is answered the same way for the same reason (issue #1009): the child holds the lines the shell gave it
+    // and not the file, so the repeat is named on the record and the result the shell returned stands.
+    if (arm !== "refuse" || !entry.handed || read.shell) return { text, entry, refused: false };
+    return { text: repeatReadNotice(key, entry.lines, entry.turn, entry.size), entry, refused: true };
   } catch {
     return { text, refused: false }; // a rule that could not be applied is not a reason to fail the read
   }
@@ -432,8 +512,9 @@ export function trimContent(content, bound, tool, record, read) {
       : trimResult(repeatResult(block.text, read, bound, tool, record), bound, tool, record,
         read ? read.path : "");
     // A path this child now holds text of is what its next read of that path is a repeat of (issue #925). A delivery one
-    // of the rules replaced is no delivery: the child holds a notice and not the lines the notice would name.
-    if (step.entry) step.entry.handed = step.entry.handed || !isRefusalNotice(text);
+    // of the rules replaced is no delivery: the child holds a notice and not the lines the notice would name. A range read
+    // holds lines of the file and not the file, so its entry never becomes one a refusal may point a range at (issue #1009).
+    if (step.entry && !step.entry.range) step.entry.handed = step.entry.handed || !isRefusalNotice(text);
     if (text !== block.text) changed = true;
     return text === block.text ? block : { ...block, text };
   });
@@ -529,8 +610,8 @@ export default function (pi) {
       const bound = recordedBound(process.env.LOOP_TOOL_RESULT_MAX_CHARS);
       const record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
       const tool = event.toolName || "?";
-      const read = { path: readPath(tool, event.input), ledger, child, turn: turn || 1, session,
-        arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ) };
+      const read = { path: readPath(tool, event.input), shell: shellRangeRead(tool, event.input), ledger, child,
+        turn: turn || 1, session, arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ) };
       const content = bound ? trimContent(event.content, bound, tool, record, read) : null;
       // What the child was handed is what a later turn may drop (issue #1002), and it is recorded whatever the bound
       // records: the size is the one that stands in the transcript, so a result the bound already cut is remembered at

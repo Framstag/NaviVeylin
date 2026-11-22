@@ -380,6 +380,8 @@ LOOP_SHELL_CASES=(
   'adapter#aRotatedStreamKeepsEveryTurnEnd'
   'adapter#anUpdateOnlyStreamKeepsItsUpdates'
   'adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded'
+  'run#aRotatedStreamKeepsEveryTurn'
+  'run#theRotationNamesTheTurnsItSummarised'
   'state#theSpendSurvivesTheLossOfItsDeltaLines'
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
   'trim#aResultUnderTheBoundIsHandedOverWhole'
@@ -1215,6 +1217,8 @@ loop_run_shell_case() {
     'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
     'adapter#anUpdateOnlyStreamKeepsItsUpdates') fn=case_adapter_anUpdateOnlyStreamKeepsItsUpdates ;;
     'adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded') fn=case_adapter_aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded ;;
+    'run#aRotatedStreamKeepsEveryTurn') fn=case_run_aRotatedStreamKeepsEveryTurn ;;
+    'run#theRotationNamesTheTurnsItSummarised') fn=case_run_theRotationNamesTheTurnsItSummarised ;;
     'state#theSpendSurvivesTheLossOfItsDeltaLines') fn=case_state_theSpendSurvivesTheLossOfItsDeltaLines ;;
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
@@ -13825,14 +13829,16 @@ JSONL
   return 0
 }
 
-# The whole-line cut is the fallback, not the rule (issue #840): a stream the delta pass cannot bring under its bound
-# — the records alone outgrow it — is still cut at its oldest half, and the record still carries the turn count
-# cumulatively so `run.sh`'s `child_turns` does not reset. This is the residue the item leaves open as #841: a stream
-# that overflows after the delta pass is a lower bound still, and what this case pins is that it stays a *recorded*
-# one rather than the silent position-based drop the item is about.
+# The whole-line pass is the fallback, not the rule (issue #840): a stream the delta pass cannot bring under its
+# bound — the records alone outgrow it — has its oldest half passed again, and since issue #971 that pass
+# **summarises** the turns instead of cutting them: one `turn_end` per turn survives, carrying what the spend is
+# counted in and not the payload it was counted from. What this case pins is the fallback's own trigger and its
+# cumulative shape — the stream is rotated, it still answers every turn of the item, and the record accounts for both
+# sides of the pass. The case that reads the figures off the summary itself is `run#aRotatedStreamKeepsEveryTurn`
+# beside this one; the name here is the one the shipped spec points at.
 case_adapter_aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded() {
   # files: tools/pi-child-events.sh
-  local d prompt emitter f drops kept
+  local d prompt emitter f summarised kept
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   d=$(scratch)
   prompt="$d/prompt.md"
@@ -13860,14 +13866,139 @@ EMITTER
     "and the newest event survives the cut"
   assert_eq "0" "$(grep -cE '"type": *"message_update"' "$f" || true)" \
     "the delta pass ran first: no delta line survives a rotation of this stream"
-  drops=$(head -n 1 "$f" | jq -r '.dropped_turn_ends // 0' 2>/dev/null)
+  summarised=$(grep -c '"summarised":true' "$f" || true)
   kept=$(grep -cE '"type": *"turn_end"' "$f" || true)
-  [ "$drops" -gt 0 ] ||
-    fail "the records alone outgrew the bound, so the fallback owes a dropped turn count: the record says $drops"
-  assert_eq "60" "$(( drops + kept ))" \
-    "what the record dropped plus what the stream holds is every turn of the item, cumulatively"
+  [ "$summarised" -gt 0 ] ||
+    fail "the records alone outgrew the bound, so the fallback owes a summarised turn: the stream carries none"
+  assert_eq "60" "$kept" \
+    "one record per turn survives the fallback, the summarised ones in it"
+  assert_eq "60" "$(( summarised + $(head -n 1 "$f" | jq -r '.turns_kept // 0' 2>/dev/null) ))" \
+    "and the rotation accounts for every turn of the item: summarised plus kept"
   assert_eq "1" "$(grep -c '"type":"stream_rotation"' "$f" || true)" \
     "one record stands for every rotation the stream went through"
+  return 0
+}
+
+# A rotation of a stream the records alone outgrew replaces the oldest turns instead of dropping them (issue #971).
+# The `turn_end` record is the unit every spend figure of the loop is counted in — `report.sh`'s turns, calls and
+# per-role tokens, `loop-spend.py`'s duplicate reads, the item digests — so a stream that lost one printed a lower
+# bound as a measurement: measured on the run started 2026-11-18T22:18:25Z, 9 of 11 streams rotated and dropped
+# 70.7 MiB, and no figure of that run could be priced from the stream alone. The fix is one record per turn carrying
+# what is counted and not the payload it was counted from, so this case reads the three figures off the rotated
+# stream and off the stream the child wrote, and they have to be the same three.
+case_run_aRotatedStreamKeepsEveryTurn() {
+  # files: tools/pi-child-events.sh
+  local d prompt emitter f pristine pturns rturns pcalls rcalls ptokens rtokens
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  emitter="$d/emitter.sh"
+  # 40 turns of ~2 kB each: the records alone outgrow a 4 096 B bound after the delta pass, which is the pass this
+  # case is about, and every turn calls one tool so a lost turn is a lost call as well as a lost turn.
+  cat > "$emitter" <<'EMITTER'
+#!/usr/bin/env bash
+pad='................................................................'
+i=0
+while [ "$i" -lt 40 ]; do
+  i=$((i + 1))
+  printf '{"type":"message_update","usage":{"input":%s,"output":1,"cacheRead":0,"cacheWrite":0},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"%s%s"}}\n' "$i" "$pad" "$pad"
+  printf '{"type":"tool_execution_start","toolCallId":"c%s","toolName":"ctx_read"}\n' "$i"
+  printf '{"type":"tool_execution_end","toolCallId":"c%s","toolName":"ctx_read","durationMs":5}\n' "$i"
+  printf '{"type":"turn_end","message":{"role":"assistant","usage":{"input":%s,"output":2,"cacheRead":0,"cacheWrite":0},"durationMs":10,"content":[{"type":"thinking","thinking":"%s%s"},{"type":"toolCall","id":"c%s","name":"ctx_read","arguments":{"path":"a"}}]}}\n' "$((i * 1000))" "$pad" "$pad" "$i"
+done
+printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
+EMITTER
+  pristine="$d/pristine.jsonl"
+  bash "$emitter" </dev/null > "$pristine"
+  f="$d/events.jsonl"
+  LOOP_CHILD_EVENTS="$f" LOOP_CHILD_EVENTS_MAX_BYTES=4096 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  [ -s "$f" ] || fail "the adapter kept no stream: $(head -3 "$d/out")"
+  assert_eq "stream_rotation" "$(head -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "the stream's first line records the rotation"
+  [ "$(grep -c '"summarised":true' "$f" || true)" -gt 0 ] ||
+    fail "the records alone outgrew the bound and the prefix was not summarised"
+  pturns=$(jq -s '[.[] | select(.type == "turn_end")] | length' "$pristine")
+  rturns=$(jq -s '[.[] | select(.type == "turn_end")] | length' "$f")
+  pcalls=$(jq -s '[.[] | select(.type == "turn_end") | (.message.content // []) | map(select(.type == "toolCall")) | length] | add // 0' "$pristine")
+  rcalls=$(jq -s '[.[] | select(.type == "turn_end") | (.message.content // []) | map(select(.type == "toolCall")) | length] | add // 0' "$f")
+  ptokens=$(jq -s '[.[] | select(.type == "turn_end") | (.message.usage.input // 0)] | add // 0' "$pristine")
+  rtokens=$(jq -s '[.[] | select(.type == "turn_end") | (.message.usage.input // 0)] | add // 0' "$f")
+  assert_eq "40" "$rturns" "a rotated stream still carries one record per turn"
+  assert_eq "$pturns" "$rturns" \
+    "the turns read off the rotated stream equal the ones the stream the child wrote carried"
+  assert_eq "$pcalls" "$rcalls" "and its calls, the tool call each turn's content names"
+  assert_eq "$ptokens" "$rtokens" "and its tokens, so no figure of the item is a lower bound"
+  # …and a summarised turn says what it did rather than only that it is short: the names of the tools it called and
+  # their count are what a reader prices a turn's shape by, and a record without them answers a turn's existence.
+  assert_eq "1" "$(jq -r 'select(.summarised == true) | .tool_calls' "$f" 2>/dev/null | head -n 1)" \
+    "a summarised turn keeps the number of tools it called"
+  assert_eq "ctx_read" "$(jq -r 'select(.summarised == true) | .tools[0]' "$f" 2>/dev/null | head -n 1)" \
+    "and their names"
+  return 0
+}
+
+# The rotation record states both sides of the pass (issue #971). A record that said only how many bytes it removed
+# left the report with a byte figure and the words "lower bound"; with the turns summarised beside the turns kept,
+# the same reader can say "1 697 of 2 900 turns summarised" and correct the figure. So the record carries the pair,
+# the state carries it to the item's metrics, and the report's truncation line prints it.
+case_run_theRotationNamesTheTurnsItSummarised() {
+  # files: tools/pi-child-events.sh tools/loop/state.sh tools/loop/report.sh tools/tooling.json
+  local d p prompt emitter f record summarised kept line
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  emitter="$d/emitter.sh"
+  cat > "$emitter" <<'EMITTER'
+#!/usr/bin/env bash
+pad='................................................................'
+i=0
+while [ "$i" -lt 40 ]; do
+  i=$((i + 1))
+  printf '{"type":"turn_end","message":{"role":"assistant","usage":{"input":%s,"output":2,"cacheRead":0,"cacheWrite":0},"durationMs":10,"content":[{"type":"thinking","thinking":"%s%s"}]}}\n' "$i" "$pad" "$pad"
+done
+printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
+EMITTER
+  f="$d/events.jsonl"
+  LOOP_CHILD_EVENTS="$f" LOOP_CHILD_EVENTS_MAX_BYTES=4096 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  [ -s "$f" ] || fail "the adapter kept no stream: $(head -3 "$d/out")"
+  record=$(head -n 1 "$f")
+  assert_eq "stream_rotation" "$(printf '%s\n' "$record" | jq -r '.type // ""' 2>/dev/null)" \
+    "the stream's first line records the rotation"
+  summarised=$(printf '%s\n' "$record" | jq -r '.turns_summarised // "absent"' 2>/dev/null)
+  kept=$(printf '%s\n' "$record" | jq -r '.turns_kept // "absent"' 2>/dev/null)
+  { [ "$summarised" != "absent" ] && [ "$kept" != "absent" ]; } ||
+    fail "the rotation record names no pair: turns_summarised=$summarised turns_kept=$kept"
+  [ "$summarised" -gt 0 ] || fail "the rotation summarised no turn: the record says $summarised"
+  [ "$kept" -gt 0 ] || fail "the rotation kept no turn: the record says $kept"
+  assert_eq "40" "$(( summarised + kept ))" \
+    "the two counts are the turns the stream held: every turn is on one side of the pass"
+  assert_eq "0" "$(printf '%s\n' "$record" | jq -r '.dropped_turn_ends // 0' 2>/dev/null)" \
+    "and no turn is counted as dropped beside them, the field the older readers still add"
+  [ "$(printf '%s\n' "$record" | jq -r '.dropped_bytes // 0' 2>/dev/null)" -gt 0 ] ||
+    fail "the record states no bytes beside the pair: $(printf '%s\n' "$record")"
+  # The pair reaches the line the run is read by: the state records it beside the spend it qualifies, and the
+  # report prints both halves rather than the words "lower bound" a byte figure alone leaves it with.
+  p=$(new_project)
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$f" >/dev/null
+  assert_eq "$summarised" \
+    "$(jq -r '.items[] | select(.issue == 21) | .metrics.streamRotation.turnsSummarised' "$(state_file "$p")")" \
+    "the state carries the turns the rotation summarised beside the spend they are missing from"
+  assert_eq "$kept" \
+    "$(jq -r '.items[] | select(.issue == 21) | .metrics.streamRotation.turnsKept' "$(state_file "$p")")" \
+    "and the ones it kept"
+  line=$(run_report "$p" | grep '^  truncated:' || true)
+  [ -n "$line" ] || fail "the report printed no truncation line"
+  assert_contains "$line" "$summarised of 40 turns summarised" \
+    "the truncation line prints the turns summarised against the turns the stream held"
+  assert_contains "$line" "$kept kept in full" "and the turns it kept"
   return 0
 }
 

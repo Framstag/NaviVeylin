@@ -870,8 +870,16 @@ trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-nu
   # apart from its null, as every other line here does: a record written before this figure existed has no
   # `streamRotation` key at all, while one of this era that met a run whose streams stayed inside their bound has
   # it as `null`. A **warning, never a stop**: nothing reads it to end a child.
+  #
+  # Since issue #971 the fallback summarises the oldest turns instead of dropping them, so a record of this era names
+  # `turnsSummarised` and `turnsKept` and the line prints the pair rather than the word "lower bound": the reader can
+  # correct the figures by the denominator the record states. A record written before the pair existed keeps the
+  # wording it was written for, told apart by the absence of the pair rather than by a zero.
   | ([.items[] | select(.metrics.streamRotation != null)
       | {i: .issue, b: (.metrics.streamRotation.droppedBytes // 0)}]) as $rot
+  | ([.items[] | select((.metrics.streamRotation.turnsSummarised // 0) > 0)
+      | {i: .issue, s: .metrics.streamRotation.turnsSummarised, k: (.metrics.streamRotation.turnsKept // 0)}]
+      | sort_by(-.s)) as $summ
   | ([.items[] | select((.metrics.streamRotation.droppedTurnEnds // 0) > 0)
       | {i: .issue, t: .metrics.streamRotation.droppedTurnEnds}] | sort_by(-.t)) as $trunc
   | ([.items[] | select((.metrics | has("streamRotation")) | not)] | length) as $rotless
@@ -879,6 +887,9 @@ trend=$(jq -r --argjson floor "$calls_floor" --argjson window "${window_secs:-nu
         if $rotless > 0
           then "- · this state records no stream rotation — it was written before the report counted one"
           else "- · no item had its stream rotated" end
+      elif ($summ | length) > 0 then
+        "\($summ | length) of \(.items | length) items summarised turns — \([$summ[].s] | add) of \([$summ[] | (.s + .k)] | add) turns summarised, \([$summ[].k] | add) kept in full, and \([$rot[].b] | add | mib) removed by the \($rot | length) rotated stream\(if ($rot | length) == 1 then "" else "s" end) · "
+          + "\([$summ[] | "#\(.i) \(.s) summarised, \(.k) kept"] | join(" · "))"
       elif ($trunc | length) == 0 then
         "no figure of this run is a lower bound — \([$rot[].b] | add | mib) removed by the \($rot | length) rotated stream\(if ($rot | length) == 1 then "" else "s" end), no turn dropped · "
           + "\([$rot[] | "#\(.i)"] | join(" · "))"

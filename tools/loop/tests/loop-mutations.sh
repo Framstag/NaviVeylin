@@ -1176,6 +1176,11 @@ MUTATIONS=(
   # without which the delta pass would be a rotation that keeps every turn and records none of their tokens).
   '267.1@-@../pi-child-events.sh@adapter#aRotatedStreamKeepsEveryTurnEnd@the delta pass that drops the streamed deltas and keeps every record line, so a rotation is decided by line position again and takes the records the spend is summed from (issue #840)@s#^  delta_types=.*$#  delta_types='"'"'"type": *"no-line-of-this-kind"'"'"'#'
   '267.2@-@tools/loop/state.sh@state#theSpendSurvivesTheLossOfItsDeltaLines@the usage a turn falls back to when a rotation has taken the update it ended on, so a rotated item records no tokens at all and its cost is a lower bound under a name that reads as a measurement (issue #840)@s#^            ((\.cur // (\$e\.message\.usage? // null)) as \$u$#            ((.cur // null) as $u#'
+  # 971.1 — the fallback summarises the turns it passes again instead of cutting them (issue #971). The mutation puts
+  # the delete back: a prefix `turn_end` reaches no branch of the summary and goes with its payload, so a rotated
+  # stream answers fewer turns than the item had and the figures read off it are a lower bound under a name that
+  # reads as a measurement.
+  '971.1@-@../pi-child-events.sh@run#aRotatedStreamKeepsEveryTurn@the summary record a fallback writes for each turn it passes again, so a rotated stream answers every turn the item had and no figure of it is a lower bound (issue #971)@s#^              elif \$e.type == "turn_end" then#              elif false then#'
   # 268.1 — a truncated spend says so (issue #841). The rotation #840 leaves on a stream whose records alone outgrow
   # the bound is recorded, and the report names the items whose figures are a lower bound with the figure each
   # dropped: a line that counts them and names none tells a reader a figure is short and not which, which is the

@@ -164,9 +164,10 @@ answer_file=$(mktemp) || { printf 'pi-child-events: cannot create a temporary fi
 trap 'rm -f "$answer_file"' EXIT
 
 # Rotate the kept stream rather than let it grow without bound. The **delta** lines go first and every record line
-# stays; only a stream that is still over its bound after that pass is cut at its oldest half. Either way the drop is
-# *recorded* as the first line, so a reader can tell a rotated stream from a short one and add the turns it no longer
-# holds — `run.sh`'s `child_turns` does, which is what keeps a child's turn bound counting from zero after a rotation.
+# stays; only a stream that is still over its bound after that pass has its oldest half **summarised** — one record
+# per turn, carrying what a reader counts and not the payload it was counted from (issue #971). Either way the
+# rotation is *recorded* as the first line, so a reader can tell a rotated stream from a short one; a rotation that
+# summarised turns is no lower bound, and the record says so by naming the turns it summarised and the ones it kept.
 #
 # Why the deltas go first (issue #840): the oldest half of a stream is where the records live, and the records are
 # what `state.sh`'s `child_usage_json` sums an item's `turns`, `tokens`, `phases`, `gateRepeat`, `roles` and `afterGate`
@@ -184,21 +185,19 @@ trap 'rm -f "$answer_file"' EXIT
 # `tool_execution_update`, which nothing reads, goes either way. A stream that is still over its bound after that is
 # a lower bound still — that residue is issue #841, and it stays a *recorded* one.
 #
-# The record's shape is unchanged and `dropped_turn_ends` is cumulative: the record it replaces is dropped with the
-# events it counted, so the count it carried is added to the one being dropped. `dropped_lines` and `dropped_bytes`
-# are what this rotation removed — both passes together, and never the record they are written in. Called only when
-# the stream has outgrown its bound, so the passes here are paid once per rotation and never per event.
+# `dropped_turn_ends` stays in the record for the readers that still add it (`run.sh`'s `child_turns`) and is `0`:
+# this pass drops no turn. `dropped_lines` and `dropped_bytes` are what this rotation removed — both passes
+# together, and never the record they are written in. Called only when the stream has outgrown its bound, so the
+# passes here are paid once per rotation and never per event.
 rotate_events() { # rotate_events <file> — drop the delta lines, and the oldest half only if the stream is still over
   # `kept_bytes` is deliberately not local: the caller's own counter is reset to what the rotation left, or a
   # stream that rotated once would rotate on every event after it.
-  local f="$1" lines keep drop turns prev rec tmp total delta_types size_before size_tmp lines_tmp
-  local turn_ends turn_ends_with_usage drop_updates filter_rc cut cut_bytes
+  local f="$1" lines keep drop turns kept rec tmp total delta_types size_before size_tmp lines_tmp
+  local turn_ends turn_ends_with_usage drop_updates filter_rc cut size_pass
   lines=$(wc -l < "$f" 2>/dev/null) || true
   case "$lines" in ''|*[!0-9]*) lines=0 ;; esac
   # One line is the line just written: there is nothing older to drop, and dropping it would lose the newest event.
   [ "$lines" -ge 2 ] || return 0
-  prev=$(head -n 1 "$f" 2>/dev/null | sed -n 's/.*"dropped_turn_ends": *\([0-9][0-9]*\).*/\1/p')
-  case "$prev" in ''|*[!0-9]*) prev=0 ;; esac
 
   # The delta pass. Which types may go is a property of the stream being rotated, not of this adapter's assumption
   # about its agent: the updates are dropped only when the stream holds a `turn_end` and **every** one of them carries a
@@ -229,23 +228,91 @@ rotate_events() { # rotate_events <file> — drop the delta lines, and the oldes
   drop=$(( lines - lines_tmp ))
   total=$(( size_before - size_tmp ))
 
-  # The fallback: the records alone outgrew the bound, so the oldest half of them goes — and the turns it takes with
-  # it are recorded, cumulatively, so the count a reader adds them back to never falls.
+  # The fallback: the records alone outgrew the bound, so the oldest half is summarised (issue #971). Cutting those
+  # lines took the `turn_end` records the spend is counted in — the report then printed a lower bound as a
+  # measurement — so each turn the prefix holds becomes one record that carries what is read and not the payload it
+  # was read from: its index in the stream, the child that ran it, the tool names it called and their count, its
+  # usage and its timing. The delta lines are gone already, so the payload here is what a turn's records carry —
+  # thinking, message text, a tool result — and the `tool_execution_start` / `tool_execution_end` / `session` /
+  # `compaction_end` lines are kept in the shape a reader needs, because `calls`, `tools`, `reads` and the context
+  # are counted from them. What survives is no lower bound, and the record names both counts.
   turns=0
+  kept=0
   if [ "${events_bound:-0}" -gt 0 ] && [ "$size_tmp" -gt "$events_bound" ] && [ "$lines_tmp" -ge 2 ]; then
-    keep=$(( lines_tmp / 2 ))
-    cut=$(( lines_tmp - keep ))
-    drop=$(( drop + cut ))
-    turns=$(head -n "$cut" "$tmp" 2>/dev/null | grep -cE '"type": *"turn_end"') || true
+    # The pass repeats while the stream is still over its bound: a tail of whole records can outgrow a small bound on
+    # its own, and one pass would leave the file past the bound it exists to hold, so the next event would rotate it
+    # again — one pass at a time. Each pass halves the lines, so the loop ends, and a pass that frees nothing ends it.
+    while [ "$size_tmp" -gt "$events_bound" ] && [ "$lines_tmp" -ge 2 ]; do
+      keep=$(( lines_tmp / 2 ))
+      cut=$(( lines_tmp - keep ))
+      size_pass=$size_tmp
+      jq -c -s --argjson cut "$cut" '
+        . as $all
+        | (reduce range(0; $all | length) as $i ({n: 0, a: 0, out: []};
+            $all[$i] as $e
+            | (if $e.type == "agent_start" then .a += 1
+               elif $e.type == "turn_end" then .n += 1
+               else . end)
+            | if $i >= $cut then .out += [$e]
+              elif $e.type == "agent_start" then .out += [{type: "agent_start"}]
+              elif $e.type == "turn_end" then
+                (($e.message // {}) as $m
+                 | .out += [{type: "turn_end", summarised: true,
+                             turn: ($e.turn // .n),
+                             agent_start: .a,
+                             tools: [($m.content // [])[] | select(.type == "toolCall") | (.name // "")],
+                             tool_calls: ([($m.content // [])[] | select(.type == "toolCall")] | length),
+                             message: ({role: ($m.role // "assistant")}
+                               + (if ($m.usage? // null) == null then {} else {usage: $m.usage} end)
+                               + (if ($m.durationMs? // null) == null then {} else {durationMs: $m.durationMs} end)
+                               + (if ($m.model? // null) == null then {} else {model: $m.model} end)
+                               + (if ($m.responseModel? // null) == null then {} else {responseModel: $m.responseModel} end)
+                               + (if ($m.timestamp? // null) == null then {} else {timestamp: $m.timestamp} end)
+                               + {content: [($m.content // [])[]
+                                            | select(.type == "toolCall")
+                                            | {type: "toolCall", id: (.id // ""), name: (.name // "")}
+                                              + (if ((.arguments? // {}) | tostring | length) <= 400
+                                                 then {arguments: .arguments} else {} end)]})}])
+              elif $e.type == "tool_execution_start" then
+                .out += [{type: "tool_execution_start", toolCallId: ($e.toolCallId // ""),
+                          toolName: ($e.toolName // ""),
+                          args: (($e.args? // {}) | {path: (.path? // null), file_path: (.file_path? // null)}
+                                | with_entries(select(.value != null)))}]
+              elif $e.type == "tool_execution_end" then
+                .out += [{type: "tool_execution_end", toolCallId: ($e.toolCallId // ""),
+                          toolName: ($e.toolName // ""), durationMs: ($e.durationMs // 0)}]
+              elif $e.type == "message_start" and (($e.message.role? // "") == "user") then
+                .out += [{type: "message_start", message: {role: "user",
+                          content: ((($e.message.content // "")
+                            | if type == "array" then ([.[] | (.text? // "")] | join("")) else tostring end)
+                            | .[0:200])}}]
+              elif $e.type == "session" then .out += [$e]
+              elif $e.type == "compaction_end" and (($e.result.tokensBefore? // null) != null) then
+                .out += [{type: "compaction_end", result: {tokensBefore: $e.result.tokensBefore}}]
+              else . end))
+          | .out[]' "$tmp" > "$tmp.cut" 2>/dev/null || break
+      mv -- "$tmp.cut" "$tmp"
+      lines_tmp=$(wc -l < "$tmp" 2>/dev/null) || lines_tmp=0
+      size_tmp=$(wc -c < "$tmp" 2>/dev/null) || size_tmp=0
+      case "$lines_tmp" in ''|*[!0-9]*) lines_tmp=0 ;; esac
+      case "$size_tmp" in ''|*[!0-9]*) size_tmp=0 ;; esac
+      [ "$size_tmp" -lt "$size_pass" ] || break
+    done
+    # What the record says, read off the stream rather than added up pass by pass: a summary the stream already held
+    # is a turn already summarised, so the count of them is the count of turns the run can no longer read in full,
+    # and every other `turn_end` is a turn kept.
+    turns=$(grep -c '"summarised":true' "$tmp" 2>/dev/null) || true
     case "$turns" in ''|*[!0-9]*) turns=0 ;; esac
-    cut_bytes=$(head -n "$cut" "$tmp" 2>/dev/null | wc -c | tr -d ' ')
-    case "$cut_bytes" in ''|*[!0-9]*) cut_bytes=0 ;; esac
-    total=$(( total + cut_bytes ))
-    { tail -n "+$(( cut + 1 ))" "$tmp"; } > "$tmp.cut" && mv -- "$tmp.cut" "$tmp"
+    kept=$(grep -c '"type":"turn_end"' "$tmp" 2>/dev/null) || true
+    case "$kept" in ''|*[!0-9]*) kept=0 ;; esac
+    [ "$kept" -ge "$turns" ] && kept=$(( kept - turns )) || kept=0
+    drop=$(( lines - lines_tmp ))
+    total=$(( size_before - size_tmp ))
+    [ "$total" -ge 0 ] || total=0
   fi
 
-  rec=$(printf '{"type":"stream_rotation","dropped_lines":%s,"dropped_bytes":%s,"dropped_turn_ends":%s,"at":"%s"}' \
-    "$drop" "$total" "$(( turns + prev ))" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")
+  rec=$(printf '{"type":"stream_rotation","dropped_lines":%s,"dropped_bytes":%s,"dropped_turn_ends":%s,"turns_summarised":%s,"turns_kept":%s,"at":"%s"}' \
+    "$drop" "$total" "0" "$turns" "$kept" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")
   { printf '%s\n' "$rec"; cat -- "$tmp"; } > "$tmp.rec" && mv -- "$tmp.rec" "$f"
   rm -f -- "$tmp" "$tmp.cut"
   kept_bytes=$(wc -c < "$f" 2>/dev/null) || kept_bytes=0

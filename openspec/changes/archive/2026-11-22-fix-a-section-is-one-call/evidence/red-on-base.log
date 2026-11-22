@@ -1,0 +1,18 @@
+# The red run, whole: the header and the exit line are this process, everything between them is the run's own
+# output. Taken 2026-11-22T08:38:12Z on base 929ea147ed02acefbde12ed39fd576a52de4a4cb, with tools/look.sh
+# put back to the base commit's for the length of the run and restored to the delta's after it.
+== bash tools/loop/tests/loop-selftest.sh --case 'look#*'
+look#aSectionIsPrintedAndTheOtherSectionsAreNot|   one section is one call: look: unknown argument --section: expected '0', got '2'
+look#aCaseIsPrintedByItsName|   one case is one call: look: unknown argument --case: expected '0', got '2'
+--- look#oneCallAnswersTheWholeTree[3] (exit 1)
+  one section is one call: look: unknown argument --section: expected '0', got '2'
+FAIL look#aSectionIsPrintedAndTheOtherSectionsAreNot
+--- look#oneCallAnswersTheWholeTree[4] (exit 1)
+  one case is one call: look: unknown argument --case: expected '0', got '2'
+FAIL look#aCaseIsPrintedByItsName
+PASS look#oneCallAnswersTheWholeTree
+PASS look#aResultOverTheBoundIsCutAndNamed
+PASS look#aPathScopesTheWalkToIt
+loop-selftest: look 5 cases 0.69 s
+loop-selftest: 2 of 5 cases failed — 0.24 s
+red-on-base exit: 1

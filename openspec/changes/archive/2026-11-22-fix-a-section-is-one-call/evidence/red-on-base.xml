@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The two red cases' tally on this run's base. The tree is base commit
+     929ea147ed02acefbde12ed39fd576a52de4a4cb with this change's case edits applied (the two cases, their list entries
+     and their dispatch lines) and `tools/look.sh` put back to the base commit's for the length of the run and restored
+     to the delta's after it — so what fails is the delta's own cases against the wrapper the base carries, and not a
+     re-typed base tree. `tools/loop/tests/loop-selftest.sh` prints its verdict, not a JUnit file, so this file carries
+     the tally that run printed (2 of 5 cases failed, exit 1) as a testsuite. The run's whole output, between a header
+     and an exit line this process wrote, is evidence/red-on-base.log beside it; the tally here is derived from that
+     log, not re-taken.
+     Both failures are the same reading and the one the base makes possible: the argument loop has no arm for either
+     flag, so the wrapper answers `look: unknown argument --section` / `--case` with exit 2 (base `tools/look.sh:57`)
+     and the case's first assertion — the one that calls a section, or a case, one call — is what fails. The three
+     shipped `look` cases PASS in the same log, so the base wrapper still walks and still scopes; only the two new
+     units are absent. -->
+<testsuite name="tools/loop/tests/loop-selftest.sh --case look#*" tests="5" failures="2" errors="0">
+  <properties>
+    <property name="root" value="/home/tim/projects/NaviVeylin/.pi/worktrees/loop"/>
+    <property name="run" value="2026-11-22T08:38:12Z"/>
+    <property name="base" value="929ea147ed02acefbde12ed39fd576a52de4a4cb"/>
+    <property name="look.sh" value="base 929ea147:tools/look.sh for the run, restored to the delta's after it"/>
+  </properties>
+  <testcase classname="look" name="look#oneCallAnswersTheWholeTree"/>
+  <testcase classname="look" name="look#aResultOverTheBoundIsCutAndNamed"/>
+  <testcase classname="look" name="look#aPathScopesTheWalkToIt"/>
+  <testcase classname="look" name="look#aSectionIsPrintedAndTheOtherSectionsAreNot">
+    <failure message="one section is one call: look: unknown argument --section: expected '0', got '2'"/>
+  </testcase>
+  <testcase classname="look" name="look#aCaseIsPrintedByItsName">
+    <failure message="one case is one call: look: unknown argument --case: expected '0', got '2'"/>
+  </testcase>
+</testsuite>

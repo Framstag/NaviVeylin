@@ -1,0 +1,31 @@
+# gate-red attribution, item #1005 fix-a-section-is-one-call, phase F tail — copies of the results cited in the tail report
+# 1. the gate line as the gate printed it — /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1005/gate.log:2298
+LOOP-GATE: tests=1285 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 16s, tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb 539s, bash tools/loop/tests/loop-mutations.sh --check 18s, tools/loop/tests/loop-mutations-selftest.sh 131s, bash tools/gen-feature-list.sh --check-classification 19s, tools/check-doc-values.sh 1s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 31s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 138s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb — base-red: tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb:2, tools/check-openspec-hygiene.sh:1
+# 2. the failing step and its three red cases — /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1005/gate.log:946-947 1466 1682 1706
+  the worker phase is two children, not one: expected '2', got '3'
+FAIL run#childUsageIsRecordedPerItem
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+loop-selftest: 3 of 533 cases failed — 537.94 s
+# 3. the two pairs the gate itself subtracted as base-red — /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1005/gate.log:1708-1710, /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log:23665-23667, /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1005/gate.log:1868-1870
+LOOP-GATE-BASERED-MEASURE:tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb — measuring this step on 929ea147ed02 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+state: base state of tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb recorded — 2 case(s) red at 929ea147ed02
+LOOP-GATE-BASERED:tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb:2
+LOOP-BASERED-STEP:tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb|2
+LOOP-BASERED-CASE:tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb|run#aQuotaHoldPausesTheRunAndResumesIt
+LOOP-BASERED-CASE:tools/loop/tests/loop-selftest.sh --from-git 929ea147ed02acefbde12ed39fd576a52de4a4cb|run#theQuotaSwitchIsExplicit
+LOOP-GATE-BASERED-MEASURE:tools/check-openspec-hygiene.sh — measuring this step on 929ea147ed02 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+state: base state of tools/check-openspec-hygiene.sh recorded — 0 case(s) red at 929ea147ed02
+LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1
+# 4. the one un-subtracted red, proven red before this work (2026-11-21, a change archived before this one) — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-21-a-step-is-measured-in-the-projects-environment/evidence/full-suite.log:955-962 and tasks.md:36-38 beside it
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aRedGateIsBlockedByTheTail
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#childUsageIsRecordedPerItem|   the worker phase is two children, not one: expected '2', got '3'
+--- run#childUsageIsRecordedPerItem[0] (exit 1)
+      record was rewritten (task 3.2) — and `run#childUsageIsRecordedPerItem` (`the worker phase is two children, not
+      one: expected '2', got '3'`), which passes alone and passes in the second run: a scheduling flake under 14 jobs,
+      in a case whose declared files this change does not touch. The second run's 519/519 also covers the rewritten

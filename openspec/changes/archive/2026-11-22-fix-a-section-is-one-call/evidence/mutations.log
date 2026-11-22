@@ -1,0 +1,13 @@
+# 2026-11-22T08:42:34Z — the two records this change adds, against the two cases it adds
+== bash tools/loop/tests/loop-mutations.sh --only '1005.1 1005.2'
+loop-mutations: selected 2 of 444 records (labels: 1005.1 1005.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.T83kzk
+RED    1005.1  look#aSectionIsPrintedAndTheOtherSectionsAreNot   (the end of a section at the document's next `## ` heading, so the section read runs on into the sections beside it and the answer carries two of them (issue #1005))
+       2026-11-22T08:42:34Z — case log line 1: and how many sections the pattern printed: LOOK: 2 sections of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dLbwBW/cases/0/tree/case.Y5Gyka/tree/guidelines/s.md for '§2 two'
+restore 1005.1 look#aSectionIsPrintedAndTheOtherSectionsAreNot green again
+RED    1005.2  look#aCaseIsPrintedByItsName   (the name a `--case` reads, so every line of the suite opens a case and the whole file arrives for one name (issue #1005))
+       2026-11-22T08:42:35Z — case log line 1: and how many cases the name printed: LOOK: 2 cases of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.GZ5HDm/cases/0/tree/case.U2nOpa/tree/tools/suite.sh for 'case_one'
+restore 1005.2 look#aCaseIsPrintedByItsName green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+mutations exit: 0

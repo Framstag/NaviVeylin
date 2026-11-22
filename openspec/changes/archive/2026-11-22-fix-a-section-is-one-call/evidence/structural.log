@@ -1,0 +1,19 @@
+# 2026-11-22T08:42:17Z — the structural check this delta owes (no compiled file is touched)
+== bash -n tools/look.sh
+exit: 0
+== bash -n tools/loop/tests/loop-cases.sh
+exit: 0
+== bash -n tools/loop/tests/loop-mutations.sh
+exit: 0
+== bash tools/check-case-names.sh
+CASE-NAMES: ok harnesses=41 lines=1552 named=1347 none=123 unnamed=82 unclaimed=5982
+exit: 0
+== bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit: 0
+== bash tools/check-doc-routes.sh
+check-doc-routes: all 356 section references resolve, all 8 skill references resolve
+exit: 0
+== openspec validate fix-a-section-is-one-call --strict
+Change 'fix-a-section-is-one-call' is valid
+exit: 0

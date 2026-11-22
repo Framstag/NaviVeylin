@@ -1,0 +1,4 @@
+# 2026-11-22T08:41:16Z — the plan's first line, the declaration the gate's first step reads
+== tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit: 0

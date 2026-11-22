@@ -1,0 +1,13 @@
+# 2026-11-22T08:42:31Z — the cases this delta reaches, green in one run
+== tools/loop/tests/loop-selftest.sh --case 'look#*'
+PASS look#aPathScopesTheWalkToIt
+PASS look#aCaseIsPrintedByItsName
+PASS look#oneCallAnswersTheWholeTree
+PASS look#aResultOverTheBoundIsCutAndNamed
+PASS look#aSectionIsPrintedAndTheOtherSectionsAreNot
+loop-selftest: look 5 cases 0.83 s
+loop-selftest: all 5 cases passed (JDK 21, offline, no token, no sandbox) — 0.27 s, selection: --case look#*
+exit: 0
+== tools/loop/tests/loop-selftest.sh --case prompt#thePhasePromptsCarryTheirOwnRoute
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+exit: 0

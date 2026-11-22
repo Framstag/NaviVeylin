@@ -2794,8 +2794,13 @@ question the item asked; a retry costs another attempt, and an abandonment remov
   loop_emit item-result issue="$issue" result="$outcome" detail="$detail" wall="$wall" rounds="$review_rounds"
   in_progress=""
 
+  # The base a landing was merged into is the tree the next reader's CI measures, and `--push yes` promises to
+  # publish: the item's branch and the base it landed on leave the run together, so `origin/main` stops standing
+  # where a person's last push left it (issue #1018). The base goes through the same function, so a base that fails
+  # is one named line and no retry.
   if [ "$push" = yes ]; then
     push_branch "fix/issue-$issue-$slug"
+    push_branch "$(loop_base_ref)"
   fi
 done
 

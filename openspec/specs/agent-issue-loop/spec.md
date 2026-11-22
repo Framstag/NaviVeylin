@@ -2249,6 +2249,8 @@ The gate SHALL resolve its configuration from the profile beside its own engine 
 
 The run's only push SHALL publish what still exists when it runs: a branch the run has already merged and released
 SHALL be a named skip rather than a git error, and a push that fails for another reason SHALL say so on one line.
+The base branch a landing was merged into SHALL be published through that same push, so the remote's base carries
+the run's last landing and a reader's CI measures the tree the run produced.
 
 #### Scenario: A branch the run merged and released is a named skip
 
@@ -2264,6 +2266,16 @@ SHALL be a named skip rather than a git error, and a push that fails for another
 - **WHEN** the branch still exists and the push does not succeed
 - **THEN** the run prints one line naming the branch and where its commits stayed — the run tree, not the remote —
   so a caller reads a publishing failure as one instead of as git's own error text
+
+#### Scenario: The base a run landed on is published
+
+- **WHEN** a run is asked to publish and it lands an item on its base branch, while the remote's base still stands
+  at the commit the run started from
+- **THEN** the run publishes that base branch from the item's tail, through the one function that publishes, so the
+  remote's base carries the run's last landing
+- **AND** a base publish that does not succeed is one line naming the base and where its commits stayed, with no
+  retry
+- **Case**: `worktree#publishesTheBaseItLandedOn`
 
 ### Requirement: A case's files select it, and the gate hands a suite the base it measured
 

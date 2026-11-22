@@ -408,7 +408,9 @@ discard_kept_worktree() { # discard_kept_worktree <the name this repair prints i
 # merged it and `release-branch` deleted it a few lines earlier. Pushing a refspec whose local ref no longer
 # exists fails with git's `src refspec … does not match any`, so a run asked to publish printed two error lines
 # for the branch it had removed itself (measured 2026-10-23 on #277, inside an otherwise green run). The flag
-# publishes what still exists; a branch whose work is in the base is a skip, and the run says which it did.
+# publishes what still exists; a branch whose work is in the base is a skip, and the run says which it did. The base
+# the landing was merged into is published by the same function (issue #1018): a landing is local until the remote's
+# base carries it, and a CI-driven sensor reads that remote, not this tree.
 push_branch() { # push_branch <branch>
   if ! git -C "$worktree" rev-parse --verify --quiet "refs/heads/$1" >/dev/null; then
     loop_emit publish-nothing branch="$1" --stderr

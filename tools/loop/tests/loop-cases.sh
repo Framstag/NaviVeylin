@@ -107,6 +107,7 @@ LOOP_SHELL_CASES=(
   'worktree#keepsSourcesNotBuildOutput'
   'worktree#noPushWithoutTheFlag'
   'worktree#pushSkipsABranchItAlreadyMerged'
+  'worktree#publishesTheBaseItLandedOn'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#reusesABranchWhoseWorkAlreadyLanded'
   'worktree#refusesABranchCarryingAPreviousAttempt'
@@ -935,6 +936,7 @@ loop_run_shell_case() {
     'worktree#keepsSourcesNotBuildOutput') fn=case_worktree_keepsSourcesNotBuildOutput ;;
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
     'worktree#pushSkipsABranchItAlreadyMerged') fn=case_worktree_pushSkipsABranchItAlreadyMerged ;;
+    'worktree#publishesTheBaseItLandedOn') fn=case_worktree_publishesTheBaseItLandedOn ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#reusesABranchWhoseWorkAlreadyLanded') fn=case_worktree_reusesABranchWhoseWorkAlreadyLanded ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
@@ -4458,7 +4460,8 @@ case_worktree_noPushWithoutTheFlag() {
   hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" --exclude-dir=tests || true)
   [ -z "$hits" ] || fail "the loop opens a change request: $hits"
   assert_eq "1" "$(grep -c 'push_branch()' "$LOOP_ENGINE/leftovers.sh")" "the push is one named call"
-  assert_eq "1" "$(grep -c 'push_branch "' "$LOOP_ENGINE/run.sh")" "and it has exactly one call site"
+  assert_eq "2" "$(grep -c 'push_branch "' "$LOOP_ENGINE/run.sh")" \
+    "and it has exactly two call sites: the item's branch and the base it landed on"
   assert_contains "$(grep -B1 'push_branch "' "$LOOP_ENGINE/run.sh")" 'push" = yes' "the call site is guarded by the flag"
 
   # A default run does not push: git's own trace is the log (git is never stubbed — D13).
@@ -4492,6 +4495,42 @@ case_worktree_pushSkipsABranchItAlreadyMerged() {
   assert_not_contains "$(cat "$out")" "does not match any" "the run never hands git a refspec it deleted"
   assert_eq "" "$(git -C "$origin" for-each-ref "refs/heads/$branch")" \
     "the remote carries no branch of a closed item"
+}
+
+# A landing merges into the **project tree's local base** (`tools/loop/worktree.sh:772`), and the run's only push
+# published the item's branch, so `--push yes` left `main` local while `origin/main` stood where a person's last push
+# left it: measured 2026-11-22, 29 commits over six hours that CI's `Build Debug APK` never compiled, and the
+# `broken-main` sensor read that remote failure back as today's condition (#1011, and #986 before it). The fixture is
+# the remote those landings left behind: a bare remote whose base stands at the commit the run starts from.
+case_worktree_publishesTheBaseItLandedOn() {
+  # files: tools/loop/run.sh tools/loop/leftovers.sh tools/loop/worktree.sh tools/loop/lib.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json tools/pi-child-events.sh
+  local d p origin out before landed d2 p2 origin2 out2
+  d=$(scratch); p=$(new_project); origin="$d/origin.git"
+  git init -q --bare "$origin" >/dev/null 2>&1 || fail "could not create the remote"
+  git -C "$p" remote add origin "$origin" >/dev/null 2>&1 || fail "could not add the remote"
+  git -C "$p" push -q origin main >/dev/null 2>&1 || fail "could not stand the remote's base where a person left it"
+  before=$(git -C "$origin" rev-parse refs/heads/main)
+  out="$d/run.txt"
+  run_one_item "$p" "$d" --review on --push yes >"$out" 2>&1 || fail "the run itself failed: $(cat "$out")"
+  landed=$(git -C "$p" rev-parse main)
+  [ "$landed" != "$before" ] || fail "the run landed nothing, so the case would prove nothing: $(cat "$out")"
+  assert_eq "$landed" "$(git -C "$origin" rev-parse refs/heads/main)" \
+    "a run asked to publish leaves the remote's base carrying its last landing, not where a person left it"
+
+  # A base publish that does not succeed is one line naming the base and where its commits stayed, and it is not
+  # retried: the arm is the same function's `publish-failed`, reached with a remote whose own hook refuses the push.
+  d2=$(scratch); p2=$(new_project); origin2="$d2/origin.git"
+  git init -q --bare "$origin2" >/dev/null 2>&1 || fail "could not create the refusing remote"
+  printf '#!/bin/sh\nexit 1\n' > "$origin2/hooks/pre-receive" || fail "could not write the refusing hook"
+  chmod +x "$origin2/hooks/pre-receive" || fail "could not make the hook executable"
+  git -C "$p2" remote add origin "$origin2" >/dev/null 2>&1 || fail "could not add the refusing remote"
+  out2="$d2/run.txt"
+  run_one_item "$p2" "$d2" --review on --push yes >"$out2" 2>&1 || fail "the second run itself failed: $(cat "$out2")"
+  assert_contains "$(cat "$out2")" "the push of main failed" \
+    "a base publish that fails names the branch it could not publish"
+  assert_contains "$(cat "$out2")" "its commits stay in the run tree, not on the remote" \
+    "and says where the commits stayed"
+  assert_eq "1" "$(grep -c 'the push of main failed' "$out2")" "the failed base publish is not retried"
 }
 
 # A refusal a later round did not repeat is not the branch's verdict (issue #975). The sweep read the branch for

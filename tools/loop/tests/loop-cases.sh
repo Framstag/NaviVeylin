@@ -5182,8 +5182,8 @@ case_prompt_thePhasePromptsCarryTheirOwnRoute() {
 # names are the policy's own list, read out of `REFUSED_VERBS`, so a verb the policy gains is a case that fails rather
 # than a child that learns it by being refused (#687 is that policy, #796 the recipe one section up).
 case_prompt_thePhasePromptNamesWhatItsShellRefuses() {
-  # files: tools/loop/prompts/ tools/pi-shell-refusal.mjs tools/look.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p prompt text f rule probe verbs v
+  # files: tools/loop/prompts/ tools/pi-shell-refusal.mjs tools/pi-trim-result.mjs guidelines/BuildGate.md tools/look.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt text f rule probe verbs v notice_rule notice gate_rule
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
   prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
@@ -5218,6 +5218,48 @@ case_prompt_thePhasePromptNamesWhatItsShellRefuses() {
   for v in $verbs; do
     assert_contains "$text" "\`$v\`" "the block names the verb the policy refuses, in the policy's own spelling: $v"
   done
+
+  # Four skeletons quote the notice a cut result carries, and the notice is `trimNotice`'s string — so each quote is
+  # held against it here rather than against a copy: a skeleton that keeps the old arm fails, and the module's own
+  # output is asserted below.
+  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" \
+    "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
+    assert_contains "$(cat "$f")" 'ranges (ctx_read mode="lines:N-M")]' \
+      "$(basename "$f") quotes the notice the module emits"
+    assert_not_contains "$(cat "$f")" 'sed -n' \
+      "$(basename "$f") names no shell range read beside the notice (issue #1007)"
+  done
+
+  # The block refused the shell search and then named a shell range read beside the tools: `sed -n 'N,Mp'` at the
+  # end of that bullet, and again in the notice a cut result carries. Over `.pi/issue-loop/items` the calls aimed at
+  # the child's own prompt are 675 (6.9 % of 9 811 read-verb calls) for 2 332 026 characters at 3 447 per call — the
+  # archive's most expensive class per call, against `ctx_read`'s 1.5 k — and the child went back to its own prompt
+  # in chunks of 100-230 lines (issue #1007). So the range is named as `ctx_read`'s own call, and no shell range read
+  # stands beside it: the case fails for a prompt that puts the alternative back, and for a notice that carries it.
+  assert_not_contains "$text" 'sed -n' \
+    "the block names no shell range read beside the tools it hands the child (issue #1007)"
+  assert_contains "$text" 'offset' "it names the read that pages a range instead"
+
+  # The block renders `guidelines/BuildGate.md` §2's rule, so the section that owns the rule says what the prompt
+  # says: the range of a known file is the tool's own call, and the shell read the policy does not refuse is named as
+  # permitted for a log rather than as how a tree question is answered (issue #1007).
+  gate_rule="$LOOP_PROJECT_ROOT/guidelines/BuildGate.md"
+  assert_contains "$(cat "$gate_rule")" "A range of a known file is that tool" \
+    "the guideline section the block renders names the tool's own call for a range of a known file"
+
+  # The notice is the module's own string, not a copy of it: a mutation that puts the alternative back into
+  # `trimNotice` reddens this, so the prompt and the notice the child actually reads cannot disagree.
+  notice_rule="$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs"
+  [ -f "$notice_rule" ] || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
+  probe="$d/notice.mjs"
+  printf '%s\n' 'import { pathToFileURL } from "node:url";' \
+    'const mod = await import(pathToFileURL(process.env.RULE).href);' \
+    'console.log(mod.trimNotice("ctx_read", 20000, 8000));' > "$probe"
+  notice=$(RULE="$notice_rule" node "$probe" 2>&1) || fail "the trim notice could not be read: $notice"
+  assert_contains "$notice" 'ctx_read mode="lines:N-M"' \
+    "the notice a cut result carries names the call that pages the rest"
+  assert_not_contains "$notice" 'sed' \
+    "and no shell range read beside it, so the prompt and the notice the child reads agree (issue #1007)"
   return 0
 }
 
@@ -13827,7 +13869,10 @@ case_trim_aResultAboveTheBoundIsTrimmedAndNamed() {
   assert_contains "$(cat "$out")" "LOOP-TRIMMED" "the trim is named in the result the child reads"
   assert_contains "$(cat "$out")" "20005" "the line names the size the result had"
   assert_contains "$(cat "$out")" "8000" "and the bound it was cut to"
-  assert_contains "$(cat "$out")" "sed -n" "and how to read the rest, so a reader can re-read the range the notice names"
+  assert_contains "$(cat "$out")" 'ctx_read mode="lines:N-M"' \
+    "and how to read the rest, so a reader can re-read the range the notice names"
+  assert_not_contains "$(cat "$out")" 'sed' \
+    "and no shell range read beside it: the alternative a child took instead of the tool is what issue #1007 measured"
   n=$(wc -c < "$out")
   [ "$n" -lt 9000 ] || fail "the trimmed result still carries $n characters against a bound of 8000"
   return 0

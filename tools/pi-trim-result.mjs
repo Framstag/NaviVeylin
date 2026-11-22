@@ -100,7 +100,7 @@ export function recordedRepeatArm(raw) {
 /** The line that tells the child what it is reading, and how to read the rest of it. */
 export function trimNotice(tool, total, bound) {
   return `\n[LOOP-TRIMMED: ${tool} returned ${total} characters; the first ${bound} are shown — read the rest in`
-    + ` ranges (ctx_read mode="lines:N-M", or sed -n 'N,Mp')]\n`;
+    + ` ranges (ctx_read mode="lines:N-M")]\n`;
 }
 
 /** One line of the record, appended where the item's own evidence stands. */

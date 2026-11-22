@@ -52,7 +52,63 @@ from collections import Counter, defaultdict
 CHARS_PER_TOKEN = 2.8
 
 READ_TOOLS = ('ctx_read', 'read')
-GATE_RE = re.compile(r'gate\.sh|gradlew ')
+
+# The two verification calls a session makes are not one call (issue #1008). `GATE_RE = re.compile(r'gate\.sh|gradlew
+# ')` matched both, so every figure read off the split was the tail after the first *verification* call while it was
+# named the gate's: the gate is the item's one verification — `tools/loop/gate.sh` run, not asked for a plan — and a
+# focused suite run (`./gradlew <module>:<task> --tests <filter>`) is the iteration `guidelines/BuildGate.md` §2a
+# hands a child. Each has its own position below, and the report states both.
+GATE_PROGRAM = 'gate.sh'
+SUITE_PROGRAM = 'gradlew'
+
+# Which program a call starts, and which words before it start nothing: the rule is `tools/loop/lib.sh`'s
+# (`gate_command_jq`'s `run_word`, issues #830, #857, #882), restated in the language this tool measures in, because a
+# jq subprocess per tool call over gigabytes of event streams is not a reading anyone would pay for. A `cd …` prefix,
+# leading `VAR=value` assignments and a `bash`/`sh`/`exec`/`command`/`timeout <n>`/`env`/`nohup` wrapper are skipped; a
+# call whose *argument* is the gate's path (`sed -n 1,60p tools/loop/gate.sh`, `git show HEAD:tools/loop/gate.sh`)
+# reads that file and starts nothing.
+WRAPPER_WORDS = ('bash', 'sh', 'exec', 'command', 'timeout', 'env', 'nohup')
+ASSIGNMENT_RE = re.compile(r'[A-Za-z_][A-Za-z0-9_]*=')
+NO_STEP_WORDS = ('--plan', '--list', '--help', '-h')
+
+
+def run_word(command):
+    """The program a call starts, by `run_word`'s own rule (`tools/loop/lib.sh`)."""
+    words = [w for w in re.split(r'[ \t;|&]+', str(command or '')) if w]
+    if words[:1] == ['cd']:
+        words = words[2:]
+    while words and (ASSIGNMENT_RE.match(words[0]) or words[0] in WRAPPER_WORDS):
+        if words[0] == 'timeout' and len(words) > 1 and words[1][:1].isdigit():
+            words = words[2:]
+        else:
+            words = words[1:]
+    return words[0] if words else ''
+
+
+def program(command):
+    """The basename of the program a call starts: `bash tools/loop/gate.sh` is `gate.sh`."""
+    return run_word(command).rsplit('/', 1)[-1]
+
+
+def first_verification(turns, predicate):
+    """The turn of a session's first call `predicate` accepts, or `None` where it made none."""
+    for k, t in enumerate(turns):
+        if any(predicate(str(a.get('command') or '')) for _, a in t['calls']):
+            return k
+    return None
+
+
+def is_gate_run(command):
+    """A run of the gate's own program that asks for no step: `--plan` runs none."""
+    if program(command) != GATE_PROGRAM:
+        return False
+    return not any(w in NO_STEP_WORDS or w.startswith('--plan=')
+                   for w in re.split(r'[ \t;|&]+', command))
+
+
+def is_focused_suite(command):
+    """A suite run — the task a child iterates with, the whole suite and a `--tests` filter alike."""
+    return program(command) == SUITE_PROGRAM
 
 SECTION_RULE = '-' * 100
 
@@ -275,12 +331,11 @@ def measure(items):
                     m['calls'][name] += 1
                 out_tokens += t['out']
                 turn_growth_k.append((k, T, sum(sz for _, _, sz in t['results'])))
-            # the gate split: the first turn of this session that runs the gate or a suite
-            first_gate = next((k for k, t in enumerate(s['turns'])
-                               if any(GATE_RE.search(str(a.get('command') or ''))
-                                      for _, a in t['calls'])), None)
+            # the two verification positions of this session: its first gate run and its first focused suite run
+            first_gate = first_verification(s['turns'], is_gate_run)
+            first_suite = first_verification(s['turns'], is_focused_suite)
             ctxs = [t['inp'] + t['cr'] for t in s['turns']]
-            m['gates'].append((first_gate, ctxs))
+            m['gates'].append((first_gate, first_suite, ctxs))
         extra = sum(v - 1 for v in reads_here.values() if v > 1)
         m['dup_reads'] += extra
         it['dup'] = extra
@@ -322,6 +377,23 @@ def display_path(path, root):
     return path.replace(root + os.sep, '')
 
 
+def split_positions(m):
+    """The two splits' own numbers, read by the report and by the JSON alike (issue #1008)."""
+    gated = [(g, c) for g, _, c in m['gates'] if g is not None]
+    suited = [(s, c) for _, s, c in m['gates'] if s is not None]
+    return dict(
+        gated=gated, suited=suited,
+        after_gate=sum(sum(c[i:]) for i, c in gated),
+        pre_gate=sum(sum(c[:i]) for i, c in gated),
+        pre_turns=sum(i for i, _ in gated),
+        post_turns=sum(len(c) - i for i, c in gated),
+        after_suite=sum(sum(c[i:]) for i, c in suited),
+        pre_suite=sum(sum(c[:i]) for i, c in suited),
+        suite_pre_turns=sum(i for i, _ in suited),
+        suite_post_turns=sum(len(c) - i for i, c in suited),
+    )
+
+
 def report(m, top, quiet):
     out = []
     add = out.append
@@ -332,12 +404,16 @@ def report(m, top, quiet):
     injected_tokens = m['injected_chars'] / CHARS_PER_TOKEN
     amplification = (m['tool_part'] / injected_tokens) if injected_tokens else 0
     # The split is measured over the sessions that ran a gate, and says so: a session that never gated has no
-    # position to split at, and folding its turns into "before" would make the two halves disagree.
-    gated = [(i, c) for i, c in m['gates'] if i is not None]
-    after_gate = sum(sum(c[i:]) for i, c in gated)
-    pre_gate = sum(sum(c[:i]) for i, c in gated)
-    pre_turns = sum(i for i, _ in gated)
-    post_turns = sum(len(c) - i for i, c in gated)
+    # position to split at, and folding its turns into "before" would make the two halves disagree. The focused suite
+    # is the same arithmetic at its own position, and it is a different number (issue #1008): the suite is the
+    # iteration, the gate is the verification, and a figure that does not say which one it splits at reads as the
+    # gate's.
+    split = split_positions(m)
+    gated, suited = split['gated'], split['suited']
+    after_gate, pre_gate = split['after_gate'], split['pre_gate']
+    pre_turns, post_turns = split['pre_turns'], split['post_turns']
+    after_suite, pre_suite = split['after_suite'], split['pre_suite']
+    suite_pre_turns, suite_post_turns = split['suite_pre_turns'], split['suite_post_turns']
 
     if not quiet:
         add('loop spend — what the loop\'s children were charged, and on what')
@@ -363,8 +439,12 @@ def report(m, top, quiet):
             f'already had ({100*m["dup_reads"]/max(m["read_calls"],1):.0f}%)')
         add(f'Spend by position, in the {len(gated)} sessions that ran a gate: '
             f'{human(after_gate)} ({100*after_gate/max(after_gate+pre_gate,1):.0f}% of them) after the first '
-            f'gate/suite call — {post_turns} turns at {after_gate/max(post_turns,1)/1000:.0f}k/turn, against '
+            f'gate run — {post_turns} turns at {after_gate/max(post_turns,1)/1000:.0f}k/turn, against '
             f'{pre_turns} turns at {pre_gate/max(pre_turns,1)/1000:.0f}k/turn before it')
+        add(f'  and in the {len(suited)} sessions that ran a focused suite, at the first suite run: '
+            f'{human(after_suite)} after it ({100*after_suite/max(after_suite+pre_suite,1):.0f}% of theirs) — '
+            f'{suite_post_turns} turns at {after_suite/max(suite_post_turns,1)/1000:.0f}k/turn, against '
+            f'{suite_pre_turns} turns at {pre_suite/max(suite_pre_turns,1)/1000:.0f}k/turn before it')
         add('')
         add('The baseline and the two growth parts are a model, not a ledger (chars->tokens is calibrated at '
             f'{CHARS_PER_TOKEN}/tok):')
@@ -379,7 +459,7 @@ def report(m, top, quiet):
     add(f'LOOP-SPEND-COST total={"-" if m["cost"] == 0 else format(m["cost"], ".4f")}')
     add(f'LOOP-SPEND-BASELINE tokens={base_median} charged={int(m["baseline_part"])}')
     add(f'LOOP-SPEND-READS calls={m["read_calls"]} duplicate={m["dup_reads"]}')
-    add(f'LOOP-SPEND-GATE after={int(after_gate)}')
+    add(f'LOOP-SPEND-GATE after={int(after_gate)} suite={int(after_suite)}')
     for cap, saved in sorted(m['cap_saved'].items()):
         add(f'LOOP-SPEND-CAP{cap//1000}K saved={int(saved)}')
     if quiet:
@@ -419,7 +499,7 @@ def report(m, top, quiet):
     add('What the levers would save, on this archive (model, not a promise)')
     levers = [(f'tool result capped at {cap//1000}k chars', saved) for cap, saved in sorted(m['cap_saved'].items())]
     for frac in (0.15, 0.30, 0.50):
-        saved = sum(sum(c[int(len(c) * (1 - frac)):]) for _, c in m['gates'])
+        saved = sum(sum(c[int(len(c) * (1 - frac)):]) for _, _, c in m['gates'])
         levers.append((f'{int(100*frac)}% fewer turns', saved))
     levers.append(('baseline trimmed by 30%', 0.30 * m['baseline_part']))
     for label, saved in levers:
@@ -460,6 +540,7 @@ def report(m, top, quiet):
 
 def as_json(m):
     grand = total(m)
+    split = split_positions(m)
     return dict(
         items=m['items'], sessions=m['sessions'], turns=m['turns'],
         tokens=dict(input=m['inp'], cacheRead=m['cr'], output=m['out'], total=grand),
@@ -469,7 +550,8 @@ def as_json(m):
                          modelOutput=int(m['out_part']),
                          toolResultChars=m['injected_chars']),
         reads=dict(calls=m['read_calls'], duplicate=m['dup_reads']),
-        afterFirstGate=int(sum(sum(c[i:]) for i, c in m['gates'] if i is not None)),
+        afterFirstGate=split['after_gate'],
+        afterFirstSuite=split['after_suite'],
         cost=round(m['cost'], 4),
         capSaving={str(k): int(v) for k, v in m['cap_saved'].items()},
         maxContext=m['max_ctx'],

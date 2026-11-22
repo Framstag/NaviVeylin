@@ -133,6 +133,22 @@ cat > "$WORK/prompts/items/300/events.jsonl" <<'JSONL'
 {"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":128000,"cacheWrite":0,"cost":{"total":0}},"durationMs":100,"timestamp":"2026-11-07T06:02:01.000Z","content":[]},"toolResults":[]}
 JSONL
 
+# The gate and the focused suite a child iterates with are two verification calls, not one (issue #1008): here the
+# suite run is the session's second turn, a `--plan` call and a `sed` over the gate's own file are earlier turns that
+# run nothing, and the gate itself is started behind the wrappers a child writes — `cd … && timeout <n> bash …`. A
+# reading keyed on the word `gate.sh` anywhere in the command's text puts the split on turn 0, one keyed on
+# `gradlew ` on turn 1, and one that skips no wrapper on the `cd`.
+mkdir -p "$WORK/split/items/400"
+cat > "$WORK/split/items/400/events.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"v1","timestamp":"2026-11-09T05:00:00.000Z"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/p/.pi/issue-loop/items/400/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":11000,"cacheWrite":0,"cost":{"total":0}},"durationMs":100,"timestamp":"2026-11-09T05:00:01.000Z","content":[{"type":"toolCall","id":"v1a","name":"ctx_shell","arguments":{"command":"sed -n 1,60p tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":17000,"cacheWrite":0,"cost":{"total":0}},"durationMs":100,"timestamp":"2026-11-09T05:00:02.000Z","content":[{"type":"toolCall","id":"v2","name":"ctx_shell","arguments":{"command":"./gradlew :app:testDebugUnitTest --tests com.naviveylin.SpendTest"}}]},"toolResults":[]}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":20000,"cacheWrite":0,"cost":{"total":0}},"durationMs":100,"timestamp":"2026-11-09T05:00:03.000Z","content":[{"type":"toolCall","id":"v3","name":"ctx_shell","arguments":{"command":"bash tools/loop/gate.sh --plan --base 580c2106"}}]},"toolResults":[]}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":22000,"cacheWrite":0,"cost":{"total":0}},"durationMs":100,"timestamp":"2026-11-09T05:00:04.000Z","content":[{"type":"toolCall","id":"v4","name":"ctx_shell","arguments":{"command":"cd /w && timeout 900 bash tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":25000,"cacheWrite":0,"cost":{"total":0}},"durationMs":100,"timestamp":"2026-11-09T05:00:05.000Z","content":[]},"toolResults":[]}
+JSONL
+
 out="$(python3 "$TOOL" --items "$WORK/items" 2>&1)"
 rc=$?
 json_all="$(python3 "$TOOL" --items "$WORK/items" --json 2>&1)"
@@ -150,6 +166,19 @@ expect "spend#baselineIsChargedOncePerTurn" 68300 "$(field "$out" BASELINE charg
 expect "spend#aRepeatedReadIsADuplicate" 1 "$(field "$out" READS duplicate)"
 expect "spend#readsAreCounted" 2 "$(field "$out" READS calls)"
 expect "spend#spendAfterTheGateIsCounted" 22000 "$(field "$out" GATE after)"
+
+# The split is at the item's gate, and a focused suite run has a tail of its own (issue #1008): 47 000 is the turn the
+# gate ran on and the one after it, 84 000 the suite's turn and everything from it — so a reading that counted
+# `gradlew ` as the gate reports the second as the gate's share, and one that drops the gate's own program, or skips
+# no wrapper before it, reports neither.
+split_out="$(python3 "$TOOL" --items "$WORK/split/items" 2>&1)"
+split_json="$(python3 "$TOOL" --items "$WORK/split/items" --json 2>&1)"
+expect "spend#aFocusedSuiteRunIsNotTheItemsGate" 47000 "$(field "$split_out" GATE after)"
+expect "spend#theFocusedRunsTailIsStatedBesideTheGates" 84000 "$(field "$split_out" GATE suite)"
+expect "spend#jsonCarriesBothVerificationPositions" '47000 84000' \
+  "$(printf '%s' "$split_json" | python3 -c 'import json,sys
+d = json.load(sys.stdin)
+print(d["afterFirstGate"], d["afterFirstSuite"])')"
 expect "spend#noCapSavingWithoutALargeResult" 0 "$(field "$out" CAP4K saved)"
 
 # A cost the provider reports is summed; one it does not report reads `-`, never a measured zero.

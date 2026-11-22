@@ -3,7 +3,9 @@
 #
 # Why this file exists: past an item's first gate call, reading the log is what the item keeps paying for. Over the
 # loop's archive (`.pi/issue-loop/items`, read by `python3 tools/loop-spend.py`, 2026-10-28) 81 % of a gate-running
-# session's tokens are spent after its first gate call — 10 793 turns at 106 k/turn against 5 991 at 56 k — and per
+# session's tokens are spent after the earlier of its first gate call and its first focused suite run — the reading
+# `GATE_RE` took before #1008 split the two, which now prints the gate's tail and the suite's apart — 10 793 turns at
+# 106 k/turn against 5 991 at 56 k — and per
 # heavy item the gate and suite runs are ~20 % of its shell calls beside ~18 % spent reading the log they produced,
 # followed by a `grep`/`sed` chain to find the failing case (#682 47+30 of 186, #50 24+25 of 234, #319 33+39 of 195).
 #

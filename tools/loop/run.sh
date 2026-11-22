@@ -1420,7 +1420,8 @@ while true; do
   # child stops at the diff and reports `LOOP-DIFF-READY` instead of a gate line, a fresh reviewer reads that diff,
   # and the gate child applies its findings in one pass and then runs the item's gate **once**. Measured on this
   # loop's archive (`python3 tools/loop-spend.py`, 2026-11-03, 227 items): 1 581 of 2 591 Mtok — 61 % — are spent
-  # after the item's first gate, 117 child sessions ran the gate three times or more, and a finding a reader could
+  # after the earlier of the item's first gate and its first focused suite run (the predicate that reading took
+  # before #1008 split the two), 117 child sessions ran the gate three times or more, and a finding a reader could
   # have made from the diff alone was paid for twice: the gate it did not need, and the second full pass the rework
   # that answered it then made. The reviewer itself is cheap — 7 522 turns at 53.6 k tokens against the worker's
   # 84.5 k at 25 654 turns — so a round before the gate does not reduce how many rounds an item takes, it reduces

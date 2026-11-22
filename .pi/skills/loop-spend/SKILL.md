@@ -39,9 +39,12 @@ carries the model; this file is how to read it and what to do next.
 - **Injected content is re-read.** Report `52.5 M chars injected once → 18.7 M tokens, re-read ×40`. A result
   that lands at turn 5 of 200 is paid for ~195 times; the same result at turn 190 ~10 times. This is why the
   order of work matters as much as its volume: **read late, read small.**
-- **Spend by position** splits the sessions that ran a gate at their first gate/suite call. The archive reads
-  ~79% of those sessions' tokens *after* it, at ~102 k/turn against ~53 k before — the iterate-on-tests tail is
-  the expensive half, and the fix has to land there, not in the planning turns.
+- **Spend by position** splits the sessions that ran a gate at their first gate run, and the sessions that ran a
+  focused suite at their first suite run (`after=` and `suite=` on `LOOP-SPEND-GATE`, `afterFirstGate` and
+  `afterFirstSuite` in `--json`). Measured 2026-11-22 over `.pi/issue-loop/items` (59 items, 254 sessions): **76 %**
+  of the suite-running sessions' tokens fall after their first suite run, at 92 k/turn against 39 k before, and
+  **22 %** of the gate-running ones' after their gate, at 59 k/turn against 40 k — the iterate-on-tests tail is the
+  expensive half, and the fix has to land there, not in the planning turns.
 - **Reads: duplicate=…** counts file reads that repeated a path the same session already had (45% of all reads
   over the archive, flat across the week — the prose rule in `tools/loop/prompts/worker.md` did not move it).
 

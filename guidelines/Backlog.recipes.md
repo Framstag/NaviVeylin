@@ -80,7 +80,8 @@ is the script's (I8); and the tracker credential is not in the agent's environme
 
 The diff is read **before** the item's gate, and the gate is a phase of its own (issue #758). Measured on this
 loop's archive (`python3 tools/loop-spend.py --json`, 2026-11-03, 227 items, 2 591 Mtok): **1 581 Mtok — 61 % — is
-spent after the item's first gate**, and 117 child sessions ran the gate three times or more. The reviewer is not
+spent after the earlier of the item's first gate and its first focused suite run** (the predicate that reading took
+before #1008 split the two), and 117 child sessions ran the gate three times or more. The reviewer is not
 what costs that — 7 522 turns at 53.6 k tokens each, against the worker's 84.5 k at 25 654 turns — it is what a
 review *triggers*: a finding a reader could have made from the diff alone was paid for by the gate it did not need
 and then by the full pass the rework that answered it made, on top of a full gate of its own. So the change child's
@@ -631,9 +632,10 @@ context rose **2 592 tokens a turn** (last 20 turns: 147 345 → 199 178), so th
 about one more turn and the bound in that row never applies to it. What the experiment reads is a rework child that is
 **context-light** — one that reaches that row's bound with room left under the context stop — judged on the two figures the
 raise was granted on: the **overshoot** of the items the bounds cut, and the share of the run's spend that falls
-**after the first gate** (78 % of 70.2 Mtok, 54.6 Mtok that run), because a larger bound buys more of the tail a cut
-was made of and never a promise that the item would have landed. The value is **provisional** until that reading
-exists: until a run's cut items and after-gate share have been read against the 2026-11-09 six-over/one-under split,
+**after the earlier of the first gate and the first focused suite run** (78 % of 70.2 Mtok, 54.6 Mtok that run),
+because a larger bound buys more of the tail a cut was made of and never a promise that the item would have landed.
+The value is **provisional** until that reading exists: until a run's cut items and that tail have been read against
+the 2026-11-09 six-over/one-under split,
 the reading is a `tasks.md` item of the change that moved the key and not a fact of the configuration. The
 counter-weight is #686: the 35 items past 250 turns held **878 of
 1 982 Mtok (44 %)** of the archive's spend, which is why this is fifty turns on one role and not a raise of the
@@ -797,9 +799,10 @@ the per-role turn bounds (`LOOP_CHILD_TURNS_MAX_<ROLE>`) and the item's context 
 The shape was one number; **where the spend went** was none (issue #759). Measured over the same archive (227
 items, 2026-11-03, the streams' own `tool_execution_end` durations): **89.6 h spent, of which model time 30.1 h,
 the loop's gate 35.1 h and the loop's own self-tests 11.6 h — and 1 581 of 2 591 Mtok, 61 %, spent after the
-item's first gate**, the reviewer holding 402 Mtok against the worker's 2 168. Not one of those splits was in a
-report the loop had written; they were readable only by summing the raw streams by hand. A run that paid two
-thirds of its clock inside the gate and a run that paid it reading printed the same shapes — the defect
+earlier of the item's first gate and its first focused suite run**, the reviewer holding 402 Mtok against the
+worker's 2 168. Not one of those splits was in a report the loop had written; they were readable only by summing the
+raw streams by hand. A run that paid two thirds of its clock inside the gate and a run that paid it reading printed
+the same shapes — the defect
 `LOOP_ITEM_TOKENS_WARN` was added to cure one level down (#662). The item's record now carries the three splits,
 read from the stream `state.sh done` already opens: `metrics.phases` (the turns' own `durationMs` as model time, the
 `tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) or one of
@@ -862,9 +865,9 @@ neither a turn nor a tool" remainder and the outside-items figure are subtractio
 figure that enters them was written by the arm that measured it.
 
 **The gate a share is taken at is the call that ran it** (issue #830). Measured 2026-11-10 over the five items that
-were filed as two thirds of a run spent after its first gate: the streams are the run's own record
-(`.pi/issue-loop/items/{719,738,808,810,819}/events.jsonl`, gitignored), read with the probe and its log this project
-versions — `evidence/split-point.jq` and `evidence/split-point.log` under
+were filed as two thirds of a run spent after the earlier of its first gate and its first focused suite run: the
+streams are the run's own record (`.pi/issue-loop/items/{719,738,808,810,819}/events.jsonl`, gitignored), read with the
+probe and its log this project versions — `evidence/split-point.jq` and `evidence/split-point.log` under
 `openspec/changes/archive/2026-11-10-fix-a-gate-mention-is-not-a-gate-run/` — so the pointer a reader of the tree
 follows is the archived log, and the item directory is named as where it was read. Every session those records split
 was split at `gate.sh --plan` — the call the worker's Phase D asks for **first** — or at a `sed`/`grep`/`git show`

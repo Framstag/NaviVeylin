@@ -10699,8 +10699,9 @@ case_run_announcesAndRecordsTheReviewRound() {
 
 # The order the two judgements happen in, which is the whole of issue #758: the diff is read **before** the item's one
 # gate, so a finding a reader can make from the diff alone costs one pass instead of a gate and a second full pass —
-# measured on the loop's archive, 61 % of 227 items' spend (1 581 of 2 591 Mtok) is charged after the first gate and
-# 117 child sessions ran the gate three times or more. The case stages the sequence a real item takes: the change
+# measured on the loop's archive, 61 % of 227 items' spend (1 581 of 2 591 Mtok) is charged after the earlier of an
+# item's first gate and its first focused suite run (`tools/loop-spend.py`'s predicate before #1008 split the two),
+# and 117 child sessions ran the gate three times or more. The case stages the sequence a real item takes: the change
 # child stops at the diff, the reviewer refuses what it reads, and the child that runs the gate is handed the findings.
 # What it asserts that the older order cannot produce: the reviewer's round is logged before the gate command is
 # reached, the findings are in the gate child's prompt, and the item still spends exactly one gate.

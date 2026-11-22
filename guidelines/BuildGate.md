@@ -117,8 +117,8 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   scopes the walk to one document, which is how that document's section list is read
   (`tools/look.sh '^## ' --path guidelines/Build.md`); that call is the one every phase prompt names, because a tool
   that fails on the host is not an answer about the tree (issue #796). The child's own policy refuses a shell *tree
-  search* and names the alternatives: `sed -n 'N,Mp'` and `tail -n` to read a range of a known file, and a filter of
-  another command's output (`… | grep -c`), still stand.
+  search* and names the alternatives: `ctx_read` to read a range of a file in the tree, `tail -n` to read any file
+  back by range, and a filter of another command's output (`… | grep -c`), still stand.
 
 ## 2b. Liveness guard and shell recipes
 

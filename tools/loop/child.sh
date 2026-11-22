@@ -536,9 +536,14 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       # second as the reading and not on every look (the wait looks twenty times a second), so a worker that writes its
       # change after the crossing is split on its next reading rather than missed. The stop's check stands first, so a
       # reading already past it is named by the stop.
-      # The phase test keeps the ceiling structural: a continuation, a rework round, a gate, a tail and a review round
-      # run on to their own bound, which is what keeps this from being a loop that never ends an item.
-      if [ "$item_context_warn" -gt 0 ] && [ "$phase" = worker-prompt ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
+      # The phase test keeps the ceiling structural: a rework round, a gate, a tail and a review round run on to their
+      # own bound. The item's **session chain** is what the checkpoint bounds (issue #1022): the first worker and the
+      # continuation it is handed at this same crossing, because a continuation that reaches the checkpoint is the same
+      # item spending the same per-turn cost — bounding only the first worker left every item's context in the 200-272 k
+      # band it reached before the checkpoint existed. `run.sh` caps the chain (`LOOP_ITEM_CONTINUATIONS_MAX`), which is
+      # what keeps this from being a loop that never ends an item.
+      if [ "$item_context_warn" -gt 0 ] && [ "$ctx_max" -ge "$item_context_warn" ] &&
+         case "$phase" in worker-prompt|worker-prompt-continuation) true ;; *) false ;; esac; then
         ctx_has_work=0
         if [ -n "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null)" ]; then ctx_has_work=1; fi
         if [ "$ctx_has_work" -eq 1 ]; then

@@ -1227,15 +1227,23 @@ while true; do
   # records `outcome: no-apply`), because the base had moved under them between the runs. A patch applied in the run that
   # cut it is a continuation, in the one tree it was taken from; the same patch one run later is a coin toss.
   #
-  # Exactly one continuation per item, and only while the run's own deadline has not passed. A second context cut is the
-  # item's `cut` — that ceiling is what keeps this from being a loop that never ends an item — and a continuation started
+  # The item's **session chain** is continued while the run's own deadline has not passed and the chain is below the
+  # recorded cap (issue #1022). A continuation reaching the same crossing is the same item spending the same per-turn
+  # cost: exactly one continuation bounded the first session of the chain and left every item's context in the band it
+  # reached before the checkpoint existed. The cap is what keeps this from being a loop that never ends an item — a chain
+  # at its cap is the item's `cut`, which is the ceiling #956 gives a terminal verdict to — and a continuation started
   # after the deadline would be ended on its first second, replacing the bound's own reason with the clock's, which is the
   # distinction #829 and #785 paid for.
-  if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] && child_ended_by_context_bound "$worker_report"; then
+  continuations_done=0
+  continuations_max=$(loop_conf_value LOOP_ITEM_CONTINUATIONS_MAX 2>/dev/null | head -1)
+  case "$continuations_max" in ''|*[!0-9]*) continuations_max=3 ;; esac
+  while [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] && child_ended_by_context_bound "$worker_report"; do
+    [ "$continuations_done" -lt "$continuations_max" ] || break
     deadline_epoch=$(jq -r '.run.deadlineEpoch // 0' "$LOOP_STATE_FILE" 2>/dev/null)
     case "$deadline_epoch" in ''|*[!0-9]*) deadline_epoch=0 ;; esac
     if [ "$deadline_epoch" -gt 0 ] && [ "$(date +%s)" -ge "$deadline_epoch" ]; then
       progress note "#${issue} is not continued: the run's own deadline has passed, so a continuation would be ended on its first second and would replace the bound's reason with the clock's"
+      break
     else
       # The patch this child left, read before `worktree.sh` runs: the step applies exactly that file, and the item's
       # note names it (the run's own record of the work, kept beside the tree as #754 leaves it — nothing is committed).
@@ -1268,7 +1276,7 @@ while true; do
             "PATCH=$continuation_patch" "PATCH_FILES=$continuation_files" \
             "PATCH_HUNKS=$continuation_hunks" "PATCH_PATHS=$continuation_paths" \
             "BOUND_LINE=$(report_field "$worker_report" LOOP-TIMEOUT)"
-          progress item "continuing #$issue from the work its ended worker left — $continuation_patch ($continuation_files file(s), $continuation_hunks hunk(s)) — one continuation, and its report is written to $item_dir/worker-continuation-report.md"
+          progress item "continuing #$issue from the work its ended worker left — $continuation_patch ($continuation_files file(s), $continuation_hunks hunk(s)) — continuation $(( continuations_done + 1 )) of $continuations_max, and its report is written to $item_dir/worker-continuation-report.md"
           run_child "$item_dir/worker-prompt-continuation.md" "$item_dir/worker-continuation-report.md"
           worker_exit=$?
           worker_report="$item_dir/worker-continuation-report.md"
@@ -1281,13 +1289,16 @@ while true; do
           # The patch does not apply to the branch's HEAD: nothing is continued and nothing is discarded silently —
           # `continue-item` records the non-apply with the item, and the outcome below leaves it `cut` with that note.
           progress note "#${issue} is not continued: the work its ended worker left does not apply onto the branch's HEAD, so the item keeps the cut for the next run — see $item_dir/continuation-resume.log"
+          break
           ;;
         *)
           progress note "#${issue} is not continued: no kept patch was found to apply — see $item_dir/continuation-resume.log"
+          break
           ;;
       esac
     fi
-  fi
+    continuations_done=$(( continuations_done + 1 ))
+  done
 
   # The gate ends the child that ran it, and a second fresh child carries the evidence (issue #744,
   # `tail_after_gate` above). Its archive is not that child's: the child **before** the gate completes the change and

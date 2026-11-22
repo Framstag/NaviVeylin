@@ -536,6 +536,7 @@ LOOP_SHELL_CASES=(
   'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound'
   'run#theCheckpointIsTheSplitsOwnReading'
   'run#aSecondChildIsNotEndedByAnEarlierSession'
+  'run#aChainOfZeroContinuationsEndsAtTheCheckpoint'
   'run#aWorkerBelowItsCheckpointIsNotSplit'
   'run#aWorkerAtTheCheckpointWithNoWorkRunsOn'
   'run#aCutWhosePatchDoesNotApplyIsLeftCut'
@@ -1353,6 +1354,7 @@ loop_run_shell_case() {
     'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound') fn=case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound ;;
     'run#theCheckpointIsTheSplitsOwnReading') fn=case_run_theCheckpointIsTheSplitsOwnReading ;;
     'run#aSecondChildIsNotEndedByAnEarlierSession') fn=case_run_aSecondChildIsNotEndedByAnEarlierSession ;;
+    'run#aChainOfZeroContinuationsEndsAtTheCheckpoint') fn=case_run_aChainOfZeroContinuationsEndsAtTheCheckpoint ;;
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
     'run#aWorkerAtTheCheckpointWithNoWorkRunsOn') fn=case_run_aWorkerAtTheCheckpointWithNoWorkRunsOn ;;
     'run#aCutWhosePatchDoesNotApplyIsLeftCut') fn=case_run_aCutWhosePatchDoesNotApplyIsLeftCut ;;
@@ -22353,10 +22355,15 @@ EOF
   # last four assertions are about: exactly one continuation, and the item stays `cut` rather than becoming a loop
   # that never ends it.
   log=$(cat "$PI_STUB_LOG")
-  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
-    "the run that cut the worker continues the item itself, exactly once: $out"
-  assert_eq "2" "$(grep -cE '^prompt: worker-(prompt|prompt-continuation)\.md$' <<<"$log" || true)" \
-    "and no third child starts — one continuation per item is the ceiling that keeps an item from never ending"
+  # The chain's ceiling is `LOOP_ITEM_CONTINUATIONS_MAX` and not a constant (issue #1022): this fixture's child
+  # reports an over-bound reading on every invocation, so every continuation reaches the same crossing and the run
+  # continues it until the recorded cap is spent — the cap is what keeps an item from never ending, and the case
+  # pins it at the value the profile records rather than at the 1 the engine carried before the chain was bounded
+  # by a key.
+  assert_eq "3" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "the run continues the item's chain up to the recorded cap of continuations: $out"
+  assert_eq "4" "$(grep -cE '^prompt: worker-(prompt|prompt-continuation)\.md$' <<<"$log" || true)" \
+    "and no further child starts once the cap is spent — the chain's ceiling is what keeps an item from never ending"
   [ -f "$p/.pi/issue-loop/items/21/worker-prompt-continuation.md" ] ||
     fail "the run started a continuation without rendering its prompt"
   assert_not_contains "$(cat "$p/.pi/issue-loop/items/21/worker-prompt-continuation.md")" "{{" \
@@ -23035,10 +23042,10 @@ EOF
   out=$(cat "$d/out")
   assert_eq "0" "$status" "a cut gated on its kept work is not a failed run: $out"
   log=$(cat "$PI_STUB_LOG")
-  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
-    "the item still reaches the one continuation the ceiling allows: $out"
-  assert_eq "2" "$(grep -cE '^prompt: worker-(prompt|prompt-continuation)\.md$' <<<"$log" || true)" \
-    "and no third child starts, so gating the kept work did not spend the ceiling that keeps an item finite"
+  assert_eq "3" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "the item reaches the continuations the recorded cap allows, and this fixture's child reports an over-bound reading every time: $out"
+  assert_eq "4" "$(grep -cE '^prompt: worker-(prompt|prompt-continuation)\.md$' <<<"$log" || true)" \
+    "and no further child starts once the cap is spent, so gating the kept work did not spend the ceiling that keeps an item finite"
   [ -f "$CUT_GATE_MARK" ] || fail "the run recorded no gate on the work its cut kept: $out"
   assert_contains "$(cat "$CUT_GATE_MARK")" "demo-fix.txt" \
     "the gate ran on the tree the cut child left, not on the base"
@@ -23690,4 +23697,76 @@ case_prescreen_aContainerCutAtABoundTakesNoFurtherSlot() {
   f=$(state_file "$p")
   assert_eq "cut" "$(jq -r '.items[] | select(.issue == 34) | .result' "$f")" \
     "while its own record keeps the cut the run made"
+}
+
+# The chain the checkpoint draws has a cap, and the cap is the run's to read (issue #1022).
+# `LOOP_ITEM_CONTINUATIONS_MAX` is how many times one item's session chain may be continued: a continuation that
+# reaches the checkpoint is the same item spending the same per-turn cost, so a run that bounded only the first
+# worker left every item's context in the band it reached before the checkpoint existed. `0` is the ceiling this
+# project ran before #851 — the checkpoint ends the worker and nothing is continued — and it is the arm that tells
+# a tree reading the key from one carrying a constant, because a run that always continues once starts a child
+# here where none may be started.
+case_run_aChainOfZeroContinuationsEndsAtTheCheckpoint() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out f
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' -e '/^LOOP_ITEM_CONTINUATIONS_MAX=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\nLOOP_ITEM_CONTINUATIONS_MAX=0\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTINUATIONS_MAX=0' "$conf" || fail "this case could not record a chain of no continuations"
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":150000,"output":10,"cacheRead":0,"cacheWrite":0}}
+JSON
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'the work the checkpoint ended\n' > demo-fix.txt
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    ;;
+  worker-prompt-continuation.md)
+    printf 'a continuation this run was not allowed to start\n' >> "$d/continuation-ran.txt"
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  # The child is held until the case has seen the checkpoint on the run's own output: the split is what this case is
+  # about, and a run that never reaches it would otherwise pass by ending the child on its wall clock.
+  for i in $(seq 1 600); do
+    grep -q '^LOOP-CONTEXT:' "$d/out" 2>/dev/null && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  printf 'go\n' >&8 2>/dev/null || true
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a run whose chain may not be continued still ends cleanly: $out"
+  assert_contains "$out" "LOOP-CONTEXT:" "the checkpoint is still named on the run's own output"
+  assert_eq "0" "$(grep -c '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null || true)" \
+    "no continuation child is started when the recorded chain allows none: $out"
+  [ ! -f "$d/continuation-ran.txt" ] || fail "the continuation child ran although the chain allows none"
+  f=$(state_file "$p")
+  assert_eq "0" "$(jq -r '[.steps[] | select(.name == "worker-checkpoint")] | length' "$f")" \
+    "and no continuation step is recorded"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "reached the recorded context checkpoint" \
+    "the item's note names the checkpoint the run reached, and then stopped continuing it"
+  return 0
 }

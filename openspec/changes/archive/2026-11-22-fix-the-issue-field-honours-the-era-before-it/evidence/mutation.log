@@ -1,0 +1,11 @@
+# mutation: the era comparison inverted (`\<` -> `\>`) in tools/check-openspec-hygiene.sh, one case run, then the file restored
+# 2026-11-22T20:14:17Z
+FAIL artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported: a change created before the field was required was refused (exit 1)
+       
+FAIL artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported: a change created after the field was required passed with no field (exit 0)
+       
+check-openspec-hygiene-selftest: 2 of 1 cases failed — artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported
+mutated exit: 1
+# restored
+check-openspec-hygiene-selftest: all 1 case passed (throwaway OpenSpec trees, no Gradle)
+restored exit: 0

@@ -1,0 +1,10 @@
+# bash tools/loop/evidence-check.sh openspec/changes/fix-the-issue-field-honours-the-era-before-it --root .
+# 2026-11-22T20:19:25Z
+ok   C1 §references: 1 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 279 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+evidence-check exit: 0

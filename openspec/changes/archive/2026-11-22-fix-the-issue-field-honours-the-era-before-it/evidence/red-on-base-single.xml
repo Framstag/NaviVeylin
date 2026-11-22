@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shell runner writes no JUnit XML of its own: this is the tally of the run recorded in
+     red-on-base-single.log, transcribed from that run's own lines, and it is not the runner output. The tree is a
+     throwaway root built by `evidence/red-on-base.sh` — the base checker
+     (`git show f826cd7a5e4952fc0e5331a32dcea0cb67baa99a:tools/check-openspec-hygiene.sh`) with this change's case
+     file beside it — so this is the reading the change is red on, one case in one run. The run ended
+     2026-11-22T20:14:10Z, exit 1, `1 of 1 cases failed`. The whole suite's base reading (12 cases, 1 failed
+     assertion) is red-on-base.xml beside it. -->
+<testsuite name="artifact-hygiene" tests="1" failures="1" errors="0" timestamp="2026-11-22T20:14:10Z">
+  <testcase name="artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported" classname="artifact-hygiene">
+    <failure message="a change created before the field was required was refused (exit 1)"/>
+  </testcase>
+</testsuite>

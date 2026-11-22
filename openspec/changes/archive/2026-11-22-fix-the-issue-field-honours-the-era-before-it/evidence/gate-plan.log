@@ -1,0 +1,5 @@
+# the gate's plan for this delta, taken at the run's own base
+# 2026-11-22T20:17:45Z
+tools/check-openspec-hygiene.sh
+tools/tests/check-openspec-hygiene-selftest.sh
+plan exit: 0

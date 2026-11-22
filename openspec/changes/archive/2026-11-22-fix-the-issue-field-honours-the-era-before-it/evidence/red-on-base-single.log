@@ -1,0 +1,6 @@
+# the base checker (f826cd7a5e4952fc0e5331a32dcea0cb67baa99a:tools/check-openspec-hygiene.sh) over this change's twelve cases, in a throwaway root
+# 2026-11-22T20:14:10Z
+FAIL artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported: a change created before the field was required was refused (exit 1)
+       
+check-openspec-hygiene-selftest: 1 of 1 cases failed — artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported
+red-on-base exit: 1

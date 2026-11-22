@@ -1,0 +1,4 @@
+# bash tools/check-change-readiness.sh openspec/changes/fix-the-issue-field-honours-the-era-before-it — the change child's own readiness line, re-taken after the shape landed
+# 2026-11-22T20:17:51Z
+LOOP-CHANGE-READY: ok
+readiness exit: 0

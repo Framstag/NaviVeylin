@@ -1,0 +1,9 @@
+# bash tools/check-openspec-hygiene.sh — this worktree's own open set, after the fix
+# 2026-11-22T20:14:32Z
+::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
+Every capability spec states its Purpose.
+check exit: 1
+# One ::error remains and it is not this change's: openspec/changes/fix-the-checkpoint-splits-the-items-chain
+# carries no .openspec.yaml at all (a concurrent session's open change, created 2026-11-22, ignored by
+# .gitignore:82 and absent from the committed tree), so it states no era and is refused by D1's own rule.

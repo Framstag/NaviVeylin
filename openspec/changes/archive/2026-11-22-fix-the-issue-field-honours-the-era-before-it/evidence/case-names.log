@@ -1,0 +1,4 @@
+# tools/check-case-names.sh
+# 2026-11-21T19:40:04Z
+CASE-NAMES: ok harnesses=41 lines=1550 named=1345 none=123 unnamed=82 unclaimed=5980
+case-names exit: 0

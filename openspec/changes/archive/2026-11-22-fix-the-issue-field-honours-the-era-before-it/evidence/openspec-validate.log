@@ -1,0 +1,4 @@
+# openspec validate --strict
+# 2026-11-22T20:17:45Z
+Change 'fix-the-issue-field-honours-the-era-before-it' is valid
+validate exit: 0

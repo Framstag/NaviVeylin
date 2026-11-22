@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The base reading of the whole case file, transcribed from the run `red-on-base.log` records: the base checker
+     (`git show f826cd7a5e4952fc0e5331a32dcea0cb67baa99a:tools/check-openspec-hygiene.sh`) run over the twelve cases
+     this change's case file declares, in a throwaway root. 2026-11-22T20:14:11Z, exit 1, `1 of 12 cases failed`.
+     Eleven pass because they assert what the base already does — the realigned `#aChangeNamingNoIssueIsRefused`
+     fixtures included, which is the reading that says the dates moved without moving that case's verdict. -->
+<testsuite name="artifact-hygiene" tests="12" failures="1" errors="0" timestamp="2026-11-22T20:14:11Z">
+  <testcase name="artifact-hygiene#aWrittenPurposePasses" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#bareNumberedMarkersAreReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#aTasksFileWithNoMarkersIsReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#unquotedGuidanceIsReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#theArchivePlaceholderIsReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#aNestedCapabilitySpecIsReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#theIssueFieldIsReported" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#twoOpenChangesNamingOneIssueAreRefused" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#aChangeNamingNoIssueIsRefused" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#aContextBlockThatCopiesTheFactsIsRefused" classname="artifact-hygiene"/>
+  <testcase name="artifact-hygiene#aChangeWrittenBeforeTheFieldIsReported" classname="artifact-hygiene">
+    <failure message="a change created before the field was required was refused (exit 1)"/>
+  </testcase>
+</testsuite>

@@ -1,0 +1,8 @@
+# bash tools/check-openspec-hygiene.sh --root <a copy of the tree's tracked open set> — the reading the trunk takes
+# (open changes are local WIP and ignored by .gitignore:82, so the committed tree holds only the archived ones)
+# 2026-11-22T20:14:32Z
+Every open change names its issue: openspec/changes/a-rotated-stream-keeps-every-turn=#971, openspec/changes/fix-a-childs-bound-reads-its-own-session=#1010, openspec/changes/fix-a-dirty-base-tree-stops-the-run=#988, openspec/changes/fix-a-refused-pool-is-recorded=#946, openspec/changes/fix-a-tool-result-ages-out-of-the-request=#1002, openspec/changes/fix-the-compiled-step-is-the-command-its-path-asks=#945, openspec/changes/fix-the-gate-child-classifies-the-delta-it-archives=#914, openspec/changes/fix-the-issue-field-honours-the-era-before-it=#999, openspec/changes/loop-protocol-core-in-java=#882, openspec/changes/package-structure-rules-and-suite=none, openspec/changes/the-run-fault-block-asks-no-question=#961, openspec/changes/the-unheld-guards-are-retired=none.
+Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 17 open change(s) carry task markers, the operation guidance is quoted, every open change names its issue or was written before the field was required, the context block is a pointer, and every capability spec states its Purpose.
+check exit: 0

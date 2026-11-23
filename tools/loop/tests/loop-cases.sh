@@ -14497,12 +14497,14 @@ case_adapter_theChildIsStartedWithTheResultBound() {
 # The bound cuts every result but one class: `guidelines/BuildEvidence.md` §4d's diagnosis reads a gate log and the
 # suite XMLs whole — the failing case's `file:line`, the JUnit `timestamp` order a failing set is bisected in, the
 # failed step and the flake line — and a cut there withholds the fact the next round attributes the run with. So
-# the trimmer holds gate/evidence output to the 8 000 it shipped with instead of the bound, by content (`LOOP-GATE`
-# line, `<testsuite` root) or by path (`gate.log`, `.xml`), which are the two things a hook event carries. The
-# cases below drive the trimmer's own CLI, so the rules they prove are the hook's (issue #660).
+# the trimmer holds gate/evidence output to `GATE_EVIDENCE_BOUND` (4 000) instead of the recorded bound, by content
+# (`LOOP-GATE` line, `<testsuite` root) or by path (`gate.log`, `.xml`), which are the two things a hook event
+# carries — and it keeps both ends of the exempt class, because §4d reads the verdict line at the head and the failed
+# step at the tail. The cases below drive the trimmer's own CLI, so the rules they prove are the hook's
+# (issue #660, #1044).
 case_adapter_theResultBoundExemptsGateEvidence() {
   # files: tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-trim-result.mjs
-  local d trim plain gate xml big out
+  local d trim plain small gate xml big out
   trim="$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs"
   [ -f "$trim" ] || fail "nothing bounds a tool result: $trim is not in the tree (issue #660)"
   d=$(scratch)
@@ -14518,18 +14520,19 @@ case_adapter_theResultBoundExemptsGateEvidence() {
   assert_contains "$(cat "$out")" 'the first 4000 are shown' "and the cut is named: $(cat "$out")"
   assert_not_contains "$(cat "$out")" 'PLAIN-TAIL' "the tail past the bound is not handed over"
 
-  # (b) gate/evidence output above 4 000 is not cut at that bound: the LOOP-GATE verdict line §4d reads whole.
+  # (b) gate/evidence output above the 2 000 the project records is not cut at it: the LOOP-GATE verdict line §4d
+  # reads whole, held at the class's own 4 000 instead.
   gate="$d/gate.txt"
   {
     printf 'LOOP-GATE: tests=558 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --from-git abc1234 240s)\n'
-    head -c 5800 /dev/zero | tr '\0' 'g'
+    head -c 2980 /dev/zero | tr '\0' 'g'
     printf 'GATE-TAIL\n'
   } > "$gate"
   out="$d/gate.out"
-  node "$trim" --bound 4000 --tool ctx_shell < "$gate" > "$out" \
+  node "$trim" --bound 2000 --tool ctx_shell < "$gate" > "$out" \
     || fail "the trimmer exited non-zero on gate output: $(head -3 "$out")"
   assert_eq "$(wc -c < "$gate" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
-    "gate/evidence output above 4 000 is not cut at that bound"
+    "gate/evidence output above 2 000 is not cut at the recorded bound"
   assert_not_contains "$(cat "$out")" 'LOOP-TRIMMED' "and nothing says it was cut: $(cat "$out")"
   assert_contains "$(cat "$out")" 'GATE-TAIL' "the tail §4d's diagnosis reads whole is still there"
 
@@ -14537,39 +14540,50 @@ case_adapter_theResultBoundExemptsGateEvidence() {
   xml="$d/suite.xml"
   {
     printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="tools_loop_tests" tests="558" failures="0">\n'
-    head -c 5700 /dev/zero | tr '\0' 'x'
+    head -c 2880 /dev/zero | tr '\0' 'x'
     printf 'XML-TAIL\n</testsuite>\n'
   } > "$xml"
   out="$d/suite.out"
-  node "$trim" --bound 4000 --tool ctx_read < "$xml" > "$out" \
+  node "$trim" --bound 2000 --tool ctx_read < "$xml" > "$out" \
     || fail "the trimmer exited non-zero on a suite XML: $(head -3 "$out")"
   assert_eq "$(wc -c < "$xml" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
-    "a suite XML above 4 000 is not cut at that bound"
+    "a suite XML above 2 000 is not cut at the recorded bound"
+  small="$d/small.txt"
+  { head -c 2989 /dev/zero | tr '\0' 'p'; printf 'SMALL-TAIL\n'; } > "$small"
   out="$d/gatepath.out"
-  node "$trim" --bound 4000 --tool ctx_read --path "items/816/gate.log" < "$plain" > "$out" \
+  node "$trim" --bound 2000 --tool ctx_read --path "items/816/gate.log" < "$small" > "$out" \
     || fail "the trimmer exited non-zero on a gate log path: $(head -3 "$out")"
-  assert_eq "$(wc -c < "$plain" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
+  assert_eq "$(wc -c < "$small" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
     "a plain result read from a gate log path is held as gate evidence"
   out="$d/xmlpath.out"
-  node "$trim" --bound 4000 --tool ctx_read --path "build/test-results/test/TEST-tools.xml" < "$plain" > "$out" \
+  node "$trim" --bound 2000 --tool ctx_read --path "build/test-results/test/TEST-tools.xml" < "$small" > "$out" \
     || fail "the trimmer exited non-zero on a suite XML path: $(head -3 "$out")"
-  assert_eq "$(wc -c < "$plain" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
+  assert_eq "$(wc -c < "$small" | tr -d ' ')" "$(wc -c < "$out" | tr -d ' ')" \
     "and a plain result read from a suite XML path the same"
 
-  # …and the exempt class keeps the 8 000 it shipped with: bounded, not exempt from every bound.
+  # (c) …and the exempt class is bounded at 4 000, not exempt from every bound (issue #1044): a 5 000-character
+  # gate log read at the recorded 2 000 arrives cut at 4 000 — both ends kept, because §4d's diagnosis reads the
+  # verdict line at the head and the failed step at the tail, while the middle it withholds is named.
   big="$d/gate-big.txt"
   {
     printf 'LOOP-GATE: tests=558 failures=0 errors=0\n'
-    head -c 8800 /dev/zero | tr '\0' 'g'
+    head -c 1959 /dev/zero | tr '\0' 'g'
+    printf 'GATE-MIDDLE\n'
+    head -c 2978 /dev/zero | tr '\0' 'h'
     printf 'GATE-DEEP\n'
   } > "$big"
+  assert_eq "5000" "$(wc -c < "$big" | tr -d ' ')" "the arm's fixture is a 5 000-character gate log"
   out="$d/gate-big.out"
-  node "$trim" --bound 4000 --tool ctx_shell < "$big" > "$out" \
+  node "$trim" --bound 2000 --tool ctx_shell < "$big" > "$out" \
     || fail "the trimmer exited non-zero on oversized gate output: $(head -3 "$out")"
-  assert_eq "$(head -c 8000 "$big")" "$(head -c 8000 "$out")" \
-    "gate/evidence output above 8 000 is cut at 8 000, never at 4 000"
-  assert_contains "$(cat "$out")" 'the first 8000 are shown' "and the cut names the bound it used: $(cat "$out")"
-  assert_not_contains "$(cat "$out")" 'GATE-DEEP' "the tail past 8 000 is still cut"
+  { head -c 2000 "$big"; tail -c 2000 "$big"; } > "$d/gate-big.kept"
+  assert_eq "$(cat "$d/gate-big.kept")" "$(head -c 4000 "$out")" \
+    "gate/evidence above 4 000 keeps its first 2 000 characters and its last 2 000"
+  assert_contains "$(head -c 4000 "$out")" 'LOOP-GATE: tests=558' \
+    "the verdict line §4d attributes with stands at the head"
+  assert_contains "$(cat "$out")" 'GATE-DEEP' "and the failed step at the tail survives the cut"
+  assert_not_contains "$(cat "$out")" 'GATE-MIDDLE' "while the middle of the log is withheld"
+  assert_contains "$(cat "$out")" 'the first 2000 and last 2000 are shown' "and the cut names both ends it kept"
   return 0
 }
 

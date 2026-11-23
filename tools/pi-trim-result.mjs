@@ -10,13 +10,14 @@
 // `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`). The spend is the tail, so the bound is a rule about
 // the tail: a result above it is cut and named, a result under it is handed over byte for byte.
 //
-// One class of result is held above that bound: gate/evidence output keeps the 8 000 it shipped with, because
-// `guidelines/BuildEvidence.md` §4d's diagnosis reads a gate log and the suite XMLs whole — the failing case's
-// `file:line`, the JUnit `timestamp` order a failing set is bisected in, the failed step and the flake line — and
-// a cut there withholds the fact the next round needs to attribute the run with. So a result that *is* gate
-// evidence — a `LOOP-GATE` line or a `<testsuite` root in its text, a `gate.log` or `.xml` path beside it — is cut
-// at `GATE_EVIDENCE_BOUND` instead of the recorded bound, and the higher of the two applies, so the class never
-// tightens a bound a project raised above its own.
+// One class of result is held above that bound: gate/evidence output keeps `GATE_EVIDENCE_BOUND` (4 000, lowered
+// from 8 000 by #1044), because `guidelines/BuildEvidence.md` §4d's diagnosis reads a gate log and the suite XMLs
+// whole — the failing case's `file:line`, the JUnit `timestamp` order a failing set is bisected in, the failed step
+// and the flake line — and a cut there withholds the fact the next round needs to attribute the run with. So a result
+// that *is* gate evidence — a `LOOP-GATE` line or a `<testsuite` root in its text, a `gate.log` or `.xml` path beside
+// it — is cut at `GATE_EVIDENCE_BOUND` instead of the recorded bound, and the higher of the two applies, so the class
+// never tightens a bound a project raised above its own. That class's cut keeps **both** ends and not the head alone,
+// because §4d reads the verdict line that opens a gate log and the failed step that closes it.
 // Prose does not do this job. The worker prompt has asked a child to read the section it needs rather than the
 // whole document, and to cite a file rather than read it again, since #246 — and the archive still records
 // `LOOP-SPEND-READS calls=4798 duplicate=2174`: 45 % of its reads are a second read of a path the child already
@@ -121,9 +122,13 @@ export function recordedAgeTurns(raw) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-/** The line that tells the child what it is reading, and how to read the rest of it. */
-export function trimNotice(tool, total, bound) {
-  return `\n[LOOP-TRIMMED: ${tool} returned ${total} characters; the first ${bound} are shown — read the rest in`
+/**
+ * The line that tells the child what it is reading, and how to read the rest of it. A cut that kept both ends names
+ * both (the gate/evidence class, issue #1044); one that kept the head alone names the head.
+ */
+export function trimNotice(tool, total, bound, tail = 0) {
+  const ends = tail > 0 ? `the first ${bound} and last ${tail} are shown` : `the first ${bound} are shown`;
+  return `\n[LOOP-TRIMMED: ${tool} returned ${total} characters; ${ends} — read the rest in`
     + ` ranges (ctx_read mode="lines:N-M")]\n`;
 }
 
@@ -176,8 +181,12 @@ export function ageNotice(tool, size, turn, age, path = "", lines = 0) {
   return `[LOOP-AGED-RESULT: ${what} was dropped from this request after ${age} turns — ${again}]\n`;
 }
 
-/** The bound gate/evidence output is held to instead of the recorded one (§4d): what a red run is attributed from. */
-export const GATE_EVIDENCE_BOUND = 8000;
+/**
+ * The bound gate/evidence output is held to instead of the recorded one (§4d): what a red run is attributed from.
+ * It was 8 000 until #1044 — four times the 2 000 the recorded bound holds — so the exempt class was the tail's own
+ * tail; it is 4 000 now, and the cut keeps both ends because §4d reads a gate log's verdict line and its failed step.
+ */
+export const GATE_EVIDENCE_BOUND = 4000;
 
 /**
  * The bound a **verification** read is held to (issue #886): a repeat whose content changed is the session's own edit
@@ -209,6 +218,17 @@ export function boundedHead(text, bound) {
 }
 
 /**
+ * The last `bound` characters of a text, never cut in the middle of a surrogate pair either: the gate/evidence cut
+ * keeps the log's tail as well as its head (issue #1044), so the pair at the seam is dropped rather than halved.
+ */
+export function boundedTail(text, bound) {
+  let cut = text.slice(-bound);
+  const first = cut.charCodeAt(0);
+  if (first >= 0xdc00 && first <= 0xdfff) cut = cut.slice(1);
+  return cut;
+}
+
+/**
  * What makes a result gate/evidence: a gate log or suite XML by path, or their marks in the text — the `LOOP-GATE`
  * line family a gate log and `tools/gate-attribute.sh` end with, and a `<testsuite` root. Both seams are the ones a
  * caller can see: a read tool carries its path, every other tool carries only its text.
@@ -226,17 +246,22 @@ export function isGateEvidence(text, path) {
 }
 
 /**
- * The rule: a result at or under the bound is returned untouched; one above it is cut to its first `bound`
- * characters — never in the middle of a surrogate pair — and carries one line naming the tool, the size and the
- * bound, and the trim is appended to `record` when a path names one. Gate/evidence output is held to the higher
- * of `bound` and `GATE_EVIDENCE_BOUND` instead, so the exempt class is cut at 8 000 and never at a tighter bound.
+ * The rule: a result at or under the bound is returned untouched; one above it is cut — never in the middle of a
+ * surrogate pair — and carries one line naming the tool, the size and the width it kept, and the trim is appended to
+ * `record` when a path names one. Gate/evidence output is held to the higher of `bound` and `GATE_EVIDENCE_BOUND`
+ * instead, so the exempt class is cut at 4 000 and never at a tighter bound (issue #1044) — and that class keeps both
+ * ends, its head and its tail each half the width, because §4d reads the verdict line a gate log opens with and the
+ * failed step it closes on.
  */
 export function trimResult(text, bound, tool, record, path = "") {
   if (typeof text !== "string" || !(bound > 0)) return text;
-  if (isGateEvidence(text, path)) bound = Math.max(bound, GATE_EVIDENCE_BOUND);
+  const gate = isGateEvidence(text, path);
+  if (gate) bound = Math.max(bound, GATE_EVIDENCE_BOUND);
   if (text.length <= bound) return text;
   const total = text.length;
-  const cut = boundedHead(text, bound);
+  const head = gate ? Math.floor(bound / 2) : bound;
+  const tail = gate ? bound - head : 0;
+  const cut = tail > 0 ? boundedHead(text, head) + boundedTail(text, tail) : boundedHead(text, bound);
   if (record) {
     try {
       appendFileSync(record, trimRecordLine(tool, total, bound));
@@ -244,7 +269,7 @@ export function trimResult(text, bound, tool, record, path = "") {
       // A record that cannot be written is not a reason to hand the child a result it cannot afford to re-read.
     }
   }
-  return cut + trimNotice(tool, total, bound);
+  return cut + trimNotice(tool, total, head, tail);
 }
 
 /** The tools whose result is one named file's content, and so a thing the session can already hold (issue #685). */
@@ -438,7 +463,7 @@ export function repeatResult(text, read, bound, tool = "?", record = "") {
 /**
  * The read that follows the session's own edit (issue #886): the file's head at `VERIFICATION_READ_BOUND` and one line
  * naming the edit, the size the file now has, the turn the item read it at and the call that reads the rest. A text
- * that fits the bound is handed over whole, and the class the 8 000-bound exempts — a gate log, a suite XML — is
+ * that fits the bound is handed over whole, and the class the gate bound exempts — a gate log, a suite XML — is
  * handed over whole too, because §4d reads such a file for the `timestamp` order a red run is attributed in. What the
  * cut withheld is the record line the repeat writes, so `withheld` counts it and no reader has to guess.
  */

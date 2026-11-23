@@ -188,7 +188,8 @@ between the two and the cut reaches from the 75th percentile up. `tools/loop/loo
 #1004 — the number is that file's and no case carries it as a literal, because the arm that must stay whole is the
 one a looser recorded value would break — and not 1 000, which starts cutting the JUnit line and the stack frame
 `BuildEvidence.md` §4d attributes a red run with. Gate evidence is not what decides it: a gate log and a suite XML
-are held at `GATE_EVIDENCE_BOUND` (8 000) by `tools/pi-trim-result.mjs` whatever this key records, so the number
+are held at `GATE_EVIDENCE_BOUND` (4 000 since #1044, lowered from 8 000) by `tools/pi-trim-result.mjs` whatever this
+key records, and the class's cut keeps both ends because §4d reads the verdict line and the failed step, so the number
 here is the ordinary result's. The 8 000 the key shipped with until #815 was the archive's p90 rounded up, and the
 shares that earned it are that 8 000's: nine results in ten handed over byte for byte, and 9.0 % of the archive's
 22 901 results above it carrying 14 % of the spend (`LOOP-SPEND-CAP8K`; the probe is

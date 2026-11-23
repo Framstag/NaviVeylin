@@ -693,7 +693,7 @@ MUTATIONS=(
   # size it cut, 67.3 stops the record, 67.4 stops the adapter from loading the rule with every child, 67.5 stops
   # the adapter from naming that record beside the child's event stream (the clause the spec names and round 1
   # left undefended), and 67.6 moves the pass-through's `at or under` boundary to `under`.
-  '67.1@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the cut itself, so an oversized result is handed over whole again (issue #660)@s|  return cut + trimNotice(tool, total, bound);|  return text;|'
+  '67.1@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the cut itself, so an oversized result is handed over whole again (issue #660)@s|  return cut + trimNotice(tool, total, head, tail);|  return text;|'
   '67.2@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the line that names the size the result had, so a cut is judged as the whole answer (issue #660)@s|the first \${bound} are shown|the first \${total} are shown|'
   '67.3@-@../pi-trim-result.mjs@trim#theTrimIsRecorded@the record of what was cut, so the item cannot say which result a claim was read from (issue #660)@s|      appendFileSync(record, trimRecordLine(tool, total, bound));|      void record;|'
   '67.4@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheResultBound@the word that loads the bound with every child (issue #660)@s|^extension=(-e "$here/pi-trim-result.mjs")$|extension=()|'
@@ -1591,6 +1591,12 @@ MUTATIONS=(
   # the next run re-enters it at full size — the reading the run of 2026-11-17T10:58Z paid 78.7 Mtok for over four items
   # (#917, #950, #894, #911) and closed none, each of them stopped at 142 576–143 943 against the recorded 143 124.
   '956.1@-@tools/loop/run.sh@run#aContinuationEndedOnTheSameCeilingStopsTooWide@the arm that records the shaping verdict when the continuation meets the same ceiling, so the item is handed to the next run at full size instead of being shaped (issue #956)@s|^  elif \[ "\$continuation_too_wide" -eq 1 \]; then$|  elif false; then|'
+  # 1044.x — the gate/evidence class is held at its own bound and keeps both ends (issue #1044). §4d attributes a red
+  # run from the verdict line a gate log opens with and the failed step it closes on, so the class's cut is a head and
+  # a tail — four times the recorded bound until #1044, twice it now. One record per half of that shape: the tail,
+  # and the width the exemption holds rather than the absence of one.
+  '1044.1@-@../pi-trim-result.mjs@adapter#theResultBoundExemptsGateEvidence@the tail the exempt class keeps, so a gate log arrives with its head alone and the failed step §4d closes on is withheld (issue #1044)@s|  const tail = gate ? bound - head : 0;|  const tail = 0;|'
+  '1044.2@-@../pi-trim-result.mjs@adapter#theResultBoundExemptsGateEvidence@the width the class is held at, so the 5 000-character gate log arrives whole and nothing proves the exemption is a bound rather than an absence of one (issue #1044)@s|export const GATE_EVIDENCE_BOUND = 4000;|export const GATE_EVIDENCE_BOUND = 8000;|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

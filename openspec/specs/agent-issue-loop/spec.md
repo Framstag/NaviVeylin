@@ -5485,6 +5485,14 @@ whichever arm answers.
   adapter chose, and the arm that cannot break a child for a key nobody wrote
 - **Case**: `adapter#theChildIsStartedWithTheRepeatReadArm`
 
+#### Scenario: The arm the project records is the refusal
+
+- **WHEN** this project's `loop.conf` is read for the arm it records
+- **THEN** it records `refuse`, so a second read of a path a child was handed is answered with the earlier result's
+  range and its turn by default, and `measure` remains only the fallback a value nobody declares and a project that
+  records no key are handed
+- **Case**: `adapter#theRecordedRepeatArmIsRefuse`
+
 #### Scenario: The count is recorded and printed beside the repeats a session made
 
 - **WHEN** two items' records hold the rule's lines and a third item's directory holds no record at all, or the

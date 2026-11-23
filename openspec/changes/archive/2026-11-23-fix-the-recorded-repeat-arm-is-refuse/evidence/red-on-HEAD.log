@@ -1,0 +1,5 @@
+adapter#theRecordedRepeatArmIsRefuse|   loop.conf records measure for LOOP_REPEAT_READ, so a second read of a path a child was handed is served by default and the 66 % the rule measured keeps being paid (issue #976): expected 'refuse', got 'measure'
+--- adapter#theRecordedRepeatArmIsRefuse[0] (exit 1)
+  loop.conf records measure for LOOP_REPEAT_READ, so a second read of a path a child was handed is served by default and the 66 % the rule measured keeps being paid (issue #976): expected 'refuse', got 'measure'
+FAIL adapter#theRecordedRepeatArmIsRefuse
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,14 @@
+## loop-mutations --check --only 976.1
+loop-mutations: selected 1 of 461 records (labels: 976.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.FR2W7H
+loop-mutations: all 1 cases passed — every selected record applies to the file it names
+exit=0
+
+## loop-mutations --only 976.1
+loop-mutations: selected 1 of 461 records (labels: 976.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.dzsnCk
+RED    976.1  adapter#theRecordedRepeatArmIsRefuse   (the recorded arm, so the value the file holds is the arm that serves a second read and two thirds of the text a child was handed is text the item already had (issue #976))
+       2026-11-23T21:15:09Z — case log line 1: loop.conf records measure for LOOP_REPEAT_READ, so a second read of a path a child was handed is served by default and the 66 % the rule measured keeps being paid (issue #976): expected 'refuse', got 'measure'
+restore 976.1 adapter#theRecordedRepeatArmIsRefuse green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

@@ -1,0 +1,9 @@
+PASS adapter#theRecordedRepeatArmIsRefuse
+PASS adapter#theChildIsStartedWithTheRepeatReadArm
+PASS adapter#aPathIsRefusedAfterItsRepeatBound
+
+## the rule's neighbouring cases, after the value moved
+PASS repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+PASS repeat#aRepeatIsRecordedAsWhatItWithheld
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS adapter#theChildIsStartedWithTheItemsLedger

@@ -1,0 +1,10 @@
+$ git show HEAD:tools/pi-trim-result.mjs | grep GATE_EVIDENCE_BOUND
+180:export const GATE_EVIDENCE_BOUND = 8000;
+HEAD constant is 8 000; the arm feeds a 5 000-character gate log at --bound 2000 and expects a cut at 4 000.
+
+$ node <HEAD trimmer> --bound 2000 --tool ctx_shell < gate-big.txt
+exit=0 kept=5000 bytes (the whole fixture — no cut)
+LOOP-TRIMMED line: 0
+expected first 2000 + last 2000 == first 4000 of the output: NO MATCH
+
+RED on HEAD: expect the 4 000 head-and-tail cut, got the whole 5 000 — adapter#theResultBoundExemptsGateEvidence fails there.

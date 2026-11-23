@@ -1,0 +1,2 @@
+$ bash tools/loop/tests/loop-selftest.sh --case adapter#theResultBoundExemptsGateEvidence
+PASS adapter#theResultBoundExemptsGateEvidence

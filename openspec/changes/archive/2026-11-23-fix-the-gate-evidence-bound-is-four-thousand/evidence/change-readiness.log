@@ -1,0 +1,2 @@
+$ bash tools/check-change-readiness.sh openspec/changes/fix-the-gate-evidence-bound-is-four-thousand
+LOOP-CHANGE-READY: ok

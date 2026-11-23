@@ -1,0 +1,2 @@
+$ openspec validate fix-the-gate-evidence-bound-is-four-thousand --strict
+Change 'fix-the-gate-evidence-bound-is-four-thousand' is valid

@@ -1,0 +1,38 @@
+$ bash tools/loop/tests/loop-selftest.sh --group adapter
+PASS adapter#modeFlagIsItsOwnArgument
+PASS adapter#theChildIsStartedWithoutContextFiles
+PASS adapter#theChildIsStartedWithTheResultBound
+PASS adapter#theChildIsStartedWithTheItemsLedger
+PASS adapter#theChildIsStartedWithTheRepeatReadArm
+PASS adapter#theChildIsStartedWithItsToolDirectoryOnPath
+PASS adapter#aRotatedStreamKeepsEveryTurnEnd
+PASS adapter#anUpdateOnlyStreamKeepsItsUpdates
+PASS adapter#theChildIsStartedWithTheShellPolicy
+PASS adapter#theResultBoundExemptsGateEvidence
+PASS adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded
+PASS adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded
+loop-selftest: adapter 12 cases 14.56 s
+loop-selftest: all 12 cases passed (JDK 21, offline, no token, no sandbox) — 9.80 s, selection: --group adapter
+
+$ bash tools/loop/tests/loop-selftest.sh --group trim
+PASS trim#aResultAboveTheBoundIsTrimmedAndNamed
+PASS trim#aResultUnderTheBoundIsHandedOverWhole
+PASS trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut
+PASS trim#theTrimIsRecorded
+PASS trim#aResultOlderThanTheAgeIsStubbedAndNamed
+loop-selftest: trim 5 cases 0.75 s
+loop-selftest: all 5 cases passed (JDK 21, offline, no token, no sandbox) — 0.25 s, selection: --group trim
+
+$ bash tools/loop/tests/loop-selftest.sh --group repeat
+PASS repeat#aBrokenLedgerLeavesTheResultAsReturned
+PASS repeat#aPathUnderTheWorktreeIsOneKeyInTwoSpellings
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain
+PASS repeat#theRecordedZeroKeepsTheRepeatRuleOff
+PASS repeat#aRepeatIsRecordedAsWhatItWithheld
+PASS repeat#anItemsLedgerSpansItsChildren
+PASS repeat#theHookWritesTheItemsLedger
+PASS repeat#aShellRangeReadFeedsTheTally
+PASS repeat#aVerificationReadIsBoundedNotHandedOverWhole
+PASS repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+loop-selftest: repeat 10 cases 2.38 s
+loop-selftest: all 10 cases passed (JDK 21, offline, no token, no sandbox) — 0.44 s, selection: --group repeat

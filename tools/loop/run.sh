@@ -1490,6 +1490,10 @@ while true; do
   # …and the line a restart puts in the record, reset with it: the run may work several items, and an item that took
   # no restart must not inherit the one before it.
   review_restart_line=""
+  # …and the file the two readings of a round the run cut **twice** leave (issue #987), reset with them for the same
+  # reason: the run may work several items, and an item whose round was not cut twice must not inherit the evidence of
+  # one that was.
+  review_findings_file=""
   # What the round answered, when it answered and refused nothing (issue #813). The refusal verdicts above are what
   # the run's outcome reads; this is what the item's record keeps, and it is the round's own answer — `PASS` or `FAIL`,
   # the two the prompt asks for — so that an item which read a round and then ended on its gate does not record
@@ -1655,6 +1659,10 @@ while true; do
             pre_gate_cut=1
             pre_gate_refusal_verdict="deadline"
             pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
+            # The restart the run paid for was ended at a bound too, so this reading is the second of two and what both
+            # wrote is kept for whoever resumes the item (issue #987). The call prints nothing unless the report's own
+            # name says it is a restart, so a round the deadline ended once keeps the shape it had.
+            review_findings_file=$(review_findings_for_double_cut "$item_dir" "$pre_gate_report" || true)
           elif [ -n "$pre_gate_timeout_line" ]; then
             pre_gate_cut=1
             pre_gate_refusal_verdict="cut-short"
@@ -1664,6 +1672,10 @@ while true; do
             pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds — $pre_gate_timeout_line — the round was cut, not refused, so the change is left for the next run"
             # …and the round's ending is recorded beside the refusals it did not write (issue #923): the item keeps no
             # class for it, so without this the bound that ended the round survives only in the reason's prose.
+            # …and, when this is the second bound this round took, what the two readings wrote (issue #987). A
+            # restart handed the first reading's findings in its prompt and wrote none of them down, so without this
+            # the run's account of the change dies with the sessions that produced it.
+            review_findings_file=$(review_findings_for_double_cut "$item_dir" "$pre_gate_report" || true)
             round_bound_round="pre-gate"
             round_bound_line=$(bound_key_value "$pre_gate_timeout_line")
             round_bound_key="${round_bound_line%% *}"
@@ -2348,6 +2360,10 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         stop_reason="bound"
         record_cut_round "$round"
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
+        # …and, when this reading is the restart of a round the run had already cut, what both readings wrote (issue
+        # #987). The restart was handed the first reading's findings in its prompt and wrote none of them down, so a
+        # person who takes the kept patch has no account of the change at all unless this file exists.
+        review_findings_file=$(review_findings_for_double_cut "$item_dir" "$reviewer_report" || true)
         break
       fi
       # The child's own turn bound ends a child the same way (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issues #686 and #784), and
@@ -2371,6 +2387,9 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         blocked_reason="the run ended the reviewer of round $round at one of its spend bounds — $reviewer_timeout_line — the round was cut, not refused, so the change is left for the next run"
         # The round's own ending, recorded where a reader can count it (issue #923): beside the class the item now
         # carries, the bound travels in the round's own field — its number, its key and the figure it reached.
+        # …and what the two readings of a round the run cut twice wrote (issue #987), for the reason the arm above
+        # states: the second bound is the item's cut, and what ended it leaves no answer to read.
+        review_findings_file=$(review_findings_for_double_cut "$item_dir" "$reviewer_report" || true)
         round_bound_round="$round"
         round_bound_line=$(bound_key_value "$reviewer_timeout_line")
         round_bound_key="${round_bound_line%% *}"
@@ -2729,6 +2748,13 @@ $review_notes_text"
       fi
       if [ -n "$leftover_patch" ]; then
         cut_note="$cut_note · its work is kept at $leftover_patch"
+      fi
+      # The round the run cut twice wrote findings, and #918's restart handed them to one attempt's **prompt** and
+      # put none of them down (issue #987): both readings' `BLOCKING:`/`NOTE:` lines are kept in one file beside the
+      # item, and the note names it — so the report's `resume #<item>` line, the only line a caller gets about a cut
+      # item, carries it too and the patch kept beside the item is resumed from what two rounds found.
+      if [ -n "$review_findings_file" ]; then
+        cut_note="$cut_note · the findings of both readings of the round the run cut twice are kept at $review_findings_file"
       fi
       if [ -n "$label_failures" ]; then
         cut_note="$cut_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"

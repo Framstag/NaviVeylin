@@ -157,6 +157,7 @@ report_verdict	evidence.sh	run.sh
 retry_delay_at	child.sh	run.sh
 retry_start_item	leftovers.sh	run.sh
 review_correction_scope	evidence.sh	run.sh
+review_findings_for_double_cut	evidence.sh	run.sh
 review_input_cut_scale	run.sh	evidence.sh
 review_input_cut_halved	evidence.sh	run.sh
 review_input_scale_of	evidence.sh	run.sh

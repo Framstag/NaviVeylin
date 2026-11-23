@@ -44,6 +44,7 @@
 # composers	loop_tree_pids review_input_scale_of attribute_red_gate
 # composers	outside_write_seen outside_write_clause_of outside_write_decides item_outside_write_clause
 # composers	blocking_count review_notes review_input_bytes review_input_cut_halved slugify project_state_diff
+# composers	review_findings_part review_findings_evidence review_findings_for_double_cut
 # composers	pid_ppid loop_now_ms loop_proc_count review_restart_before_deadline
 # composers	child_turn_bound child_context_bound_key child_context_bound child_agent_cmd_key host_free_mib
 # composers	child_refusal fmt_elapsed child_cap child_role report_verdict flake_probe gate_tally_state

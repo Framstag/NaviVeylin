@@ -317,6 +317,7 @@ LOOP_SHELL_CASES=(
   'run#aPreGateRoundUnderHalfItsCapStillRuns'
   'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides'
   'run#aPreGateReviewEndedAtItsBoundNamesIt'
+  'run#aRoundCutTwiceKeepsBothReadingsFindings'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard'
@@ -1155,6 +1156,7 @@ loop_run_shell_case() {
     'run#aPreGateRoundUnderHalfItsCapStillRuns') fn=case_run_aPreGateRoundUnderHalfItsCapStillRuns ;;
     'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides') fn=case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides ;;
     'run#aPreGateReviewEndedAtItsBoundNamesIt') fn=case_run_aPreGateReviewEndedAtItsBoundNamesIt ;;
+    'run#aRoundCutTwiceKeepsBothReadingsFindings') fn=case_run_aRoundCutTwiceKeepsBothReadingsFindings ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard') fn=case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard ;;
@@ -11140,6 +11142,46 @@ EOF
     "no gate child is started on a diff nobody read"
   assert_eq "0" "$(grep -c '^prompt: reviewer-prompt-1' "$PI_STUB_LOG" || true)" \
     "and the round after the gate is not asked either"
+}
+
+case_run_aRoundCutTwiceKeepsBothReadingsFindings() {
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state bound_line extra findings note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The round before the gate is ended at the reviewer's turn bound, restarted, and ended at the same bound again —
+  # so the item is cut with no answer to read. #918's restart handed the first reading's findings to the restart in
+  # its **prompt** and wrote none of them down, so the run bought two readings of a change nobody will read again
+  # (issue #987): 8 of the 12 restarts the archive paid for after #918 were ended at a bound a second time, and
+  # #892's round had 90 % of its diff cut before the bound ended it either way.
+  bound_line='LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role) after 3 turn(s) — the run ended it and everything it started'
+  extra=$(cat <<EOF
+case "\$1" in
+  reviewer-pre-gate-prompt-restart*)
+    printf '%s\\n' 'BLOCKING: the restart names finding B' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-pre-gate-prompt*)
+    printf '%s\\n' 'BLOCKING: the first reading names finding A' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+  findings="$p/.pi/issue-loop/items/21/review-findings.md"
+
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the round's second bound is still the item's cut"
+  [ -f "$findings" ] || fail "the two readings' findings were not kept as the item's evidence: no $findings"
+  assert_contains "$(cat "$findings")" "BLOCKING: the first reading names finding A" \
+    "the file quotes what the first reading wrote, which the run had already paid for"
+  assert_contains "$(cat "$findings")" "BLOCKING: the restart names finding B" \
+    "and what the restart wrote beside it, so one reading is not offered in place of the other"
+  assert_contains "$(cat "$findings")" "pre-gate-review.md" \
+    "and the report the first reading's whole stands in, so the quote is checkable"
+  assert_contains "$(cat "$findings")" "pre-gate-review-restart.md" "and the restart's own report"
+  note=$(jq -r '.items[0].note' "$state")
+  assert_contains "$note" "review-findings.md" "the item's own note names the file, so the caller learns it exists"
+  assert_contains "$out" "review-findings.md" \
+    "and the report's resume line carries that note, the one line a caller gets about a cut item"
 }
 
 case_run_mergesAFinishedAttemptAndClosesTheItem() {

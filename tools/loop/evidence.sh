@@ -740,6 +740,68 @@ review_restart_scope() { # <the cut report> <its LOOP-TIMEOUT line> <which round
   printf 'round was handed instead of those lines.\n'
 }
 
+# One reading's findings, quoted to a part's cap the way every part a round is handed is bounded. A findings file is
+# never a round's input, so the marker names the report the whole of them stands in rather than a cut index.
+review_findings_part() { # <cap> <report> <findings> → the section's body
+  local cap="$1" report="$2" findings="$3"
+  if [ -z "$findings" ]; then
+    printf '(it wrote no `BLOCKING:` or `NOTE:` line down)\n'
+    return 0
+  fi
+  if [ "$cap" -gt 0 ] && [ "$(printf '%s\n' "$findings" | wc -c | tr -d ' \n')" -gt "$cap" ]; then
+    printf '%s\n' "$findings" | head -c "$cap" | sed '$d'
+    printf '[LOOP-CUT: the findings above are quoted to %s bytes; the whole of them stands at %s]\n' "$cap" "$report"
+  else
+    printf '%s\n' "$findings"
+  fi
+}
+
+# A round the run cut **twice** has no answer to read: a bound ended the first reading, and the restart the run paid
+# for was ended at a bound as well. The item is recorded `cut`, so the only lines a caller gets about it are the note
+# on the report's `resume #<item>` line and the item directory that line names — and #918's restart section, which
+# quoted the cut round's findings, was a value of one attempt's **prompt** and wrote nothing down (issue #987).
+# Measured over the 12 restarts the archive paid for after #918: 8 were ended at a bound a second time, and #892's
+# round had `1 of 2 parts over the 32000 B cap · 502773 of 558533 B cut (90 %)` of its diff cut before the bound
+# ended it either way, so the reading the run bought is the only account of that change anyone holds. This is where
+# both readings are kept: one file whose two named sections quote their `BLOCKING:`/`NOTE:` lines, so the person who
+# takes the patch kept beside the item starts from what two rounds found instead of from nothing.
+review_findings_evidence() { # <destination> <the first reading's report> <the restart's report> → the destination, or nothing when neither wrote a finding
+  local dest="$1" first="$2" restart="$3" cap a b
+  cap=$(loop_conf_value LOOP_REVIEW_INPUT_MAX_BYTES)
+  case "$cap" in ''|*[!0-9]*) cap=0 ;; esac
+  a=$(grep -E '^(BLOCKING|NOTE):' "$first" 2>/dev/null || true)
+  b=$(grep -E '^(BLOCKING|NOTE):' "$restart" 2>/dev/null || true)
+  [ -n "$a$b" ] || return 0
+  {
+    printf '# what a round the run cut twice wrote (issue #987)\n\n'
+    printf 'The run ended this review round at one of its spend bounds, restarted it in a fresh session on the same\n'
+    printf 'bounded input, and the restart was ended at a bound as well — so the item is recorded `cut`, no reviewer\n'
+    printf 'answered the change, and what remains is a phase the next run resumes. The `BLOCKING:` and `NOTE:`\n'
+    printf 'lines of both readings stand here, so the person who takes the work kept beside this item starts from\n'
+    printf 'what two rounds found instead of from nothing.\n\n'
+    printf '## The first reading (`%s`)\n\n' "${first##*/}"
+    review_findings_part "$cap" "$first" "$a"
+    printf '\n## The restart (`%s`)\n\n' "${restart##*/}"
+    review_findings_part "$cap" "$restart" "$b"
+  } > "$dest" 2>/dev/null || return 0
+  [ -s "$dest" ] || return 0
+  printf '%s\n' "$dest"
+}
+
+# The predicate is the report's own name, not new state: an attempt's name is `<round>.md`, `<round>-retry.md`,
+# `<round>-restart.md` or `<round>-restart-retry.md` (`run.sh`'s review loop), so a report that carries a restart
+# suffix is one whose round the run had already cut once — and the reading it replaced is the same name with that
+# suffix taken off.
+review_findings_for_double_cut() { # <item dir> <the reading's report> → the evidence path, or nothing when this reading is not a restart
+  local dir="$1" report="$2" first
+  case "$report" in
+    *-restart-retry.md) first="${report%-restart-retry.md}.md" ;;
+    *-restart.md) first="${report%-restart.md}.md" ;;
+    *) return 0 ;;
+  esac
+  review_findings_evidence "$dir/review-findings.md" "$first" "$report"
+}
+
 review_restart_note() { # <which round it is> <its LOOP-TIMEOUT line> <the cut report>
   local line
   line="$(bound_key_value "$2")"

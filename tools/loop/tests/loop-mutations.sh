@@ -1375,6 +1375,14 @@ MUTATIONS=(
   '918.1@-@tools/loop/run.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the guard that decides whether a round the bound ended is restarted, so the item is handed to the next run again and the reading the bound ended stays the item%ss question (issue #918)@s|&& review_restart_before_deadline; then$|\&\& false; then|'
   '918.2@-@tools/loop/evidence.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the findings the cut round wrote, so the restarted round is handed the bound and none of what the ended reading had already decided (issue #918)@s|^  findings=.*$|  findings=""|'
   '918.3@-@tools/loop/evidence.sh@run#aBoundCutRoundIsRestartedWithItsFindings@the line the item keeps of a restart, so a round that answered after one reads in the record exactly as a round that answered first time (issue #918)@s|^    review_restart_line="\$line"$|    review_restart_line=""|'
+  # 987.x — a round the run cut **twice** keeps both readings, so a person who resumes the item starts from what two
+  # rounds found instead of from nothing (issue #987). Three halves, one per layer: the predicate that reads the
+  # restart off the report own name (`987.3`), the file both readings are written into (`987.2`), and the note that
+  # puts that file on the report resume line, the one line a caller gets about a cut item (`987.1`). The call sites
+  # in `run.sh` are four and the case drives one of them, so a record there would be one the case cannot notice.
+  '987.1@-@tools/loop/run.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the note that names the findings file to the caller, so the item state and the report resume line carry no account of the two readings the run paid for (issue #987)@s|if \[ -n "\$review_findings_file" \]; then|if false; then|'
+  '987.2@-@tools/loop/evidence.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the write of the two readings, so the run spends a second session on the round and keeps neither reading anywhere (issue #987)@s#} > "$dest" 2>/dev/null || return 0#} > /dev/null || return 0#'
+  '987.3@-@tools/loop/evidence.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the predicate that reads a restart off the report own name, so the second bound is recorded as the item cut and the two readings behind it are dropped (issue #987)@s#^  case "\$report" in$#  return 0; case "$report" in#'
   # 924.x — the round the reviewer is handed is bounded (issue #924), and the cap is the half a case sees from the
   # outside: with it removed the bounded round hands the whole part again, the item's state records no cut and the
   # report prints the constant for a run nothing was cut from. One record, one invariant.

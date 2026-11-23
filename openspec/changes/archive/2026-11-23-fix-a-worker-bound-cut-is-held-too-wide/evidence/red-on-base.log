@@ -1,0 +1,7 @@
+run#aBoundEndedItemRecordsItsBound|   the item is held for a person to reshape, not handed back at the size that just failed: '--add-label agent/needs-shaping' not found in: gh issue edit 21 --add-label agent/in-progress
+run#aBoundEndedItemRecordsItsBound| gh issue edit 21 --remove-label agent/in-progress
+--- run#aBoundEndedItemRecordsItsBound[0] (exit 1)
+  the item is held for a person to reshape, not handed back at the size that just failed: '--add-label agent/needs-shaping' not found in: gh issue edit 21 --add-label agent/in-progress
+gh issue edit 21 --remove-label agent/in-progress
+FAIL run#aBoundEndedItemRecordsItsBound
+loop-selftest: 1 of 1 cases failed

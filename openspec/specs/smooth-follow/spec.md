@@ -328,7 +328,7 @@ In phone follow mode the follow pipeline SHALL compute one **displayed viewport*
 
 - **WHEN** the same clamped offset is applied with follow active and with follow disengaged
 - **THEN** the two overlay positions SHALL differ only by the input viewport, so the offset is applied once in both cases
-- **AND** no call site SHALL read a follow boolean to decide the shift
+- **AND** the mode SHALL select the derivation's input, never between two projections
 - **Case**: `app: MarkerDisplayShiftTest.theDerivationDoesNotBranchOnTheMode`
 
 ### Requirement: Non-negative overrun margin

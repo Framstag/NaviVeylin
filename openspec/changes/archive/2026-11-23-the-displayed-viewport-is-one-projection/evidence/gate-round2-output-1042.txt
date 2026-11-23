@@ -1,0 +1,232 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+ .../specs/smooth-follow/spec.md                                         | 2 +-
+ openspec/specs/smooth-follow/spec.md                                    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+diff --git a/openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/specs/smooth-follow/spec.md b/openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/specs/smooth-follow/spec.md
+index 0adde4fe..2f807db7 100644
+--- a/openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/specs/smooth-follow/spec.md
++++ b/openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/specs/smooth-follow/spec.md
+@@ -37,5 +37,5 @@ In phone follow mode the follow pipeline SHALL compute one **displayed viewport*
+ 
+ - **WHEN** the same clamped offset is applied with follow active and with follow disengaged
+ - **THEN** the two overlay positions SHALL differ only by the input viewport, so the offset is applied once in both cases
+-- **AND** no call site SHALL read a follow boolean to decide the shift
++- **AND** the mode SHALL select the derivation's input, never between two projections
+ - **Case**: `app: MarkerDisplayShiftTest.theDerivationDoesNotBranchOnTheMode`
+diff --git a/openspec/specs/smooth-follow/spec.md b/openspec/specs/smooth-follow/spec.md
+index 23aeb348..627a3f63 100644
+--- a/openspec/specs/smooth-follow/spec.md
++++ b/openspec/specs/smooth-follow/spec.md
+@@ -328,7 +328,7 @@ In phone follow mode the follow pipeline SHALL compute one **displayed viewport*
+ 
+ - **WHEN** the same clamped offset is applied with follow active and with follow disengaged
+ - **THEN** the two overlay positions SHALL differ only by the input viewport, so the offset is applied once in both cases
+-- **AND** no call site SHALL read a follow boolean to decide the shift
++- **AND** the mode SHALL select the derivation's input, never between two projections
+ - **Case**: `app: MarkerDisplayShiftTest.theDerivationDoesNotBranchOnT
+[LOOP-TRIMMED: ctx_shell returned 2055 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+Usage: openspec validate [options] [item-name]
+
+Validate changes and specs
+
+Options:
+  --all                     Validate all changes and specs
+  --changes                 Validate all changes
+  --specs                   Validate all specs
+  --archived                Validate that archived changes have all tasks
+                            completed (for pre-commit linting)
+  --report <full|findings>  Select bulk report content: full|findings; combine
+                            with --json for JSON
+  --type <type>             Specify item type when ambiguous: change|spec
+  --strict                  Enable strict validation mode
+  --json                    Output validation results as JSON
+  --concurrency <n>         Max concurrent validations (defaults to env
+                            OPENSPEC_CONCURRENCY or 6)
+  --no-interactive          Disable interactive prompts
+  --store <id>              Store id to use as the OpenSpec root (a store is a
+                            standalone OpenSpec repo you've registered)
+  -h, --help                display help for command
+ok   C1 §references: 3 checked, 0 exempted as archived pointers
+FAIL C2 quoted tally tests=51 failures=1 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/evidence
+FAIL C2 quoted tally tests=0 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/evidence
+ok   C2 test tallies: 5 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 327 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (2)
+LOOK: 2 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection for 'tests=51 failures=1|tests=0 failures=0'
+LOOK-FILE: openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/evidence/gate-attribution-1042.md 2
+openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/evidence/gate-attribution-1042.md:5:    LOOP-GATE: tests=51 failures=1 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 220s, tools/check-compose-sandbox-rule.sh 0s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — base-red: tools/check-openspec-hygiene.sh:1
+openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/evidence/gate-attribution-1042.md:27:`LOOP-BASERED: tests=0 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 437s) — failing:none`.
+exit=1
+::error file=openspec/changes/fix-a-rejected-publish-is-recorded/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/loop-protocol-core-in-java=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
+Every capability spec states its Purpose.
+exit=1
+Specification 'smooth-follow' has issues
+⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure spec includes ## Purpose and ## Requirements sections
+  - Each requirement MUST include at least one #### Scenario: block
+  - Re-run with --json to see structured report
+exit=1
+  ✗ 3 incomplete tasks (12/15 completed)
+✓ change/2026-11-21-the-print-sites-are-converted
+✓ change/2026-11-22-fix-a-range-read-of-the-tree-is-refused
+✓ change/2026-11-22-fix-a-section-is-one-call
+✓ change/2026-11-22-fix-the-checkpoint-is-the-splits-reading
+✗ change/2026-11-22-fix-the-gate-split-names-the-gate
+  ✗ 1 incomplete task (9/10 completed)
+✓ change/2026-11-22-fix-the-issue-field-honours-the-era-before-it
+✓ change/2026-11-22-fix-the-prompt-names-no-shell-range-read
+✓ change/2026-11-22-fix-the-result-bound-is-recorded-at-two-thousand
+✓ change/2026-11-22-fix-the-run-publishes-the-base-it-landed-on
+✓ change/2026-11-23-fix-a-worker-bound-cut-is-held-too-wide
+✓ change/2026-11-23-fix-the-gates-tally-travels-with-its-change
+✓ change/2026-11-23-the-displayed-viewport-is-one-projection
+Totals: 655 passed, 98 failed (753 items)
+openspec-validate-spec.txt 10L lines:1-25
+   1| Specification 'smooth-follow' has issues
+   2| ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   3| ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   4| ⚠ [WARNING] requirements[5]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   5| ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   6| ⚠ [WARNING] requirements[7]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   7| Next steps:
+   8|   - Ensure spec includes ## Purpose and ## Requirements sections
+   9|   - Each requirement MUST include at least one #### Scenario: block
+  10|   - Re-run with --json to see structured report
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+LOOK: 14 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/specs/smooth-follow/spec.md for '^### Requirement:'
+LOOK-FILE: openspec/specs/smooth-follow/spec.md 14
+openspec/specs/smooth-follow/spec.md:8:### Requirement: Display center extrapolation
+openspec/specs/smooth-follow/spec.md:37:### Requirement: Correction easing
+openspec/specs/smooth-follow/spec.md:95:### Requirement: Display-only prediction
+openspec/specs/smooth-follow/spec.md:105:### Requirement: Extrapolation loop gating
+openspec/specs/smooth-follow/spec.md:128:### Requirement: Prediction state update
+openspec/specs/smooth-follow/spec.md:145:### Requirement: Anchor-centered follow framing
+openspec/specs/smooth-follow/spec.md:182:### Requirement: Vehicle position anchor in follow mode
+openspec/specs/smooth-follow/spec.md:296:### Requirement: Single resolved anchor across render, blit and marker
+openspec/specs/smooth-follow/spec.md:334:### Requirement: Non-negative overrun margin
+openspec/specs/smooth-follow/spec.md:350:### Requirement: A frame from the previous orientation yields a zero offset instead of an error
+openspec/specs/smooth-follow/spec.md:365:### Requirement: Follow frame refresh before the overrun margin is exhausted
+openspec/specs/smooth-follow/spec.md:397:### Requirement: Stop decision against a current base
+openspec/specs/smooth-follow/spec.md:415:### Requirement: The follow blit offset is computed by one seam that owns the anchor
+openspec/specs/smooth-follow/spec.md:446:### Requirement: A band the follow anchor reads is one the surface composes while following
+> Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :architecture:test
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+LOOK: 0 matches in 0 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'follow boolean'
+guideline-body-reference	routed-read#numbers	a citation a guideline body writes is resolved beside the routing table's, so a split's parent number that stops being a heading fails the case when a body still cites it
+section-cost-ruler	routed-read#bound	a section's cost is the byte count of its lines from the `## ` heading through the line before the next one, so a printed cost that is not that count fails the case
+route-figure-is-measured	routed-read#figure	a figure a row writes after a lettered reference is that section's cost, so a row pricing a kilobyte of section at 0.1 kB is reported instead of passing as priced
+route-range-is-the-span	routed-read#range	a range a row states is the cheapest and the costliest of the lettered sections it names, so a range the measurement does not give is reported instead of passing as a span
+companion-anchor	layers#aCompanionAnchorThatNoSectionCarriesIsReported	a companion's `## §N` anchor is resolved against its base document, so an anchor no section carries is reported instead of the companion becoming a document of its own
+rule-name-one-document	rules#aNameTwiceInOneDocumentIsReported	one rule name stated twice in one document is the duplicate the one-normative-home rule forbids, so the name is counted per section and the second statement is reported
+rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory
+rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry
+rule-with-no-name	rules#aRuleWithNoNameIsReported	a rule with no name is reported with its file and line instead of being skipped by the extraction, so the empty case cannot pass as a rule the tree does not count
+gate: tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list — 1s
+gate-pool: 3 steps start together — at most 4 in flight
+gate: tools/check-todo-references.sh
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/tests/check-todo-references-selftest.sh            the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 201 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
+check-todo-references: 67 citation(s) resolve through the recorded table; 12995 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 2s
+gate: tools/check-openspec-hygiene.sh
+::error file=openspec/changes/fix-a-rejected-publish-is-recorded/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/loop-protocol-core-in-java=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
+Every capability spec states its Purpose.
+gate: tools/check-openspec-hygiene.sh — 1s
+LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1
+gate: tools/tests/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 12 cases passed (throwaway OpenSpec trees, no Gradle)
+gate: tools/tests/check-openspec-hygiene-selftest.sh — 1s
+LOOP-GATE: tests=51 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 383s, tools/check-compose-sandbox-rule.sh 0s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s) — base-red: tools/check-openspec-hygiene.sh:1
+1: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+2: LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+3: LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+4: LOOP-GATE-BASE: 45e855d49ee8d36bcc45a7bf14ae087bbf85eb85 (from the base branch main)
+5: LOOP-GATE-TREE: head=93d864a79852b7d1746dbe1e837d07f17af38893 diff=f83b0864f2411081
+6: LOOP-GATE-TALLY: app/build/test-results/loop-gate run=34031
+7: LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+361: LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1
+365: LOOP-GATE: tests=51 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 383s, tools/check-compose-sandbox-rule.sh 0s, tools/tests/check-compose-sandbox-rule-selftest.
+Successfully wrote to /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1042/corrections-round2.md
+ M openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/specs/smooth-follow/spec.md
+ M openspec/specs/smooth-follow/spec.md
+--- item dir:
+drwxr-xr-x   2 tim tim     4096 23. Nov 12:04 scratch
+-rw-r--r--   1 tim tim     6083 23. Nov 12:56 tool-result-ledger.tsv
+-rw-r--r--   1 tim tim    41319 23. Nov 12:55 tool-result-trims.log
+-rw-r--r--   1 tim tim    32233 23. Nov 12:04 worker-prompt.md
+-rw-r--r--   1 tim tim    57446 23. Nov 12:52 worker-prompt-round2.md
+-rw-r--r--   1 tim tim     3951 23. Nov 12:28 worker-report.md
+-rw-r--r--   1 tim tim      384 23. Nov 12:14 worker-report.md.outside-write
+-rw-r--r--   1 tim tim        2 23. Nov 12:28 worker-report.md.status
+-rw-r--r--   1 tim tim        0 23. Nov 12:52 worker-report-round2.md
+-rw-r--r--   1 tim tim    14026 23. Nov 12:28 worker-tail-prompt.md
+-rw-r--r--   1 tim tim    21320 23. Nov 12:28 worker-tail-report-gate-output.txt
+-rw-r--r--   1 tim tim     5163 23. Nov 12:31 worker-tail-report.md
+-rw-r--r--   1 tim tim        2 23. Nov 12:31 worker-tail-report.md.status
+-rw-r--r--   1 tim tim     3277 23. Nov 12:04 work-package.md
+shell `awk` is not how this tree is read: `tools/look.sh '<regex>'` searches the worktree and the submodule in one bounded call, `ctx_grep` searches one path. A range read of a log outside the tree, an item artefact, `tail -n`, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's.
+LOOP-GATE: tests=51 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 383s, tools/check-compose-sandbox-rule.sh 0s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s) — base-red: tools/check-openspec-hygiene.sh:1
+
+# the gate child's own closing answer
+**Correction round 2 done.** Blocking finding answered — subtractive, exactly the reviewer's option 1.
+
+**Finding** (`worker-prompt-round2.md:516`): shipped clause "no call site SHALL read a follow boolean to decide the shift" — not exercised by its case, contradicted by `MapCanvasMapBand.kt:141-146`.
+
+**Changed** (2 files, 2 lines, `git diff 93d864a7..HEAD`):
+- `openspec/specs/smooth-follow/spec.md:331`
+- `openspec/changes/archive/2026-11-23-the-displayed-viewport-is-one-projection/specs/smooth-follow/spec.md:40`
+
+`- **AND** no call site SHALL read a follow boolean to decide the shift`
+→ `- **AND** the mode SHALL select the derivation's input, never between two projections`
+
+Both files carry same line → archived delta and shipped spec stay identical. `tools/look.sh 'follow boolean'`: 2 matches in 2 files before, 0 after.
+
+Case still witnesses it: `assertEquals("the derivation takes no mode flag", 0, booleanParameterCount)` (mode can only select input) + `assertEquals("the offset is applied once, x", follow.first, pan.first, 1e-6)` (never two projections). Other three scenarios untouched.
+
+**Checks** (artifacts in item dir):
+- `openspec validate smooth-follow --type spec --strict` → exit 1, warnings only (>500-char requirement text, index 7 = this change's MODIFIED requirement; body unchanged by this round) — `openspec-validate-spec.txt`
+- `openspec validate --archived --strict` → `✓ change/2026-11-23-the-displayed-viewport-is-one-projection`; failures are other archives' tasks — `openspec-validate-archived.txt`
+- `tools/check-openspec-hygiene.sh` → exit 1 on three other open changes' `.openspec.yaml` (base-red, `base-red.log:43617`) — `hygiene-round2.txt`
+- `tools/loop/evidence-check.sh <archived change> --root .` → FAIL C2 ×2: tallies `tests=51 failures=1` / `tests=0 failures=0` quoted by round-1 tail's own `evidence/gate-attribution-1042.md:5,:27`, carried by no JUnit XML. Pre-existing (this diff quotes no tally; file is the tail's evidence) — NOTEs it.
+
+**Gate**: ran once, detached, polled → `LOOP-GATE-TREE: head=93d864a7… diff=f83b0864f2411081`, `LOOP-GATE: tests=51 failures=0 errors=0`; base-red step still `tools/check-openspec-hygiene.sh:1` (other changes). Round 1's `:auto` flake did not recur. Round-1 log kept as `gate-round1.log`.
+
+**Not touched**: reviewer's NOTEs (cost no round, recorded on item); owning guideline `MapFrames.md` §13 owes no edit — correction is to a capability clause, not a rule. Record: `corrections-round2.md`.
+
+LOOP-CHANGE: the-displayed-viewport-is-one-projection
+LOOP-ROOT-CAUSE: The overlay's screen position is selected by a display-mode boolean (markerDisplayShiftPx / graphicsLayer translate) instead of being derived from the frame's own viewport plus the offset that frame is drawn with, so follow and pan answer "where does the overlay go" with two different projections.
+LOOP-RED-TEST: app: MarkerDisplayShiftTest.theOverlayShiftIsTheFramesShift fails on HEAD — XML tests=3 failures=3 (2026-11-23T11:07:41.372Z)
+LOOP-GATE: tests=51 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 383s, tools/check-compose-sandbox-rule.sh 0s, tools/tests/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s) — base-red: tools/check-openspec-hygiene.sh:1

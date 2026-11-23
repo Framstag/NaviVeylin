@@ -285,6 +285,18 @@ the hook, the only place two reads meet one process, `adapter#theChildIsStartedW
 fallback, and `report#theRuleRecordsTheSecondReadsItCounted` the figure, the zero and the missing key; mutation records
 `925.1`–`925.11` are their falsification.
 
+The arm bounds what a repeat is answered **with**, and nothing bounded how often one path may be asked (issue #989).
+`#943` read `.pi/issue-loop/items/943/gate.log` **2 372 times in 245 turns** and was ended at `LOOP_ITEM_CONTEXT_MAX`
+with that one path as the cause — 65 % of the run's duplicate reads — because the characters the rule withheld were paid
+for again as turns. So the extension counts every repeat of a path on the child's own tally and, past
+`LOOP_REPEAT_READ_REFUSALS` (the same project block, read by the adapter, never sourced, `0` for off), answers the read
+`refused` **whatever arm the run records**: the same `[LOOP-REPEAT-READ: …]` line, extended with how many times the child
+has asked and the turn the result it may quote instead came in at. No new outcome and no new verdict — an item's grading
+does not move. The recorded value is 3: a full delivery plus the verification read a child's own edit earns and the range
+a notice sends it to, where `#872`'s four paths at 283 to 295 reads each across 226 turns are the loop it exists to stop.
+`adapter#aPathIsRefusedAfterItsRepeatBound` drives the export, the bound and a second path left unrefused, and mutation
+record `989.1` rewrites the value to `0` to prove the case notices.
+
 The bound's other half, which a prompt states and the trimmer cannot (issue #818). The read tool caps one result at
 ~2 000 lines / 50 kB (`docs/2026-11-07-reviewer-model-analysis.md:47`), so a large diff must be paged, and a round
 that does not page grades its head: over one 891 687 B diff the probe's seven children answered the diff's own last

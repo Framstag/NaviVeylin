@@ -1417,6 +1417,12 @@ MUTATIONS=(
   '925.9@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)@s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true|'
   '925.10@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)@s|repeats_json=null|repeats_json=0|'
   '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)@s|counted by the repeat-read rule|taken as given|'
+  # 989.x — the arm bounds what a repeat is answered with, and nothing bounded how often one path may be asked (issue
+  # #989): `#943` asked for `.pi/issue-loop/items/943/gate.log` 2 372 times over 245 turns and was ended at the context
+  # bound with that one path as the cause, 65 % of the run's duplicate reads. The count bound is the value the adapter reads
+  # out of `loop.conf` and the extension — so the record mutates the recorded value, and a configuration that records `0`
+  # refuses no read at any count, which is what the case drives.
+  '989.1@-@tools/loop/loop.conf@adapter#aPathIsRefusedAfterItsRepeatBound@the count bound one path is refused after, so a child that will not accept the notice can ask for the same log without end and pay for what the rule withheld with the turns it asked again (issue #989)@s|^LOOP_REPEAT_READ_REFUSALS=[0-9][0-9]*$|LOOP_REPEAT_READ_REFUSALS=0|'
   # 927.x — the phase answer's identity is printed before anything the bound may cut, and every path it carries is
   # relative to one `ROOT:` line (issue #927): the same case passed on a short project root and was red in every
   # worktree, because the head was absolute paths and the cut landed inside the `PACKAGE:` line. One record per half —

@@ -74,6 +74,16 @@
 // the arm that serves the read, because withholding a read a child needed costs more than the turn it saves (a repeat
 // after the child's own edit is a verification, which is #685's split and not this rule's to undo).
 //
+// The arm bounds what a read is answered **with**, and nothing bounded how often one path may be asked for (issue #989):
+// #943 read `.pi/issue-loop/items/943/gate.log` 2 372 times over 245 turns, ended at the context bound with that one path
+// as the cause, and 65 % of that run's duplicate reads were that file. So each repeat of a path is counted on this
+// child's tally and, past `LOOP_REPEAT_READ_REFUSALS`, the read is refused **whatever arm the run records** — the same
+// `refused` shape the arm already answers with, its `[LOOP-REPEAT-READ: …]` line extended with the count and the turn the
+// result it may quote instead came in at, so a child that will not accept the notice cannot ask for the same log for ever.
+// Three repeats is the recorded bound: a path a child legitimately asks for again is the file it just edited (one
+// verification read) and the range a notice sends it to, and the tail past that is the loop #872 measured at 283 to 295
+// reads of one path across 226 turns.
+//
 // Two entry points, one pair of rules:
 //
 //   * as a pi extension (`pi --extension tools/pi-trim-result.mjs`, which the adapter every loop child is started
@@ -88,7 +98,8 @@
 //
 // Where the values come from: the bound is `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`, a recorded value;
 // `0` or absent means no bound and no repeat rule of either kind), the arm is `LOOP_REPEAT_READ` (the same file;
-// anything but `refuse` reads as the recorded `measure`), and the record is `LOOP_TOOL_RESULT_TRIM_RECORD`, which the
+// anything but `refuse` reads as the recorded `measure`), the count bound is `LOOP_REPEAT_READ_REFUSALS` (the same file;
+// `0` or absent means no count bound, so the arm alone answers the read), and the record is `LOOP_TOOL_RESULT_TRIM_RECORD`, which the
 // adapter names beside the child's own event stream so the trim is a fact of the item rather than of the child's
 // memory.
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
@@ -118,6 +129,16 @@ export function recordedRepeatArm(raw) {
  * rule that withdrew a result the child still needs would cost more than the turns it saves.
  */
 export function recordedAgeTurns(raw) {
+  const n = Number.parseInt(String(raw ?? "").trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * The count bound as the recorded key states it (issue #989): a positive whole number of repeats of one path in one
+ * session, or 0 for "no count bound". A value this file does not understand is 0 — the rule the configuration did not
+ * state is not one a child loses a read to.
+ */
+export function recordedRepeatRefusals(raw) {
   const n = Number.parseInt(String(raw ?? "").trim(), 10);
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
@@ -368,9 +389,15 @@ export function isRefusalNotice(text) {
  * turn it came in at, and the call that reads a window of it — the same shape the item's notice has, so a child that has
  * learned one has learned the other.
  */
-export function repeatReadNotice(path, lines, turn, size) {
-  return `[LOOP-REPEAT-READ: ${path} was handed over whole at turn ${turn} as lines:1-${lines} (${size} characters) and`
-    + ` is not sent again — read a range of it instead (ctx_read mode="lines:1-${lines}")]\n`;
+export function repeatReadNotice(path, lines, turn, size, count = 0, bound = 0) {
+  const head = `[LOOP-REPEAT-READ: ${path} was handed over whole at turn ${turn} as lines:1-${lines} (${size} characters)`;
+  const again = `read a range of it instead (ctx_read mode="lines:1-${lines}")`;
+  // A read past the count bound carries the two facts a child that keeps asking needs (issue #989): how many times it has
+  // asked, and the turn the result it should quote instead is already in. The wording of the unbounded line is the one the
+  // rule shipped with, so a notice a child has learned to read still reads the same.
+  if (!(count > 0)) return `${head} and is not sent again — ${again}]\n`;
+  return `${head}; this is read ${count} of it in this session, past the bound of ${bound}, and it is not sent again —`
+    + ` ${again}, or quote the result it holds from turn ${turn}]\n`;
 }
 
 /** The one line a repeat read is replaced by: the text the item holds, the session and turn it was read at, and how to
@@ -389,8 +416,10 @@ export function alreadyReadNotice(path, size, turn, session = "") {
  * item hold this exact content?) asked of a different ledger. `entry` and `refused` are returned so the caller can record
  * whether the child ended up holding the text. The key is the one `readKey` gives the path, so the two spellings of one
  * file are one entry; and a shell range read (`shellRangeRead`) enters the tally as the range it read and is never withheld,
- * because the child holds those lines and not the file (issue #1009). The rule never throws: an error hands the text over
- * as the tool returned it.
+ * because the child holds those lines and not the file (issue #1009). Each repeat is counted on the entry and, past the
+ * count bound (`LOOP_REPEAT_READ_REFUSALS`), the read is refused whatever arm the run records (issue #989); a read of a
+ * path this child was never handed is served under either rule, because a refusal would name lines it does not hold. The
+ * rule never throws: an error hands the text over as the tool returned it.
  */
 export function repeatReadResult(text, read, tool = "?", record = "") {
   try {
@@ -410,6 +439,10 @@ export function repeatReadResult(text, read, tool = "?", record = "") {
       read.child.set(key, entry);
     }
     if (first) return { text, entry, refused: false };
+    // Every read of the path past the first is counted (issue #989): the count is the per-session bound beside the
+    // character bound, and a child that will not accept the notice is what it exists for — #943 asked for one log 2 372
+    // times, and the characters the rule withheld were paid for again as turns.
+    entry.count = (entry.count || 0) + 1;
     // A second read of a path this child already had is counted, whichever rule answers it and however it was read.
     if (record) {
       try {
@@ -422,6 +455,13 @@ export function repeatReadResult(text, read, tool = "?", record = "") {
     // below answer it: a refusal that named lines the child does not hold would send it to read what it cannot.
     // A range read is answered the same way for the same reason (issue #1009): the child holds the lines the shell gave it
     // and not the file, so the repeat is named on the record and the result the shell returned stands.
+    // Past the count bound the read is refused whatever arm the run records, and the notice names the count so the child
+    // can stop asking (issue #989). A range read is exempt with the arm's other guards: the child holds the lines the
+    // shell gave it and not the file, so the rule has nothing to withhold (issue #1009).
+    const refusals = recordedRepeatRefusals(read.refusals);
+    if (refusals > 0 && entry.handed && !read.shell && entry.count >= refusals) {
+      return { text: repeatReadNotice(key, entry.lines, entry.turn, entry.size, entry.count, refusals), entry, refused: true };
+    }
     if (arm !== "refuse" || !entry.handed || read.shell) return { text, entry, refused: false };
     return { text: repeatReadNotice(key, entry.lines, entry.turn, entry.size), entry, refused: true };
   } catch {
@@ -636,7 +676,8 @@ export default function (pi) {
       const record = process.env.LOOP_TOOL_RESULT_TRIM_RECORD || "";
       const tool = event.toolName || "?";
       const read = { path: readPath(tool, event.input), shell: shellRangeRead(tool, event.input), ledger, child,
-        turn: turn || 1, session, arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ) };
+        turn: turn || 1, session, arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ),
+        refusals: recordedRepeatRefusals(process.env.LOOP_REPEAT_READ_REFUSALS) };
       const content = bound ? trimContent(event.content, bound, tool, record, read) : null;
       // What the child was handed is what a later turn may drop (issue #1002), and it is recorded whatever the bound
       // records: the size is the one that stands in the transcript, so a result the bound already cut is remembered at
@@ -723,10 +764,12 @@ function cli(argv) {
   }
   const ledger = ledgerFile ? readLedger(ledgerFile) : new Map();
   const text = readFileSync(0, "utf8");
-  // One invocation is one child that reads one path once, so the repeat-read tally is always empty here: the arm cannot
-  // fire from the CLI, and the case that proves it drives the hook (`repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt`).
+  // One invocation is one child that reads one path once, so the repeat-read tally is always empty here: neither the arm
+  // nor the count bound can fire from the CLI, and the cases that prove them drive the hook
+  // (`repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt`, `adapter#aPathIsRefusedAfterItsRepeatBound`).
   const read = { path: readPath(tool, { path }), ledger, child: new Map(), turn, session,
-    arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ) };
+    arm: recordedRepeatArm(process.env.LOOP_REPEAT_READ),
+    refusals: recordedRepeatRefusals(process.env.LOOP_REPEAT_READ_REFUSALS) };
   process.stdout.write(trimResult(repeatResult(text, read, bound, tool, record), bound, tool, record, path));
   if (ledgerFile) writeLedger(ledgerFile, ledger);
   return 0;

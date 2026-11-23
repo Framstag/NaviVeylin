@@ -654,7 +654,7 @@ st_cmd=(); st_pid=(); st_stream=(); st_status=(); st_started=(); st_ended=(); st
 # A step is a project command, never a child of the item's session: the facts `tools/pi-child-events.sh` hands a
 # *child* — the result bound, its arm and the age a result leaves a request after, the session's name, its trim record
 # and its repeat ledger — the item's event stream, and this gate's own base-red switch are not the measured command's
-# business, and are removed from its environment here. The class is closed at those eight names: `run.sh` also exports
+# business, and are removed from its environment here. The class is closed at those nine names: `run.sh` also exports
 # the run's `LOOP_STATE_FILE` and `LOOP_WORKTREE` to a child, and they stay — dropping them is a second change, with its
 # own measurement of what a nested gate a step starts may write into the run's record.
 #
@@ -668,7 +668,8 @@ st_cmd=(); st_pid=(); st_stream=(); st_status=(); st_started=(); st_ended=(); st
 # made the whole leg red at every base the run recorded, all six in `.pi/issue-loop/base-red.log`, 859–944 s each (#980):
 # one leg that no clean tree is green at. `LOOP_CHILD_EVENTS` is cleared with them: the stream is the item's child's,
 # and a step that wrote into it would put its own lines in the record a later reader attributes the item by.
-item_session_vars=(LOOP_TOOL_RESULT_MAX_CHARS LOOP_TOOL_RESULT_AGE_TURNS LOOP_REPEAT_READ LOOP_CHILD_SESSION \
+item_session_vars=(LOOP_TOOL_RESULT_MAX_CHARS LOOP_TOOL_RESULT_AGE_TURNS LOOP_REPEAT_READ LOOP_REPEAT_READ_REFUSALS \
+  LOOP_CHILD_SESSION \
   LOOP_TOOL_RESULT_TRIM_RECORD LOOP_TOOL_RESULT_LEDGER LOOP_CHILD_EVENTS LOOP_BASE_RED)
 
 start_step() { # <slot> <command> → the step is running, its own files written and its own clock started

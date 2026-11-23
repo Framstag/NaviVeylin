@@ -377,6 +377,7 @@ LOOP_SHELL_CASES=(
   'adapter#theResultBoundExemptsGateEvidence'
   'adapter#theChildIsStartedWithTheItemsLedger'
   'adapter#theChildIsStartedWithTheRepeatReadArm'
+  'adapter#aPathIsRefusedAfterItsRepeatBound'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
   'adapter#aRotatedStreamKeepsEveryTurnEnd'
@@ -1216,6 +1217,7 @@ loop_run_shell_case() {
     'adapter#theResultBoundExemptsGateEvidence') fn=case_adapter_theResultBoundExemptsGateEvidence ;;
     'adapter#theChildIsStartedWithTheItemsLedger') fn=case_adapter_theChildIsStartedWithTheItemsLedger ;;
     'adapter#theChildIsStartedWithTheRepeatReadArm') fn=case_adapter_theChildIsStartedWithTheRepeatReadArm ;;
+    'adapter#aPathIsRefusedAfterItsRepeatBound') fn=case_adapter_aPathIsRefusedAfterItsRepeatBound ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
     'adapter#aRotatedStreamKeepsEveryTurnEnd') fn=case_adapter_aRotatedStreamKeepsEveryTurnEnd ;;
@@ -21929,19 +21931,19 @@ case_adapter_theChildIsStartedWithTheRepeatReadArm() {
   # `loop.conf` happens to record could not tell an adapter that follows the file from one that hard-codes the default.
   recorded=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
   case "$recorded" in measure|refuse) ;; *) fail "loop.conf records ${recorded:-nothing}, which is neither arm the rule declares" ;; esac
-  sed 's/^LOOP_REPEAT_READ=.*/LOOP_REPEAT_READ=refuse/' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  sed 's/^LOOP_REPEAT_READ=[A-Za-z]*/LOOP_REPEAT_READ=refuse/' "$LOOP_CONF" > "$tree/loop/loop.conf"
   RECORD="$d/env.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
     || fail "the adapter exited non-zero: $(head -3 "$d/out")"
   assert_eq "refuse" "$(cat "$d/env.txt" 2>/dev/null || true)" \
     "the child applies the arm the configuration records, not one the adapter chose"
   # …and a value the rule does not declare is `measure`: the fallback is the arm that serves the read.
-  sed 's/^LOOP_REPEAT_READ=.*/LOOP_REPEAT_READ=refused?/' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  sed 's/^LOOP_REPEAT_READ=[A-Za-z]*/LOOP_REPEAT_READ=refused?/' "$LOOP_CONF" > "$tree/loop/loop.conf"
   RECORD="$d/env-word.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
     || fail "the adapter exited non-zero on a word the rule does not declare: $(head -3 "$d/out")"
   assert_eq "measure" "$(cat "$d/env-word.txt" 2>/dev/null || true)" \
     "a word this rule does not declare hands the child measure, never the arm that withholds"
   # …and a configuration that records none leaves the child `measure`: no run may be broken by a key nobody wrote.
-  sed '/^LOOP_REPEAT_READ=/d' "$LOOP_CONF" > "$tree/loop/loop.conf"
+  sed '/^LOOP_REPEAT_READ=[A-Za-z]*$/d' "$LOOP_CONF" > "$tree/loop/loop.conf"
   RECORD="$d/env-none.txt" bash "$tree/pi-child-events.sh" bash "$recorder" "$d/prompt.md" </dev/null >"$d/out" 2>&1 \
     || fail "the adapter exited non-zero against a configuration that records no arm: $(head -3 "$d/out")"
   assert_eq "measure" "$(cat "$d/env-none.txt" 2>/dev/null || true)" \
@@ -22152,6 +22154,87 @@ case_repeat_aRepeatReadIsCountedAndTheRefusalArmWithholdsIt() {
   assert_not_contains "$out" '[LOOP-REPEAT-READ' \
     "so the read that follows is served: a refusal would name lines this child was never handed"
   assert_contains "$out" 'EDITED-LINE' "it is handed the file as it stands, edit and all"
+  return 0
+}
+
+# The arm bounds what a repeat is answered **with**, and nothing bounded how often one path may be asked (issue #989):
+# `#943` asked for `.pi/issue-loop/items/943/gate.log` 2 372 times over 245 turns and was ended at the context bound with
+# that one path as the cause, because the characters the rule withheld were paid for again as turns. So a path is refused
+# after its repeat bound whatever arm the run records, and the notice names the count and the turn of the result the child
+# may quote instead. The bound is the run's (`LOOP_REPEAT_READ_REFUSALS`, read here out of `loop.conf` and handed over by the
+# adapter, never pinned), so a configuration that records `0` — the mutation — refuses nothing and this case is red.
+case_adapter_aPathIsRefusedAfterItsRepeatBound() {
+  # files: tools/loop/tests/loop-cases.sh tools/pi-trim-result.mjs tools/pi-child-events.sh tools/loop/loop.conf
+  local d harness file other record bound exported got i
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing bounds the reads of one path: tools/pi-trim-result.mjs is not in the tree (issue #989)"
+  d=$(scratch)
+  bound=$(sed -n 's/^LOOP_REPEAT_READ_REFUSALS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  [ -n "$bound" ] && [ "$bound" -gt 0 ] \
+    || fail "loop.conf records ${bound:-nothing} for LOOP_REPEAT_READ_REFUSALS, so one path may be asked for without end (issue #989)"
+  # The adapter hands the value over, so the bound this case applies is the bound a run applies: read, never pinned.
+  printf 'Reply with OK.\n' > "$d/prompt.md"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'printf "%s\n" "$LOOP_REPEAT_READ_REFUSALS" > "$RECORD"'
+  } > "$d/recorder.sh"
+  RECORD="$d/env.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$d/recorder.sh" "$d/prompt.md" \
+    </dev/null >"$d/out" 2>&1 || fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  exported=$(cat "$d/env.txt" 2>/dev/null || true)
+  assert_eq "$bound" "$exported" "the child is handed the count bound the configuration records, not one the adapter chose"
+  # One process, one path asked for again and again, and an edit between the reads so the #685 content rule — which converts
+  # a repeat under the recorded `measure` arm — never answers one: this case is about the count, not about the content.
+  harness="$d/hook.mjs"
+  {
+    printf '%s\n' 'import { appendFileSync, readFileSync, writeFileSync } from "node:fs";'
+    printf '%s\n' 'import { pathToFileURL } from "node:url";'
+    printf '%s\n' 'const [, , file, other, extension, out, reads] = process.argv;'
+    printf '%s\n' 'const ext = (await import(pathToFileURL(extension).href)).default;'
+    printf '%s\n' 'const handlers = new Map();'
+    printf '%s\n' 'ext({ on: (name, fn) => { handlers.set(name, fn); } });'
+    printf '%s\n' 'async function read(path) {'
+    printf '%s\n' '  await handlers.get("turn_start")();'
+    printf '%s\n' '  const text = readFileSync(path, "utf8");'
+    printf '%s\n' '  const out = await handlers.get("tool_result")({ toolName: "ctx_read", input: { path }, content: [{ type: "text", text }] });'
+    printf '%s\n' '  const blocks = out && out.content ? out.content : [{ type: "text", text }];'
+    printf '%s\n' '  return blocks.map((b) => b.text).join("");'
+    printf '%s\n' '}'
+    printf '%s\n' 'const n = Number.parseInt(reads, 10);'
+    printf '%s\n' 'for (let i = 1; i <= n; i += 1) {'
+    printf '%s\n' '  writeFileSync(`${out}/path-${i}.txt`, await read(file));'
+    printf '%s\n' '  appendFileSync(file, `EDITED-${i}\\n`);'
+    printf '%s\n' '}'
+    printf '%s\n' 'writeFileSync(`${out}/other-1.txt`, await read(other));'
+    printf '%s\n' 'appendFileSync(other, "OTHER-EDITED\\n");'
+    printf '%s\n' 'writeFileSync(`${out}/other-2.txt`, await read(other));'
+  } > "$harness"
+  file="$d/asked-again.md"
+  other="$d/another.md"
+  printf 'FIRST-LINE\nMIDDLE-LINE\nLAST-LINE\n' > "$file"
+  printf 'OTHER-FIRST\nOTHER-LAST\n' > "$other"
+  record="$d/refusals.log"
+  LOOP_TOOL_RESULT_MAX_CHARS=8000 LOOP_REPEAT_READ=measure LOOP_REPEAT_READ_REFUSALS="$bound" \
+    LOOP_TOOL_RESULT_TRIM_RECORD="$record" \
+    node "$harness" "$file" "$other" "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$d" $((bound + 2)) \
+    || fail "the extension exited non-zero on the reads of one path: $(head -3 "$d/path-1.txt")"
+  i=1
+  while [ "$i" -le "$bound" ]; do
+    assert_not_contains "$(cat "$d/path-$i.txt")" 'LOOP-REPEAT-READ' \
+      "read $i of $bound of one path is served: the read refused is the one past the bound, not the one at it"
+    i=$((i + 1))
+  done
+  got=$(cat "$d/path-$((bound + 1)).txt")
+  assert_contains "$got" '[LOOP-REPEAT-READ' "the read past the bound is refused whatever arm the run records"
+  assert_contains "$got" "read ${bound} of it" "and the notice says how many times the child has asked"
+  assert_contains "$got" 'turn 1' "and the turn the result it may quote instead came in at"
+  assert_not_contains "$got" 'MIDDLE-LINE' "while the text itself is not sent again"
+  [ "$(grep -c . "$d/path-$((bound + 1)).txt")" -eq 1 ] \
+    || fail "the refused read carried more than its one line: $got"
+  assert_contains "$(cat "$d/path-$((bound + 2)).txt")" '[LOOP-REPEAT-READ' \
+    "and it stays refused: the count keeps rising while the child keeps asking"
+  # …and the bound is the path's, not the session's: another path is served its own second read.
+  assert_not_contains "$(cat "$d/other-2.txt")" 'LOOP-REPEAT-READ' "a second path is not caught by the first path's count"
+  assert_contains "$(cat "$d/other-2.txt")" 'OTHER-EDITED' "it is handed the file as it stands, edit and all"
   return 0
 }
 

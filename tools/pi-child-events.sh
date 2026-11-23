@@ -104,6 +104,16 @@ repeat_arm=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:spa
 case "$repeat_arm" in refuse) ;; *) repeat_arm=measure ;; esac
 export LOOP_REPEAT_READ="$repeat_arm"
 
+# …and how many times one session may ask for the same path before the read is refused whatever arm the run records
+# (issue #989). The arm above bounds what a repeat is answered **with** and nothing bounded how often it may be asked:
+# #943 read `.pi/issue-loop/items/943/gate.log` 2 372 times over 245 turns and the item was ended at the context bound
+# with that one path as the cause, 65 % of the run's duplicate reads. The count is the per-session bound beside the
+# character bound, `0` — the value a project that records no key or a value this file does not understand is handed —
+# leaves it off, and the extension reads the same grammar `tools/pi-trim-result.mjs` applies.
+repeat_refusals=$(sed -n 's/^LOOP_REPEAT_READ_REFUSALS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+  "$here/loop/loop.conf" 2>/dev/null | tail -1)
+export LOOP_REPEAT_READ_REFUSALS="${repeat_refusals:-0}"
+
 # …and how long a result the child was handed once stays in its request (issue #1002). The bound above decides what a
 # result puts into the context when it arrives and the repeat arm decides what a second read is answered with, so
 # neither can take one out again; this key is the third rule's and it is the adapter's, beside the other two, for the

@@ -1,0 +1,39 @@
+$ bash tools/loop/tests/loop-mutations.sh --from-git HEAD
+loop-mutations: selected 53 of 460 records (files: guidelines/Backlog.recipes.md tools/loop/gate.sh
+tools/loop/loop.conf tools/loop/prompts/worker.md tools/loop/tests/loop-cases.sh
+tools/loop/tests/loop-mutations.sh tools/pi-child-events.sh tools/pi-trim-result.mjs)
+…
+red-when-mutated: 53 · not-noticed: 0 · restore-failures: 0
+exit=0
+
+The 53 records are the ones whose file the delta touches, and `989.1` is among them:
+RED    989.1  adapter#aPathIsRefusedAfterItsRepeatBound   (the count bound one path is refused after …)
+restore 989.1 adapter#aPathIsRefusedAfterItsRepeatBound green again
+
+$ bash tools/loop/tests/loop-mutations.sh --only 989.1
+loop-mutations: selected 1 of 460 records (labels: 989.1)
+RED    989.1  adapter#aPathIsRefusedAfterItsRepeatBound
+       2026-11-23T19:34:49Z — case log line 1: loop.conf records 0 for LOOP_REPEAT_READ_REFUSALS, so one path may be asked for without end (issue #989)
+restore 989.1 adapter#aPathIsRefusedAfterItsRepeatBound green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+$ bash tools/loop/tests/loop-mutations.sh --check --only 989.1
+loop-mutations: all 1 cases passed — every selected record applies to the file it names
+
+THE FULL SET — not owed, and not claimed green. `tools/loop/tests/loop-mutations.sh` over all 460 records was
+started at 20:50 and ended by the caller's 3 600 s ceiling at 21:47, having applied 280 of them: 280 red, 281
+restores, 0 "did not apply". One record in that stretch read GREEN:
+GREEN  48.2  driver#theCoreIsCompiledOncePerSuite   <-- the case did not notice the mutation
+and it is not this delta's: `--only 48.2` reproduces it, the record mutates `tools/loop/tests/loop-selftest.sh`
+(which no file of this change touches), and it was filed as issue #1047 — the second compile passes through the
+inner marker guard (`:449`), not the outer line (`:442`) the record rewrites. The remaining 180 records were not
+applied by this run and are stated as such rather than as a pass.
+
+WHAT THE CUT RUN LEFT IN THE TREE — it was ended inside one record rather than between two, so
+`tools/loop/run.sh` came out of it carrying that record's mutation (`:1570`, `if [ "$head_now" = "$base" ]; then`
+written as `if false; then`). `git status --porcelain` showed it beside this change's own eight files, and the line is
+restored by hand here; the tree now carries exactly the delta's files. The harness restores a file on its own exit
+path only, so a ceiling or a signal leaves the last mutation behind and reports neither the record nor the file — that
+is a finding of this pass and **not** of this change (no file of the delta is in `tools/loop/run.sh`); it wants a plan
+(a trap that restores the in-flight record, or a startup sweep that names a leftover), so it is stated here rather
+than filed as a cause.

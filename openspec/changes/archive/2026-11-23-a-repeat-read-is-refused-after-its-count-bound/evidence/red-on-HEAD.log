@@ -1,0 +1,29 @@
+$ git show HEAD:tools/pi-trim-result.mjs | grep -c 'repeatRefus'
+0
+$ git show HEAD:tools/pi-child-events.sh | grep -c 'LOOP_REPEAT_READ_REFUSALS'
+0
+$ git show HEAD:tools/loop/loop.conf | grep -c 'LOOP_REPEAT_READ_REFUSALS'
+0
+
+The base has neither the key, the export nor the refusal: `repeatReadResult` answers a repeat by the arm only, and
+nothing counts the repeats of one path. The case is run against the base's own configuration — every file the tree
+edits is in place, only the recorded key is HEAD's — so the run below isolates what the change owes:
+
+$ git show HEAD:tools/loop/loop.conf > /tmp/red989/head-loop.conf
+$ wc -l < /tmp/red989/head-loop.conf
+1090
+$ grep -c 'LOOP_REPEAT_READ_REFUSALS' /tmp/red989/head-loop.conf
+0                                    # grep exits 1: no such line
+
+$ LOOP_CONF=/tmp/red989/head-loop.conf bash tools/loop/tests/loop-selftest.sh \
+    --case adapter#aPathIsRefusedAfterItsRepeatBound
+adapter#aPathIsRefusedAfterItsRepeatBound|   loop.conf records nothing for LOOP_REPEAT_READ_REFUSALS, so one path may be asked for without end (issue #989)
+--- adapter#aPathIsRefusedAfterItsRepeatBound[0] (exit 1)
+  loop.conf records nothing for LOOP_REPEAT_READ_REFUSALS, so one path may be asked for without end (issue #989)
+FAIL adapter#aPathIsRefusedAfterItsRepeatBound
+loop-selftest: 1 of 1 cases failed
+
+RED on the base for the reason the case exists: with no count bound recorded, a path may be asked for without end and
+each re-ask is a turn (#943: 2 372 reads of one gate log in 245 turns; #872: four paths at 283 to 295 reads each across
+226 turns). `loop-cases.sh --case <name>` prints nothing and exits 0 — the dispatch lives in the suite, so the evidence
+runs the suite's own `--case` entry.

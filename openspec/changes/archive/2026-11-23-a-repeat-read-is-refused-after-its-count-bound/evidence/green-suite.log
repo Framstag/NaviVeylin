@@ -1,0 +1,7 @@
+$ bash tools/loop/tests/loop-selftest.sh
+(whole suite, offline, no token, no sandbox; the log is .pi/tmp/989-full-suite.log)
+loop-selftest: repeat 10 cases 7.15 s
+loop-selftest: census 8 cases 12.49 s
+loop-selftest: all 546 cases passed (JDK 21, offline, no token, no sandbox) — 545.17 s
+
+exclusion: none — no compiled file is touched, so no Gradle build or instrumented run is owed (AGENTS.md "Build & Test", the scope block); the structural checks of the delta are this suite and loop-mutations.sh.

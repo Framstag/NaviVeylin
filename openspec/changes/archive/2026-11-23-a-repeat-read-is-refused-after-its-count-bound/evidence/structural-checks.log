@@ -1,0 +1,9 @@
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 357 section references resolve, all 8 skill references resolve
+$ bash tools/check-portability.sh
+check-portability: OK — 64 engines and 8 templates name no project value (127 value(s) read from the project)
+$ tools/check-case-names.sh
+CASE-NAMES: ok harnesses=41 lines=1571 named=1364 none=125 unnamed=82 unclaimed=5985
+$ tools/check-glossary.sh
+check-glossary: drift zoom#operation /home/tim/projects/NaviVeylin/app/src/main/java/com/naviveylin/ui/map/ZoomControls.kt:27 — declared=zoom(397) observed=Zoom(1) in the operation role; reported, not refused
+check-glossary: green rows=53 anchored=53 kinds=attribute,entity,operation,value files=493

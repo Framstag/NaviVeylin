@@ -1,0 +1,3 @@
+$ openspec validate a-repeat-read-is-refused-after-its-count-bound --strict
+Change 'a-repeat-read-is-refused-after-its-count-bound' is valid
+exit=0

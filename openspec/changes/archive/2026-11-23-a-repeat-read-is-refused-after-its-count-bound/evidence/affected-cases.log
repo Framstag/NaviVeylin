@@ -1,0 +1,22 @@
+$ for c in the seven neighbours; do bash tools/loop/tests/loop-selftest.sh --case "$c"; done
+--- adapter#theChildIsStartedWithTheRepeatReadArm
+PASS adapter#theChildIsStartedWithTheRepeatReadArm
+--- gate#aStepIsNotHandedTheItemsSession
+PASS gate#aStepIsNotHandedTheItemsSession
+--- repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+PASS repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+--- repeat#theRecordedZeroKeepsTheRepeatRuleOff
+PASS repeat#theRecordedZeroKeepsTheRepeatRuleOff
+--- repeat#anItemsLedgerSpansItsChildren
+PASS repeat#anItemsLedgerSpansItsChildren
+--- repeat#aShellRangeReadFeedsTheTally
+PASS repeat#aShellRangeReadFeedsTheTally
+--- report#theRuleRecordsTheSecondReadsItCounted
+report#theRuleRecordsTheSecondReadsItCounted| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.k4xCa9/cases/0/tree/case.7i9Mrj/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (5cef9de1a18aec44 → 4dcfee1d2d825327); a field was edited outside this script
+PASS report#theRuleRecordsTheSecondReadsItCounted
+$ bash tools/loop/tests/loop-mutations.sh --only 989.1
+RED    989.1  adapter#aPathIsRefusedAfterItsRepeatBound   (the count bound one path is refused after, so a child that will not accept the notice can ask for the same log without end and pay for what the rule withheld with the turns it asked again (issue #989))
+       2026-11-23T19:35:02Z — case log line 1: loop.conf records 0 for LOOP_REPEAT_READ_REFUSALS, so one path may be asked for without end (issue #989)
+restore 989.1 adapter#aPathIsRefusedAfterItsRepeatBound green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

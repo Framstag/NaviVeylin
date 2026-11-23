@@ -362,7 +362,8 @@ What an item costs, and the floor it is refused by. Measured over the loop's run
 (gate 5–7 min, review 5–10, archive 5, and #138 took 65 because it needed a second review round), a gated-out skip
 10–15 min **with** the cheap-first rule and 20–25 without, a cold loop worktree's first build 11 min (a single test
 class is 1–3 min after that), a forced both-flavor gate 4m42s–6m41s — and that run overwrites the previous run's
-XML evidence, which is why a cited XML is copied into the change's `evidence/` — and one item 100 min
+XML evidence, which is why a cited XML is copied into the change's `evidence/` and why `end-item` copies the gate's
+own tally and log there as well — and one item 100 min
 (2026-10-19, #126: a worker phase of 83 min plus three review rounds, the item the constant floor could not pay
 for). The floor `state.sh next` refuses by is therefore not a constant: the **cheapest** of the run's own finished
 wall times × 1.5, rounded up — 1.5 being the spread the numbers above already show (65/45 inside the change range,
@@ -1531,7 +1532,12 @@ a review (`--review off`) and stays adoptable.
 The adoption the run takes by itself (`adopt_finished_exclusions`) has a result of its own, and its two refusals are
 not the same fact. A branch whose own evidence does not admit it — no archived change of its own, no green
 verification record, a reviewer's refusal, a round announced and never answered — is the owner's, and the
-pre-screen records it as the decision the run escalates. A branch that **is** admissible and still cannot be
+pre-screen records it as the decision the run escalates. The green record's origin is the run's own landing step, not the
+worker's diligence: the gate writes its tally and its log under the build output `LOOP_GATE_TALLY_DIR` names, which
+is not the change and which the next item's start clears, so `end-item` copies them into the archived change's
+`evidence/` unless that change already answers for its own gate — and a gate that did not pass carries nothing,
+because its red tally is the record of the item it blocks. The case is
+`worktree#theGatesTallyTravelsWithTheChangeItMeasured`. A branch that **is** admissible and still cannot be
 merged is the tree's or the base's refusal: the project tree is not clean, it is on another branch, the base
 moved — each of them a state a later run finds whole, so the item is work. A branch whose replay conflicts is the
 same work retried and unresolved by the run: nothing here rebases or reworks it, so it is refused and recorded

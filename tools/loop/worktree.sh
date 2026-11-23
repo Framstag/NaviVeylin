@@ -423,10 +423,72 @@ $(printf '%s\n' "$carried" | head -5)"
   printf '%s\n' "$branch" > "$worktree/.pi/loop-branch"
 }
 
+# What a change's evidence has to hold to count as verified, in one function because two readers have to agree: the
+# branch reader below works over git objects and `carry_gate_record` over the working tree, and a change the run wrote
+# itself would read back as unverified if the two drifted apart (issue #979).
+verification_record_green() { # <name> <content> → 0 when the record is a measurement that ran and passed
+  case "$1" in
+    *.xml)
+      grep -Eq 'tests="[1-9]' <<< "$2" || return 1
+      grep -Eq 'failures="0"' <<< "$2" || return 1
+      grep -Eq 'errors="[1-9]"' <<< "$2" && return 1
+      ;;
+    *.log)
+      grep -Eq '^PASS +[A-Za-z][A-Za-z0-9_]*#[A-Za-z]' <<< "$2" || return 1
+      grep -Eq '^FAIL ' <<< "$2" && return 1
+      ;;
+    *) return 1 ;;
+  esac
+  return 0
+}
+
+# The gate's own record travels with the change it measured (issue #979). The gate writes one tally per step, and its
+# own log beside them, under the directory the profile names (`LOOP_GATE_TALLY_DIR`) — the tree's build output, which
+# git ignores, which the next item's start clears and which the next gate overwrites. That directory is not the
+# change, so a finished attempt's `evidence/` held only what its worker happened to copy, a convention neither
+# written nor enforced: measured 2026-11-21, item #964's archived change carried its red-on-HEAD record and no green
+# one at all while its own gate had read `LOOP-GATE: tests=342 failures=0 errors=0`, and the next run read the branch
+# `archived-not-green` and escalated a decision nobody owed (`carried_verification` below). `end-item` therefore
+# copies the tally and the gate's log into the archived change's `evidence/` — a directory and nowhere else, the one
+# place a write after the gate is allowed — when that change carries no green record of its own, and never over a
+# file the worker wrote. A gate that did not pass carries nothing: its red tally stays the record of the item it
+# blocks, so nothing here turns an unverified attempt into a verified one.
+carry_gate_record() { # → the gate's records in the archived change the tree carries, when it carries no green one
+  local rel tally dir name greens
+  rel=$(loop_conf_value LOOP_GATE_TALLY_DIR)
+  [ -n "$rel" ] || return 0
+  case "$rel" in /*) tally="$rel" ;; *) tally="$worktree/$rel" ;; esac
+  # No log is a gate that claimed no tally, or one that was cut before its verdict: neither measured this change.
+  [ -f "$tally/gate.log" ] || return 0
+  [ "$(gate_tally_state "$(grep -a '^LOOP-GATE:' "$tally/gate.log" 2>/dev/null | tail -1)")" = green ] || return 0
+  # The archive the item just made is the one the tree carries and HEAD does not: `end-item` is its only committer, so
+  # every directory holding a file git does not track is a change of this item's, named once however many files it
+  # holds — `--directory` cannot be used for that, because a fixture whose archive holds nothing tracked collapses to
+  # the archive root itself.
+  while IFS= read -r dir; do
+    [ -d "$worktree/$dir" ] || continue
+    greens=0
+    for name in "$worktree/$dir"/evidence/*.xml "$worktree/$dir"/evidence/*.log; do
+      [ -f "$name" ] || continue
+      verification_record_green "${name##*/}" "$(< "$name")" && greens=1
+    done
+    [ "$greens" -eq 0 ] || continue
+    mkdir -p "$worktree/$dir/evidence" 2>/dev/null || continue
+    for name in "$tally"/*.xml "$tally"/gate.log; do
+      [ -f "$name" ] || continue
+      [ -e "$worktree/$dir/evidence/${name##*/}" ] && continue
+      cp -- "$name" "$worktree/$dir/evidence/${name##*/}" 2>/dev/null || true
+    done
+  done <<< "$(gitw ls-files --others --exclude-standard -- openspec/changes/archive 2>/dev/null |
+    awk -F/ 'NF > 4 {print $1"/"$2"/"$3"/"$4}' | sort -u)"
+}
+
 cmd_end_item() {
   local issue="${1:-}" slug="${2:-}"
   case "$issue" in ''|*[!0-9]*) loop_die "end-item: usage: worktree.sh end-item <issue> <slug>" ;; esac
   [ -n "$slug" ] || loop_die "end-item: usage: worktree.sh end-item <issue> <slug>"
+  # The gate's own record is the change's, and it is committed with it (issue #979).
+  carry_gate_record
   # Two commits, in the order the archive requires: the fix first, then the archive with its evidence.
   # The archive travels with the fix, but it is not the fix — a later revert of the fix must not have to
   # revert the record of why it was made.
@@ -494,18 +556,7 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
   files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null)
   while IFS= read -r name; do
     [ -n "$name" ] || continue
-    case "$name" in
-      *.xml)
-        gitr show "$branch:$name" 2>/dev/null | grep -Eq 'tests="[1-9]' || continue
-        gitr show "$branch:$name" 2>/dev/null | grep -Eq 'failures="0"' || continue
-        gitr show "$branch:$name" 2>/dev/null | grep -Eq 'errors="[1-9]"' && continue
-        ;;
-      *.log)
-        gitr show "$branch:$name" 2>/dev/null | grep -Eq '^PASS +[A-Za-z][A-Za-z0-9_]*#[A-Za-z]' || continue
-        gitr show "$branch:$name" 2>/dev/null | grep -Eq '^FAIL ' && continue
-        ;;
-      *) continue ;;
-    esac
+    verification_record_green "${name##*/}" "$(gitr show "$branch:$name" 2>/dev/null)" || continue
     passed=1
   done <<< "$files"
   [ "$passed" -eq 1 ] || return 0

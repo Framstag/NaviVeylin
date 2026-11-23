@@ -127,6 +127,7 @@ LOOP_SHELL_CASES=(
   'worktree#aShellSuiteLogIsAVerificationRecord'
   'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
   'worktree#aTrackedEditStillBlocksTheMerge'
+  'worktree#theGatesTallyTravelsWithTheChangeItMeasured'
   'prescreen#aTierAItemPassesUnchanged'
   'prescreen#anIssueTwoOpenChangesNameIsRefused'
   'prescreen#aChangeThatIsNoLongerReadyIsRefused'
@@ -961,6 +962,7 @@ loop_run_shell_case() {
     'worktree#aShellSuiteLogIsAVerificationRecord') fn=case_worktree_aShellSuiteLogIsAVerificationRecord ;;
     'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
     'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
+    'worktree#theGatesTallyTravelsWithTheChangeItMeasured') fn=case_worktree_theGatesTallyTravelsWithTheChangeItMeasured ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
     'prescreen#anIssueTwoOpenChangesNameIsRefused') fn=case_prescreen_anIssueTwoOpenChangesNameIsRefused ;;
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
@@ -4372,6 +4374,69 @@ case_worktree_aShellSuiteLogIsAVerificationRecord() {
   out=$(run_worktree "$p" adopt-item 24 "$green" 2>&1) || fail "the adoption of the shell-suite branch failed: $out"
   assert_contains "$out" "green-case.log" "the adoption names the log as the evidence the branch was checked for"
   [ -f "$p/shell-suite-fix.txt" ] || fail "the adopted change never landed on the base"
+  return 0
+}
+
+case_worktree_theGatesTallyTravelsWithTheChangeItMeasured() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p w tally out gated blocked answered
+  p=$(new_project); w="$p/.pi/worktrees/loop"; tally="$w/app/build/test-results/loop-gate"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  gated="openspec/changes/archive/2026-01-01-fix-the-gate-tally-travels"
+  blocked="openspec/changes/archive/2026-01-02-fix-the-gate-that-did-not-pass"
+  answered="openspec/changes/archive/2026-01-03-fix-a-change-that-answers-for-its-own-gate"
+  red='<testsuite name="red-on-HEAD" tests="3" failures="1" errors="0"></testsuite>'
+
+  # The item the gate measured and passed, whose worker copied nothing: the tally sits in the build output that git
+  # ignores and that the next item's start clears, so the change's evidence held the red record and no green one.
+  run_worktree "$p" start-item 21 the-gate-tally-travels >/dev/null || fail "the first item did not start"
+  mkdir -p "$w/$gated/evidence" "$tally"
+  printf 'archived\n' > "$w/$gated/proposal.md"
+  printf '%s\n' "$red" > "$w/$gated/evidence/red-on-HEAD.xml"
+  printf '<testsuite name="loop-selftest" tests="543" failures="0" errors="0"></testsuite>\n' \
+    > "$tally/demo_suite.sh.xml"
+  printf 'LOOP-GATE-STEP: the-demo-suite — green\nLOOP-GATE: tests=543 failures=0 errors=0 (/)\n' \
+    > "$tally/gate.log"
+  printf 'the fix\n' > "$w/gate-tally-fix.txt"
+  out=$(run_worktree "$p" end-item 21 the-gate-tally-travels 2>&1) || fail "end-item of the gated item failed: $out"
+  [ -f "$w/$gated/evidence/demo_suite.sh.xml" ] ||
+    fail "the gate's tally did not travel with the change it measured: $(ls "$w/$gated/evidence")"
+  [ -f "$w/$gated/evidence/gate.log" ] || fail "the gate's own log did not travel with the change"
+  [ -f "$w/$gated/evidence/red-on-HEAD.xml" ] || fail "the red record the worker wrote was replaced"
+  out=$(run_worktree "$p" branch-state 21 fix/issue-21-the-gate-tally-travels 2>&1)
+  assert_eq "adoptable" "$(printf '%s\n' "$out" | cut -f1)" \
+    "a change whose evidence carries the gate's own tally reads as verified: $out"
+  assert_contains "$out" "demo_suite.sh.xml" "and the state names the tally it read"
+
+  # A gate that did not pass carries nothing: the item is blocked on it, and its red tally is not a proof of anything.
+  run_worktree "$p" start-item 22 the-gate-that-did-not-pass >/dev/null || fail "the second item did not start"
+  mkdir -p "$w/$blocked/evidence"
+  printf 'archived\n' > "$w/$blocked/proposal.md"
+  printf '%s\n' "$red" > "$w/$blocked/evidence/red-on-HEAD.xml"
+  printf '<testsuite name="loop-selftest" tests="543" failures="1" errors="0"></testsuite>\n' \
+    > "$tally/demo_suite.sh.xml"
+  printf 'LOOP-GATE: tests=543 failures=1 errors=0 (/)\n' > "$tally/gate.log"
+  out=$(run_worktree "$p" end-item 22 the-gate-that-did-not-pass 2>&1) || fail "end-item of the blocked item failed: $out"
+  [ ! -e "$w/$blocked/evidence/demo_suite.sh.xml" ] ||
+    fail "a red tally was carried into the change it blocked"
+  assert_eq "archived-not-green" \
+    "$(run_worktree "$p" branch-state 22 fix/issue-22-the-gate-that-did-not-pass 2>/dev/null | cut -f1)" \
+    "a change whose only record is the red one its gate wrote is still not verified"
+
+  # A change that already answers for its own gate is left exactly as it stands: the convention every worker followed
+  # before this was enforced does not become two copies of one tally.
+  run_worktree "$p" start-item 23 a-change-that-answers-for-its-own-gate >/dev/null || fail "the third item did not start"
+  mkdir -p "$w/$answered/evidence"
+  printf 'archived\n' > "$w/$answered/proposal.md"
+  printf '<testsuite name="the-cases-own" tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$w/$answered/evidence/TEST-the-cases-own.xml"
+  printf 'LOOP-GATE: tests=543 failures=0 errors=0 (/)\n' > "$tally/gate.log"
+  out=$(run_worktree "$p" end-item 23 a-change-that-answers-for-its-own-gate 2>&1) ||
+    fail "end-item of the answered item failed: $out"
+  [ ! -e "$w/$answered/evidence/demo_suite.sh.xml" ] ||
+    fail "a change that answers for its own gate had the gate's tally written beside it"
+  [ -f "$w/$answered/evidence/TEST-the-cases-own.xml" ] || fail "the change's own record was removed"
   return 0
 }
 

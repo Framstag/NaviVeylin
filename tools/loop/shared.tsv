@@ -59,7 +59,7 @@ gate_check_programs	lib.sh	state.sh
 gate_command_jq	lib.sh	state.sh
 gate_program	lib.sh	state.sh
 gate_step_text	child.sh	run.sh
-gate_tally_state	lib.sh	evidence.sh run.sh state.sh
+gate_tally_state	lib.sh	evidence.sh run.sh state.sh worktree.sh
 gate_the_kept_work	leftovers.sh	run.sh
 host_free_mib	child.sh	run.sh
 issue	labels.sh	prescreen.sh child.sh evidence.sh leftovers.sh phase.sh report.sh run.sh

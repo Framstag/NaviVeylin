@@ -1,0 +1,4 @@
+# green, at 2026-11-23T08:06:00Z — `tools/loop/tests/loop-selftest.sh --case worktree#theGatesTallyTravelsWithTheChangeItMeasured`
+# (the prefix each line of a case's output carries is dropped here, as the suite prints it once per case)
+PASS worktree#theGatesTallyTravelsWithTheChangeItMeasured
+loop-selftest: 1 of 1 cases passed

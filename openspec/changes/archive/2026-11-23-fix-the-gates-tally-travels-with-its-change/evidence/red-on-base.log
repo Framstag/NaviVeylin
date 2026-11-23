@@ -1,0 +1,7 @@
+# red on the base commit 7da0851f, at 2026-11-23T08:04:55Z — `tools/loop/tests/loop-selftest.sh --case worktree#theGatesTallyTravelsWithTheChangeItMeasured`
+# run with the base commit's own `tools/loop/worktree.sh`, so the case is the only thing the tree did not carry
+worktree#theGatesTallyTravelsWithTheChangeItMeasured|   the gate's tally did not travel with the change it measured: red-on-HEAD.xml
+--- worktree#theGatesTallyTravelsWithTheChangeItMeasured[0] (exit 1)
+  the gate's tally did not travel with the change it measured: red-on-HEAD.xml
+FAIL worktree#theGatesTallyTravelsWithTheChangeItMeasured
+loop-selftest: 1 of 1 cases failed

@@ -1736,7 +1736,19 @@ the run ends on it (#975) — and puts `review-round-<n>-rework-cut.md` beside t
 #788), so `branch-state` reads `rework-cut` — a phase its next attempt resumes, never a question — and the next
 pre-screen offers the item as work with its branch named, `start-item` setting that branch aside. Both readings
 are the same rule: nothing the loop ended itself may arrive at the pre-screen as an item its owner owes an answer
-to, because that answer is a slot of the decision ceiling spent on a question the loop asked itself. A round the
+to, because that answer is a slot of the decision ceiling spent on a question the loop asked itself.
+
+The item's **own** worker is the one cut that is not that phase (issue #1039). #1021 was ended at the worker role's
+recorded turn bound of 200 turns on three consecutive runs and #984 on two, each `result: cut`, `stopReason: bound`,
+`boundKey: LOOP_CHILD_TURNS_MAX_WORKER`, `boundValue: 200`, `merged.sha: null`, 248 and 234 leftover files, 0 commits,
+about 10 min and 0.48 USD — nothing merged, so the tree was still the base and there was nothing to resume: the next
+run started from the base and paid the same 200 turns. That cut says nothing about a phase in flight; it says the item
+does not fit one child, which is the finding the context ceiling already writes as the shaping verdict `too-wide` —
+`status/on-hold` and `agent/needs-shaping` in the one write `labels.sh` makes, its comment opening `too-wide: the item
+wants splitting into children` and naming the bound and the figure it reached — so the item leaves the queue for a
+person to split instead of arriving at the next pre-screen as work. Every other bound keeps the phase reading: the
+child clock, the run's deadline, a review round's turn bound, the gate child's, the tail's and the rework worker of a
+refusing round all leave work the next run resumes at the size it was. A round the
 *transport* cut twice is not this: no bound ended it, so it stays a block with its reason, because nothing about it
 says the item is converging. A round a bound ended is the item's class as well (the run's item #898): its record carries
 `bound` and the key the round reached, `state.sh` prints that pair in the report's `stop` cell as it does for a

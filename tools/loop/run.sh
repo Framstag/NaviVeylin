@@ -2703,10 +2703,28 @@ $review_notes_text"
       # pre-screen asking about them would name the item the run has just recorded — with a question the run answered.
       bound_cut=1
       cut_note="${blocked_reason:-the run ended the phase at a bound}"
-      # A child the run ended says in the item's own note that the attempt is the next run's to resume (issues
-      # #786, #790): the tree it left was mid-phase, so nothing about the item was measured, and a reader of the
-      # state — the next run's pre-screen among them — must not have to derive that from the absence of a label.
-      if [ "$stop_reason" = bound ]; then
+      # A child the run ended says in the item's own note what became of the attempt (issues #786, #790): the tree it
+      # left was mid-phase, so nothing about the item was measured, and a reader of the state — the next run's
+      # pre-screen among them — must not have to derive that from the absence of a label.
+      #
+      # The one cut that is a size finding (issue #1039): the item's *own worker* ended at the turn bound that worker
+      # role enforces, with nothing merged. Nothing was left mid-phase — the tree is still at the base, so the next run
+      # has nothing to resume and pays the same bound on the same item (#1021 three times, #984 twice) — so the finding
+      # is the item's shape, recorded as the context ceiling already records it: the shaping verdict `too-wide`, whose
+      # hold and shaping label keep the item out of the queue until a person reshapes it. The key is the one the child's
+      # own `LOOP-TIMEOUT` line carried, read above; every other bound — the child clock, the run's deadline, a review
+      # round's turn bound, the gate child's, the tail's, the rework worker's — keeps that sentence and the plain unpick,
+      # because each of those leaves a phase the next run resumes at the size it was. The two sentences are exclusive:
+      # a note that said both that the item is held and that it is the next run's to resume is the state this issue
+      # answers, so the size finding's sentence takes the place of the phase one rather than standing beside it.
+      if [ "$stop_reason" = bound ] && [ "$bound_key" = LOOP_CHILD_TURNS_MAX_WORKER ]; then
+        cut_note="$cut_note · the run ended this attempt at the worker's own turn bound with nothing merged, so the item is held as too-wide for a person to reshape rather than handed to the next run"
+        if ! loop_labels too-wide "$issue" \
+          --reason "the item's own worker reached the worker role's turn bound of ${bound_value:-?} turn(s) with nothing merged, so the item does not fit one child: the tree it leaves is the base, and the next run would spend the same bound on it" \
+          --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2; then
+          label_failures="${label_failures:+$label_failures and }the shaping hold"
+        fi
+      elif [ "$stop_reason" = bound ]; then
         cut_note="$cut_note · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about"
       fi
       if [ -n "$leftover_patch" ]; then

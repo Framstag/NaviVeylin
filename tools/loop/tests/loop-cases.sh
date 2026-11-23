@@ -8646,6 +8646,9 @@ case_run_aBoundEndedItemRecordsItsBound() {
     fail "could not record a small turn bound"
   grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" ||
     fail "this case could not shorten the worker's turn bound in loop.conf"
+  # The tracker's writes are recorded, so what the cut leaves on the item is read rather than assumed: the hold this
+  # case asserts is a write the stub refuses when nothing records it (issue #1039).
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   fixture="$d/events.jsonl"
   for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
@@ -8693,6 +8696,27 @@ EOF
   # prints it bare rather than a figure guessed from a neighbouring value.
   assert_contains "$out" "cut short by the run's own bound: #21" \
     "the report names the item the run's bound cut"
+  # A cut at the item's own worker's turn bound is the item's size, not a phase left mid-flight (issue #1039): the tree
+  # is still the base, so there is nothing the next run could resume, and handing the item back as `agent/eligible`
+  # bought the same 200 turns three times on #1021 and twice on #984. The verdict is the one the run's context ceiling
+  # already writes — `too-wide`, its hold and its shaping label in the write `labels.sh` makes.
+  assert_contains "$(cat "$GH_STUB_RECORD")" "--add-label agent/needs-shaping" \
+    "the item is held for a person to reshape, not handed back at the size that just failed"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "--add-label status/on-hold" \
+    "beside the hold that keeps it out of the next run's queue"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "--remove-label agent/in-progress" \
+    "and the in-progress mark comes off, as it does on every exit path"
+  assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is spent on an item whose finding is its size"
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "the hold carries the one comment that names it"
+  assert_contains "$(cat "$GH_STUB_RECORD" "$GH_STUB_RECORD".bodies/* 2>/dev/null)" \
+    "too-wide: the item wants splitting into children" \
+    "and that comment opens with the verdict word, so a reader of the item has the finding before its clause"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "held as too-wide" \
+    "while the item's own note says it was held rather than handed to the next run"
+  assert_not_contains "$(jq -r '.items[0].note' "$state")" "left for the next run" \
+    "and does not also call the attempt the next run's to resume: the two sentences are exclusive, because a note that carried both would be the state this finding exists to replace"
   return 0
 }
 
@@ -22318,15 +22342,20 @@ EOF
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "turn bound of 3 turns" \
     "and the reason on the item carries the count, not only the exit status"
   # …and the cut says *why* it is no question (issues #786, #790): the mechanism is `bound`, so `next` never reads it
-  # as a refusal, no decision label is written for it, and the record itself says the attempt waits for the next run.
+  # as a refusal, no decision label is written for it, and the record itself says what became of the attempt.
   assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
     "the cut records the run's own bound as its mechanism"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "left for the next run rather than asked about" \
-    "and says the attempt is left for the next run"
+  # A worker of the item's own ended at the turn bound its role records is the item's size rather than a phase left
+  # mid-flight (issue #1039): the note says the item is held, and the hold is the shaping verdict's, not a retry-or-
+  # abandon question — so the next run does not start it from the base and spend the same bound again.
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "held as too-wide" \
+    "and says the item is held for a person to reshape, not left for the next run"
   assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
     "no decision label is written for an item the run's own bound ended"
-  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
-    "and no retry-or-abandon comment is written for it"
+  assert_contains "$(cat "$GH_STUB_RECORD")" "--add-label agent/needs-shaping" \
+    "the shaping label is written in place of a decision, because the finding is the item's size"
+  assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "and the one comment is the hold's own statement, not the retry-or-abandon question"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   # The report reads the item off its result alone (issue #790): it is on the run's own bound line and not in the
   # block tally, so no later reader needs the mechanism's vocabulary to tell work from a refusal.

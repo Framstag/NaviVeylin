@@ -2592,6 +2592,14 @@ when the gate result the report claims is not in its tally or a cited result car
 each name one, and the result, the class and the reason SHALL be written in one place, so no arm blocks without a
 class and the class cannot drift from the result it belongs to. `bound` is also the one class an item recorded `cut`
 carries, because the same bound is the phase the next run resumes.
+That holds for the child clock, the run's deadline, a review round's turn bound, the gate child's, the tail's and the
+rework worker of a refusing round. It does **not** hold for the item's own worker ended at the turn bound its
+worker role records with nothing merged (issue #1039): the tree that arm leaves is the base, so there is no phase
+to resume and the next run spends the same bound on the same item — #1021 at 200 turns on three consecutive runs,
+#984 on two — which is why that one cut SHALL write the shaping verdict `too-wide`, `status/on-hold` and
+`agent/needs-shaping` in the write `labels.sh` makes, beside the one comment whose first line is the verdict's
+meaning and whose clause names the bound and the figure it reached, and the item SHALL leave the queue for a
+person to split.
 
 The vocabulary SHALL carry one second home: `unmergeable` SHALL be written beside the pre-screen's exclusion of an
 item whose admissible finished branch the project tree, the base or the replay refused to merge, with the refusal's
@@ -2637,9 +2645,15 @@ own bound into a question its owner owes an answer.
 
 - **WHEN** a child of the item reaches its role's turn bound, outlives the child clock or is ended by the run's
   deadline, and the run ends it
-- **THEN** the item is recorded `cut` with `bound` as its stop reason, its note says the attempt is left for the next
-  run rather than asked about, and no decision label is written for it — the item is work the next run resumes, so it
-  spends no decision slot and stays eligible
+- **THEN** the item is recorded `cut` with `bound` as its stop reason and no decision label is written for it —
+  the item is work the next run resumes, so it spends no decision slot — except when the child is the item's own
+  worker ended at the worker role's recorded turn bound (`LOOP_CHILD_TURNS_MAX_WORKER`) with nothing merged:
+  there the note says the item is held as too-wide for a person to reshape, the run writes the shaping verdict
+  `too-wide` for it (`status/on-hold` and `agent/needs-shaping` in the write `labels.sh` makes) with the one
+  comment whose first line reads `too-wide: the item wants splitting into children` and whose clause names the
+  bound and the figure it reached, and nothing is closed. For every other bound — the child clock, the run's
+  deadline, a round's turn bound, the gate child's, the tail's, the rework worker's — the note says the attempt
+  is left for the next run rather than asked about
 - **Case**: `run#childPastItsTurnBoundIsCut`
 
 #### Scenario: A rework worker the run's bound ended spends no decision slot

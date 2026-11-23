@@ -377,6 +377,7 @@ LOOP_SHELL_CASES=(
   'adapter#theResultBoundExemptsGateEvidence'
   'adapter#theChildIsStartedWithTheItemsLedger'
   'adapter#theChildIsStartedWithTheRepeatReadArm'
+  'adapter#theRecordedRepeatArmIsRefuse'
   'adapter#aPathIsRefusedAfterItsRepeatBound'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
@@ -1217,6 +1218,7 @@ loop_run_shell_case() {
     'adapter#theResultBoundExemptsGateEvidence') fn=case_adapter_theResultBoundExemptsGateEvidence ;;
     'adapter#theChildIsStartedWithTheItemsLedger') fn=case_adapter_theChildIsStartedWithTheItemsLedger ;;
     'adapter#theChildIsStartedWithTheRepeatReadArm') fn=case_adapter_theChildIsStartedWithTheRepeatReadArm ;;
+    'adapter#theRecordedRepeatArmIsRefuse') fn=case_adapter_theRecordedRepeatArmIsRefuse ;;
     'adapter#aPathIsRefusedAfterItsRepeatBound') fn=case_adapter_aPathIsRefusedAfterItsRepeatBound ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
@@ -21905,9 +21907,9 @@ case_repeat_theHookWritesTheItemsLedger() {
   return 0
 }
 
-# The arm a child applies has one home (issue #925): `LOOP_REPEAT_READ` in `tools/loop/loop.conf` — `measure`, the
-# recorded value, or `refuse` — and the adapter exports it into every child it starts, the way it exports the result
-# bound: read, never sourced, so the value a run applied is the value a person can find. A key this rule does not declare,
+# The arm a child applies has one home (issue #925): `LOOP_REPEAT_READ` in `tools/loop/loop.conf` — `refuse`, the
+# recorded value since #976, or `measure` — and the adapter exports it into every child it starts, the way it exports the
+# result bound: read, never sourced, so the value a run applied is the value a person can find. A key this rule does not declare,
 # or none at all, hands the child `measure`, because the arm that serves the read is the one that cannot break a child.
 # The case copies the three files the adapter stands on into a scratch tree so it can edit that tree's own configuration:
 # the recorded arm and the missing key are the same export's two halves.
@@ -21948,6 +21950,22 @@ case_adapter_theChildIsStartedWithTheRepeatReadArm() {
     || fail "the adapter exited non-zero against a configuration that records no arm: $(head -3 "$d/out")"
   assert_eq "measure" "$(cat "$d/env-none.txt" 2>/dev/null || true)" \
     "a configuration that records no arm hands the child measure, the arm that cannot break it"
+  return 0
+}
+
+# The value the file records is the arm that withholds (issue #976). `measure` was the recorded arm while the arm
+# itself existed, and the archive's own number held anyway: 25 to 76 % of every item's file reads were a second read,
+# a median of 66 %, so two thirds of the text a child is handed is text that item already had. A re-read that is
+# needed is not lost — one whose content changed is the child's own edit and is answered with the changed region, and
+# an unchanged one is answered with the earlier turn and line range the notice names — and the arm still gates nothing:
+# it decides what a result is *answered with*, never a verdict. So the recorded value is `refuse`, and `measure`
+# remains the fallback for a value nobody declares and for a project that records none.
+case_adapter_theRecordedRepeatArmIsRefuse() {
+  # files: tools/loop/loop.conf
+  local recorded
+  recorded=$(sed -n 's/^LOOP_REPEAT_READ=["]\{0,1\}\([A-Za-z]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  assert_eq "refuse" "${recorded:-}" \
+    "loop.conf records ${recorded:-nothing} for LOOP_REPEAT_READ, so a second read of a path a child was handed is served by default and the 66 % the rule measured keeps being paid (issue #976)"
   return 0
 }
 
@@ -22061,9 +22079,9 @@ case_repeat_aVerificationReadIsBoundedNotHandedOverWhole() {
 # citation rather than the second read since #246, and over the run behind #925 the children issued 2 987 reads of which
 # 2 167 (72.5 %) were a second read of a path the item had already read, while `#872` alone read four paths 283 to 295
 # times each across 226 turns — a prose rule is not a bound. So a second read of a path **this child** was handed is
-# counted every time, and the arm `LOOP_REPEAT_READ` records decides what it is answered with: `measure`, the recorded
-# value, serves the read and counts it, and `refuse` answers it with the earlier result's line range and a refusal line
-# instead of the text. The rule is per child and lives in the process's own tally, so the case drives the **hook** — the
+# counted every time, and the arm `LOOP_REPEAT_READ` records decides what it is answered with: `refuse`, the recorded
+# value since #976, answers it with the earlier result's line range and a refusal line instead of the text, and `measure`
+# serves the read and counts it. The rule is per child and lives in the process's own tally, so the case drives the **hook** — the
 # one place two reads meet one process; the CLI is a child that reads one path once, whose arm can never fire.
 #
 # Three arms are the same rule's three edges: the counted read under `measure`, the withheld one under `refuse`, and the
@@ -22183,7 +22201,7 @@ case_adapter_aPathIsRefusedAfterItsRepeatBound() {
   exported=$(cat "$d/env.txt" 2>/dev/null || true)
   assert_eq "$bound" "$exported" "the child is handed the count bound the configuration records, not one the adapter chose"
   # One process, one path asked for again and again, and an edit between the reads so the #685 content rule — which converts
-  # a repeat under the recorded `measure` arm — never answers one: this case is about the count, not about the content.
+  # a repeat under the `measure` arm this case drives — never answers one: this case is about the count, not about the content.
   harness="$d/hook.mjs"
   {
     printf '%s\n' 'import { appendFileSync, readFileSync, writeFileSync } from "node:fs";'

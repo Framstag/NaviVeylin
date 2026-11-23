@@ -1417,6 +1417,11 @@ MUTATIONS=(
   '925.9@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the anchor that keeps a replaced repeat out of the count, so the volume a repeat withheld is counted as a read the rule made (issue #925)@s|^  n=\$(grep -c '\''^LOOP-TOOL-RESULT-REPEAT-READ: '\'' "\$file" 2>/dev/null) \|\| true$|  n=$(grep -c '\''LOOP-TOOL-RESULT-REPEAT'\'' "$file" 2>/dev/null) \|\| true|'
   '925.10@-@tools/loop/state.sh@report#theRuleRecordsTheSecondReadsItCounted@the null a record that was never read keeps, so an item whose directory holds no record records a counted zero and the report names a run that counted none (issue #925)@s|repeats_json=null|repeats_json=0|'
   '925.11@-@tools/loop/report.sh@report#theRuleRecordsTheSecondReadsItCounted@the clause that says the figure is the count of the rule, so the trend prints a number naming neither the rule nor what it counted (issue #925)@s|counted by the repeat-read rule|taken as given|'
+  # 976.1 — the arm the configuration records is the one that withholds (issue #976). The two arms and the adapter's
+  # export were already there (#925); what the tree recorded was `measure`, and the archive's own number held at a median
+  # of 66 % of an item's file reads being a second read. The record rewrites the one line back to `measure`, which is
+  # the state the case was written red on, so it proves the case notices the recorded value rather than the arm's code.
+  '976.1@-@tools/loop/loop.conf@adapter#theRecordedRepeatArmIsRefuse@the recorded arm, so the value the file holds is the arm that serves a second read and two thirds of the text a child was handed is text the item already had (issue #976)@s|^LOOP_REPEAT_READ=refuse$|LOOP_REPEAT_READ=measure|'
   # 989.x — the arm bounds what a repeat is answered with, and nothing bounded how often one path may be asked (issue
   # #989): `#943` asked for `.pi/issue-loop/items/943/gate.log` 2 372 times over 245 turns and was ended at the context
   # bound with that one path as the cause, 65 % of the run's duplicate reads. The count bound is the value the adapter reads

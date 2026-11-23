@@ -274,9 +274,10 @@ item holds this content" are two questions — and a second read is always count
 that file into `metrics.repeatReads`, which the report prints in the `reads:` line beside `dupReads` and never as the same
 figure: `dupReads` counts a repeat one **session** had and `repeatReads` one a **child** was handed, so they differ where
 a child other than the first reads a path. The arm is `LOOP_REPEAT_READ` in the configuration's project block, read by
-the adapter and never sourced (D16): `measure`, the recorded value, serves the read and counts it, `refuse` answers it
-with `[LOOP-REPEAT-READ: <path> … lines:1-N (size characters) … ctx_read mode="lines:1-N"]` and no text at all, and a
-word the rule does not declare — or none — is `measure`, so a configuration nobody wrote cannot break a child. A read of
+the adapter and never sourced (D16): `refuse`, the recorded value since #976, answers it with
+`[LOOP-REPEAT-READ: <path> … lines:1-N (size characters) … ctx_read mode="lines:1-N"]` and no text at all, while
+`measure` serves the read and counts it, and a word the rule does not declare — or none — is `measure`, so a
+configuration nobody wrote cannot break a child. A read of
 a path the child was **never handed**, the item's ledger having withheld it, is served under either arm, because a
 refusal naming lines the child does not hold would send it to read what it cannot. The figure keeps the report's two
 kinds of dash apart the way `dupReads` does: a record that was read and holds no second read is `0`, and a state written

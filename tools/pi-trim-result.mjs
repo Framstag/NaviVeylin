@@ -69,10 +69,13 @@
 // paths it has handed over (`repeatReadResult`), a path already in it is a second read **for this child**, and each one
 // goes to the record beside the item's stream as `LOOP-TOOL-RESULT-REPEAT-READ` — from which `tools/loop/state.sh`
 // records `metrics.repeatReads` and `tools/loop/report.sh` prints it. What that read is answered with is the arm
-// `LOOP_REPEAT_READ` records: `measure`, **the recorded default**, counts it and hands the text over, and `refuse`
-// answers it with the earlier result's line range and a `[LOOP-REPEAT-READ: …]` line instead of the text. The default is
-// the arm that serves the read, because withholding a read a child needed costs more than the turn it saves (a repeat
-// after the child's own edit is a verification, which is #685's split and not this rule's to undo).
+// `LOOP_REPEAT_READ` records: `refuse`, **the recorded value since issue #976**, answers it with the earlier result's
+// line range and a `[LOOP-REPEAT-READ: …]` line instead of the text, and `measure` counts it and hands the text over.
+// `refuse` is recorded because the archive's own number held: 25 to 76 % of an item's file reads were a second read, a
+// median of 66 %, so two thirds of the text a child was handed was text that item already had. `measure` is the fallback
+// for a value this file does not understand or a project that records no key, because the arm that cannot break a child
+// is the one nobody wrote — and a repeat after the child's own edit is a verification, which is #685's split and not
+// this rule's to undo.
 //
 // The arm bounds what a read is answered **with**, and nothing bounded how often one path may be asked for (issue #989):
 // #943 read `.pi/issue-loop/items/943/gate.log` 2 372 times over 245 turns, ended at the context bound with that one path
@@ -98,7 +101,8 @@
 //
 // Where the values come from: the bound is `LOOP_TOOL_RESULT_MAX_CHARS` (`tools/loop/loop.conf`, a recorded value;
 // `0` or absent means no bound and no repeat rule of either kind), the arm is `LOOP_REPEAT_READ` (the same file;
-// anything but `refuse` reads as the recorded `measure`), the count bound is `LOOP_REPEAT_READ_REFUSALS` (the same file;
+// `refuse` is the recorded value and anything else reads as `measure`, its fallback), the count bound is
+// `LOOP_REPEAT_READ_REFUSALS` (the same file;
 // `0` or absent means no count bound, so the arm alone answers the read), and the record is `LOOP_TOOL_RESULT_TRIM_RECORD`, which the
 // adapter names beside the child's own event stream so the trim is a fact of the item rather than of the child's
 // memory.
@@ -116,8 +120,8 @@ export function recordedBound(raw) {
 /**
  * The arm `LOOP_REPEAT_READ` records (issue #925): `refuse` withholds a second read of a path this child was handed, and
  * everything else — `measure`, an absent key, a word nobody declared — is `measure`, which counts the read and still
- * hands it over. A rule that withdrew a read a child needed would cost more than the turn it saves, so the arm that
- * cannot break a child is the one a value this file does not understand falls back to.
+ * hands it over. `refuse` is the value `tools/loop/loop.conf` records (issue #976); the fallback is the arm that cannot
+ * break a child, because a configuration nobody wrote must never withdraw a read.
  */
 export function recordedRepeatArm(raw) {
   return String(raw ?? "").trim().toLowerCase() === "refuse" ? "refuse" : "measure";

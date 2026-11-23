@@ -28,9 +28,10 @@ When "map jumps" / "marker wrong" appears, check first:
 12. Overlay projecting against `currentViewport` instead of the displayed frame's viewport? → marker
     misplaced during pan/zoom/rotate gestures; always use `uiState.renderViewport`.
 12a. Pan window applied to the map content but NOT to the map-anchored overlays (or applied twice in
-    follow mode)? → the marker rides off the content. The overlays translate by the SAME clamped
-    display offset the frame is drawn with (`markerDisplayShiftPx`), and not at all in follow mode
-    where the anchor-center projection already carries it.
+    follow mode)? → the marker rides off the content. The overlays project against ONE derived
+    displayed viewport — the frame's own viewport shifted by the SAME clamped display offset the frame
+    is drawn with (`displayedViewportCenter`) — so there is no per-overlay translate left out or
+    applied twice, in follow or in pan.
 12b. Pan tracked by per-event renders instead of the display window? → content moves only when a
     frame lands (50 ms debounce + render), pans inside the overrun margin never move at all, and the
     committed viewport drifts away from the displayed content (a later render then jumps).

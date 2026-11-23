@@ -309,26 +309,40 @@ internal fun followDisplayOffset(
 ): Float = if (followActive && !sessionOwnsViewport) followOffset else panOffset
 
 /**
- * Screen-space translation for the map-anchored overlays in the current display
- * mode (spec: gps-location-marker — Marker projects against displayed bitmap
- * viewport).
+ * The displayed viewport of a frame: the frame's own viewport ([centerLat], [centerLon],
+ * [mag], [angle]) moved by the display offset the frame is drawn with (spec:
+ * smooth-follow — Single resolved anchor across render, blit and marker).
  *
- * The map content is drawn at `center − displayOffset`, so an overlay projected
- * against the frame's own viewport must be translated by the same negated offset to
- * stay on the content it rides. In follow mode the projection already uses the
- * anchor center of the displayed (predicted) position, which carries the drift —
- * translating there as well would apply it twice.
+ * The map content is drawn at `center − displayOffset`, so the geographic point under
+ * the screen center of the drawn frame is the point at `center + displayOffset` in the
+ * frame's own viewport. Handing that viewport to a map-anchored overlay puts the
+ * overlay on the content it rides, in every mode: the follow pipeline feeds this
+ * derivation the frame's anchor-centred viewport, the pan pipeline the committed one,
+ * so the mode selects the input and never between two projections — and no overlay
+ * needs a translation of its own.
  *
- * The [panOffsetX]/[panOffsetY] passed in are the CLAMPED window offsets, so a
- * saturated pan window keeps the overlays on the content that is actually on
- * screen instead of letting them run ahead of it.
+ * The offsets are the CLAMPED window offsets, so a saturated pan window keeps the
+ * overlays on the content that is actually on screen instead of letting them run
+ * ahead of it.
  */
-internal fun markerDisplayShiftPx(
-    followActive: Boolean,
-    panOffsetX: Float,
-    panOffsetY: Float
-): Pair<Float, Float> =
-    if (followActive) 0f to 0f else -panOffsetX to -panOffsetY
+internal fun displayedViewportCenter(
+    centerLat: Double,
+    centerLon: Double,
+    mag: Double,
+    angle: Double,
+    displayOffsetX: Float,
+    displayOffsetY: Float,
+    widthPx: Int,
+    heightPx: Int,
+    dpi: Double
+): Pair<Double, Double> {
+    if (widthPx <= 0 || heightPx <= 0 || dpi <= 0.0) return centerLat to centerLon
+    val frame = ProjectionUtils.viewport(centerLat, centerLon, mag, widthPx, heightPx, dpi, angle)
+    return frame.screenToGeoRotated(
+        widthPx / 2.0 + displayOffsetX.toDouble(),
+        heightPx / 2.0 + displayOffsetY.toDouble()
+    )
+}
 
 /**
  * Copy of an [ImageBitmap] for the render-completion crossfade: the original

@@ -40,7 +40,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.core.ProjectionUtils
-import com.naviveylin.core.anchorCenter
 import kotlin.math.abs
 
 
@@ -124,6 +123,42 @@ internal fun BoxScope.MapCanvasMapBandContent(
         }
 
         else -> {
+            // Display offset of the frame currently on screen: the follow-mode
+            // prediction drift in follow mode, the pan overrun window otherwise
+            // (spec: canvas-overrun — Overrun window shift for pan). Exactly one
+            // of the two is non-zero: a pan disengages follow mode, and the
+            // follow display loop resets its offsets whenever follow is off.
+            //
+            // A route-planning session that holds the camera (spec:
+            // `route-planning-session` — Session holds the camera while active) draws
+            // with **no** offset: the session's fits (route overview, analysed segment)
+            // place the content in the free area by the viewport alone, so a follow
+            // drift offset of up to the overrun margin (240 px here) would shift the
+            // drawn frame and the overlays away from what the fit computed — the
+            // analysed leg looked centred in the model and sat off-centre/clipped at
+            // the bottom or a side on the device (owner finding, 2026-10-03).
+            val sessionOwnsViewport = viewModel.sessionHoldsCamera()
+            val displayOffsetX = followDisplayOffset(
+                followActiveState.value, sessionOwnsViewport, followOffsetXState.value, panOffsetXState.value
+            )
+            val displayOffsetY = followDisplayOffset(
+                followActiveState.value, sessionOwnsViewport, followOffsetYState.value, panOffsetYState.value
+            )
+            // The ONE displayed viewport of that frame, handed to both overlays below:
+            // the frame's own viewport moved by the offset the frame is drawn with
+            // (spec: smooth-follow — A pan offset lands the overlay on the frame's own
+            // shift). The mode selects this derivation's input — the anchor-centred
+            // viewport in follow, the committed one in pan — never the projection.
+            val displayedViewport = state.renderViewport?.let { frame ->
+                val (lat, lon) = displayedViewportCenter(
+                    frame.lat, frame.lon, frame.mag, frame.angle,
+                    displayOffsetX, displayOffsetY,
+                    canvasSizeState.value.width, canvasSizeState.value.height,
+                    context.resources.displayMetrics.densityDpi.toDouble()
+                )
+                MapRenderer.RenderViewport(lat, lon, frame.mag, frame.angle)
+            }
+
             // Map canvas with gesture handling
             // Single pointerInput block handles all gestures to avoid conflicts
             Canvas(
@@ -553,28 +588,6 @@ internal fun BoxScope.MapCanvasMapBandContent(
 
                 drawRect(color = surfaceColor)
 
-                // Display offset of the frame currently on screen: the follow-mode
-                // prediction drift in follow mode, the pan overrun window otherwise
-                // (spec: canvas-overrun — Overrun window shift for pan). Exactly one
-                // of the two is non-zero: a pan disengages follow mode, and the
-                // follow display loop resets its offsets whenever follow is off.
-                //
-                // A route-planning session that holds the camera (spec:
-                // `route-planning-session` — Session holds the camera while active) draws
-                // with **no** offset: the session's fits (route overview, analysed segment)
-                // place the content in the free area by the viewport alone, so a follow
-                // drift offset of up to the overrun margin (240 px here) would shift the
-                // drawn frame and the overlays away from what the fit computed — the
-                // analysed leg looked centred in the model and sat off-centre/clipped at
-                // the bottom or a side on the device (owner finding, 2026-10-03).
-                val sessionOwnsViewport = viewModel.sessionHoldsCamera()
-                val displayOffsetX = followDisplayOffset(
-                    followActiveState.value, sessionOwnsViewport, followOffsetXState.value, panOffsetXState.value
-                )
-                val displayOffsetY = followDisplayOffset(
-                    followActiveState.value, sessionOwnsViewport, followOffsetYState.value, panOffsetYState.value
-                )
-
                 state.renderedBitmap?.let { bitmap ->
                     // Overrun frame: drawn at natural size, positioned by the
                     // display offset within the overrun margin.
@@ -611,14 +624,9 @@ internal fun BoxScope.MapCanvasMapBandContent(
                     polylineLats = routeState.routeEntry?.latitudes,
                     polylineLons = routeState.routeEntry?.longitudes,
                     segment = routeState.analysedSegment,
-                    viewport = state.renderViewport,
+                    viewport = displayedViewport,
                     dpi = context.resources.displayMetrics.densityDpi.toDouble(),
                     dark = state.isDarkPresentation,
-                    modifier = Modifier.graphicsLayer {
-                        val shift = markerDisplayShiftPx(followActiveState.value, panOffsetXState.value, panOffsetYState.value)
-                        translationX = shift.first
-                        translationY = shift.second
-                    },
                     zoomScale = zoomAnimScaleState.value,
                     zoomAnchor = zoomAnchorState.value
                 )
@@ -635,54 +643,19 @@ internal fun BoxScope.MapCanvasMapBandContent(
                 // centered on the same position so the marker lands on the road.
                 val markerLat = if (followActiveState.value) followDisplayLatState.value else state.gpsMarkerLat
                 val markerLon = if (followActiveState.value) followDisplayLonState.value else state.gpsMarkerLon
-                // The marker projects against the displayed bitmap's viewport. In
-                // follow mode that viewport is the anchor center of the DISPLAYED
-                // (eased predicted) position — the frame itself is anchor-centered
-                // on its own position and then blitted by the drift (spec:
-                // smooth-follow — Anchor-centered follow framing), so this is the one
-                // projection that lands the marker on the map content it rides at the
-                // anchor instead of ahead of it by the blit offset (spec:
-                // gps-location-marker — Marker projects against displayed bitmap
-                // viewport).
-                val markerViewport = if (followActiveState.value) {
-                    val shown = state.renderViewport
-                    // Anchor fraction = the value the ViewModel resolved against
-                    // the VISIBLE map area (spec: smooth-follow — visible-area
-                    // scenarios); a second derivation here would break the
-                    // marker/content alignment on surfaces with overlays.
-                    val (aLat, aLon) = anchorCenter(
-                        markerLat, markerLon,
-                        state.resolvedAnchor.fx, state.resolvedAnchor.fy,
-                        shown?.mag ?: 0.0, canvasSizeState.value.width, canvasSizeState.value.height,
-                        context.resources.displayMetrics.densityDpi.toDouble(),
-                        shown?.angle ?: 0.0
-                    )
-                    MapRenderer.RenderViewport(
-                        aLat, aLon,
-                        shown?.mag ?: 0.0, shown?.angle ?: 0.0
-                    )
-                } else {
-                    state.renderViewport
-                }
+                // The marker projects against the frame's ONE displayed viewport
+                // derived above (spec: smooth-follow — A pan offset lands the overlay
+                // on the frame's own shift): the follow input is the frame's own
+                // anchor-centred viewport, the pan input the committed one, so the
+                // offset is applied once in both modes and no overlay carries a
+                // translate of its own.
                 LocationMarkerOverlay(
                     lat = markerLat,
                     lon = markerLon,
                     bearing = state.gpsMarkerBearing,
                     accuracy = state.gpsMarkerAccuracy,
-                    viewport = markerViewport,
+                    viewport = displayedViewport,
                     dpi = context.resources.displayMetrics.densityDpi.toDouble(),
-                    modifier = Modifier.graphicsLayer {
-                        // The map content is drawn shifted by the pan display
-                        // offset, so the overlays must be shifted by the same
-                        // value — the marker can never drift off the content it
-                        // rides (spec: gps-location-marker — Marker projects
-                        // against displayed bitmap viewport). In follow mode the
-                        // anchor-center projection already carries the drift, so
-                        // translating there would apply it twice.
-                        val shift = markerDisplayShiftPx(followActiveState.value, panOffsetXState.value, panOffsetYState.value)
-                        translationX = shift.first
-                        translationY = shift.second
-                    },
                     zoomScale = zoomAnimScaleState.value,
                     zoomAnchor = zoomAnchorState.value,
                     dark = state.isDarkPresentation,

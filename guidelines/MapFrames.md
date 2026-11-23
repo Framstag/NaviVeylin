@@ -44,11 +44,17 @@ displayedCenter   follow: anchorCenter(displayPos, resolvedAnchor)  |  pan: live
 OverrunWindow.shiftPx(displayedCenter, frameViewport, …, anchor = center)
       │  rotated delta (dx*cos − dy*sin, dx*sin + dy*cos), clamped to the overrun margin
       ├── drawFrontFrame draws the frame at baseCenter − displayOffset
-      └── map-anchored overlays translate by (follow ? 0 : −displayOffset)
+      └── map-anchored overlays project against the derived displayed viewport
+          (frame viewport shifted by displayOffset — no per-overlay translate)
 ```
 
 - The offset MUST be rotated by the viewport angle. Without rotation, a shift at -40° map angle
   moves the content horizontally by up to `sin(40°) × move` wrongly.
+- **Rule: One displayed viewport per frame.** Map-anchored overlays do not translate; they project
+  against the viewport derived from the frame's own viewport and the clamped offset
+  (`displayedViewportCenter`). The mode selects the derivation's INPUT — the anchor-centred viewport in
+  follow, the committed one in pan — never between two projections, so follow and pan cannot disagree
+  about where an overlay goes, and no overlay carries a `graphicsLayer` shift of its own.
 - **Rule: The overrun margin is never negative.** A frame that offers no overrun margin on an axis — for
   example a frame that still carries the previous orientation right after a rotation while the canvas
   already has the new one — yields a ZERO offset on that axis, reported as clamped

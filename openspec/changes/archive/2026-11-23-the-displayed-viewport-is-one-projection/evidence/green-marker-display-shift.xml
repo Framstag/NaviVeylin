@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MarkerDisplayShiftTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-23T11:09:00.502Z" hostname="dingens" time="0.01">
+  <properties/>
+  <testcase name="theModeTestHelperIsRetired" classname="com.naviveylin.ui.map.MarkerDisplayShiftTest" time="0.005"/>
+  <testcase name="theOverlayShiftIsTheFramesShift" classname="com.naviveylin.ui.map.MarkerDisplayShiftTest" time="0.003"/>
+  <testcase name="theDerivationDoesNotBranchOnTheMode" classname="com.naviveylin.ui.map.MarkerDisplayShiftTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

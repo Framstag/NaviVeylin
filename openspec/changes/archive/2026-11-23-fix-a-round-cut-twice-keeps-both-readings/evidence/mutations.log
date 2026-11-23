@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 457 records (labels: 987.1 987.2 987.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.zWmE8q
+RED    987.1  run#aRoundCutTwiceKeepsBothReadingsFindings   (the note that names the findings file to the caller, so the item state and the report resume line carry no account of the two readings the run paid for (issue #987))
+       2026-11-23T16:11:46Z — case log line 1: the item's own note names the file, so the caller learns it exists: 'review-findings.md' not found in: the run ended the pre-gate reviewer at one of its spend bounds — the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_M
+restore 987.1 run#aRoundCutTwiceKeepsBothReadingsFindings green again
+RED    987.2  run#aRoundCutTwiceKeepsBothReadingsFindings   (the write of the two readings, so the run spends a second session on the round and keeps neither reading anywhere (issue #987))
+       2026-11-23T16:11:58Z — case log line 1: the two readings' findings were not kept as the item's evidence: no /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.BPvvCa/cases/0/tree/case.6KMvz4/repo/.pi/issue-loop/items/21/review-findings.md
+restore 987.2 run#aRoundCutTwiceKeepsBothReadingsFindings green again
+RED    987.3  run#aRoundCutTwiceKeepsBothReadingsFindings   (the predicate that reads a restart off the report own name, so the second bound is recorded as the item cut and the two readings behind it are dropped (issue #987))
+       2026-11-23T16:12:12Z — case log line 1: the two readings' findings were not kept as the item's evidence: no /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.k9h9Nl/cases/0/tree/case.pL6SQT/repo/.pi/issue-loop/items/21/review-findings.md
+restore 987.3 run#aRoundCutTwiceKeepsBothReadingsFindings green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

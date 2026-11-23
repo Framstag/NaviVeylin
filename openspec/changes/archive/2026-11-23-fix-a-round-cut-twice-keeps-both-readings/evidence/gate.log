@@ -1,0 +1,1813 @@
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: e3a5afd8 (from --base)
+LOOP-GATE-TREE: head=b250d6c66ac4d25980c59bdc1c1f2b0617f96ac2 diff=91f84710a6916495
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=784248
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach — 19s
+gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/loop/tests/loop-selftest.sh --from-git e3a5afd8
+loop-selftest: selected 545 of 545 cases (files: tools/loop/events.tsv tools/loop/evidence.sh tools/loop/layout.tsv tools/loop/run.sh tools/loop/shared.tsv tools/loop/tests/loop-cases.sh tools/loop/tests/loop-mutations.sh)
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#aDeadOwnersLockIsTakenOver
+state#recordsTheBaseBranchNotTheCheckout| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+state#recordsTheBaseBranchNotTheCheckout| HEAD ist jetzt bei 1b3d335 a change landed on main
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#baseBranchIsAConfigurationKey
+PASS state#initAnnouncesARunWithoutAStop
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#recordsTheBaseBranchNotTheCheckout
+PASS state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
+PASS state#initAndShowRoundTrips
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+state#aBlockAtTheRunsBoundIsNoRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#initKeepsTheStateItReplaces
+PASS state#defaultsComeFromLoopConf
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+PASS state#theStreakIsTheRecordedCount
+PASS state#agentCommandRefusesAnEmptyValue
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#doneRecordsTheCommitItLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/14/tree/case.TKYSlD/repo/.pi/issue-loop/runs/2026-11-23T18:10:21Z.json
+PASS state#aBlockAtTheRunsBoundIsNoRefusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.J6LR9I/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (a477c2c1088196ba → 0cec19be6da96632); a field was edited outside this script
+PASS state#doneRecordsTheCommitItLanded
+PASS state#theLandingScoreIsReadOnceAndStored
+PASS state#aLandingWithNoRunIsUnscored
+PASS state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#aCloseOverARedGateRecordsWhyItWasWaived
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#nextHonoursEveryStopCondition| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+state#floorIsDerivedFromTheFinishedItemsWallTimes| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+PASS state#aCloseOverARedGateWithoutAWaiverIsRefused
+state#projectKeysAreReadFromLoopConf| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181029')
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei c58e585 init
+PASS prescreen#missingPathIsReportedNotRefused
+state#projectKeysAreReadFromLoopConf| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS state#nextHonoursEveryStopCondition
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+PASS prescreen#refusesReservedLabelInSelection
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+prescreen#aRefusedClassStillStopsTheScreen| stub gh: recorded `gh issue edit`
+prescreen#aRefusedClassStillStopsTheScreen| exclude-feature #25
+PASS prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#aBlockedCandidateWaitsForItsPredecessor
+PASS prescreen#settledItemIsDropped
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#deviceItemIsAVerdictNotWork
+prescreen#landedBranchIsNotADecision| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.sdoWPg/repo/.pi/issue-loop/runs/2026-11-23T18:10:37Z.json
+PASS prescreen#readsTheVerdictsFromTheProfile
+PASS prescreen#theRunHoldsWhatItsBlockedItemShares
+prescreen#anEmptyBlockedVerdictBlocksNothing| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/13/tree/case.0xotny/repo/.pi/issue-loop/runs/2026-11-23T18:10:33Z.json
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (c8e2c99)
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (acca4ef)
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei acca4ef review: 2026-01-01-fix-demo round 1 passed (#21)
+state#projectKeysAreReadFromLoopConf| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war acca4ef).
+state#projectKeysAreReadFromLoopConf| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#anEmptyBlockedVerdictBlocksNothing
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aBlockedAttemptBranchIsWork
+PASS prescreen#landedBranchIsNotADecision
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+PASS prescreen#theQueueIsWrittenInRankOrder
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#projectKeysAreReadFromLoopConf| closed #21 (completed)
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+state#projectKeysAreReadFromLoopConf|   landing #21 acca4ef5af8bb9ac281a5458fd0bcc423f336edb: unscored — the pipeline runs of this commit could not be read
+PASS prescreen#aPinnedItemLeadsTheQueue
+PASS state#theReworkRoundIsARoleOfItsOwn
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+state#projectKeysAreReadFromLoopConf| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+state#projectKeysAreReadFromLoopConf|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#aContainerTypeIsNotWork
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS evidence#scansWhatTheProfileNames
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+state#projectKeysAreReadFromLoopConf| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#seedsAllFourInputs| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#seedsAllFourInputs| HEAD ist jetzt bei 97209b4 init
+PASS worktree#seedsAllFourInputs
+PASS state#aRolesOwnCommandStartsOnlyThatRolesChild
+PASS state#secondRunRefusesWithExit5
+PASS state#projectKeysAreReadFromLoopConf
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
+PASS state#agentCommandIsTheOnlyIndirection
+worktree#oneBranchPerItemOffTheBase| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#oneBranchPerItemOffTheBase| HEAD ist jetzt bei 48d5995 init
+PASS prescreen#aProfileWithNoPinPinsNothing
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+worktree#refusesWhenMainAdvanced| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+PASS prescreen#oneUnreadableCandidateDoesNotStopTheScreen
+worktree#refusesWhenMainAdvanced| HEAD ist jetzt bei ae780fa init
+PASS worktree#placesAPinOnlyTheRootCheckoutHolds
+PASS worktree#checksOutTheNewPinWhenItReusesTheWorktree
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| HEAD ist jetzt bei ae780fa init
+worktree#refusesWhenMainAdvanced| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS prescreen#anUnansweredTrackerIsNotAnEmptyQueue
+worktree#reusesABranchWhoseWorkAlreadyLanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchWhoseWorkAlreadyLanded| HEAD ist jetzt bei 9f5f73b init
+PASS prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim
+worktree#refusesABranchCarryingAPreviousAttempt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesABranchCarryingAPreviousAttempt| HEAD ist jetzt bei 9f5f73b init
+worktree#oneBranchPerItemOffTheBase| Zu neuem Branch 'fix/issue-22-other' gewechselt
+PASS worktree#refusesWhenMainAdvanced
+worktree#reusesABranchWhoseWorkAlreadyLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.U25qNh/repo/.pi/issue-loop/runs/2026-11-23T18:10:57Z.json
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#oneBranchPerItemOffTheBase
+PASS state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo
+worktree#setsAsideABlockedAttemptAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideABlockedAttemptAndStartsFresh| HEAD ist jetzt bei 699e180 init
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/14/tree/case.J61l5R/repo/.pi/issue-loop/runs/2026-11-23T18:10:57Z.json
+worktree#refusesABranchCarryingAPreviousAttempt| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+worktree#setsAsideABlockedAttemptAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#reusesABranchWhoseWorkAlreadyLanded
+PASS worktree#refusesABranchWhoseReviewFailed
+worktree#refusesToMergeOverADirtyProjectTree| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+worktree#refusesToMergeOverADirtyProjectTree| HEAD ist jetzt bei 7f70ec9 init
+PASS worktree#aRepairedRefusalDoesNotKeepALandedBranch
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| HEAD ist jetzt bei f7b3670 init
+PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
+worktree#refusesToMergeOverADirtyProjectTree| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theLandingDecidesByTheReadingItIsHanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#theLandingDecidesByTheReadingItIsHanded| HEAD ist jetzt bei f7b3670 init
+PASS worktree#setsAsideABlockedAttemptAndStartsFresh
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| HEAD ist jetzt bei f7b3670 init
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theLandingDecidesByTheReadingItIsHanded| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theNamedChangeIsCopiedIntoTheItem| change add-prepared-change copied into the worktree for #31 (4 file(s), 32768 B) — source openspec/changes/add-prepared-change
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#theNamedChangeIsCopiedIntoTheItem| Zu neuem Branch 'fix/issue-31-a-prepared-change' gewechselt
+PASS worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved
+PASS worktree#aMissingChangeRefusesTheItem
+PASS worktree#aSetAsideBranchWhosePatchesLandedIsRemoved
+PASS prescreen#refusalLeavesATraceInTheTracker
+PASS worktree#refusesToMergeOverADirtyProjectTree
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+PASS worktree#theNamedChangeIsCopiedIntoTheItem
+worktree#keepsByDefaultAndRemovesOnRequest| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181104')
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei ae780fa init
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| HEAD ist jetzt bei 84d0b65 init
+PASS worktree#theLandingDecidesByTheReadingItIsHanded
+worktree#keepsByDefaultAndRemovesOnRequest| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS worktree#aShellSuiteLogIsAVerificationRecord
+PASS worktree#refusesToMergeIntoATreeOffTheBaseBranch
+worktree#anIdeBuildDirectoryDoesNotBlockTheMerge| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181104')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei ae780fa init
+worktree#theGatesTallyTravelsWithTheChangeItMeasured| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#theGatesTallyTravelsWithTheChangeItMeasured| HEAD ist jetzt bei 115e1b1 init
+worktree#aTrackedEditStillBlocksTheMerge| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#aTrackedEditStillBlocksTheMerge| HEAD ist jetzt bei 2924fc9 chore: a tracked file the ignore list would match
+worktree#noPushWithoutTheFlag| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#theGatesTallyTravelsWithTheChangeItMeasured| Zu neuem Branch 'fix/issue-21-the-gate-tally-travels' gewechselt
+PASS worktree#anIdeBuildDirectoryDoesNotBlockTheMerge
+worktree#aTrackedEditStillBlocksTheMerge| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#aTrackedEditStillBlocksTheMerge
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#theGatesTallyTravelsWithTheChangeItMeasured| Zu neuem Branch 'fix/issue-22-the-gate-that-did-not-pass' gewechselt
+PASS state#anItemsClassSelectsTheWorkerCommand
+PASS prescreen#aTierAItemPassesUnchanged
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#theGatesTallyTravelsWithTheChangeItMeasured| Zu neuem Branch 'fix/issue-23-a-change-that-answers-for-its-own-gate' gewechselt
+PASS worktree#theGatesTallyTravelsWithTheChangeItMeasured
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (66359a6)
+PASS prescreen#aChangeThatIsNoLongerReadyIsRefused
+prompt#aTierAItemSaysSo| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181113')
+prompt#aTierAItemSaysSo| HEAD ist jetzt bei 115e1b1 init
+PASS prescreen#aClosedItemIsNotSelected
+PASS prescreen#anIssueTwoOpenChangesNameIsRefused
+prompt#aTierAItemSaysSo| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#keepsByDefaultAndRemovesOnRequest| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a060f0b)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6463941)
+PASS labels#neverWritesReservedLabel
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (21a8bf7)
+worktree#keepsByDefaultAndRemovesOnRequest| HEAD ist jetzt bei a060f0b review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#keepsByDefaultAndRemovesOnRequest| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a060f0b).
+worktree#keepsByDefaultAndRemovesOnRequest| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei 21a8bf7 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 21a8bf7).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#aTierAItemSaysSo| stub gh: recorded `gh issue edit`
+PASS labels#holdCarriesItsReason
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| closed #21 (completed)
+prompt#aTierAItemSaysSo| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a0740f8)
+worktree#keepsByDefaultAndRemovesOnRequest|   landing #21 a060f0b1103df1e194991a158620a492c175db7d: unscored — the pipeline runs of this commit could not be read
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+prompt#aTierAItemSaysSo| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2b2ca3b)
+worktree#noPushWithoutTheFlag|   landing #21 21a8bf7d23d7e551ba672915b55e259810bb476b: unscored — the pipeline runs of this commit could not be read
+labels#writesOnlyBetweenChildren| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181124')
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei c5323a0 init
+labels#writesOnlyBetweenChildren| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS labels#closeRemovesTheDecisionLabel
+prompt#aTierAItemSaysSo| HEAD ist jetzt bei 2b2ca3b review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#aTierAItemSaysSo| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2b2ca3b).
+prompt#aTierAItemSaysSo| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+prompt#aTierAItemSaysSo| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+worktree#noPushWithoutTheFlag| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS worktree#pushSkipsABranchItAlreadyMerged
+PASS worktree#keepsSourcesNotBuildOutput
+prompt#aTierAItemSaysSo| stub gh: recorded `gh issue edit`
+prompt#aTierAItemSaysSo| closed #21 (completed)
+PASS worktree#noPushWithoutTheFlag
+PASS labels#closeRemovesTheShapingLabel
+PASS labels#trapRemovesInProgressOnSignal
+prompt#aTierAItemSaysSo|   landing #21 2b2ca3b4e0c752035ec8b1b32cdc3379a3a8171d: unscored — the pipeline runs of this commit could not be read
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a8c43e0)
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (bcac420)
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei bcac420 review: 2026-01-01-fix-demo round 1 passed (#21)
+labels#writesOnlyBetweenChildren| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war bcac420).
+labels#writesOnlyBetweenChildren| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#aTierAItemSaysSo| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#aTierAItemSaysSo|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aForkTheChangeDoesNotAnswerIsNamed
+PASS labels#closeNamesTheSettledTransition
+PASS run#aChangeWhosePremiseMovedIsNotRePlanned
+worktree#keepsByDefaultAndRemovesOnRequest| Zu neuem Branch 'loop-20261123-181139' gewechselt
+prompt#aTierAItemSaysSo| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS labels#closeRefusesACommitTheBaseDoesNotCarry
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS prompt#aTierAItemSaysSo
+PASS prompt#thePackageCarriesTheChange
+PASS run#aTierBItemWritesNoSecondChange
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| closed #21 (completed)
+PASS run#aVerdictOutsideTheListWritesNoLabel
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren|   landing #21 bcac4202e504e2d8607bdf00da5ff89a24b2d06f: unscored — the pipeline runs of this commit could not be read
+PASS run#aShapingVerdictWritesTheLabel
+PASS run#theShapingInboxDoesNotCountAgainstTheCeiling
+PASS labels#verdictToLabelMatrix
+PASS clean#aConsumedChangeIsReported
+PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
+PASS clean#aSecondRunFindsNothing
+PASS prompt#iterationProtocolNamesTheChangeSurface
+prompt#workerNamesEveryPhaseAndSkill| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181146')
+prompt#workerNamesEveryPhaseAndSkill| HEAD ist jetzt bei e870505 init
+labels#writesOnlyBetweenChildren| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+labels#writesOnlyBetweenChildren|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerCarriesTheFeaturePath| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181147')
+prompt#workerCarriesTheFeaturePath| HEAD ist jetzt bei df1bbea init
+prompt#workerNamesEveryPhaseAndSkill| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+prompt#workerCarriesTheFeaturePath| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesTheDecisionField| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181148')
+prompt#workerNamesTheDecisionField| HEAD ist jetzt bei 3257dad init
+prompt#workerNamesTheDecisionField| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerGradesItsOwnDiffBeforeItReports| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181148')
+prompt#workerGradesItsOwnDiffBeforeItReports| HEAD ist jetzt bei 3257dad init
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| unpick #21
+prompt#workerTreatsARecordedDecisionAsSettled| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181149')
+labels#writesOnlyBetweenChildren| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerTreatsARecordedDecisionAsSettled| HEAD ist jetzt bei 829b606 init
+prompt#workerGradesItsOwnDiffBeforeItReports| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerTreatsARecordedDecisionAsSettled| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerCarriesTheEightItems| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181150')
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei a8466a6 init
+prompt#workerNamesEveryPhaseAndSkill| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS labels#writesOnlyBetweenChildren
+PASS prompt#theGatePromptNamesTheWallAndTheWayThrough
+prompt#workerCarriesTheFeaturePath| stub gh: recorded `gh issue edit`
+PASS prompt#aValueArrivesAsTheTextItWasHanded
+prompt#reviewerIsBoundedToReading| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181151')
+prompt#reviewerIsBoundedToReading| HEAD ist jetzt bei 940e4b7 init
+prompt#reviewerIsBoundedToReading| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+worktree#keepsByDefaultAndRemovesOnRequest| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheDecisionField| stub gh: recorded `gh issue edit`
+worktree#keepsByDefaultAndRemovesOnRequest| commented on #21 (left open)
+worktree#keepsByDefaultAndRemovesOnRequest| escalate #21
+prompt#workerGradesItsOwnDiffBeforeItReports| stub gh: recorded `gh issue edit`
+prompt#workerTreatsARecordedDecisionAsSettled| stub gh: recorded `gh issue edit`
+PASS run#preflightRefusalStopsBeforeAnyWork
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181154')
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei 1fd2cd9 init
+prompt#packageIsAFileAndNotInlined| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181154')
+prompt#packageIsAFileAndNotInlined| HEAD ist jetzt bei 56e7c84 init
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181154')
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| HEAD ist jetzt bei 56e7c84 init
+prompt#packageIsAFileAndNotInlined| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerIsBoundedToReading| stub gh: recorded `gh issue edit`
+prompt#workerNamesEveryPhaseAndSkill| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a8e377c)
+prompt#thePhasePromptNamesWhatItsShellRefuses| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181156')
+prompt#thePhasePromptNamesWhatItsShellRefuses| HEAD ist jetzt bei f71bd1a init
+prompt#workerCarriesTheFeaturePath| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (502bcc7)
+prompt#thePhasePromptNamesWhatItsShellRefuses| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerNamesEveryPhaseAndSkill| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a63b58d)
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesTheDecisionField| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (c1c3a2f)
+prompt#workerCarriesTheFeaturePath| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c959731)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#workerGradesItsOwnDiffBeforeItReports| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6725ef2)
+prompt#workerTreatsARecordedDecisionAsSettled| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (8fd395c)
+prompt#workerNamesTheDecisionField| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (fb13d06)
+prompt#workerNamesEveryPhaseAndSkill| HEAD ist jetzt bei a63b58d review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesEveryPhaseAndSkill| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a63b58d).
+prompt#packageIsAFileAndNotInlined| stub gh: recorded `gh issue edit`
+prompt#workerNamesEveryPhaseAndSkill| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| stub gh: recorded `gh issue edit`
+prompt#workerCarriesTheFeaturePath| HEAD ist jetzt bei c959731 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerCarriesTheFeaturePath| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c959731).
+prompt#workerCarriesTheFeaturePath| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d4022bd)
+PASS run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen
+prompt#workerGradesItsOwnDiffBeforeItReports| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (7f7c3dc)
+prompt#workerTreatsARecordedDecisionAsSettled| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (353e9ed)
+worktree#keepsByDefaultAndRemovesOnRequest| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerNamesTheDecisionField| HEAD ist jetzt bei fb13d06 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesTheDecisionField| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war fb13d06).
+prompt#workerNamesTheDecisionField| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#thePhasePromptNamesWhatItsShellRefuses| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c0b9720)
+prompt#reviewerIsBoundedToReading| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4f76c2b)
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+prompt#workerGradesItsOwnDiffBeforeItReports| HEAD ist jetzt bei 7f7c3dc review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerTreatsARecordedDecisionAsSettled| HEAD ist jetzt bei 353e9ed review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerGradesItsOwnDiffBeforeItReports| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 7f7c3dc).
+prompt#workerGradesItsOwnDiffBeforeItReports| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerTreatsARecordedDecisionAsSettled| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 353e9ed).
+prompt#workerTreatsARecordedDecisionAsSettled| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#reviewerIsBoundedToReading| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (42415dc)
+prompt#workerNamesEveryPhaseAndSkill| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| HEAD ist jetzt bei c0b9720 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerCarriesTheEightItems| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c0b9720).
+prompt#reviewerCarriesTheEightItems| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerCarriesTheFeaturePath| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (66eefb2)
+prompt#workerNamesTheDecisionField| stub gh: recorded `gh issue edit`
+prompt#reviewerIsBoundedToReading| HEAD ist jetzt bei 42415dc review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerIsBoundedToReading| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 42415dc).
+prompt#reviewerIsBoundedToReading| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#packageIsAFileAndNotInlined| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (40746d4)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (40746d4)
+prompt#workerTreatsARecordedDecisionAsSettled| stub gh: recorded `gh issue edit`
+prompt#workerGradesItsOwnDiffBeforeItReports| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (99f48e0)
+prompt#workerNamesEveryPhaseAndSkill| stub gh: recorded `gh issue edit`
+prompt#workerNamesEveryPhaseAndSkill| closed #21 (completed)
+prompt#packageIsAFileAndNotInlined| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f53ea70)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c1f99fe)
+prompt#workerCarriesTheFeaturePath| stub gh: recorded `gh issue edit`
+prompt#workerCarriesTheFeaturePath| closed #21 (completed)
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#thePhasePromptNamesWhatItsShellRefuses| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ff87e03)
+PASS run#aDirtyProjectTreeIsRefusedBeforeThePreScreen
+prompt#workerNamesEveryPhaseAndSkill|   landing #21 a63b58dcf20adac2c46df09f7cc28b13ffd01d21: unscored — the pipeline runs of this commit could not be read
+PASS worktree#publishesTheBaseItLandedOn
+prompt#workerNamesTheDecisionField| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei 99f48e0 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 99f48e0).
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerNamesTheDecisionField| closed #21 (completed)
+prompt#workerCarriesTheFeaturePath|   landing #21 c959731680ad7e807a06e82052b727928b461bbc: unscored — the pipeline runs of this commit could not be read
+prompt#packageIsAFileAndNotInlined| HEAD ist jetzt bei f53ea70 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#packageIsAFileAndNotInlined| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f53ea70).
+prompt#packageIsAFileAndNotInlined| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| HEAD ist jetzt bei c1f99fe review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c1f99fe).
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#thePhasePromptNamesWhatItsShellRefuses| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1684cc5)
+prompt#reviewerIsBoundedToReading| stub gh: recorded `gh issue edit`
+prompt#workerTreatsARecordedDecisionAsSettled| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheDecisionField|   landing #21 fb13d06e50984b855ecf2a0369332d77efadaac0: unscored — the pipeline runs of this commit could not be read
+prompt#workerTreatsARecordedDecisionAsSettled| closed #21 (completed)
+prompt#workerGradesItsOwnDiffBeforeItReports| stub gh: recorded `gh issue edit`
+prompt#workerGradesItsOwnDiffBeforeItReports| closed #21 (completed)
+PASS run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames
+prompt#reviewerCarriesTheEightItems| stub gh: recorded `gh issue edit`
+prompt#reviewerCarriesTheEightItems| closed #21 (completed)
+prompt#workerTreatsARecordedDecisionAsSettled|   landing #21 353e9ede9c4a63f4a9844a957234c390908b8ab4: unscored — the pipeline runs of this commit could not be read
+prompt#thePhasePromptNamesWhatItsShellRefuses| HEAD ist jetzt bei 1684cc5 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#thePhasePromptNamesWhatItsShellRefuses| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1684cc5).
+prompt#thePhasePromptNamesWhatItsShellRefuses| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerGradesItsOwnDiffBeforeItReports|   landing #21 7f7c3dcddfb543a951f765d45476fadaba7464af: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerCarriesTheEightItems|   landing #21 c0b9720930e0078ac3bae323a55ce8d5efe93efb: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#reviewerIsBoundedToReading| stub gh: recorded `gh issue edit`
+prompt#reviewerIsBoundedToReading| closed #21 (completed)
+prompt#workerNamesEveryPhaseAndSkill| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesEveryPhaseAndSkill|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#packageIsAFileAndNotInlined| stub gh: recorded `gh issue edit`
+prompt#workerCarriesTheFeaturePath| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerCarriesTheFeaturePath|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| stub gh: recorded `gh issue edit`
+prompt#reviewerIsBoundedToReading|   landing #21 42415dc4ffb8fc27a3f222b87e133baf4a8d1304: unscored — the pipeline runs of this commit could not be read
+prompt#workerNamesTheDecisionField| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesTheDecisionField|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#thePhasePromptNamesWhatItsShellRefuses| stub gh: recorded `gh issue edit`
+prompt#workerTreatsARecordedDecisionAsSettled| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerTreatsARecordedDecisionAsSettled|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| closed #21 (completed)
+prompt#workerGradesItsOwnDiffBeforeItReports| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerGradesItsOwnDiffBeforeItReports|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesEveryPhaseAndSkill| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#packageIsAFileAndNotInlined| stub gh: recorded `gh issue edit`
+prompt#packageIsAFileAndNotInlined| closed #21 (completed)
+prompt#workerCarriesTheFeaturePath| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| stub gh: recorded `gh issue edit`
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| closed #21 (completed)
+prompt#reviewerCarriesTheEightItems| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerCarriesTheEightItems|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   landing #21 99f48e012b913bc524af8b46efc5810e49dcd194: unscored — the pipeline runs of this commit could not be read
+PASS prompt#workerNamesEveryPhaseAndSkill
+prompt#packageIsAFileAndNotInlined|   landing #21 f53ea700891be84dcda8e6fc9658d2557b11034f: unscored — the pipeline runs of this commit could not be read
+prompt#workerNamesTheDecisionField| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#workerCarriesTheFeaturePath
+prompt#workerNamesTheChangeSurfaceBeforeThePlan|   landing #21 c1f99fe14febadce19172498960b6116abab5c69: unscored — the pipeline runs of this commit could not be read
+prompt#thePhasePromptNamesWhatItsShellRefuses| stub gh: recorded `gh issue edit`
+prompt#thePhasePromptNamesWhatItsShellRefuses| closed #21 (completed)
+prompt#reviewerIsBoundedToReading| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerIsBoundedToReading|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerTreatsARecordedDecisionAsSettled| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#workerNamesTheDecisionField
+prompt#workerGradesItsOwnDiffBeforeItReports| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#thePhasePromptNamesWhatItsShellRefuses|   landing #21 1684cc5a246b969f3429348cee94b009347c6e08: unscored — the pipeline runs of this commit could not be read
+prompt#reviewerCarriesTheEightItems| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#workerTreatsARecordedDecisionAsSettled
+PASS prompt#workerGradesItsOwnDiffBeforeItReports
+PASS prompt#reviewerCarriesTheEightItems
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerIsBoundedToReading| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#packageIsAFileAndNotInlined| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#packageIsAFileAndNotInlined|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerNamesTheChangeSurfaceBeforeThePlan|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#reviewerIsBoundedToReading
+prompt#thePhasePromptNamesWhatItsShellRefuses| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#thePhasePromptNamesWhatItsShellRefuses|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#packageIsAFileAndNotInlined| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#workerNamesTheChangeSurfaceBeforeThePlan| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#packageIsAFileAndNotInlined
+PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan
+prompt#thePhasePromptNamesWhatItsShellRefuses| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition
+PASS run#refusesARepositoryThatIsNotAWorkTree
+PASS prompt#thePhasePromptNamesWhatItsShellRefuses
+PASS gate#theDeltaSelectsTheSuitesItTouches
+PASS gate#theMapCoversEveryPipelineStep
+PASS gate#aPipelineCheckIsOwedByItsPaths
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS run#decisionCapRefusesToStart
+PASS gate#aPathACheckReadsOwesThatStepsCommandSet
+PASS gate#aStepEndsWithItsCommandNotWithItsWatchers
+PASS gate#aStepCannotReadTheCallersStdin
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS run#theDecisionCapRecordsItsStopReason
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+PASS gate#aStepIsBoundedAndTheOverrunNamesIt
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+PASS gate#aCompiledStepsTallyIsNotHidden
+PASS gate#aTestFailureIsAFailureNotAnError
+PASS gate#aLoneAssertionErrorIsNotACase
+PASS run#aFailedPreScreenRecordsItsStopReason
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181229')
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei c7092fe init
+PASS gate#aRedGateWritesTheLogItIsAttributedFrom
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS run#blockedItemAsksItsOwnQuestion
+PASS gate#aStepIsNotHandedTheItemsSession
+PASS gate#aFailingSuitesTallyIsUnchangedByItsNeighbours
+PASS gate#theSummaryNamesWhatEachSuiteCost
+PASS gate#aCarrierAnotherRunWroteIsNotReadAsThisOnes
+PASS gate#aSecondGateRefusesWhileOneRuns
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+PASS run#aBlockedItemCarriesTheWorkersDecision
+PASS gate#independentStepsRunTogether
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS run#anUnreadableItemIsNotTheEndOfTheRun
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS gate#aBaseRedStepIsSubtractedAndNamed
+PASS gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+PASS driver#theSuiteDoesNotInheritTheRunsRoots
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS gate#anArchivedArtefactOwesNoBuild
+PASS gate#aPooledWavePrintsEachStepWholeWhenItEnds
+PASS gate#aModuleResourceOwesTheBuild
+PASS gate#theGateNamesTheProfileItRead
+PASS driver#theSummaryNamesWhatEachGroupCost
+PASS gate#aRedGateRestoresTheChangeToItsUnarchivedName
+PASS gate#theGateCompletesTheChangeBeforeTheGate
+PASS gate#theGateAndTheRoundNameOneTree
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f282a27)
+PASS gate#aMovedChangeNamesTheSameTree
+PASS mutation#theFileSetLegScopesByTheCheapestFile
+PASS mutation#aStaleRecordIsNamed
+PASS gate#aThirdFullRunInOneSessionIsRefused
+PASS measure#namesTheOwedChecksInOneBlock
+PASS gate#runsUnderTheWorktreeEnvironment
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1b06cf6)
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS run#anEditorSwapFileIsNotAChildsWrite
+PASS measure#printsTheNumbersTheReviewerAsksFor
+PASS measure#printsTheSuiteCountAndTheGateTiming
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| HEAD ist jetzt bei 1b06cf6 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1b06cf6).
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS measure#refusesToGuessWhichChangeItMeasures
+PASS measure#saysHowManyTalliesItWithheld
+PASS run#mayCloseNoKeepsAFalsificationOpen
+PASS run#falsificationWithoutAMeasurementIsEscalated
+PASS run#falsifiedSkipClosesWithItsMeasurement
+PASS run#aReviewersDecisionOutranksTheWorkers
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181242')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 0fa8294 an engine of its own
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| closed #21 (completed)
+PASS run#falsificationWithAChangedTreeIsBlocked
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   landing #21 1b06cf6639279f339ef1bfd14fa0cb6486c6b68c: unscored — the pipeline runs of this commit could not be read
+prompt#workerIsHandedTheMeasureBlock| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181245')
+prompt#workerIsHandedTheMeasureBlock| HEAD ist jetzt bei 812d8bf init
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181245')
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| HEAD ist jetzt bei 1eca986 init
+run#oneItemOrderIsFixed| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181246')
+run#oneItemOrderIsFixed| HEAD ist jetzt bei 1eca986 init
+prompt#workerIsHandedTheMeasureBlock| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181246')
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| HEAD ist jetzt bei 1eca986 init
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#oneItemOrderIsFixed| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#childStartsInTheProjectRoot| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181247')
+run#childStartsInTheProjectRoot| HEAD ist jetzt bei da4f986 init
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#childStartsInTheProjectRoot| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+prompt#workerIsHandedTheMeasureBlock| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+run#oneItemOrderIsFixed| stub gh: recorded `gh issue edit`
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| stub gh: recorded `gh issue edit`
+prompt#reviewerInputsAreBoundedAndTheCutIsNamed| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#childStartsInTheProjectRoot| stub gh: recorded `gh issue edit`
+PASS mutation#everyDeclaredRecordApplies
+PASS prompt#reviewerInputsAreBoundedAndTheCutIsNamed
+prompt#workerIsHandedTheMeasureBlock| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d55ea62)
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b73e980)
+run#oneItemOrderIsFixed| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b73e980)
+prompt#workerIsHandedTheMeasureBlock| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c740522)
+run#oneItemOrderIsFixed| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4f81791)
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4f81791)
+prompt#workerIsHandedTheMeasureBlock| HEAD ist jetzt bei c740522 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#workerIsHandedTheMeasureBlock| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c740522).
+prompt#workerIsHandedTheMeasureBlock| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#childStartsInTheProjectRoot| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (039d48b)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (9343105)
+run#oneItemOrderIsFixed| HEAD ist jetzt bei 4f81791 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#oneItemOrderIsFixed| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4f81791).
+run#oneItemOrderIsFixed| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| HEAD ist jetzt bei 4f81791 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4f81791).
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#decisionCapCountsOnlyCandidates
+run#childStartsInTheProjectRoot| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (aee1211)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (0c35fd7)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (594d3f0)
+run#childStartsInTheProjectRoot| HEAD ist jetzt bei aee1211 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#childStartsInTheProjectRoot| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war aee1211).
+run#childStartsInTheProjectRoot| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| HEAD ist jetzt bei 0c35fd7 review: 2026-01-01-fix-demo round 1 passed (#21)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 0c35fd7).
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerIsHandedTheMeasureBlock| stub gh: recorded `gh issue edit`
+run#oneItemOrderIsFixed| stub gh: recorded `gh issue edit`
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3d49638)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 3d49638 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 3d49638).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+prompt#workerIsHandedTheMeasureBlock| stub gh: recorded `gh issue edit`
+prompt#workerIsHandedTheMeasureBlock| closed #21 (completed)
+run#childStartsInTheProjectRoot| stub gh: recorded `gh issue edit`
+run#oneItemOrderIsFixed| stub gh: recorded `gh issue edit`
+run#oneItemOrderIsFixed| closed #21 (completed)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| stub gh: recorded `gh issue edit`
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| closed #21 (completed)
+prompt#workerIsHandedTheMeasureBlock|   landing #21 c74052231dd5a81fd047fce46d038582b54fa188: unscored — the pipeline runs of this commit could not be read
+PASS run#headerNamesTheLiveView
+run#oneItemOrderIsFixed|   landing #21 4f81791c5a9970c6e03c2a313944bd16d70af995: unscored — the pipeline runs of this commit could not be read
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite|   landing #21 4f81791c5a9970c6e03c2a313944bd16d70af995: unscored — the pipeline runs of this commit could not be read
+run#childStartsInTheProjectRoot| stub gh: recorded `gh issue edit`
+run#childStartsInTheProjectRoot| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| stub gh: recorded `gh issue edit`
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| closed #21 (completed)
+run#childStartsInTheProjectRoot|   landing #21 aee1211f04374614726055a6d8d2c9be3285b065: unscored — the pipeline runs of this commit could not be read
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   landing #21 0c35fd768e548cca489366755b0e75844c098c02: unscored — the pipeline runs of this commit could not be read
+PASS run#childClaimWithoutCommitIsBlocked
+prompt#workerIsHandedTheMeasureBlock| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#workerIsHandedTheMeasureBlock|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aFailedEscalationWriteIsNamed
+run#oneItemOrderIsFixed| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#oneItemOrderIsFixed|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#blockedItemIsEscalatedWithItsReason
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+PASS state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes
+PASS run#anEmptyTreeIsRefusedBeforeTheGateChild
+PASS run#aFailedUnpickIsNamed
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 3d4963812e262ba3e905328703ff053fbb935847: unscored — the pipeline runs of this commit could not be read
+run#childStartsInTheProjectRoot| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childStartsInTheProjectRoot|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#workerIsHandedTheMeasureBlock| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#oneItemOrderIsFixed| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerIsHandedTheMeasureBlock
+PASS run#oneItemOrderIsFixed
+PASS prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite
+run#childStartsInTheProjectRoot| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#childStartsInTheProjectRoot
+PASS prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#childReportsWhileItWaits
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+run#theWaitEndsWhenTheChildDoes| the wait for a 150 ms child cost 490 ms
+PASS run#theWaitEndsWhenTheChildDoes
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#aVanishedWriterEndsTheWait
+PASS run#childOutlastingTheWallClockIsCut
+PASS run#childIsEndedAtTheRunsDeadline
+run#theProgressLineKeepsItsInterval| 2 running line(s) for a 4 s child at a 2 s interval
+PASS run#theProgressLineKeepsItsInterval
+PASS run#everyPhaseBoundaryIsPrinted
+PASS run#theChildCapIsNeverBelowWhatOneItemsGateOwes
+PASS run#aBoundEndedItemRecordsItsBound
+PASS run#reviewerEndedAtTheRunsDeadlineIsNotADecision
+PASS run#detachedProcessInTheWorktreeIsEndedByTheCap
+PASS run#treeOfAChildTheCapEndedIsNotCommitted
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#aRoundTheRunEndedRecordsItsBound
+PASS run#treeOfACapEndedChildIsKeptAsAPatch
+PASS run#aReviewRoundBoundIsTheItemsStopClass
+PASS run#theStopWaitIsDecidedByTheStateTheRunWrites
+PASS run#aSlowChildIsNotMistakenForAVanishedWriter
+PASS run#noProcessOfASignalledRunOutlivesIt
+PASS run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+PASS run#aBoundCutRoundIsRestartedWithItsFindings
+PASS run#aKeptPatchThatDoesNotApplyIsRecordedAndTheItemStartsFromTheBase
+PASS run#aHupTheRunNeverTookIsAnsweredAtTheCasesOwnClock
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+PASS run#hostBelowTheFloorBlocksTheItemAndStops
+PASS run#aChildTheRunEndedIsNotAskedAgain
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#anEmptyAnswerOverACommitIsTheChangePhasesFailure
+PASS run#aPhaseThatWroteNothingIsAskedOnceMore
+PASS run#aPhaseThatAnswersNothingIsThatPhasesFailure
+PASS run#aBoundEndedItemsKeptWorkIsResumedByTheNextStart
+PASS run#theRetryCapIsSpentAndTheRunStops
+PASS run#hostAboveTheFloorRunsTheItem
+PASS run#aHostWithoutThePlacementReadingIsRefused
+PASS run#aChildThatNeverStartedIsRetriedBeforeTheRunStops
+PASS run#anEmptyAnswerOverWorkIsRetriedBeforeTheStop
+PASS run#hostWithoutTheReadingPasses
+PASS run#childWriteOutsideTheWorktreeIsNoted
+PASS run#aChildIsGivenOneScratchDirectory
+PASS run#aStopThatNamesAChildReadsThatChildsOwnWrite
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#anEmptyTreeWithAnOutsideWriteNamesThePaths
+PASS run#aStopWhoseChildWroteNothingGetsNoClause
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#theSweepComparesAgainstTheFetchedBase
+PASS run#theRemoteSweepKeepsAnOpenPullRequest
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#mergesOverADifferenceItCannotPlace
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+PASS run#anAdoptionLandsOverADifferenceItCannotPlace
+PASS run#leftoverBranchIsRecordedNotDropped
+PASS run#mergesItsCommittedBranchBeforeClosing
+PASS run#aMergedBranchIsRemoved
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#theEndSweepsTheLandedBranchesItMade
+PASS run#branchThatAppearsWhileTheRunIsOpenIsSetAside
+run#dirtyKeptWorktreeIsARecordedRefusal| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181509')
+run#dirtyKeptWorktreeIsARecordedRefusal| HEAD ist jetzt bei 3156f1e init
+run#dirtyKeptWorktreeIsARecordedRefusal| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#resetWorktreeDiscardsWhatItNames| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181510')
+run#resetWorktreeDiscardsWhatItNames| HEAD ist jetzt bei 9483215 init
+PASS run#recordsAFailedReviewOnTheBranch
+PASS run#announcesAndRecordsTheReviewRound
+run#resetWorktreeDiscardsWhatItNames| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181512')
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| HEAD ist jetzt bei fba183b the submodule the loop configuration names
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.9kV97N/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.9kV97N/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.9kV97N/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.9kV97N/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.3l5TYS/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| worktree: the submodule could not be checked out — the build may not be able to run
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#dirtyKeptWorktreeIsARecordedRefusal| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181513')
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei 427cfba the submodule the loop configuration names
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.zVP7FR/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.zVP7FR/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.zVP7FR/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.zVP7FR/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.Dmb7z4/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeNamesTheDirtItCannotDiscard| worktree: the submodule could not be checked out — the build may not be able to run
+run#resetWorktreeDiscardsWhatItNames| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS run#aRefusedRoundLeavesAnAnswerBesideItsAnnouncement
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| stub gh: recorded `gh issue edit`
+PASS run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#dirtyKeptWorktreeIsARecordedRefusal| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7181cb2)
+run#resetWorktreeDiscardsWhatItNames| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (abb0bac)
+run#dirtyKeptWorktreeIsARecordedRefusal| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (aa569e4)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181519')
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| HEAD ist jetzt bei 497fb88 the submodule the loop configuration names
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Klone nach '/home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/1/tree/case.iUR3a7/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Fertig.
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Submodul-Pfad 'app/src/main/cpp/libosmscout': '5acbebb11f81a720a925433ea933494107940e61' ausgecheckt
+run#resetWorktreeDiscardsWhatItNames| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (726c62a)
+PASS run#thePreGateReviewRunsBeforeTheGate
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#dirtyKeptWorktreeIsARecordedRefusal| HEAD ist jetzt bei aa569e4 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#dirtyKeptWorktreeIsARecordedRefusal| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war aa569e4).
+run#dirtyKeptWorktreeIsARecordedRefusal| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (741e848)
+run#resetWorktreeDiscardsWhatItNames| HEAD ist jetzt bei 726c62a review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeDiscardsWhatItNames| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 726c62a).
+run#resetWorktreeDiscardsWhatItNames| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#aPreGateRoundUnderHalfItsCapStillRuns
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ebc2ab2)
+PASS run#staleTestResultsAreNotThisChildsGate
+run#resetWorktreeNamesTheDirtItCannotDiscard| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e409196)
+PASS run#aPreGateRoundItsCapHalvedIsSkipped
+PASS run#aPreGateReviewEndedAtItsBoundNamesIt
+run#resetWorktreeNamesTheDirtItCannotDiscard| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (0c49a3b)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| HEAD ist jetzt bei ebc2ab2 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ebc2ab2).
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| stub gh: recorded `gh issue edit`
+run#dirtyKeptWorktreeIsARecordedRefusal| stub gh: recorded `gh issue edit`
+PASS run#aRoundCutTwiceKeepsBothReadingsFindings
+run#resetWorktreeDiscardsWhatItNames| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei 0c49a3b review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeNamesTheDirtItCannotDiscard| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 0c49a3b).
+run#resetWorktreeNamesTheDirtItCannotDiscard| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#theBaseAdvancesWithEveryMerge
+run#dirtyKeptWorktreeIsARecordedRefusal| stub gh: recorded `gh issue edit`
+run#dirtyKeptWorktreeIsARecordedRefusal| closed #21 (completed)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeDiscardsWhatItNames| stub gh: recorded `gh issue edit`
+run#resetWorktreeDiscardsWhatItNames| closed #21 (completed)
+run#dirtyKeptWorktreeIsARecordedRefusal|   landing #21 aa569e413c64a93bdecaebeb8af78b36473734c5: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeDiscardsWhatItNames|   landing #21 726c62af0366f875532d459e1ce0c63e91b5d912: unscored — the pipeline runs of this commit could not be read
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (da07d9b)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| closed #21 (completed)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f934a89)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard|   landing #21 ebc2ab288437a8abcbf886af46d95a8c3c1e9674: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| closed #21 (completed)
+run#dirtyKeptWorktreeIsARecordedRefusal| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#dirtyKeptWorktreeIsARecordedRefusal|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| HEAD ist jetzt bei f934a89 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f934a89).
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#resetWorktreeNamesTheDirtItCannotDiscard|   landing #21 0c49a3b9d1eb55199dc22944824fe3679dade5d5: unscored — the pipeline runs of this commit could not be read
+run#resetWorktreeDiscardsWhatItNames| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeDiscardsWhatItNames|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides
+run#dirtyKeptWorktreeIsARecordedRefusal| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeDiscardsWhatItNames| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeNamesTheDirtItCannotDiscard|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| stub gh: recorded `gh issue edit`
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| closed #21 (completed)
+run#resetWorktreeNamesTheDirtItCannotDiscard| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin|   landing #21 f934a89a194e9378df5a226ce71e168627d699fa: unscored — the pipeline runs of this commit could not be read
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aRetriedStartStopsWithItsOwnReason
+PASS run#dirtyKeptWorktreeIsARecordedRefusal
+run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#resetWorktreeNamesTheDirtItCannotDiscard
+PASS run#resetWorktreeDiscardsWhatItNames
+PASS run#aSkipIsNoGateToRerun
+PASS run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard
+PASS run#aSkipClearsTheInProgressMark
+PASS run#staleSkipAsksItsQuestion
+PASS run#staleSkipKeepsTheWorkersQuestion
+PASS run#aZeroRoundBudgetIsRefused
+PASS run#aRecordedItemsLeftoversAreKeptAndTheStartGoesOn
+PASS run#skipEscalationCarriesTheDecision
+PASS run#theStartAfterTheRunsOwnEndedChildIsNotRefused
+PASS run#stateNamesTheItemInProgress
+PASS run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin
+run#noGateStillRuns| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181555')
+run#noGateStillRuns| HEAD ist jetzt bei c9b7cef init
+run#noGateStillRuns| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#dryRunTouchesNothing| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.GIdqCK/repo/.pi/issue-loop/runs/2026-11-23T18:15:50Z.json
+run#dryRunTouchesNothing| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+run#dryRunTouchesNothing| HEAD ist jetzt bei 79ed33e init
+PASS run#workPackageCarriesTheRecordedDecision
+run#noGateStillRuns| stub gh: recorded `gh issue edit`
+PASS run#claimedGateWithoutEvidenceIsBlocked
+run#noGateStillRuns| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7debe4e)
+run#noGateStillRuns| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (038536f)
+run#noGateStillRuns| HEAD ist jetzt bei 038536f review: 2026-01-01-fix-demo round 1 passed (#21)
+run#noGateStillRuns| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 038536f).
+run#noGateStillRuns| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#dryRunTouchesNothing
+run#noGateStillRuns| stub gh: recorded `gh issue edit`
+run#noGateStillRuns| stub gh: recorded `gh issue edit`
+run#noGateStillRuns| closed #21 (completed)
+PASS run#needsDecisionIsEscalatedWithTheWork
+run#noGateStillRuns|   landing #21 038536fe2e4e6e61c0a37cbf65315b715cce2dcf: unscored — the pipeline runs of this commit could not be read
+PASS run#citedEvidenceMustTravelWithTheChange
+run#mayCloseNoLeavesTheIssueOpen| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181616')
+run#mayCloseNoLeavesTheIssueOpen| HEAD ist jetzt bei 3d281ab init
+run#noGateStillRuns| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#noGateStillRuns|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#mayCloseNoLeavesTheIssueOpen| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS run#aSkipPrintsTheReasonTheChildGave
+run#noGateStillRuns| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#mayCloseNoLeavesTheIssueOpen| stub gh: recorded `gh issue edit`
+PASS run#noGateStillRuns
+run#metricsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181621')
+run#metricsRecordedPerItem| HEAD ist jetzt bei b3445cb init
+run#metricsRecordedPerItem| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#childUsageIsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181621')
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei b3445cb init
+run#childUsageIsRecordedPerItem| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#mayCloseNoLeavesTheIssueOpen| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (cabf82a)
+PASS run#reviewRoundsCapAtTwo
+run#metricsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#mayCloseNoLeavesTheIssueOpen| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (fb582d9)
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+run#mayCloseNoLeavesTheIssueOpen| HEAD ist jetzt bei fb582d9 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#mayCloseNoLeavesTheIssueOpen| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war fb582d9).
+run#mayCloseNoLeavesTheIssueOpen| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+run#metricsRecordedPerItem| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (12eb1fd)
+run#mayCloseNoLeavesTheIssueOpen| stub gh: recorded `gh issue edit`
+run#mayCloseNoLeavesTheIssueOpen| commented on #21 (left open)
+run#metricsRecordedPerItem| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (7bf82d2)
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei 7b8adb6 fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+run#childUsageIsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 7b8adb6).
+run#childUsageIsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS run#theGateColumnNamesThisItemsGateResult
+PASS run#aFencedClosingBlockIsACompleteAnswer
+PASS run#reviewBudgetIsARecordedValue
+run#mayCloseNoLeavesTheIssueOpen|   landing #21 fb582d93393d1e089a086b17b1c2c79cd8b1da06: unscored — the pipeline runs of this commit could not be read
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+run#metricsRecordedPerItem| HEAD ist jetzt bei 7bf82d2 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#metricsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 7bf82d2).
+run#metricsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+PASS run#aCorrectiveRoundIsHandedTheCorrections
+run#mayCloseNoLeavesTheIssueOpen| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#mayCloseNoLeavesTheIssueOpen|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#metricsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#plainTextChildStillReports| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181635')
+run#plainTextChildStillReports| HEAD ist jetzt bei 4102b2b init
+run#plainTextChildStillReports| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| closed #21 (completed)
+run#mayCloseNoLeavesTheIssueOpen| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#childUsageIsRecordedPerItem|   landing #21 7b8adb6fce8b78f605b40ee21d85d77efb77ffde: unscored — the pipeline runs of this commit could not be read
+PASS run#escalationCarriesTheDecision
+run#metricsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#metricsRecordedPerItem| closed #21 (completed)
+PASS run#mayCloseNoLeavesTheIssueOpen
+run#metricsRecordedPerItem|   landing #21 7bf82d2b4d24e2ad19eeecb16d9f241f3729f873: unscored — the pipeline runs of this commit could not be read
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181639')
+run#commitsWithoutAnAmbientIdentity| HEAD ist jetzt bei da0062a init
+run#commitsWithoutAnAmbientIdentity| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#metricsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#metricsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#awaitingDecisionIsNotEscalatedAgain
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#plainTextChildStillReports| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (8bd7405)
+PASS run#emptyQueueIsNotAFailure
+run#metricsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#plainTextChildStillReports| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (7f0cf3b)
+PASS run#metricsRecordedPerItem
+PASS adapter#modeFlagIsItsOwnArgument
+run#plainTextChildStillReports| HEAD ist jetzt bei 7f0cf3b review: 2026-01-01-fix-demo round 1 passed (#21)
+run#plainTextChildStillReports| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 7f0cf3b).
+run#plainTextChildStillReports| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS adapter#theChildIsStartedWithoutContextFiles
+PASS adapter#theChildIsStartedWithTheResultBound
+run#commitsWithoutAnAmbientIdentity| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (1682f9d)
+PASS adapter#theResultBoundExemptsGateEvidence
+PASS adapter#theChildIsStartedWithTheItemsLedger
+run#commitsWithoutAnAmbientIdentity| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (956a61d)
+PASS adapter#theChildIsStartedWithTheRepeatReadArm
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+PASS adapter#theChildIsStartedWithItsToolDirectoryOnPath
+PASS run#aRedGateIsBlockedByTheTail
+run#commitsWithoutAnAmbientIdentity| HEAD ist jetzt bei 956a61d review: 2026-01-01-fix-demo round 1 passed (#21)
+run#commitsWithoutAnAmbientIdentity| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 956a61d).
+run#commitsWithoutAnAmbientIdentity| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS adapter#aRotatedStreamKeepsEveryTurnEnd
+PASS adapter#anUpdateOnlyStreamKeepsItsUpdates
+run#plainTextChildStillReports| stub gh: recorded `gh issue edit`
+run#plainTextChildStillReports| closed #21 (completed)
+run#engineNamesNoProjectFact| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181653')
+run#engineNamesNoProjectFact| HEAD ist jetzt bei 4f48f42 init
+run#plainTextChildStillReports|   landing #21 7f0cf3bf4fe95e78e7d45d0a188c649e49582aea: unscored — the pipeline runs of this commit could not be read
+run#engineNamesNoProjectFact| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181654')
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei ce41f92 init
+PASS run#aBlockedItemRecordsTheRoundThatReadIt
+run#childUsageIsRecordedPerItem| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#plainTextChildStillReports| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#plainTextChildStillReports|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#commitsWithoutAnAmbientIdentity| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity| closed #21 (completed)
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+run#commitsWithoutAnAmbientIdentity|   landing #21 956a61dab3bb274074ae347d76d1adef7b018f79: unscored — the pipeline runs of this commit could not be read
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#plainTextChildStillReports| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#commitsWithoutAnAmbientIdentity| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#commitsWithoutAnAmbientIdentity|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#plainTextChildStillReports
+run#engineNamesNoProjectFact| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (1b38858)
+PASS run#staleBaseStopsTheRunWithItsReason
+run#engineNamesNoProjectFact| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (768900f)
+run#childUsageIsRecordedPerItem| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a61a31b)
+run#commitsWithoutAnAmbientIdentity| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#engineNamesNoProjectFact| HEAD ist jetzt bei 768900f review: 2026-01-01-fix-demo round 1 passed (#21)
+run#engineNamesNoProjectFact| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 768900f).
+run#engineNamesNoProjectFact| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#childUsageIsRecordedPerItem| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5ee863d)
+PASS state#theSpendSurvivesTheLossOfItsDeltaLines
+PASS run#commitsWithoutAnAmbientIdentity
+PASS trim#aResultAboveTheBoundIsTrimmedAndNamed
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei 5ee863d review: 2026-01-01-fix-demo round 1 passed (#21)
+run#childUsageIsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5ee863d).
+run#childUsageIsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS trim#aResultUnderTheBoundIsHandedOverWhole
+PASS run#stopReasonIsPrintedAndReported
+PASS run#reviewerWriteInvalidatesTheRound
+PASS adapter#aStreamStillOverItsBoundAfterTheDeltaPassIsCutAndRecorded
+PASS trim#theTrimIsRecorded
+PASS trim#aResultOlderThanTheAgeIsStubbedAndNamed
+PASS trim#aResultBetweenTheNewBoundAndTheOldOneArrivesCut
+PASS look#aPathScopesTheWalkToIt
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+PASS look#oneCallAnswersTheWholeTree
+PASS look#aCaseIsPrintedByItsName
+PASS look#aResultOverTheBoundIsCutAndNamed
+PASS look#aSectionIsPrintedAndTheOtherSectionsAreNot
+PASS adapter#theChildIsStartedWithTheShellPolicy
+PASS run#theRotationNamesTheTurnsItSummarised
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+PASS policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot
+PASS policy#aShellTreeSearchIsRefusedAndARecipeIsNot
+run#engineNamesNoProjectFact| stub gh: recorded `gh issue edit`
+run#engineNamesNoProjectFact| closed #21 (completed)
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+run#engineNamesNoProjectFact|   landing #21 768900fd779d80dcf07f0e208abf72642e1d4c0e: unscored — the pipeline runs of this commit could not be read
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| closed #21 (completed)
+PASS run#reviewDiffExcludesTheEvidenceArchive
+PASS report#yieldIsCountedFromState
+run#childUsageIsRecordedPerItem|   landing #21 5ee863d556953091df44f28bddf2e3cf5afb6e05: unscored — the pipeline runs of this commit could not be read
+PASS report#misdiagnosedIsCountedApart
+PASS report#aVerdictAloneIsNoEscalation
+PASS run#aRotatedStreamKeepsEveryTurn
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/6/tree/case.LiNvPx/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (baa2bc733daca0d4 → 516e03a1951333d6); a field was edited outside this script
+run#engineNamesNoProjectFact| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#engineNamesNoProjectFact|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#impossibleBudgetNamesAnotherRun
+PASS report#aKilledRunIsNotALiveRun
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.vIjDHd/repo/.pi/issue-loop/runs/2026-11-23T18:17:14Z.json
+PASS run#aReviewDiffNamesTheTreeItWasWrittenFrom
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181715')
+report#headerAndTableShape| HEAD ist jetzt bei e8639ea init
+run#engineNamesNoProjectFact| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+report#headerAndTableShape| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/2/tree/case.hycaDc/repo/.pi/issue-loop/runs/2026-11-23T18:17:13Z.json
+PASS report#wallTimeAndReasonInTheTable
+PASS report#actionsNameDecisionAndBranch
+PASS run#engineNamesNoProjectFact
+PASS report#landedBranchIsNoAction
+PASS report#archivedStateIsReported
+PASS report#landedBranchesAreNamedAsRemovable
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#emptyRunSaysNone
+PASS run#childUsageIsRecordedPerItem
+PASS report#zeroUsagePrintsDashNotZero
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#anUnmergeableItemNamesItsLanding
+PASS state#aCutRecordsTheFilesItsPatchCarries
+PASS report#theArchivesClassesAreDerivedNotInvented
+PASS report#anItemOverTheTokenBoundIsFlagged
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+PASS report#thePreGateRoundIsChargedToItsOwnRole
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b04cfe0)
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/8/tree/case.ThmRNZ/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (826a2651e48a5421 → b0dcc8777deb2732); a field was edited outside this script
+report#theRuleRecordsTheSecondReadsItCounted| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/12/tree/case.SR0Z5t/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (c29a18c22d39585a → 8979eb292db4b3f8); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/2/tree/case.rLQPu2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (56dfcbda9b7a6474 → 74367f4769083b66); a field was edited outside this script
+PASS report#theRuleRecordsTheSecondReadsItCounted
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1f889d1)
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/8/tree/case.ThmRNZ/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (826a2651e48a5421 → b743dfb652c14ecf); a field was edited outside this script
+report#aTruncatedStreamSaysSo| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/2/tree/case.rLQPu2/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (56dfcbda9b7a6474 → 74367f4769083b66); a field was edited outside this script
+report#headerAndTableShape| HEAD ist jetzt bei 1f889d1 review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1f889d1).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/8/tree/case.ThmRNZ/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (826a2651e48a5421 → 8f00e072a82bda4b); a field was edited outside this script
+PASS report#aRolesTokensRecordTheModelThatAnswered
+PASS run#aFlakedCaseIsOffTheBlockedPath
+PASS report#aCallThatNamesTheGateIsNotAGateRun
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/8/tree/case.ThmRNZ/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (826a2651e48a5421 → 93f899404fecd82a); a field was edited outside this script
+PASS report#aSessionThatSwitchedModelRecordsBothTallies
+PASS report#aCheckTheGateWouldRunIsTheGateTime
+report#anItemRecordsItsRepeatReads| state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/8/tree/case.ThmRNZ/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (826a2651e48a5421 → 93f899404fecd82a); a field was edited outside this script
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#theBoundRateIsNamed
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#aStreamWithoutDurationsPrintsDash
+PASS report#aRoleWhoseTurnNamedNoModelKeepsItsRow
+PASS report#aTurnNoSessionRecordReachesIsItsOwnBucket
+PASS report#aStateWithoutAModelKeepsItsRoleTotals
+PASS report#anItemRecordsItsRepeatReads
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#aTruncatedStreamSaysSo
+report#headerAndTableShape| closed #21 (completed)
+PASS report#thePhaseLineNamesTheClockItIsAShareOf
+PASS report#escalatedSkipNamesTheLabelWritten
+report#headerAndTableShape|   landing #21 1f889d1252c8278e43d6fd40f03a446ad7b0c4af: unscored — the pipeline runs of this commit could not be read
+PASS report#theRefusedLandingIsReadFromTheRecord
+PASS report#theRecordAndTheStateAgree
+PASS report#aDifferenceIsNamedBesideTheFigures
+PASS report#aRunWhoseRecordIsAbsentSaysSo
+PASS clean#interruptedSuiteRemovesItsScratchTree
+PASS report#theTrendBlockNamesTheGateShareAndTheOutsideWindow
+PASS clean#reportsAnAgedItemDirectory
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/8/tree/case.EdUrhk/repo/.pi/issue-loop/runs/2026-11-23T18:17:30Z.json
+PASS clean#sweepsOnlyWhatIsInTheBase
+report#aCutRoundIsCountedBesideTheRate| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/3/tree/case.KitZ8k/repo/.pi/issue-loop/runs/2026-11-23T18:17:30Z.json
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS report#aCutItemIsNamedOnceAndItsKeptWorkWithIt
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS clean#endsARunWhoseTreeIsAlreadyDeleted
+PASS report#landingsAreTheStoredNumber
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/4/tree/case.nicUVi/repo/.pi/issue-loop/runs/2026-11-23T18:17:30Z.json
+PASS adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded
+clean#reportsAWorktreeNoRunKeeps| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+clean#reportsAWorktreeNoRunKeeps| HEAD ist jetzt bei 9b3493c init
+PASS report#aCutRoundIsCountedBesideTheRate
+PASS report#noRoundOrWallPrintsDashNotZero
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS clean#aTreeWhoseNameIsAPatternIsStillRead
+PASS report#anActionNamesAnItemPathThatExists
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+PASS clean#reportsAWorktreeNoRunKeeps
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS usage#noUnguardedValueFlagRemains
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+PASS report#failedReviewEscalationIsNamed
+PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
+PASS report#theRunGroupsItsItemsByEpic
+PASS report#trendFiguresFromState
+PASS clean#worktreeDotSweepsTheOneRootOnce
+clean#reportsWithoutApplyAndRemovesWithIt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181738')
+clean#reportsWithoutApplyAndRemovesWithIt| HEAD ist jetzt bei 5806a06 init
+PASS report#headerAndTableShape
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+clean#reportsWithoutApplyAndRemovesWithIt| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#everyEngineScriptIsInTheTable
+PASS driver#noEngineFileExceedsItsBound
+PASS driver#aCaseWithNoSelectionRowIsRefused
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aFileWithoutABoundIsRefused
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+clean#reportsTheWorktreesScratchTreesToo| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261123-181740')
+clean#reportsTheWorktreesScratchTreesToo| HEAD ist jetzt bei a4f3ed3 init
+PASS driver#aHunkInACaseBodySelectsThatCaseOnly
+PASS driver#aHunkOutsideEveryCaseBodyOwesEveryCase
+PASS driver#aNameAssignedTwiceIsRefused
+clean#reportsTheWorktreesScratchTreesToo| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS driver#anUndeclaredReadIsRefused
+PASS driver#aLocalIsNotAShareOfAnotherFilesName
+PASS driver#aQuotedProgramIsNotAShellRead
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS driver#everyEngineFileHasOneOwner
+PASS driver#aCallInPipelinePositionIsARead
+PASS driver#theSourceOrderIsDeclared
+PASS driver#aKindIsEmittedOnlyByItsOwner
+PASS driver#theMovedEngineBehavesAsItDid
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#everyPrintOnlySiteIsConverted
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+PASS driver#aCallToALaterFilesFunctionFails
+PASS driver#theSelectionFollowsTheOwner
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+clean#reportsWithoutApplyAndRemovesWithIt| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (1eb4809)
+PASS driver#anOwnedFunctionIsInItsOwnersFile
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+clean#reportsWithoutApplyAndRemovesWithIt| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8c4c941)
+PASS driver#noFixtureFifoIsOpenedWriteOnly
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+clean#reportsTheWorktreesScratchTreesToo| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (8a5bce5)
+clean#reportsWithoutApplyAndRemovesWithIt| HEAD ist jetzt bei 8c4c941 review: 2026-01-01-fix-demo round 1 passed (#21)
+clean#reportsWithoutApplyAndRemovesWithIt| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8c4c941).
+clean#reportsWithoutApplyAndRemovesWithIt| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+clean#reportsTheWorktreesScratchTreesToo| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c05d18e)
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS driver#theCaseBoundScalesWithThePool
+PASS gate#aGreenLogNamesNoFailingCase
+PASS gate#theDeclarationCaseIsOwedFirst
+PASS gate#aFailingCaseCarriesItsFactsAndItsRerun
+clean#reportsTheWorktreesScratchTreesToo| HEAD ist jetzt bei c05d18e review: 2026-01-01-fix-demo round 1 passed (#21)
+clean#reportsTheWorktreesScratchTreesToo| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c05d18e).
+clean#reportsTheWorktreesScratchTreesToo| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS run#aRedGateIsAttributedToTheTreeThatFailsIt
+PASS gate#twoFailuresNameTheFirstAndCountTheRest
+PASS gate#aStepThatNamesNoCaseIsAttributedByItsStep
+PASS gate#theBlockStaysInsideTheRecordedBound
+PASS gate#theBaseIsReadFromTheRunNotFromTheRemote
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+PASS run#interruptedRunEndsTheChildItStarted
+PASS repeat#aRepeatReadIsNamedNotHandedOverAgain
+PASS driver#aDeclarationNamingAnUnknownFileFails
+PASS repeat#aBrokenLedgerLeavesTheResultAsReturned
+PASS repeat#aRepeatReadIsCountedAndTheRefusalArmWithholdsIt
+PASS repeat#theRecordedZeroKeepsTheRepeatRuleOff
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS phase#aResultOverTheBoundIsCutAndNamed
+PASS repeat#aRepeatIsRecordedAsWhatItWithheld
+PASS repeat#aVerificationReadIsBoundedNotHandedOverWhole
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+PASS repeat#aPathUnderTheWorktreeIsOneKeyInTwoSpellings
+PASS repeat#anItemsLedgerSpansItsChildren
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+PASS repeat#theHookWritesTheItemsLedger
+clean#reportsWithoutApplyAndRemovesWithIt| closed #21 (completed)
+PASS gate#theStepBoundIsClampedByTheCeilingTheCallerNamed
+PASS phase#oneCallPrintsThePhaseState
+PASS phase#theIdentitySurvivesTheBoundOnAnyRoot
+PASS run#aChildCheckSkipsTheGatesOwnSuite
+PASS run#aFocusedCaseIsStillAChildCheck
+clean#reportsWithoutApplyAndRemovesWithIt|   landing #21 8c4c94194268fe5b027b471d5120c26adbad1ae9: unscored — the pipeline runs of this commit could not be read
+PASS repeat#aShellRangeReadFeedsTheTally
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+clean#reportsTheWorktreesScratchTreesToo| closed #21 (completed)
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideAReworkCutBranchAndStartsFresh| HEAD ist jetzt bei 8311124 init
+PASS driver#theSharedNamesAreDeclared
+worktree#setsAsideAReworkCutBranchAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+clean#reportsTheWorktreesScratchTreesToo|   landing #21 c05d18e1481f436fa147de263beaec50df4870f0: unscored — the pipeline runs of this commit could not be read
+clean#reportsWithoutApplyAndRemovesWithIt| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+clean#reportsWithoutApplyAndRemovesWithIt|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#setsAsideAReworkCutBranchAndStartsFresh
+prescreen#anAnsweredBranchIsWorkNotADecision| set-aside: branch fix/issue-21-a-refused-attempt renamed to loop/leftover/issue-21-a-refused-attempt-20261123T181756Z, its commits are kept
+clean#reportsTheWorktreesScratchTreesToo| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+clean#reportsTheWorktreesScratchTreesToo|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+clean#reportsWithoutApplyAndRemovesWithIt| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prescreen#aReworkCutBranchIsWork
+PASS prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot
+PASS prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch
+PASS prescreen#anAnsweredBranchIsWorkNotADecision
+clean#reportsTheWorktreesScratchTreesToo| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS prescreen#theScreenRecordsTheItemsEpic
+PASS prescreen#aContainerCutAtABoundTakesNoFurtherSlot
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+run#aSecondChildIsNotEndedByAnEarlierSession| mv: Fehlender Dateioperand
+run#aSecondChildIsNotEndedByAnEarlierSession| „mv --help“ liefert weitere Informationen.
+PASS clean#reportsTheWorktreesScratchTreesToo
+PASS run#childPastItsCheckBoundIsCut
+PASS run#theRecordedZeroKeepsTheTurnBoundOff
+PASS run#aRotatedStreamStillCountsTheTurnsItDropped
+PASS run#childPastItsTurnBoundIsCut
+PASS run#aCloseOverARedGateIsWaivedOrBlocked
+PASS run#eachChildIsBoundedByItsOwnRolesTurns
+PASS state#aQuotaWindowIsAHoldNotAStop
+PASS state#aQuotaCheckThatCannotBeMadeIsNotARefusal
+PASS state#noQuotaCommandAsksNothing
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+PASS run#childPastItsContextBoundIsCut
+PASS run#aContextCutWorkerIsContinuedByItsOwnRun
+PASS state#aHoldMovesTheDeadlineWithIt
+PASS run#aChainOfZeroContinuationsEndsAtTheCheckpoint
+PASS census#theCensusIsANumber
+PASS run#aContinuationEndedOnTheSameCeilingStopsTooWide
+PASS census#aClosedPatronWithNoCaseIsCounted
+PASS run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound
+PASS census#anUnreadCountIsNamed
+PASS census#everyGuardNamesItsPatron
+PASS census#aGuardWithoutAPatronIsCounted
+PASS report#theSpendIsWorkNotWaiting
+PASS census#theCensusRefusesNothing
+PASS census#theCitationFormIsRead
+PASS run#aDeclaredKindMissingAFieldStopsTheRun
+run#aFullRecordRotatesAndSaysSo| run: the record passed 50 bytes and is rotated — the file it replaced is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/4/tree/case.4bhi4o/run-events.jsonl.1
+run#theRotationKeepsTheOlderFile| run: the record passed 50 bytes and is rotated — the file it replaced is kept at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.khn7Jf/cases/7/tree/case.kKNj2b/run-events.jsonl.1
+PASS run#anUndeclaredKindStopsTheRun
+PASS run#theBoundIsARecordedValue
+PASS run#aFullRecordRotatesAndSaysSo
+PASS run#theRotationKeepsTheOlderFile
+PASS driver#noEventCarriesACoordinate
+PASS run#anEventNamesAnIssueAndAPhaseNeverAPosition
+PASS run#aFreeTextReasonSurvivesTheRoundTrip
+PASS run#theCheckpointIsTheSplitsOwnReading
+PASS run#aCutWhosePatchDoesNotApplyIsLeftCut
+PASS run#aFactPrintedOnceIsRecordedOnce
+PASS run#aConvertedSiteRendersFromItsRecord
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+PASS census#aRunDoesNotConsultTheCensus
+PASS run#aWorkerBelowItsCheckpointIsNotSplit
+PASS run#aWorkerAtTheCheckpointWithNoWorkRunsOn
+PASS run#aCutRunsItsGateOnTheKeptWork
+PASS run#aSecondChildIsNotEndedByAnEarlierSession
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS run#aQuotaHoldPausesTheRunAndResumesIt
+PASS run#theQuotaSwitchIsExplicit
+PASS run#eachRoleIsBoundedByItsOwnContext
+loop-selftest: state 38 cases 428.90 s
+loop-selftest: prescreen 44 cases 318.26 s
+loop-selftest: worktree 32 cases 319.01 s
+loop-selftest: evidence 1 cases 0.40 s
+loop-selftest: prompt 22 cases 621.50 s
+loop-selftest: run 192 cases 5351.64 s
+loop-selftest: clean 14 cases 165.39 s
+loop-selftest: labels 9 cases 122.96 s
+loop-selftest: gate 43 cases 97.05 s
+loop-selftest: driver 46 cases 174.54 s
+loop-selftest: mutation 3 cases 18.01 s
+loop-selftest: measure 5 cases 4.94 s
+loop-selftest: adapter 12 cases 63.44 s
+loop-selftest: trim 5 cases 2.25 s
+loop-selftest: look 5 cases 3.25 s
+loop-selftest: policy 2 cases 3.40 s
+loop-selftest: report 47 cases 292.21 s
+loop-selftest: usage 4 cases 2.84 s
+loop-selftest: phase 3 cases 5.91 s
+loop-selftest: repeat 10 cases 7.91 s
+loop-selftest: census 8 cases 12.61 s
+loop-selftest: all 545 cases passed (JDK 21, offline, no token, no sandbox) — 553.67 s, selection: --from-git e3a5afd8
+gate: tools/loop/tests/loop-selftest.sh --from-git e3a5afd8 — 554s
+gate: bash tools/loop/tests/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.cbv0EX
+loop-mutations: all 457 cases passed — every selected record applies to the file it names
+gate: bash tools/loop/tests/loop-mutations.sh --check — 18s
+gate: tools/loop/tests/loop-mutations-selftest.sh
+ok   a non-matching mutation exits non-zero
+ok   and it is named as such
+ok   and the copy was restored after the non-matching probe
+ok   an unnoticed mutation exits non-zero
+ok   and it says the case did not notice
+ok   and the copy was restored after the stays-green probe
+ok   a real mutation exits zero
+ok   the case noticed it
+ok   and the restore went green
+ok   the mutated copy is byte-identical to the pristine one again
+ok   a record whose case prints before it fails exits zero
+ok   a red record quotes the assertion the case failed on
+ok   and the copy is byte-identical again after the record whose reason is read
+ok   the scratch tree is the project's, not the host's tmpfs
+ok   and it is removed afterwards
+ok   and TMPDIR still moves it
+ok   a restore from an empty backup exits 2
+ok   and it says it refused
+ok   and nothing was copied over it
+ok   the file the empty backup would have replaced still holds its content
+ok   the mutation set lists what it declares
+ok   the file this check scopes by is owned by at least one declared record
+ok   a file set lists exactly the records its file owns
+ok   and it says how many of the declared set the file set selects
+ok   a file set runs the records its file owns
+ok   the selection line names the count and the declared set
+ok   exactly the owned records ran
+ok   no record outside the file set ran
+ok   and the copy is byte-identical to the pristine one again
+ok   a file set no record owns exits 2
+ok   the empty-selection guard message
+ok   and no record ran
+ok   and nothing was mutated
+ok   a git diff names the records its file owns
+ok   and nothing else
+ok   and it says the same selection the file set named
+ok   and the copy is byte-identical to the pristine one again
+ok   a copy with no sibling gate-log reader exits 2
+ok   and it names the sibling it lacks
+loop-mutations-selftest: all 39 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it quotes the assertion a red case failed on and the case-log line it read it from, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
+gate: tools/loop/tests/loop-mutations-selftest.sh — 130s
+gate: tools/check-portability.sh
+check-portability: engines checked (64 files):
+  tools/issues/answer.sh
+  tools/issues/check-metadata.sh
+  tools/issues/citations.awk
+  tools/issues/classify.sh
+  tools/issues/close.sh
+  tools/issues/core/Bands.java
+  tools/issues/core/Fingerprint.java
+  tools/issues/core/Json.java
+  tools/issues/core/Policy.java
+  tools/issues/core/Profile.java
+  tools/issues/core/Taxonomy.java
+  tools/issues/core/WorkPackage.java
+  tools/issues/create.sh
+  tools/issues/decisions.sh
+  tools/issues/duplicates.sh
+  tools/issues/import.sh
+  tools/issues/labels.sh
+  tools/issues/lib.sh
+  tools/issues/list.sh
+  tools/issues/policy.sh
+  tools/issues/prioritise.sh
+  tools/issues/purge-sensor-batch.sh
+  tools/issues/reopen.sh
+  tools/issues/resolve-stale.sh
+  tools/issues/rewrite.awk
+  tools/issues/shaping.sh
+  tools/issues/update.sh
+  tools/loop/census.sh
+  tools/loop/child.sh
+  tools/loop/evidence-check.sh
+  tools/loop/evidence.sh
+  tools/loop/gate.sh
+  tools/loop/labels.sh
+  tools/loop/leftovers.sh
+  tools/loop/lib.sh
+  tools/loop/loop-clean.sh
+  tools/loop/measure.sh
+  tools/loop/phase.sh
+  tools/loop/prescreen.sh
+  tools/loop/report.sh
+  tools/loop/run.sh
+  tools/loop/state.sh
+  tools/loop/worktree.sh
+  tools/sensors/conditions/broken-main.sh
+  tools/sensors/conditions/broken-scan.sh
+  tools/sensors/conditions/pr-conflicts.sh
+  tools/sensors/guard.sh
+  tools/sensors/hotspot-report.sh
+  tools/sensors/lib.sh
+  tools/sensors/metrics/build-duration.sh
+  tools/sensors/metrics/coverage.sh
+  tools/sensors/metrics/doc-context.sh
+  tools/sensors/metrics/libosmscout-lag.sh
+  tools/sensors/metrics/loop-spend.sh
+  tools/sensors/metrics/metadata-invariant.sh
+  tools/sensors/metrics/package-size.sh
+  tools/sensors/metrics/sonar-duplication.sh
+  tools/sensors/metrics/sonar-maintainability.sh
+  tools/sensors/metrics/sonar-reliability.sh
+  tools/sensors/metrics/source-size.sh
+  tools/sensors/metrics/stale-citations.sh
+  tools/sensors/metrics/vocabulary-drift.sh
+  tools/sensors/report.sh
+  tools/sensors/run.sh
+check-portability: templates checked (8 files):
+  tools/loop/prompts/gate-deferred.md
+  tools/loop/prompts/gate-own.md
+  tools/loop/prompts/pre-gate-review.md
+  tools/loop/prompts/reviewer.md
+  tools/loop/prompts/worker-continuation.md
+  tools/loop/prompts/worker-gate.md
+  tools/loop/prompts/worker.md
+  tools/loop/prompts/worker-tail.md
+check-portability: excluded, printed so the proof names its own scope:
+  tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose record's format, and is allowed to
+  tools/issues/core/TodoAdapter.java	the same adapter: it names the record format and the provenance value it
+  tools/issues/core/TodoSections.java	the adapter's grammar — the headings and the metadata line of that format
+  tools/issues/core/Cases.java	the case runner
+  tools/**/tests/**	the tooling's test code — the self-tests, cases, mutation sets and fixtures, excluded by location
+  .pi/**	machine-local state: worktrees, captures, session logs
+  openspec/**	the project's documents
+  guidelines/**	the project's documents
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 64 engines and 8 templates name no project value (127 value(s) read from the project)
+gate: tools/check-portability.sh — 3s
+gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/tests/check-portability-selftest.sh
+PASS portability#plantedRepoNameFails
+PASS portability#plantedCategoryFails
+PASS portability#plantedValueInEveryNamespaceFails
+PASS portability#plantedSubmodulePathFails
+PASS portability#authorisationLabelIsTheOneException
+PASS portability#excludesTheAdapterAndFixtures
+PASS portability#testsDirectoryIsNotScanned
+PASS portability#productionEnginesAreStillScanned
+PASS portability#valueSetIsReadNotHardCoded
+PASS portability#passesOnTheRealTree
+PASS discovery#fromASubdirectory
+PASS discovery#fromAWorktree
+PASS discovery#ignoresGithubRepositoryEnv
+PASS discovery#outsideAGitTree
+PASS preconditions#refusesOutsideAGitTree
+PASS preconditions#refusesUnderMachineLocalState
+PASS preconditions#runsInALinkedWorkingTree
+PASS foreign#profileDiffersFromOurs
+PASS foreign#noProjectNameInTheStub
+stub gh: recorded `gh issue edit`
+PASS foreign#toolchainRunsEndToEnd
+PASS foreign#duplicateIsRefused
+PASS foreign#identityIsRefusedToo
+PASS foreign#emptyGateCommandStillRunsThePhases
+PASS foreign#fixtureIsVersioned
+PASS foreign#fixtureDeclaresEveryBudgetDefault
+PASS foreign#baseBranchIsTheFixturesConfiguration
+PASS foreign#statesWhatItDoesNotModel
+PASS porting#everyCommandInTheRecipeRuns
+PASS porting#recipeDoesNotAssumeOurBuild
+PASS porting#namesTheAdaptationPoint
+PASS porting#statesTheCopyCost
+check-portability-selftest: all 31 cases passed (JDK 21, offline, no token, no Gradle)
+gate: tools/tests/check-portability-selftest.sh — 36s
+gate: tools/tests/mutate-selftest.sh
+PASS  a real mutation exits 0
+PASS  the transcript reports the red run
+PASS  the transcript reports the restored green run
+PASS  the byte-for-byte restore is reported
+PASS  the toy tree is pristine after the run
+PASS  a mutation that does not apply exits 1
+PASS  MUTATION-DID-NOT-APPLY is reported
+PASS  the toy tree is pristine after the failed mutation
+PASS  a mutation the case does not notice exits 1
+PASS  STAYS-GREEN is reported
+PASS  the toy tree is pristine after the unnoticed mutation
+PASS  a record for a missing file exits 1
+PASS  MUTATION-FILE-MISSING is reported
+PASS  --list exits 0
+PASS  --list names the label, the case and the reason
+PASS  --only selecting no mutation exits 2
+PASS  the portability set lists cleanly
+PASS  the portability set lists every record it declares
+PASS  the portability set declares 5.1
+PASS  the portability set declares 5.2
+PASS  the portability set declares 5.3
+PASS  the portability set declares 5.3b
+PASS  the portability set declares 5.4
+PASS  the portability set declares 5.5
+PASS  the portability set declares 5.6
+PASS  the portability set declares 5.7
+PASS  the portability set declares 6.1
+PASS  the portability set declares 6.2
+PASS  the portability set declares 6.3
+PASS  the portability set declares 6.4
+PASS  the portability set declares 6.5
+PASS  the portability set declares 6.6
+PASS  the portability set declares 6.7
+PASS  the portability set declares 7.1
+PASS  the portability set declares 7.2
+PASS  the portability set declares 4.1
+PASS  the portability set names the check's own self-test as its gate
+
+mutate-selftest: 37 passed, 0 failed
+gate: tools/tests/mutate-selftest.sh — 0s
+gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+# tools/tests/portability-mutations.json — 18 mutation(s), case command: bash tools/tests/check-portability-selftest.sh --case {case}
+5.1	portability#valueSetIsReadNotHardCoded	the value set is read from the profile, not hard-coded
+5.2	portability#excludesTheAdapterAndFixtures	the source adapter is excluded from the engine set
+5.3	discovery#fromASubdirectory	the profile is resolved from the working tree, not from $HOME
+5.3b	discovery#fromAWorktree	…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)
+5.4	discovery#ignoresGithubRepositoryEnv	GITHUB_REPOSITORY does not override the working tree
+5.5	foreign#profileDiffersFromOurs	the synthetic project's repository differs from this one
+5.6	foreign#emptyGateCommandStillRunsThePhases	the prompt substitutes the project's gate command instead of owning one
+5.7	porting#everyCommandInTheRecipeRuns	every command in the porting recipe runs
+6.1	portability#plantedValueInEveryNamespaceFails	every namespace's value set is read and forbidden, not the category's alone
+6.2	portability#plantedSubmodulePathFails	the submodule path is read from loop.conf, not named in the engine
+6.3	portability#authorisationLabelIsTheOneException	the reserved label is asserted as the one read-only exception, not tolerated
+6.4	preconditions#refusesOutsideAGitTree	the suite refuses when its root is not a git working tree
+6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
+6.6	preconditions#runsInALinkedWorkingTree	a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)
+6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)
+7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)
+7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project's base branch is its own configuration value, not the engine's default (issue #303)
+4.1	portability#testsDirectoryIsNotScanned	the engine set skips the tooling's test code by directory, not by a file-name suffix, so a test file with no suffix is never scanned (#740)
+gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list — 0s
+gate: tools/issues/tests/issue-tooling-selftest.sh
+PASS Profile#everySectionIsPresent
+PASS Taxonomy#vocabulariesAreClosed
+PASS Taxonomy#mapsEveryFixtureEntry
+PASS Taxonomy#renamesTheTwoProjectCategories
+PASS Taxonomy#unknownValueRefuses
+PASS Policy#allowlistIsNotEmptyAndNamesTheAuthenticatedUser
+PASS Policy#gateMatrix
+PASS WorkPackage#bodyCannotBreakOutOfTheDataBlock
+PASS WorkPackage#oversizedBodyRefuses
+PASS WorkPackage#recordedDecisionIsCarried
+PASS WorkPackage#noDecisionIsRecorded
+PASS WorkPackage#questionIsNotTheVerdictWord
+PASS Fingerprint#stableAcrossWhitespaceAndLineNumbers
+PASS Fingerprint#separatesDistinctEntries
+PASS Bands#coversTheWholeRange
+PASS Bands#labelSpellingComesFromTheProfile
+PASS Bands#refusesAScoreOutsideEveryBand
+PASS TodoSections#parsesEveryStatusShape
+PASS labels#dryRunListsTaxonomy
+PASS lib#discoversTheCurrentProject
+PASS lib#refusesOutsideAGitTree
+PASS lib#noProjectValueInTheEngine
+PASS lib#exitCodeConstants
+PASS lib#statusPrefixNeedsTheProfile
+PASS lib#questionIsReadFromANonEmptyComment
+PASS lib#coreIsCompiledNotLaunched
+PASS lib#retriesATransientFailure
+PASS lib#reportsAnUnreachableTrackerAfterTheLastRetry
+PASS lib#doesNotRetryAnAuthoritativeFailure
+PASS lib#doesNotRetryAnAppend
+PASS lib#onlyTheSeamCallsTheRealCli
+PASS policy#preflightRefusesUnknownLogin
+PASS policy#preflightReportsAnUnreachableTracker
+PASS policy#checkAnswersWithoutAnIdentityRead
+PASS create#duplicateRefusesAndNamesTheIssue
+PASS create#writesMarkerAndLabels
+PASS create#refusesTwoValuesOfOneNamespace
+PASS create#carriesTheFindingsClassAndCategory
+PASS create#refusesAClassItsLabelsContradict
+PASS create#refusesADoubledCitation
+PASS create#bareValueFlagNeedsAValue
+PASS create#aShapelessFindingIsRefused
+PASS create#aFindingWithBothShapesIsRefused
+PASS create#aCauseWithAResolvingPointerIsFiled
+PASS create#aCauseWhosePointerIsGoneIsRefused
+PASS create#aCauseWithoutACaseIsRefused
+PASS create#aNamedChangeThatDoesNotExistIsRefused
+PASS create#aChangeThatIsNotReadyIsRefused
+PASS create#aTierBWithNoDecisionIsRefused
+PASS create#anEmptyGatePathRefusesTierB
+PASS create#theDeclaredGatePathIsTheOneRun
+PASS create#aTierBIsFiledWithItsDecisions
+PASS create#theAnswerShapeIsWrittenFromTheConstants
+PASS create#theShapeIsInTheBodyRecord
+PASS create#aTierAIsFiled
+PASS create#aTierBIsFiled
+PASS create#aSensorFindingIsExemptFromTheShape
+PASS update#refusesUnknownLabel
+PASS update#reportsAnUnreachableTrackerInsteadOfARefusal
+PASS close#requiresReasonAndEvidence
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+PASS close#recordsStateReason
+PASS close#refusesOnPolicyFailure
+PASS close#notPlannedNeedsNoOptIn
+PASS list#filtersByEachCriterion
+PASS list#idResolvesTheMarker
+PASS list#idDoesNotMatchASubstring
+PASS surface#noDeletePath
+PASS surface#reservedLabelRefusesInEveryWritePath
+PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+PASS surface#theStubRefusesAnEditWithNoField
+PASS import#dryRunEmitsOnePreviewPerFinding
+PASS import#secondRunIsANoOp
+PASS import#theImportedItemNamesItsExemption
+PASS adapter#emitsOneFindingPerFixtureSection
+PASS update#removeLabelRunsThroughTheSameGate
+PASS update#refusesABandLabelWithoutItsMarker
+PASS update#writesABandLabelWithTheBodysMarker
+PASS create#refusesABandLabelAtFilingTime
+PASS update#statusReplacesTheOldStatus
+PASS update#statusReplacementIsIdempotent
+PASS update#statusRejectsTwoStatesInOneCall
+PASS update#statusReportNamesImpliedRemoval
+PASS update#refusesToDisplaceASettledState
+PASS update#statusWriteReportsAnEmptyTransition
+PASS update#commentOnlyReportsNoStatusWrite
+PASS update#stateNamedAsALabelReplacesTheOldState
+PASS close#commentOnlyLeavesTheIssueOpen
+PASS close#writesTheSettledStatus
+PASS close#keepsTheItemOpenWhenTheStateCannotBeWritten
+PASS close#writesNothingWhenTheItemAlreadyCarriesTheState
+PASS close#refusesAProfileThatNamesNoSettledState
+PASS close#namesTheSettledStateItDisplaces
+PASS close#refusesAClosureTheBaseDoesNotCarry
+PASS decisions#listsTheQueueAndItsQuestions
+PASS decisions#theQuestionIsNotTheVerdictWord
+PASS decisions#aParkedItemIsListedAsParked
+PASS decisions#anAnsweredCreationIsNotAParkedItem
+PASS decisions#emptyQueueIsNotAnError
+PASS decisions#theOldestQueuedItemIsListed
+PASS decisions#aReadThatCannotCoverTheSetIsRefused
+PASS decisions#theCountIsReportedWithoutReadingTheSet
+PASS decisions#theAnswerShapeIsPinnedInTheReader
+PASS decisions#everyOptionSaysWhatTheOwnerGetsAndWhatItRisks
+PASS decisions#everyOptionCarriesAScore
+PASS decisions#theScoreTableReadsItsDeltas
+PASS decisions#theSheetLeadsWithTheVerdict
+PASS decisions#theSheetIsTheFirstThingAfterTheReads
+PASS decisions#theListingIsTheAnswerToWhichAreWaiting
+PASS shaping#theQueuePrintsTheVerdictAndClause
+PASS shaping#anItemWithNoStatementIsNamed
+PASS shaping#anEmptyQueueExitsZero
+PASS shaping#anEmptyListIsAnEmptyQueue
+PASS shaping#theDecisionQueueIgnoresTheShapingLabel
+PASS shaping#answeringAShapingItemIsRefused
+PASS shaping#aReshapedItemLeavesTheQueue
+PASS shaping#aClosedItemLeavesNoLabel
+PASS shaping#anUndeclaredLabelIsRefused
+PASS shaping#theConsumerProposesFromTheItemsOwnStatement
+PASS shaping#theConsumerWritesNothingBeforeTheOwnerChooses
+PASS shaping#theApprovedReshapeLeavesThroughTheExistingWriters
+PASS decision-queue#theReaderTakesAnIdOrTheQueue
+PASS decision-queue#everyOptionCarriesAnExampleAndTwoViews
+PASS decision-queue#theReaderWritesNothingBeforeTheChoice
+PASS duplicates#dryRunWritesNothing
+PASS duplicates#youngerDuplicateIsClosedWithAPointer
+PASS duplicates#olderItemSurvives
+PASS duplicates#unauthorisedDuplicateIsCommentedNotClosed
+PASS duplicates#aMarkedDuplicateIsNotCommentedTwice
+PASS duplicates#collisionIsReportedAndNothingIsWritten
+PASS duplicates#landedCandidateIsPrintedNotClosed
+PASS duplicates#cleanTrackerExitsZeroWithoutAWrite
+PASS duplicates#differentFingerprintsAreNotMerged
+PASS answer#requiresTheDecisionText
+PASS answer#refusesWhatIsNotADecision
+PASS answer#continueReturnsTheItemToTheQueue
+PASS answer#parkWritesTheAnswerAndKeepsTheMode
+PASS answer#theAnswerNamesTheQuestion
+PASS answer#theAnswerQuotesTheQuestionNotTheVerdictWord
+PASS answer#deviceMovesToTheDeviceLane
+PASS answer#retireClosesAsRetired
+PASS basis#stableAcrossWhitespaceOnlyBodyEdit
+PASS basis#changesWhenAClassLabelChanges
+PASS basis#changesWhenTheCitedCodeGoesAway
+PASS basis#anAgedScoreIsRevisited
+PASS prioritise#readsEveryIssueAndSkipsByBasis
+PASS prioritise#capsTheDueSet
+PASS prioritise#secondRunScoresNothing
+PASS prioritise#writesLabelAndMarkerTogether
+PASS prioritise#theWriteKeepsAQuotation
+PASS prioritise#refusesATaxonomyOutsideValue
+PASS prioritise#commentsOnlyOnABandTransition
+PASS prioritise#occurrenceAbsenceIsOne
+PASS prioritise#occurrenceChangeInvalidatesTheBasis
+PASS prioritise#writesNoGateLabel
+PASS prioritise#reportsEveryCounter
+PASS prioritise#bodiesAreDelimitedData
+PASS prioritise#refusesABodyThatClosesTheFence
+PASS classify#selectsOnlyUnclassified
+PASS classify#refusesAnOutOfVocabularyProposal
+PASS classify#reportsAnOutOfVocabularyCategoryWithoutWriting
+PASS classify#writesOnlyClassAndCategory
+PASS list#prioSelector
+PASS list#unrankedSelector
+PASS list#eligibleOnlyIgnoresTheBand
+PASS list#closedItemIsNotASelection
+PASS list#untypedIsQueried
+PASS docs#theFilingSkillsNameTheTypeAxis
+PASS check#markerLabelMismatchFails
+PASS check#outOfRangeBandFails
+PASS check#neverWritesEligibility
+PASS check#incompleteMarkerFails
+PASS check#labelWithoutMarkerFails
+PASS check#aQuotationIsNotAMarker
+PASS check#aMarkerLineBesideAQuotationIsTheRecord
+PASS check#aDisplacedSettledStateIsReported
+PASS check#unrankedIsNotAViolation
+PASS check#untypedItemIsReported
+PASS check#selfCheckIsGreen
+PASS metadata#aTypedChildIsConsistent
+PASS metadata#anUntypedChildIsAViolation
+PASS metadata#aChildOfAnOrdinaryIssueIsOutOfScope
+PASS metadata#bothPerItemModesCheckIt
+PASS metadata#theJsonCarriesTheViolation
+PASS metadata#anUnreadableFieldIsNamed
+PASS prioritise#recordsOutgrowOneArgument
+PASS create#writesTheTypeItWasGiven
+PASS create#writesTheDependencyItWasGiven
+PASS update#writesTheTypeItWasGiven
+issue-tooling-selftest: all 188 cases passed (JDK 21, offline, no token, HEAD b250d6c6, tools e3b0c44298fc, 2026-11-23T18:21:52Z)
+gate: tools/issues/tests/issue-tooling-selftest.sh — 143s
+gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+# tools/issues/tests/status-mutations.json — 6 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+5.1	update#statusReplacesTheOldStatus	the displaced state labels being read from the item, so the add and the removals ride one edit
+5.2	update#statusReplacementIsIdempotent	the difference-only rule — a state write does not add the label the item already carries
+5.3	update#statusRejectsTwoStatesInOneCall	a call naming two states being refused instead of silently resolved
+5.4	update#statusReportNamesImpliedRemoval	the report carrying the displaced labels the caller never named
+7.1	update#stateNamedAsALabelReplacesTheOldState	a state named as the namespaced label being the same act as one named through the state flag
+8.1	update#refusesToDisplaceASettledState	the guard refusing a routine write that would displace a settled state instead of letting every caller through
+gate: tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+# tools/issues/tests/create-mutations.json — 5 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+1.1	create#refusesTwoValuesOfOneNamespace	a filing whose merged label set names two values of one namespace being refused before any gh issue create
+1.2	create#refusesADoubledCitation	the filing path refusing a citation that repeats its own directory, so the item is not born stale (#189)
+1.3	create#carriesTheFindingsClassAndCategory	the finding's required class and category reaching the tracker as labels (issue #201), so a finding that names its kind only in the two fields cannot file an item no selector reads
+2.1	create#theAnswerShapeIsWrittenFromTheConstants	the answer's first half having one home (issue #859) — the filing path writes the decision line from this constant, so moving it moves the recorded answer
+2.2	create#theAnswerShapeIsWrittenFromTheConstants	the same home for the marker half (issue #859) — the filing path binds each decision to its question with this constant, so moving it moves the comment it writes
+gate: tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+# tools/issues/tests/close-mutations.json — 6 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	close#writesTheSettledStatus	the settled state being written before the closure — without it an item is closed and still reads on-hold
+A1.2	close#writesTheSettledStatus	a person's not-planned decision recording the state a fix records
+A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry
+A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state
+A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a state (#182)
+A1.6	close#refusesAClosureTheBaseDoesNotCarry	the ancestry check a closure's claim rests on (#715) — without it the item is closed on a commit the base branch does not carry, which is the state five items of the run of 2026-10-30 were found in
+gate: tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+# tools/issues/tests/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
+D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
+D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
+D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1260 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 19s, tools/loop/tests/loop-selftest.sh --from-git e3a5afd8 554s, bash tools/loop/tests/loop-mutations.sh --check 18s, tools/loop/tests/loop-mutations-selftest.sh 130s, tools/check-portability.sh 3s, tools/tests/check-portability-selftest.sh 36s, tools/tests/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 143s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s)

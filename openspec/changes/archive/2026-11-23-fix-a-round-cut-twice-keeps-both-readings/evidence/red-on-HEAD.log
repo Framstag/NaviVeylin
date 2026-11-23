@@ -1,0 +1,5 @@
+run#aRoundCutTwiceKeepsBothReadingsFindings|   the two readings' findings were not kept as the item's evidence: no /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.kILS8i/cases/0/tree/case.0MJxIc/repo/.pi/issue-loop/items/21/review-findings.md
+--- run#aRoundCutTwiceKeepsBothReadingsFindings[0] (exit 1)
+  the two readings' findings were not kept as the item's evidence: no /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.kILS8i/cases/0/tree/case.0MJxIc/repo/.pi/issue-loop/items/21/review-findings.md
+FAIL run#aRoundCutTwiceKeepsBothReadingsFindings
+loop-selftest: 1 of 1 cases failed

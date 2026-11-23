@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-mutations-selftest.sh" tests="39" failures="0" errors="0" time="130" run="784248">
+  <system-out>ok   a copy with no sibling gate-log reader exits 2 ok   and it names the sibling it lacks loop-mutations-selftest: all 39 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it quotes the assertion a red case failed on and the case-log line it read it from, it restores what it touches, it backs up under the project, it refuses a backup that did not land and </system-out>
+</testsuite>

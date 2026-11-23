@@ -1,0 +1,20 @@
+# Readiness, artifact hygiene and the strict validator, for this change (task 4.6)
+# re-taken 2026-11-23T17:42:14Z
+
+$ tools/check-change-readiness.sh openspec/changes/fix-a-round-cut-twice-keeps-both-readings
+LOOP-CHANGE-READY: ok
+EXIT=0
+
+# The hygiene gate covers the whole open set and exits 1 on three changes unrelated to this
+# one (shape-idea, sonar-findings-as-sensor-signals, store-assets-from-the-emulators: each
+# holds no `x-issue:` field and no `fix-issue-<N>-` name).  Lines naming this change:
+$ tools/check-openspec-hygiene.sh 2>&1 | grep -c "fix-a-round-cut-twice"
+0
+$ tools/check-openspec-hygiene.sh 2>&1 | grep -A1 "Every capability spec states its Purpose"
+Every capability spec states its Purpose.
+$ tools/check-openspec-hygiene.sh >/dev/null 2>&1; echo "EXIT=$?"
+EXIT=1
+
+$ openspec validate fix-a-round-cut-twice-keeps-both-readings --strict
+Change 'fix-a-round-cut-twice-keeps-both-readings' is valid
+EXIT=0

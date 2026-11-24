@@ -347,8 +347,14 @@ jobs:
       # out of the test graph (spec `build-sbom`, "A JVM-only test run does not
       # require the native tree", issue #270). The strict artefact path is the
       # three steps above, which run with the vcpkg tree present.
+      #
+      # The invocation runs through `tools/gradlew-retry.sh` because this step resolves the unit-test
+      # runtime classpath, and Gradle does not retry a Maven Central 429 on an artifact download
+      # (gradle/gradle#39083): the repository is blacklisted and the build fails. Run 45361986255 failed
+      # here on `org.robolectric:nativeruntime-dist-compat:1.0.18` after the restored cache arrived without
+      # the jar. The wrapper retries only a log that names a 429 and leaves every other failure alone.
       - name: Run unit tests
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests -PjvmTestsOnly --no-build-cache
+        run: bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests -PjvmTestsOnly --no-build-cache
 
       # A green verdict says nothing about what ran: name the suites and their
       # tallies in the log, per module and per `:app` flavor.

@@ -146,9 +146,13 @@ jobs:
       # The JVM-only gate (guidelines/Build.md §3): the same command line the local gate runs, so this scan is
       # reproducible by hand. It compiles exactly the source sets that are in scope — which is also what
       # `sonar.java.binaries` needs — and executes the coverage agent the two report steps below read.
+      #
+      # The invocation runs through `tools/gradlew-retry.sh` for the reason `build.yml`'s same step carries:
+      # Gradle does not retry a Maven Central 429 on an artifact download (gradle/gradle#39083), and this
+      # step resolves the unit-test runtime classpath. The wrapper retries only a log that names a 429.
       - name: Run unit tests
         id: tests
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
+        run: bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
 
       # One report per module, one provenance for the Java module: the root merged Kover report is not
       # generated (its module-relative paths are the known breakage, design D4) and the vendored JaCoCo report

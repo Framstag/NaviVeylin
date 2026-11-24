@@ -102,9 +102,38 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper/dists
             ~/.gradle/jdks
+            ~/.m2/repository
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
+
+      # The Robolectric SDK jars, warmed the same way `build.yml` warms them: Robolectric's
+      # `MavenArtifactFetcher` asks Maven Central at *test* time and skips the network only when the jar is
+      # already in the local Maven repository, so this scan hit the same HTTP 429 the build run did on
+      # 2026-11-23 (run 45271114427). `~/.m2/repository` is cached above for the same reason. The coordinates
+      # and the fallback are `build.yml`'s: a bump there is a bump here.
+      - name: Warm the Robolectric SDK jars
+        run: |
+          set -uo pipefail
+          repo="$HOME/.m2/repository/org/robolectric/android-all-instrumented"
+          for v in 5.0.2_r3-robolectric-r0-i7 14-robolectric-10818077-i7 16-robolectric-13921718-i7; do
+            jar="$repo/$v/android-all-instrumented-$v.jar"
+            if [ -s "$jar" ]; then
+              echo "present: $jar"
+              continue
+            fi
+            mkdir -p "$repo/$v"
+            url="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/$v/android-all-instrumented-$v.jar"
+            echo "fetching: $url"
+            if curl --fail --silent --show-error --location \
+                 --retry 8 --retry-delay 5 --retry-max-time 300 --retry-all-errors \
+                 --output "$jar.part" "$url"; then
+              mv "$jar.part" "$jar"
+            else
+              rm -f "$jar.part"
+              echo "::warning::could not warm $v; the test-time fetch will ask Maven Central itself"
+            fi
+          done
 
       # The JVM-only gate (guidelines/Build.md §3): the same command line the local gate runs, so this scan is
       # reproducible by hand. It compiles exactly the source sets that are in scope — which is also what

@@ -138,6 +138,7 @@
         "UI.md §8d \"the spoken-announcement switches are per surface, and the GPS switch is shared.\"",
         "UI.md §8d \"the location-options-only settings are phone-only.\"",
         "UI.md §8d \"the car's reroute wait is a surface strip, the phone's is a card tint.\"",
+        "UI.md §8d \"a value a car surface cannot edit is edited on the phone, and a car anchor restores from the phone.\"",
         "UI.md §9 \"the phone dark-mode preference is three-state with an ambient option.\"",
         "UI.md §9 \"the Android Auto dark mode has two layers, owned differently.\"",
         "UI.md §9 \"the template chrome is host-themed, never app-themed.\"",
@@ -305,6 +306,7 @@
         "MapFrames.md §13 \"The marker overlay must be shifted by the same offset the content is drawn with\"",
         "MapFrames.md §13 \"The renderer's target center (`currentLat/Lon`) only advances with render requests.\"",
         "MapFrames.md §13 \"Pan hot path budget\"",
+        "MapFrames.md §13 \"One displayed viewport per frame.\"",
         "MapStyling.md §20 \"The character count is the bound that wraps\"",
         "MapStyling.md §20 \"A label is broken at a word boundary only\"",
         "MapStyling.md §20 \"The Android build has no Pango\"",
@@ -632,7 +634,8 @@
         "MapFrames.md §13 \"Diagnosing a stuck pan\"",
         "MapFrames.md §13 \"The marker overlay must be shifted by the same offset the content is drawn with\"",
         "MapFrames.md §13 \"The renderer's target center (`currentLat/Lon`) only advances with render requests.\"",
-        "MapFrames.md §13 \"Pan hot path budget\""
+        "MapFrames.md §13 \"Pan hot path budget\"",
+        "MapFrames.md §13 \"One displayed viewport per frame.\""
       ]
     },
     {
@@ -703,6 +706,7 @@
         "BuildGate.md §2b \"the allowlist is probed, not assumed.\"",
         "BuildGate.md §2b \"never `pkill -f \"gradlew …\"`.\"",
         "BuildGate.md §2b \"do not use `/tmp` for large map imports.\"",
+        "BuildGate.md §2b \"a rotated child stream still answers every turn — read the pair before calling a figure a lower bound.\"",
         "BuildGate.md §2c \"every gate run can leave a machine-readable record of what it cost\"",
         "BuildGate.md §2c \"the timing script only observes; it never adds an action to a task.\"",
         "BuildGate.md §2c \"to force execution of the tests, use `-PforceTests --no-build-cache`, not `--rerun-tasks`.\"",
@@ -1004,6 +1008,7 @@
         "UI.md §8d \"the spoken-announcement switches are per surface, and the GPS switch is shared.\"",
         "UI.md §8d \"the location-options-only settings are phone-only.\"",
         "UI.md §8d \"the car's reroute wait is a surface strip, the phone's is a card tint.\"",
+        "UI.md §8d \"a value a car surface cannot edit is edited on the phone, and a car anchor restores from the phone.\"",
         "UI.md §9 \"the phone dark-mode preference is three-state with an ambient option.\"",
         "UI.md §9 \"the Android Auto dark mode has two layers, owned differently.\"",
         "UI.md §9 \"the template chrome is host-themed, never app-themed.\"",

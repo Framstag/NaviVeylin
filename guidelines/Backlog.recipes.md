@@ -207,13 +207,18 @@ can take one out again: a result a child was handed at turn 3 is still in its tr
 #1002). So a third rule drops a result that has stood for `LOOP_TOOL_RESULT_AGE_TURNS` assistant turns or more out of the **request** —
 pi's own `context` hook, which is handed a copy of the messages, so the transcript an evidence check reads keeps the
 whole text — and replaces it with one line naming the tool, the path it read, its size and the call that reads a range
-of it again, the withheld volume landing in the same record as the trim. `tools/loop/loop.conf` records **20**: over the
-same streams 40 turns reaches −23 % of the window and 20 turns −39 % (p50 63 k against 114 k), while 10 turns reaches
-−48 % at the cost of what a child is still working from. The gain is a floor and not a saving — dropping a message
-changes the conversation prefix, so the provider's cache is re-established once from the drop point, 97 % of that spend
-being `cacheRead` — which is why the drop fires when a result ages and the same set then stays out for the turns that
-follow. `0` disables it, and a project that records no key hands every child the request its session holds
-(`trim#aResultOlderThanTheAgeIsStubbedAndNamed`).
+of it again, the withheld volume landing in the same record as the trim. `tools/loop/loop.conf` records **0**, so the
+rule is off in this project: measured 2026-11-24 over two identical 140-turn sessions of the loop's own adapter — one
+prompt, one corpus, only the key differing — `0` billed 23 955 fresh input against 3 878 016 cached and moved the
+weekly quota 0.07 points, while `60` billed 789 931 against 3 016 832 and moved it 0.49: 7x the quota for the same
+work, and 56.6x the fresh input over the turns the bound can first fire at (61+: 13 776 against 779 885), against an
+ordinary item that pays more — #984 aged 563 results over 395 calls, 1.4 a call against the probe's 0.6, and ran
+56 % fresh. The rule was derived from the token saving alone (over the same streams 40 turns reaches −23 % of the
+window and 20 turns −39 %, p50 63 k against 114 k, while 10 turns reaches −48 % at the cost of what a child is still
+working from), and that derivation prices a cache hit as free and the drop as a one-off: the bound is a turn count the
+session advances every turn, so the prefix is re-established once per request rather than once. `0` is also the arm a
+project that records no key is handed, and `trim#aResultOlderThanTheAgeIsStubbedAndNamed` still holds the rule the
+engine supports for a project that records a positive number.
 
 That count used to be readable only offline, in the archive's own streams (issue #814): the item's record now carries
 it, so a report says whether the rule holds without `tools/loop-spend.py` being run first. `state.sh done` counts —

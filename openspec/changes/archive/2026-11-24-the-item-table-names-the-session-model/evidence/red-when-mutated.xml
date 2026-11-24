@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The JUnit-shaped tally of evidence/red-when-mutated.log: one `testcase` per case the red run ran, read off the
+     `RED <label> <case>` line and the reason the case logged. A shell self-test prints PASS/FAIL lines rather than a
+     suite report (`.pi/skills/revert-check`, "When the gate is a shell self-test"), so the tally is transcribed from
+     the log.
+
+     Why this is the red cases' proof of HEAD rather than a run on HEAD: the defect is a column the row does not
+     carry, and this tree holds no step that reverts a file to HEAD (`git checkout` and `git stash` are refused for
+     an unattended child). The mutation records `972.1` and `972.2` in `tools/loop/tests/loop-mutations.sh` are that
+     revert expressed as one line each: they take the `model` cell back out of `tools/loop/state.sh`'s per-item row,
+     which is HEAD's behaviour for a table whose columns do not include it. Taken 2026-11-24T21:08:23Z on base
+     3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca, from the change root, with
+     `bash tools/loop/tests/loop-mutations.sh --only '972.1 972.2'`; the run restored the tree green afterwards
+     (`restore 972.1 … green again`, `restore 972.2 … green again`), and both cases pass on the change
+     (`evidence/green-on-change.log`). -->
+<testsuite name="report" tests="2" failures="2" errors="0" timestamp="2026-11-24T21:08:23Z">
+  <testcase classname="report" name="theItemTableNamesTheSessionModel">
+    <failure message="the model the item worker ran in named on its row, so two items of one run are compared by cost alone and a role that crossed models reads as one budget (issue #972)">RED 972.1 report#theItemTableNamesTheSessionModel: with the `model` cell taken back out of state.sh's row, the two-model item's row had no cell for the pair. The case log line 1 is "the row names the worker's model with the most tokens and how many further models it used: expected 'deepseek-v4.1-flash +1', got ''" (exit 1).</failure>
+  </testcase>
+  <testcase classname="report" name="aStateWithNoModelPrintsADash">
+    <failure message="the dash a state with no recorded model prints, so a state written before the field existed carries an empty cell where the report spells a figure it did not measure (issue #972)">RED 972.2 report#aStateWithNoModelPrintsADash: with the `model` cell taken back out of state.sh's row, the older state's row printed nothing where `-` is asserted. The case log line 2 is "a state that predates the field prints - in the model column, not a guess: expected '-', got ''" (exit 1).</failure>
+  </testcase>
+</testsuite>

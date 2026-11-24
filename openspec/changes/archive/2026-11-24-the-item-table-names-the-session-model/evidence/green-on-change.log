@@ -1,0 +1,6 @@
+# the delta's own selection on 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca + this change: the two cases it adds, and the two cases its diff rewrites or reaches (issue #972)
+PASS report#theItemTableNamesTheSessionModel
+report#aStateWithNoModelPrintsADash| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FuVlp7/cases/0/tree/case.dnn0ot/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e13feb4b005e8d55 → a638df30f3fecf1b); a field was edited outside this script
+PASS report#aStateWithNoModelPrintsADash
+PASS report#wallTimeAndReasonInTheTable
+PASS report#aRolesTokensRecordTheModelThatAnswered

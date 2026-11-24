@@ -1,0 +1,228 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+    <failure message="the dash a state with no recorded model prints, so a state written before the field existed carries an empty cell where the report spells a figure it did not measure (issue #972)">RED 972.2 report#aStateWithNoModelPrintsADash: with the `model` cell taken back out of state.sh's row, the older state's row printed nothing where `-` is asserted. The case log line 2 is "a state that predates the field prints - in the model column, not a guess: expected '-', got ''" (exit 1).</failure>
+  </testcase>
+</testsuite>
+86:    --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_case="${2
+614:      if (in_case) printf "%s\t%s\t%s\n", start, NR - 1, name
+620:    END { if (in_case) printf "%s\t%s\t%s\n", start, NR, name }
+    --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_case="${2:-}"; shift 2 ;;
+    --group) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_group="${2:-}"; shift 2 ;;
+    --files) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
+      for _wanted in ${2:-}; do only_files="$only_files$_wanted "; done; shift 2 ;;
+    --from-git) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; from_git="${2:-}"; shift 2 ;;
+    --allow-empty) allow_empty=1; shift ;;
+    --jobs) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_jobs="${2:-}"; shift 2 ;;
+    --case-files) list_declared=1; shift ;;
+    --print-bound) print_bound=1; shift ;;
+    --times) times=1; shift ;;
+    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+# the delta's own selection on 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca + this change: the two cases it adds, and the two cases its diff rewrites or reaches (issue #972)
+PASS report#theItemTableNamesTheSessionModel
+report#aStateWithNoModelPrintsADash| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.FuVlp7/cases/0/tree/case.dnn0ot/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e13feb4b005e8d55 → a638df30f3fecf1b); a field was edited outside this script
+PASS report#aStateWithNoModelPrintsADash
+PASS report#wallTimeAndReasonInTheTable
+PASS report#aRolesTokensRecordTheModelThatAnswered
+Could not find edits[6] in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/the-item-table-names-the-session-model/tasks.md. The oldText must match exactly including all whitespace and newlines.
+
+## 2. The cases
+
+- [ ] 2.1 `report#theItemTableNamesTheSessionModel` — an item whose worker ran on two models prints both facts.
+- [ ] 2.2 `report#aStateWithNoModelPrintsADash` — a state written before the field existed prints `-`, not a guess.
+- [ ] 2.3 Declare both cases' files in the driver's own registry (`driver#everyCaseDeclaresTheFilesItCanReach`).
+
+## 3. The falsification
+
+- [ ] 3.1 Mutate the column out and confirm both cases go red; restore, then run
+      `tools/loop/tests/loop-selftest.sh --case report#theItemTableNamesTheSessionModel` and the full
+      `tools/loop/tests/loop-selftest.sh`.
+[LOOP-REPEAT-READ: openspec/changes/the-item-table-names-the-session-model/tasks.md was handed over whole at turn 36 as lines:1-23 (1153 characters) and is not sent again — read a range of it instead (ctx_read mode="lines:1-23")]
+
+# Tasks: the-item-table-names-the-session-model
+
+## 1. The column
+
+- [ ] 1.1 `tools/loop/state.sh` (the `report` arm `tools/loop/report.sh:440` invokes): add `model` to the per-item
+      table's header and its row builder, read from
+      `metrics.roleModels.worker` — the model with the most tokens, `+N` for further models, `-` when none is recorded.
+- [ ] 1.2 Confirm the `--json` path and the trend block are unchanged.
+Successfully replaced 6 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/the-item-table-names-the-session-model/tasks.md.
+Successfully replaced 1 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/the-item-table-names-the-session-model/design.md.
+restore 972.2 report#aStateWithNoModelPrintsADash green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+Successfully wrote to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/the-item-table-names-the-session-model/evidence/red-when-mutated.xml
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 130 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  agent-issue-loop: update
+Applying changes to openspec/specs/agent-issue-loop/spec.md:
+  + 1 added
+Totals: + 1, ~ 0, - 0, → 0
+Specs updated successfully.
+Change 'the-item-table-names-the-session-model' archived as '2026-11-24-the-item-table-names-the-session-model'.
+exit=0
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+started
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca (from the base branch main)
+LOOP-GATE-TREE: head=3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca diff=36df8d42dac9012c
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=2213255
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach — 22s
+gate-pool: 4 steps start together — at most 4 in flight
+loop-selftest: look 5 cases 3.00 s
+loop-selftest: policy 2 cases 3.58 s
+loop-selftest: report 49 cases 312.44 s
+loop-selftest: usage 4 cases 2.85 s
+loop-selftest: phase 3 cases 7.39 s
+loop-selftest: repeat 10 cases 7.33 s
+loop-selftest: census 8 cases 12.96 s
+loop-selftest: 2 of 552 cases failed — 623.35 s
+gate: tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca — 625s
+LOOP-GATE-BASERED-MEASURE:tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca — measuring this step on 3ef5fbddeb07 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+1491:FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+1707:FAIL run#theQuotaSwitchIsExplicit
+loop-selftest: phase 3 cases 7.39 s
+loop-selftest: repeat 10 cases 7.33 s
+loop-selftest: census 8 cases 12.96 s
+loop-selftest: 2 of 552 cases failed — 623.35 s
+gate: tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca — 625s
+LOOP-GATE-BASERED-MEASURE:tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca — measuring this step on 3ef5fbddeb07 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1325 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 22s, tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca 625s, bash tools/loop/tests/loop-mutations.sh --check 25s, tools/loop/tests/loop-mutations-selftest.sh 153s, bash tools/gen-feature-list.sh --check-classification 23s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 32s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 142s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca:2, tools/check-openspec-hygiene.sh:1
+bash_tools_gen-feature-list.sh_--check-classification.xml
+bash_tools_loop_tests_loop-mutations.sh_--check.xml
+gate.log
+tools_check-doc-routes.sh.xml
+tools_check-doc-values.sh.xml
+tools_check-openspec-hygiene.sh.xml
+tools_check-portability.sh.xml
+tools_check-todo-references.sh.xml
+tools_issues_tests_issue-tooling-selftest.sh.xml
+tools_loop_tests_loop-mutations-selftest.sh.xml
+tools_loop_tests_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanRe.xml
+tools_loop_tests_loop-selftest.sh_--from-git_3ef5fbddeb07e65c4cabf0b6385b81c05a5.xml
+tools_mutate.sh_--mutations_tools_issues_tests_close-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_issues_tests_create-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_issues_tests_decision-question-mutations.json_.xml
+tools_mutate.sh_--mutations_tools_issues_tests_duplicates-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_issues_tests_status-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_tests_portability-mutations.json_--list.xml
+tools_tests_check-doc-routes-selftest.sh.xml
+--- status
+ M guidelines/Backlog.recipes.md
+ M openspec/specs/agent-issue-loop/spec.md
+ M tools/loop/state.sh
+ M tools/loop/tests/loop-cases.sh
+ M tools/loop/tests/loop-mutations.sh
+?? openspec/changes/archive/2026-11-24-the-item-table-names-the-session-model/
+--- stat
+ tools/loop/tests/loop-cases.sh          | 77 +++++++++++++++++++++++++++++----
+ tools/loop/tests/loop-mutations.sh      |  8 ++++
+ 5 files changed, 108 insertions(+), 12 deletions(-)
+23
+tests="552" failures="2"
+shell `grep` is not how this tree is read: `tools/look.sh '<regex>'` searches the worktree and the submodule in one bounded call, `ctx_grep` searches one path. A range read of a log outside the tree, an item artefact, `tail -n`, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's.
+FAIL run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+FAIL notes#aCaseThatWasRed
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+FAIL adapter#theResultBoundExemptsGateEvidence
+FAIL notes#aCaseThatWasRed
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+FAIL adapter#theResultBoundExemptsGateEvidence
+FAIL notes#aCaseThatWasRed
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+FAIL adapter#theResultBoundExemptsGateEvidence
+FAIL notes#aCaseThatWasRed
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+FAIL adapter#theResultBoundExemptsGateEvidence
+FAIL notes#aCaseThatWasRed
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+FAIL adapter#theResultBoundExemptsGateEvidence
+FAILURE: Build failed with an exception.
+FAILURE: Build failed with an exception.
+FAIL notes#aCaseThatWasRed
+FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+FAIL adapter#theResultBoundExemptsGateEvidence
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#childUsageIsRecordedPerItem
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#childUsageIsRecordedPerItem
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplicit
+FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+FAIL run#theQuotaSwitchIsExplic
+[LOOP-TRIMMED: ctx_shell returned 2590 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+green-on-change.log
+red-when-mutated.log
+red-when-mutated.xml
+# the delta's own selection on 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca + this change: the two cases
+PASS report#theItemTableNamesTheSessionModel
+
+# the gate child's own closing answer
+Gate green, change archived. Report:
+
+```
+LOOP-CHANGE: 2026-11-24-the-item-table-names-the-session-model
+LOOP-ROOT-CAUSE: `state.sh`'s `cmd_report` table builder prints nineteen columns from the state and never reads `metrics.roleModels`, so an item's spend is priced without the model that spent it (`tools/loop/state.sh:1575`).
+LOOP-RED-TEST: report#theItemTableNamesTheSessionModel fails on HEAD — XML tests=2 failures=2 (2026-11-24T21:08:23Z)
+```
+
+**What I did**
+
+- Phase A verified: HEAD still prints the nineteen-column header (`tools/loop/state.sh:1575`), `metrics.roleModels` is frozen per item (`state.sh:1415`, `:1504`), `report.sh:440` delegates the table to `state.sh report`, and no shipped spec enumerates the columns — so an ADDED requirement is the right shape.
+- Phase C: applied the handed change's `tasks.md` in order; the item's work was the kept patch (`items/972/leftover-from-killed-run.patch`, diff body lines 1–163): `state.sh` 12/3, `loop-cases.sh` 67/8, `loop-mutations.sh` 8/0. `patch --forward` applied with offsets only; `git apply --check` equivalent clean.
+- Phase D: driver case `driver#everyCaseDeclaresTheFilesItCanReach` first (PASS), then the two cases (PASS), then the two cases the diff reaches/rewrites (PASS). Falsification: `loop-mutations.sh --only '972.1 972.2'` → both RED on the exact expected cell, both restores green (`red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0`).
+
+**Grading my own diff found three things, all fixed before the gate**
+
+1. The spec's first clause — "and the header names the column" — was asserted by no case. Added the header assertion to `report#theItemTableNamesTheSessionModel`.
+2. `tasks.md` 1.1, `proposal.md` and its Evidence section named `tools/loop/report.sh` as the table's builder; the hunks are in `tools/loop/state.sh`. Corrected the pointers and kept `report.sh:440` as the entry point it is.
+3. The owning guideline section owed a sentence and had none: `guidelines/Backlog.recipes.md` describes every appended row column with the issue that added it (#757, #814). Added the `model` column's sentence with #972, and `design.md` now names that section.
+
+NOTE: `report#aStateWithNoModelPrintsADash` edits `run.json` with `jq del` to build a pre-field state, and `state.sh` prints its digest-drift diagnostic (`state: drift — …`) before the PASS. Deliberate, but the log line is noise a reviewer will see.
+
+```
+LOOP-GATE: tests=1325 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 22s, tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca 625s, bash tools/loop/tests/loop-mutations.sh --check 25s, tools/loop/tests/loop-mutations-selftest.sh 153s, bash tools/gen-feature-list.sh --check-classification 23s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 1s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 2s, tools/tests/check-portability-selftest.sh 32s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 142s, tools/mutate.sh --mutations tools/issues/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/decision-question-mutations.json --list 0s) — base-red: tools/loop/tests/loop-selftest.sh --from-git 3ef5fbddeb07e65c4cabf0b6385b81c05a50b1ca:2, tools/check-openspec-hygiene.sh:1
+```

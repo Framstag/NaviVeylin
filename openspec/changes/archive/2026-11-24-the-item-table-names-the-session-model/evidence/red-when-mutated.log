@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 464 records (labels: 972.1 972.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.lBXi7A
+RED    972.1  report#theItemTableNamesTheSessionModel   (the model the item worker ran in named on its row, so two items of one run are compared by cost alone and a role that crossed models reads as one budget (issue #972))
+       2026-11-24T21:08:23Z — case log line 1: the row names the worker's model with the most tokens and how many further models it used: expected 'deepseek-v4.1-flash +1', got ''
+restore 972.1 report#theItemTableNamesTheSessionModel green again
+RED    972.2  report#aStateWithNoModelPrintsADash   (the dash a state with no recorded model prints, so a state written before the field existed carries an empty cell where the report spells a figure it did not measure (issue #972))
+       2026-11-24T21:08:25Z — case log line 2: a state that predates the field prints - in the model column, not a guess: expected '-', got ''
+restore 972.2 report#aStateWithNoModelPrintsADash green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

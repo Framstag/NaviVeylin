@@ -12,7 +12,6 @@ import com.naviveylin.core.mapsource.MapSourceKind
 import com.naviveylin.core.mapsource.MapSourceMarker
 import com.naviveylin.core.mapsource.MapSourceRecord
 import com.naviveylin.data.AppSettings
-import com.naviveylin.data.HttpUrlFetcher
 import com.naviveylin.data.MapSourceRegistry
 import com.naviveylin.data.MapSourceSwitcher
 import com.naviveylin.data.MapStorageManager
@@ -224,7 +223,11 @@ class MapManagerSourceSwitchPlanTest {
         activeSource: MapSource,
         client: FakeOSMScoutClient = FakeOSMScoutClient()
     ): MapManagerViewModel {
-        val registry = MapSourceRegistry(settings, provider, HttpUrlFetcher())
+        // An offline fetcher: the registry's refresh of the repository's region index must not reach the
+        // network. A real `HttpUrlFetcher` here issued a live HTTPS request to the repository's host, and a
+        // unit test may not depend on one — when the run's TLS stack failed to initialise, the resulting
+        // `NoClassDefFoundError` escaped the refresh coroutine and failed the case (CI run 45380057626).
+        val registry = MapSourceRegistry(settings, provider, OfflineRepositoryFetcher())
         downloadManager = FakeMapDownloadManager(installedDirs = { emptyList() })
         val viewModel = mapManagerViewModelForTest(
             ApplicationProvider.getApplicationContext<Application>(),

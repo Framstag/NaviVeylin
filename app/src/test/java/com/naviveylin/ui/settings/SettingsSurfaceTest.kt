@@ -997,6 +997,11 @@ class SettingsSurfaceTest {
         composeRule.waitForIdle()
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
         composeRule.waitUntil(timeoutMillis = 5_000) {
+            // The write the row made is a coroutine on the rule's dispatcher, so each poll drains it
+            // before asking the file: the storage's read is a fresh one on the real dispatcher, which
+            // this rule cannot advance, and advancing only once before the loop leaves a write that
+            // was queued after that call unanswered (#1048).
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
             runBlocking { SettingsStorage(context).load() }.let(holds)
         }
     }
@@ -1044,9 +1049,19 @@ class SettingsSurfaceTest {
     private fun setUpMap(): FakeOSMScoutClient {
         val client = FakeOSMScoutClient()
         val locationService = LocationService(context)
+        // The controller's storage reads the document on the settings dispatcher, and the row shows
+        // the document the controller publishes. Left on the default `Dispatchers.IO`, that read is a
+        // thread the rule never advances: `advanceUntilIdle` below returns while the read is still in
+        // flight, and a case that asserts the row's value on the first frame reads the defaults the
+        // controller starts at. That read won its race here and lost it on a loaded runner — the same
+        // tree that passed the scan at 3b6a4acf failed it at d885082d with no source change (#1048).
+        // On the rule's dispatcher the read is part of the queue `advanceUntilIdle` drains, so the row
+        // renders the persisted document deterministically.
+        val settingsStorage = SettingsStorage(context)
+            .also { it.ioDispatcher = mainDispatcherRule.dispatcher }
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsController = SettingsController(SettingsStorage(context)),
+            settingsController = SettingsController(settingsStorage),
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),

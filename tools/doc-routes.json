@@ -395,7 +395,8 @@
         "UIPhone.md §20 \"both hosts share one writer, and the start screen is a host.\"",
         "UIPhoneMap.md §10a \"the gear's sheet is bounded, and its last row is the way out of it.\"",
         "UIPhoneMap.md §10a \"the phone has one settings surface, reachable from three hosts.\"",
-        "UIPhoneMap.md §11 \"the settings surface fills the modal band and is never a destination.\""
+        "UIPhoneMap.md §11 \"the settings surface fills the modal band and is never a destination.\"",
+        "Structure.md §5 \"a change that edits a baselined file migrates it, or names why it does not.\""
       ]
     },
     {
@@ -460,7 +461,8 @@
         "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
         "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
         "Structure.md §4 \"the baseline is the only exemption.\"",
-        "Structure.md §4 \"a green run prints what it verified.\""
+        "Structure.md §4 \"a green run prints what it verified.\"",
+        "Structure.md §5 \"a change that edits a baselined file migrates it, or names why it does not.\""
       ]
     },
     {
@@ -494,7 +496,8 @@
         "Structure.md §4 \"a baseline entry carries its file, its rule and the owning change.\"",
         "Structure.md §4 \"a baseline entry whose file no longer violates its rule fails.\"",
         "Structure.md §4 \"the baseline is the only exemption.\"",
-        "Structure.md §4 \"a green run prints what it verified.\""
+        "Structure.md §4 \"a green run prints what it verified.\"",
+        "Structure.md §5 \"a change that edits a baselined file migrates it, or names why it does not.\""
       ]
     },
     {

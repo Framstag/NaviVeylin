@@ -169,6 +169,15 @@ in `core`, because the phone's sheet and the car's screen both call it and `:aut
   `:core` unit tests plus `:architecture:test`, with `-PforceTests --no-build-cache`, and any exclusion named. A
   cached run proves the cache, not the tree.
 
+- **Rule: a change that edits a baselined file migrates it, or names why it does not.** The baseline names the
+  file and the change that owes its move, so an ordinary change that edits that file is already inside the move
+  it owes, and leaving it there is how the debt outlives the reader who knew why. The change's proposal states
+  either the migration, or the reason the file stays and the entry keeps its owner. The rule is checked by review
+  and not by a gate: the diff's baselined files are what
+  `comm -12 <(git diff --name-only "$base"...HEAD | sort -u) <(grep -v '^#' architecture/baseline.tsv | cut -f1 | sort -u)`
+  prints, and the reviewer reads each against the proposal's statement. A gate arm would need the base ref, which
+  a working-tree run does not have; the review is the cheap half and it is the one that names the owner.
+
 ## 6. What the suite cannot prove
 
 - **Rule: the suite proves the ladder between kinds, never cohesion inside a package.** It reads imports, so it

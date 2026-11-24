@@ -104,6 +104,16 @@ Item #981 landed the move and split the slice: the five `ui/favorites` files wen
 `core`, because `:auto` depends on `:core` and never on `:app`, so a move into the feature would have stopped the
 car compiling while the change's own verify (`:app:*`) stayed green.
 
+The rule that a change editing a baselined file migrates it was added on 2026-11-24 because the ratchet turned out
+to be a list nobody was obliged to read. The check fires on a *new* violation and on a *stale* entry, and both
+fires are about accounting: it never says that the file you are already editing is one the baseline owes. 45
+entries stand today, each naming a change that removes it, and neither of the two reserved names
+(`package-structure-feature-migration`, `package-structure-concept-migration`) had a tracker item until 2026-11-24,
+so the debt moved only when somebody chose to. Epic #1049 now owns the queue, one child per slice — the eight
+unmirrored platform rows, the three feature clusters and the concept purity split. The review arm is the cheap
+half: a working-tree gate run has no base ref to diff against, and the diff against the base is exactly what a
+reviewer already reads.
+
 ## §6 Why the check hangs off the module test tasks
 
 "No code passes the tests while violating the structure" is true only if the check runs in the invocation that

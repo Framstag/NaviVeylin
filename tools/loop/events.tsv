@@ -109,7 +109,7 @@ outside-write-alive	alive:text+attributed:ident	LOOP-OUTSIDE-WRITE-ALIVE: %s · 
 tests-cleared	cleared:text	run: cleared %s from the worktree before this child — test results an earlier child wrote, which its gate would have counted\n
 child-started	phase:ident+log:path	loop: %s started (log %s)\n
 heartbeat	phase:ident+elapsed:text+log_bytes:num+changed:num+commits:num	loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n
-context-warn	ctx:num+warn:num	LOOP-CONTEXT: the child's context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a fresh session at this reading is the cheaper half of the bound below\n
+context-warn	ctx:num+warn:num	LOOP-CONTEXT: the child's context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, and below the stop the item's first worker is ended here and continued from the work it left (LOOP_ITEM_CONTEXT_MAX bounds the continuation)\n
 child-finished	phase:ident+elapsed:text+exit:num+log_bytes:num	loop: %s finished in %s (exit %s, log %s B)\n
 change-ready-no-key	-	LOOP-CHANGE-READY: refused gate-not-configured — the profile declares no checks.changeReady\n
 change-ready-missing	gate:path	LOOP-CHANGE-READY: refused gate-not-configured — checks.changeReady names %s and no file is there\n

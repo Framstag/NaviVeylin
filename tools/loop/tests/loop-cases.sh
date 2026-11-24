@@ -549,6 +549,7 @@ LOOP_SHELL_CASES=(
   'run#aContinuationEndedOnTheSameCeilingStopsTooWide'
   'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound'
   'run#theCheckpointIsTheSplitsOwnReading'
+  'run#aContinuationRunsToTheStop'
   'run#aSecondChildIsNotEndedByAnEarlierSession'
   'run#aChainOfZeroContinuationsEndsAtTheCheckpoint'
   'run#aWorkerBelowItsCheckpointIsNotSplit'
@@ -1381,6 +1382,7 @@ loop_run_shell_case() {
     'run#aContinuationEndedOnTheSameCeilingStopsTooWide') fn=case_run_aContinuationEndedOnTheSameCeilingStopsTooWide ;;
     'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound') fn=case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound ;;
     'run#theCheckpointIsTheSplitsOwnReading') fn=case_run_theCheckpointIsTheSplitsOwnReading ;;
+    'run#aContinuationRunsToTheStop') fn=case_run_aContinuationRunsToTheStop ;;
     'run#aSecondChildIsNotEndedByAnEarlierSession') fn=case_run_aSecondChildIsNotEndedByAnEarlierSession ;;
     'run#aChainOfZeroContinuationsEndsAtTheCheckpoint') fn=case_run_aChainOfZeroContinuationsEndsAtTheCheckpoint ;;
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
@@ -23547,6 +23549,98 @@ EOF
     "the item is decided by the continuation's answer, not by the checkpoint that ended the first child: $out"
   assert_eq "needs-diagnosis" "$(jq -r '.items[0].verdict' "$f")" \
     "and by its verdict, which is a word only that report carries"
+  log=$(cat "$PI_STUB_LOG")
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
+    "with exactly one continuation child started from the work it left"
+  return 0
+}
+
+# …and the other half of #1022's extension, reversed by the measurement of 2026-11-24 (issue #1074): the checkpoint
+# bounds the item's **worker**, and the continuation the split hands it to runs on to the stop. A continuation is a fresh session, so it
+# pays the baseline again and re-reads the documents the first worker spent its window on — a checkpoint applied to it
+# ends it on the reading the split exists to carry over. Measured on the first four items after
+# `LOOP_TOOL_RESULT_AGE_TURNS=0`: every worker crossed 90 000 by a few hundred tokens (90 188, 90 147, 90 532, 91 140)
+# and each continuation crossed the same value about two minutes later on its own re-reading, so #956 wrote `too-wide`
+# for three items whose work was still uncommitted in the tree. The case holds the continuation's own stream above the
+# checkpoint and below the stop: a phase test that splits it ends the item at 90 000 as `too-wide`, and the assertions
+# below read the item taking its continuation's answer instead.
+case_run_aContinuationRunsToTheStop() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  local d p fifo fixture action pid i status out f log report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  grep -qx 'LOOP_ITEM_CONTEXT_WARN=90000' "$LOOP_CONF" \
+    || fail "loop.conf records no 90000 checkpoint: the case's two readings are drawn either side of it"
+  # Both children report the same reading: the worker's crossing is the split, and the continuation's is the one this
+  # case is about — above the checkpoint and far below the stop of 200 000.
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":95000,"output":10,"cacheRead":0,"cacheWrite":0}}
+JSON
+  printf '%s\n' \
+    'LOOP-VERDICT: skipped' \
+    'LOOP-SKIP-VERDICT: needs-diagnosis' \
+    'LOOP-ROOT-CAUSE: the continuation read the work the split left, and what the item owes is a diagnosis' \
+    'LOOP-RED-TEST: none — the continuation changed nothing' > "$d/continuation-report.txt"
+  export PI_STUB_REPORT_CONTINUATION="$d/continuation-report.txt"
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  worker-prompt.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'the work the checkpoint ended\n' > demo-fix.txt
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    ;;
+  worker-prompt-continuation.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do
+    grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null || {
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the worker that crossed the checkpoint was not split: no continuation child was started"
+  }
+  # …and the reading is taken in a whole second of its own: the continuation is held here for two, so the wait has
+  # read its crossing before this case releases it.
+  sleep 2
+  printf 'go\n' >&8 2>/dev/null || true
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "the run whose continuation crossed the checkpoint is not a failed run: $out"
+  report="$p/.pi/issue-loop/items/21/worker-continuation-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the continuation the split started"
+  assert_not_contains "$(cat "$report")" "the recorded context checkpoint" \
+    "the continuation is ended by no checkpoint: it runs on to the stop"
+  f=$(state_file "$p")
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$f")" \
+    "the item keeps its continuation's answer: $out"
+  assert_eq "needs-diagnosis" "$(jq -r '.items[0].verdict' "$f")" \
+    "and its verdict, which only that report carries — not the too-wide a second checkpoint would write"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "worker-checkpoint")] | length' "$f")" \
+    "and the run took the split once: the checkpoint is the worker's"
   log=$(cat "$PI_STUB_LOG")
   assert_eq "1" "$(grep -c '^prompt: worker-prompt-continuation.md$' <<<"$log" || true)" \
     "with exactly one continuation child started from the work it left"

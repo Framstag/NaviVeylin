@@ -537,13 +537,19 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       # change after the crossing is split on its next reading rather than missed. The stop's check stands first, so a
       # reading already past it is named by the stop.
       # The phase test keeps the ceiling structural: a rework round, a gate, a tail and a review round run on to their
-      # own bound. The item's **session chain** is what the checkpoint bounds (issue #1022): the first worker and the
-      # continuation it is handed at this same crossing, because a continuation that reaches the checkpoint is the same
-      # item spending the same per-turn cost — bounding only the first worker left every item's context in the 200-272 k
-      # band it reached before the checkpoint existed. `run.sh` caps the chain (`LOOP_ITEM_CONTINUATIONS_MAX`), which is
-      # what keeps this from being a loop that never ends an item.
+      # own bound — and so does the continuation the split hands the item to. #1022 extended this test to the
+      # continuation (reversed by issue #1074) and the reading it then measures is not the item's shape but the
+      # re-reading of it: a continuation
+      # is a **fresh session**, so it pays the baseline again and reads the same documents the first worker spent its
+      # window on, and a checkpoint applied to it ends it on the reading the split was made to carry over. Measured on
+      # 2026-11-24, the first four items after `LOOP_TOOL_RESULT_AGE_TURNS=0`: every worker crossed 90 000 by a few
+      # hundred tokens (90 188, 90 147, 90 532, 91 140) and each continuation crossed the same value ~2 minutes later
+      # on its own re-reading, so #956 wrote `too-wide` for three items whose size nobody had measured — two of them
+      # with their work still uncommitted in the tree. The continuation's bound is the stop (`LOOP_ITEM_CONTEXT_MAX`),
+      # which is the reading the item's size is judged by, and `LOOP_ITEM_CONTINUATIONS_MAX` still keeps the chain from
+      # becoming a loop that never ends an item.
       if [ "$item_context_warn" -gt 0 ] && [ "$ctx_max" -ge "$item_context_warn" ] &&
-         case "$phase" in worker-prompt|worker-prompt-continuation) true ;; *) false ;; esac; then
+         case "$phase" in worker-prompt) true ;; *) false ;; esac; then
         ctx_has_work=0
         if [ -n "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null)" ]; then ctx_has_work=1; fi
         if [ "$ctx_has_work" -eq 1 ]; then

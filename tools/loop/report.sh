@@ -47,7 +47,7 @@
 #
 # Exit: 0 ok, 2 usage.
 #
-# Usage: report.sh [--state <file>] [--json] [--from-events]
+# Usage: report.sh [--state <file>] [--json] [--from-events] [--actions]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -56,11 +56,13 @@ source "$here/lib.sh"
 
 json=0
 from_events=0
+actions_only=0
 state_opt=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
     --from-events) from_events=1; shift ;;
+    --actions) actions_only=1; shift ;;
     --state) need_value "$@"; state_opt="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,/^set -uo pipefail/p' "$0"; exit 0 ;;
     *) loop_die "report: unknown argument $1" ;;
@@ -127,6 +129,12 @@ if [ "$json" -eq 1 ]; then
   fi
   exit "$LOOP_OK"
 fi
+
+# `--actions` prints the numbered list alone (#973): the report is read once at a desk, and a caller who has already
+# read it wants the list again after acting on part of it. The list is the report's last block and reads the same
+# state and git as the rest, so the whole report is still built and only its output is silenced until the list is
+# reached — which is what keeps the flag from becoming a second report.
+if [ "$actions_only" -eq 1 ]; then exec 3>&1 1>/dev/null; fi
 
 items=$(jq -r '.run.items' "$state_file")
 minutes=$(jq -r '.run.minutes' "$state_file")
@@ -975,6 +983,23 @@ state_dir=$(dirname "$state_file")
 item_root="$state_dir/items"
 [ -d "$item_root" ] || item_root="$(dirname "$state_dir")/items"
 actions=()
+decide_n=0; decide_id=""
+land_n=0; land_id=""
+resume_n=0; resume_id=""
+worktree_n=0; worktree_id=""
+# The header the list opens with counts the same rows the list prints (#973): a counted row is appended through
+# here, so a class's figure and its lines come from one reading and cannot disagree. The four classes are the ones
+# the caller acts on — decide, land, resume and the worktree note; the labels a tracker refused, the gate an item
+# never owed and the kept work of a record that carries no bound cut are arms of their own and are not counted.
+action_add() { # action_add <class> <first path or issue> <line>
+  actions[${#actions[@]}]="$3"
+  case "$1" in
+    decide) decide_n=$((decide_n + 1)); [ -n "$decide_id" ] || decide_id="$2" ;;
+    land) land_n=$((land_n + 1)); [ -n "$land_id" ] || land_id="$2" ;;
+    resume) resume_n=$((resume_n + 1)); [ -n "$resume_id" ] || resume_id="$2" ;;
+    worktree) worktree_n=$((worktree_n + 1)); [ -n "$worktree_id" ] || worktree_id="$2" ;;
+  esac
+}
 
 while IFS=$'\t' read -r kind issue verdict reason extra; do
   [ -n "${issue:-}" ] || continue
@@ -992,7 +1017,7 @@ while IFS=$'\t' read -r kind issue verdict reason extra; do
   else
     line="$line: the run's state does not hold the question — gh issue view $issue"
   fi
-  actions[${#actions[@]}]="$line"
+  action_add decide "#$issue" "$line"
 done < <(decisions)
 
 # An item a merge refused is the one block whose work is finished and whose landing is a command (issue #863): the
@@ -1062,7 +1087,7 @@ while IFS= read -r issue; do
   derived=""
   [ "$refusal_kind" = record ] ||
     derived=" · this state records no refusal — its branch and paths are re-derived from the note, not read from a record"
-  actions[${#actions[@]}]="land $branch onto the base — $carried — item #$issue — git -C $LOOP_ROOT merge --ff-only $branch$repair$derived"
+  action_add land "$branch" "land $branch onto the base — $carried — item #$issue — git -C $LOOP_ROOT merge --ff-only $branch$repair$derived"
 done < <(jq -r '.items[] | select((.stopReason // "") == "unmergeable") | .issue' "$state_file")
 
 # The branches are read from git, and a branch is an action because of what it *carries*, not because it
@@ -1080,9 +1105,9 @@ while IFS=$'\t' read -r branch ahead; do
     owner=$(jq -r --arg b "$branch" '[.items[] | select((.merged.branch // "") == $b) | .issue] | (.[0] // "")' "$state_file")
   fi
   if [ -n "$owner" ]; then
-    actions[${#actions[@]}]="land $branch — $ahead commit(s) the base does not have — item #$owner"
+    action_add land "$branch" "land $branch — $ahead commit(s) the base does not have — item #$owner"
   else
-    actions[${#actions[@]}]="land $branch — $ahead commit(s) the base does not have — no item of this run owns it"
+    action_add land "$branch" "land $branch — $ahead commit(s) the base does not have — no item of this run owns it"
   fi
 done <<< "$branch_table"
 
@@ -1129,7 +1154,7 @@ while IFS=$'\t' read -r issue note patch; do
   if [ -n "$patch" ] && [ "${note#*"$patch"}" = "$note" ]; then
     kept=" · its work is kept at $patch"
   fi
-  actions[${#actions[@]}]="resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable}${kept} · transcript $item_root/$issue"
+  action_add resume "#$issue" "resume #$issue — the run ended a child of it at a bound, so no decision is owed — ${note:-the phase the bound cut is resumable}${kept} · transcript $item_root/$issue"
 done < <(jq -r '.items[] | select(.result == "cut") | [(.issue | tostring), (.note // ""), (.leftover // "")] | @tsv' "$state_file")
 
 # The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An item the
@@ -1145,13 +1170,25 @@ while IFS=$'\t' read -r issue patch; do
 done < <(jq -r '.items[] | select(.result != "cut") | select((.leftover // "") != "") | [(.issue | tostring), .leftover] | @tsv' "$state_file")
 
 if [ -d "$LOOP_WORKTREE" ]; then
-  actions[${#actions[@]}]="keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"
+  action_add worktree "$LOOP_WORKTREE" "keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"
 fi
 
-printf 'actions the caller owes:\n'
+# `--actions` prints the numbered list alone, so the heading the default report opens the block with is not part of it.
+if [ "$actions_only" -eq 1 ]; then exec 1>&3; fi
+if [ "$actions_only" -eq 0 ]; then
+  counts="decide $decide_n"
+  [ "$decide_n" -eq 0 ] || counts="$counts ($decide_id)"
+  counts="$counts · land $land_n"
+  [ "$land_n" -eq 0 ] || counts="$counts ($land_id)"
+  counts="$counts · resume $resume_n"
+  [ "$resume_n" -eq 0 ] || counts="$counts ($resume_id)"
+  counts="$counts · worktree $worktree_n"
+  [ "$worktree_n" -eq 0 ] || counts="$counts ($worktree_id)"
+  printf 'actions the caller owes: %s\n' "$counts"
+fi
 if [ "${#actions[@]}" -eq 0 ]; then
   # Empty only when every one of the eight sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no item ended at a bound, no leftover patch, no label write the tracker refused, no landing a merge refused\n'
+  [ "$actions_only" -eq 1 ] || printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no item ended at a bound, no leftover patch, no label write the tracker refused, no landing a merge refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

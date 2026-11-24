@@ -414,6 +414,8 @@ LOOP_SHELL_CASES=(
   'report#wallTimeAndReasonInTheTable'
   'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
+  'report#theActionListLeadsWithItsCounts'
+  'report#theFullActionListIsPrintedOnRequest'
   'report#landedBranchIsNoAction'
   'report#anUnmergeableItemNamesItsLanding'
   'report#landedBranchesAreNamedAsRemovable'
@@ -1261,6 +1263,8 @@ loop_run_shell_case() {
     'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
     'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
+    'report#theActionListLeadsWithItsCounts') fn=case_report_theActionListLeadsWithItsCounts ;;
+    'report#theFullActionListIsPrintedOnRequest') fn=case_report_theFullActionListIsPrintedOnRequest ;;
     'report#landedBranchIsNoAction') fn=case_report_landedBranchIsNoAction ;;
     'report#anUnmergeableItemNamesItsLanding') fn=case_report_anUnmergeableItemNamesItsLanding ;;
     'report#landedBranchesAreNamedAsRemovable') fn=case_report_landedBranchesAreNamedAsRemovable ;;
@@ -15408,6 +15412,72 @@ case_report_actionsNameDecisionAndBranch() {
   assert_contains "$block" "1 commit(s)" "with what it carries"
   assert_contains "$block" "item #21" "and the item that owns it"
   assert_not_contains "$block" "none — no decision" "a branch carrying a commit is never hidden behind none"
+}
+
+# The state both cases of #973 read: one escalation, one branch the base does not carry and one item a bound cut, so
+# every class the header counts has rows of its own in the list below it.
+project_with_every_action_class() {
+  local p
+  p=$(new_project)
+  init_state "$p" 3 90
+  printf 'demo work\n' > "$p/demo.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "demo work" >/dev/null 2>&1 || fail "could not commit in the throwaway repository"
+  git -C "$p" branch fix/issue-21-two-mechanisms >/dev/null 2>&1 || fail "could not create the attempt branch"
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked \
+    --note "two mechanisms explain the symptom" --decision-label agent/needs-decision >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 100 --change fix-demo \
+    --gate "tests=1 failures=0" >/dev/null
+  run_state "$p" done 23 --result cut --verdict cut --stop-reason bound >/dev/null
+  printf '%s' "$p"
+}
+
+# The reader's first question is how much of what kind awaits them (#973): the run of 2026-11-18T22:18:25Z printed 19
+# numbered rows for 11 items and no line said 9 of them were landings. The header counts the rows the list itself
+# prints — the same reading, not a second classification — and the rows keep their order and their text.
+case_report_theActionListLeadsWithItsCounts() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out block header decide land resume worktree
+  p=$(project_with_every_action_class)
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  header=$(printf '%s\n' "$block" | sed -n '1p')
+  decide=$(printf '%s\n' "$block" | grep -c '^ *[0-9][0-9]*\. decide ' || true)
+  land=$(printf '%s\n' "$block" | grep -c '^ *[0-9][0-9]*\. land ' || true)
+  resume=$(printf '%s\n' "$block" | grep -c '^ *[0-9][0-9]*\. resume ' || true)
+  worktree=$(printf '%s\n' "$block" | grep -c '^ *[0-9][0-9]*\. keep or remove the worktree ' || true)
+  assert_eq "1" "$decide" "the state's one escalation is a decide row"
+  assert_eq "1" "$land" "the branch ahead of the base is a land row"
+  assert_eq "1" "$resume" "the item a bound cut is a resume row"
+  assert_eq "$decide" "$(printf '%s\n' "$header" | sed -n 's/.*decide \([0-9][0-9]*\).*/\1/p')" \
+    "the header's decide figure is the number of decide rows the list prints"
+  assert_eq "$land" "$(printf '%s\n' "$header" | sed -n 's/.*land \([0-9][0-9]*\).*/\1/p')" \
+    "and its land figure is the number of land rows"
+  assert_eq "$resume" "$(printf '%s\n' "$header" | sed -n 's/.*resume \([0-9][0-9]*\).*/\1/p')" \
+    "and its resume figure is the number of resume rows"
+  assert_eq "$worktree" "$(printf '%s\n' "$header" | sed -n 's/.*worktree \([0-9][0-9]*\).*/\1/p')" \
+    "and its worktree figure is the number of worktree rows"
+  assert_contains "$header" "#21" "the counts name the first issue of the class beside their figure"
+  assert_contains "$(printf '%s\n' "$block" | sed -n '2p')" ". decide #21" \
+    "and the list below the header is unchanged, row for row, with its first row first"
+}
+
+# `--actions` is the list on its own (#973): a caller who has read the report once wants the list again after acting
+# on part of it, and the flag is a flag on the call rather than a second report — the block it prints is the block
+# the default output carries, line for line.
+case_report_theFullActionListIsPrintedOnRequest() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out expected
+  p=$(project_with_every_action_class)
+  expected=$(actions_block "$(run_report "$p")" | sed -n '2,$p')
+  out=$(run_report "$p" --actions) || fail "the report failed with --actions"
+  assert_contains "$out" "decide #21" "the numbered list is what the flag prints"
+  assert_not_contains "$out" "actions the caller owes" "and no counts line, which belongs to the default output"
+  assert_not_contains "$out" "agent-issue-loop" "nor the report's header"
+  assert_not_contains "$out" "source: the state file" "nor the table below it"
+  assert_eq "$expected" "$out" "and the list it prints is the one the default report carries, line for line"
 }
 
 # The action list is read from what a branch carries, and a branch whose every patch the base carries carries

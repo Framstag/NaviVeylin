@@ -235,6 +235,10 @@ jobs:
           echo "All vcpkg packages present for all triplets."
 
       # ── Gradle build ─────────────────────────────────────────
+      # The key carries the `m2` component on purpose: a key is saved only when it is absent, so a key
+      # unchanged since before this change would restore the old, `.m2`-less entry and the three warm jars
+      # would never be cached. The component is a version, not a file hash — bump it when the warm list's
+      # coordinates change, or a saved entry keeps the old jars and the new ones are fetched every run.
       - name: Cache Gradle
         uses: actions/cache@v5
         with:
@@ -243,7 +247,7 @@ jobs:
             ~/.gradle/wrapper/dists
             ~/.gradle/jdks
             ~/.m2/repository
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
@@ -282,7 +286,13 @@ jobs:
             if curl --fail --silent --show-error --location \
                  --retry 8 --retry-delay 5 --retry-max-time 300 --retry-all-errors \
                  --output "$jar.part" "$url"; then
-              mv "$jar.part" "$jar"
+              # `run:` steps execute under `bash -e`, so an unguarded `mv` would abort the step — and the
+              # build — on a read-only or full cache volume. The move is guarded for the same reason the
+              # download is: a warm failure warns and the test-time fetch is the fallback.
+              if ! mv "$jar.part" "$jar"; then
+                rm -f "$jar.part"
+                echo "::warning::could not move $v into place; the test-time fetch will ask Maven Central itself"
+              fi
             else
               rm -f "$jar.part"
               echo "::warning::could not warm $v; the test-time fetch will ask Maven Central itself"

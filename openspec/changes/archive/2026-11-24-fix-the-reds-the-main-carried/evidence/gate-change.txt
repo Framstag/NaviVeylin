@@ -1,0 +1,111 @@
+=== openspec validate fix-the-reds-the-main-carried --strict
+Change 'fix-the-reds-the-main-carried' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+EXIT_VALIDATE=0
+
+=== bash tools/check-change-readiness.sh openspec/changes/fix-the-reds-the-main-carried
+LOOP-CHANGE-READY: ok
+EXIT_READY=0
+
+=== the change's metadata
+$ cat openspec/changes/fix-the-reds-the-main-carried/.openspec.yaml
+# This change contradicts no requirement's text: each of the eight checks enforced its contract and refused a
+# tree that did not meet it. The delta is the tree — a workflow's cache and warm step, three route rows, a
+# comparison's order, a test fixture's dispatcher, a sensor row's bound, a retry wrapper two workflow steps call,
+# a fold in the diagnostics log's write seam and a case's registry fetcher — so there is no spec delta to write.
+# See proposal.md, "Capabilities".
+schema: spec-driven
+created: 2026-11-24
+x-issue: 1048
+skip_specs: true
+
+This quotation is the live file as of 2026-11-24T13:00Z. It changed twice under this evidence file: at
+11:39:09Z when the eighth cause's clause and the seven→eight count were added (the round-7 B12 fix), and the
+quotation above is the 13:00Z re-read. The change's own directory is git-ignored (`.gitignore:82`), so "the tree
+of the change's final commit" names nothing — the tree is the working tree at HEAD `c76b38f9`, and the change's
+artifacts are not part of any commit.
+
+The readiness checker reads design.md's "## Open decisions" line (none), every scenario's `**Case**:` line and
+proposal.md's `surface:` line; it printed no refusal.
+
+Re-run 2026-11-24T09:05Z after the fifth cause's delta (proposal §5, design D5, tasks §5, evidence/gate-sensors.txt):
+
+```
+$ openspec validate fix-the-reds-the-main-carried --strict; echo "EXIT_VALIDATE=$?"
+Change 'fix-the-reds-the-main-carried' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+EXIT_VALIDATE=0
+
+$ bash tools/check-change-readiness.sh openspec/changes/fix-the-reds-the-main-carried; echo "EXIT_READY=$?"
+LOOP-CHANGE-READY: ok
+EXIT_READY=0
+```
+
+Re-run 2026-11-24T09:24Z after review round 3's corrections — the bound's follow-up to 2 000 000, the comment's
+commit count, the `tasks.md` numbering note and the rewritten `evidence/gate-sensors.txt`:
+
+```
+$ openspec validate fix-the-reds-the-main-carried --strict; echo "EXIT_VALIDATE=$?"
+Change 'fix-the-reds-the-main-carried' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+EXIT_VALIDATE=0
+
+$ bash tools/check-change-readiness.sh openspec/changes/fix-the-reds-the-main-carried; echo "EXIT_READY=$?"
+LOOP-CHANGE-READY: ok
+EXIT_READY=0
+```
+
+Re-run 2026-11-24T11:48Z after the seventh cause's delta (proposal §7, design D7, tasks §7,
+evidence/gate-diagnostics-line.txt) and review round 3's five corrections (B1–B3, N1, N5):
+
+```
+$ openspec validate fix-the-reds-the-main-carried --strict; echo "EXIT_VALIDATE=$?"
+Change 'fix-the-reds-the-main-carried' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+EXIT_VALIDATE=0
+
+$ bash tools/check-change-readiness.sh openspec/changes/fix-the-reds-the-main-carried; echo "EXIT_READY=$?"
+LOOP-CHANGE-READY: ok
+EXIT_READY=0
+```
+
+Re-run 2026-11-24T12:20Z after review round 4's five corrections (B4–B6, N6, N7) — the two workflow `mkdir`
+guards, the re-measured hash in §3.3, the seven-cause counts in the proposal and the design, the regenerated
+`review-diff.txt`, and the two filed verdicts:
+
+```
+$ openspec validate fix-the-reds-the-main-carried --strict; echo "EXIT_VALIDATE=$?"
+Change 'fix-the-reds-the-main-carried' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+EXIT_VALIDATE=0
+
+$ bash tools/check-change-readiness.sh openspec/changes/fix-the-reds-the-main-carried; echo "EXIT_READY=$?"
+LOOP-CHANGE-READY: ok
+EXIT_READY=0
+```
+
+Re-run 2026-11-24T13:00Z — the last run in this file, after every edit to the change's own artifacts: the eighth
+cause's delta (proposal §8, design D8, tasks §8, `evidence/gate-source-switch.txt`), the round-7 B12 correction
+(eleven→twelve commits, ten→eleven files), the landing evidence (`evidence/gate-green-runs.txt`, task 9.3) and
+the `.openspec.yaml` rewrite quoted above:
+
+```
+$ openspec validate fix-the-reds-the-main-carried --strict; echo "EXIT_VALIDATE=$?"
+Change 'fix-the-reds-the-main-carried' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+EXIT_VALIDATE=0
+
+$ bash tools/check-change-readiness.sh openspec/changes/fix-the-reds-the-main-carried; echo "EXIT_READY=$?"
+LOOP-CHANGE-READY: ok
+EXIT_READY=0
+```
+
+Re-run 2026-11-24T13:02Z, after the two edits that followed round 9's PASS — `tasks.md` §9.2's verdict count
+(seven→nine) and the two filed verdicts `review-verdict-8.md` and `review-verdict-9.md`. Same two results:
+`Change 'fix-the-reds-the-main-carried' is valid` / `EXIT_VALIDATE=0`, `LOOP-CHANGE-READY: ok` / `EXIT_READY=0`.
+Neither artifact the readiness checker reads (`design.md`'s "## Open decisions", the scenarios' `**Case**:`
+lines, `proposal.md`'s `surface:` line) changed in those edits.
+
+The argument is the change's **directory**, not its name: the same command with the bare name
+`fix-the-reds-the-main-carried` is refused as `change-unreadable` — the checker's own vocabulary, the argument
+names no change directory — so the path above is the one to re-run.

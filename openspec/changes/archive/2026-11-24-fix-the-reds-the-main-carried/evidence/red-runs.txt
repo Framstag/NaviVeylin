@@ -1,0 +1,91 @@
+The two red runs this change answers. Both are `headSha d885082d582d51b432f6df7f055e6a5ba0675106`,
+created 2026-11-23T21:34:53Z, read with `gh run view <id> --log` / `--log-failed`. Line numbers are the saved
+log's lines. The log's own "Commit:" line reads b8a594ea, which is not this tree's HEAD; the run's `headSha` in
+`gh run list --json` is d885082d, and that is the commit quoted here.
+
+Build Debug APK — run 45271114385 — conclusion failure
+  job "Build debug APK (all ABIs)", step "UNKNOWN STEP"
+  job "Loop self-test (tooling)", step "UNKNOWN STEP"
+
+  line 4297  java.util.concurrent.ExecutionException: java.io.IOException: Server returned HTTP response code: 429
+             for URL: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/14-robolectric-10818077-i7/android-all-instrumented-14-robolectric-10818077-i7.jar
+  line 4305  java.io.IOException: Server returned HTTP response code: 429 for URL: (same URL)
+  line 4229  java.lang.AssertionError: Failed to fetch maven artifact org.robolectric:android-all-instrumented:14-robolectric-10818077-i7
+  line 80246 979 tests completed, 844 failed
+  line 80270 BUILD FAILED in 3m 57s
+  line 81189 FAIL driver#theSharedNamesAreDeclared
+
+  The 844 failures are 77 distinct classes, all `com.naviveylin.auto.*`, all dying in the Robolectric artifact
+  fetch before a single assertion runs. The top classes by failure count: NavigationTemplateMapperTest 64,
+  FavoritesScreenTest 38, DetailsScreenTest 33, SessionCarSurfaceHostTest 27, NavigationTripTest 26,
+  SearchScreenMapperTest 23, AutoMapRendererBlitTest 23, RendererGateTest 22, NavigationScreenTest 22,
+  TemplateFaultIsolationTest 21.
+
+  The same run's "Offline gates" job reports the three orphaned rule routes (proposal §2).
+
+SonarCloud — run 45271114427 — conclusion failure
+  job "Scan main", step "Run unit tests"
+
+  line 551  SettingsSurfaceTest > aChangePersistsWithoutASaveAction FAILED
+  line 552      java.lang.AssertionError: Failed to assert the following: (ToggleableState = 'On')
+  line 557      ToggleableState = 'Off'
+  line 561      Selector used: ((ToggleableState is defined) && (hasAnyAncestorThat(TestTag = 'settings-row-poi-symbols')))
+  line 565          at com.naviveylin.ui.settings.SettingsSurfaceTest.aChangePersistsWithoutASaveAction(SettingsSurfaceTest.kt:740)
+  line 570  2321 tests completed, 1 failed
+  line 585  BUILD FAILED in 9m 25s
+
+  The same step's log carries `429` four times, so the same Maven Central throttling reached the scan too.
+
+Why the settings failure is a race and not a regression
+  - `git diff --stat 3b6a4acf..d885082d -- app/src core/src auto/src` is empty: no source file changed between
+    the run that was green and the run that was red.
+  - The scan was green at 3b6a4acf (run 45248404132, conclusion success) and red at d885082d.
+  - `SettingsSurfaceTest.kt`'s last edit is 905d1dcc (`#899`), four commits before the green run.
+  - The assertion reads the switch's default rather than the value the file holds, which is the document the
+    controller publishes before its start-path read lands.
+
+Build Debug APK — run 45356035764 — conclusion failure  (the fifth cause, found after the first four were pushed)
+  headSha 52eaddc324393924367c6e8278b3f513ae0d64f2, created 2026-11-24T08:25:50Z
+  jobs: "Offline gates" failure, "Build debug APK (all ABIs)" failure, "Loop self-test (tooling)" success,
+        "Loop self-test (run)" success, "Loop self-test (rest)" success
+
+  job "Offline gates", step "Check sensor tooling"  (gh run view 45356035764 --log-failed)
+  2026-11-24T08:32:01.9311039Z   the row's bound (1500000) is not above the largest file it watches (1685967 bytes), so one change of that file is a hotspot
+  2026-11-24T08:32:01.9312439Z FAIL hotspot#theBoundIsAboveOneChangedFile
+  2026-11-24T08:32:46.5586781Z sensor-selftest: 1 of 94 cases failed
+
+  The violation was already in the tree at d885082d (tools/loop/tests/loop-cases.sh is 1684242 bytes there), but
+  the same job failed earlier at "Check rule routes" — cause 2's three orphans — so the sensor step never ran.
+  Fixing cause 2 exposed it.
+
+  The same run's "Build debug APK (all ABIs)" job failed in "Run unit tests" on a Gradle dependency HEAD request
+  that Maven Central answered 429:
+
+  > Task :app:hiltAggregateDepsMobileDebugUnitTest FAILED
+  > Could not resolve all files for configuration ':app:mobileDebugUnitTestRuntimeClasspath'.
+     > Failed to transform nativeruntime-dist-compat-1.0.18.jar (org.robolectric:nativeruntime-dist-compat:1.0.18)
+       > Could not download nativeruntime-dist-compat-1.0.18.jar
+          > Could not HEAD 'https://repo.maven.apache.org/maven2/org/robolectric/nativeruntime-dist-compat/1.0.18/nativeruntime-dist-compat-1.0.18.jar'. Received status code 429 from server: Too Many Requests
+  BUILD FAILED in 1m 36s
+
+  The warm step worked in that run: "Cache Gradle" restored key gradle-Linux-m2-v1-707a67…, and the step printed
+  `present:` for all three jars, so no Robolectric fetch was made. The 429 is Gradle's own resolution of a
+  different artifact, from the same Maven Central throttling as cause 1 — not a fourth code path in the fix.
+
+## Run 45385198727 (@c76b38f9) — three failures, two of them transient
+
+The run's first attempt failed at "Check the JVM-only test graph"
+(`tools/tests/check-jvm-test-graph-selftest.sh`): all three of its cases failed to
+configure, each with
+`Plugin Repositories (… could not find plugin artifact 'org.gradle.toolchains.foojay-resolver-convention')`
+searched in Google, MavenRepo and the Gradle Plugin Repository. The script passes locally just now
+(`check-jvm-test-graph-selftest: all 3 cases passed`), and the run's own second attempt got past it with no tree
+change — so the failure is a transient plugin-resolution failure on the runner, not a tree shortfall. It is not a
+ninth cause: the check's three cases are `--dry-run` Gradle invocations that resolve the build's plugins over the
+network, and the plugin portal answered that resolution with a failure once.
+
+The second attempt failed at "Run unit tests" — the retry wrapper's step — on three 429s for
+`nativeruntime-dist-compat:1.0.16`, quoted in `evidence/gate-gradle-retry.txt` with the partial-cache cause and
+the cache entry's deletion.
+
+The third attempt is the one the change's task 9.3 quotes.

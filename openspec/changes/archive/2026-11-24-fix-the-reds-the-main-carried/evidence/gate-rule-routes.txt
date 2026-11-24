@@ -1,0 +1,16 @@
+=== bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 658 named rule(s) are reached
+EXIT=0
+
+=== bash tools/tests/check-rule-routes-selftest.sh
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family derives its four siblings, not the corpus (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a document a route split had left with no glob derives its own entries, not nothing (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and so does the document that shares the backlog concern with a sibling of its own (exit 0)
+check-rule-routes-selftest: all 13 cases passed (throwaway fixtures, no Gradle, no device, no network)
+EXIT=0
+
+=== jq -e . tools/doc-routes.json
+JSON OK
+
+All three commands were run in this tree on 2026-11-24, between 07:20Z and 07:45Z, against the tree of commit
+272395a0.

@@ -1,0 +1,145 @@
+# Cause 5 — the hotspot row's bound (proposal §5, design D5, tasks §5)
+
+Recorded 2026-11-24 09:01Z–09:20Z on `main` at `82305af6` (the change's seventh commit, "sensors: the hotspot bound
+sits above the file it watches (#1048)") with the bound's follow-up — 1 800 000 to 2 000 000 — in the working
+tree. Commands are run from the repository root; `EXIT_*` lines are the commands' own exit statuses. All runs are
+offline: no network, no token, no sandbox.
+
+## The red this cause answers
+
+`Build Debug APK` run `45356035764`, `headSha 52eaddc324393924367c6e8278b3f513ae0d64f2`, created
+2026-11-24T08:25:50Z, conclusion `failure`. Job "Offline gates", step "Check sensor tooling" (read with
+`gh run view 45356035764 --log-failed`):
+
+```
+2026-11-24T08:32:01.7781728Z PASS hotspot#ranksBySizeTimesChanges
+2026-11-24T08:32:01.9311039Z   the row's bound (1500000) is not above the largest file it watches (1685967 bytes), so one change of that file is a hotspot
+2026-11-24T08:32:01.9312439Z FAIL hotspot#theBoundIsAboveOneChangedFile
+2026-11-24T08:32:02.1018768Z PASS hotspot#theChangeTreeIsNotAWatchPath
+2026-11-24T08:32:46.5586781Z sensor-selftest: 1 of 94 cases failed
+```
+
+The same run's other jobs: "Loop self-test (tooling)" success, "Loop self-test (run)" success, "Loop self-test
+(rest)" success, "Build debug APK (all ABIs)" failure — the latter for a Gradle dependency HEAD request that
+Maven Central answered `429` (`:app:mobileDebugUnitTestRuntimeClasspath` →
+`org.robolectric:nativeruntime-dist-compat:1.0.18`), i.e. the same Maven Central throttling as cause 1, in a
+different fetcher. That is not this cause and is not fixed here: the warm step covers the three Robolectric SDK
+jars the suite asks for, and this artifact is a Gradle dependency resolved from Gradle's own module cache.
+
+### Why the same violation was not reported at `d885082d`
+
+The violation was already in the tree at the base commit — `git cat-file -s d885082d:tools/loop/tests/loop-cases.sh`
+prints `1684242`, above the row's `1500000`. The "Offline gates" job failed there too, but at an earlier step:
+run `45271114385`, the same job, `gh run view 45271114385 --log` greps to
+
+```
+##[error]the rule "a rotated child stream still answers every turn — read the pair before calling a figure a lower bound." in BuildGate.md is reached by no glob — a rule no change is told to obey
+##[error]the rule "One displayed viewport per frame." in MapFrames.md is reached by no glob — a rule no change is told to obey
+##[error]the rule "a value a car surface cannot edit is edited on the phone, and a car anchor restores from the phone." in UI.md is reached by no glob — a rule no change is told to obey
+##[error]Process completed with exit code 1.
+```
+
+Those are cause 2's three orphans. The "Check sensor tooling" step never ran in that job, so the bound's
+violation was masked by the first failure in the job. Fixing cause 2 exposed it.
+
+## The registry
+
+```
+$ jq -e . tools/sensors/sensors.json >/dev/null && echo "jq -e . tools/sensors/sensors.json -> OK"
+jq -e . tools/sensors/sensors.json -> OK
+$ jq -r '.rows[] | select(.id=="hotspot") | "threshold=\(.threshold) comparison=\(.comparison)"' tools/sensors/sensors.json
+threshold=2000000 comparison=greater-than
+```
+
+The largest file the row watches — the tracked tree minus `openspec/changes/`, which the row excludes:
+
+```
+$ LC_ALL=C git ls-files | grep -v '^openspec/changes/' | while IFS= read -r f; do printf '%s %s\n' "$(stat -c %s "$f" 2>/dev/null || echo 0)" "$f"; done | sort -rn | head -2
+1685967 tools/loop/tests/loop-cases.sh
+433533 openspec/specs/agent-issue-loop/spec.md
+```
+
+So 2 000 000 is 314 033 bytes (18.6 %) above the largest watched file, and 800 378 below the churned fixture's
+score (2 800 378) that the case's second assertion reads. The headroom is deliberate: the file grew 266 610 bytes
+in the eight days since the bound was last taken (1 419 357 at `77973d53`, 2026-11-16; 264 commits since then, 64
+of them touching that file), so a bound fitted to today's size would re-break the case within days.
+
+The 264 is measured at the fix commit `82305af6` (`git rev-list --count 77973d53..82305af6` = 264). At HEAD
+`5e8ebbd6` it is 268, and at HEAD `c76b38f9` it is 269, because the change's own follow-up commits are on top;
+none of them touched `loop-cases.sh`, so the 1 685 967 bytes and the 266 610 bytes of growth are unchanged and no
+case reads the comment's commit count. A landing that re-pins the comment should restate 269.
+
+## The mutation's search text
+
+`8.31` searched for `"threshold": 1300000,`, a value the row stopped carrying when the bound was last taken, so
+the falsification was inert before this change. `82305af6`'s registry — the bound's first fix, which the follow-up
+replaces — carries neither `1300000` nor the new bound:
+
+```
+$ git show 82305af6:tools/sensors/sensors.json | grep -c '"threshold": 1300000,'
+0
+$ git show 82305af6:tools/sensors/sensors.json | grep -c '"threshold": 2000000,'
+0
+$ grep -c '"threshold": 2000000,' tools/sensors/sensors.json
+1
+```
+
+The mutation now searches for the bound the fix carries — one occurrence in the working tree, none at `82305af6` — and
+replaces it with `1000000`, which is below the 1 685 967-byte file, so the red lands on the bound-versus-largest-file
+assertion the CI message reports rather than on the fixture's first assertion.
+
+## The case, the whole suite and the mutation
+
+```
+$ bash tools/sensors/tests/sensor-selftest.sh > app/build/scratch-sensor-selftest.out 2>&1; echo "EXIT_SELFTEST=$?"
+EXIT_SELFTEST=0
+$ tail -2 app/build/scratch-sensor-selftest.out
+PASS workflow#theFindingsReadinessIsReportedApart
+sensor-selftest: all 94 cases passed (JDK 21, offline, no token)
+$ grep -c '^PASS ' app/build/scratch-sensor-selftest.out
+94
+$ grep -E '^FAIL ' app/build/scratch-sensor-selftest.out | head -5
+(no output)
+$ grep -E 'hotspot#theBoundIsAboveOneChangedFile|hotspot#ranksBySizeTimesChanges' app/build/scratch-sensor-selftest.out
+PASS hotspot#ranksBySizeTimesChanges
+PASS hotspot#theBoundIsAboveOneChangedFile
+```
+
+Exit 0, 94 of 94 cases pass, no `FAIL` line. The case that was red in run `45356035764` is the one that now
+passes.
+
+```
+$ bash tools/sensors/tests/sensor-mutations.sh --only 8.31 > app/build/scratch-sensor-mut.out 2>&1; echo "EXIT_MUT=$?"
+EXIT_MUT=0
+$ tail -2 app/build/scratch-sensor-mut.out
+(blank line)
+sensor-mutations: 1 behaved, 0 did not
+```
+
+Exit 0: the case goes red when the bound is mutated to 1 000 000 and green again after the restore. That is the
+red direction — the case fails when the bound sits below the file it watches — proven locally rather than by
+re-running the old bound. The working tree is unchanged by the runner (`git status --porcelain tools/sensors/`
+shows the two fix files and nothing else).
+
+## The two files the fix edits
+
+```
+$ git diff --numstat tools/sensors/
+2	2	tools/sensors/sensors.json
+1	1	tools/sensors/tests/sensor-mutations.sh
+```
+
+The registry's bound rises from `1800000` to `2000000` and its comment re-measures the largest watched file
+(1 685 967 bytes, 2026-11-24) and states why the bound stays below the churned fixture's score; the mutation's
+search text moves from `"threshold": 1800000,` to `"threshold": 2000000,` and its replacement from `5000` to
+`1000000`.
+
+## The red run's own message line
+
+The mutation's replacement is `1000000`, so the case's bound-versus-largest-file assertion is the one that fires.
+Its message, quoted from the red run (`EXIT_RED=1`) and from the case's own source
+(`tools/sensors/tests/sensor-cases.sh:2061-2062`):
+
+```
+the row's bound (1000000) is not above the largest file it watches (1685967 bytes), so one change of that file is a hotspot
+```

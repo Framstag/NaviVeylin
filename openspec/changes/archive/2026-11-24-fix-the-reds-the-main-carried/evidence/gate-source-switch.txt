@@ -1,0 +1,84 @@
+# Cause 8 — the source-switch case's registry reached the network
+
+Measured 2026-11-24, after `c76b38f9` landed. The red is CI-only: the case's own fixture carried a real
+`HttpUrlFetcher`, so the registry's refresh of the repository's region index opened a live HTTPS connection, and
+the sandbox's SSL provider could not initialise.
+
+## The red run
+
+`Build Debug APK` run `45380057626` at `5e8ebbd6`, job "Build debug APK (all ABIs)", step "Run unit tests":
+
+```
+MapManagerSourceSwitchPlanTest > aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered FAILED
+    java.lang.NoClassDefFoundError: Could not initialize class sun.security.ssl.NamedGroup$SupportedGroups
+        at sun.security.ssl.SSLConfiguration.<init>(SSLConfiguration.java)
+        at sun.security.ssl.SSLSocketFactoryImpl.createSocket(SSLSocketFactoryImpl.java)
+        at sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java)
+        at sun.net.www.protocol.https.HttpsURLConnectionImpl.getInputStream(HttpsURLConnectionImpl.java)
+        at java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java)
+        at com.naviveylin.data.HttpUrlFetcher$text$2.invokeSuspend(HttpUrlFetcher.kt:65)
+```
+
+The same run's log shows the retry wrapper's two attempts before the case reached the network — the red was
+hidden behind cause 6's throttle:
+
+```
+Maven Central rate limited a dependency download (429); retrying in 90s (attempt 1 of 3)
+Maven Central rate limited a dependency download (429); retrying in 180s (attempt 2 of 3)
+```
+
+## The fixture as it stood
+
+`app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerSourceSwitchPlanTest.kt`, `viewModel()`:
+
+```
+val registry = MapSourceRegistry(settings, provider, HttpUrlFetcher())
+```
+
+`MapSourceRegistry`'s field is typed `RepositoryFetcher`, and the same package's other cases already build it with
+`OfflineRepositoryFetcher()` (`MapManagerViewModelTestFactory.kt:64,75`) or `FakeRepositoryFetcher`. The real
+fetcher was the outlier.
+
+## The fix
+
+The same file, `c76b38f9`:
+
+```
+val registry = MapSourceRegistry(settings, provider, OfflineRepositoryFetcher())
+```
+
+plus the removal of the now-unused `import com.naviveylin.data.HttpUrlFetcher`. The case asserts that a switch
+keeping the target's basemap keeps it registered; neither that assertion nor its neighbours needs a listing.
+
+## The green runs
+
+Both `:app` flavors, each filtered to the class:
+
+```
+$ ./gradlew :app:testMobileDebugUnitTest --tests '*MapManagerSourceSwitchPlanTest' --console=plain
+BUILD SUCCESSFUL
+
+$ ./gradlew :app:testAutomotiveDebugUnitTest --tests '*MapManagerSourceSwitchPlanTest' --console=plain
+BUILD SUCCESSFUL
+```
+
+The two result files, each `tests="9" skipped="0" failures="0" errors="0"`:
+
+```
+$ grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' \
+    app/build/test-results/testMobileDebugUnitTest/TEST-com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest.xml
+tests="9" skipped="0" failures="0" errors="0"
+$ grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="0"' \
+    app/build/test-results/testAutomotiveDebugUnitTest/TEST-com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest.xml
+tests="9" skipped="0" failures="0" errors="0"
+```
+
+(The second command's pattern is written with `errors="0"` so both lines quote the same three fields; the file
+itself carries `errors="0"`.)
+
+## Named exclusion
+
+The red direction of this fix is not reproduced locally: the case's network path needs a 429 to fall through the
+wrapper's window, and this machine is not throttled. The red is the run's own — the title and the stack above —
+and the green direction is the two filtered runs. The case's own subject (a basemap kept registered across a
+switch) is unchanged, so the case's assertions are its proof.

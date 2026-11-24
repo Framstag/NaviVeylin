@@ -1,0 +1,61 @@
+=== bash tools/loop/tests/loop-selftest.sh --case driver#theReaderOrderIsNotPartOfTheComparison
+PASS driver#theReaderOrderIsNotPartOfTheComparison
+EXIT=0
+
+=== bash tools/loop/tests/loop-selftest.sh --case driver#theSharedNamesAreDeclared
+PASS driver#theSharedNamesAreDeclared
+EXIT=0
+
+=== bash tools/loop/tests/loop-selftest.sh (full suite)
+loop-selftest: all 548 cases passed (JDK 21, offline, no token, no sandbox) — 543.37 s
+EXIT=0
+
+(Full log: /tmp/loop-selftest-full.log; the run above was started at 07:59:53 and finished 08:08:56 on 2026-11-24,
+run in this working tree with no other Gradle invocation active.)
+
+=== the red-on-HEAD proof and the mutation, reproduced by /tmp/red-proof.sh
+The script slices the two functions out of HEAD's file and out of the working tree, runs both over the
+new case's fixture, then mutates the invariant and restores it. Its own output:
+
+/home/tim/projects/NaviVeylin/app/build/scratch-redproof/old: awk 19310-19536, refusals 19537-19554
+/home/tim/projects/NaviVeylin/app/build/scratch-redproof/new: awk 19312-19541, refusals 19542-19569
+=== HEAD d885082d — the comparison the runner's awk ran
+shared.tsv: shared_thing is read by b.sh, c.sh, d.sh and no row declares it
+shared.tsv: shared_thing is declared and no file a second one reads assigns it
+EXIT=0
+
+=== working tree — the comparison this change ships
+EXIT=0
+
+=== the derivation's row, both versions
+HEAD:      shared_thing	a.sh	b.sh c.sh d.sh
+WORKTREE:  shared_thing	a.sh	b.sh c.sh d.sh
+
+=== mutation: the declaration's sort starts at the second reader again (the HEAD defect)
+mutated line: 19554:      for (i = 2; i <= n; i++) for (j = i; j <= n; j++) if (r[j] < r[i]) { t = r[i]; r[i] = r[j]; r[j] = t }
+--- driver#theReaderOrderIsNotPartOfTheComparison[0] (exit 1)
+  the reader column's order is not part of the comparison: shared.tsv: shared_thing is read by b.sh, c.sh, d.sh and no row declares it
+shared.tsv: shared_thing is declared and no file a second one reads assigns it: expected '', got 'shared.tsv: shared_thing is read by b.sh, c.sh, d.sh and no row declares it
+shared.tsv: shared_thing is declared and no file a second one reads assigns it'
+FAIL driver#theReaderOrderIsNotPartOfTheComparison
+loop-selftest: 1 of 1 cases failed
+EXIT_MUTATED=1
+sha256 before mutation: 880af467a8672086e6135e74894084fd758558cdf8ad5588a22eb84e2c79e6cf
+sha256 after restore:   880af467a8672086e6135e74894084fd758558cdf8ad5588a22eb84e2c79e6cf
+RESTORED: identical
+uncommitted:  tools/loop/tests/loop-cases.sh | 4 ++--
+uncommitted:  1 file changed, 2 insertions(+), 2 deletions(-)
+PASS driver#theReaderOrderIsNotPartOfTheComparison
+EXIT_RESTORED=0
+
+  The sha256 above is the file after the follow-up commit's comment edit (the comment no longer claims the
+  comparison was green here; it names the fixture's refusal instead), so it differs from the value the first
+  review quoted. The comparison's text and the case's assertions are unchanged; only the comment moved.
+
+=== bash tools/loop/tests/loop-selftest.sh --case driver#noEngineFileExceedsItsBound
+PASS driver#noEngineFileExceedsItsBound
+EXIT_BOUND=0
+
+  Run 2026-11-24T07:52Z. That case does not bound `tools/loop/tests/loop-cases.sh`: `tools/loop/layout.tsv` has no
+  row for it and `layout_bound_refusals` iterates table rows only. The PASS is a no-regression check, not a bound
+  measurement.

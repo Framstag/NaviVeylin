@@ -1,0 +1,46 @@
+The full gate, run locally on 2026-11-24 against HEAD 21c0fd24 ("core: one logged message is one line at the
+log's write seam (#1048)") — the commit that carries the diagnostics fold. The command is the one
+`guidelines/Build.md` §3 names as the full gate:
+
+  $ ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache --console=plain
+  BUILD SUCCESSFUL in 7m 17s
+  171 actionable tasks: 38 executed, 133 up-to-date
+  EXIT=0
+
+The log is app/build/scratch-cause7/gate.log. Test totals, summed from the run's own JUnit XML, one file per
+suite in every module's `build/test-results/*/TEST-*.xml` — five modules, because the run executed five:
+
+  result files: 860
+  tests:      6449
+  failures:      0
+  errors:        0
+
+  by module:  app 656 files / 4642 tests (mobile 2321 + automotive 2321)
+              auto 99 / 979
+              core 70 / 678
+              osmscout-client-java 23 / 112
+              architecture 12 / 38
+
+The count is taken with `find app auto core osmscout-client-java architecture -path '*/test-results/*' -name
+'TEST-*.xml' -newermt '2026-11-24 11:30' -print | wc -l` → 860, then the same `find` piped to
+`xargs grep -ho 'tests="[0-9]*"' | awk -F'"' '{s+=$2} END {print s}'` → 6449, and the same for
+`failures="[0-9]*"` → 0 and `errors="[0-9]*"` → 0. An earlier count of this run reported 825 files / 6299 tests:
+that figure summed the four modules `:app`, `:auto` and `:core` and dropped `:osmscout-client-java` (23 files /
+112 tests) and `:architecture` (12 / 38), both of which the same run executed — `gate.log:160`
+(`> Task :osmscout-client-java:test`) and `gate.log:172` (`> Task :architecture:test`), neither `UP-TO-DATE`. Both
+modules' XMLs carry `failures="0" errors="0"`, so the verdict stands and only the count was short.
+
+So the gate is green with the seventh cause's fix in the tree: the diagnostics fold does not regress any suite in
+any module, and the six earlier causes' fixes hold in the same run. The gate was started before the review's
+NOTE N7 (the unguarded `mkdir`) was corrected; that correction edits only the two workflow YAMLs, which no
+compiled source set contains, so the run's result stands for the code it compiled. The YAMLs' own checks were
+re-run after the correction — `yq -e .` on both, `tools/check-sonar-workflow.sh` and
+`tools/check-action-runtimes.sh` — and all four exit 0 (`evidence/gate-workflows.txt`).
+
+This is the local gate, not the CI run. The CI runs that answer task 9.3 are quoted separately in
+`evidence/red-runs.txt` and in the change's record once they conclude.
+
+A re-count of these totals must read the archived XMLs of this run, not the live tree: the live
+`app/build/test-results/testMobileDebugUnitTest` was rewritten by later filtered runs (the source-switch case's
+own run at 12:32, for one), so a fresh `find` over the live tree counts those runs' files too. The figures above
+are the run's own, taken from its XMLs as they stood when it finished.

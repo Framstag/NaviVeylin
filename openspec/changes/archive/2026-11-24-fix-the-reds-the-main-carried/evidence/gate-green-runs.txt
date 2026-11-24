@@ -1,0 +1,122 @@
+# The two red workflows, green at the change's HEAD (task 9.3)
+
+Recorded 2026-11-24 12:45Z–13:05Z. The tree is `main` at
+`c76b38f97040cae52a511d6e50808c00ab314789` — the change's twelfth commit, "test: keep the source-switch case's
+registry off the network (#1048)" — and `origin/main` equals it. Commands are read-only `gh` calls against the
+repository's own API; no build, no suite, no device, no network beyond that API.
+
+## The two runs
+
+| workflow | run | conclusion | window |
+|---|---|---|---|
+| Build Debug APK | `45385198727` | `success` | 2026-11-24T11:33:03Z → 12:42:35Z |
+| SonarCloud | `45385198606` | `success` | 2026-11-24T11:33:03Z → 11:43:52Z |
+
+Both are the runs GitHub started for `headSha c76b38f9`, i.e. the first runs of these two workflows at the
+change's HEAD. The base `d885082d` was red in both (`45271114385`, `45271114427`); the intervening HEADs each
+carried one of the causes — `red-runs.txt` names them run by run.
+
+Read with `gh run view <id> --json status,conclusion,jobs`. The five job conclusions of the Build workflow:
+
+```
+Offline gates|success|2026-11-24T11:33:06Z|2026-11-24T11:41:54Z
+Build debug APK (all ABIs)|success|2026-11-24T12:04:10Z|2026-11-24T12:42:35Z
+Loop self-test (tooling)|success|2026-11-24T11:33:05Z|2026-11-24T11:33:50Z
+Loop self-test (rest)|success|2026-11-24T11:33:05Z|2026-11-24T11:33:22Z
+Loop self-test (run)|success|2026-11-24T11:33:06Z|2026-11-24T11:33:29Z
+```
+
+The Sonar workflow's single job `Scan main` is `success`, 11:33:06Z → 11:43:52Z, and its last step's log line is
+`ANALYSIS SUCCESSFUL, you can find the results at:
+https://sonarcloud.io/dashboard?id=Framstag_NaviVeylin&branch=main`.
+
+## The "Build debug APK (all ABIs)" job, step by step
+
+Read with `gh run view 45385198727 --json jobs --jq '.jobs[]|select(.name=="Build debug APK (all ABIs)")'`. Every
+step that ran is `success`; the only non-success row is step 7 `Install Android SDK` — `skipped`, because the
+"Cache Android SDK" step restored the SDK. The three steps that were red in earlier runs are green here:
+
+```
+8  Check the JVM-only test graph      success
+22 Run unit tests                     success
+27 Publish the sensor inputs          success
+```
+
+Step 8's earlier red (`red-runs.txt`, "Run 45385198727 — three failures, two of them transient") was the
+transient plugin-resolution failure; step 27's earlier red was the sensor step's own; step 22's earlier reds were
+the 429s.
+
+## What the run proves about the causes
+
+**Cause 1 and cause 6 — the warm step and the retry wrapper.** "Cache Gradle" printed
+
+```
+Cache not found for input keys: gradle-Linux-m2-v1-707a6709bc788b497664f07f99ebd00f63b7b7bc11b4d2ab0e3f22678c407262, …
+```
+
+— the partial `m2-v1` entry the change deleted (`gate-gradle-retry.txt`) is gone, so the exact key missed and the
+warm step did the work it exists for. It fetched all three SDK jars and printed no `::warning::`:
+
+```
+fetching: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/5.0.2_r3-robolectric-r0-i7/…
+fetching: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/14-robolectric-10818077-i7/…
+fetching: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/16-robolectric-13921718-i7/…
+```
+
+A step that warns on every failure path printed none, so all three downloads completed and were moved into place.
+"Post Cache Gradle" then saved the now-complete entry (`Cache saved with key: …`), so the next run restores it.
+
+The whole run's log holds three `::warning::` strings and all three are the step's own echoed source lines (the
+`echo "::warning::…"` branches), not emitted annotations: `grep -c '::warning::'` is `3`, and each hit's line
+carries the `^[[36;1m` prefix the runner puts on a script's echoed text.
+
+The retry wrapper ran the suite once and needed no retry — one attempt, no 429 in the log:
+
+```
+Run unit tests  ##[group]Run bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests -PjvmTestsOnly --no-build-cache
+Run unit tests  2026-11-24T12:33:52.6366003Z BUILD SUCCESSFUL in 9m 46s
+```
+
+This is the sentence the wrapper's own evidence (`gate-gradle-retry.txt`) said only CI could supply: the step is
+green, and `grep -c 'status code 429'` over the run's log is `0`.
+
+**Cause 7 — the diagnostics line.** The `:auto` suite is in this run: `auto/build/test-results/testDebugUnitTest`
+reports 99 classes, 979 tests, 0 failures, 0 errors, so `StartupScreensTest#diagnosticsScreenShowsNewestFirst` —
+red in runs `45366310469` and `45366310497` — is green.
+
+**Cause 8 — the source-switch case.** The `:app` suites are in this run: both
+`app/build/test-results/testMobileDebugUnitTest` and `…testAutomotiveDebugUnitTest` report 328 classes,
+2321 tests, 0 failures, 0 errors. The SSL failure (`NoClassDefFoundError:
+sun.security.ssl.NamedGroup$SupportedGroups`) is absent from the log; `grep -c 'NamedGroup'` is `0`.
+
+## The run's own test census
+
+Step 23 "Report executed test suites" prints one line per result directory. Read with
+`gh run view 45385198727 --log` and grepped for the step's name:
+
+```
+app/build/test-results/testMobileDebugUnitTest: 328 classes, 2321 tests, 0 failures, 0 errors
+app/build/test-results/testAutomotiveDebugUnitTest: 328 classes, 2321 tests, 0 failures, 0 errors
+auto/build/test-results/testDebugUnitTest: 99 classes, 979 tests, 0 failures, 0 errors
+core/build/test-results/testDebugUnitTest: 70 classes, 678 tests, 0 failures, 0 errors
+architecture/build/test-results/test: 12 classes, 38 tests, 0 failures, 0 errors
+osmscout-client-java/build/test-results/test: 23 classes, 112 tests, 0 failures, 0 errors
+```
+
+The six figures sum to 6 449 tests — the same total the local gate run reported (`gate-full.txt`, 860 result
+files, 6 449 tests, 0 failures, 0 errors), reached independently: the local run executes the two `:app` flavors as
+separate configurations and the CI run executes both. The agreement is why B11's correction is a count, not a
+claim.
+
+## Named exclusions
+
+- **No device verification.** The run assembles a debug APK and runs the JVM suites; nothing here changes a
+  pixel, a frame, a template or a string.
+- **The instrumentation suite is not run by this workflow.** `:app`'s Android tests are the device's, not this
+  run's; the change edits no production code they touch.
+- **The "Metadata" workflow's red is not this change's.** Its scheduled run `45393626173` (@`c76b38f9`) fails at
+  "Verify the invariant" — `tools/issues/check-metadata.sh --live` reports 2 violation(s) and 5 untyped issues
+  (`#1048`, `#1047`, `#1041`, `#1040`, `#1027`, plus `#1040`/`#1039` as untyped children of epic `#1033`). That
+  workflow has been red since 2026-11-22 (`45009030604` @`3a39d92a`, `45158689160` @`d964b224`), three days
+  before the base commit, so it is neither caused nor reached by this change — it is a backlog-metadata
+  invariant, filed separately and not fixed here.

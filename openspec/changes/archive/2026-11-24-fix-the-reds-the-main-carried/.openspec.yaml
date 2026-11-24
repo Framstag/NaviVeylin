@@ -1,0 +1,9 @@
+# This change contradicts no requirement's text: each of the eight checks enforced its contract and refused a
+# tree that did not meet it. The delta is the tree — a workflow's cache and warm step, three route rows, a
+# comparison's order, a test fixture's dispatcher, a sensor row's bound, a retry wrapper two workflow steps call,
+# a fold in the diagnostics log's write seam and a case's registry fetcher — so there is no spec delta to write.
+# See proposal.md, "Capabilities".
+schema: spec-driven
+created: 2026-11-24
+x-issue: 1048
+skip_specs: true

@@ -1,0 +1,493 @@
+diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
+index 3371a39b..e5b01326 100644
+--- a/.github/workflows/build.yml
++++ b/.github/workflows/build.yml
+@@ -235,6 +235,10 @@ jobs:
+           echo "All vcpkg packages present for all triplets."
+ 
+       # ── Gradle build ─────────────────────────────────────────
++      # The key carries the `m2` component on purpose: a key is saved only when it is absent, so a key
++      # unchanged since before this change would restore the old, `.m2`-less entry and the three warm jars
++      # would never be cached. The component is a version, not a file hash — bump it when the warm list's
++      # coordinates change, or a saved entry keeps the old jars and the new ones are fetched every run.
+       - name: Cache Gradle
+         uses: actions/cache@v5
+         with:
+@@ -242,10 +246,66 @@ jobs:
+             ~/.gradle/caches
+             ~/.gradle/wrapper/dists
+             ~/.gradle/jdks
+-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
++            ~/.m2/repository
++          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+           restore-keys: |
+             gradle-${{ runner.os }}-
+ 
++      # ── the Robolectric SDK jars ─────────────────────────────
++      # Robolectric resolves its `android-all-instrumented` SDK jar at *test* time, not through Gradle's
++      # resolver: `MavenArtifactFetcher.fetchArtifact` asks Maven Central directly and skips the network only
++      # when `<localRepo>/<artifact>.jar` already exists. That is why `~/.m2/repository` is cached above —
++      # Gradle's cache does not hold these jars. On 2026-11-23 the runner asked repo1.maven.org for
++      # `14-robolectric-10818077-i7` and got HTTP 429; 844 of `:auto`'s 979 cases died in the fetcher and the
++      # build went red for a rate limit (run 45271114385). This step warms the jars the modules ask for, with
++      # curl's own retry and backoff, so the fetcher finds them and never asks.
++      #
++      # The coordinates are the artifact names Robolectric's SDK table gives each module's SDK level: `:core`
++      # runs at 21 (its default), `:auto` at 34 (`auto/src/test/resources/robolectric.properties`), `:app` at
++      # 36 (its targetSdk). A Robolectric or SDK bump renames the artifact: this list then warms a jar nobody
++      # reads and the real one is fetched at test time as before — a warning, never a wrong jar — so bump it
++      # in the same change as the version.
++      #
++      # A failed download warns and lets the run continue: the test-time fetch is what a stale row falls back
++      # to, and a coordinate that no longer exists must not block every build. A completed download is moved
++      # into place, because `fetchArtifact` trusts the file's existence — a truncated jar left behind would be
++      # read as a fetched one.
++      - name: Warm the Robolectric SDK jars
++        run: |
++          set -uo pipefail
++          repo="$HOME/.m2/repository/org/robolectric/android-all-instrumented"
++          for v in 5.0.2_r3-robolectric-r0-i7 14-robolectric-10818077-i7 16-robolectric-13921718-i7; do
++            jar="$repo/$v/android-all-instrumented-$v.jar"
++            if [ -s "$jar" ]; then
++              echo "present: $jar"
++              continue
++            fi
++            # Guarded for the same reason the download and the `mv` are: `run:` steps execute under `bash -e`,
++            # so an unguarded `mkdir` would abort the step — and the build — on a read-only or full cache
++            # volume, before the download below is even attempted. A warm failure warns and the test-time
++            # fetch is the fallback.
++            if ! mkdir -p "$repo/$v"; then
++              echo "::warning::could not create $repo/$v; the test-time fetch will ask Maven Central itself"
++              continue
++            fi
++            url="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/$v/android-all-instrumented-$v.jar"
++            echo "fetching: $url"
++            if curl --fail --silent --show-error --location \
++                 --retry 8 --retry-delay 5 --retry-max-time 300 --retry-all-errors \
++                 --output "$jar.part" "$url"; then
++              # `run:` steps execute under `bash -e`, so an unguarded `mv` would abort the step — and the
++              # build — on a read-only or full cache volume. The move is guarded for the same reason the
++              # download is: a warm failure warns and the test-time fetch is the fallback.
++              if ! mv "$jar.part" "$jar"; then
++                rm -f "$jar.part"
++                echo "::warning::could not move $v into place; the test-time fetch will ask Maven Central itself"
++              fi
++            else
++              rm -f "$jar.part"
++              echo "::warning::could not warm $v; the test-time fetch will ask Maven Central itself"
++            fi
++          done
++
+       # This flag does NOT select the daemon JVM: the checked-in daemon JVM
+       # criteria (gradle/gradle-daemon-jvm.properties) take precedence over
+       # org.gradle.java.home and JAVA_HOME (Gradle 9.6.1, "Daemon JVM
+@@ -294,8 +354,14 @@ jobs:
+       # out of the test graph (spec `build-sbom`, "A JVM-only test run does not
+       # require the native tree", issue #270). The strict artefact path is the
+       # three steps above, which run with the vcpkg tree present.
++      #
++      # The invocation runs through `tools/gradlew-retry.sh` because this step resolves the unit-test
++      # runtime classpath, and Gradle does not retry a Maven Central 429 on an artifact download
++      # (gradle/gradle#39083): the repository is blacklisted and the build fails. Run 45361986255 failed
++      # here on `org.robolectric:nativeruntime-dist-compat:1.0.18` after the restored cache arrived without
++      # the jar. The wrapper retries only a log that names a 429 and leaves every other failure alone.
+       - name: Run unit tests
+-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests -PjvmTestsOnly --no-build-cache
++        run: bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests -PjvmTestsOnly --no-build-cache
+ 
+       # A green verdict says nothing about what ran: name the suites and their
+       # tallies in the log, per module and per `:app` flavor.
+diff --git a/.github/workflows/sonar.yml b/.github/workflows/sonar.yml
+index a326bfea..4d444e5b 100644
+--- a/.github/workflows/sonar.yml
++++ b/.github/workflows/sonar.yml
+@@ -95,6 +95,9 @@ jobs:
+             "platforms;android-36" \
+             "build-tools;36.0.0"
+ 
++      # The key carries the `m2` component for the reason `build.yml` states: a key unchanged since before
++      # this change restores the old, `.m2`-less entry and the warm jars are never saved. Bump the version
++      # when the warm list's coordinates change.
+       - name: Cache Gradle
+         uses: actions/cache@v5
+         with:
+@@ -102,16 +105,59 @@ jobs:
+             ~/.gradle/caches
+             ~/.gradle/wrapper/dists
+             ~/.gradle/jdks
+-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
++            ~/.m2/repository
++          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+           restore-keys: |
+             gradle-${{ runner.os }}-
+ 
++      # The Robolectric SDK jars, warmed the same way `build.yml` warms them: Robolectric's
++      # `MavenArtifactFetcher` asks Maven Central at *test* time and skips the network only when the jar is
++      # already in the local Maven repository, so this scan hit the same HTTP 429 the build run did on
++      # 2026-11-23 (run 45271114427). `~/.m2/repository` is cached above for the same reason. The coordinates
++      # and the fallback are `build.yml`'s: a bump there is a bump here.
++      - name: Warm the Robolectric SDK jars
++        run: |
++          set -uo pipefail
++          repo="$HOME/.m2/repository/org/robolectric/android-all-instrumented"
++          for v in 5.0.2_r3-robolectric-r0-i7 14-robolectric-10818077-i7 16-robolectric-13921718-i7; do
++            jar="$repo/$v/android-all-instrumented-$v.jar"
++            if [ -s "$jar" ]; then
++              echo "present: $jar"
++              continue
++            fi
++            # Guarded for the reason `build.yml` states: `run:` steps execute under `bash -e`, so an
++            # unguarded `mkdir` would abort the step and the build on a read-only or full cache volume.
++            if ! mkdir -p "$repo/$v"; then
++              echo "::warning::could not create $repo/$v; the test-time fetch will ask Maven Central itself"
++              continue
++            fi
++            url="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/$v/android-all-instrumented-$v.jar"
++            echo "fetching: $url"
++            if curl --fail --silent --show-error --location \
++                 --retry 8 --retry-delay 5 --retry-max-time 300 --retry-all-errors \
++                 --output "$jar.part" "$url"; then
++              # Guarded for the reason `build.yml` states: `run:` steps execute under `bash -e`, so a failed
++              # `mv` would abort the step and the build rather than warn.
++              if ! mv "$jar.part" "$jar"; then
++                rm -f "$jar.part"
++                echo "::warning::could not move $v into place; the test-time fetch will ask Maven Central itself"
++              fi
++            else
++              rm -f "$jar.part"
++              echo "::warning::could not warm $v; the test-time fetch will ask Maven Central itself"
++            fi
++          done
++
+       # The JVM-only gate (guidelines/Build.md §3): the same command line the local gate runs, so this scan is
+       # reproducible by hand. It compiles exactly the source sets that are in scope — which is also what
+       # `sonar.java.binaries` needs — and executes the coverage agent the two report steps below read.
++      #
++      # The invocation runs through `tools/gradlew-retry.sh` for the reason `build.yml`'s same step carries:
++      # Gradle does not retry a Maven Central 429 on an artifact download (gradle/gradle#39083), and this
++      # step resolves the unit-test runtime classpath. The wrapper retries only a log that names a 429.
+       - name: Run unit tests
+         id: tests
+-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
++        run: bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
+ 
+       # One report per module, one provenance for the Java module: the root merged Kover report is not
+       # generated (its module-relative paths are the known breakage, design D4) and the vendored JaCoCo report
+diff --git a/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt b/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt
+index 5649a761..77a5bfd1 100644
+--- a/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt
++++ b/app/src/test/java/com/naviveylin/ui/settings/SettingsSurfaceTest.kt
+@@ -997,6 +997,11 @@ class SettingsSurfaceTest {
+         composeRule.waitForIdle()
+         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+         composeRule.waitUntil(timeoutMillis = 5_000) {
++            // The write the row made is a coroutine on the rule's dispatcher, so each poll drains it
++            // before asking the file: the storage's read is a fresh one on the real dispatcher, which
++            // this rule cannot advance, and advancing only once before the loop leaves a write that
++            // was queued after that call unanswered (#1048).
++            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+             runBlocking { SettingsStorage(context).load() }.let(holds)
+         }
+     }
+@@ -1044,9 +1049,19 @@ class SettingsSurfaceTest {
+     private fun setUpMap(): FakeOSMScoutClient {
+         val client = FakeOSMScoutClient()
+         val locationService = LocationService(context)
++        // The controller's storage reads the document on the settings dispatcher, and the row shows
++        // the document the controller publishes. Left on the default `Dispatchers.IO`, that read is a
++        // thread the rule never advances: `advanceUntilIdle` below returns while the read is still in
++        // flight, and a case that asserts the row's value on the first frame reads the defaults the
++        // controller starts at. That read won its race here and lost it on a loaded runner — the same
++        // tree that passed the scan at 3b6a4acf failed it at d885082d with no source change (#1048).
++        // On the rule's dispatcher the read is part of the queue `advanceUntilIdle` drains, so the row
++        // renders the persisted document deterministically.
++        val settingsStorage = SettingsStorage(context)
++            .also { it.ioDispatcher = mainDispatcherRule.dispatcher }
+         viewModel = MapCanvasViewModel(
+             viewportStorage = ViewportStorage(context),
+-            settingsController = SettingsController(SettingsStorage(context)),
++            settingsController = SettingsController(settingsStorage),
+             assetCopier = AssetCopier(context),
+             client = client,
+             favoriteRepository = FavoriteRepository(client),
+diff --git a/core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt b/core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt
+index 5d7999ab..17e4c46e 100644
+--- a/core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt
++++ b/core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt
+@@ -695,8 +695,25 @@ object DiagnosticsLog {
+         }
+     }
+ 
++    /**
++     * The line as the file holds it: stamped with its timestamp and folded to one line.
++     *
++     * The file is read line by line ([readEntries] returns `file.readLines()`) and the retention pass ages a
++     * line by its leading timestamp, dropping a line it cannot parse (spec: `auto-diagnostics` — Entries older
++     * than the retention window are removed). A message that carries newlines must therefore not become
++     * several entries: its continuation lines have no timestamp, so the pass deletes them and the head line
++     * survives alone, and a reader that shows the file (the car diagnostics screen) shows the fragments as
++     * separate rows. Newlines are folded into the same ` | ` [stackDetail] uses between stack frames, so a
++     * multi-line message stays one entry (issue #1048).
++     */
+     private fun timestamped(line: String): String =
+-        synchronized(formatLock) { "[${timestampFormat.format(Date())}] $line" }
++        synchronized(formatLock) { "[${timestampFormat.format(Date())}] ${oneLine(line)}" }
++
++    /** [line] with each run of newlines, and the indentation around it, folded into ` | `. */
++    private fun oneLine(line: String): String = line.replace(NEWLINE_RUN, " | ")
++
++    /** A run of newlines with the surrounding whitespace, the shape a multi-line message carries. */
++    private val NEWLINE_RUN = Regex("\\s*[\\r\\n]+\\s*")
+ 
+     private const val MAX_STACK_FRAMES = 20
+ 
+diff --git a/core/src/test/java/com/naviveylin/core/DiagnosticsLogTest.kt b/core/src/test/java/com/naviveylin/core/DiagnosticsLogTest.kt
+index 9e3e3584..bbcc062e 100644
+--- a/core/src/test/java/com/naviveylin/core/DiagnosticsLogTest.kt
++++ b/core/src/test/java/com/naviveylin/core/DiagnosticsLogTest.kt
+@@ -73,6 +73,27 @@ class DiagnosticsLogTest {
+         assertTrue(entries[1].contains("IllegalStateException: nope"))
+     }
+ 
++    /**
++     * The file is read line by line ([DiagnosticsLog.readEntries] returns `file.readLines()`) and the
++     * retention pass ages a line by its leading timestamp, removing a line it cannot parse (spec:
++     * `auto-diagnostics` — Entries older than the retention window are removed). A message that carries
++     * newlines therefore must not become several entries: its continuation lines have no timestamp, so the
++     * pass deletes them and the head line survives alone. A car screen that reads the file then shows the
++     * fragments as separate rows, pushing the entries the user cares about out of its first page — the red
++     * `StartupScreensTest#diagnosticsScreenShowsNewestFirst` hit in CI when the screen's own capacity line
++     * carried a multi-line exception (issue #1048).
++     */
++    @Test
++    fun aMessageThatSpansLinesIsOneEntry() {
++        DiagnosticsLog.log("TEST", "first\nsecond\r\nthird")
++
++        val entries = DiagnosticsLog.readEntries()
++        assertEquals("one logged message is one entry: $entries", 1, entries.size)
++        assertTrue("the first part is kept: ${entries[0]}", entries[0].contains("first"))
++        assertTrue("the second part is kept: ${entries[0]}", entries[0].contains("second"))
++        assertTrue("the third part is kept: ${entries[0]}", entries[0].contains("third"))
++    }
++
+     @Test
+     fun rotationKeepsNewest() {
+         DiagnosticsLog.maxBytes = 200
+diff --git a/tools/doc-routes.json b/tools/doc-routes.json
+index 865d14b8..66d2878a 100644
+--- a/tools/doc-routes.json
++++ b/tools/doc-routes.json
+@@ -138,6 +138,7 @@
+         "UI.md §8d \"the spoken-announcement switches are per surface, and the GPS switch is shared.\"",
+         "UI.md §8d \"the location-options-only settings are phone-only.\"",
+         "UI.md §8d \"the car's reroute wait is a surface strip, the phone's is a card tint.\"",
++        "UI.md §8d \"a value a car surface cannot edit is edited on the phone, and a car anchor restores from the phone.\"",
+         "UI.md §9 \"the phone dark-mode preference is three-state with an ambient option.\"",
+         "UI.md §9 \"the Android Auto dark mode has two layers, owned differently.\"",
+         "UI.md §9 \"the template chrome is host-themed, never app-themed.\"",
+@@ -305,6 +306,7 @@
+         "MapFrames.md §13 \"The marker overlay must be shifted by the same offset the content is drawn with\"",
+         "MapFrames.md §13 \"The renderer's target center (`currentLat/Lon`) only advances with render requests.\"",
+         "MapFrames.md §13 \"Pan hot path budget\"",
++        "MapFrames.md §13 \"One displayed viewport per frame.\"",
+         "MapStyling.md §20 \"The character count is the bound that wraps\"",
+         "MapStyling.md §20 \"A label is broken at a word boundary only\"",
+         "MapStyling.md §20 \"The Android build has no Pango\"",
+@@ -632,7 +634,8 @@
+         "MapFrames.md §13 \"Diagnosing a stuck pan\"",
+         "MapFrames.md §13 \"The marker overlay must be shifted by the same offset the content is drawn with\"",
+         "MapFrames.md §13 \"The renderer's target center (`currentLat/Lon`) only advances with render requests.\"",
+-        "MapFrames.md §13 \"Pan hot path budget\""
++        "MapFrames.md §13 \"Pan hot path budget\"",
++        "MapFrames.md §13 \"One displayed viewport per frame.\""
+       ]
+     },
+     {
+@@ -703,6 +706,7 @@
+         "BuildGate.md §2b \"the allowlist is probed, not assumed.\"",
+         "BuildGate.md §2b \"never `pkill -f \"gradlew …\"`.\"",
+         "BuildGate.md §2b \"do not use `/tmp` for large map imports.\"",
++        "BuildGate.md §2b \"a rotated child stream still answers every turn — read the pair before calling a figure a lower bound.\"",
+         "BuildGate.md §2c \"every gate run can leave a machine-readable record of what it cost\"",
+         "BuildGate.md §2c \"the timing script only observes; it never adds an action to a task.\"",
+         "BuildGate.md §2c \"to force execution of the tests, use `-PforceTests --no-build-cache`, not `--rerun-tasks`.\"",
+@@ -1004,6 +1008,7 @@
+         "UI.md §8d \"the spoken-announcement switches are per surface, and the GPS switch is shared.\"",
+         "UI.md §8d \"the location-options-only settings are phone-only.\"",
+         "UI.md §8d \"the car's reroute wait is a surface strip, the phone's is a card tint.\"",
++        "UI.md §8d \"a value a car surface cannot edit is edited on the phone, and a car anchor restores from the phone.\"",
+         "UI.md §9 \"the phone dark-mode preference is three-state with an ambient option.\"",
+         "UI.md §9 \"the Android Auto dark mode has two layers, owned differently.\"",
+         "UI.md §9 \"the template chrome is host-themed, never app-themed.\"",
+diff --git a/tools/gradlew-retry.sh b/tools/gradlew-retry.sh
+new file mode 100755
+index 00000000..2199b93b
+--- /dev/null
++++ b/tools/gradlew-retry.sh
+@@ -0,0 +1,58 @@
++#!/usr/bin/env bash
++# gradlew-retry.sh — run a Gradle invocation, retrying only a Maven Central 429.
++#
++# Gradle's dependency resolver does not retry HTTP 429. A rate-limited artifact download is treated as a
++# repository error: the repository is blacklisted for the rest of the build and the invocation fails
++# (gradle/gradle#39083, "Could not HEAD ... Received status code 429 from server: Too Many Requests").
++# A runner's IP is shared, so a transient throttle on Maven Central's side becomes a red build — run
++# 45361986255 failed that way on `org.robolectric:nativeruntime-dist-compat:1.0.18` after its cache
++# restored without the jar (issue #1048).
++#
++# This wrapper re-runs the command when — and only when — the failed attempt's log names a 429. Any other
++# failure is reported once, with its own exit status and no retry, so a real defect is never masked by a
++# second attempt. The retry count and the first delay are bounded; the delay doubles each time.
++#
++# Two 429 shapes are recognised, because the two fetchers word it differently:
++#   - Gradle's resolver: "Received status code 429 from server: Too Many Requests" (run 45361986255)
++#   - Robolectric's artifact fetcher, which runs inside the test JVM: "java.io.IOException: Server returned
++#     HTTP response code: 429 for URL: ..." (run 45271114385, 844 of 979 `:auto` cases died in it)
++#
++# Usage: bash tools/gradlew-retry.sh <command> [args...]
++#   GRADLEW_RETRY_ATTEMPTS  total attempts, default 3
++#   GRADLEW_RETRY_DELAY     seconds before the first retry, default 90
++#
++# Exit status: the command's own on success, the last attempt's on a 429 that outlives the attempts, or the
++# first attempt's when the failure is not a 429.
++set -uo pipefail
++
++attempts="${GRADLEW_RETRY_ATTEMPTS:-3}"
++delay="${GRADLEW_RETRY_DELAY:-90}"
++
++if [ "$#" -eq 0 ]; then
++  echo "usage: $0 <command> [args...]" >&2
++  exit 2
++fi
++
++log="$(mktemp)"
++trap 'rm -f "$log"' EXIT
++
++attempt=1
++while :; do
++  "$@" 2>&1 | tee "$log"
++  status="${PIPESTATUS[0]}"
++  if [ "$status" -eq 0 ]; then
++    exit 0
++  fi
++  if ! grep -q -e 'status code 429' -e 'HTTP response code: 429' "$log"; then
++    echo "gradlew-retry: attempt $attempt failed (exit $status) for a reason other than a 429; not retrying" >&2
++    exit "$status"
++  fi
++  if [ "$attempt" -ge "$attempts" ]; then
++    echo "gradlew-retry: Maven Central still rate limiting after $attempt attempt(s); giving up" >&2
++    exit "$status"
++  fi
++  echo "::warning::Maven Central rate limited a dependency download (429); retrying in ${delay}s (attempt $attempt of $attempts)" >&2
++  sleep "$delay"
++  delay=$((delay * 2))
++  attempt=$((attempt + 1))
++done
+diff --git a/tools/loop/tests/loop-cases.sh b/tools/loop/tests/loop-cases.sh
+index f65ca489..fe59c745 100644
+--- a/tools/loop/tests/loop-cases.sh
++++ b/tools/loop/tests/loop-cases.sh
+@@ -485,6 +485,7 @@ LOOP_SHELL_CASES=(
+   'driver#aQuotedProgramIsNotAShellRead'
+   'driver#aCallInPipelinePositionIsARead'
+   'driver#theSharedNamesAreDeclared'
++  'driver#theReaderOrderIsNotPartOfTheComparison'
+   'driver#theSourceOrderIsDeclared'
+   'driver#aCallToALaterFilesFunctionFails'
+   'driver#everyEngineFileHasOneOwner'
+@@ -1322,6 +1323,7 @@ loop_run_shell_case() {
+     'driver#aQuotedProgramIsNotAShellRead') fn=case_driver_aQuotedProgramIsNotAShellRead ;;
+     'driver#aCallInPipelinePositionIsARead') fn=case_driver_aCallInPipelinePositionIsARead ;;
+     'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
++    'driver#theReaderOrderIsNotPartOfTheComparison') fn=case_driver_theReaderOrderIsNotPartOfTheComparison ;;
+     'driver#theSourceOrderIsDeclared') fn=case_driver_theSourceOrderIsDeclared ;;
+     'driver#aCallToALaterFilesFunctionFails') fn=case_driver_aCallToALaterFilesFunctionFails ;;
+     'driver#everyEngineFileHasOneOwner') fn=case_driver_everyEngineFileHasOneOwner ;;
+@@ -19511,7 +19513,10 @@ END {
+       }
+       if (readers == "") continue
+       m = split(substr(readers, 2), rs, " ")
+-      for (i = 2; i <= m; i++) for (j = i; j <= m; j++) if (rs[j] < rs[i]) { t = rs[i]; rs[i] = rs[j]; rs[j] = t }
++      # A selection sort from the FIRST reader. Starting at 2 leaves the first element in the order awk's hash
++      # iteration happened to produce it, so the row's text depended on the awk build and not on the names: the
++      # comparison refused HEAD's text for this case's own fixture, and the runner's row differed (#1048).
++      for (i = 1; i <= m; i++) for (j = i; j <= m; j++) if (rs[j] < rs[i]) { t = rs[i]; rs[i] = rs[j]; rs[j] = t }
+       out = ""
+       for (i = 1; i <= m; i++) out = out (i > 1 ? " " : "") rs[i]
+       if (mode == "rows") print name "\t" fl[1] "\t" out
+@@ -19540,7 +19545,17 @@ layout_shared_refusals() { # <engine dir> → one line per name the declaration
+     printf 'shared.tsv: the engine has no declaration (%s)\n' "$dir/shared.tsv"
+     return 0
+   fi
+-  declared=$(awk -F'\t' '$0 !~ /^#/ && $1 != "" { print $1 "\t" $2 "\t" $3 }' "$dir/shared.tsv" | sort)
++  # The reader column is a set, not a sequence: the declaration is normalised to the derivation's sorted order
++  # before the two are compared, so a row whose readers are written in any order declares the same share (#1048).
++  declared=$(awk -F'\t' '
++    $0 ~ /^#/ || $1 == "" { next }
++    {
++      n = split($3, r, " ")
++      for (i = 1; i <= n; i++) for (j = i; j <= n; j++) if (r[j] < r[i]) { t = r[i]; r[i] = r[j]; r[j] = t }
++      s = ""
++      for (i = 1; i <= n; i++) s = s (i > 1 ? " " : "") r[i]
++      print $1 "\t" $2 "\t" s
++    }' "$dir/shared.tsv" | sort)
+   computed=$(layout_shared_awk "$dir" rows | sort)
+   while IFS=$'\t' read -r name by readers; do
+     [ -n "$name" ] || continue
+@@ -20233,6 +20248,22 @@ case_driver_theSharedNamesAreDeclared() {
+   return 0
+ }
+ 
++case_driver_theReaderOrderIsNotPartOfTheComparison() {
++  # files: tools/loop/ tools/loop/shared.tsv
++  local out d
++  d=$(scratch)
++  printf 'shared_thing=1\n' > "$d/a.sh"
++  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/b.sh"
++  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/c.sh"
++  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/d.sh"
++  # The reader column is a set. A row written in descending order declares the same share as one written in
++  # ascending order, so the comparison sorts both sides and reads no order as a disagreement (#1048).
++  printf '# one row per name\nshared_thing\ta.sh\td.sh c.sh b.sh\n' > "$d/shared.tsv"
++  out=$(layout_shared_refusals "$d")
++  assert_eq "" "$out" "the reader column's order is not part of the comparison: $out"
++  return 0
++}
++
+ case_driver_theSourceOrderIsDeclared() {
+   # files: tools/loop/ tools/loop/layout.tsv
+   local out d
+diff --git a/tools/sensors/sensors.json b/tools/sensors/sensors.json
+index 159394b0..3045da72 100644
+--- a/tools/sensors/sensors.json
++++ b/tools/sensors/sensors.json
+@@ -47,14 +47,14 @@
+       "id": "hotspot",
+       "cmd": "tools/sensors/hotspot-report.sh",
+       "cron": "0 5 * * 1",
+-      "threshold": 1500000,
++      "threshold": 2000000,
+       "comparison": "greater-than",
+       "consecutive": 2,
+       "class": "improvement",
+       "category": "build-and-harness",
+       "lifecycle": "file+close",
+       "fingerprint": { "fields": ["path"] },
+-      "comment": "The hotspot row watches the tracked tree outside the change tree: `openspec/changes/**` holds a change's prose and the evidence a run left, which no build compiles and no session reads, so a run's own record is not a source whose size is heat (issue #670's distinction, the scope the `source-size` row carries). The bound sits above the largest file that remains — 1 500 000 against 1 419 357 bytes, `tools/loop/tests/loop-cases.sh`, measured 2026-11-16 (1 210 821 when the bound was last taken, 2026-11-13; the difference is the cases the loop's own items #893, #916 and #929 landed) — so one change of a watched file is not a condition, and crossing the bound takes at least a second change."
++      "comment": "The hotspot row watches the tracked tree outside the change tree: `openspec/changes/**` holds a change's prose and the evidence a run left, which no build compiles and no session reads, so a run's own record is not a source whose size is heat (issue #670's distinction, the scope the `source-size` row carries). The bound sits above the largest file that remains — 2 000 000 against 1 685 967 bytes, `tools/loop/tests/loop-cases.sh`, measured 2026-11-24 (1 419 357 when the bound was last taken, 2026-11-16, at 77973d53; 264 commits since then, 64 of them touching that file, added the 266 610 bytes) — so one change of a watched file is not a condition, and crossing the bound takes at least a second change. The 314 033 bytes of headroom are deliberate: the file grew 266 610 bytes in the eight days since the bound was last taken, so a bound fitted to today's size would re-break the case within days. The bound also stays below the churned fixture's score (2 800 378), so the case's assertion that a path changed seven times is past the bound still holds."
+     },
+     {
+       "id": "coverage",
+diff --git a/tools/sensors/tests/sensor-mutations.sh b/tools/sensors/tests/sensor-mutations.sh
+index 79f66cde..aeee40a0 100755
+--- a/tools/sensors/tests/sensor-mutations.sh
++++ b/tools/sensors/tests/sensor-mutations.sh
+@@ -57,7 +57,7 @@ MUTATIONS=(
+   '8.28@tools/sensors/metrics/source-size.sh@s|\x27:(exclude)openspec/changes/\x27||@sensors#sourceSizeSkipsTheChangeTree@the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670)'
+   '8.29@tools/sensors/run.sh@s/if \[ "\$SENSORS_TRIGGER" = "schedule" \] && \[ -z "\$baseline" \]; then/if [ -z "$baseline" ]; then/@run#aDispatchedFirstExerciseRecordsItsMeasurement@only the unattended tick reports a first exercise, so a dispatched run still records it (issue #667)'
+   '8.30@tools/sensors/run.sh@s/if \[ "\$SENSORS_TRIGGER" = "schedule" \] && \[ -z "\$baseline" \]; then/if false; then/@run#aFirstExerciseOnATickReportsInsteadOfFiling@a row with no measurement on record is reported by the tick and never filed (issue #667)'
+-  '8.31@tools/sensors/sensors.json@s/"threshold": 1300000,/"threshold": 5000,/@hotspot#theBoundIsAboveOneChangedFile@a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665)'
++  '8.31@tools/sensors/sensors.json@s/"threshold": 2000000,/"threshold": 1000000,/@hotspot#theBoundIsAboveOneChangedFile@a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665)'
+   '8.32@tools/sensors/metrics/doc-context.sh@s/sensors_compare "$bytes" "$threshold" greater-than/sensors_compare "$bytes" "$threshold" below-floor/@sensors#routedSectionSizeRow@a routed section past the row bound is a violation (issue #197)'
+   '8.33@tools/sensors/metrics/doc-context.sh@s/sensors_compare "$size" "$threshold" greater-than/sensors_compare "$size" "$threshold" below-floor/@sensors#entryDocumentSizeRow@an entry document past its own row bound is a violation (issue #197)'
+   '8.34@tools/sensors/hotspot-report.sh@s|^      case "$path" in openspec/changes/\*) continue ;; esac$|      :|@hotspot#theChangeTreeIsNotAWatchPath@the change tree is not the source tree, so a device log a run left as evidence is not a watched path (issue #670)'

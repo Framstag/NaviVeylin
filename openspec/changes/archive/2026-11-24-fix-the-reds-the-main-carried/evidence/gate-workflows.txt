@@ -1,0 +1,96 @@
+=== yq -e . .github/workflows/build.yml
+YAML OK build
+=== yq -e . .github/workflows/sonar.yml
+YAML OK sonar
+=== bash tools/check-sonar-workflow.sh
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+EXIT_SONAR=0
+=== bash tools/check-action-runtimes.sh
+action runtimes: 22 action pins across 4 workflow files target Node 24, and their 6 hosted runner image(s) are pinned.
+EXIT_RUNTIMES=0
+
+All commands above were run in this tree on 2026-11-24 between 07:20Z and 07:45Z, against the tree of commit
+272395a0 (the second workflow commit).
+
+=== the cache key names the m2 half
+$ grep -n 'key: gradle-' .github/workflows/build.yml .github/workflows/sonar.yml
+.github/workflows/build.yml:250:          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+.github/workflows/sonar.yml:109:          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+  Why: `actions/cache` saves a key only when it is absent. A key unchanged since before this change is already
+  saved, so the run would restore the old, `.m2`-less cache and never save the jars. `m2-v1` is a version: a
+  Robolectric or SDK bump that renames a coordinate bumps it too, so the new jars are saved under a new key.
+
+=== the warm step, extracted and checked
+$ yq -r '.jobs.build.steps[] | select(.name=="Warm the Robolectric SDK jars") | .run' .github/workflows/build.yml > /tmp/warm-step.sh
+$ wc -l < /tmp/warm-step.sh
+34
+$ bash -n /tmp/warm-step.sh
+bash -n OK
+
+34 as `yq -r` emits it — 33 lines of step text at `.github/workflows/build.yml:275-307`, plus the block
+scalar's trailing blank line. The step grew by the guarded `mkdir` and its four-line comment.
+
+=== the step run against the real HOME — the skip branch (jars already warmed)
+$ bash /tmp/warm-step.sh
+present: /home/tim/.m2/repository/org/robolectric/android-all-instrumented/5.0.2_r3-robolectric-r0-i7/android-all-instrumented-5.0.2_r3-robolectric-r0-i7.jar
+present: /home/tim/.m2/repository/org/robolectric/android-all-instrumented/14-robolectric-10818077-i7/android-all-instrumented-14-robolectric-10818077-i7.jar
+present: /home/tim/.m2/repository/org/robolectric/android-all-instrumented/16-robolectric-13921718-i7/android-all-instrumented-16-robolectric-13921718-i7.jar
+EXIT_WARM=0
+
+=== the step's fetch branch — the same 34 lines with `$HOME` replaced by a scratch base
+The substitution is the only difference from the committed text: `HOME` is a protected variable in this shell's
+policy, so exporting a different one is refused. Everything else — the loop, the `[ -s "$jar" ]` skip, the
+`curl --retry` line, the guarded `mv`, the two `::warning::` fallbacks — is the step's own text, produced by
+`sed 's|\$HOME|<scratch>|g' /tmp/warm-step.sh` and `bash -n`-clean.
+
+$ time bash /tmp/warm-step-scratch.sh
+start 2026-11-24T07:42:03Z
+fetching: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/5.0.2_r3-robolectric-r0-i7/android-all-instrumented-5.0.2_r3-robolectric-r0-i7.jar
+fetching: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/14-robolectric-10818077-i7/android-all-instrumented-14-robolectric-10818077-i7.jar
+fetching: https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/16-robolectric-13921718-i7/android-all-instrumented-16-robolectric-13921718-i7.jar
+EXIT=0
+end 2026-11-24T07:42:58Z
+bash /tmp/warm-step-scratch.sh  0,37s user 0,60s system 1% cpu 55,699 total
+$ ls -l …/android-all-instrumented/*/*.jar
+151142227  …/14-robolectric-10818077-i7/android-all-instrumented-14-robolectric-10818077-i7.jar
+213431622  …/16-robolectric-13921718-i7/android-all-instrumented-16-robolectric-13921718-i7.jar
+ 63167823  …/5.0.2_r3-robolectric-r0-i7/android-all-instrumented-5.0.2_r3-robolectric-r0-i7.jar
+  All three land at their coordinate's path, non-empty, in 55.7 s (408 MB). The scratch jars were then removed:
+  the run proves the branch, not the cache.
+
+=== the same step, second run over the fetched jars — the skip branch after a fetch
+$ bash /tmp/warm-step-scratch.sh
+present: <scratch>/.m2/repository/org/robolectric/android-all-instrumented/5.0.2_r3-robolectric-r0-i7/android-all-instrumented-5.0.2_r3-robolectric-r0-i7.jar
+present: <scratch>/.m2/repository/org/robolectric/android-all-instrumented/14-robolectric-10818077-i7/android-all-instrumented-14-robolectric-10818077-i7.jar
+present: <scratch>/.m2/repository/org/robolectric/android-all-instrumented/16-robolectric-13921718-i7/android-all-instrumented-16-robolectric-13921718-i7.jar
+EXIT2=0
+
+=== the three URLs answer
+$ for v in …; do curl --head --silent --location --write-out '%{http_code}\n' "…/$v/android-all-instrumented-$v.jar"; done
+5.0.2_r3-robolectric-r0-i7 -> 200
+14-robolectric-10818077-i7 -> 200
+16-robolectric-13921718-i7 -> 200
+
+=== the mv guard
+`run:` steps execute under `bash -e`, so an unguarded `mv` aborts the step — and the build — on a read-only or
+full cache volume, against the step's own "a failed warm warns and lets the run continue" contract. Both steps
+now guard the move and fall through to the same `::warning::` the download failure prints. The guard has no
+local falsifier: no volume here refuses the move, so its evidence is the text in the diff, quoted above.
+
+=== the mkdir guard (review round 4's NOTE N7)
+The same contract covers the directory the jar is written into: `mkdir -p "$repo/$v"` stood unguarded between the
+`-s` skip branch and the download, so a read-only or full cache volume aborted the step there — before the guarded
+download and `mv` were reached. Both steps now guard it and `continue` to the next coordinate with the same
+`::warning::`:
+
+```
+            if ! mkdir -p "$repo/$v"; then
+              echo "::warning::could not create $repo/$v; the test-time fetch will ask Maven Central itself"
+              continue
+            fi
+```
+
+`build.yml` carries the full comment beside it; `sonar.yml` points at `build.yml`'s reason, as its `mv` guard
+already does. Neither workflow's YAML changed shape: `yq -e .` on both exits 0, `tools/check-sonar-workflow.sh`
+exits 0 and `tools/check-action-runtimes.sh` exits 0 after the edit. Like the `mv` guard, this one has no local
+falsifier — no volume here refuses the `mkdir` — so its evidence is the text in the diff.

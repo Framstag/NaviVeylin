@@ -1,0 +1,100 @@
+Evidence for cause 7 (proposal §7, design D7) — the diagnostics line that became five rows.
+Collected 2026-11-24 on branch main, base d885082d, HEAD a11c32a6 plus the uncommitted fold.
+
+Why the case is red only in CI, and what the red actually shows
+================================================================
+
+`StartupScreensTest#diagnosticsScreenShowsNewestFirst` passed locally on every run this change made, before and
+after the fold. It failed in both workflows at a11c32a6 — run 45366310469 (Build Debug APK) and run
+45366310497 (SonarCloud), both headSha a11c32a6df766e9cbdddfb39fbd9e7ca3f014095, created 2026-11-24T09:33:23Z.
+The difference is the exception text the screen's own capacity line carries: locally the MockK failure message
+is short, in CI MockK's "no answer found" message lists its candidate answers and is multi-line. The assertion
+message prints the page the screen actually built, so the run's own log shows the defect directly:
+
+  $ gh run view 45366310469 --log-failed | grep -n -E 'StartupScreensTest|tests completed|BUILD FAILED'
+  246  StartupScreensTest > diagnosticsScreenShowsNewestFirst FAILED
+  247      java.lang.AssertionError: the startup screen never published 3 log rows: [This log stays on this
+           device. It records app and session events plus map database and object names — never coordinates.
+           Entries older than 7 days are deleted., CarContext(#4427).getOnBackPressedDispatcher())))),
+           CarContext(#4427).getString(any(), VarargMatcher(all=true, prefix=[], postfix=[], centralPart=lambda)))),
+           CarContext(#4427).getString(any())), CarContext(#4427).getResources()),
+           [2026-11-24 09:53:19.991] SCREEN list capacity 6 rows (library default, no car API level yet:
+           io.mockk.MockKException: no answer found for CarContext(#4427).getCarAppApiLevel() among the
+           configured an, [2026-11-24 09:53:19.976] SCREEN list capacity 6 rows (library default, below car
+           API 2), More (3)]
+  251          at com.naviveylin.auto.StartupScreensTest.awaitRows(StartupScreensTest.kt:205)
+  252          at com.naviveylin.auto.StartupScreensTest.awaitRows$default(StartupScreensTest.kt:186)
+  253          at com.naviveylin.auto.StartupScreensTest.diagnosticsScreenShowsNewestFirst(StartupScreensTest.kt:118)
+  255  979 tests completed, 1 failed
+  276  BUILD FAILED in 5m 16s
+
+The page holds six rows plus `More (3)`: the header, four lines that are the continuation of one logged message
+(`CarContext(#4427).getOnBackPressedDispatcher())))` and the three `getString`/`getResources` lines), and the
+head line of that same message. The three rows the case waits for (`A first`, `B second`, `C third`) are the
+three behind `More (3)`, so `awaitRows` never sees them. SonarCloud run 45366310497 shows the same title and the
+same `979 tests completed, 1 failed` (its log lines 240, 249, 272).
+
+The mechanism, in the file's own terms
+=====================================
+
+`DiagnosticsLog.readEntries()` returns `file.readLines()`, and the retention pass ages a line by its leading
+timestamp and drops a line it cannot parse (`aged++`, `DiagnosticsLog.kt:600–631`). A message whose text carries
+newlines is therefore written as several lines: one head with the timestamp and continuation lines without one.
+The reader returns each as a separate entry, so the screen pages them as separate rows — and the retention pass
+deletes the continuation lines, so an exported log loses them too. The fold is at the single write seam
+(`timestamped`), so every writer — the worker batch, the crash handler's direct write and the retention report —
+gets it.
+
+The red-first proof (offline, this tree)
+========================================
+
+The red case is the unit case, because the screen case passes locally. The source file was saved, reverted to
+HEAD's version (`git checkout -- core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt`), the suite run, and
+the file restored from the saved copy.
+
+  $ grep -c 'oneLine' core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt   # HEAD's version
+  0
+  $ ./gradlew :core:testDebugUnitTest --tests '*DiagnosticsLogTest' -PforceTests --console=plain
+  EXIT_RED=1
+  DiagnosticsLogTest > aMessageThatSpansLinesIsOneEntry FAILED
+      java.lang.AssertionError: one logged message is one entry:
+      [[2026-11-24 11:40:28.675] TEST first, second, third] expected:<1> but was:<3>
+  8 tests completed, 1 failed
+  BUILD FAILED in 6s
+
+The failure is the defect in one line: `DiagnosticsLog.log("TEST", "first\nsecond\r\nthird")` became three
+entries, and `readEntries()` reported 3 where the case asserts 1.
+
+Green after the fold
+====================
+
+  $ grep -c 'oneLine' core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt   # the fold restored
+  2
+  $ ./gradlew :core:testDebugUnitTest --tests '*DiagnosticsLogTest' -PforceTests --console=plain
+  EXIT_GREEN=0
+  BUILD SUCCESSFUL in 12s
+  $ grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' \
+      core/build/test-results/testDebugUnitTest/TEST-com.naviveylin.core.DiagnosticsLogTest.xml
+  tests="8" skipped="0" failures="0" errors="0"
+
+The eight cases are the seven that were already there plus `aMessageThatSpansLinesIsOneEntry`.
+
+The red case's own suite, against the fold
+=========================================
+
+  $ ./gradlew :auto:testDebugUnitTest --tests '*StartupScreensTest' -PforceTests --console=plain
+  EXIT_AUTO=0
+  BUILD SUCCESSFUL in 21s
+  $ grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' \
+      auto/build/test-results/testDebugUnitTest/TEST-com.naviveylin.auto.StartupScreensTest.xml
+  tests="7" skipped="0" failures="0" errors="0"
+
+This is green before and after the fold, which is why it is not the red-first proof: the case needs CI's longer
+exception text to page itself out. What it does prove is that the fold does not break the screen's own suite.
+
+The gate
+========
+
+The delta touches a compiled production file (`core/.../DiagnosticsLog.kt`), so the change runs the gate as well
+as the module suites; the gate's own evidence is `evidence/gate-change.txt` and the sensor and workflow checks
+are `evidence/gate-sensors.txt` and `evidence/gate-workflows.txt`.

@@ -1,0 +1,163 @@
+# Cause 6 — the unit-test classpath's 429 (proposal §6, design D6, tasks §6)
+
+Recorded 2026-11-24 09:32Z on `main` at `82305af6` with the retry wrapper in the working tree. Commands are run
+from the repository root; `EXIT_*` lines are the commands' own exit statuses. All runs are offline: no network,
+no token, no sandbox.
+
+## The red this cause answers
+
+`Build Debug APK` run `45361986255`, `headSha 82305af60302ca282fee562651dc742f36eb07e3`, created
+2026-11-24T09:06:10Z, conclusion `failure`. The "Offline gates" and all three "Loop self-test" jobs were green;
+the "Build debug APK (all ABIs)" job failed at "Run unit tests" (read with
+`gh run view 45361986255 --log-failed`):
+
+```
+2026-11-24T09:21:01.8617820Z Gate timing ... 
+2026-11-24T09:21:01.8624820Z * What went wrong:
+2026-11-24T09:21:01.8624820Z > Task :app:hiltAggregateDepsMobileDebugUnitTest FAILED
+2026-11-24T09:21:01.8626579Z > Could not resolve all files for configuration ':app:mobileDebugUnitTestRuntimeClasspath'.
+2026-11-24T09:21:01.8628266Z    > Failed to transform nativeruntime-dist-compat-1.0.18.jar (org.robolectric:nativeruntime-dist-compat:1.0.18) to match attributes {artifactType=aggregated-jar-for-hilt, ...}
+2026-11-24T09:21:01.8629941Z       > Could not download nativeruntime-dist-compat-1.0.18.jar (org.robolectric:nativeruntime-dist-compat:1.0.18)
+2026-11-24T09:21:01.8632794Z             > Could not HEAD 'https://repo.maven.apache.org/maven2/org/robolectric/nativeruntime-dist-compat/1.0.18/nativeruntime-dist-compat-1.0.18.jar'. Received status code 429 from server: Too Many Requests
+2026-11-24T09:21:01.8636980Z BUILD FAILED in 1m 40s
+```
+
+The same run's "Cache Gradle" step restored the cache (`Cache hit for gradle-Linux-m2-v1-707a67…`, 1834 MB) and
+its "Warm the Robolectric SDK jars" step printed all three jars as `present:`, so the warm step's contract held:
+the jar that answered 429 is a *Gradle* dependency the restored module cache does not hold, not one of the three
+SDK jars the warm step fetches. The prior run `45356035764` failed the same way on the same coordinate.
+
+## The wrapper
+
+```
+$ bash -n tools/gradlew-retry.sh; echo "EXIT_SYNTAX=$?"
+EXIT_SYNTAX=0
+$ wc -l tools/gradlew-retry.sh
+58 tools/gradlew-retry.sh
+```
+
+Its contract: run the command; re-run it only when the failed attempt's log names a Maven Central `429`; return
+the command's own status otherwise; bound the attempts and the backoff. Five stub runs, each with a stub command
+under `app/build/scratch-retry/` (a working-tree scratch directory, not committed):
+
+### T1 — a plain success runs once and returns 0
+
+```
+$ GRADLEW_RETRY_DELAY=0 bash tools/gradlew-retry.sh bash app/build/scratch-retry/fake-ok.sh
+fake gradle: BUILD SUCCESSFUL
+EXIT_T1=0
+```
+
+### T2 — a 429 is retried and the third attempt succeeds
+
+```
+$ GRADLEW_RETRY_DELAY=0 bash tools/gradlew-retry.sh bash app/build/scratch-retry/fake-429-then-ok.sh
+> Could not HEAD 'https://repo.maven.apache.org/maven2/org/robolectric/nativeruntime-dist-compat/1.0.18.jar'. Received status code 429 from server: Too Many Requests
+::warning::Maven Central rate limited a dependency download (429); retrying in 0s (attempt 1 of 3)
+> Could not HEAD 'https://repo.maven.apache.org/maven2/org/robolectric/nativeruntime-dist-compat/1.0.18.jar'. Received status code 429 from server: Too Many Requests
+::warning::Maven Central rate limited a dependency download (429); retrying in 0s (attempt 2 of 3)
+fake gradle: BUILD SUCCESSFUL on attempt 3
+EXIT_T2=0
+attempts=3
+```
+
+### T3 — a non-429 failure is not retried and its status is returned
+
+```
+$ GRADLEW_RETRY_DELAY=0 bash tools/gradlew-retry.sh bash app/build/scratch-retry/fake-real-error.sh
+> Task :app:compileDebugKotlin FAILED
+error: unresolved reference: nope
+gradlew-retry: attempt 1 failed (exit 1) for a reason other than a 429; not retrying
+EXIT_T3=1
+```
+
+### T4 — a 429 that outlives the attempts fails with the command's status
+
+```
+$ GRADLEW_RETRY_DELAY=0 GRADLEW_RETRY_ATTEMPTS=2 bash tools/gradlew-retry.sh bash app/build/scratch-retry/fake-always-429.sh
+Received status code 429 from server: Too Many Requests
+::warning::Maven Central rate limited a dependency download (429); retrying in 0s (attempt 1 of 2)
+Received status code 429 from server: Too Many Requests
+gradlew-retry: Maven Central still rate limiting after 2 attempt(s); giving up
+EXIT_T4=1
+```
+
+### T5 — no command is a usage error
+
+```
+$ bash tools/gradlew-retry.sh
+usage: tools/gradlew-retry.sh <command> [args...]
+EXIT_T5=2
+```
+
+## The two steps the wrapper runs
+
+```
+$ grep -n 'gradlew-retry' .github/workflows/build.yml .github/workflows/sonar.yml
+.github/workflows/build.yml:358:      # The invocation runs through `tools/gradlew-retry.sh` because this step resolves the unit-test
+.github/workflows/build.yml:364:        run: bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" -I tools/gate-timings.init.gradle.kts test -PforceTests -PjvmTestsOnly --no-build-cache
+.github/workflows/sonar.yml:155:      # The invocation runs through `tools/gradlew-retry.sh` for the reason `build.yml`'s same step carries:
+.github/workflows/sonar.yml:160:        run: bash tools/gradlew-retry.sh ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
+```
+
+## The workflow checks
+
+```
+$ yq -e . .github/workflows/build.yml >/dev/null && echo "build.yml YAML OK"
+build.yml YAML OK
+$ yq -e . .github/workflows/sonar.yml >/dev/null && echo "sonar.yml YAML OK"
+sonar.yml YAML OK
+$ bash tools/check-sonar-workflow.sh; echo "EXIT_SONAR_WF=$?"
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+EXIT_SONAR_WF=0
+$ bash tools/check-action-runtimes.sh; echo "EXIT_ACTION_RUNTIMES=$?"
+action runtimes: 22 action pins across 4 workflow files target Node 24, and their 6 hosted runner image(s) are pinned.
+EXIT_ACTION_RUNTIMES=0
+$ bash tools/check-portability.sh; echo "EXIT_PORTABILITY=$?"
+check-portability: OK — 64 engines and 8 templates name no project value (127 value(s) read from the project)
+EXIT_PORTABILITY=0
+```
+
+## The named exclusion
+
+The wrapper's *behaviour* is falsified offline by T1–T5. Its *effect* — that a throttled fetch no longer reddens
+the run — is only observable in CI, so that sentence's evidence is the next green run of the workflow, not a
+local case.
+
+## What the first CI run of the wrapper showed (run 45385198727, rerun 1)
+
+The wrapper ran and its window was exhausted — the run still failed. Read with
+`gh api --allow-escape-sequences "repos/Framstag/NaviVeylin/actions/jobs/138420021163/logs"`, the step's own
+lines:
+
+```
+11:58:10  > Task :app:hiltAggregateDepsMobileDebugUnitTest FAILED
+11:58:10    > Could not HEAD 'https://repo.maven.apache.org/maven2/org/robolectric/nativeruntime-dist-compat/1.0.16/nativeruntime-dist-compat-1.0.16.jar'. Received status code 429 from server: Too Many Requests
+11:58:10  BUILD FAILED in 55s
+11:58:10  ##[warning]Maven Central rate limited a dependency download (429); retrying in 90s (attempt 1 of 3)
+11:59:47  ... the same 429 ...
+11:59:47  BUILD FAILED in 7s
+11:59:47  ##[warning]Maven Central rate limited a dependency download (429); retrying in 180s (attempt 2 of 3)
+12:02:56  ... the same 429 ...
+12:02:56  BUILD FAILED in 8s
+12:02:56  gradlew-retry: Maven Central still rate limiting after 3 attempt(s); giving up
+```
+
+Three attempts, ~5 minutes, three 429s on the same coordinate. The wrapper did what it was built to do; the
+throttle outlasted it.
+
+**Why the throttle had something to throttle.** The step's own log shows the cache hit —
+`Cache hit for gradle-Linux-m2-v1-707a6709…` — and the cache entry was created 2026-11-24T08:09:09Z, by the APK
+job of run `45352034292` (`@272395a0`), which was **cancelled** at 08:26:09Z. Its size is 1 922 727 250 bytes,
+against 2 755 978 060 for the pre-change entry — the partial save is smaller, and it lacks the
+`nativeruntime-dist-compat` coordinates the unit-test classpath resolves. Every run since restored that partial
+entry and re-downloaded what it lacks, which is what the throttle answered.
+
+**The fix for the partial entry.** The entry was deleted — `gh cache delete 11019766323`, exit 0 — so the next
+run's exact key misses and its `restore-keys: gradle-${{ runner.os }}-` fallback restores the pre-change entry
+(2 755 978 060 bytes, complete). A successful run then saves a complete `m2-v1` entry. No workflow change: the
+key's save-once rule means a complete entry is never overwritten by a partial one.
+
+This is why the wrapper's window stays at 3 attempts: with a complete cache the step resolves nothing over the
+network, so the wrapper is a backstop rather than the mechanism. A longer window would only wait longer on a
+throttle that a complete cache never provokes.

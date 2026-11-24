@@ -1,0 +1,56 @@
+=== ./gradlew :app:testMobileDebugUnitTest --tests '*SettingsSurfaceTest'
+BUILD SUCCESSFUL in 44s
+122 actionable tasks: 24 executed, 1 from cache
+
+=== XML tally, app/build/test-results/testMobileDebugUnitTest/TEST-com.naviveylin.ui.settings.SettingsSurfaceTest.xml
+tests="23" skipped="0" failures="0" errors="0" timestamp="2026-11-24T06:46:42.335Z"
+
+=== the changed fixture, as committed
+c84d82b1 test: the settings row's read is drained, not raced (#1048)
+ .../com/naviveylin/ui/settings/SettingsSurfaceTest.kt   | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+=== The two runs the scenario "A formerly flaky case is decided by its subject" asks for
+`unit-test-suite-runtime` asks for the previously load-dependent case to run inside the full module suite and
+to be green in a forced repeated run whose tallies are recorded. The script below is what ran; the tree was
+otherwise idle, so the "one builder per working tree" rule held. The first case's own run above is the
+filtered 44 s run; these are the two the scenario names.
+
+Script: /tmp/settings-proof.sh — three forced filtered repeats, then the full module suite, each tally taken
+from app/build/test-results/testMobileDebugUnitTest/*.xml immediately after the run.
+
+=== forced repeat 1 — ./gradlew :app:testMobileDebugUnitTest --tests '*SettingsSurfaceTest' -PforceTests --no-build-cache
+BUILD SUCCESSFUL in 35s
+122 actionable tasks: 21 executed, 101 up-to-date
+EXIT=0
+tally: tests=23 failures=0 errors=0 files=1 first-timestamp=2026-11-24T07:29:53.680Z
+now: 2026-11-24T07:30:12Z
+
+=== forced repeat 2 — ./gradlew :app:testMobileDebugUnitTest --tests '*SettingsSurfaceTest' -PforceTests --no-build-cache
+BUILD SUCCESSFUL in 32s
+122 actionable tasks: 21 executed, 101 up-to-date
+EXIT=0
+tally: tests=23 failures=0 errors=0 files=1 first-timestamp=2026-11-24T07:30:26.836Z
+now: 2026-11-24T07:30:45Z
+
+=== forced repeat 3 — ./gradlew :app:testMobileDebugUnitTest --tests '*SettingsSurfaceTest' -PforceTests --no-build-cache
+BUILD SUCCESSFUL in 32s
+122 actionable tasks: 21 executed, 101 up-to-date
+EXIT=0
+tally: tests=23 failures=0 errors=0 files=1 first-timestamp=2026-11-24T07:30:59.559Z
+now: 2026-11-24T07:31:18Z
+
+=== the full :app module suite — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+BUILD SUCCESSFUL in 3m 2s
+122 actionable tasks: 21 executed, 101 up-to-date
+EXIT=0
+tally: tests=2321 failures=0 errors=0 files=328 first-timestamp=2026-11-24T07:31:30.256Z
+now: 2026-11-24T07:34:21Z
+=== the settings case's own XML in that suite
+TEST-com.naviveylin.ui.settings.SettingsSurfaceTest.xml: tests="23" skipped="0" failures="0" errors="0"
+
+  The full suite's 2321 tests is the same executed count the red scan reported ("2321 tests completed, 1
+  failed", run 45271114427 line 570), so the run that carries this case is the suite the red run measured.
+  Every tally's XML timestamp is later than the red runs (created 2026-11-23T21:34:53Z) and later than the
+  fix's commit c84d82b1, so each is an execution for this tree and not a cached one: `-PforceTests` makes the
+  task not up to date and `--no-build-cache` keeps the build cache out.

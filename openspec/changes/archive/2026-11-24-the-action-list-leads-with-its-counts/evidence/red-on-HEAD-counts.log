@@ -1,0 +1,5 @@
+report#theActionListLeadsWithItsCounts|   the header's decide figure is the number of decide rows the list prints: expected '1', got ''
+--- report#theActionListLeadsWithItsCounts[0] (exit 1)
+  the header's decide figure is the number of decide rows the list prints: expected '1', got ''
+FAIL report#theActionListLeadsWithItsCounts
+loop-selftest: 1 of 1 cases failed

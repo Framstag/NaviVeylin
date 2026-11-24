@@ -1,0 +1,7 @@
+report#theFullActionListIsPrintedOnRequest| loop: report: unknown argument --actions
+report#theFullActionListIsPrintedOnRequest|   the report failed with --actions
+--- report#theFullActionListIsPrintedOnRequest[0] (exit 1)
+loop: report: unknown argument --actions
+  the report failed with --actions
+FAIL report#theFullActionListIsPrintedOnRequest
+loop-selftest: 1 of 1 cases failed

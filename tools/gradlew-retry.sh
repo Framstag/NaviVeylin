@@ -12,6 +12,11 @@
 # failure is reported once, with its own exit status and no retry, so a real defect is never masked by a
 # second attempt. The retry count and the first delay are bounded; the delay doubles each time.
 #
+# Two 429 shapes are recognised, because the two fetchers word it differently:
+#   - Gradle's resolver: "Received status code 429 from server: Too Many Requests" (run 45361986255)
+#   - Robolectric's artifact fetcher, which runs inside the test JVM: "java.io.IOException: Server returned
+#     HTTP response code: 429 for URL: ..." (run 45271114385, 844 of 979 `:auto` cases died in it)
+#
 # Usage: bash tools/gradlew-retry.sh <command> [args...]
 #   GRADLEW_RETRY_ATTEMPTS  total attempts, default 3
 #   GRADLEW_RETRY_DELAY     seconds before the first retry, default 90
@@ -38,7 +43,7 @@ while :; do
   if [ "$status" -eq 0 ]; then
     exit 0
   fi
-  if ! grep -q 'status code 429' "$log"; then
+  if ! grep -q -e 'status code 429' -e 'HTTP response code: 429' "$log"; then
     echo "gradlew-retry: attempt $attempt failed (exit $status) for a reason other than a 429; not retrying" >&2
     exit "$status"
   fi

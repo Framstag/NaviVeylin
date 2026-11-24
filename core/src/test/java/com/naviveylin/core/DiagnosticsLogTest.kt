@@ -73,6 +73,27 @@ class DiagnosticsLogTest {
         assertTrue(entries[1].contains("IllegalStateException: nope"))
     }
 
+    /**
+     * The file is read line by line ([DiagnosticsLog.readEntries] returns `file.readLines()`) and the
+     * retention pass ages a line by its leading timestamp, removing a line it cannot parse (spec:
+     * `auto-diagnostics` — Entries older than the retention window are removed). A message that carries
+     * newlines therefore must not become several entries: its continuation lines have no timestamp, so the
+     * pass deletes them and the head line survives alone. A car screen that reads the file then shows the
+     * fragments as separate rows, pushing the entries the user cares about out of its first page — the red
+     * `StartupScreensTest#diagnosticsScreenShowsNewestFirst` hit in CI when the screen's own capacity line
+     * carried a multi-line exception (issue #1048).
+     */
+    @Test
+    fun aMessageThatSpansLinesIsOneEntry() {
+        DiagnosticsLog.log("TEST", "first\nsecond\r\nthird")
+
+        val entries = DiagnosticsLog.readEntries()
+        assertEquals("one logged message is one entry: $entries", 1, entries.size)
+        assertTrue("the first part is kept: ${entries[0]}", entries[0].contains("first"))
+        assertTrue("the second part is kept: ${entries[0]}", entries[0].contains("second"))
+        assertTrue("the third part is kept: ${entries[0]}", entries[0].contains("third"))
+    }
+
     @Test
     fun rotationKeepsNewest() {
         DiagnosticsLog.maxBytes = 200

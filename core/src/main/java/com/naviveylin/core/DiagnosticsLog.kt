@@ -695,8 +695,25 @@ object DiagnosticsLog {
         }
     }
 
+    /**
+     * The line as the file holds it: stamped with its timestamp and folded to one line.
+     *
+     * The file is read line by line ([readEntries] returns `file.readLines()`) and the retention pass ages a
+     * line by its leading timestamp, dropping a line it cannot parse (spec: `auto-diagnostics` — Entries older
+     * than the retention window are removed). A message that carries newlines must therefore not become
+     * several entries: its continuation lines have no timestamp, so the pass deletes them and the head line
+     * survives alone, and a reader that shows the file (the car diagnostics screen) shows the fragments as
+     * separate rows. Newlines are folded into the same ` | ` [stackDetail] uses between stack frames, so a
+     * multi-line message stays one entry (issue #1048).
+     */
     private fun timestamped(line: String): String =
-        synchronized(formatLock) { "[${timestampFormat.format(Date())}] $line" }
+        synchronized(formatLock) { "[${timestampFormat.format(Date())}] ${oneLine(line)}" }
+
+    /** [line] with each run of newlines, and the indentation around it, folded into ` | `. */
+    private fun oneLine(line: String): String = line.replace(NEWLINE_RUN, " | ")
+
+    /** A run of newlines with the surrounding whitespace, the shape a multi-line message carries. */
+    private val NEWLINE_RUN = Regex("\\s*[\\r\\n]+\\s*")
 
     private const val MAX_STACK_FRAMES = 20
 

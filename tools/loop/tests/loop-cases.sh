@@ -18456,8 +18456,14 @@ case_driver_theSuiteDoesNotInheritTheRunsRoots() {
   # green again from a shell that exported nothing (issue #1009, caught by item #1018's gate). The nested run below is
   # the shape that fails — `LOOP_WORKTREE` set to the root the case's temp dir sits under — so this case is red where
   # the driver forwards it and green where the driver drops it.
+  #
+  # The run's own state file is a root of the same kind (issue #1066): `tools/loop/run.sh:85` exports
+  # `LOOP_STATE_FILE`, and the record it names stands under this tree while a case's scratch project does too, so the
+  # engine's tree check keeps the path instead of refusing it. The run of 2026-11-24 wrote the suite's fixture items
+  # `#22` and `#32` into the live `run.json` that way, and the chain charged #984's attempt to `#22`. The fourth name
+  # in the guard below is red where the driver forwards that root and green where it drops it.
   local out
-  for v in LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS; do
+  for v in LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS LOOP_STATE_FILE; do
     [ -z "${!v:-}" ] || fail "the driver handed the run's own root to the suite: $v=${!v}"
   done
   out=$(LOOP_WORKTREE="$LOOP_PROJECT_ROOT" bash "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" \
@@ -18465,6 +18471,16 @@ case_driver_theSuiteDoesNotInheritTheRunsRoots() {
   assert_contains "$out" 'PASS repeat#aRepeatReadIsNamedNotHandedOverAgain' \
     "a case run under a root the run exported still names the path it typed: $(printf '%s' "$out" | head -3)"
   assert_not_contains "$out" 'not found in' "and the notice it read was not a relative spelling"
+  # The state root is held the same way, with the suite this case starts rather than the case itself: a suite started
+  # under a state path it never declared must not hand that path to the case it runs (issue #1066). The marker keeps
+  # the arm from nesting a third time.
+  if [ -z "${LOOP_SELFTEST_NESTED_ARM:-}" ]; then
+    out=$(LOOP_SELFTEST_NESTED_ARM=1 LOOP_STATE_FILE="$(scratch)/run.json" \
+      bash "$LOOP_PROJECT_ROOT/tools/loop/tests/loop-selftest.sh" \
+      --case 'driver#theSuiteDoesNotInheritTheRunsRoots' 2>&1)
+    assert_contains "$out" 'PASS driver#theSuiteDoesNotInheritTheRunsRoots' \
+      "a suite started under the run's state path hands no case that path: $(printf '%s' "$out" | head -3)"
+  fi
   return 0
 }
 

@@ -1595,8 +1595,13 @@ MUTATIONS=(
   # 1009.3 — the suite's own environment: the driver drops the run's roots before the first case, so a case asserts the
   # path it typed. The record puts a no-op in place of the `unset`, and the case's nested run — the same root exported —
   # is then answered with the relative spelling, the shape that turned item #1018's gate red on a green tree
-  # (2026-11-22).
-  '1009.3@-@tests/loop-selftest.sh@driver#theSuiteDoesNotInheritTheRunsRoots@the line that drops the run'"'"'s own roots before the first case, so the suite inherits the worktree a gate was started in and every case that types an absolute path is answered with a spelling relative to a root it never named (issue #1009)@s|^unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS$|true|'
+  # (2026-11-22). The same line is the only drop of the run's state file, so the record reddens the arm that holds that
+  # root too (issue #1066).
+  '1009.3@-@tests/loop-selftest.sh@driver#theSuiteDoesNotInheritTheRunsRoots@the line that drops the run'"'"'s own roots before the first case, so the suite inherits the worktree a gate was started in and every case that types an absolute path is answered with a spelling relative to a root it never named (issue #1009)@s|^unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS LOOP_STATE_FILE$|true|'
+  # 1066.1 — the state root on the same line (issue #1066): the record takes `LOOP_STATE_FILE` off the drop and leaves
+  # the three roots #1009 measured. The case's own arm starts a suite under the run's own state path, so the case it
+  # starts is handed that path and fails naming it — the arm needs no environment the mutation harness must supply.
+  '1066.1@-@tests/loop-selftest.sh@driver#theSuiteDoesNotInheritTheRunsRoots@the state file on the line that drops the run'"'"'s own roots before the first case, so a suite a case starts under the run'"'"'s record hands that record to its own case and a case that writes a state writes the live one (issue #1066)@s|^unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS LOOP_STATE_FILE$|unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS|'
   # 956.1 — a continuation the same ceiling ended is the item's shape (issue #956). The record puts the guards back in
   # charge of that reading, which is the tree this change was filed on: the item is blocked with `bound` beside it and
   # the next run re-enters it at full size — the reading the run of 2026-11-17T10:58Z paid 78.7 Mtok for over four items

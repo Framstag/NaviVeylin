@@ -125,7 +125,12 @@ jobs:
               echo "present: $jar"
               continue
             fi
-            mkdir -p "$repo/$v"
+            # Guarded for the reason `build.yml` states: `run:` steps execute under `bash -e`, so an
+            # unguarded `mkdir` would abort the step and the build on a read-only or full cache volume.
+            if ! mkdir -p "$repo/$v"; then
+              echo "::warning::could not create $repo/$v; the test-time fetch will ask Maven Central itself"
+              continue
+            fi
             url="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented/$v/android-all-instrumented-$v.jar"
             echo "fetching: $url"
             if curl --fail --silent --show-error --location \

@@ -259,6 +259,7 @@ LOOP_SHELL_CASES=(
   'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
   'run#aBoundEndedItemRecordsItsBound'
+  'run#aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide'
   'run#aRoundTheRunEndedRecordsItsBound'
   'run#aBoundCutRoundIsRestartedWithItsFindings'
   'run#aReviewRoundBoundIsTheItemsStopClass'
@@ -1101,6 +1102,7 @@ loop_run_shell_case() {
     'run#reviewerEndedAtTheRunsDeadlineIsNotADecision') fn=case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision ;;
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
     'run#aBoundEndedItemRecordsItsBound') fn=case_run_aBoundEndedItemRecordsItsBound ;;
+    'run#aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide') fn=case_run_aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide ;;
     'run#aRoundTheRunEndedRecordsItsBound') fn=case_run_aRoundTheRunEndedRecordsItsBound ;;
     'run#aBoundCutRoundIsRestartedWithItsFindings') fn=case_run_aBoundCutRoundIsRestartedWithItsFindings ;;
     'run#aReviewRoundBoundIsTheItemsStopClass') fn=case_run_aReviewRoundBoundIsTheItemsStopClass ;;
@@ -8654,8 +8656,8 @@ case_run_aBoundEndedItemRecordsItsBound() {
     fail "could not record a small turn bound"
   grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" ||
     fail "this case could not shorten the worker's turn bound in loop.conf"
-  # The tracker's writes are recorded, so what the cut leaves on the item is read rather than assumed: the hold this
-  # case asserts is a write the stub refuses when nothing records it (issue #1039).
+  # The tracker's writes are recorded, because the stub refuses a write nothing records: this run's own unpick is
+  # answered here, and what the arm puts on the item beside it is the sibling case's subject (issue #1040).
   export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   fixture="$d/events.jsonl"
@@ -8704,10 +8706,76 @@ EOF
   # prints it bare rather than a figure guessed from a neighbouring value.
   assert_contains "$out" "cut short by the run's own bound: #21" \
     "the report names the item the run's bound cut"
-  # A cut at the item's own worker's turn bound is the item's size, not a phase left mid-flight (issue #1039): the tree
-  # is still the base, so there is nothing the next run could resume, and handing the item back as `agent/eligible`
-  # bought the same 200 turns three times on #1021 and twice on #984. The verdict is the one the run's context ceiling
-  # already writes — `too-wide`, its hold and its shaping label in the write `labels.sh` makes.
+  return 0
+}
+
+# What the cut arm *writes* is a claim of its own (issue #1040): the case above measures the bound a cut item records —
+# its `result`, `stopReason`, `boundKey` and `boundValue` — and stops there, so an arm reverted to the bare unpick was
+# held only by whichever of that case's assertions a reader happened to leave in the record. The two findings have two
+# readers: the record answers the archive, the write answers the shaping inbox and the next run's pre-screen.
+#
+# A child the run ends at the worker role's own turn bound merged nothing (issue #1039 measured #1021 three times and
+# #984 twice, 200 turns and 0 commits each), so its tree is still the base and there is nothing the next run could
+# resume. The item is therefore held as `too-wide` — the verdict, its hold and its shaping label in the one write
+# `labels.sh` makes — and its note says so instead of handing the attempt to the next run.
+case_run_aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/ tools/pi-child-events.sh tools/tooling.json tools/issues/
+  local d p conf fifo fixture action pid i status state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # Only the worker's own turn bound can end this child: the wall clock keeps its recorded default and no reviewer runs,
+  # so the bound the arm reads is this one and no other.
+  sed -e 's/^LOOP_CHILD_TURNS_MAX_WORKER=.*/LOOP_CHILD_TURNS_MAX_WORKER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record a small turn bound"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" ||
+    fail "this case could not shorten the worker's turn bound in loop.conf"
+  # The tracker's writes are read, never assumed: the stub refuses a write nothing records, so this log is what the
+  # arm actually put on the item and not what the case expects it to put there.
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run: $(cat "$d/out")"
+  # The premise of the finding, stated so the case cannot pass on a run that merged something: the item was cut at the
+  # worker's own turn bound with nothing merged, which is why no next run could finish it.
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
+  assert_eq "LOOP_CHILD_TURNS_MAX_WORKER=3" \
+    "$(jq -r '.items[0].boundKey // ""' "$state")=$(jq -r '.items[0].boundValue // ""' "$state")" \
+    "at the worker role's own turn bound, the only bound this run can reach"
+  assert_eq "" "$(jq -r '.items[0].merged.sha // ""' "$state")" \
+    "with nothing merged, so the tree it leaves is the base the next run would start from again"
+  # The write the arm makes, read from the tracker's own log: one hold, the shaping label beside it, no decision label
+  # (a size finding is not a question a person answers — the verdict is what they reshape the item from), and the
+  # in-progress mark off.
   assert_contains "$(cat "$GH_STUB_RECORD")" "--add-label agent/needs-shaping" \
     "the item is held for a person to reshape, not handed back at the size that just failed"
   assert_contains "$(cat "$GH_STUB_RECORD")" "--add-label status/on-hold" \
@@ -8718,13 +8786,20 @@ EOF
     "no decision label is spent on an item whose finding is its size"
   assert_eq "1" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
     "the hold carries the one comment that names it"
-  assert_contains "$(cat "$GH_STUB_RECORD" "$GH_STUB_RECORD".bodies/* 2>/dev/null)" \
-    "too-wide: the item wants splitting into children" \
+  assert_contains "$(cat "$GH_STUB_RECORD")" "too-wide: the item wants splitting into children" \
     "and that comment opens with the verdict word, so a reader of the item has the finding before its clause"
+  # The clause is the half that gives a person the reason to reshape it: a hold whose comment carried only the verdict
+  # word would leave them without the bound it was derived from, and the comment names that bound and the figure it
+  # reached.
+  assert_contains "$(cat "$GH_STUB_RECORD")" "turn bound of 3 turn(s)" \
+    "while its own clause names the bound that ended the attempt and the figure it reached"
+  # The item's own note is what the next run's pre-screen and the report's resume line print, and the two sentences are
+  # exclusive: a note that said both that the item is held and that it is the next run's to resume is the state #1040
+  # exists to replace.
   assert_contains "$(jq -r '.items[0].note' "$state")" "held as too-wide" \
-    "while the item's own note says it was held rather than handed to the next run"
+    "the item's own note says it was held rather than handed to the next run"
   assert_not_contains "$(jq -r '.items[0].note' "$state")" "left for the next run" \
-    "and does not also call the attempt the next run's to resume: the two sentences are exclusive, because a note that carried both would be the state this finding exists to replace"
+    "and does not also call the attempt the next run's to resume"
   return 0
 }
 

@@ -1608,6 +1608,12 @@ MUTATIONS=(
   # and the width the exemption holds rather than the absence of one.
   '1044.1@-@../pi-trim-result.mjs@adapter#theResultBoundExemptsGateEvidence@the tail the exempt class keeps, so a gate log arrives with its head alone and the failed step §4d closes on is withheld (issue #1044)@s|  const tail = gate ? bound - head : 0;|  const tail = 0;|'
   '1044.2@-@../pi-trim-result.mjs@adapter#theResultBoundExemptsGateEvidence@the width the class is held at, so the 5 000-character gate log arrives whole and nothing proves the exemption is a bound rather than an absence of one (issue #1044)@s|export const GATE_EVIDENCE_BOUND = 4000;|export const GATE_EVIDENCE_BOUND = 8000;|'
+  # 1040.1 — the size verdict child A's arm writes when the worker's own turn bound ended the item with nothing merged
+  # (issue #1040). Dropping the arm puts the bare unpick back, so the item keeps the eligibility that bought the same
+  # 200 turns three times on #1021 and twice on #984, and the write the case reads never reaches the tracker: one hold,
+  # the shaping label beside it and the in-progress mark off. Child A landed as #1039; this record is what makes the arm
+  # falsifiable, which is the half the record case never covered.
+  '1040.1@-@tools/loop/run.sh@run#aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide@the arm that holds a cut at the worker-role turn bound as `too-wide`, so the item is unpicked back to `agent/eligible` and the same bound is paid again on it (issue #1040)@s|^      if \[ "\$stop_reason" = bound \] && \[ "\$bound_key" = LOOP_CHILD_TURNS_MAX_WORKER \]; then$|      if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

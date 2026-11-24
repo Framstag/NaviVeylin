@@ -104,7 +104,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.naviveylin.ui.about.AboutDialog
 import com.naviveylin.ui.attribution.OsmAttributionOverlay
-import com.naviveylin.ui.favorites.FavoritesSheet
+import com.naviveylin.platform.favourites.FavoritesSheet
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.ui.navigation.NavigationDetailsOverlay
 import com.naviveylin.ui.navigation.NavigationStateOverlay

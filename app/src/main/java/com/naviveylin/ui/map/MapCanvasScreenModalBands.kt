@@ -27,7 +27,7 @@ import com.naviveylin.R
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.ui.about.AboutDialog
 import com.naviveylin.ui.addressbook.AddressBookSearchContent
-import com.naviveylin.ui.favorites.FavoritesSheet
+import com.naviveylin.platform.favourites.FavoritesSheet
 import com.naviveylin.ui.navigation.NavigationDetailsOverlay
 import com.naviveylin.ui.route.ActiveField
 import com.naviveylin.ui.route.FavoritePickerDialog

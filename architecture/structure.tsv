@@ -2,24 +2,25 @@
 # Columns, tab-separated, on every line below that does not start with #: module, package, kind, feature, may_import.
 # kind is one of concept, port, feature, platform, shell. feature is the business name a feature or platform row carries, - when the package serves several or none.
 # may_import is the permission the kind's rules give, not a census of the imports the code has today: - is "nothing of ours", "any" is shell only.
-# Measured 2026-11-15: 349 main sources over 29 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (349); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (29).
-# One row per package as the tree stands today, no file moved: a package the pilot or a later migration splits keeps its row until the files move.
+# Measured 2026-11-21: 351 main sources over 30 source packages — the sources: find app/src/main/java auto/src/main/java core/src/main/java -name '*.kt' | wc -l (351); the packages: the same find piped through sed 's#/[^/]*$##' | sort -u | wc -l (30).
+# One row per package as the tree stands today: a package the pilot or a later migration splits keeps its row until the files move. The favourites pilot has moved (item #981): its five files left com.naviveylin.ui.favorites, three for com.naviveylin.feature.favourites and two for com.naviveylin.platform.favourites, so the row set went 33 → 34 — one row split into two, not a row added.
 # Added 2026-11-11 by change domain-vocabulary-is-declared: com.naviveylin.concept holds the skeleton types the glossary emits for a concept row no file declared, so the row set stays 1:1 with the tree.
 # Added 2026-11-13 by change package-structure-as-five-kinds (task 7.1): com.naviveylin.core.port holds the pilot's port interfaces; the port files are new, no file moved, and every earlier row stands unchanged.
 app	com.naviveylin	shell	-	any
 app	com.naviveylin.concept	concept	-	-
 app	com.naviveylin.data	platform	-	concept,port
 app	com.naviveylin.di	shell	-	any
+app	com.naviveylin.feature.favourites	feature	favourites	concept,port
 app	com.naviveylin.location	platform	-	concept,port
 app	com.naviveylin.memory	platform	-	concept,port
 app	com.naviveylin.navigation	feature	navigation	concept,port
+app	com.naviveylin.platform.favourites	platform	favourites	concept,port,feature/favourites
 app	com.naviveylin.service	platform	-	concept,port
 app	com.naviveylin.share	feature	share	concept,port
 app	com.naviveylin.ui	shell	-	any
 app	com.naviveylin.ui.about	platform	about	concept,port,feature/about
 app	com.naviveylin.ui.addressbook	platform	addressbook	concept,port,feature/addressbook
 app	com.naviveylin.ui.attribution	platform	attribution	concept,port,feature/attribution
-app	com.naviveylin.ui.favorites	platform	favourites	concept,port,feature/favourites
 app	com.naviveylin.ui.map	platform	map	concept,port,feature/map
 app	com.naviveylin.ui.mapmanager	platform	mapsource	concept,port,feature/mapsource
 app	com.naviveylin.ui.navigation	platform	navigation	concept,port,feature/navigation

@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.platform.favourites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

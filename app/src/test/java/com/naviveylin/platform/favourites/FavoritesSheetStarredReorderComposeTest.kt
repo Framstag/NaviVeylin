@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.platform.favourites
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset

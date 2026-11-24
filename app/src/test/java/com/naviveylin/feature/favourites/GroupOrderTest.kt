@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.feature.favourites
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

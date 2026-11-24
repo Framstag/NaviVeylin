@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.platform.favourites
 
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.mutableStateOf

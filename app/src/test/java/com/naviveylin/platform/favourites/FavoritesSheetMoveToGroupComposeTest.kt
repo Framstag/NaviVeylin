@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.platform.favourites
 
 import android.content.Context
 import androidx.compose.ui.test.assertCountEquals

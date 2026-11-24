@@ -12,8 +12,9 @@ the band a surface composes in belongs to `guidelines/UIPhoneMap.md` §11.
   additionally needs `CMakeLists.txt` and the vcpkg dependency list (`guidelines/Build.md` §12).
 - **Adding a screen**: define the route in `NavGraph.kt`, add the composable under `ui/`, add its ViewModel
   under `ui/` or `data/`, and register a Hilt module when it needs one.
-- **Adding a full-screen sheet** (e.g. `FavoritesSheet`): the composable under `ui/<feature>/`, a
-  `@HiltViewModel` beside it, wired into `MapCanvasScreen` by a boolean state flag with conditional
+- **Adding a full-screen sheet** (e.g. `FavoritesSheet`, now under `platform/favourites/`): the composable
+  under `platform/<feature>/`, its Android-free helpers under `feature/<feature>/`, a `@HiltViewModel` beside
+  the composable, wired into `MapCanvasScreen` by a boolean state flag with conditional
   composition. Compose it in the **modal band** (`MapLayer.MODAL`, `guidelines/UIPhoneMap.md` §11) — never as a
   bare sibling after the chrome — so no on-map element paints over it.
 - **Adding a details sheet after a search**: a `ModalBottomSheet`, a `showDetailsSheet` flag on

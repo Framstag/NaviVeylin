@@ -8,8 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.test.ComposeSandboxRule
-import com.naviveylin.ui.favorites.FavoritesSheet
-import com.naviveylin.ui.favorites.FavoritesViewModel
+import com.naviveylin.platform.favourites.FavoritesSheet
+import com.naviveylin.platform.favourites.FavoritesViewModel
 import com.naviveylin.core.search.SearchReference
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

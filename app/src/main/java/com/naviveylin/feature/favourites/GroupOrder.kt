@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.feature.favourites
 
 /**
  * Pure index helpers for the group order (spec `group-ordering`).

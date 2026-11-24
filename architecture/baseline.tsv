@@ -82,16 +82,17 @@ app/src/main/java/com/naviveylin/ui/route/RouteSummary.kt	feature imports nothin
 # ui.settings and its specs subpackage, which the same migration moves. The mirror rule pairs a platform row
 # with a `feature/<name>` row by name, and no package carries either prefix yet, so every one of them fails
 # and one entry per row exempts the whole package — 7 rows against the 149 file entries a per-file mirror rule
-# needed for #870's set, 9 rows the 9 platform rows that carry a feature today. Each entry is stale the moment
-# its row satisfies the rule (`StructureBaselineTest#staleRowExemptionFails`), so the pilot's entry deletes
-# itself in 8.2. Measured 2026-11-15:
+# needed for #870's set. Each entry is stale the moment its row satisfies the rule
+# (`StructureBaselineTest#staleRowExemptionFails`), so the pilot's entry deleted itself in 8.2.
+# Measured 2026-11-21 after the favourites pilot moved (item #981): the awk below still answers 9, because the
+# pilot's row is now com.naviveylin.platform.favourites and it still carries a feature — but that row satisfies
+# the mirror rule, since it imports com.naviveylin.feature.favourites, so 8 entries remain where 9 stood.
 # awk -F'\t' '!/^#/ && $3=="platform" && $4!="-"' architecture/structure.tsv | wc -l (9) — ui.about,
-# ui.addressbook, ui.attribution, ui.favorites, ui.map, ui.mapmanager, ui.navigation, ui.settings and
+# ui.addressbook, ui.attribution, ui.map, ui.mapmanager, ui.navigation, platform.favourites, ui.settings and
 # ui.settings.specs.
 row app	com.naviveylin.ui.about	mirror	package-structure-feature-migration
 row app	com.naviveylin.ui.addressbook	mirror	package-structure-feature-migration
 row app	com.naviveylin.ui.attribution	mirror	package-structure-feature-migration
-row app	com.naviveylin.ui.favorites	mirror	package-structure-as-five-kinds (8.1)
 row app	com.naviveylin.ui.map	mirror	package-structure-feature-migration
 row app	com.naviveylin.ui.mapmanager	mirror	package-structure-feature-migration
 row app	com.naviveylin.ui.navigation	mirror	package-structure-feature-migration

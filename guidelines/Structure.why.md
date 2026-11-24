@@ -99,6 +99,11 @@ change in flight names it; and it already carries the write-serialisation rule t
 `fix-poi-symbol-icons` is open and touches search row icons, which the favourites slice could reach, and the slice
 would have been abandoned for a smaller one on a collision.
 
+Item #981 landed the move and split the slice: the five `ui/favorites` files went to `feature/favourites` (3) and
+`platform/favourites` (2), while `core.GroupOrdering` — the one file both variants call — kept its `concept` row in
+`core`, because `:auto` depends on `:core` and never on `:app`, so a move into the feature would have stopped the
+car compiling while the change's own verify (`:app:*`) stayed green.
+
 ## §6 Why the check hangs off the module test tasks
 
 "No code passes the tests while violating the structure" is true only if the check runs in the invocation that

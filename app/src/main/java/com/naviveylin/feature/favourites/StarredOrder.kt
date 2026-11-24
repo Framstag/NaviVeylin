@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.feature.favourites
 
 import com.framstag.libosmscout.client.FavoriteLocation
 

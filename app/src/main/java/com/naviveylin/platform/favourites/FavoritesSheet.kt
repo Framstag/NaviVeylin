@@ -1,4 +1,4 @@
-package com.naviveylin.ui.favorites
+package com.naviveylin.platform.favourites
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -86,6 +86,9 @@ import com.naviveylin.core.formatCoordinatePair
 import com.naviveylin.core.parseLatitude
 import com.naviveylin.core.parseLongitude
 import com.naviveylin.core.orderedGroupNames
+import com.naviveylin.feature.favourites.FavoriteOrder
+import com.naviveylin.feature.favourites.GroupOrder
+import com.naviveylin.feature.favourites.StarredOrder
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import sh.calvin.reorderable.rememberReorderableLazyListState

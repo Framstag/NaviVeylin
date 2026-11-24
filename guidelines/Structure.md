@@ -147,10 +147,14 @@ the baseline — a file beside the declaration in `architecture/`, which the cha
 ## 5. Migrating one feature
 
 One feature per change, moved end to end. The pilot is `favourites`, chosen because no change in flight named it
-(change `package-structure-as-five-kinds`, design D8):
-`FavoriteOrder`, `GroupOrder`, `StarredOrder` and `core.GroupOrdering` move to `feature/favourites`;
-`FavoritesSheet` and `FavoritesViewModel` move to `platform/favourites`; `FavoriteRepository` keeps its write lock
-and is reached through `port/FavouritesStore`.
+(change `package-structure-as-five-kinds`, design D8; item #981 landed the move):
+`FavoriteOrder`, `GroupOrder` and `StarredOrder` move to `feature/favourites`; `FavoritesSheet` and
+`FavoritesViewModel` move to `platform/favourites`; `FavoriteRepository` keeps its write lock and is reached
+through `port/FavouritesStore`.
+
+The slice's one general rule stays where it is: `core.GroupOrdering`'s `orderedGroupNames` keeps its `concept` row
+in `core`, because the phone's sheet and the car's screen both call it and `:auto` depends on `:core` and never on
+`:app` — moving it into the feature would stop the car compiling.
 
 - **Rule: one feature per change.** A migration is a package move over every file of one feature, so two features
   in one change make the diff unattributable and the first red gate unreadable.

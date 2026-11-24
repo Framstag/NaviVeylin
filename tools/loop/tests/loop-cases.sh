@@ -449,6 +449,8 @@ LOOP_SHELL_CASES=(
   'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt'
   'report#anActionNamesAnItemPathThatExists'
   'report#theRunGroupsItsItemsByEpic'
+  'report#theItemTableNamesTheSessionModel'
+  'report#aStateWithNoModelPrintsADash'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#reportsAnAgedItemDirectory'
@@ -1293,6 +1295,8 @@ loop_run_shell_case() {
     'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt') fn=case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt ;;
     'report#anActionNamesAnItemPathThatExists') fn=case_report_anActionNamesAnItemPathThatExists ;;
     'report#theRunGroupsItsItemsByEpic') fn=case_report_theRunGroupsItsItemsByEpic ;;
+    'report#theItemTableNamesTheSessionModel') fn=case_report_theItemTableNamesTheSessionModel ;;
+    'report#aStateWithNoModelPrintsADash') fn=case_report_aStateWithNoModelPrintsADash ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#reportsAnAgedItemDirectory') fn=case_clean_reportsAnAgedItemDirectory ;;
@@ -15338,16 +15342,16 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
   assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
     "whose reason is its own note, so - in the stop column is not a row without a reason"
-  # Nineteen columns, so twenty separators: the wall, the reason and the three spend columns were added, then
+  # Twenty columns, so twenty-one separators: the wall, the reason and the three spend columns were added, then
   # the block's mechanism, then the band an item's spend is read against (issue #662), then the shape it spent it
-  # in (#757), then the reads it repeated (#814), then the ending of the round the run cut (#923), and nothing was
-  # dropped. The row keeps its shape with the new column, and the block neither mechanism caused has the same shape
-  # as the others.
-  assert_eq "20" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its nineteen columns"
-  assert_eq "20" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # in (#757), then the reads it repeated (#814), then the ending of the round the run cut (#923), then the model
+  # the item's worker ran on (issue #972), and nothing was dropped. The row keeps its shape with the new column,
+  # and the block neither mechanism caused has the same shape as the others.
+  assert_eq "21" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its twenty columns"
+  assert_eq "21" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
-  assert_eq "20" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "21" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
     "and so does a block no mechanism caused"
 }
 
@@ -16642,6 +16646,63 @@ JSONL
   trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
   assert_contains "$(printf '%s\n' "$trend" | grep '^  roles:' || true)" "worker 1 Mtok over 1 item" \
     "a state that predates the field keeps its role totals"
+}
+
+# The per-item table priced an item's spend without naming the model that produced it (issue #972): the state already
+# records the pair (`metrics.roleModels.worker`, a `{model: tokens}` object the role tallies are split by), so the row
+# a reader compares against another row must carry it. The item this case writes answered on two worker models, and
+# the column names the one with the most tokens followed by how many further models the item used —
+# `deepseek-v4.1-flash +1` — because a run whose worker role spanned three models otherwise reads as one budget.
+case_report_theItemTableNamesTheSessionModel() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out row
+  d=$(scratch); p=$(new_project)
+  cat > "$d/models.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/61/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"deepseek-v4.1-flash","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/61/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"mimo-v2.6-flash","usage":{"input":0,"output":0,"cacheRead":500000,"cacheWrite":0},"durationMs":500,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":61,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 61 --result done --verdict closed --wall 42 --events "$d/models.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "2000000" "$(jq -r '.items[0].metrics.roleModels.worker["deepseek-v4.1-flash"]' "$f")" \
+    "each worker model is recorded under the tokens it produced"
+  assert_eq "500000" "$(jq -r '.items[0].metrics.roleModels.worker["mimo-v2.6-flash"]' "$f")" \
+    "so the pair the column reads is on disk before the table is printed"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$(printf '%s\n' "$out" | grep '^| issue |' || true)" "| model |" \
+    "the header names the column, so a reader knows what the figure beside the spend is (issue #972)"
+  row=$(printf '%s\n' "$out" | grep '^| #61 |' || true)
+  [ -n "$row" ] || fail "no table row for #61"
+  assert_eq "deepseek-v4.1-flash +1" "$(table_cell "$row" 20)" \
+    "the row names the worker's model with the most tokens and how many further models it used"
+}
+
+# An archived state written before the field existed carries no `metrics.roleModels`: the model column prints `-`
+# there, never a zero and never a guessed name, exactly as every other unreported figure does (issue #972).
+case_report_aStateWithNoModelPrintsADash() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out row
+  d=$(scratch); p=$(new_project)
+  cat > "$d/one.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/62/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","model":"mimo-v2.6-flash","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":62,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 62 --result done --verdict closed --wall 42 --events "$d/one.jsonl" >/dev/null
+  f=$(state_file "$p")
+  jq 'del(.items[].metrics.roleModels)' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the model was recorded"
+  row=$(printf '%s\n' "$out" | grep '^| #62 |' || true)
+  [ -n "$row" ] || fail "no table row for #62"
+  assert_eq "-" "$(table_cell "$row" 20)" \
+    "a state that predates the field prints - in the model column, not a guess"
 }
 
 # A role left on a model the stream did not name — the default command, an older harness — needs no label, but its

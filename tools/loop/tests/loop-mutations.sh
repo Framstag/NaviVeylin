@@ -1181,6 +1181,14 @@ MUTATIONS=(
   # stream answers fewer turns than the item had and the figures read off it are a lower bound under a name that
   # reads as a measurement.
   '971.1@-@../pi-child-events.sh@run#aRotatedStreamKeepsEveryTurn@the summary record a fallback writes for each turn it passes again, so a rotated stream answers every turn the item had and no figure of it is a lower bound (issue #971)@s#^              elif \$e.type == "turn_end" then#              elif false then#'
+  # 972.1 — the per-item table names the model the item worker ran in (issue #972). The mutation takes the column
+  # back out: the row carries no model, so two items of one run are read as one budget and the row a reader compares
+  # against another is priced without the model that spent it.
+  '972.1@-@tools/loop/state.sh@report#theItemTableNamesTheSessionModel@the model the item worker ran in named on its row, so two items of one run are compared by cost alone and a role that crossed models reads as one budget (issue #972)@s# \\($roundcol) | \\($modelcol) |") end),# \\($roundcol) |") end),#'
+  # 972.2 — the same column read for a state that records no model. The mutation takes the column out, so the cell
+  # the case reads is absent rather than `-`: a state written before the field existed would print nothing where the
+  # report spells an unmeasured figure.
+  '972.2@-@tools/loop/state.sh@report#aStateWithNoModelPrintsADash@the dash a state with no recorded model prints, so a state written before the field existed carries an empty cell where the report spells a figure it did not measure (issue #972)@s# \\($roundcol) | \\($modelcol) |") end),# \\($roundcol) |") end),#'
   # 268.1 — a truncated spend says so (issue #841). The rotation #840 leaves on a stream whose records alone outgrow
   # the bound is recorded, and the report names the items whose figures are a lower bound with the figure each
   # dropped: a line that counts them and names none tells a reader a figure is short and not which, which is the

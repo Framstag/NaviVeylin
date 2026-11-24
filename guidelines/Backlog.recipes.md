@@ -1852,7 +1852,8 @@ and the run-level line names the items above it, which is a **warning and never 
 column after the band carries the item's tool calls per turn, the shape the spend was made in, read against the floor
 `LOOP_ITEM_CALLS_PER_TURN_MIN` records and named for the items below it (#757), and the column appended after that
 one carries the reads the item's sessions repeated, `repeat/total`, with the run's rate and its worst item in the
-trend (#814); and **what the
+trend (#814), the column after those names the model the item's worker ran on, `+N` for the models beyond the first
+and `-` where the state records none (#972); and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the

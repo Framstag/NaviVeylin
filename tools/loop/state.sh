@@ -1572,9 +1572,9 @@ cmd_report() {
   jq -r --argjson over "$tokens_warn" "$(bound_class_jq)"'
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads | round |",
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls | dup reads | round | model |",
     "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — | — |"
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -1635,7 +1635,16 @@ cmd_report() {
         | ((.metrics.dupReads // null) as $dup
            | (.metrics.reads // null) as $reads
            | if $dup == null or $reads == null or $reads == 0 then "-" else "\($dup)/\($reads)" end) as $dupcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) | \($roundcol) |") end),
+        # The model the item worker ran in (issue #972), appended after the round column for the reason every
+        # column since the band was: every index a reader already quotes keeps its number. Read from the frozen
+        # `metrics.roleModels.worker` ({model: tokens}), the cell names the model with the most tokens and `+N` for
+        # the further models the role spanned — a run whose worker role crossed three models otherwise reads as one
+        # budget. An item whose state records no model prints `-`, the report spelling for a figure it did not measure.
+        | ((.metrics.roleModels.worker // null) as $rm
+           | if $rm == null or ($rm | type) != "object" or ($rm | length) == 0 then "-"
+             else ($rm | to_entries | sort_by([-.value, .key])) as $es
+               | "\($es[0].key)" + (if ($es | length) > 1 then " +\(($es | length) - 1)" else "" end) end) as $modelcol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) | \($dupcol) | \($roundcol) | \($modelcol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

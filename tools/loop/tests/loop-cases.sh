@@ -485,6 +485,7 @@ LOOP_SHELL_CASES=(
   'driver#aQuotedProgramIsNotAShellRead'
   'driver#aCallInPipelinePositionIsARead'
   'driver#theSharedNamesAreDeclared'
+  'driver#theReaderOrderIsNotPartOfTheComparison'
   'driver#theSourceOrderIsDeclared'
   'driver#aCallToALaterFilesFunctionFails'
   'driver#everyEngineFileHasOneOwner'
@@ -1322,6 +1323,7 @@ loop_run_shell_case() {
     'driver#aQuotedProgramIsNotAShellRead') fn=case_driver_aQuotedProgramIsNotAShellRead ;;
     'driver#aCallInPipelinePositionIsARead') fn=case_driver_aCallInPipelinePositionIsARead ;;
     'driver#theSharedNamesAreDeclared') fn=case_driver_theSharedNamesAreDeclared ;;
+    'driver#theReaderOrderIsNotPartOfTheComparison') fn=case_driver_theReaderOrderIsNotPartOfTheComparison ;;
     'driver#theSourceOrderIsDeclared') fn=case_driver_theSourceOrderIsDeclared ;;
     'driver#aCallToALaterFilesFunctionFails') fn=case_driver_aCallToALaterFilesFunctionFails ;;
     'driver#everyEngineFileHasOneOwner') fn=case_driver_everyEngineFileHasOneOwner ;;
@@ -19511,7 +19513,10 @@ END {
       }
       if (readers == "") continue
       m = split(substr(readers, 2), rs, " ")
-      for (i = 2; i <= m; i++) for (j = i; j <= m; j++) if (rs[j] < rs[i]) { t = rs[i]; rs[i] = rs[j]; rs[j] = t }
+      # A selection sort from the FIRST reader. Starting at 2 leaves the first element in the order awk's hash
+      # iteration happened to produce it, so the row's text depended on the awk build and not on the names — the
+      # comparison was green on gawk 5.4 here and red on the runner's awk (#1048).
+      for (i = 1; i <= m; i++) for (j = i; j <= m; j++) if (rs[j] < rs[i]) { t = rs[i]; rs[i] = rs[j]; rs[j] = t }
       out = ""
       for (i = 1; i <= m; i++) out = out (i > 1 ? " " : "") rs[i]
       if (mode == "rows") print name "\t" fl[1] "\t" out
@@ -19540,7 +19545,17 @@ layout_shared_refusals() { # <engine dir> → one line per name the declaration 
     printf 'shared.tsv: the engine has no declaration (%s)\n' "$dir/shared.tsv"
     return 0
   fi
-  declared=$(awk -F'\t' '$0 !~ /^#/ && $1 != "" { print $1 "\t" $2 "\t" $3 }' "$dir/shared.tsv" | sort)
+  # The reader column is a set, not a sequence: the declaration is normalised to the derivation's sorted order
+  # before the two are compared, so a row whose readers are written in any order declares the same share (#1048).
+  declared=$(awk -F'\t' '
+    $0 ~ /^#/ || $1 == "" { next }
+    {
+      n = split($3, r, " ")
+      for (i = 1; i <= n; i++) for (j = i; j <= n; j++) if (r[j] < r[i]) { t = r[i]; r[i] = r[j]; r[j] = t }
+      s = ""
+      for (i = 1; i <= n; i++) s = s (i > 1 ? " " : "") r[i]
+      print $1 "\t" $2 "\t" s
+    }' "$dir/shared.tsv" | sort)
   computed=$(layout_shared_awk "$dir" rows | sort)
   while IFS=$'\t' read -r name by readers; do
     [ -n "$name" ] || continue
@@ -20230,6 +20245,22 @@ case_driver_theSharedNamesAreDeclared() {
   local out
   out=$(layout_shared_refusals "$LOOP_ENGINE")
   assert_eq "" "$out" "the declaration equals the names the engine's files share, in both directions"
+  return 0
+}
+
+case_driver_theReaderOrderIsNotPartOfTheComparison() {
+  # files: tools/loop/ tools/loop/shared.tsv
+  local out d
+  d=$(scratch)
+  printf 'shared_thing=1\n' > "$d/a.sh"
+  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/b.sh"
+  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/c.sh"
+  printf 'printf "%%s\\n" "$shared_thing"\n' > "$d/d.sh"
+  # The reader column is a set. A row written in descending order declares the same share as one written in
+  # ascending order, so the comparison sorts both sides and reads no order as a disagreement (#1048).
+  printf '# one row per name\nshared_thing\ta.sh\td.sh c.sh b.sh\n' > "$d/shared.tsv"
+  out=$(layout_shared_refusals "$d")
+  assert_eq "" "$out" "the reader column's order is not part of the comparison: $out"
   return 0
 }
 

@@ -19514,8 +19514,8 @@ END {
       if (readers == "") continue
       m = split(substr(readers, 2), rs, " ")
       # A selection sort from the FIRST reader. Starting at 2 leaves the first element in the order awk's hash
-      # iteration happened to produce it, so the row's text depended on the awk build and not on the names — the
-      # comparison was green on gawk 5.4 here and red on the runner's awk (#1048).
+      # iteration happened to produce it, so the row's text depended on the awk build and not on the names: the
+      # comparison refused HEAD's text for this case's own fixture, and the runner's row differed (#1048).
       for (i = 1; i <= m; i++) for (j = i; j <= m; j++) if (rs[j] < rs[i]) { t = rs[i]; rs[i] = rs[j]; rs[j] = t }
       out = ""
       for (i = 1; i <= m; i++) out = out (i > 1 ? " " : "") rs[i]

@@ -19,7 +19,7 @@ the commit that introduces it rather than by the second project.
 | an authenticated `gh` | the tracker is GitHub Issues; `gh` is the only forge client the engine speaks |
 | `bash` | the engine is shell, and it is not `sh`-portable on purpose (arrays, `[[`-free but `local` and `set -o pipefail` are used) |
 | `jq` | the profile, the registry, the label sets and the findings are JSON on the way in and out |
-| a JDK (17 or newer) | the policy core — the gate, the fingerprints, the band mapping, the taxonomy — is single-file Java compiled once with `javac --release 17` |
+| a JDK (17 or newer) | two cores are single-file Java compiled once with `javac --release 17`: the issue tooling's (the policy core — the gate, the fingerprints, the band mapping, the taxonomy) and the loop's own (`tools/loop/core/`, the run's typed protocol) |
 | a `gh`-shaped tracker state | the two namespaces of the taxonomy that are *not* values in the profile (`sensor/…`) come from the check registry |
 
 ## What to copy
@@ -30,7 +30,8 @@ tools/issues/               → the verbs and the Java core (keep `import/todo-m
                               a prose backlog in that exact format; otherwise delete it)
 tools/sensors/              → the registry, the runner, the guards, the report, the measurements
 tools/loop/                 → the wrapper, the worktree, the state, the labels, the report and the
-                              prompt skeletons
+                              prompt skeletons, and the loop's own Java core under `core/` (copied by
+                              value: it shares no dependency with the issue tooling's core)
 tools/check-portability.sh  → the leak check, and the proof that your copy is still an engine
 tools/tests/                → the self-tests of the tools at the `tools/` root, the mutation corpus they
                               read and the synthetic foreign project the check's self-test runs (test

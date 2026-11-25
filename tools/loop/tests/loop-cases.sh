@@ -595,6 +595,10 @@ LOOP_SHELL_CASES=(
 
 loop_shell_cases() {
   printf '%s\n' "${LOOP_SHELL_CASES[@]}"
+  # The core's own case list, asked of the core itself rather than spelled a second time here: two spellings of one
+  # list is exactly how a case comes to exist and not run (the change's requirement, "the core's cases are the
+  # core's own, and the suite lists them with the shell's"). One line, one refusal, when no compiler answers.
+  loop_core --cases
 }
 
 # The files a delta must touch for the *whole* case set to be owed, whatever the cases declare. Every engine script
@@ -1436,6 +1440,19 @@ loop_run_shell_case() {
     'run#aFactPrintedOnceIsRecordedOnce') fn=case_run_aFactPrintedOnceIsRecordedOnce ;;
     'run#aConvertedSiteRendersFromItsRecord') fn=case_run_aConvertedSiteRendersFromItsRecord ;;
     'run#aFreeTextReasonSurvivesTheRoundTrip') fn=case_run_aFreeTextReasonSurvivesTheRoundTrip ;;
+    'core#theDigestIsTheCompileKey') fn=case_core_theDigestIsTheCompileKey ;;
+    'core#oneCompilePerDigest') fn=case_core_oneCompilePerDigest ;;
+    'core#aMissingCompilerIsOneRefusal') fn=case_core_aMissingCompilerIsOneRefusal ;;
+    'core#theAnswerIsOneJsonDocument') fn=case_core_theAnswerIsOneJsonDocument ;;
+    'core#aMalformedInputIsARefusal') fn=case_core_aMalformedInputIsARefusal ;;
+    'core#noPartialParseOnFailure') fn=case_core_noPartialParseOnFailure ;;
+    'core#theStateIsWrittenByTheCore') fn=case_core_theStateIsWrittenByTheCore ;;
+    'core#theStateAReadCannotParseIsRefused') fn=case_core_theStateAReadCannotParseIsRefused ;;
+    'core#thePortabilityCheckReadsTheCore') fn=case_core_thePortabilityCheckReadsTheCore ;;
+    'core#theCoresCasesDeclareTheCore') fn=case_core_theCoresCasesDeclareTheCore ;;
+    'core#theCoreListsItsOwnCases') fn=case_core_theCoreListsItsOwnCases ;;
+    'core#oneSummaryCarriesBothSources') fn=case_core_oneSummaryCarriesBothSources ;;
+    'core#aCoreCaseDeclaresItsFiles') fn=case_core_aCoreCaseDeclaresItsFiles ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -25337,5 +25354,251 @@ tail -n 40 /tmp/build-app.log
 tail -n 100 .pi/issue-loop/items/1083/gate.log
 adb logcat -d | tail -n 40
 TAILS
+  return 0
+}
+
+# --------------------------------------------------------------------------- the core's own cases
+#
+# The loop's typed core (`tools/loop/core/`, `lib.sh`'s `loop_core`) is the change
+# `the-loop-core-exists-and-compiles`' subject: it compiles once per source digest, it answers one JSON document and
+# refuses a malformed input rather than half of one, and the suite lists its cases with the shell's. Every case here
+# drives the compiled binary the way a script does, because that boundary is what the sibling change keeps — no case
+# calls a library, and none reaches past `loop_core`.
+
+# A `javac` a case can count or refuse. Counting is only possible by shadowing the compiler, because the digest cache
+# is exactly what decides whether a compile happens: a case that cannot see the compiler run cannot tell a warm cache
+# from a cache it never asked for.
+core_probe_javac() { # <dir> [refuse] — a probe directory to put first on PATH; prints nothing, fails when no javac
+  local dir="$1" mode="${2:-pass}" real
+  real=$(command -v javac) || return 1
+  mkdir -p "$dir" || return 1
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf 'printf "compile\\n" >> "%s/compiles"\n' "$dir"
+    if [ "$mode" = refuse ]; then
+      printf '%s\n' 'printf "javac: the probe refuses every compile\n" >&2' 'exit 1'
+    else
+      printf 'exec "%s" "$@"\n' "$real"
+    fi
+  } > "$dir/javac"
+  chmod +x "$dir/javac"
+}
+
+case_core_theDigestIsTheCompileKey() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local probe out dir1 dir2 digest compiles
+  probe="$LOOP_CASE_TMP/digest"
+  mkdir -p "$probe/cache" || fail "cannot make a cache directory: $probe/cache"
+  core_probe_javac "$probe" || fail "no javac to count: the core cannot be compiled on this host"
+  out=$(
+    export PATH="$probe:$PATH" LOOP_CORE_CACHE="$probe/cache"
+    unset LOOP_CORE_CLASSES
+    first=$(loop_core_classes) || exit 1
+    second=$(loop_core_classes) || exit 1
+    printf '%s\n%s\n' "$first" "$second"
+  ) || fail "the core did not compile into a fresh cache: $out"
+  { read -r dir1; read -r dir2; } <<< "$out"
+  assert_eq "$dir1" "$dir2" "the second call reused the first call's directory"
+  [ -d "$dir1" ] || fail "the cache directory the call named is not there: $dir1"
+  digest=$(loop_core_digest) || fail "the core's sources have no digest"
+  assert_eq "17-$digest" "$(basename -- "$dir1")" "the cache directory is the release and the sources' digest"
+  compiles=$(grep -c . "$probe/compiles" 2>/dev/null || printf '0')
+  assert_eq "1" "$compiles" "two calls with the same sources compiled once"
+  return 0
+}
+
+case_core_oneCompilePerDigest() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local probe out compiles first second third
+  probe="$LOOP_CASE_TMP/once"
+  mkdir -p "$probe/cache" || fail "cannot make a cache directory: $probe/cache"
+  core_probe_javac "$probe" || fail "no javac to count: the core cannot be compiled on this host"
+  out=$(
+    export PATH="$probe:$PATH" LOOP_CORE_CACHE="$probe/cache"
+    unset LOOP_CORE_CLASSES
+    loop_core --cases > "$probe/a" || exit 1
+    loop_core --cases > "$probe/b" || exit 1
+    loop_core --cases > "$probe/c" || exit 1
+  ) || fail "three calls of the core did not all answer: $out"
+  first=$(grep -c . "$probe/a")
+  [ "$first" -gt 0 ] || fail "the core's case list is empty"
+  assert_eq "$(cat "$probe/a")" "$(cat "$probe/b")" "the second call answered what the first did"
+  assert_eq "$(cat "$probe/a")" "$(cat "$probe/c")" "the third call answered what the first did"
+  compiles=$(grep -c . "$probe/compiles" 2>/dev/null || printf '0')
+  assert_eq "1" "$compiles" "three calls of the core compiled once, at the first that asked"
+  return 0
+}
+
+case_core_aMissingCompilerIsOneRefusal() {
+  # files: tools/loop/core/ tools/loop/lib.sh tools/loop/tests/loop-selftest.sh
+  core_ensure
+  local probe out status lines
+  probe="$LOOP_CASE_TMP/nocompiler"
+  core_probe_javac "$probe" refuse || fail "no javac to shadow: the refusal cannot be provoked here"
+  out=$(
+    export PATH="$probe:$PATH" LOOP_CORE_CACHE="$LOOP_CASE_TMP/nocache"
+    unset LOOP_CORE_CLASSES
+    bash "$LOOP_ENGINE/tests/loop-selftest.sh" --list 2>&1 >/dev/null
+  )
+  status=$?
+  assert_eq "1" "$status" "a host with no compiler exits 1 (exit $status): $out"
+  lines=$(printf '%s\n' "$out" | grep -c .)
+  assert_eq "1" "$lines" "the refusal is one line and not a run that half-started: $out"
+  assert_contains "$out" "JDK 17" "and the line names the JDK it needs: $out"
+  return 0
+}
+
+case_core_theAnswerIsOneJsonDocument() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local state out documents
+  state="$LOOP_CASE_TMP/state.json"
+  printf '{"items":{}}' > "$state" || fail "cannot write a state fixture: $state"
+  out=$(loop_core state counts --state "$state") || fail "state counts answered nothing: $out"
+  documents=$(printf '%s\n' "$out" | jq -s 'length' 2>/dev/null) || fail "stdout is not JSON: $out"
+  assert_eq "1" "$documents" "stdout is one JSON document and nothing else: $out"
+  assert_eq "0" "$(printf '%s\n' "$out" | jq -r .closed)" "the document carries the counts: $out"
+  for key in closed blocked skipped cut refused pending; do
+    printf '%s\n' "$out" | jq -e --arg k "$key" 'has($k)' >/dev/null || fail "the document lacks the count '$key': $out"
+  done
+  return 0
+}
+
+case_core_aMalformedInputIsARefusal() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local state out status err
+  state="$LOOP_CASE_TMP/not-json.json"
+  printf 'this is not json at all\n' > "$state" || fail "cannot write the fixture: $state"
+  out=$(loop_core state counts --state "$state" 2> "$LOOP_CASE_TMP/err"); status=$?
+  err=$(cat "$LOOP_CASE_TMP/err")
+  [ "$status" -ne 0 ] || fail "a malformed input was accepted (exit $status)"
+  assert_eq "" "$out" "nothing usable reached stdout"
+  assert_contains "$err" "not-json.json" "the refusal names the file: $err"
+  return 0
+}
+
+case_core_noPartialParseOnFailure() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local state out status err
+  state="$LOOP_CASE_TMP/half.json"
+  # it parses as far as a field and then fails: a reader handed the half it read would count a state nobody wrote
+  printf '{"items":{"7":{"issue":7,"verdict":"closed"}},"cut":' > "$state" || fail "cannot write the fixture: $state"
+  out=$(loop_core state counts --state "$state" 2> "$LOOP_CASE_TMP/err"); status=$?
+  err=$(cat "$LOOP_CASE_TMP/err")
+  [ "$status" -ne 0 ] || fail "a half-parsed state was answered (exit $status): $out"
+  assert_eq "" "$out" "no partial document reached stdout"
+  assert_contains "$err" "half.json" "the refusal names the file: $err"
+  return 0
+}
+
+case_core_theStateIsWrittenByTheCore() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local state out
+  state="$LOOP_CASE_TMP/written.json"
+  loop_core state write --state "$state" --issue 7 verdict=closed reason=ok >/dev/null || fail "the write was refused: $state"
+  out=$(loop_core state counts --state "$state") || fail "the state it wrote cannot be read back: $out"
+  assert_eq "1" "$(printf '%s\n' "$out" | jq -r .closed)" "the count the write made: $out"
+  assert_eq "closed" "$(jq -r '.items["7"].verdict' "$state")" "the item the write recorded"
+  return 0
+}
+
+case_core_theStateAReadCannotParseIsRefused() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  core_ensure
+  local state out status err
+  state="$LOOP_CASE_TMP/undeclared.json"
+  printf '{"items":{},"bogus":1}' > "$state" || fail "cannot write the fixture: $state"
+  out=$(loop_core state counts --state "$state" 2> "$LOOP_CASE_TMP/err"); status=$?
+  err=$(cat "$LOOP_CASE_TMP/err")
+  [ "$status" -ne 0 ] || fail "an undeclared field was accepted (exit $status): $out"
+  assert_eq "" "$out" "nothing usable reached stdout"
+  assert_contains "$err" "bogus" "the refusal names the field: $err"
+  return 0
+}
+
+case_core_thePortabilityCheckReadsTheCore() {
+  # files: tools/loop/ tools/loop/core/ tools/loop/lib.sh tools/loop/loop.conf tools/check-portability.sh tools/tooling.json tools/sensors/ tools/issues/
+  core_ensure
+  local root value out status
+  root="$LOOP_CASE_TMP/portable-project"
+  mkdir -p "$root/tools/loop/core" "$root/tools/sensors" "$root/tools/issues" || fail "cannot build the fixture root: $root"
+  cp "$LOOP_PROJECT_ROOT"/tools/tooling.json "$root/tools/" || fail "cannot copy the registry into the fixture root"
+  cp "$LOOP_PROJECT_ROOT"/tools/sensors/sensors.json "$root/tools/sensors/" || fail "cannot copy the sensors' profile"
+  cp "$LOOP_PROJECT_ROOT"/tools/issues/citations.json "$root/tools/issues/" || fail "cannot copy the issue profile"
+  cp "$LOOP_ENGINE/loop.conf" "$root/tools/loop/" || fail "cannot copy the loop's profile"
+  cp "$LOOP_ENGINE/core"/*.java "$root/tools/loop/core/" || fail "cannot copy the core into the fixture root"
+  value=$(jq -r '.repo' "$root/tools/tooling.json") || fail "the registry names no repository value to plant"
+  [ -n "$value" ] && [ "$value" != null ] || fail "the registry names no repository value to plant"
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/check-portability.sh" --root "$root" 2>&1); status=$?
+  assert_eq "0" "$status" "the core as it stands names no project value (exit $status): $out"
+  printf 'final class Leak { final String named = "%s"; }\n' "$value" > "$root/tools/loop/core/Leak.java"
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/check-portability.sh" --root "$root" 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "the check reads no core file: a project value in one passed (exit $status): $out"
+  assert_contains "$out" "tools/loop/core/Leak.java" "the check names the core file that leaked: $out"
+  return 0
+}
+
+case_core_theCoresCasesDeclareTheCore() {
+  # files: tools/loop/core/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh
+  core_ensure
+  local out silent missing
+  out=$(bash "$LOOP_ENGINE/tests/loop-selftest.sh" --case-files) || fail "--case-files answered nothing"
+  missing=$(printf '%s\n' "$out" | awk -F'\t' '$1 ~ /^core#/ && $2 !~ /tools\/loop\/core\// { printf "%s ", $1 }')
+  [ -z "$missing" ] || fail "core cases whose declaration omits tools/loop/core/: $missing"
+  silent=$(printf '%s\n' "$out" | awk -F'\t' '$1 ~ /^core#/ && $2 == "<undeclared>" { printf "%s ", $1 }')
+  [ -z "$silent" ] || fail "core cases that declare no files at all: $silent"
+  assert_contains "$out" "core#theAnswerIsOneJsonDocument" "the core's cases are in the declared set: $out"
+  return 0
+}
+
+case_core_theCoreListsItsOwnCases() {
+  # files: tools/loop/core/ tools/loop/tests/loop-cases.sh
+  core_ensure
+  local listed bodies name
+  listed=$(loop_core --cases) || fail "the core lists no cases: $listed"
+  [ -n "$listed" ] || fail "the core's case list is empty"
+  bodies=$(awk '/^case_core_[A-Za-z0-9_]*\(\) \{/ { fn = $1; sub(/\(\)$/, "", fn); sub(/^case_/, "", fn); sub(/_/, "#", fn); print fn }' \
+    "$LOOP_ENGINE/tests/loop-cases.sh")
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    printf '%s\n' "$bodies" | grep -qx -- "$name" || fail "the core lists '$name' and no case body answers it"
+  done <<< "$listed"
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    printf '%s\n' "$listed" | grep -qx -- "$name" || fail "a case body exists for '$name' and the core's list omits it"
+  done <<< "$bodies"
+  return 0
+}
+
+case_core_oneSummaryCarriesBothSources() {
+  # files: tools/loop/core/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh
+  core_ensure
+  local listed declared duplicates
+  listed=$(bash "$LOOP_ENGINE/tests/loop-selftest.sh" --list) || fail "--list answered nothing"
+  printf '%s\n' "$listed" | grep -qx 'state#initAndShowRoundTrips' || fail "the shell's own cases are not in the pool: $listed"
+  printf '%s\n' "$listed" | grep -qx 'core#theAnswerIsOneJsonDocument' || fail "the core's cases are not in the pool: $listed"
+  duplicates=$(printf '%s\n' "$listed" | sort | uniq -d)
+  [ -z "$duplicates" ] || fail "a case is in the pool twice, so a summary would count it twice: $duplicates"
+  declared=$(bash "$LOOP_ENGINE/tests/loop-selftest.sh" --case-files) || fail "--case-files answered nothing"
+  assert_eq "$(printf '%s\n' "$listed" | grep -c .)" "$(printf '%s\n' "$declared" | grep -c .)" \
+    "the pool and the declared set are one set, read twice"
+  return 0
+}
+
+case_core_aCoreCaseDeclaresItsFiles() {
+  # files: tools/loop/core/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh
+  core_ensure
+  local out undeclared guard
+  out=$(bash "$LOOP_ENGINE/tests/loop-selftest.sh" --case-files) || fail "--case-files answered nothing"
+  undeclared=$(printf '%s\n' "$out" | awk -F'\t' '$1 ~ /^core#/ && $2 == "<undeclared>" { printf "%s ", $1 }')
+  [ -z "$undeclared" ] || fail "core cases that declare no files: $undeclared"
+  guard=$(bash "$LOOP_ENGINE/tests/loop-selftest.sh" --list) || fail "--list answered nothing"
+  printf '%s\n' "$guard" | grep -qx 'driver#everyCaseDeclaresTheFilesItCanReach' \
+    || fail "the rule that refuses an undeclared case is not the suite's own: $guard"
   return 0
 }

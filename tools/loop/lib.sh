@@ -1228,3 +1228,64 @@ project_state_differs() { # <before> <after> → 0 when a path some child could 
   [ "$(printf '%s\n' "$1" | sed '/^[[:space:]]*$/d' | loop_drop_ignorable_writes | sort)" != \
     "$(printf '%s\n' "$2" | sed '/^[[:space:]]*$/d' | loop_drop_ignorable_writes | sort)" ]
 }
+
+# ── the loop's own core ──────────────────────────────────────────────────────────────────────────────────────
+# `tools/loop/core/` is the loop's typed half: Java, no Gradle source set and no build system (the change's design
+# D1), copied by value from the issue tooling's core so the two share no dependency (`PORTING.md`, "What to copy").
+# It is compiled once and then run from the class path, never handed to the single-file source launcher: that
+# launcher resolves a sibling class on some JDKs and not on others, which is the trap `tools/issues/lib.sh:214`
+# records. `javac` is the JDK the caller already has, and the build is cached by the sources' own digest, so it
+# costs one compile per source state rather than one per call.
+#
+# The cache directory's name carries no project value — the engine may name none (`tools/check-portability.sh`) —
+# and it carries the release, so a class file built by a newer JDK is never handed to an older one.
+LOOP_CORE_DIR="${LOOP_CORE_DIR:-$LOOP_DIR/core}"
+LOOP_CORE_CACHE="${LOOP_CORE_CACHE:-${TMPDIR:-/tmp}/loop-core}"
+
+loop_core_digest() { # → the digest of the core's sources, one line, taken as the issue tooling takes it
+  local files
+  files=$(find "$LOOP_CORE_DIR" -maxdepth 1 -name '*.java' 2>/dev/null | sort)
+  [ -n "$files" ] || return 1
+  # shellcheck disable=SC2086
+  if command -v sha256sum >/dev/null 2>&1; then
+    cat $files | sha256sum | cut -c1-16
+  else
+    cat $files | cksum | tr -d ' ' | cut -c1-16
+  fi
+}
+
+loop_core_classes() { # → the class directory for the current sources, compiling at most once
+  # a caller that has already compiled the core (the self-test's `core_ensure`) hands its directory in, so a case
+  # runs exactly the classes the driver verified and nothing is compiled twice
+  if [ -n "${LOOP_CORE_CLASSES:-}" ]; then
+    printf '%s\n' "$LOOP_CORE_CLASSES"
+    return 0
+  fi
+  local digest dir staging
+  digest=$(loop_core_digest) || return 1
+  dir="$LOOP_CORE_CACHE/17-$digest"
+  if [ ! -d "$dir" ]; then
+    mkdir -p "$LOOP_CORE_CACHE" 2>/dev/null || return 1
+    staging="$LOOP_CORE_CACHE/.staging.$$"
+    rm -rf "$staging" 2>/dev/null || true
+    mkdir -p "$staging" || return 1
+    # One refusal, one line: the compiler's own output would be a second line, and a caller that reads two lines
+    # decides the run on the first of them. A compiler that fails here is the missing-or-unusable JDK case and the
+    # core's own source errors alike, so the line names the requirement and where the sources stand.
+    javac --release 17 -d "$staging" "$LOOP_CORE_DIR"/*.java >/dev/null 2>&1 || { rm -rf "$staging"; return 1; }
+    mv "$staging" "$dir" 2>/dev/null || { rm -rf "$staging"; return 1; }
+  fi
+  printf '%s\n' "$dir"
+}
+
+# One refusal, one line, and no partial run: a host without a usable JDK is told what it needs once, and every
+# caller that starts an item reads that line rather than a run that half-started (the change's requirement, "the
+# core is compiled once per source digest, and a missing compiler is one refusal").
+loop_core() { # loop_core <verb> [args…] — one call into the core, its answer on stdout
+  local classes
+  classes=$(loop_core_classes) || {
+    loop_note "loop: the Java core does not compile — JDK 17 or newer (javac) is required (tools/loop/core/)"
+    return 1
+  }
+  java -cp "$classes" LoopCore "$@"
+}

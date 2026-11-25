@@ -460,6 +460,16 @@ core_ensure() {
     rm -rf "$selftest_core_claim" 2>/dev/null || true
   fi
   export ISSUES_CORE_CLASSES="$selftest_classes"
+  # The loop's own core is compiled here too, beside the issue tooling's, and into the digest-keyed cache the engine
+  # already uses (`tools/loop/lib.sh`, `loop_core_classes`): a case that asks for it runs the classes this driver
+  # verified, and a second call — this suite's or the next run's — compiles nothing. One line, one refusal, when no
+  # compiler answers, because a suite that cannot ask the core for its case list is a suite that would run half of
+  # its cases and report itself green.
+  LOOP_CORE_CLASSES=$(loop_core_classes) || {
+    echo "loop-selftest: the loop's Java core does not compile — JDK 17 or newer (javac) is required" >&2
+    exit 1
+  }
+  export LOOP_CORE_CLASSES
 }
 
 export LOOP_PROJECT_ROOT="$root"
@@ -476,7 +486,7 @@ export PATH="$LOOP_FIXTURES:$LOOP_ISSUE_FIXTURES:$PATH"
 
 # shellcheck source=tools/loop/tests/loop-cases.sh
 source "$root/tools/loop/tests/loop-cases.sh"
-shell_cases=$(loop_shell_cases)
+shell_cases=$(loop_shell_cases) || exit 1
 
 # ── the three sets that name a case, compared (issue #929) ──────────────────────────────────────────────────
 # `LOOP_SHELL_CASES` *is* the declared set, so the selection list is the suite: a delta that replaces a row instead of

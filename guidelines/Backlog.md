@@ -412,6 +412,16 @@ bound, defines a function in a file that does not own it, prints a kind its row 
 two files, or alters the source order reddens `tools/loop/tests/loop-selftest.sh` and needs the row corrected in the
 same change, with a reason beside the number it moves.
 
+**The protocol's one owner is the core.** `tools/loop/core/` is the loop's typed half: a verb answers one JSON
+document, a field it does not declare is refused, and the fields a state may carry are named in one place rather than
+spelled in a `jq` expression at each of the scripts' call sites. `lib.sh`'s `loop_core` compiles it once per digest of
+its own sources (`javac --release 17`, into a cache keyed by that digest) and hands a verb one call, so the boundary
+still costs a process and nothing else: the supervision, the gate, the git work and the prompts stay shell, because a
+JVM supervises badly and dies badly inside the group the run kills. The core's cases are `core#…` cases in
+`tools/loop/tests/loop-cases.sh`, listed by the core itself (`loop_core --cases`) and pooled with the shell's, so a
+core case is never one that exists and does not run. Where a value crosses between two halves of the engine, it
+crosses as a typed value here; a rename then costs a compile instead of a full suite.
+
 The run's own record stands beside the state file: `loop_emit`, in `tools/loop/lib.sh`, appends one JSON object per
 fact to `$LOOP_RUN_EVENTS` (`run-events.jsonl`, in the state directory) and renders the human line from the same row
 of `tools/loop/events.tsv`. One file holds every run of this project: a run's facts are the rows after its

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The JUnit-shaped tally of evidence/red-when-mutated.log: one `testcase` per mutation record, transcribed from the
+     `RED <label> <case>` line and the line the harness logged for it, as
+     `openspec/changes/a-rotated-stream-keeps-every-turn/evidence/red-when-mutated.xml` transcribes its own.
+
+     Two records, one invariant each, both in `tools/loop/tests/loop-mutations.sh`:
+       974.1 makes the resolution's id comparison always true, so an id no heading carries resolves;
+       974.2 makes the missing-route arm refuse, so the warning the first run reads becomes a failure.
+     Both were run in one selection (the harness's `only` filter, `974.1 974.2`); each went RED for the reason quoted,
+     and each was restored green again (`red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0`). -->
+<testsuite name="loop-mutations" tests="2" failures="2" errors="0" skipped="0" timestamp="2026-11-25T21:27:12Z">
+  <testcase classname="loop-mutations" name="974.1 check#aRouteSectionResolvesAgainstItsDocument" time="0">
+    <failure message="an id no heading carries resolves, so the case's refusal arm goes red" type="assertion">
+      2026-11-25T21:27:11Z — case log line 1: a § the document does not have is refused: ok   C1 §references: 1 checked, 0 exempted as archived pointers
+      restore 974.1 check#aRouteSectionResolvesAgainstItsDocument green again
+    </failure>
+  </testcase>
+  <testcase classname="loop-mutations" name="974.2 check#aRouteSectionResolvesAgainstItsDocument" time="0">
+    <failure message="the missing-route arm refuses under `warn`, so the case's warning arm goes red" type="assertion">
+      2026-11-25T21:27:12Z — case log line 1: a paragraph quoting the form is not a route line: ok   C1 §references: 1 checked, 0 exempted as archived pointers
+      restore 974.2 check#aRouteSectionResolvesAgainstItsDocument green again
+    </failure>
+  </testcase>
+</testsuite>

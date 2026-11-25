@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The JUnit-shaped tally of evidence/red-on-HEAD.log. A shell self-test prints `PASS`/`FAIL` lines rather than a
+     suite report (`.pi/skills/revert-check`, "When the gate is a shell self-test"), so the tally is transcribed from
+     the log, in the shape
+     `openspec/changes/archive/2026-11-10-fix-a-park-has-a-writer/evidence/red-on-HEAD.xml` transcribes its own.
+
+     How the run was taken: HEAD's `tools/loop/prompts/worker.md` was written over this tree's (`git show
+     HEAD:tools/loop/prompts/worker.md`, sha256 3db85287e708766cfec00e5db3b336cbdf3fd53d14d932176cbf40ce3af8056b), the
+     one named case was run, and the file was restored from a copy taken before the overwrite — sha256
+     ec1eea4408c2966e051a8e496b2aa9dcb1d5198e0caed541fb32b63dcb89076c before and after, which is the byte-for-byte
+     restore `git status` confirms (the file is the only one the round-trip touched).
+
+     The failure is the first assertion the change adds: on HEAD the skeleton asks for a sentence and its report block
+     carries no `LOOP-ROUTE:` line, so the anchored form the check resolves is not in the file. -->
+<testsuite name="loop-selftest" tests="1" failures="1" errors="0" skipped="0" timestamp="2026-11-25T21:22:41Z">
+  <testcase classname="loop-selftest" name="prompt#thePhasePromptsCarryTheirOwnRoute" time="0">
+    <failure message="the worker skeleton prints the route as the anchored line the check resolves (issue #1081): 'LOOP-ROUTE: guidelines/&lt;doc&gt;.md §&lt;id&gt;' not found in: # Worker — one item, phases A–D" type="assertion">
+      prompt#thePhasePromptsCarryTheirOwnRoute|   the worker skeleton prints the route as the anchored line the check
+      resolves (issue #1081): 'LOOP-ROUTE: guidelines/&lt;doc&gt;.md §&lt;id&gt;' not found in: # Worker — one item, phases A–D
+      FAIL prompt#thePhasePromptsCarryTheirOwnRoute
+      loop-selftest: 1 of 1 cases failed
+    </failure>
+  </testcase>
+</testsuite>

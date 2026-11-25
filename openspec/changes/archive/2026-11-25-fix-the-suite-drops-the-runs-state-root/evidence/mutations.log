@@ -1,0 +1,15 @@
+# mutation records — 2026-11-25T16:47:57Z
+--- --check ---
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.O5FqDY
+loop-mutations: all 465 cases passed — every selected record applies to the file it names
+--- --only 1009.3 1066.1 ---
+loop-mutations: selected 2 of 465 records (labels: 1009.3 1066.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.VkFHP7
+RED    1009.3  driver#theSuiteDoesNotInheritTheRunsRoots   (the line that drops the run's own roots before the first case, so the suite inherits the worktree a gate was started in and every case that types an absolute path is answered with a spelling relative to a root it never named (issue #1009))
+       2026-11-25T16:48:01Z — case log line 1: the driver handed the run's own root to the suite: LOOP_WORKTREE=/home/tim/projects/NaviVeylin/.pi/worktrees/loop
+restore 1009.3 driver#theSuiteDoesNotInheritTheRunsRoots green again
+RED    1066.1  driver#theSuiteDoesNotInheritTheRunsRoots   (the state file on the line that drops the run's own roots before the first case, so a suite a case starts under the run's record hands that record to its own case and a case that writes a state writes the live one (issue #1066))
+       2026-11-25T16:48:03Z — case log line 1: the driver handed the run's own root to the suite: LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+restore 1066.1 driver#theSuiteDoesNotInheritTheRunsRoots green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

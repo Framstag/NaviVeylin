@@ -1,0 +1,7 @@
+# the nested arm alone, not vacuous — 2026-11-25T16:48:03Z
+# record 1066.1 puts the three roots #1009 measured back on the `unset` line and leaves LOOP_STATE_FILE off it; the
+# outer shell exports no LOOP_STATE_FILE, so the only state path in play is the one the case's own arm writes.
+# bash tools/loop/tests/loop-mutations.sh --only '1009.3 1066.1'
+RED    1066.1  driver#theSuiteDoesNotInheritTheRunsRoots   (the state file on the line that drops the run's own roots before the first case, so a suite a case starts under the run's record hands that record to its own case and a case that writes a state writes the live one (issue #1066))
+       2026-11-25T16:48:03Z — case log line 1: the driver handed the run's own root to the suite: LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+restore 1066.1 driver#theSuiteDoesNotInheritTheRunsRoots green again

@@ -1,0 +1,6 @@
+# green on 184376ec + this change — 2026-11-25T16:47:21Z
+# bash tools/loop/tests/loop-selftest.sh --case 'driver#theSuiteDoesNotInheritTheRunsRoots'
+LOOP_WORKTREE=/home/tim/projects/NaviVeylin/.pi/worktrees/loop
+LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+PASS driver#theSuiteDoesNotInheritTheRunsRoots
+exit=0

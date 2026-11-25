@@ -1,0 +1,13 @@
+# mutations selftest — 2026-11-25T16:48:07Z
+ok   and the copy is byte-identical to the pristine one again
+ok   a file set no record owns exits 2
+ok   the empty-selection guard message
+ok   and no record ran
+ok   and nothing was mutated
+ok   a git diff names the records its file owns
+ok   and nothing else
+ok   and it says the same selection the file set named
+ok   and the copy is byte-identical to the pristine one again
+ok   a copy with no sibling gate-log reader exits 2
+ok   and it names the sibling it lacks
+loop-mutations-selftest: all 39 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it quotes the assertion a red case failed on and the case-log line it read it from, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched

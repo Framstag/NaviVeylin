@@ -1,0 +1,10 @@
+# evidence check — 2026-11-25T16:49:59Z
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+DRIFT C3 /tmp path cited: openspec/changes/fix-the-suite-drops-the-runs-state-root/design.md:15:project lives under `$LOOP_ROOT/.pi/tmp/…` (`tools/loop/lib.
+DRIFT C3 /tmp path cited: openspec/changes/fix-the-suite-drops-the-runs-state-root/proposal.md:10:`$LOOP_ROOT/.pi/tmp/loop-selftest.XXXXXX` (`tools/loop/lib
+note C3: 2 line(s) cite a /tmp path — re-runnable only until the next run; the number they carry must also be in this artifact or in a retained XML (C2)
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 249 resolved and in range, 3 unresolved or ambiguous
+----
+evidence-check: PASS

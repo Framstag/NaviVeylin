@@ -1,0 +1,10 @@
+# red on HEAD 184376ec + this change's case arm — 2026-11-25T16:47:16Z
+# bash tools/loop/tests/loop-selftest.sh --case 'driver#theSuiteDoesNotInheritTheRunsRoots'
+LOOP_WORKTREE=/home/tim/projects/NaviVeylin/.pi/worktrees/loop
+LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+driver#theSuiteDoesNotInheritTheRunsRoots|   the driver handed the run's own root to the suite: LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+--- driver#theSuiteDoesNotInheritTheRunsRoots[0] (exit 1)
+  the driver handed the run's own root to the suite: LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json
+FAIL driver#theSuiteDoesNotInheritTheRunsRoots
+loop-selftest: 1 of 1 cases failed
+exit=1

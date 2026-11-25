@@ -1,0 +1,8 @@
+# structural checks — 2026-11-25T16:47:25Z
+OK bash -n tools/loop/tests/loop-cases.sh
+OK bash -n tools/loop/tests/loop-mutations.sh
+OK bash -n tools/loop/tests/loop-selftest.sh
+--- check-case-names ---
+CASE-NAMES: ok harnesses=41 lines=1586 named=1377 none=127 unnamed=82 unclaimed=5989
+--- declaration case ---
+PASS driver#everyCaseDeclaresTheFilesItCanReach

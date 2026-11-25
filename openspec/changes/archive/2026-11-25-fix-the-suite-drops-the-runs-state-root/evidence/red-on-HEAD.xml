@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --case driver#theSuiteDoesNotInheritTheRunsRoots" tests="1" failures="1" errors="0" time="1" timestamp="2026-11-25T16:47:16Z">
+  <system-out>A shell self-test carries no JUnit XML of its own: this carrier transcribes the suite's own line from evidence/red-on-HEAD.log — the case run on the base commit 184376ec plus this change's case arm, in a shell the run exported (LOOP_STATE_FILE=…/.pi/issue-loop/run.json).</system-out>
+  <testcase name="driver#theSuiteDoesNotInheritTheRunsRoots" classname="loop-selftest" time="1">
+    <failure message="the driver handed the run's own root to the suite: LOOP_STATE_FILE=/home/tim/projects/NaviVeylin/.pi/issue-loop/run.json"/>
+  </testcase>
+</testsuite>

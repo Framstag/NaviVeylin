@@ -1,0 +1,17 @@
+# measure — 2026-11-25T16:49:09Z
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_loop_tests_loop-mutations-selftest.sh.xml tests=39 failures=0 time=132s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_loop_tests_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanRe.xml tests=0 failures=0 time=17s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_loop_tests_loop-selftest.sh_--from-git_3ef5fbddeb07e65c4cabf0b6385b81c05a5.xml tests=550 failures=3 time=558s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_issues_tests_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_issues_tests_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_issues_tests_decision-question-mutations.json_.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_issues_tests_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_issues_tests_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_mutate.sh_--mutations_tools_tests_portability-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence/tools_tests_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=8s
+LOOP-MEASURE-TALLY-MORE 4 of 24 tally files not shown — at most 20 per directory (openspec/changes/fix-the-suite-drops-the-runs-state-root/evidence)
+LOOP-MEASURE-SURFACE surface: 1 `unset` line extended, 1 comment paragraph extended, 1 case's guard list and comment extended plus 1 nested
+LOOP-MEASURE-END
+--- openspec validate ---
+Change 'fix-the-suite-drops-the-runs-state-root' is valid

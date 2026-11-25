@@ -1,0 +1,4 @@
+# the surface, counted — 2026-11-25T16:49:13Z
+# tools/look.sh 'LOOP_STATE_FILE' --files | wc -l (files) and the three places that assert the rule
+files: 30
+asserted at: tools/loop/tests/loop-selftest.sh:179 (the unset line), tools/loop/tests/loop-cases.sh:18798 (the guard), tools/loop/tests/loop-mutations.sh:1607,1611 (records 1009.3 and 1066.1)

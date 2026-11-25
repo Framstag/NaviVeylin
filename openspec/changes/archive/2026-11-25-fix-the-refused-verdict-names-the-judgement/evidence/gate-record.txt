@@ -1,0 +1,6 @@
+# the gate's own record — the two lines `tasks.md` item 5 cites
+# copied verbatim from this item's round-1 gate log:
+#   /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/gate-round-1.log:9
+#   /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/gate-round-1.log:1747
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+loop-mutations: all 463 cases passed — every selected record applies to the file it names

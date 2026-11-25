@@ -1,0 +1,266 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+38:    --change) need_value "$@"; change="${2:-}"; shift 2 ;;
+171:change_dir=""
+176:    [ -n "$cand" ] && [ -d "$cand" ] && { change_dir="$cand"; break; }
+178:  if [ -z "$change_dir" ]; then
+180:    [ -n "$cand" ] && change_dir="$cand"
+182:  [ -n "$change_dir" ] || say_change "not-found name=$change — no change of that name is open or archived"
+187:    1) change_dir="$open_changes" ;;
+188:    0) change_dir=$(find openspec/changes/archive -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort | tail -1) ;;
+189:    *) say_change "ambiguous open=$(printf '%s\n' "$open_changes" | xargs -n1 basename | paste -sd, -) — $open_count changes are open, so the block names them and measures none: pass --change <name>" ;;
+192:if [ -n "$change_dir" ] && [ -d "$change_dir" ]; then
+193:  change_name=$(basename "$change_dir")
+194:  specs=$(find "$change_dir/specs" -name 'spec.md' 2>/dev/null | sort)
+206:  tally_dir "$change_dir/evidence" no
+207:  surface=$(sed -n 's/^surface:/surface:/p' "$change_dir/proposal.md" 2>/dev/null | head -1)
+LOOP-MEASURE-SUITE cases=554 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE 2026-11-25-fix-the-refused-verdict-names-the-judgement scenarios=10 cases=4 unnamed=6
+Successfully replaced 1 block(s) in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/tasks.md.
+LOOP-MEASURE-CHANGE 2026-11-25-fix-the-refused-verdict-names-the-judgement scenarios=10 cases=4 unnamed=6
+LOOP-MEASURE-SURFACE surface: 2 engine lines, 1 case added with 2 registry rows, 2 existing assertions updated, 3 spec lines — `git
+LOOP-MEASURE-END
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/design.md
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/measure-block.log
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/specs/agent-issue-loop/spec.md
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/tasks.md
+ M openspec/specs/agent-issue-loop/spec.md
+?? openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/gate-record.txt
+=== diff vs ab36bd9d:
+ .../design.md                                      | 11 ++++---
+ .../evidence/measure-block.log                     | 38 ++++++++++++++++++++--
+ .../proposal.md                                    | 24 +++++++-------
+ .../specs/agent-issue-loop/spec.md                 |  3 --
+ .../tasks.md                                       | 21 +++++++-----
+ openspec/specs/agent-issue-loop/spec.md            |  2 --
+ 6 files changed, 66 insertions(+), 33 deletions(-)
+ok   C1 §references: 4 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 299 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf
+bash tools/loop/tests/loop-mutations.sh --check
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-values.sh
+tools/tests/check-doc-values-selftest.sh
+tools/check-doc-routes.sh
+tools/tests/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
+tools/check-openspec-hygiene.sh
+tools/tests/check-openspec-hygiene-selftest.sh
+tools/check-portability.sh
+tools/tests/check-portability-selftest.sh
+tools/tests/mutate-selftest.sh
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+tools/issues/tests/issue-tooling-selftest.sh
+tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+ok   C5 file:line: 299 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0
+2026-11-25 05:40:19.883718945 +0100
+diff --git a/openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md b/openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md
+index 6a053092..346cef7a 100644
+--- a/openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md
++++ b/openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md
+@@ -13,3 +13,3 @@ value (`guidelines/BacklogTooling.md` §10, "Portability") carries one.
+ Nothing caught it. The two fixtures that exercise the branch set `refusedClasses = ["feature"]`
+-(`tools/loop/tests/loop-cases.sh:3043`, `:3087`) and assert the same word back
++(`tools/loop/tests/loop-cases.sh:3045`, `:3086`) and assert the same word back
+ (`:3048`, `:3090`) — the one class for which `class-feature` happens to read true, so the case was green over a
+@@ -23,3 +23,5 @@ verdict word.
+ fixture — and is red on the base commit `ae2373cb` with the production code untouched
+-(`evidence/red-on-head.log`, 2026-11-25T04:40:23Z, exit 1):
++(`evidence/red-on-head.log`; the proof's timestamp is the run's own copy's mtime —
++`stat -c '%y' /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/red-on-head.log` → `2026-11-25 05:40:19
+++0100`, that is `2026-11-25T04:40:19Z`; exit 1):
+ 
+@@ -41,8 +43,8 @@ suite has no JUnit XML of its own (`.pi/skills/revert-check/SKILL.md`), so the t
+ 
+-**Surface, counted before the plan was fixed** (`bash tools/look.sh 'class-feature'`, base commit): 15 matches in 8
+-files, of which **2 engine lines** (`tools/loop/prescreen.sh:408`, `:700`), **3 fixture assertions**
+-(`tools/loop/tests/loop-cases.sh:3048`, `:3090`, plus the registry rows a new case needs) and **3 shipped spec
+-lines** (`openspec/specs/agent-issue-loop/spec.md:247`, `:1851`, `:1864`); the other 10 matches are archived
+-changes, which are records and are not rewritten: **1 case added, 1 case's fixture changed to a second class, 2
+-existing assertions updated, 0 
+[LOOP-TRIMMED: ctx_shell returned 3187 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+started
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf (from the base branch main)
+LOOP-GATE-TREE: head=ab36bd9d4867719f5a2a54d248f4cacb53540f38 diff=09656ef3122e8c64
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=1564711
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach — 20s
+gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded 
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody 
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a questio
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 1s
+LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 20s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1
+1744:LOOP-GATE-BASERED:tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf:3
+1860:LOOP-GATE-BASERED-UNMEASURED:tools/check-openspec-hygiene.sh — no clean tree at ae2373cb0011 to measure it in, so its red stays with the item
+2287:LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 20s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf 635s, b
+2287:LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 20s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38e
+== tail:
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a questio
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 1s
+LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 20s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1
+1853:::error file=openspec/changes/fix-an-adopted-closure-says-so/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tr
+1854:::error file=openspec/changes/fix-an-adoption-is-recorded-as-one/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in th
+1855:::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothin
+1856:::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothin
+—
+failing:
+tools/check-openspec-hygiene.sh
+—
+base-red:
+== failing clause:
+failing: tools/check-openspec-hygiene.sh — base-red: tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf:3
+worker-report.md:1:LOOP-TIMEOUT: the child reached the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 90988 tokens — the run ended it and everything it started
+worker-report.md:2:LOOP-LEFTOVERS: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/leftover-from-killed-run.patch — the work this run ended is kept there
+worker-report.md:3:LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: ?? tools/__pycache__/loop-spend.cpython-314.pyc — read while the child was alive at 2026-11-25T04:58:57Z
+worker-report.md:4:LOOP-OUTSIDE-WRITE-ALIVE: 10598 -zsh; 114819 /usr/bin/herdr server; 1506402 /bin/zsh; 183153 bash tools/loop/run.sh --items 1 --minutes 150 --push yes --reset-worktree --no-; 183155 bash tools/pi-child
+worker-report.md:5:LOOP-OUTSIDE-WRITE-COST: procs=651 attributed_ms=1114 standers_ms=3204
+worker-report.md:6:LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: ?? tools/__pycache__/loop-spend.cpython-314.pyc; process(es) whose working directory is inside the project: 10598 -zsh; 114819 /usr/
+worker-tail-report.md:18:LOOP-VERDICT: closed
+worker-tail-report.md:19:LOOP-CHANGE: 2026-11-25-fix-the-refused-verdict-names-the-judgement
+worker-tail-report.md:20:LOOP-ROOT-CAUSE: `tools/loop/prescreen.sh:408` spells the refusal verdict as a class value (`class-feature`) while the refused class is named only in the reason, so a refused improvement is logge
+worker-tail-report.md:21:LOOP-RED-TEST: prescreen#theRefusedVerdictNamesNoClassValue fails on HEAD — XML tests=5 failures=2 (2026-11-25T04:40:23Z, `evidence/red-on-head.log`: "expected 'class-refused', got 'class-feature
+worker-tail-report.md:22:LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 16s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38e
+worker-tail-report.md:23:LOOP-GATE-WAIVED: `tools/check-openspec-hygiene.sh` errors name four other items' open change d
+[LOOP-TRIMMED: ctx_shell returned 3797 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+openspec/specs/agent-issue-loop/spec.md:1842:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+openspec/specs/agent-issue-loop/spec.md:1849:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+== (no output above = pointer gone from the refusal scenario)
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/design.md
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/evidence-check.log
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/measure-block.log
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/specs/agent-issue-loop/spec.md
+ M openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/tasks.md
+ M openspec/specs/agent-issue-loop/spec.md
+?? openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/gate-record.txt
+ .../tasks.md                                       | 21 +++++++-----
+ openspec/specs/agent-issue-loop/spec.md            |  2 --
+ 7 files changed, 67 insertions(+), 38 deletions(-)
+ae2373cb:openspec/specs/agent-issue-loop/spec.md:1831:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+ae2373cb:openspec/specs/agent-issue-loop/spec.md:1838:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+== in HEAD (pre-my-edits):
+ab36bd9d:openspec/specs/agent-issue-loop/spec.md:271:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+ab36bd9d:openspec/specs/agent-issue-loop/spec.md:1844:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+ab36bd9d:openspec/specs/agent-issue-loop/spec.md:1851:- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+1163:FAIL driver#anOwnedFunctionIsInItsOwnersFile
+1500:FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+1718:FAIL run#theQuotaSwitchIsExplicit
+1722:loop-selftest: prescreen 45 cases 362.72 s
+1742:loop-selftest: 3 of 554 cases failed — 633.86 s
+1747:loop-mutations: all 463 cases passed — every selected record applies to the file it names
+Successfully wrote to /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/worker-report-round2.md
+[pi-permission-system] Denied by policy: 'bash' (invoked as 'ctx_shell') (rule 'rm -rf /*').
+.pi/tmp/merged-build-md.txt
+.pi/tmp/repro-adapter.sh
+.pi/tmp/green-focused.log
+.pi/tmp/probe.sh
+.pi/tmp/gates-head.txt
+.pi/tmp/findings2.json
+.pi/tmp/loop-dry-run.log
+.pi/tmp/finding-separate-tooling-test-code.json
+.pi/tmp/wp.md
+.pi/tmp/finding-mutation-subset.json
+?? tools/__pycache__/
+done
+ls: Zugriff auf '.pi/tmp/wp.md' nicht möglich: Datei oder Verzeichnis nicht gefunden
+tools/__pycache__ 2026-11-25 05:58:52.997984655 +0100
+
+# the gate child's own closing answer
+Round 2 done — corrections applied, gate re-run.
+
+**Corrections (all subtractive, reviewer's option 2)**
+1. **BLOCKING fixed** — deleted the false `Case: run#aCorrectiveRoundIsHandedTheCorrections` pointer from `openspec/specs/agent-issue-loop/spec.md` (refusal-withdrawal scenario) and from the change's archived delta. That case owns the corrective-round protocol and is already the case for two pre-existing scenarios (base `ae2373cb:…:1831,:1838` → untouched).
+2. **Surface numbers** — base truth via `git grep -c 'class-feature' ae2373cb -- .`: 15 matches / 8 files = 2 engine, 2 fixture assertions, 3 shipped spec, 8 in 5 files of 3 archived changes. Old "3 fixture / 10 archived" removed from `proposal.md` (both places) + `design.md`; command now produces the count.
+3. **Pointers** — `loop-cases.sh:3043/:3087` → `:3045/:3086` (base); assertions `:3048/:3090` already right.
+4. **Evidence pointers** — `tasks.md` item 5 now cites the gate's own record, copied verbatim into `evidence/gate-record.txt` (round-1 gate log lines 9, 1747); item 9 → `evidence/gate-output.txt:87,219` + `evidence/gate-hygiene-red.log`.
+5. **Timestamp** — `2026-11-25T04:40:23Z` (wrong file's mtime) → `2026-11-25T04:40:19Z`, origin `stat -c '%y' …/items/1030/red-on-head.log`.
+6. **Measure re-taken** — `scenarios=10 cases=4 unnamed=6` (was 5/5 with the false pointer); `evidence/measure-block.log` refreshed.
+7. `evidence-check.sh` → **PASS** (299 pointers, 0 unresolved). Gate plan's first line run first → PASS.
+
+**Gate** (once, detached; tree `head=ab36bd9d diff=09656ef3`): `tests=1287 failures=0 errors=1` — the one error is `tools/check-openspec-hygiene.sh` on four *other* items' open change dirs, base-red/unmeasured (`gate.log:1853-1856,1860`). From-git suite: 3 of 554 base-red failures (same three, unrelated), prescreen group 45/45, mutations 463/463.
+
+NOTEs for the reader: no case in the tree asserts a refusal label being withdrawn → scenario stays unnamed (new claim, refused as a correction); archived dir carries no `.openspec.yaml` (hygiene check does not read archives).
+
+Report: `.pi/issue-loop/items/1030/worker-report-round2.md`
+
+LOOP-CHANGE: 2026-11-25-fix-the-refused-verdict-names-the-judgement
+LOOP-ROOT-CAUSE: `tools/loop/prescreen.sh:408` spelled the refusal verdict as a class value (`class-feature`) while the refused class was named only in the reason, so a refused `improvement` was logged as a refused feature and the engine carried a value of the project's class namespace.
+LOOP-RED-TEST: prescreen#theRefusedVerdictNamesNoClassValue fails on HEAD — XML tests=5 failures=2 (2026-11-25T04:40:19Z, `evidence/red-on-head.log`: "expected 'class-refused', got 'class-feature'")
+LOOP-GATE: tests=1287 failures=0 errors=1 (loop-selftest --from-git ae2373cb: 554 cases, 3 base-red failures, prescreen group 45/45; loop-mutations 463/463; the one error is tools/check-openspec-hygiene.sh on four other items' open change dirs — base-red, gate.log:1853-1856,1860)
+030/red-on-head.log` →
+`2026-11-25 05:40:19 +0100` = **`2026-11-25T04:40:19Z`** (`proposal.md`, `tasks.md` item 1).
+
+## 6. The measuring block was re-taken after the corrections
+
+`./tools/loop/measure.sh --change 2026-11-25-fix-the-refused-verdict-names-the-judgement` →
+`LOOP-MEASURE-SUITE cases=554`, `LOOP-MEASURE-CHANGE … scenarios=10 cases=4 unnamed=6` (it was `cases=5
+unnamed=5` while the false pointer stood). The six unnamed are the scenarios the two requirements already
+carried without a case on the base commit. `evidence/measure-block.log` refreshed; `tasks.md` item 7 updated.
+
+## 7. Structural checks before the gate
+
+- `bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement --root .`
+  → `evidence-check: PASS` (299 `file:line` pointers resolved, 0 unresolved) — `evidence/evidence-check.log`.
+- The gate plan's first line, run first: `tools/loop/tests/loop-selftest.sh --case
+  'driver#everyCaseDeclaresTheFilesItCanReach'` → `PASS driver#everyCaseDeclaresTheFilesItCanReach`.
+
+## 8. The gate
+
+Run once, detached, from the change root: tree `head=ab36bd9d4867719f5a2a54d248f4cacb53540f38
+diff=09656ef3122e8c64` (`gate.log:5`); log `gate.log`.
+
+- `LOOP-GATE: tests=1287 failures=0 errors=1`.
+- The from-git suite: `loop-selftest: 3 of 554 cases failed` — the same three base-red, unrelated cases as the
+  round before (`driver#anOwnedFunctionIsInItsOwnersFile`, `run#aQuotaHoldPausesTheRunAndResumesIt`,
+  `run#theQuotaSwitchIsExplicit`), recorded base-red at `gate.log:1744`. The prescreen group inside that run:
+  `prescreen 45 cases 362.72 s`, no FAIL. The mutation set: `loop-mutations: all 463 cases passed`.
+- The gate's one error is `tools/check-openspec-hygiene.sh`, on four **other** items' open change directories
+  (`gate.log:1853-1856`); the gate records it as base-red and unmeasured (`gate.log:1860`). This change's
+  directory is archived and is not among them. No green gate is claimed that the tree does not carry.
+
+## NOTEs (named for the reader, no action taken)
+
+- No case in the tree asserts the withdrawal of a refusal label, so the refusal-withdrawal scenario stays
+  unnamed (measure: `unnamed=6`). Writing that case is a new claim and was refused as a correction.
+- The archived change directory carries no `.openspec.yaml`; the hygiene check does not read archived
+  directories, and two other 2026-11-25 archives lack the file too.
+
+LOOP-CHANGE: 2026-11-25-fix-the-refused-verdict-names-the-judgement
+LOOP-ROOT-CAUSE: `tools/loop/prescreen.sh:408` spelled the refusal verdict as a class value (`class-feature`) while the refused class was named only in the reason, so a refused `improvement` was logged as a refused feature and the engine carried a value of the project's class namespace.
+LOOP-RED-TEST: prescreen#theRefusedVerdictNamesNoClassValue fails on HEAD — XML tests=5 failures=2 (2026-11-25T04:40:19Z, `evidence/red-on-head.log`: "expected 'class-refused', got 'class-feature'")
+LOOP-GATE: tests=1287 failures=0 errors=1 (loop-selftest --from-git ae2373cb: 554 cases, 3 base-red failures, prescreen group 45/45; loop-mutations 463/463; the one error is tools/check-openspec-hygiene.sh on four other items' open change dirs — base-red, gate.log:1853-1856,1860)

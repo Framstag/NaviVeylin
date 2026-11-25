@@ -9,7 +9,7 @@ the verdict is the *judgement* the pre-screen made. The two were conflated, so a
 (`guidelines/BacklogTooling.md` §10).
 
 The two fixtures that exercise the branch could not see it: both set `refusedClasses = ["feature"]`
-(`tools/loop/tests/loop-cases.sh:3043`, `:3087` on the base commit), the single value for which the literal and a
+(`tools/loop/tests/loop-cases.sh:3045`, `:3086` on the base commit), the single value for which the literal and a
 judgement word coincide.
 
 ## The single fix
@@ -26,8 +26,9 @@ unchanged, so no fixture that does not spell the verdict is touched.
 ## Blast radius
 
 - **Engine:** `tools/loop/prescreen.sh`, two lines (the literal and the `case` pattern) plus the comment above the
-  branch. It is the only engine that writes or reads the word: `bash tools/look.sh 'class-feature'` on the base
-  commit names these two lines and no other engine.
+  branch. It is the only engine that writes or reads the word: `git grep -n 'class-feature' ae2373cb -- tools/`
+  names these two lines in it, the two fixture assertions in `tools/loop/tests/loop-cases.sh`, and no other engine
+  file.
 - **Cases:** `tools/loop/tests/loop-cases.sh` — one case added with its two registry rows (the selection set at
   `tools/loop/tests/loop-cases.sh:68` and the dispatch at `:909`; a body with no row in both is the
   `--list`-and-selection disagreement issue #929 refuses), two existing assertions re-pointed. No fixture file
@@ -35,8 +36,8 @@ unchanged, so no fixture that does not spell the verdict is touched.
 - **Spec:** three shipped lines in `agent-issue-loop` (`openspec/specs/agent-issue-loop/spec.md:247`,
   `openspec/specs/agent-issue-loop/spec.md:1851`, `openspec/specs/agent-issue-loop/spec.md:1864` on the base
   commit), which is why this lands as a change and not as a one-line fix.
-- **Not touched:** archived changes that quote the old word (10 matches in 5 archived changes). An archive is a
-  record of what was true when it ran; rewriting it would make the record lie.
+- **Not touched:** archived changes that quote the old word (8 matches in 5 files of 3 archived changes). An
+  archive is a record of what was true when it ran; rewriting it would make the record lie.
 
 ## Rollback
 

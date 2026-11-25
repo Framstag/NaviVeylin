@@ -11,7 +11,7 @@ literal is the engine's own key for the refusal label (`tools/loop/prescreen.sh:
 value (`guidelines/BacklogTooling.md` §10, "Portability") carries one.
 
 Nothing caught it. The two fixtures that exercise the branch set `refusedClasses = ["feature"]`
-(`tools/loop/tests/loop-cases.sh:3043`, `:3087`) and assert the same word back
+(`tools/loop/tests/loop-cases.sh:3045`, `:3086`) and assert the same word back
 (`:3048`, `:3090`) — the one class for which `class-feature` happens to read true, so the case was green over a
 verdict that names a class the refused item need not carry at all.
 
@@ -21,7 +21,9 @@ verdict word.
 
 **The red test:** `prescreen#theRefusedVerdictNamesNoClassValue` refuses `improvement` — issue 24 of the `six`
 fixture — and is red on the base commit `ae2373cb` with the production code untouched
-(`evidence/red-on-head.log`, 2026-11-25T04:40:23Z, exit 1):
+(`evidence/red-on-head.log`; the proof's timestamp is the run's own copy's mtime —
+`stat -c '%y' /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/red-on-head.log` → `2026-11-25 05:40:19
++0100`, that is `2026-11-25T04:40:19Z`; exit 1):
 
 ```
   the verdict names the judgement, not a class value: expected 'class-refused', got 'class-feature'
@@ -39,18 +41,18 @@ suite has no JUnit XML of its own (`.pi/skills/revert-check/SKILL.md`), so the t
 (`openspec/specs/agent-issue-loop/spec.md:247`); the rule the verdict broke is `guidelines/BacklogTooling.md` §10,
 "Portability", "an engine names no project value".
 
-**Surface, counted before the plan was fixed** (`bash tools/look.sh 'class-feature'`, base commit): 15 matches in 8
-files, of which **2 engine lines** (`tools/loop/prescreen.sh:408`, `:700`), **3 fixture assertions**
-(`tools/loop/tests/loop-cases.sh:3048`, `:3090`, plus the registry rows a new case needs) and **3 shipped spec
-lines** (`openspec/specs/agent-issue-loop/spec.md:247`, `:1851`, `:1864`); the other 10 matches are archived
-changes, which are records and are not rewritten: **1 case added, 1 case's fixture changed to a second class, 2
-existing assertions updated, 0 fixtures realigned**.
+**Surface, counted before the plan was fixed** (`git grep -c 'class-feature' ae2373cb -- .`, the base commit): 15
+matches in 8 files — **2 engine lines** (`tools/loop/prescreen.sh:408`, `:700`), **2 fixture assertions**
+(`tools/loop/tests/loop-cases.sh:3048`, `:3090`) and **3 shipped spec lines**
+(`openspec/specs/agent-issue-loop/spec.md:247`, `:1851`, `:1864`); the other 8 matches are in 5 files of 3
+archived changes, which are records and are not rewritten: **1 case added, 1 case's fixture changed to a second
+class, 2 existing assertions updated, 0 fixtures realigned**.
 
 ## What changes
 
-surface: 2 engine lines, 1 case added with 2 registry rows, 2 existing assertions updated, 3 spec lines — `bash
-tools/look.sh 'class-feature'` on the base commit (15 matches in 8 files: 2 engine, 3 fixture-assertion, 3 shipped
-spec, 10 archived).
+surface: 2 engine lines, 1 case added with 2 registry rows, 2 existing assertions updated, 3 spec lines — `git
+grep -c 'class-feature' ae2373cb -- .` on the base commit (15 matches in 8 files: 2 engine, 2 fixture-assertion,
+3 shipped spec, 8 archived).
 
 - `tools/loop/prescreen.sh` — the branch's verdict becomes `class-refused`, with the reason left as the one place
   the refused class is named (`:408-411`), and the refusal-label mapping keys on the same word (`:700`).

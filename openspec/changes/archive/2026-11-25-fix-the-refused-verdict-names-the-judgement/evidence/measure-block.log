@@ -1,10 +1,42 @@
 LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf paths=2 insertions=29 deletions=4
+LOOP-MEASURE base=ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf paths=25 insertions=820 deletions=8
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/gate-hygiene-red.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/gate-output.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/gate-record.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/green-focused.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/green-prescreen-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/measure-block.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/mutation-before.sha256
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/mutation-red.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/mutation-red-reason.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/mutation-restored.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/portability.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/red-on-head-trace.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/review-failed-round-1.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
 LOOP-MEASURE-PATH tools/loop/prescreen.sh
 LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
 LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
 LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf
 LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/tests/check-openspec-hygiene-selftest.sh
 LOOP-MEASURE-CHECK tools/check-portability.sh
 LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
 LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
@@ -17,6 +49,6 @@ LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mut
 LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
 LOOP-MEASURE-SUITE cases=554 cmd=tools/loop/tests/loop-selftest.sh --list
 LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-LOOP-MEASURE-CHANGE fix-the-refused-verdict-names-the-judgement scenarios=10 cases=5 unnamed=5
-LOOP-MEASURE-SURFACE surface: 2 engine lines, 1 case added with 2 registry rows, 2 existing assertions updated, 3 spec lines — `bash
+LOOP-MEASURE-CHANGE 2026-11-25-fix-the-refused-verdict-names-the-judgement scenarios=10 cases=4 unnamed=6
+LOOP-MEASURE-SURFACE surface: 2 engine lines, 1 case added with 2 registry rows, 2 existing assertions updated, 3 spec lines — `git
 LOOP-MEASURE-END

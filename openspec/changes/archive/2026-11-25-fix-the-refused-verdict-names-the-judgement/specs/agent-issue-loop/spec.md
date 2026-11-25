@@ -55,9 +55,6 @@ one class cannot read as a refusal of another (`guidelines/BacklogTooling.md` §
 - **THEN** the refusal label is removed, so a repaired citation or a re-classified item is worked rather than
   frozen by a label no run re-reads
 
-
-- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
-
 ### Requirement: A feature is planned before it is applied
 
 A `class/feature` item the profile works SHALL be queued like a defect. It SHALL be worked by the

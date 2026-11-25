@@ -27,13 +27,22 @@ Only this block is different, because it is the state you were handed instead of
 - how the first process ended, in the run's own words: `{{BOUND_LINE}}`
 - the work it left, as a patch: `{{PATCH}}` — {{PATCH_FILES}} file(s), {{PATCH_HUNKS}} hunk(s):
 {{PATCH_PATHS}}
+- what the process before you **read**, path by path: `{{LEDGER}}` — the item's own tool-result ledger, one line per path
+  this item's children were handed (`sha`, turn, size, session, path); the session is the name of the prompt the run gave
+  the child that read it — `worker-prompt` for the worker phase, `worker-gate-prompt` for the gate phase. Every line is a
+  path some child of this item already opened, and not one of them is in your context, so ask for a passage
+  (`ctx_read mode="lines:N-M"`) rather than for a file whole: the rule over this ledger answers a read of a path whose
+  content is unchanged since with one line naming the turn, the size and that call, and a path that changed since with
+  only a bounded head of it and a `[LOOP-REPEAT-EDIT: …]` line. What that process **made** of what it read is not in the
+  ledger: that is its own report, `{{EVIDENCE_DIR}}/worker-report.md`, the answer it was ended with.
 - change root: `{{CHANGE_ROOT}}` — the tree that stands on the branch's HEAD plus that patch, uncommitted. Your working
   directory is the project, so `cd` into it and run every command there; the project's own tree is not yours to write.
 - prepared work package: `{{WORK_PACKAGE}}` — the item's own text, and the prepared change when the item was filed with
   one. Read it: it is the whole of what the first process was given, and the same diagnosis starts you.
 - evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
 - scratch directory (the one place beside your change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
-  start. A write with a **relative path** lands in the project's own tree, not in the change root.
+  start, and the first process's own notes are still in it: what it wrote down while it worked stands there and not in
+  the report above. A write with a **relative path** lands in the project's own tree, not in the change root.
 - the run's base commit: `{{BASE}}`
 - the project's gate command: `{{GATE_CMD}}`
 - the project's measuring command: `{{MEASURE_CMD}}`

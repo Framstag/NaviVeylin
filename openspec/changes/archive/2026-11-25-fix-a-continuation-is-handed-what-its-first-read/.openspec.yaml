@@ -1,0 +1,9 @@
+# This change carries no spec delta: the requirement it answers — agent-issue-loop's two continuation scenarios, "A
+# worker that reaches the checkpoint is continued before the bound" and "The checkpoint is recorded where the split
+# pays" — was rewritten by the fix commit itself, in openspec/specs/agent-issue-loop/spec.md, so that the child the
+# run starts is started on the item's own ledger beside the work package and the patch. Writing the same sentences
+# again as a change-relative delta would merge nothing at archive. See proposal.md, "Spec delta: none, and why".
+schema: spec-driven
+created: 2026-11-25
+x-issue: 1084
+skip_specs: true

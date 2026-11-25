@@ -3880,7 +3880,7 @@ The run SHALL bound a child in what a turn costs, not in how many turns it takes
 #### Scenario: A worker that reaches the checkpoint is continued before the bound
 
 - **WHEN** the item's first worker reports a context of 150 000 tokens while `LOOP_ITEM_CONTEXT_WARN` records 90 000 and `LOOP_ITEM_CONTEXT_MAX` records 200 000, it has left its change in the tree, and the run's own deadline has not passed
-- **THEN** the run prints the checkpoint once, ends the worker's process group with the wall clock's own exit status, writes `LOOP-TIMEOUT: the child reached the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 150000 tokens — the run ended it and everything it started` into its transcript, applies the kept patch onto the branch's `HEAD`, records the resume as `applied` with a note naming the checkpoint, starts exactly one continuation child on the work package plus the patch, records its step as `worker-checkpoint`, and leaves the item's outcome to that child's answer
+- **THEN** the run prints the checkpoint once, ends the worker's process group with the wall clock's own exit status, writes `LOOP-TIMEOUT: the child reached the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 150000 tokens — the run ended it and everything it started` into its transcript, applies the kept patch onto the branch's `HEAD`, records the resume as `applied` with a note naming the checkpoint, starts exactly one continuation child on the work package, the patch and the item's own tool-result ledger of what its children read, records its step as `worker-checkpoint`, and leaves the item's outcome to that child's answer
 - **Case**: `run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound`
 
 #### Scenario: The checkpoint is recorded where the split pays
@@ -3920,7 +3920,7 @@ The run SHALL bound a child in what a turn costs, not in how many turns it takes
 - **WHEN** a worker is ended at the recorded context bound having left its change in the tree, and the run's own
   deadline has not passed
 - **THEN** the run puts the tree back on the branch's `HEAD`, applies the kept patch onto it, records the resume as
-  `applied`, renders and starts exactly one continuation child on the work package plus the patch, records its step as
+  `applied`, renders and starts exactly one continuation child on the work package, the patch and the item's own tool-result ledger of what its children read, records its step as
   `worker-continuation`, and the item's outcome is that child's answer with the continuation sentence in its note
 - **Case**: `run#aContextCutWorkerIsContinuedByItsOwnRun`
 

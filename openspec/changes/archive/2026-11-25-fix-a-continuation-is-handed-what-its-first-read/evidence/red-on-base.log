@@ -1,0 +1,248 @@
+# The red, on the unfixed source
+
+The tree is `adb79f6f` — the commit this change lands on, whose sources outside `openspec/changes` are `dc1fd9da`'s
+(`git diff dc1fd9da adb79f6f -- ':!openspec/changes'` is 0 bytes) — with `8386579a`'s
+`tools/loop/tests/loop-cases.sh` alone checked out over it (`git checkout 8386579a --
+tools/loop/tests/loop-cases.sh`). Every other file is the base's, so `tools/loop/run.sh` passes no `LEDGER=` to either
+`render_prompt` call and `tools/loop/prompts/worker-continuation.md` has no bullet naming the ledger. Run, verbatim
+(the failure message repeats the rendered continuation skeleton whole, which is the bulk below):
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#theContinuationIsToldWhatItsFirstWorkerRead'
+run#theContinuationIsToldWhatItsFirstWorkerRead|   the continuation is told the ledger of what the first process read, so it starts from that instead of reading the tree again: '/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/tool-result-ledger.tsv' not found in: # Worker, continued — one item, the work a bound ended
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| You are the **second** process of one item, and the same role as the first: the item's worker. The run started the
+run#theContinuationIsToldWhatItsFirstWorkerRead| first one, it did the diagnosis, it applied part of the change — and the run **ended it** when its context reached
+run#theContinuationIsToldWhatItsFirstWorkerRead| the split this profile records — `LOOP_ITEM_CONTEXT_WARN` before the stop, or `LOOP_ITEM_CONTEXT_MAX` at it: a session
+run#theContinuationIsToldWhatItsFirstWorkerRead| that has grown past that reading re-reads everything it carries on every further turn, so a fresh session on the same
+run#theContinuationIsToldWhatItsFirstWorkerRead| tree is the cheaper half of that bound, not a second item's budget.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| What the run did before starting you: it wrote the work that process left to the patch named below, put the tree back
+run#theContinuationIsToldWhatItsFirstWorkerRead| on the branch's HEAD, applied that patch onto it, and removed the child. So the tree you are handed **already holds
+run#theContinuationIsToldWhatItsFirstWorkerRead| that work**, committed nowhere, and nothing about the item has been measured yet: no gate ran, no reviewer read it.
+run#theContinuationIsToldWhatItsFirstWorkerRead| There is nobody to ask either — a question you cannot answer from the tree is a verdict (`skipped`) with the reason,
+run#theContinuationIsToldWhatItsFirstWorkerRead| never a guess and never a request.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| **Your instructions are your role's own.** Read `tools/loop/prompts/worker.md` under the project's root: it is the
+run#theContinuationIsToldWhatItsFirstWorkerRead| worker's skeleton, and everything in it applies to you — the phases, the project's routing for the kind of change it
+run#theContinuationIsToldWhatItsFirstWorkerRead| is, the block headed **What your own shell and tools refuse**, and the report block that ends your output. Read it
+run#theContinuationIsToldWhatItsFirstWorkerRead| before your first edit; it is one call, and it is the whole of the rules this run would otherwise hand you twice.
+run#theContinuationIsToldWhatItsFirstWorkerRead| That file is the skeleton and not a rendered prompt, so its placeholders stand there unsubstituted: the values are in
+run#theContinuationIsToldWhatItsFirstWorkerRead| the block below, and the one section the run inserts in place of its gate placeholder — where your session ends and
+run#theContinuationIsToldWhatItsFirstWorkerRead| who archives the change — is at the **end of this file**, rendered for this run.
+run#theContinuationIsToldWhatItsFirstWorkerRead| Only this block is different, because it is the state you were handed instead of a clean base:
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| - item: **#21**
+run#theContinuationIsToldWhatItsFirstWorkerRead| - class: **bug** — when it is `feature`, the item takes the **propose-first** path, exactly as that
+run#theContinuationIsToldWhatItsFirstWorkerRead|   skeleton says. The patch below may already carry a plan; if it does, it is the plan you continue, not a second one.
+run#theContinuationIsToldWhatItsFirstWorkerRead| - how the first process ended, in the run's own words: `the child reached the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 150000 tokens — the run ended it and everything it started`
+run#theContinuationIsToldWhatItsFirstWorkerRead| - the work it left, as a patch: `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch` — 2 file(s), 2 hunk(s):
+run#theContinuationIsToldWhatItsFirstWorkerRead|   - demo-fix.txt
+run#theContinuationIsToldWhatItsFirstWorkerRead|   - openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+run#theContinuationIsToldWhatItsFirstWorkerRead| - change root: `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/worktrees/loop` — the tree that stands on the branch's HEAD plus that patch, uncommitted. Your working
+run#theContinuationIsToldWhatItsFirstWorkerRead|   directory is the project, so `cd` into it and run every command there; the project's own tree is not yours to write.
+run#theContinuationIsToldWhatItsFirstWorkerRead| - prepared work package: `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/work-package.md` — the item's own text, and the prepared change when the item was filed with
+run#theContinuationIsToldWhatItsFirstWorkerRead|   one. Read it: it is the whole of what the first process was given, and the same diagnosis starts you.
+run#theContinuationIsToldWhatItsFirstWorkerRead| - evidence directory (write your evidence here): `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`
+run#theContinuationIsToldWhatItsFirstWorkerRead| - scratch directory (the one place beside your change your writes may land): `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/scratch` — it exists before you
+run#theContinuationIsToldWhatItsFirstWorkerRead|   start. A write with a **relative path** lands in the project's own tree, not in the change root.
+run#theContinuationIsToldWhatItsFirstWorkerRead| - the run's base commit: `dbc1e547658f1d370b6edb7872d5da0d9c683e33`
+run#theContinuationIsToldWhatItsFirstWorkerRead| - the project's gate command: `./tools/loop/gate.sh`
+run#theContinuationIsToldWhatItsFirstWorkerRead| - the project's measuring command: `./tools/loop/measure.sh`
+run#theContinuationIsToldWhatItsFirstWorkerRead| - the skills this project wants you to use: `openspec-propose openspec-apply-change build-app run-tests revert-check`
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| ## What is yours to do, and what is not
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| 1. **Read what stands in the tree before you write anything**: `git status` and the diff against `dbc1e547658f1d370b6edb7872d5da0d9c683e33` in the
+run#theContinuationIsToldWhatItsFirstWorkerRead|    change root are the first process's work, and reading it is cheaper than redoing it. The patch above is a record
+run#theContinuationIsToldWhatItsFirstWorkerRead|    of that work, not a contract: where it is wrong, incomplete or half-applied, fix it in the tree — an unfinished
+run#theContinuationIsToldWhatItsFirstWorkerRead|    file a killed process left is yours to finish, not a fact you owe.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 2. **Do not re-derive the diagnosis.** The work package already holds the item, and the tree already holds what the
+run#theContinuationIsToldWhatItsFirstWorkerRead|    first process made of it. Where the work in the tree does not answer the item, that is a verdict with the reason
+run#theContinuationIsToldWhatItsFirstWorkerRead|    (the skeleton's own), not a second Phase A from zero.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 3. **Everything after the diagnosis is yours, unchanged**: the plan, the change, the evidence, the red case, the gate
+run#theContinuationIsToldWhatItsFirstWorkerRead|    section the run inserted below, and the report block the skeleton states — the last lines of your output are that
+run#theContinuationIsToldWhatItsFirstWorkerRead|    block, and the run verifies every line of it against the tree.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 4. **Commit nothing and push nothing.** The run owns git, the branch and the tracker, exactly as the skeleton says: the
+run#theContinuationIsToldWhatItsFirstWorkerRead|    tree you leave *is* your claim, and a commit is the run's statement about a child that finished.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| **Complete the change before you run the gate** (issue #837). The gate names the tree it measures and a round's diff
+run#theContinuationIsToldWhatItsFirstWorkerRead| names the tree it was written from, and those two names have to be one — so everything that writes the change
+run#theContinuationIsToldWhatItsFirstWorkerRead| directory is done *before* the gate: copy the XMLs you cite into the change's own `evidence/` directory and into
+run#theContinuationIsToldWhatItsFirstWorkerRead| `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`, run `bash tools/loop/evidence-check.sh <the change directory> --root .` from the change root and
+run#theContinuationIsToldWhatItsFirstWorkerRead| fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+run#theContinuationIsToldWhatItsFirstWorkerRead| this child in this shape, so the archive is yours; a rework round starts with the change already archived, and there
+run#theContinuationIsToldWhatItsFirstWorkerRead| you complete nothing and leave the directory where it is. The date prefix the
+run#theContinuationIsToldWhatItsFirstWorkerRead| archive adds is what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree
+run#theContinuationIsToldWhatItsFirstWorkerRead| reads the same before and after the move. Nothing outside the change's `evidence/` directory is written after the gate:
+run#theContinuationIsToldWhatItsFirstWorkerRead| a repair made there is a tree the gate never measured.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| Run the project's gate **once**, exactly as the run's configuration states it:
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| ```
+run#theContinuationIsToldWhatItsFirstWorkerRead| cd /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/worktrees/loop && nohup ./tools/loop/gate.sh > /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/gate.log 2>&1 &
+run#theContinuationIsToldWhatItsFirstWorkerRead| ```
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| A shell whose policy refuses to let one program start another drops the `nohup` and keeps the trailing `&` with both
+run#theContinuationIsToldWhatItsFirstWorkerRead| streams in that log; the gate outlives the call either way. Keep the path absolute as it stands — `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`
+run#theContinuationIsToldWhatItsFirstWorkerRead| is, and a bare `gate.log` would land in the project's own tree.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| **The wall this call runs into, and the way through it (issue #957).** The harness you run under ends one tool call
+run#theContinuationIsToldWhatItsFirstWorkerRead| at a **ceiling** of its own — 900 s measured on this host, 1 500 s in the run that filed this issue — and the gate is
+run#theContinuationIsToldWhatItsFirstWorkerRead| bounded by the profile's own clocks, which are longer than that (`LOOP_GATE_STEP_MAX_SECONDS` for one step,
+run#theContinuationIsToldWhatItsFirstWorkerRead| `LOOP_ITEM_GATE_SECONDS` for an item's whole gate). So a gate that passes can outlast the call that started it, and a
+run#theContinuationIsToldWhatItsFirstWorkerRead| gate run inline ends as a call that was cut: no `LOOP-GATE:` line, no tally, and a diff the round after the gate
+run#theContinuationIsToldWhatItsFirstWorkerRead| refuses for carrying no gate of its own. So the gate is **started detached and polled** — the call that starts it is
+run#theContinuationIsToldWhatItsFirstWorkerRead| not the call that reads it — and each poll is one `sleep` and one `tail -n`: a wait and a range read, over a file under
+run#theContinuationIsToldWhatItsFirstWorkerRead| the item's own directory rather than a path of the project's tree, so reading its end is no search of a tree at all:
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| ```
+run#theContinuationIsToldWhatItsFirstWorkerRead| sleep 600 && tail -n 40 /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/gate.log
+run#theContinuationIsToldWhatItsFirstWorkerRead| ```
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| The gate is over when the log's last line begins `LOOP-GATE:` — its verdict, the numbers your report quotes — or
+run#theContinuationIsToldWhatItsFirstWorkerRead| `LOOP-GATE-REFUSED:`, which measured nothing. **A call that ends at its ceiling is the call ending, not the gate**: the
+run#theContinuationIsToldWhatItsFirstWorkerRead| process it started keeps running (this loop's own record, `tools/loop/loop.conf`), so resume by polling again, and
+run#theContinuationIsToldWhatItsFirstWorkerRead| never start a second gate — a gate started while one is running refuses with `LOOP-GATE-REFUSED: another gate of this
+run#theContinuationIsToldWhatItsFirstWorkerRead| tree holds …` and exit `4`, which is the engine saying one gate per tree and not a red gate to repair. Do not end your
+run#theContinuationIsToldWhatItsFirstWorkerRead| session before that log carries the tally: the gate line you print below is the gate's own, copied.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
+run#theContinuationIsToldWhatItsFirstWorkerRead| gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
+run#theContinuationIsToldWhatItsFirstWorkerRead| wall-clock, and that includes every command you started — is not yours to report: the run records the item
+run#theContinuationIsToldWhatItsFirstWorkerRead| `blocked` with your log itself, and a second attempt is not yours to make. Two attempts at one gate is how a run
+run#theContinuationIsToldWhatItsFirstWorkerRead| spends its whole budget inside one child.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| **The gate is where your session ends.** When it has run, print the gate block below and stop: copy the XMLs you
+run#theContinuationIsToldWhatItsFirstWorkerRead| cite into `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21` as they are produced, and write nothing else into the tree. The run starts the tail process
+run#theContinuationIsToldWhatItsFirstWorkerRead| from those lines, and that process reads the archived change's `tasks.md`, the gate line and the last 200 lines of your
+run#theContinuationIsToldWhatItsFirstWorkerRead| own tool output — which is why you stop here rather than carrying this session's whole context through the record.
+run#theContinuationIsToldWhatItsFirstWorkerRead| 
+run#theContinuationIsToldWhatItsFirstWorkerRead| A gate that did not pass is not yours to repair either: the run restores the change to its unarchived name and the tail
+run#theContinuationIsToldWhatItsFirstWorkerRead| records the item `blocked` with the failing output you printed. What you must leave behind is the evidence of what you
+run#theContinuationIsToldWhatItsFirstWorkerRead| did — the XMLs in `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`, the archived change in the change root, and the block below.
+--- run#theContinuationIsToldWhatItsFirstWorkerRead[0] (exit 1)
+  the continuation is told the ledger of what the first process read, so it starts from that instead of reading the tree again: '/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/tool-result-ledger.tsv' not found in: # Worker, continued — one item, the work a bound ended
+
+You are the **second** process of one item, and the same role as the first: the item's worker. The run started the
+first one, it did the diagnosis, it applied part of the change — and the run **ended it** when its context reached
+the split this profile records — `LOOP_ITEM_CONTEXT_WARN` before the stop, or `LOOP_ITEM_CONTEXT_MAX` at it: a session
+that has grown past that reading re-reads everything it carries on every further turn, so a fresh session on the same
+tree is the cheaper half of that bound, not a second item's budget.
+
+What the run did before starting you: it wrote the work that process left to the patch named below, put the tree back
+on the branch's HEAD, applied that patch onto it, and removed the child. So the tree you are handed **already holds
+that work**, committed nowhere, and nothing about the item has been measured yet: no gate ran, no reviewer read it.
+There is nobody to ask either — a question you cannot answer from the tree is a verdict (`skipped`) with the reason,
+never a guess and never a request.
+
+**Your instructions are your role's own.** Read `tools/loop/prompts/worker.md` under the project's root: it is the
+worker's skeleton, and everything in it applies to you — the phases, the project's routing for the kind of change it
+is, the block headed **What your own shell and tools refuse**, and the report block that ends your output. Read it
+before your first edit; it is one call, and it is the whole of the rules this run would otherwise hand you twice.
+That file is the skeleton and not a rendered prompt, so its placeholders stand there unsubstituted: the values are in
+the block below, and the one section the run inserts in place of its gate placeholder — where your session ends and
+who archives the change — is at the **end of this file**, rendered for this run.
+Only this block is different, because it is the state you were handed instead of a clean base:
+
+- item: **#21**
+- class: **bug** — when it is `feature`, the item takes the **propose-first** path, exactly as that
+  skeleton says. The patch below may already carry a plan; if it does, it is the plan you continue, not a second one.
+- how the first process ended, in the run's own words: `the child reached the recorded context checkpoint of 90000 tokens (LOOP_ITEM_CONTEXT_WARN) at 150000 tokens — the run ended it and everything it started`
+- the work it left, as a patch: `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/leftover-from-killed-run.patch` — 2 file(s), 2 hunk(s):
+  - demo-fix.txt
+  - openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+- change root: `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/worktrees/loop` — the tree that stands on the branch's HEAD plus that patch, uncommitted. Your working
+  directory is the project, so `cd` into it and run every command there; the project's own tree is not yours to write.
+- prepared work package: `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/work-package.md` — the item's own text, and the prepared change when the item was filed with
+  one. Read it: it is the whole of what the first process was given, and the same diagnosis starts you.
+- evidence directory (write your evidence here): `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`
+- scratch directory (the one place beside your change your writes may land): `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/scratch` — it exists before you
+  start. A write with a **relative path** lands in the project's own tree, not in the change root.
+- the run's base commit: `dbc1e547658f1d370b6edb7872d5da0d9c683e33`
+- the project's gate command: `./tools/loop/gate.sh`
+- the project's measuring command: `./tools/loop/measure.sh`
+- the skills this project wants you to use: `openspec-propose openspec-apply-change build-app run-tests revert-check`
+
+## What is yours to do, and what is not
+
+1. **Read what stands in the tree before you write anything**: `git status` and the diff against `dbc1e547658f1d370b6edb7872d5da0d9c683e33` in the
+   change root are the first process's work, and reading it is cheaper than redoing it. The patch above is a record
+   of that work, not a contract: where it is wrong, incomplete or half-applied, fix it in the tree — an unfinished
+   file a killed process left is yours to finish, not a fact you owe.
+2. **Do not re-derive the diagnosis.** The work package already holds the item, and the tree already holds what the
+   first process made of it. Where the work in the tree does not answer the item, that is a verdict with the reason
+   (the skeleton's own), not a second Phase A from zero.
+3. **Everything after the diagnosis is yours, unchanged**: the plan, the change, the evidence, the red case, the gate
+   section the run inserted below, and the report block the skeleton states — the last lines of your output are that
+   block, and the run verifies every line of it against the tree.
+4. **Commit nothing and push nothing.** The run owns git, the branch and the tracker, exactly as the skeleton says: the
+   tree you leave *is* your claim, and a commit is the run's statement about a child that finished.
+
+**Complete the change before you run the gate** (issue #837). The gate names the tree it measures and a round's diff
+names the tree it was written from, and those two names have to be one — so everything that writes the change
+directory is done *before* the gate: copy the XMLs you cite into the change's own `evidence/` directory and into
+`/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`, run `bash tools/loop/evidence-check.sh <the change directory> --root .` from the change root and
+fix what it reports, and archive the change with the delta it merges (`openspec archive --yes`) — the change child is
+this child in this shape, so the archive is yours; a rework round starts with the change already archived, and there
+you complete nothing and leave the directory where it is. The date prefix the
+archive adds is what the profile's `LOOP_CHANGE_ARCHIVE_PREFIX` strips from a path before it is hashed, so the tree
+reads the same before and after the move. Nothing outside the change's `evidence/` directory is written after the gate:
+a repair made there is a tree the gate never measured.
+
+Run the project's gate **once**, exactly as the run's configuration states it:
+
+```
+cd /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/worktrees/loop && nohup ./tools/loop/gate.sh > /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/gate.log 2>&1 &
+```
+
+A shell whose policy refuses to let one program start another drops the `nohup` and keeps the trailing `&` with both
+streams in that log; the gate outlives the call either way. Keep the path absolute as it stands — `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`
+is, and a bare `gate.log` would land in the project's own tree.
+
+**The wall this call runs into, and the way through it (issue #957).** The harness you run under ends one tool call
+at a **ceiling** of its own — 900 s measured on this host, 1 500 s in the run that filed this issue — and the gate is
+bounded by the profile's own clocks, which are longer than that (`LOOP_GATE_STEP_MAX_SECONDS` for one step,
+`LOOP_ITEM_GATE_SECONDS` for an item's whole gate). So a gate that passes can outlast the call that started it, and a
+gate run inline ends as a call that was cut: no `LOOP-GATE:` line, no tally, and a diff the round after the gate
+refuses for carrying no gate of its own. So the gate is **started detached and polled** — the call that starts it is
+not the call that reads it — and each poll is one `sleep` and one `tail -n`: a wait and a range read, over a file under
+the item's own directory rather than a path of the project's tree, so reading its end is no search of a tree at all:
+
+```
+sleep 600 && tail -n 40 /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21/gate.log
+```
+
+The gate is over when the log's last line begins `LOOP-GATE:` — its verdict, the numbers your report quotes — or
+`LOOP-GATE-REFUSED:`, which measured nothing. **A call that ends at its ceiling is the call ending, not the gate**: the
+process it started keeps running (this loop's own record, `tools/loop/loop.conf`), so resume by polling again, and
+never start a second gate — a gate started while one is running refuses with `LOOP-GATE-REFUSED: another gate of this
+tree holds …` and exit `4`, which is the engine saying one gate per tree and not a red gate to repair. Do not end your
+session before that log carries the tally: the gate line you print below is the gate's own, copied.
+
+The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
+gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
+wall-clock, and that includes every command you started — is not yours to report: the run records the item
+`blocked` with your log itself, and a second attempt is not yours to make. Two attempts at one gate is how a run
+spends its whole budget inside one child.
+
+**The gate is where your session ends.** When it has run, print the gate block below and stop: copy the XMLs you
+cite into `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21` as they are produced, and write nothing else into the tree. The run starts the tail process
+from those lines, and that process reads the archived change's `tasks.md`, the gate line and the last 200 lines of your
+own tool output — which is why you stop here rather than carrying this session's whole context through the record.
+
+A gate that did not pass is not yours to repair either: the run restores the change to its unarchived name and the tail
+records the item `blocked` with the failing output you printed. What you must leave behind is the evidence of what you
+did — the XMLs in `/home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-selftest.McXh2c/cases/0/tree/case.KiBWYH/repo/.pi/issue-loop/items/21`, the archived change in the change root, and the block below.
+FAIL run#theContinuationIsToldWhatItsFirstWorkerRead
+loop-selftest: 1 of 1 cases failed
+
+Read: the case's second assertion names the one fact the skeleton was missing — the path the adapter exported to the
+first child as `LOOP_TOOL_RESULT_LEDGER` (`…/items/21/tool-result-ledger.tsv`) — and the rendered prompt the message
+prints has no line carrying it: the tree, the work package, the patch, the evidence directory and the scratch
+directory are all there, and the record of what that process read is not. Exit 1, `1 of 1 cases failed`.
+
+The case file was then put back the way the fix leaves it (`git checkout -- tools/loop/tests/loop-cases.sh`, which
+restores the worktree from the index — the index still held `8386579a`'s copy of that one file — so the tree stood with
+the fix's case file and nothing else of the fix), and the fix itself was applied on top of it (`git cherry-pick -n
+8386579a`), which stages that same copy. So the green of `green.log` is this case over the fixed engine and skeleton and
+nothing else, and the red above is this case over the base's.

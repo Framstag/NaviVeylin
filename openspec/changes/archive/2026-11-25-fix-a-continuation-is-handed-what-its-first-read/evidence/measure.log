@@ -1,0 +1,85 @@
+# The measure
+
+## What is re-derived here
+
+The fix claims one thing about a child's spend: a continuation is a **new session**, so the rule that answers a
+re-read inside one session cannot answer it, and the rule that does — the item's ledger rule — is what the new bullet
+states. Both halves are re-derived below through the tools both entry points share; the ledger the bullet names is
+read from a real item and not from this change's own runs.
+
+## The real ledger's shape
+
+Read-only, from the main tree (`.pi/issue-loop/items/1030/`, the item the issue names as the one whose continuation was
+running when it was filed): five tab-separated columns and no header row, `sha`, turn, size, session, path.
+
+$ head -1 /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/tool-result-ledger.tsv
+96a34944b919076fbbbffc322d50bfee	1	16479	worker-prompt	worker-prompt.md
+
+$ sed -n '2p' /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/tool-result-ledger.tsv
+1ffd448a18bac55adfd09331e84fb601	17	3023	reviewer-prompt-2	work-package.md
+
+The session column is the name of the prompt file the reading child was given, and the ledger is the item's: 70 lines
+over that item, the worker phase's 3 and its continuation's 39 in the **same file** —
+
+$ cut -f4 …/items/1030/tool-result-ledger.tsv | sort | uniq -c | sort -rn
+     39 worker-prompt-continuation
+      9 reviewer-prompt-2
+      8 worker-tail-round2-prompt
+      5 worker-prompt-round2
+      3 worker-tail-prompt
+      3 worker-prompt
+      2 reviewer-prompt-1-restart
+      1 reviewer-prompt-1
+
+— while the two processes' **reports** are two files, each written once:
+
+$ ls -l …/items/1030/worker-report.md …/items/1030/worker-continuation-report.md
+-rw-r--r-- 1 tim tim 3609 25. Nov 06:27 …/items/1030/worker-continuation-report.md
+-rw-r--r-- 1 tim tim 1174 25. Nov 06:09 …/items/1030/worker-report.md
+
+So an item split at its checkpoint holds one ledger of both sessions and two reports, the second process's being
+`worker-continuation-report.md` (`run.sh:1292`, `run_child "$item_dir/worker-prompt-continuation.md"
+"$item_dir/worker-continuation-report.md"`) — which is why the bullet points at `worker-report.md` as well as at the
+ledger: the ledger says what was read, and only that file says what was made of it.
+
+## The rule the bullet states, re-derived
+
+`tools/pi-trim-result.mjs`'s CLI applies `repeatResult` — the item-ledger rule — because the ledger is the one the CLI
+is handed (`--ledger`); its own comment says why the other rule cannot appear there: "One invocation is one child that
+reads one path once, so the repeat-read tally is always empty here". That is the correction the bullet carries: the
+per-child tally (`repeatReadResult`, `read.child`, issues #925 and #989) is a `Map` that lives as long as one child
+process, so a continuation starts with it empty and no path of its first process can be in it; the item ledger
+(`read.ledger`, `LOOP_TOOL_RESULT_LEDGER`, issue #685) is the file every child of the item opens.
+
+One path, three reads, one ledger — each invocation is one session:
+
+$ node tools/pi-trim-result.mjs --bound 120000 --tool read --path notes.md --turn 1 --session worker-prompt \
+    --ledger "$d/ledger.tsv" < "$d/notes.md"          # the first process reads it, 18 characters
+line one
+line two
+exit 0
+
+$ cat "$d/ledger.tsv"
+e9024f1a07d29d52ad3aa5e1a18e94db	1	18	worker-prompt	notes.md
+
+$ node tools/pi-trim-result.mjs --bound 120000 --tool read --path notes.md --turn 2 --session worker-prompt-continuation \
+    --ledger "$d/ledger.tsv" < "$d/notes.md"          # the continuation, a new session, reads the same path unchanged
+[LOOP-ALREADY-READ: notes.md (18 characters) was read at turn 1 in the worker-prompt session and is unchanged since — read a range instead of the whole file again (ctx_read mode="lines:N-M")]
+exit 0
+
+$ node tools/pi-trim-result.mjs --bound 120000 --tool read --path big.md --turn 2 --session worker-prompt-continuation \
+    --ledger "$d/ledger.tsv" < "$d/big.md"             # 6 010 characters, changed since turn 1
+… (the first 2 000 characters)
+[LOOP-REPEAT-EDIT: big.md changed since turn 1; the first 2000 of 6010 characters are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+exit 0
+
+Read: a path the item already holds is answered across the session boundary with the one line the bullet promises —
+the turn, the size, the session that read it and the range call — and a path that changed since with a bounded head and
+the `[LOOP-REPEAT-EDIT: …]` line. The bullet's two arms are the two the rule has, in the order it states them.
+
+## What the change adds to the prompt
+
+The skeleton the issue measured at 4 665 B (`tools/loop/prompts/worker-continuation.md` at `adb79f6f`) is 5 735 B after
+the change (+1 070): one bullet naming the ledger, its columns, the rule over it and the report beside it, and the
+sentence that the first process's own notes still stand in the scratch directory — spent once per continuation, against
+the 6.63 Mtok a worker session costs and the 11.34 Mtok a `worker-rework` item costs.

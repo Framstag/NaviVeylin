@@ -1189,6 +1189,12 @@ while true; do
   events_file="$item_dir/events.jsonl"
   rm -f "$events_file"
   export LOOP_CHILD_EVENTS="$events_file"
+  # The ledger of what this item's children were handed, named beside the stream it is written with (the adapter puts it
+  # there and hands every child the same path as `LOOP_TOOL_RESULT_LEDGER`): a continuation is a **new** session on the same
+  # tree, so not one path its first process read is in its context, and this file is the only record of them the second
+  # process can be pointed at — the prompt names it, so that child asks for a passage instead of re-reading what the item
+  # already holds (issue #1084).
+  item_ledger="$item_dir/tool-result-ledger.tsv"
   package="$item_dir/work-package.md"
   fingerprint=$(printf '%s' "$issue_json" | jq -r '.body // ""' | { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
   # The item's text reaches the child inside a delimited data field, never in an instruction position
@@ -1283,7 +1289,7 @@ while true; do
             "GATE_STEP=$(gate_step_text "$pre_gate")" \
             "ISSUE=$issue" "CLASS=$class" "PROPOSE_CLASS=$propose_class" \
             "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-            "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
+            "LEDGER=$item_ledger" "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
             "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
             "PATCH=$continuation_patch" "PATCH_FILES=$continuation_files" \
             "PATCH_HUNKS=$continuation_hunks" "PATCH_PATHS=$continuation_paths" \
@@ -1412,7 +1418,7 @@ while true; do
       "PATCH_FILES=0" "PATCH_HUNKS=0" \
       "PATCH_PATHS=  - the change root as the first process left it" \
       "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-      "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
+      "LEDGER=$item_ledger" "SCRATCH_DIR=$scratch_dir" "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" \
       "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
     loop_emit change-not-answer-retry bytes="$answer_bytes" --stderr
     progress item "#${issue} the change child answered nothing — the phase is asked once more from the tree it stands in (retry $retry_spent_child_start of $retry_max), and its report is written to $item_dir/worker-report-retry.md"

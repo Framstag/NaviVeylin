@@ -1370,7 +1370,8 @@ right that an empty report is no verdict, and the run's answer to it was to end 
 stood beside it as `evidence-diagnosis.md`, and the item blocked `child-failed` with no gate verdict at all (`child-
 failed`/`child-blocked` is the archive's largest stop class: 5 of 18 items over 8 archived states). The phase is now
 asked **once more** from the checkpoint prompt (`tools/loop/prompts/worker-continuation.md`, which already names the
-tree, the leftover and what is owed), written to `worker-prompt-retry.md` and read from `worker-report-retry.md`; the
+tree, the leftover, the item's own ledger of what its children read and what is owed), written to
+`worker-prompt-retry.md` and read from `worker-report-retry.md`; the
 item records `worker-answer-retry` beside its other steps and the trend line prints how many items were asked twice.
 The guards are #827's own: the child exited 0 (a child the run ended returns `LOOP_CHILD_TIMEOUT`, #224), no project
 write the run can place decided the item (#800), `LOOP_RETRY_MAX` records at least one retry (#752), and the tree

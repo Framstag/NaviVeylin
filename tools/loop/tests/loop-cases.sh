@@ -554,6 +554,7 @@ LOOP_SHELL_CASES=(
   'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound'
   'run#theCheckpointIsTheSplitsOwnReading'
   'run#aContinuationRunsToTheStop'
+  'run#theContinuationIsToldWhatItsFirstWorkerRead'
   'run#aSecondChildIsNotEndedByAnEarlierSession'
   'run#aChainOfZeroContinuationsEndsAtTheCheckpoint'
   'run#aWorkerBelowItsCheckpointIsNotSplit'
@@ -1391,6 +1392,7 @@ loop_run_shell_case() {
     'run#aWorkerAtItsCheckpointIsContinuedBeforeTheBound') fn=case_run_aWorkerAtItsCheckpointIsContinuedBeforeTheBound ;;
     'run#theCheckpointIsTheSplitsOwnReading') fn=case_run_theCheckpointIsTheSplitsOwnReading ;;
     'run#aContinuationRunsToTheStop') fn=case_run_aContinuationRunsToTheStop ;;
+    'run#theContinuationIsToldWhatItsFirstWorkerRead') fn=case_run_theContinuationIsToldWhatItsFirstWorkerRead ;;
     'run#aSecondChildIsNotEndedByAnEarlierSession') fn=case_run_aSecondChildIsNotEndedByAnEarlierSession ;;
     'run#aChainOfZeroContinuationsEndsAtTheCheckpoint') fn=case_run_aChainOfZeroContinuationsEndsAtTheCheckpoint ;;
     'run#aWorkerBelowItsCheckpointIsNotSplit') fn=case_run_aWorkerBelowItsCheckpointIsNotSplit ;;
@@ -10017,7 +10019,7 @@ ACT
 # the checkpoint continuation renders, written to a name of its own (`worker-prompt-retry.md`), and the item records
 # that it was asked twice: a phase that answers at the second asking decides the item as it always would.
 case_run_aPhaseThatWroteNothingIsAskedOnceMore() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -10038,6 +10040,12 @@ ACTION
     "the change child is started once"
   assert_eq "1" "$(grep -c '^prompt: worker-prompt-retry.md$' "$PI_STUB_LOG" || true)" \
     "and the phase is asked once more when its answer carries no line the run reads"
+  # The retry renders the checkpoint skeleton at a second site, so the placeholders a continuation is owed are owed
+  # here too — and the ledger the first process read is exactly as absent from this new session's context (issue #1084).
+  assert_not_contains "$(cat "$p/.pi/issue-loop/items/21/worker-prompt-retry.md")" "{{" \
+    "every placeholder in the continuation's skeleton is filled at this second asking too"
+  assert_contains "$(cat "$p/.pi/issue-loop/items/21/worker-prompt-retry.md")" "$p/.pi/issue-loop/items/21/tool-result-ledger.tsv" \
+    "and the retried phase is told the ledger of what its first process read, as the continuation is"
   [ -s "$p/.pi/issue-loop/items/21/worker-report-retry.md" ] || fail "the retry's own report was not written"
   assert_contains "$out" "wrote no line the run reads" "the run says what it read and what it is doing about it"
   # The item's record names the retry, beside the phase's other readings.
@@ -23604,6 +23612,94 @@ EOF
   assert_eq "null" "$(jq -r '.items[0].stopReason // "null"' "$f")" \
     "so the item is not recorded as a cut the worker did not reach"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a skipped item"
+  return 0
+}
+
+# A continuation is a **new session** on the same tree: not one path the process before it read is in its context, and
+# the item's own ledger — the file the adapter writes beside the item's stream, one line per path its children were
+# handed — is the only record of them (issue #1084). The skeleton named the tree, the patch and what is still owed, and
+# nothing named that file, the report the first process wrote or the notes it left in the scratch directory, so the
+# second process re-read what the first one had walked and paid for every path of it again. The path this case asserts
+# is the one the adapter exported to the first child (`LOOP_TOOL_RESULT_LEDGER`) and not a spelling typed here, so a
+# ledger renamed in the adapter is a red case rather than a prompt naming a file nothing writes.
+case_run_theContinuationIsToldWhatItsFirstWorkerRead() {
+  # files: tools/loop/tests/fixtures/pi tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/loop/worktree.sh tools/loop/prompts/ tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out prompt ledger
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=90000\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_WARN=90000' "$conf" || fail "this case could not record the checkpoint in loop.conf"
+  # 150 000 is above the recorded checkpoint and below the stop, so the split is the only bound this child can reach
+  # and the continuation is the one the run starts from the work it kept.
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":150000,"output":10,"cacheRead":0,"cacheWrite":0}}
+JSON
+  printf '%s\n' \
+    'LOOP-VERDICT: skipped' \
+    'LOOP-SKIP-VERDICT: needs-diagnosis' \
+    'LOOP-ROOT-CAUSE: the work the checkpoint ended stands in the tree, and what it still owes is a diagnosis' \
+    'LOOP-RED-TEST: none — the continuation changed nothing' > "$d/continuation-report.txt"
+  export PI_STUB_REPORT_CONTINUATION="$d/continuation-report.txt"
+  action="$d/child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+# The first child reads nothing and records the ledger the adapter exported to it: that path is the fact the
+# continuation's prompt has to name, and this case reads it from the child and not from a spelling of its own.
+case "\$1" in
+  worker-prompt.md)
+    cat "$fixture" >> "\${LOOP_CHILD_EVENTS:-}"
+    printf '%s\n' "\${LOOP_TOOL_RESULT_LEDGER:-}" > "$d/first-ledger.txt"
+    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence
+    printf 'the work the checkpoint ended\n' > demo-fix.txt
+    printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+    ;;
+esac
+exit 0
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do
+    grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  grep -q '^prompt: worker-prompt-continuation.md$' "$PI_STUB_LOG" 2>/dev/null || {
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run started no continuation at the checkpoint, so no prompt named anything: $(cat "$d/out")"
+  }
+  printf 'go\n' >&8 2>/dev/null || true
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "the run that split the worker at its checkpoint is not a failed run: $out"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt-continuation.md"
+  [ -f "$prompt" ] || fail "the run started a continuation without rendering its prompt"
+  ledger=$(cat "$d/first-ledger.txt" 2>/dev/null)
+  [ -n "$ledger" ] || fail "the adapter handed the first child no ledger, so this case cannot say what the continuation was owed"
+  assert_contains "$ledger" "/items/21/tool-result-ledger.tsv" \
+    "the ledger the adapter names for the first child is the item's own, beside its stream"
+  assert_contains "$(cat "$prompt")" "$ledger" \
+    "the continuation is told the ledger of what the first process read, so it starts from that instead of reading the tree again"
+  assert_contains "$(cat "$prompt")" "$p/.pi/issue-loop/items/21/worker-report.md" \
+    "and is told where that process's own report stands, which is the half the ledger cannot carry"
+  assert_not_contains "$(cat "$prompt")" "{{" \
+    "every placeholder in the continuation's skeleton is filled before that child is started"
   return 0
 }
 

@@ -1614,6 +1614,9 @@ MUTATIONS=(
   # the shaping label beside it and the in-progress mark off. Child A landed as #1039; this record is what makes the arm
   # falsifiable, which is the half the record case never covered.
   '1040.1@-@tools/loop/run.sh@run#aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide@the arm that holds a cut at the worker-role turn bound as `too-wide`, so the item is unpicked back to `agent/eligible` and the same bound is paid again on it (issue #1040)@s|^      if \[ "\$stop_reason" = bound \] && \[ "\$bound_key" = LOOP_CHILD_TURNS_MAX_WORKER \]; then$|      if false; then|'
+  # 1027.1 — the report line that names a refused publish. Without it the refusal is a stderr event again and the
+  # branch the remote does not carry is a fact only the events hold, which is the state the item was filed on.
+  '1027.1@-@tools/loop/report.sh@worktree#aRejectedPushIsRecordedOnTheItem@the refused publish the report names, so the branch the remote does not carry is a fact no report line holds (issue #1027)@s|^printf .publish refused: %s.n. .*$|printf "publish refused: none"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

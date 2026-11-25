@@ -1678,6 +1678,15 @@ tree (`tools/loop/census.sh`, before the census was committed in this change): `
 
 ## §7e Leftovers, the report and the queue
 
+A publish the remote refused is a **leftover**, and the report names it. `push_branch` is the loop's only push and it
+returns a status now: a refusal is read at the call site, written by `state.sh publish-refused` beside the landing's
+sha — the branch, the local head the push tried to publish and what the remote's tracking ref names instead — and
+printed in the report's branches block as `publish refused: <n> — <branch> (local <sha>, remote <sha|nothing>)`. An
+item's refusal is hung on the item, the base's on the run, and a branch refused twice is one entry. The rule exists
+because the refusal used to be one stderr line and a dropped event: two runs closed normally on heads no remote
+carried (`! [rejected] fix/issue-1006-… (non-fast-forward)`, issue #1027), so a reader comparing a closure's sha with
+the remote had no sentence that explained the difference.
+
 The report reads the scratch root its own invocation resolves **and** the root the kept worktree resolves, because a
 suite creates its trees under the root of the tree it runs in and the gate runs the suite inside the worktree. When
 `--worktree` names this tree the two are one directory spelled two ways, so it is scanned once — compared as written

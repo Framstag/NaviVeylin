@@ -535,6 +535,17 @@ done <<< "$branches"
 printf 'branches: %s\n' "$(if [ -n "$branches" ]; then printf '%s' "$branches" | paste -sd' ' -; else printf 'none'; fi)"
 landed=$(printf '%s' "$branch_table" | awk -F'\t' '$2 == 0 { printf "%s%s", (n++ ? " " : ""), $1 }')
 printf 'landed, removable: %s\n' "$(if [ -n "$landed" ]; then printf '%s' "$landed"; else printf 'none'; fi)"
+
+# A publish the remote refused is a leftover, and a leftover is named here (issue #1027). The branch is one the run
+# tried to publish and the remote does not carry, and the local head beside it is the sha a closure names and no
+# reader can fetch — the sentence the difference between the two would otherwise have to be invented from. The list
+# is the state's, so the report gains no input and no argument: an item's refusal is hung on the item beside
+# `merged`, the base's on the run.
+printf 'publish refused: %s\n' "$(jq -r '
+  [ ((.run.publishRefused // [])[]),
+    (((.items // [])[] | .publishRefused) // [])[] ]
+  | map("\(.branch) (local \(.sha // "unresolved"), remote \(.remote // "nothing"))")
+  | if length == 0 then "none" else "\(length) — \(join(" · "))" end' "$state_file")"
 if [ -d "$LOOP_WORKTREE" ]; then
   printf 'worktree: %s (kept for the next run)\n' "$LOOP_WORKTREE"
 else

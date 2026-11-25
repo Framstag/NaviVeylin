@@ -108,6 +108,7 @@ LOOP_SHELL_CASES=(
   'worktree#noPushWithoutTheFlag'
   'worktree#pushSkipsABranchItAlreadyMerged'
   'worktree#publishesTheBaseItLandedOn'
+  'worktree#aRejectedPushIsRecordedOnTheItem'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#reusesABranchWhoseWorkAlreadyLanded'
   'worktree#refusesABranchCarryingAPreviousAttempt'
@@ -950,6 +951,7 @@ loop_run_shell_case() {
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
     'worktree#pushSkipsABranchItAlreadyMerged') fn=case_worktree_pushSkipsABranchItAlreadyMerged ;;
     'worktree#publishesTheBaseItLandedOn') fn=case_worktree_publishesTheBaseItLandedOn ;;
+    'worktree#aRejectedPushIsRecordedOnTheItem') fn=case_worktree_aRejectedPushIsRecordedOnTheItem ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#reusesABranchWhoseWorkAlreadyLanded') fn=case_worktree_reusesABranchWhoseWorkAlreadyLanded ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
@@ -4549,9 +4551,13 @@ case_worktree_noPushWithoutTheFlag() {
   hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" --exclude-dir=tests || true)
   [ -z "$hits" ] || fail "the loop opens a change request: $hits"
   assert_eq "1" "$(grep -c 'push_branch()' "$LOOP_ENGINE/leftovers.sh")" "the push is one named call"
-  assert_eq "2" "$(grep -c 'push_branch "' "$LOOP_ENGINE/run.sh")" \
-    "and it has exactly two call sites: the item's branch and the base it landed on"
-  assert_contains "$(grep -B1 'push_branch "' "$LOOP_ENGINE/run.sh")" 'push" = yes' "the call site is guarded by the flag"
+  assert_eq "1" "$(grep -c 'push_branch "' "$LOOP_ENGINE/run.sh")" \
+    "and one call site: the loop over the two refs a run asked to publish leaves (issue #1027)"
+  assert_contains "$(grep -B2 'push_branch "' "$LOOP_ENGINE/run.sh")" 'push" = yes' "the call site is guarded by the flag"
+  assert_contains "$(grep 'for publish_ref in ' "$LOOP_ENGINE/run.sh")" 'fix/issue-$issue-$slug' \
+    "the item's branch is one ref it publishes"
+  assert_contains "$(grep 'for publish_ref in ' "$LOOP_ENGINE/run.sh")" 'loop_base_ref' \
+    "and the base it landed on is the other"
 
   # A default run does not push: git's own trace is the log (git is never stubbed — D13).
   d=$(scratch); p=$(new_project)
@@ -4620,6 +4626,54 @@ case_worktree_publishesTheBaseItLandedOn() {
   assert_contains "$(cat "$out2")" "its commits stay in the run tree, not on the remote" \
     "and says where the commits stayed"
   assert_eq "1" "$(grep -c 'the push of main failed' "$out2")" "the failed base publish is not retried"
+}
+
+# A publish the remote refused was one stderr event nothing read (issue #1027): `push_branch` ended on its
+# `publish-failed` arm with a success status, `run.sh` read nothing back, and the item was closed on a head no remote
+# carried while the report called its branch removable. The refusal is read at the call site, written beside the
+# landing's sha and printed where the leftovers are named — so a reader comparing a closure's sha with the remote has
+# the sentence that explains the difference.
+case_worktree_aRejectedPushIsRecordedOnTheItem() {
+  # files: tools/loop/run.sh tools/loop/leftovers.sh tools/loop/state.sh tools/loop/report.sh tools/loop/tests/fixtures/scenarios/ tools/tooling.json tools/pi-child-events.sh
+  local d p origin out sf issue before
+  d=$(scratch); p=$(new_project); origin="$d/origin.git"
+  # A remote that refuses every push is the state the item was filed on: two refused pushes in a run that closed
+  # normally, one of them the base itself.
+  git init -q --bare "$origin" >/dev/null 2>&1 || fail "could not create the refusing remote"
+  printf '#!/bin/sh\nexit 1\n' > "$origin/hooks/pre-receive" || fail "could not write the refusing hook"
+  chmod +x "$origin/hooks/pre-receive" || fail "could not make the hook executable"
+  git -C "$p" remote add origin "$origin" >/dev/null 2>&1 || fail "could not add the refusing remote"
+  out="$d/run.txt"
+  run_one_item "$p" "$d" --review on --push yes >"$out" 2>&1 || fail "the run itself failed: $(cat "$out")"
+  sf=$(state_file "$p")
+  assert_eq 1 "$(jq -r '[.run.publishRefused[]? | select(.branch == "main")] | length' "$sf")" \
+    "the base a refusal kept off the remote is recorded on the run"
+  assert_eq "$(git -C "$p" rev-parse main)" \
+    "$(jq -r '.run.publishRefused[] | select(.branch == "main") | .sha // ""' "$sf")" \
+    "the record carries the local head the push tried to publish"
+  assert_eq "" "$(jq -r '.run.publishRefused[] | select(.branch == "main") | .remote // ""' "$sf")" \
+    "and the remote names nothing instead, because it never carried the branch"
+  assert_contains "$(run_report "$p")" "publish refused: 1 — main (local " \
+    "the report names the refused publish and counts it"
+
+  # The item's own branch is not reachable this way: the run merges it, the release deletes it, and the push of a
+  # branch that no longer exists is the skip the case above pins. The verb is what carries a refused item branch,
+  # so the write is taken from a state that still carries the item.
+  issue=$(jq -r '.items[0].issue' "$sf")
+  before=$(jq -r '[.items[0].publishRefused[]?] | length' "$sf")
+  run_state "$p" publish-refused "$issue" --branch "fix/issue-$issue-demo" --sha deadbeef --remote cafe1234 >/dev/null \
+    || fail "the item's refusal could not be recorded"
+  assert_eq "$((before + 1))" "$(jq -r '[.items[0].publishRefused[]?] | length' "$sf")" \
+    "a refused publish lands on the item, beside the landing's sha"
+  assert_contains "$(run_report "$p")" "fix/issue-$issue-demo (local deadbeef, remote cafe1234)" \
+    "and the report names the branch the remote does not carry"
+  assert_contains "$(run_report "$p")" "publish refused: 2 — " "the count names both refusals"
+  run_state "$p" publish-refused "$issue" --branch "fix/issue-$issue-demo" --sha deadbeef >/dev/null \
+    || fail "the second refusal of one branch was refused"
+  assert_eq "$((before + 1))" "$(jq -r '[.items[0].publishRefused[]?] | length' "$sf")" \
+    "a branch refused twice is one entry"
+  run_state "$p" publish-refused 999999 --branch dead-beef >/dev/null 2>&1
+  assert_eq 5 "$?" "a refusal for an item the record does not carry is refused rather than written nowhere"
 }
 
 # A refusal a later round did not repeat is not the branch's verdict (issue #975). The sweep read the branch for

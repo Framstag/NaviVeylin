@@ -416,7 +416,13 @@ push_branch() { # push_branch <branch>
     loop_emit publish-nothing branch="$1" --stderr
     return 0
   fi
-  git -C "$worktree" push --set-upstream origin "$1" >&2 ||
+  # A remote that refused the push is a status its caller owes a record of (issue #1027): the function ends on the
+  # `publish-failed` arm and returns 1, so `run.sh` can write the branch where the landing's sha is instead of
+  # reading a success for a branch no remote carries.
+  if ! git -C "$worktree" push --set-upstream origin "$1" >&2; then
     loop_emit publish-failed branch="$1" --stderr
+    return 1
+  fi
+  return 0
 }
 

@@ -2881,9 +2881,21 @@ question the item asked; a retry costs another attempt, and an abandonment remov
   # publish: the item's branch and the base it landed on leave the run together, so `origin/main` stops standing
   # where a person's last push left it (issue #1018). The base goes through the same function, so a base that fails
   # is one named line and no retry.
+  #
+  # A push the remote refused is read here and nowhere else (issue #1027): the function returns a status, and the
+  # refusal reaches the record beside the landing's sha. Which is why the loop names both refs rather than calling
+  # the function twice: a refusal has to be written with the head the push tried to publish and what the remote's
+  # tracking ref names instead, and the base is not an item's — its refusal lands on the run.
   if [ "$push" = yes ]; then
-    push_branch "fix/issue-$issue-$slug"
-    push_branch "$(loop_base_ref)"
+    for publish_ref in "fix/issue-$issue-$slug" "$(loop_base_ref)"; do
+      push_branch "$publish_ref" && continue
+      publish_issue="$issue"
+      case "$publish_ref" in fix/issue-*) ;; *) publish_issue="-" ;; esac
+      loop_state publish-refused "$publish_issue" --branch "$publish_ref" \
+        --sha "$(git -C "$worktree" rev-parse --verify --quiet "refs/heads/$publish_ref" || true)" \
+        --remote "$(git -C "$worktree" rev-parse --verify --quiet "refs/remotes/origin/$publish_ref" || true)" \
+        >/dev/null || loop_note "the refusal of $publish_ref could not be recorded in the run's state"
+    done
   fi
 done
 

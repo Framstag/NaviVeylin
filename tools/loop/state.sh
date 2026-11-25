@@ -62,6 +62,11 @@
 #   state.sh record-resume <issue> --patch <path> --outcome applied|no-apply
 #                         # what the start found when it applied the patch a bound-ended child left (issue #754);
 #                         # `done` folds the `no-apply` outcome into the item's note
+#   state.sh publish-refused <issue|-> --branch <name> [--sha <commit>] [--remote <commit>]
+#                         # the remote refused this branch's push (issue #1027): the fact lands beside the item's
+#                         # `merged` — the branch, the local head the push tried to publish and what the remote's
+#                         # tracking ref names instead. `-` is the base, whose refusal is the run's rather than an
+#                         # item's. Unique by branch: a second refusal of the same branch replaces its entry.
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
 #   state.sh done <issue> --result done|skipped|blocked|falsified|cut [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
@@ -563,6 +568,51 @@ cmd_record_resume() {
     --argjson i "$issue" --arg p "$patch" --arg o "$outcome" --arg d "$detail" \
     --arg at "$(iso_utc "$(now_epoch)")"
   printf 'resume: #%s — the kept patch %s %s\n' "$issue" "$patch" "$outcome"
+}
+
+# The remote refused a publish (issue #1027). `push_branch` is the loop's only push and it runs after the item is
+# merged, released and recorded, so the fact cannot ride on `done`: the push's own status is the only witness, and
+# this is the write that puts it where a reader comparing a closure's sha with the remote needs it — beside
+# `merged.sha` for an item's branch, on the run for the base's. A refusal was emitted to stderr and dropped, so the
+# run closed items on heads no remote carried (`! [rejected] fix/issue-1006-… (non-fast-forward)`).
+cmd_publish_refused() {
+  require_state
+  local issue="" branch="" sha="" remote=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --branch) need_value "$@"; branch="${2:-}"; shift 2 ;;
+      --sha) need_value "$@"; sha="${2:-}"; shift 2 ;;
+      --remote) need_value "$@"; remote="${2:-}"; shift 2 ;;
+      --*) loop_die "publish-refused: unknown argument $1" ;;
+      *) [ -z "$issue" ] || loop_die "publish-refused: issue given twice"; issue="$1"; shift ;;
+    esac
+  done
+  [ -n "$branch" ] || loop_die "publish-refused: usage: state.sh publish-refused <issue|-> --branch <name> [--sha <commit>] [--remote <commit>]"
+  case "$issue" in
+    -) issue="" ;;
+    ''|*[!0-9]*) loop_die "publish-refused: <issue> is a number or -" ;;
+  esac
+  if [ -n "$issue" ] &&
+    [ "$(jq -r --argjson i "$issue" '[(.items // [])[] | select(.issue == $i)] | length' "$STATE_FILE")" = 0 ]; then
+    loop_refuse "publish-refused: the record carries no item #$issue, so there is no landing to write the refusal beside"
+  fi
+  patch_state '
+    ({branch:$b,
+      sha:(if $s == "" then null else $s end),
+      remote:(if $r == "" then null else $r end),
+      at:$at}) as $e
+    | if $i == 0 then
+        .run.publishRefused = (((.run.publishRefused // []) | map(select(.branch != $b))) + [$e])
+      else
+        .items = [(.items // [])[]
+                  | if .issue == $i then
+                      .publishRefused = (((.publishRefused // []) | map(select(.branch != $b))) + [$e])
+                    else . end]
+      end
+  ' --argjson i "${issue:-0}" --arg b "$branch" --arg s "$sha" --arg r "$remote" \
+    --arg at "$(iso_utc "$(now_epoch)")"
+  printf 'publish refused: %s%s — local %s, remote %s\n' \
+    "$branch" "${issue:+ (#$issue)}" "${sha:-unresolved}" "${remote:-nothing}"
 }
 
 # The base the run recorded is the commit every item descends from. A finished attempt merged onto it (issue
@@ -1714,6 +1764,7 @@ case "$cmd" in
   start) cmd_start "$@" ;;
   record-change-copy) cmd_record_change_copy "$@" ;;
   record-resume) cmd_record_resume "$@" ;;
+  publish-refused) cmd_publish_refused "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
   adoption-refused) cmd_adoption_refused "$@" ;;

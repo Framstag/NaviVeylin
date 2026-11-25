@@ -2267,6 +2267,8 @@ the run's last landing and a reader's CI measures the tree the run produced.
 - **THEN** the run prints one line naming the branch and where its commits stayed — the run tree, not the remote —
   so a caller reads a publishing failure as one instead of as git's own error text
 
+- **Case**: `worktree#publishesTheBaseItLandedOn`
+
 #### Scenario: The base a run landed on is published
 
 - **WHEN** a run is asked to publish and it lands an item on its base branch, while the remote's base still stands
@@ -2276,6 +2278,16 @@ the run's last landing and a reader's CI measures the tree the run produced.
 - **AND** a base publish that does not succeed is one line naming the base and where its commits stayed, with no
   retry
 - **Case**: `worktree#publishesTheBaseItLandedOn`
+
+#### Scenario: A refused publish is recorded on the item
+
+- **WHEN** a run is asked to publish and the remote refuses the push for a branch or for the base it landed on
+- **THEN** the branch it refused is named in the run's report as a leftover whose commits stay in the run tree
+  and never reached the remote
+- **AND** the item's record carries the refused branch and the local head it names, beside the landing's sha
+  and the base it landed on, so a reader comparing that sha with the remote has the sentence that explains the
+  difference
+- **Case**: `worktree#aRejectedPushIsRecordedOnTheItem`
 
 ### Requirement: A case's files select it, and the gate hands a suite the base it measured
 

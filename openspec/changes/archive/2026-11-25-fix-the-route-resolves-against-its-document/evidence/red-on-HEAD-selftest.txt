@@ -1,0 +1,14 @@
+ok   green fixture passes
+ok   green fixture verdict
+ok   tally confirmed against the XML
+ok   C2 red on an unbacked tally
+ok   C3 reports the /tmp pointer without failing
+ok   C1 red on a dangling §
+ok   C1 exempts an archived pointer
+ok   C5 red on a line past EOF
+ok   C5 resolves a basename-only citation
+ok   C4 names the configured path it scanned
+ok   C4 red on a leftover mutation
+ok   C4 red when no configured scan path exists
+ok   a row labelled not retained is exempt by policy
+evidence-selftest: PASS

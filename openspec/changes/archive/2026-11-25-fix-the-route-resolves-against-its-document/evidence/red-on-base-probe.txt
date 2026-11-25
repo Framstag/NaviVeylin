@@ -1,0 +1,11 @@
+base engine is the one committed at fa8c6aa (it has no --guidelines flag):
+BASE exit=0
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): src/module
+ok   C5 file:line: 0 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+CHANGE exit=1
+FAIL C6 §7 does not resolve in guidelines/Backlog.md — its sections are: §1 §2a 
+ok   C6 route: 0 of 1 route line(s) resolved against their documents' own headings
+----
+evidence-check: FAIL (1)

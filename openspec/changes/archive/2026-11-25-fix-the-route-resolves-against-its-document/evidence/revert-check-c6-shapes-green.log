@@ -1,0 +1,26 @@
+revert-check C6 heading shapes (#1080, round 2): after restoring tools/loop/evidence-check.sh byte for byte (sha256 176413030dd0a071d921b0e8657fc644222f832ede1324bcb17492b0aeb3efee) the same suite is green again:
+
+ok   green fixture passes
+ok   green fixture verdict
+ok   tally confirmed against the XML
+ok   C2 red on an unbacked tally
+ok   C3 reports the /tmp pointer without failing
+ok   C1 red on a dangling §
+ok   C1 exempts an archived pointer
+ok   C5 red on a line past EOF
+ok   C5 resolves a basename-only citation
+ok   C4 names the configured path it scanned
+ok   C4 red on a leftover mutation
+ok   C4 red when no configured scan path exists
+ok   a row labelled not retained is exempt by policy
+ok   a route resolves against the document's own heading
+ok   a § the document does not have is a false pointer
+ok   the refusal names the document's section list
+ok   a dotted sub-number heading carries no id
+ok   the dotted sub-number is not in the document's section list
+ok   a heading with neither shape separator carries no id
+ok   a report with no route line warns rather than failing
+ok   the missing route is a WARN
+ok   and the same report fails once the project reads the route as required
+ok   a paragraph quoting the form is not a route line
+evidence-selftest: PASS

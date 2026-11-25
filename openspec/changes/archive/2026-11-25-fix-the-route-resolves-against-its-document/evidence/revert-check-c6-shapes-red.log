@@ -1,0 +1,26 @@
+revert-check C6 heading shapes (#1080, round 2): the id rule of tools/loop/evidence-check.sh:217 mutated back to the form shipped in round 1 — `^## §\{0,1\}\([0-9][0-9a-z]*\)\(\.[[:space:]]*\|[[:space:]]\)` — so a dotted sub-number (`## 3.6 …`) carries the id `3` again and a heading with neither shape separator (`## 9 Nine`) carries the id `9`; the red is the named arms failing:
+
+ok   green fixture passes
+ok   green fixture verdict
+ok   tally confirmed against the XML
+ok   C2 red on an unbacked tally
+ok   C3 reports the /tmp pointer without failing
+ok   C1 red on a dangling §
+ok   C1 exempts an archived pointer
+ok   C5 red on a line past EOF
+ok   C5 resolves a basename-only citation
+ok   C4 names the configured path it scanned
+ok   C4 red on a leftover mutation
+ok   C4 red when no configured scan path exists
+ok   a row labelled not retained is exempt by policy
+ok   a route resolves against the document's own heading
+ok   a § the document does not have is a false pointer
+ok   the refusal names the document's section list
+FAIL a dotted sub-number heading carries no id: expected [1] got [0]
+FAIL the dotted sub-number is not in the document's section list: expected [§1 §2a §2b ] got []
+FAIL a heading with neither shape separator carries no id: expected [1] got [0]
+ok   a report with no route line warns rather than failing
+ok   the missing route is a WARN
+ok   and the same report fails once the project reads the route as required
+ok   a paragraph quoting the form is not a route line
+evidence-selftest: FAIL

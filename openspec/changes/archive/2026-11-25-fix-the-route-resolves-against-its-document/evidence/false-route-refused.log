@@ -1,3 +1,5 @@
+a route to a section the named document does not carry is refused, and the refusal prints the sections it does carry:
+
 ok   C1 §references: 0 checked, 0 exempted as archived pointers
 ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
 ok   C3 /tmp pointers: none cited

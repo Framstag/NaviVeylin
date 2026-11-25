@@ -12,10 +12,12 @@ tree could say whether that `§` exists.
 
 ## The fix
 
-One check, C6, in the same shape C1 already has (`tools/loop/evidence-check.sh:185`): the change's markdown is read for
+One check, C6, in the same shape C1 already has (`tools/loop/evidence-check.sh:67`): the change's markdown is read for
 route lines, each line's document must sit under `LOOP_GUIDELINE_DIR` and exist, and the line's `§<id>` must be carried
-by one of that document's own `^## ` headings — `## 7c The gate and its suite` is the id `7c`, and the `## §<id> …`
-shape this project also writes is read the same way. The ids are read out of the heading lines and never out of the
+by one of that document's own `^## ` headings — `## 7c. The gate and its suite` is the id `7c`, and the `## §<id> …`
+shape this project also writes is read the same way. A heading that carries neither shape's separator (`## 9 Nine`) and
+a dotted sub-number (`## 3.6 …`) carry no id, so a route to `§3` or `§9` against such a document is refused. The ids
+are read out of the heading lines and never out of the
 document's body, which is what makes a route a pointer to a section rather than to a mention of one.
 
 Three consequences follow, and each is a decision this design took:
@@ -39,8 +41,8 @@ rather than passing silently.
 
 ## Blast radius
 
-`tools/loop/evidence-check.sh` — C6, its two options (`--guidelines`, `--route`) and seven `--selftest` arms; the file
-grows from 294 to 398 lines, which is why its row in `tools/loop/layout.tsv:22` moves from 368 to 498 (the table's own
+`tools/loop/evidence-check.sh` — C6, its two options (`--guidelines`, `--route`) and ten `--selftest` arms; the file
+grows from 294 to 413 lines, which is why its row in `tools/loop/layout.tsv:22` moves from 368 to 517 (the table's own
 rule: the measured length plus a quarter, rounded up) and `driver#noEngineFileExceedsItsBound` is what refuses the
 unraised row. `tools/loop/loop.conf` gains the two keys, section 7c of `guidelines/Backlog.recipes.md` gains the paragraph that
 states the obligation the check enforces, and the change's own `specs/agent-issue-loop/spec.md` adds the requirement.

@@ -1,5 +1,4 @@
-revert-check C6 (#1080): mutation "|| true" added to C6's guideline-directory guard in tools/loop/evidence-check.sh:194
-so C6 can never resolve a route; the red is the named arm failing:
+revert-check C6 (#1080, round 2): mutation "|| true" added to C6's guideline-directory guard in tools/loop/evidence-check.sh:194 so C6 can never resolve a route; the red is the named arms failing:
 
 ok   green fixture passes
 ok   green fixture verdict
@@ -16,21 +15,17 @@ ok   C4 red when no configured scan path exists
 ok   a row labelled not retained is exempt by policy
 ok   a route resolves against the document's own heading
 FAIL a § the document does not have is a false pointer: expected [1] got [0]
-FAIL C6 section list: ok   C1 §references: 0 checked, 0 exempted as archived pointers
-ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
-ok   C3 /tmp pointers: none cited
-ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): src
-ok   C5 file:line: 0 resolved and in range, 0 unresolved or ambiguous
-note C6 route: no guideline directory at guidelines under /tmp/tmp.xBGSLB03B9/root — a route cannot resolve, so none is required
-----
-evidence-check: PASS
+FAIL the refusal names the document's section list: expected [§1 §2a §2b ] got []
+FAIL a dotted sub-number heading carries no id: expected [1] got [0]
+FAIL the dotted sub-number is not in the document's section list: expected [§1 §2a §2b ] got []
+FAIL a heading with neither shape separator carries no id: expected [1] got [0]
 ok   a report with no route line warns rather than failing
 FAIL C6 warn arm: ok   C1 §references: 0 checked, 0 exempted as archived pointers
 ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
 ok   C3 /tmp pointers: none cited
 ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): src
 ok   C5 file:line: 0 resolved and in range, 0 unresolved or ambiguous
-note C6 route: no guideline directory at guidelines under /tmp/tmp.xBGSLB03B9/root — a route cannot resolve, so none is required
+note C6 route: no guideline directory at guidelines under /tmp/tmp.jDTcoWgzlM/root — a route cannot resolve, so none is required
 ----
 evidence-check: PASS
 FAIL and the same report fails once the project reads the route as required: expected [1] got [0]

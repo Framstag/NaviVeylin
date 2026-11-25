@@ -1,7 +1,7 @@
 # Tasks — a route resolves against the section its own document carries
 
 - [x] 1. The red case first, taken on the base engine as it stands: a probe change whose markdown carries
-      `LOOP-ROUTE: guidelines/Backlog.md §7` — an id `Backlog.md` does not carry — is read `evidence-check: PASS`
+      `LOOP-ROUTE: guidelines/Backlog.md §7` — an id the probe's stub document does not carry — is read `evidence-check: PASS`
       (exit 0) by the tool committed at `fa8c6aa`, and the same fixture against this change's engine exits 1 and names
       the sections the document does carry. The base's self-test prints **13** `ok` arms and none of them is about a
       route. Evidence: `evidence/red-on-base-probe.txt`, `evidence/red-on-HEAD-selftest.txt`.
@@ -22,14 +22,16 @@
       — one report with no route line is a `WARN` and exit 0 under `warn`, and exit 1 under `fail`, so the
       configuration and not a second rule in the tool is what decides. Evidence: `evidence/selftest-after.log`.
 
-- [x] 5. Seven `--selftest` arms, each named by a `- **Case**` of this delta: `a route resolves against the document's
+- [x] 5. Ten `--selftest` arms: eight named by a `- **Case**` of this delta — `a route resolves against the document's
       own heading`, `a § the document does not have is a false pointer`, `the refusal names the document's section
-      list`, `a report with no route line warns rather than failing`, `the missing route is a WARN`, `and the same
-      report fails once the project reads the route as required`, `a paragraph quoting the form is not a route line`.
-      The suite prints **20** `ok` arms against the base's 13 and `evidence-selftest: PASS`. Evidence:
+      list`, `a dotted sub-number heading carries no id`, `a heading with neither shape separator carries no id`,
+      `a report with no route line warns rather than failing`, `and the same report fails once the project reads the
+      route as required`, `a paragraph quoting the form is not a route line` — and two assertions inside those arm
+      groups that no case names: `the missing route is a WARN` and `the dotted sub-number is not in the document's
+      section list`. The suite prints **23** `ok` arms against the base's 13 and `evidence-selftest: PASS`. Evidence:
       `evidence/selftest-after.log`.
 
-- [x] 6. The bound row (`tools/loop/layout.tsv:22`) moves from 368 to 498 — the file's measured 398 lines plus a
+- [x] 6. The bound row (`tools/loop/layout.tsv:22`) moves from 368 to 517 — the file's measured 413 lines plus a
       quarter, rounded up, which is what the table's own rule asks of a row whose file grew. Verified by the case that
       owns the table: `PASS driver#noEngineFileExceedsItsBound`. Evidence: `evidence/layout-case.log`.
 
@@ -39,12 +41,24 @@
 
 - [x] 8. Revert-check, one mutation: `|| true` added to C6's guideline-directory guard
       (`tools/loop/evidence-check.sh:194`) so the check can never resolve a route. The suite reddens on the named arms
-      — `a § the document does not have is a false pointer`, `C6 section list`, `C6 warn arm`, `and the same report
-      fails once the project reads the route as required` — the file is restored **byte for byte**
-      (`sha256 0effe369…`) and the same suite is green again. Evidence: `evidence/revert-check-c6-red.log`,
+      — `a § the document does not have is a false pointer`, `the refusal names the document's section list`, `a dotted
+      sub-number heading carries no id`, `the dotted sub-number is not in the document's section list`, `a heading with
+      neither shape separator carries no id`, `the missing route is a WARN` and `and the same report fails once the
+      project reads the route as required` — the file is restored **byte for byte**
+      (`sha256 176413030dd0…`) and the same suite is green again. Evidence: `evidence/revert-check-c6-red.log`,
       `evidence/revert-check-c6-green.log`.
 
-- [x] 9. Structural checks on the change itself, run before the gate: `bash tools/loop/evidence-check.sh
-      openspec/changes/fix-the-route-resolves-against-its-document --root .` reads the change's own route as resolved
-      and passes every check, and `openspec validate fix-the-route-resolves-against-its-document --strict` accepts the
-      delta. Evidence: `evidence/evidence-check.log`.
+- [x] 9. Structural checks on the change itself, run before the gate: from the change root,
+      `bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-25-fix-the-route-resolves-against-its-document
+      --root .` reads the change's own route as resolved — `1 of 1 route line(s) resolved` — and passes every check,
+      so the change holds itself to the rule it adds. The delta it carries is the requirement
+      `openspec validate agent-issue-loop --type spec --strict` reads with no error (only the tree's
+      long-requirement warnings). Evidence: `evidence/evidence-check.log`.
+
+- [x] 10. Revert-check of the id rule, one mutation (round 2, the reviewer's finding): the id rule of
+      `tools/loop/evidence-check.sh:218` mutated back to the form shipped in round 1, so a dotted sub-number
+      (`## 3.6 …`) carries the id `3` and a heading with neither shape separator (`## 9 Nine`) carries the id `9`.
+      The suite reddens on the named arms — `a dotted sub-number heading carries no id`, `the dotted sub-number is not
+      in the document's section list` and `a heading with neither shape separator carries no id` — the file is restored
+      **byte for byte** (`sha256 176413030dd0…`) and the same suite is green again. Evidence:
+      `evidence/revert-check-c6-shapes-red.log`, `evidence/revert-check-c6-shapes-green.log`.

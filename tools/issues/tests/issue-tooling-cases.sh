@@ -3392,18 +3392,26 @@ case_list_untypedIsQueried() {
   return 0
 }
 
-# The route, as a case (D3, item #912): the two skills a filing session is routed to name the tracker's own
-# classification. The repair that followed the nine unlinked siblings was doc-only, and nothing read a skill's
-# prose — so the pointer that was missing could be taken away again without a red run. This case reads the two
-# files, offline and token-free, and is what makes the loss loud.
+# The route, as a case (D3, item #912; widened by item #1028): the four skills a filing session is routed through
+# name the tracker's own classification. The repair that followed the nine unlinked siblings was doc-only, and
+# nothing read a skill's prose — so the pointer that was missing could be taken away again without a red run. This
+# case reads the four files, offline and token-free, and is what makes the loss loud.
 case_docs_theFilingSkillsNameTheTypeAxis() {
   local file flag
-  for file in .pi/skills/create-issue/SKILL.md .pi/skills/update-issue/SKILL.md; do
+  for file in .pi/skills/create-issue/SKILL.md .pi/skills/update-issue/SKILL.md \
+              .pi/skills/file-finding/SKILL.md .pi/skills/reshape-issue/SKILL.md; do
     [ -f "$ISSUES_REPO_ROOT/$file" ] || fail "the filing skill $file is missing"
     for flag in --type --parent; do
       grep -qF -- "$flag" "$ISSUES_REPO_ROOT/$file" ||
         fail "$file no longer names $flag, so a filing that follows it cannot carry the type axis"
     done
+  done
+  # and on the call line itself, not merely somewhere in the prose: the presence grep above reads the whole file, so
+  # the sentence that explains the flags satisfies it. The two skills that file a child must show both flags on a
+  # line that begins with the writer's own name (item #1028).
+  for file in .pi/skills/file-finding/SKILL.md .pi/skills/reshape-issue/SKILL.md; do
+    grep -Eq '^tools/issues/create\.sh .*(--type .*--parent |--parent .*--type )' "$ISSUES_REPO_ROOT/$file" ||
+      fail "no documented create.sh call in $file carries --type and --parent on the call line itself"
   done
   # and the documented minimum, not merely a mention: `update.sh` accepts either field, so the sentence that says
   # what an update must carry names both (task 3.2).

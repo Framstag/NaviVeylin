@@ -91,9 +91,15 @@ the reshape is the owner's.
 The owner picks one proposal, or amends it. Then, and only then:
 
 ```bash
-tools/issues/create.sh ...                          # once per child, with its cause and its case
+tools/issues/create.sh --type Task --parent <the container's number> ...   # once per child, with its cause and its case
 tools/issues/update.sh <issue> --body ... --status open   # once for the item's own new shape
 ```
+
+Every child's call carries `--type` and `--parent` beside the cause it files: the two are the tracker's own
+classification and not labels, the child's type is one of the types the account declares (`Task` under a container)
+and the parent is the container's number. `roles.containerType` in `tools/tooling.json` names the type this
+repository treats as a container; a child filed without the two flags appears under no container, which is what #911
+paid for (`guidelines/Backlog.md` §3).
 
 `update.sh`'s write **takes the shaping label off** in the same call that records the new shape, so the queue
 no longer lists the item — this is `shaping-inbox`'s "Leaving the inbox is an existing writer's act". No other

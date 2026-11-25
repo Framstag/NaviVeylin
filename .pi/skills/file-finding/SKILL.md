@@ -38,7 +38,7 @@ A tier-B finding is refused unless the change directory exists and the project's
 ## The call
 
 ```bash
-tools/issues/create.sh <<'FINDING'
+tools/issues/create.sh --type Bug --parent 906 <<'FINDING'
 {
   "title": "The phone card header shows a number the step list disagrees with",
   "class": "bug",
@@ -52,6 +52,12 @@ tools/issues/create.sh <<'FINDING'
 }
 FINDING
 ```
+
+`--type` and `--parent` are the tracker's own classification and not labels: the type names one of the types the
+account declares (`Bug` in this example, `Task` for a child of a container) and the parent is the number of the
+container the finding sits under — a child filed without them appears under no container at all, which is what #911
+paid for (`guidelines/Backlog.md` §3). `roles.containerType` in `tools/tooling.json` is the type this repository
+treats as a container, and `create-issue` carries the rest of the rule.
 
 and, when the work needs a plan:
 

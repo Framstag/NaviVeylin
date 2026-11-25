@@ -1,0 +1,22 @@
+# The red, on the unfixed source
+
+The tree is `ae2373cb` with `dc1fd9da`'s `tools/loop/tests/loop-cases.sh` alone — the new case, its row in
+`LOOP_SHELL_CASES` and its dispatch arm — checked out over it (`git checkout dc1fd9da --
+tools/loop/tests/loop-cases.sh`). Every other file is the base's, so `tools/pi-shell-refusal.mjs` still carries
+`isRangeRead()` and `refusesSegment`'s `tail` early return. Run, verbatim:
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot'
+policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot|   a range  of a tracked file is refused (exit 0): ALLOWED: expected '3', got '0'
+--- policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot[0] (exit 1)
+  a range  of a tracked file is refused (exit 0): ALLOWED: expected '3', got '0'
+FAIL policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot
+loop-selftest: 1 of 1 cases failed
+
+`assert_eq`'s failure names the case's own first assertion: the policy was handed `tail -n +688
+guidelines/Build.md` and answered `ALLOWED` with exit 0, where the case requires the refusal's exit 3. The failure
+message reads `a range  of a tracked file` — two spaces — because the case writes the verb between backticks
+inside a double-quoted string, so the shell runs `tail` and substitutes nothing; the assertion is unaffected, and the
+message is the case's own, recorded here rather than corrected.
+
+The case file was then restored to the base (`git checkout -- tools/loop/tests/loop-cases.sh`) before the fix was applied,
+so the green of `green.log` is the same case over the fixed source and nothing else.

@@ -66,8 +66,8 @@ extension=(-e "$here/pi-trim-result.mjs")
 # (`grep -> grep` 1 017x in 132 items). The tools that answer them are there and unused (`ctx_grep` 361 calls against
 # ~1 700 shell `grep`s), so the policy sits here, where every child is started, and not in a prompt: the second
 # extension refuses the call and names `tools/look.sh`, `ctx_grep` or `ctx_read` instead; the arm it leaves to the
-# shell is a range read of a file that is no part of the tree — a build log under `/tmp`, an item's own artefact — and
-# `tail -n`, a `sed` that substitutes or writes, and a filter of another command's output. Its own rule is
+# shell is a range read of a file that is no part of the tree — a build log under `/tmp`, an item's own artefact — a
+# `sed` that substitutes or writes, and a filter of another command's output. Its own rule is
 # `tools/pi-shell-refusal.mjs`, and its
 # cases are `tools/loop/tests/loop-cases.sh`'s `policy#*` (the rule) and `adapter#theChildIsStartedWithTheShellPolicy` (this line).
 policy=(-e "$here/pi-shell-refusal.mjs")

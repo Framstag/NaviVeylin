@@ -65,9 +65,10 @@ with: each is what the process you are started in refuses, before any rule of th
   the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.
 - **A shell search of the tree is refused**: the verbs `grep`, `cat`, `head`, `tail`, `sed`, `ls`, `find`, `wc` and
   `awk` over the tree are `tools/look.sh` (a pattern over the whole tree), `ctx_read` (one file, or a range of it —
-  the range is its own `offset` and `limit`, not a shell call) and `ctx_ls` (a directory). Not refused: a range read
-  of a log outside the tree or of one of your own item files, a `tail -n` of any file, a `sed` that substitutes or
-  writes, and a filter of another command's output.
+  the range is its own `offset` and `limit`, not a shell call) and `ctx_ls` (a directory). A quiet `sed`'s line range
+  and a `tail`'s range over a file of the tree are that same read, and are refused with it. Not refused: a range read
+  of a log outside the tree or of one of your own item files, a `sed` that substitutes or writes, and a filter of
+  another command's output.
 
 ## Phase E — the findings, then the change completed, then the gate
 

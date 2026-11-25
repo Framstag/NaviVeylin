@@ -1,0 +1,58 @@
+# The green, on the fixed tree
+
+The tree is `ae2373cb` plus commit `dc1fd9da`'s 8 files (`git diff --name-only HEAD` lists exactly those), JDK 21,
+offline, no token, no sandbox. Focused runs only: the parent gates the branch once.
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'policy#*'
+PASS policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot
+PASS policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot
+PASS policy#aShellTreeSearchIsRefusedAndARecipeIsNot
+loop-selftest: policy 3 cases 0.97 s
+loop-selftest: all 3 cases passed (JDK 21, offline, no token, no sandbox) — 0.52 s, selection: --case policy#*
+exit 0
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'adapter#theChildIsStartedWithTheShellPolicy'
+PASS adapter#theChildIsStartedWithTheShellPolicy
+exit 0
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit 0
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'driver#anOwnedFunctionIsInItsOwnersFile'
+driver#anOwnedFunctionIsInItsOwnersFile|   every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: report.sh defines action_add and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: state.sh defines cmd_publish_refused and its row does not own it'
+--- driver#anOwnedFunctionIsInItsOwnersFile[0] (exit 1)
+  every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: report.sh defines action_add and its row does not own it
+layout.tsv: state.sh defines cmd_publish_refused and its row does not own it'
+FAIL driver#anOwnedFunctionIsInItsOwnersFile
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+
+$ node --check tools/pi-shell-refusal.mjs
+exit 0
+
+$ bash -n tools/pi-child-events.sh
+exit 0
+
+$ bash -n tools/loop/tests/loop-cases.sh
+exit 0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 356 section references resolve, all 8 skill references resolve
+exit 0
+
+## The red this change carries and does not cause
+
+`driver#anOwnedFunctionIsInItsOwnersFile` is red on the base commit `ae2373cb` itself, and this change is not why:
+the diff touches neither `tools/loop/layout.tsv`, `tools/loop/report.sh` nor `tools/loop/state.sh`
+(`git diff --name-only HEAD` is the 8 files of the fix, and no `tools/loop/*.sh` is among them), and
+`git show ae2373cb:tools/loop/layout.tsv | grep -n 'action_add\|cmd_publish_refused'` exits 1 — the base's own
+`layout.tsv` owns neither function. The case reports two rows:
+
+    report.sh defines action_add and its row does not own it
+    state.sh defines cmd_publish_refused and its row does not own it
+
+It is no `policy#*` case, and the only case file this change edits (`tools/loop/tests/loop-cases.sh`) is green in
+both other selections above. Carried, not caused here.

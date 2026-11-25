@@ -21,8 +21,9 @@
 //     The exemption is about **which file**, and it is the file the rule asks about: a range read of a tracked file is
 //     a read of the tree and is refused, while the log outside it, the item artefact, the pipe's filter and the write
 //     stay (issue #1006 — `sed` had been left out of the verb list entirely, and became the archive's largest call
-//     class: 3 545 calls, 33.7 % of 10 506, 10.78 M characters, against `ctx_read`'s 6 284 at 1.5 k). `tail` keeps its
-//     range allowance whatever it names; moving it is a second verb with its own measurement.
+//     class: 3 545 calls, 33.7 % of 10 506, 10.78 M characters, against `ctx_read`'s 6 284 at 1.5 k). `tail` was the
+//     same case one verb over — 155 calls over the 8 newest items, 58 of them naming a tracked file — and carried the
+//     allowance whatever it named; it is refused the same way since (issue #1083).
 //   * **Not a stream filter.** `adb logcat -d | grep -E 'Diag/HOST'`, `jq … | awk -F'\t' …`, `echo "$L" | grep -c` read
 //     another command's output, not the tree, and refusing them would delete recipes in `guidelines/Build.md` §10 and
 //     in the skills. Only the **head** of a pipeline is classified.
@@ -168,15 +169,22 @@ export function inTheTree(token, cwd) {
   // A log is not the tree, wherever it sits. `guidelines/BuildGate.md` §2b reads the loop's own failure log by range and
   // that file is `ki_processing_failures.log` at the repository root — machine-local, untracked, and under no generated
   // segment, so no rule above excludes it (`guidelines/Build.md` §10's `/tmp/build-app.log` is outside the root and needs
-  // no exemption). Named as a fact about the file, not about the verb: `tail -n` had the same allowance for the same
-  // reason. Measured 2026-11-22: without this line `policy#aShellTreeSearchIsRefusedAndARecipeIsNot` is red on `main`
-  // (issue #1024).
+  // no exemption). Named as a fact about the file and not about the verb, so `sed`'s and `tail`'s range reads of a log
+  // outside the tree are both left standing. Measured 2026-11-22: without it
+  // `policy#aShellTreeSearchIsRefusedAndARecipeIsNot` is red on `main` (issue #1024).
   if (/\.log$/i.test(path)) return false;
   return !path.split("/").some((segment) => NOT_THE_TREE.has(segment));
 }
 
-/** The words of one segment that are neither the verb nor a flag (nor the value a flag consumes). */
+/**
+ * The words of one segment that are neither the verb nor a flag (nor the value a flag consumes), nor the count a
+ * range flag takes on its own. `head` and `tail` are the two verbs that write that count as a word of its own, so
+ * `tail -n 40 <file>` names the one file: `40` is the lines it prints and no path of the tree, and reading it as one
+ * would refuse every range read of a log. Another verb's numeric word is an operand as before — `grep 5 <file>` names
+ * `<file>` and stays refused.
+ */
 export function operands(segmentWords) {
+  const verb = segmentWords[0];
   const named = [];
   let namedByFlag = false;
   for (let i = 1; i < segmentWords.length; i += 1) {
@@ -186,14 +194,10 @@ export function operands(segmentWords) {
       if (VALUE_FLAGS.has(word)) i += 1;
       continue;
     }
+    if ((verb === "head" || verb === "tail") && /^\+?\d+$/.test(word)) continue;
     named.push(word);
   }
   return { named, namedByFlag };
-}
-
-/** `tail` with a range flag is a range read of a known file: the allowance the verbs keep. */
-export function isRangeRead(segmentWords) {
-  return segmentWords.slice(1).some((word) => /^-[nc]?\+?\d+$/.test(word) || /^-[nc]$/.test(word));
 }
 
 /** `sed`'s quiet arm with a line range as its script — `-n '100,130p'` — is the one that prints a range of a file. */
@@ -208,7 +212,6 @@ export function isRangePrint(segmentWords) {
 export function refusesSegment(segmentWords, cwd) {
   const verb = segmentWords[0];
   if (!REFUSED_VERBS.includes(verb)) return false;
-  if (verb === "tail" && isRangeRead(segmentWords)) return false;
   // `sed -e …`, `sed -n 's/x/y/p'` and `sed -i` filter a stream or write a file, and their output is no range: only the
   // quiet arm whose script is a line range reads one, and only a range read of the tree is refused. A `sed` that names
   // no path reads the pipe it stands in, so it names no file of the tree.
@@ -230,14 +233,14 @@ export function refusalReason(verb) {
     instead = '`ctx_read` reads the file, or `ctx_read mode="lines:N-M"` a range of it';
   } else if (verb === "ls") {
     instead = "`ctx_ls` lists the directory, `tools/look.sh '<regex>' --files` names the files a pattern is in";
-  } else if (verb === "sed") {
+  } else if (verb === "sed" || verb === "tail") {
     instead = '`ctx_read path=<path> offset=<N> limit=<M>` reads the range — and it stops at about 2 000 lines or 50 kB, so a wider range is the shell\'s';
   } else {
     instead = "`tools/look.sh '<regex>'` searches the worktree and the submodule in one bounded call, `ctx_grep` searches one path";
   }
   return (
     `shell \`${verb}\` is not how this tree is read: ${instead}. A range read of a log outside the tree, an item `
-    + "artefact, `tail -n`, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's."
+    + "artefact, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's."
   );
 }
 

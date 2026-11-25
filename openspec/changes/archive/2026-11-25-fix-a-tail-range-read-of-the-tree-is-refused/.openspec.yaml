@@ -1,0 +1,8 @@
+# This change carries no spec delta: the requirement it answers — agent-issue-loop's "A range read of the tree is
+# refused and a log's is not" — was rewritten by the fix commit itself, in openspec/specs/agent-issue-loop/spec.md,
+# with its new scenario. Writing the same sentences again as a change-relative delta would merge nothing at archive.
+# See proposal.md, "Spec delta: none, and why".
+schema: spec-driven
+created: 2026-11-25
+x-issue: 1083
+skip_specs: true

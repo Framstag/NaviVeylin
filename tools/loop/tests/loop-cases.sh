@@ -401,6 +401,7 @@ LOOP_SHELL_CASES=(
   'look#aCaseIsPrintedByItsName'
   'policy#aShellTreeSearchIsRefusedAndARecipeIsNot'
   'policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot'
+  'policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot'
   'adapter#theChildIsStartedWithTheShellPolicy'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
   'report#headerAndTableShape'
@@ -1248,6 +1249,7 @@ loop_run_shell_case() {
     'look#aCaseIsPrintedByItsName') fn=case_look_aCaseIsPrintedByItsName ;;
     'policy#aShellTreeSearchIsRefusedAndARecipeIsNot') fn=case_policy_aShellTreeSearchIsRefusedAndARecipeIsNot ;;
     'policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot') fn=case_policy_aRangeReadOfATrackedFileIsRefusedAndALogIsNot ;;
+    'policy#aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot') fn=case_policy_aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot ;;
     'adapter#theChildIsStartedWithTheShellPolicy') fn=case_adapter_theChildIsStartedWithTheShellPolicy ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
     'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
@@ -24931,5 +24933,53 @@ RANGES
   out=$(node "$rule" --cwd ".pi/issue-loop/items/1006" --command "sed -n '100,130p' gate.log" 2>&1); status=$?
   assert_eq "0" "$status" "a child standing in its item directory reads its own log by range (exit $status): $out"
   assert_contains "$out" "ALLOWED" "and the item artefact is not the tree: $out"
+  return 0
+}
+
+# The allowance `sed`'s case leaves behind (issue #1083, on issue #1006's rule): a `tail` with a range flag was let
+# through whatever it named, so the way `guidelines/Build.md` §10 reads a build log back by range —
+# `tail -n 200 /tmp/build-app.log` — was also the shortest way to read a tracked file, and 58 of the 155 `tail` calls
+# over the 8 newest items named one. The rule is the file and not the verb: a range `tail` of a tracked file is refused
+# with the reason `sed`'s range arm carries, and what that reason still names as the shell's stays the shell's — a log
+# outside the tree, an item's own artefact, the pipe tail, and the count a range flag takes, which is a number and no
+# path of the tree (`-n <N>` and `-N` are the two spellings, and reading the number as an operand refused the very log
+# recipes the exemption exists for).
+case_policy_aTailRangeReadOfATrackedFileIsRefusedAndALogTailIsNot() {
+  # files: tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/pi-shell-refusal.mjs
+  local rule out status
+  rule="$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs"
+  [ -f "$rule" ] || fail "nothing refuses a range read of the tree: tools/pi-shell-refusal.mjs is not in the tree (issue #1083)"
+  out=$(node "$rule" --command "tail -n +688 guidelines/Build.md" 2>&1); status=$?
+  assert_eq "3" "$status" "a range `tail` of a tracked file is refused (exit $status): $out"
+  assert_contains "$out" "REFUSED" "and the refusal is what it prints: $out"
+  assert_contains "$out" '`ctx_read path=<path> offset=<N> limit=<M>`' "and it names the call that reads the range instead: $out"
+  assert_contains "$out" "2 000 lines" "and does not pretend that call has no bound: $out"
+  assert_not_contains "$out" '`tail -n`' "and it no longer offers a shell `tail` as how this tree is read: $out"
+
+  # The count is the count and not a path: the same read spelled with the range flag attached is the same refusal, and
+  # a count in front of a tracked file does not excuse the verb. The three are the control that the numeric skip did
+  # not weaken the rule it is there to keep precise.
+  out=$(node "$rule" --command "tail -688 guidelines/Build.md" 2>&1); status=$?
+  assert_eq "3" "$status" "a range `tail` with the flag attached is refused too (exit $status): $out"
+  out=$(node "$rule" --command "head -n 20 AGENTS.md" 2>&1); status=$?
+  assert_eq "3" "$status" "and a count excuses the same read under no other verb (exit $status): $out"
+  out=$(node "$rule" --command "grep 5 /tmp/build-app.log" 2>&1); status=$?
+  assert_eq "0" "$status" "a numeric pattern does not swallow the path beside it (exit $status): $out"
+
+  # What the refusal still names as the shell's, one line each. `-n <N>` is the case the old allowance was masking: the
+  # number is not an operand, so the file the command names is the only one the rule reads — a build report, the loop's
+  # own log at the root, a log outside the tree, an item's own artefact — and a pipe tail reads the command before it.
+  while IFS= read -r cmd; do
+    [ -n "$cmd" ] || continue
+    out=$(node "$rule" --command "$cmd" 2>&1); status=$?
+    assert_eq "0" "$status" "a range `tail` that names no file of the tree is left alone (exit $status): $cmd -- $out"
+    assert_contains "$out" "ALLOWED" "and it is handed to the child unchanged: $cmd -- $out"
+  done <<'TAILS'
+tail -n 200 app/build/reports/x.log
+tail -n 200 ki_processing_failures.log
+tail -n 40 /tmp/build-app.log
+tail -n 100 .pi/issue-loop/items/1083/gate.log
+adb logcat -d | tail -n 40
+TAILS
   return 0
 }

@@ -119,10 +119,10 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   that fails on the host is not an answer about the tree (issue #796). A range of a known file is that tool's own
   call — `ctx_read`'s `offset` and `limit` — and every phase prompt names it as the range and puts no shell range read
   beside it (issue #1007). The child's own policy refuses a shell *tree search* and answers it with the tools, and a
-  `sed`'s quiet range arm is that search when the file it names is one: a range read of a tracked file is refused,
-  while a filter of another command's output (`… | grep -c`), a `sed` that substitutes or writes, `tail -n <N>`, and a
-  range read of a build log under `/tmp` or of an item's own artefact still stand — `guidelines/Build.md` §10 reads a
-  build's log with them — but they are not how a tree question is answered (issue #1006).
+  `sed`'s quiet range arm or a `tail`'s range flag is that search when the file it names is one: a range read of a
+  tracked file is refused, while a filter of another command's output (`… | grep -c`), a `sed` that substitutes or
+  writes, and a range read of a build log under `/tmp` or of an item's own artefact still stand — `guidelines/Build.md`
+  §10 reads a build's log with them — but they are not how a tree question is answered (issues #1006, #1083).
 
 ## 2b. Liveness guard and shell recipes
 

@@ -1,0 +1,46 @@
+# The measure
+
+## What is re-derived here
+
+The counts that motivate the fix are issue #1083's own measurement over the 8 newest items: `sed` 688 calls (225
+naming a tracked file), `grep` 276 (190), `tail` 155 (58), 1.79 M characters — about 20 % of read calls a
+`ctx_read(path, lines:N-M)` or one `tools/look.sh` answers. This change re-derives no count from the archive; what
+it does re-derive is the rule's own behaviour, through the CLI both entry points share
+(`node tools/pi-shell-refusal.mjs --command '<shell command>'`, exit 3 refused / 0 allowed), on the fixed tree.
+`--command` is the CLI's spelling (`pi-shell-refusal.mjs:cli`); a bare positional command exits 2.
+
+## The matrix
+
+$ node tools/pi-shell-refusal.mjs --command "tail -n +688 guidelines/Build.md"
+REFUSED shell `tail` is not how this tree is read: `ctx_read path=<path> offset=<N> limit=<M>` reads the range — and it stops at about 2 000 lines or 50 kB, so a wider range is the shell's. A range read of a log outside the tree, an item artefact, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's.
+exit 3
+
+$ node tools/pi-shell-refusal.mjs --command "tail -n 688 guidelines/Build.md"
+REFUSED shell `tail` is not how this tree is read: `ctx_read path=<path> offset=<N> limit=<M>` reads the range — and it stops at about 2 000 lines or 50 kB, so a wider range is the shell's. A range read of a log outside the tree, an item artefact, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's.
+exit 3
+
+$ node tools/pi-shell-refusal.mjs --command "tail -n 5 ki_processing_failures.log"
+ALLOWED
+exit 0
+
+$ node tools/pi-shell-refusal.mjs --command "tail -n 5 /tmp/build-app.log"
+ALLOWED
+exit 0
+
+$ node tools/pi-shell-refusal.mjs --command "head -n 20 AGENTS.md"
+REFUSED shell `head` is not how this tree is read: `ctx_read` reads the file, or `ctx_read mode="lines:N-M"` a range of it. A range read of a log outside the tree, an item artefact, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's.
+exit 3
+
+$ node tools/pi-shell-refusal.mjs --command "tail -n 5 .pi/issue-loop/items/1083/gate.log"
+ALLOWED
+exit 0
+
+$ node tools/pi-shell-refusal.mjs --command "adb logcat -d | tail -n 40"
+ALLOWED
+exit 0
+
+Read: a range `tail` of a tracked file is the refusal `sed`'s range arm already was, in both its spellings
+(`-n <N>` and `-N`), with `ctx_read` and the cap it stops at as the answer; a count in front of a tracked file
+excuses the same read under no other verb; and every arm the exemption was written for still stands — a report
+under a module's `build/`, the loop's own untracked log at the root, a log outside the tree, an item's own
+artefact, and a pipe tail, which reads the command before it.

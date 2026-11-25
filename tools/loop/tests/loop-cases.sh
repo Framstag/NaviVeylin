@@ -65,6 +65,7 @@ LOOP_SHELL_CASES=(
   'prescreen#ranksBugsFirstAndKeepsFeatures'
   'prescreen#oneHarnessImprovementPerFourAppItems'
   'prescreen#aRefusedClassStillStopsTheScreen'
+  'prescreen#theRefusedVerdictNamesNoClassValue'
   'prescreen#missingPathIsReportedNotRefused'
   'prescreen#doesNotClaimJudgementGates'
   'prescreen#refusesReservedLabelInSelection'
@@ -909,6 +910,7 @@ loop_run_shell_case() {
     'prescreen#ranksBugsFirstAndKeepsFeatures') fn=case_prescreen_ranksBugsFirstAndKeepsFeatures ;;
     'prescreen#oneHarnessImprovementPerFourAppItems') fn=case_prescreen_oneHarnessImprovementPerFourAppItems ;;
     'prescreen#aRefusedClassStillStopsTheScreen') fn=case_prescreen_aRefusedClassStillStopsTheScreen ;;
+    'prescreen#theRefusedVerdictNamesNoClassValue') fn=case_prescreen_theRefusedVerdictNamesNoClassValue ;;
     'prescreen#missingPathIsReportedNotRefused') fn=case_prescreen_missingPathIsReportedNotRefused ;;
     'prescreen#doesNotClaimJudgementGates') fn=case_prescreen_doesNotClaimJudgementGates ;;
     'prescreen#refusesReservedLabelInSelection') fn=case_prescreen_refusesReservedLabelInSelection ;;
@@ -3059,8 +3061,28 @@ case_prescreen_aRefusedClassStillStopsTheScreen() {
   jq '.roles.refusedClasses = ["feature"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
     mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not refuse the feature class"
   out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a refused class"
-  assert_eq "class-feature" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" "the refused class is dropped"
+  assert_eq "class-refused" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" "the refused class is dropped"
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .reason')" "class/feature" "the refusal names the class"
+}
+
+# The verdict names the judgement, not a value of the project's class namespace (issue #1030). The case above
+# refuses `feature`, the one class for which the old word happened to read true, so it was green over a verdict that
+# spelled a class the refused item need not carry and that the portability rule forbids the engine to name.
+case_prescreen_theRefusedVerdictNamesNoClassValue() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  jq '.roles.refusedClasses = ["improvement"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not refuse the improvement class"
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a refused class"
+  assert_eq "class-refused" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .verdict')" \
+    "the verdict names the judgement, not a class value"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .reason')" "class/improvement" \
+    "the reason is the one place the refused class is named"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" \
+    "a class the profile works is untouched by another class's refusal"
 }
 
 # A missing citation is reported, not refused (#281): a path the tree does not hold has several legitimate
@@ -3101,7 +3123,7 @@ case_prescreen_refusalLeavesATraceInTheTracker() {
     mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not refuse the feature class"
   export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
   out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || true
-  assert_eq "class-feature" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" \
+  assert_eq "class-refused" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" \
     "the fixture is still the refused one (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "agent/excluded-feature" "the refusal is written to the tracker (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"

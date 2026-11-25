@@ -405,7 +405,10 @@ while [ "$scan_index" -lt "$count" ]; do
     verdict="author-not-allowlisted"
     reason="author '$author' is not on the profile's allowlist"
   elif is_refused_class "$class"; then
-    verdict="class-feature"
+    # The verdict names the judgement, not a value of the profile's class namespace (issue #1030): the class that
+    # was refused is what the reason names, and a verdict spelling `feature` logged a refused improvement as a
+    # refused feature — a project value this engine may not carry.
+    verdict="class-refused"
     reason="class${separator}${class} is not worked by this loop"
   elif [ "$status" = "$inflight_status" ] && [ -n "$inflight_status" ]; then
     verdict="$inflight_status"
@@ -697,7 +700,7 @@ the item is left open and no child was started: shape $changes_family/${named_ch
   if [ "$write" -eq 1 ] && [ -n "$refusal_labels" ]; then
     refusal_label=""
     case "$verdict" in
-      class-feature) refusal_label="agent${separator}${refusal_feature}" ;;
+      class-refused) refusal_label="agent${separator}${refusal_feature}" ;;
       settled) refusal_label="agent${separator}${refusal_settled}" ;;
     esac
     if [ "$verdict" = "$queued_verdict" ]; then

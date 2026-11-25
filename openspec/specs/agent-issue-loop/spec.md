@@ -268,8 +268,6 @@ one class cannot read as a refusal of another (`guidelines/BacklogTooling.md` §
 - **THEN** the refusal label is removed, so a repaired citation or a re-classified item is worked rather than
   frozen by a label no run re-reads
 
-- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
-
 ### Requirement: The queue repairs the tooling the run depends on first
 
 The pre-screen SHALL rank a defect in a category the profile names as leading ahead of every other item, SHALL

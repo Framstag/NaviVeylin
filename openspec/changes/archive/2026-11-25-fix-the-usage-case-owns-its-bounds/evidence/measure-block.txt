@@ -1,0 +1,42 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+LOOP-MEASURE base=31c1d9db5232ec14e7505c5f3aeb30676939da14 paths=2 insertions=32 deletions=8
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH tools/loop/tests/loop-cases.sh
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop/tests/loop-selftest.sh --from-git 31c1d9db5232ec14e7505c5f3aeb30676939da14
+LOOP-MEASURE-CHECK bash tools/loop/tests/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/check-doc-values.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-values-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/tests/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=552 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop_tests_loop-mutations.sh_--check.xml tests=457 failures=0 time=18s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_tests_issue-tooling-selftest.sh.xml tests=188 failures=0 time=143s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop_tests_loop-mutations-selftest.sh.xml tests=39 failures=0 time=130s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop_tests_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanRe.xml tests=0 failures=0 time=19s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop_tests_loop-selftest.sh_--from-git_e3a5afd8.xml tests=545 failures=0 time=554s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_issues_tests_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_issues_tests_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_issues_tests_decision-question-mutations.json_.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_issues_tests_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_issues_tests_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_tests_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_check-portability-selftest.sh.xml tests=31 failures=0 time=36s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_tests_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=903 suites=14
+LOOP-MEASURE-CHANGE fix-the-usage-case-owns-its-bounds scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case changed (its `# files:` declaration, its profile copy, its child assertion), 1 mutation note
+LOOP-MEASURE-END

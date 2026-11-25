@@ -1,0 +1,31 @@
+run#childUsageIsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-010316')
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei cf20614 init
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| HEAD ist jetzt bei d6981ed fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+run#childUsageIsRecordedPerItem| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d6981ed).
+run#childUsageIsRecordedPerItem| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| stub gh: recorded `gh issue edit`
+run#childUsageIsRecordedPerItem| closed #21 (completed)
+run#childUsageIsRecordedPerItem|   landing #21 d6981ed44a370a203644ad0d56a44bf3d1c4cf8e: unscored — the pipeline runs of this commit could not be read
+run#childUsageIsRecordedPerItem| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#childUsageIsRecordedPerItem|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#childUsageIsRecordedPerItem| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#childUsageIsRecordedPerItem|   the worker phase is two children, not one: expected '2', got '3'
+--- run#childUsageIsRecordedPerItem[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-010316')
+HEAD ist jetzt bei cf20614 init
+stub gh: recorded `gh issue edit`
+HEAD ist jetzt bei d6981ed fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d6981ed).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+  landing #21 d6981ed44a370a203644ad0d56a44bf3d1c4cf8e: unscored — the pipeline runs of this commit could not be read
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+  the worker phase is two children, not one: expected '2', got '3'
+FAIL run#childUsageIsRecordedPerItem
+loop-selftest: 1 of 1 cases failed

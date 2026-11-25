@@ -1,0 +1,231 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+ openspec/specs/agent-issue-loop/spec.md | 23 +++++++++++++++++++++++
+ tools/loop/tests/loop-cases.sh          | 30 ++++++++++++++++++++++--------
+ 3 files changed, 55 insertions(+), 8 deletions(-)
+
+diff --git a/openspec/specs/agent-issue-loop/spec.md b/openspec/specs/agent-issue-loop/spec.md
+index fd195e7f..d5f024a2 100644
+--- a/openspec/specs/agent-issue-loop/spec.md
++++ b/openspec/specs/agent-issue-loop/spec.md
+@@ -6543,3 +6543,26 @@ list alone.
+ - **WHEN** `report.sh --actions` runs against the same state
+ - **THEN** the numbered list is printed and no header, no table and no trend block with it
+ - **Case**: `report#theFullActionListIsPrintedOnRequest`
++
++### Requirement: A case that counts a phase's children owns the bounds that decide them
++
++A case whose count of a phase's children a bound can decide SHALL record that bound in a profile copy of its own and
++point the run at it (`LOOP_CONF`), keeping the reading it stages below the end the run would take. A case that asserts
++how many children a phase started SHALL name each one where the run records a name for it, so a child the case did not
++stage is named and not counted.
++
++#### Scenario: A usage case's child count is the phase's, not a bound's
++
++- **WHEN** a case stages a child whose own stream reports a context the run's profile would end that child at, and
++  the case asserts the children the phase started
++- **THEN** the case runs under a profile it records itself, the reading it stages stands below the end that profile
++  records, and its assertion prints the prompt of every child it saw
++- **Case**: `run#childUsageIsRecordedPerItem`
++
++#### Scenario: A child the case did not stage is named in its failure
++
++- **WHEN** the run ends a child the case staged at one of its bounds and continues it in a child of its own, so the
++  case sees one child more than it staged
++- **THEN** the case fails with the prompt of every child it saw — `worker-prompt-continuation.md` among them — rather
++  than with a count that names nothing
++- **Case**: `run#childUsageIsRecordedPerItem`
+
+LOOK: 5 matches in 2 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'last_second'
+LOOK-FILE: tools/loop/child.sh 4
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-usage-case-owns-its-bounds/proposal.md 1
+tools/loop/child.sh:279:  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_prev ctx_anchor ctx_bound ctx_bound_key checks_max checks_seen=0 checks_done=0 chk_new chk_read chk_done
+tools/loop/child.sh:420:  last_second=""
+tools/loop/child.sh:427:    if [ "$SECONDS" = "$last_second" ]; then sleep "$poll"; continue; fi
+=== 12980-12984
+{"type":"message_update","usage":{"input":1000,"output":100,"cacheRead":500,"cacheWrite":0,"totalTokens":1600,"cost":{"input":0.01,"output":0.002,"cacheRead":0.0005,"cacheWrite":0,"total":0.0125}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"a"}}
+{"type":"message_update","usage":{"input":2000,"output":200,"cacheRead":1000,"cacheWrite":0,"totalTokens":3200,"cost":{"input":0.02,"output":0.004,"cacheRead":0.001,"cacheWrite":0,"total":0.025}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"b"}}
+{"type":"turn_end","message":{"role":"assistant","content":[]},"toolResults":[]}
+{"type":"compaction_end","reason":"threshold","result":{"summary":"the conversation so far","tokensBefore":150000},"aborted":false,"willRetry":false}
+JSONL
+
+      # becoming a loop that never ends an item.
+      if [ "$item_context_warn" -gt 0 ] && [ "$ctx_max" -ge "$item_context_warn" ] &&
+         case "$phase" in worker-prompt) true ;; *) false ;; esac; then
+        ctx_has_work=0
+        if [ -n "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null)" ]; then ctx_has_work=1; fi
+        if [ "$ctx_has_work" -eq 1 ]; then
+          ended_by=checkpoint
+          timed_out=1
+          kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+=== run.sh 1280-1284
+          continuation_hunks=$(grep -c '^@@' "$continuation_patch" 2>/dev/null || printf 0)
+          continuation_paths=$(sed -n 's#^+++ b/#  - #p' "$continuation_patch" 2>/dev/null | head -20)
+          render_prompt "$LOOP_DIR/prompts/worker-continuation.md" "$item_dir/worker-prompt-continuation.md" \
+            "GATE_STEP=$(gate_step_text "$pre_gate")" \
+            "ISSUE=$issue" "CLASS=$class" "PROPOSE_CLASS=$propose_class" \
+=== mut 806
+  # child exists at all, so a tail made unreachable puts the item's whole derivation back into the archive phase — and
+  # the case that owns it counts the children (`run#childUsageIsRecordedPerItem`), which one child cannot satisfy.
+  '76.1@-@tools/loop/run.sh@run#childUsageIsRecordedPerItem@the tail child the gate line starts, and the item spend as the sum of two children (issue #744)@s|^  if \[ -z "\$pre_gate_refusal" \] \&\& \[ -z "\$empty_tree_reading" \] \&\& \[ -z "\$phase_failure" \] \&\& \[ "\$gate_exit" -eq 0 \] \&\& \[ "\$gate_write_decides" -eq 0 \] \&\&$|  if [ -z "$pre_gate_refusal" ] \&\& [ "$gate_exit" -eq 0 ] \&\& [ "$gate_write_decides" -eq 99 ] \&\&|'
+  # 76.2 — the arm that records a red gate as the tail reported it (issue #744, review round 1). Without it the item
+  # falls to "no archived change appears in the run's diff", which is the opposite of what the tail said and drops the
+  # gate's own numbers; the case asks the reason for the gate's line and for the absence of that sentence.
+  
+[LOOP-TRIMMED: ctx_shell returned 2233 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+LOOK: 7 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines/Backlog.recipes.md for '^## '
+LOOK-FILE: guidelines/Backlog.recipes.md 7
+guidelines/Backlog.recipes.md:10:## §2 The participants and the flow
+guidelines/Backlog.recipes.md:49:## §7a Running one item: the script, the child and the package
+guidelines/Backlog.recipes.md:377:## §7b What an item costs, and the bounds on it
+guidelines/Backlog.recipes.md:1031:## §7c The gate and its suite
+guidelines/Backlog.recipes.md:1298:## §7d Refusals, records and the landing
+guidelines/Backlog.recipes.md:1679:## §7e Leftovers, the report and the queue
+guidelines/Backlog.recipes.md:2046:## §8 The human lane
+
+ERROR: cannot open /home/tim/projects/NaviVeylin/openspec/changes/archive/2026-11-25-fix-the-usage-case-owns-its-bounds/tasks.md: No such file or directory (os error 2)
+The path does not exist, but a same-named file was found — did you mean:
+  - /home/tim/projects/NaviVeylin/openspec/changes/archive/2026-10-19-fix-i18n-gate-state-field-text/tasks.md
+  - /home/tim/projects/NaviVeylin/openspec/changes/archive/2026-10-01-fix-diagnostics-coordinate-redaction/tasks.md
+  - /home/tim/projects/NaviVeylin/openspec/changes/archive/2026-11-21-fix-an-empty-tree-names-the-outside-write/tasks.md
+  - /home/tim/projects/NaviVeylin/openspec/changes/archive/2026-11-14-fix-the-checks-a-child-runs-by-hand-are-bounded/tasks.md
+  - /home/tim/projects/NaviVeylin/openspec/changes/archive/2026-10-18-fix-sensor-credential-and-red-build-rows/tasks.md
+patched tasks.md: 71 lines (+1 -1)
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
+LOOP-GATE-BASE: 31c1d9db5232ec14e7505c5f3aeb30676939da14 (from the base branch main)
+LOOP-GATE-TREE: head=31c1d9db5232ec14e7505c5f3aeb30676939da14 diff=d8475d7526028ae3
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=4158779
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=734 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git 31c1d9db5232ec14e7505c5f3aeb30676939da14 19s, bash tools/loop/tests/loop-mutations.sh --check 6s, bash tools/gen-feature-list.sh --check-classification 6s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 39s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 146s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/check-openspec-hygiene.sh:1
+136:rule-with-no-name	rules#aRuleWithNoNameIsReported	a rule with no name is reported with its file and line instead of being skipped by the extraction, so the empty case cannot pass as a rule the tree does not count
+165:LOOP-GATE-BASERED-MEASURE:tools/check-openspec-hygiene.sh — measuring this step on 31c1d9db5232 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+355:4.1	portability#testsDirectoryIsNotScanned	the engine set skips the tooling's test code by directory, not by a file-name suffix, so a test file with no suffix is never scanned (#740)
+594:LOOP-GATE: tests=734 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git 31c1d9db5232ec14e7505c5f3aeb30676939da14 19s, bash tools/loop/tests/loop-mutations.sh --check 6s, bash tools/gen-feature-list.sh --check-classification 6s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 39s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 146s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/check-openspec-hygiene
+[LOOP-TRIMMED: ctx_shell returned 2006 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+::error file=openspec/changes/fix-an-adopted-closure-says-so/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-an-adoption-is-recorded-as-one/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-a-rejected-publish-is-recorded/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/loop-protocol-core-in-java=2026-11-14, openspe
+[LOOP-TRIMMED: ctx_shell returned 2275 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+bash_tools_gen-feature-list.sh_--check-classification.xml
+bash_tools_loop_tests_loop-mutations.sh_--check.xml
+gate.log
+tools_check-doc-routes.sh.xml
+tools_check-doc-values.sh.xml
+tools_check-openspec-hygiene.sh.xml
+tools_check-portability.sh.xml
+tools_check-todo-references.sh.xml
+tools_issues_tests_issue-tooling-selftest.sh.xml
+tools_loop_tests_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanRe.xml
+tools_loop_tests_loop-selftest.sh_--from-git_31c1d9db5232ec14e7505c5f3aeb3067693.xml
+tools_mutate.sh_--mutations_tools_issues_tests_close-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_issues_tests_create-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_issues_tests_decision-question-mutations.json_.xml
+tools_mutate.sh_--mutations_tools_issues_tests_duplicates-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_issues_tests_status-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_tests_check-doc-routes-mutations.json_--list.xml
+tools_mutate.sh_--mutations_tools_tests_portability-mutations.json_--list.xml
+tools_tests_check-doc-routes-selftest.sh.xml
+tools_tests_check-doc-values-selftest.sh.xml
+tools_tests_check-openspec-hygiene-selftest.sh.xml
+tools_tests_check-portability-selftest.sh.xml
+tools_tests_mutate-selftest.sh.xml
+=== selftest results:
+loop-gate
+
+tests="2" failures="0" errors="0"
+tests="0" failures="0" errors="0"
+0
+
+
+Command exited with code 1
+=== case xml
+tests="0" failures="0" errors="0" time="17" run="4158779"
+
+(no output)
+insgesamt 11736
+drwxr-xr-x   3 tim tim     4096 25. Nov 02:10 .
+drwxr-xr-x 365 tim tim    12288 25. Nov 01:58 ..
+-rw-r--r--   1 tim tim     2893 25. Nov 02:07 case-focused.log
+-rw-r--r--   1 tim tim      415 25. Nov 02:08 continuation-resume.log
+-rw-r--r--   1 tim tim       48 25. Nov 02:07 declaration-case.log
+-rw-r--r--   1 tim tim 10278193 25. Nov 02:20 events.jsonl
+-rw-r--r--   1 tim tim      113 25. Nov 02:10 events.jsonl.gate-runs
+-rw-r--r--   1 tim tim    44017 25. Nov 02:13 gate.log
+-rw-r--r--   1 tim tim     2893 25. Nov 02:07 green-with-the-hold.log
+-rw-r--r--   1 tim tim  1563835 25. Nov 02:08 leftover-from-killed-run.patch
+-rw-r--r--   1 tim tim     4057 25. Nov 02:07 measure-block.txt
+-rw-r--r--   1 tim tim     2524 25. Nov 02:07 red-on-HEAD.log
+drwxr-xr-x   4 tim tim     4096 25. Nov 02:07 scratch
+-rw-r--r--   1 tim tim     1432 25. Nov 02:09 tool-result-ledger.tsv
+-rw-r--r--   1 tim tim    12083 25. Nov 02:20 tool-result-trims.log
+-rw-r--r--   1 tim tim        0 25. Nov 02:08 worker-continuation-report.md
+-rw-r--r--   1 tim tim    11347 25. Nov 02:08 worker-prompt-continuation.md
+-rw-r--r--   1 tim tim    32580 25. Nov 01:58 worker-prompt.md
+-rw-r--r--   1 tim tim      728 25. Nov 02:08 worker-report.md
+=== red log mtime+head
+2026-11-25T02:08:10+01:00
+30:FAIL run#childUsageIsRecordedPerItem
+31:loop-selftest: 1 of 1 cases failed
+
+LOOP-GATE: tests=734 failures=0 errors=0
+22
+
+ M guidelines/Backlog.recipes.md
+ M openspec/specs/agent-issue-loop/spec.md
+ M tools/loop/tests/loop-cases.sh
+?? openspec/changes/archive/2026-11-25-fix-the-usage-case-owns-its-bounds/
+ guidelines/Backlog.recipes.md           | 10 ++++++++++
+ openspec/specs/agent-issue-loop/spec.md | 23 +++++++++++++++++++++++
+ tools/loop/tests/loop-cases.sh          | 30 ++++++++++++++++++++++--------
+ 3 files changed, 55 insertions(+), 8 deletions(-)
+594:LOOP-GATE: tests=734 failures=0 errors=0 (tools/loop/tes
+
+
+# the gate child's own closing answer
+Work continued on the tree the killed process left. State, then the report.
+
+**What I found in the tree** (nothing re-derived): change `fix-the-usage-case-owns-its-bounds` already planned, two hunks in `tools/loop/tests/loop-cases.sh` already applied, guideline paragraph written. Missing: the change's `.openspec.yaml`, one wrong `file:line` in `tasks.md`, the archive, the gate.
+
+**Root cause** (verified, not assumed): the case stages a child whose own stream stands at 150 000 tokens (`tools/loop/tests/loop-cases.sh:12983`) and inherits `LOOP_ITEM_CONTEXT_WARN=90000` (`tools/loop/loop.conf:269`). Since #856 the run ends the item's worker at that crossing once it has work in the tree (`tools/loop/child.sh:552`, `ended_by=checkpoint` at `:556`) and continues it (`tools/loop/run.sh:1282`), and whether the crossing is taken is decided by the wait's one-per-second reading (`tools/loop/child.sh:427`) — so the third child is scheduling's, not the phase's.
+
+**What I did**
+- `.openspec.yaml` added (`x-issue: 1023`) — `check-openspec-hygiene.sh` requires it.
+- `tasks.md` pointer `12967-12974` → `12970-12974` (the block starts at 12970; the old start was inside the comment).
+- `openspec validate --strict` valid; `tools/loop/evidence-check.sh` PASS (C1–C5).
+- `openspec archive --yes` → `openspec/changes/archive/2026-11-25-fix-the-usage-case-owns-its-bounds`, delta merged into `openspec/specs/agent-issue-loop/spec.md` (+1 requirement, 2 scenarios, both naming the case).
+- Structural checks: `bash -n` parses, `check-doc-routes.sh` 357 references resolve.
+- Gate started detached, polled twice; last line of `items/1023/gate.log` is the tally. Gate XMLs (22) copied into `items/1023`, the gate's own console as `gate-internal.log`.
+
+**Graded my own diff.** Scenario 1's three clauses each land on a line: `LOOP_CONF` export (`:12970-12974`), the staged 150 000 below the recorded 200 000, the prompt list at `:13029`. Every `file:line` in `proposal.md`/`design.md` read and confirmed at content (`child.sh:427/552/556`, `run.sh:90/1282`, `loop-cases.sh:12983/13029/23133`, `loop-mutations.sh:806`). Guideline paragraph sits in §7c "The gate and its suite" (1031–1297). Artifacts cited all exist.
+
+NOTE: scenario 2's WHEN ("the run ends a child the case staged at one of its bounds") cannot fire under the fixed case, because the case now pins that bound off — the clause holds by construction (the assertion compares a whole list of prompts, so any extra child enters it, `worker-prompt-continuation.md` included) but no recorded red demonstrates it. Taking one would need the conf pin removed and the stub held, i.e. a tree write after the gate. The recorded red (`evidence/red-on-HEAD.log`) is scenario 1's: `expected '2', got '3'`.
+
+NOTE: `tools/check-openspec-hygiene.sh` is red on this worktree from leftover open changes of other items (`fix-an-adopted-closure-says-so`, `fix-an-adoption-is-recorded-as-one`, `fix-a-rejected-publish-is-recorded`, `fix-a-sensor-filing-carries-the-rows-type`, `fix-the-checkpoint-splits-the-items-chain` — no `x-issue:`). The gate exempts the step as base-red (`base-red: tools/check-openspec-hygiene.sh:1`); none of it is this diff.
+
+NOTE: the change's `proposal.md` `## Why` exceeds openspec's 1000-character advisory (non-blocking warning at archive time).
+
+```
+LOOP-CHANGE: fix-the-usage-case-owns-its-bounds
+LOOP-ROOT-CAUSE: run#childUsageIsRecordedPerItem stages a child whose stream stands at 150 000 tokens while inheriting the profile's 90 000 checkpoint, so whether the run splits its worker into a continuation — a third child in the stub log — is decided by the wait's one-per-second reading and not by the tree.
+LOOP-RED-TEST: run#childUsageIsRecordedPerItem fails on HEAD — tests=1 failures=1 (2026-11-25T02:08:10+01:00; the self-test writes no JUnit XML, so the tally is evidence/red-on-HEAD.log's `loop-selftest: 1 of 1 cases failed`)
+LOOP-GATE: tests=734 failures=0 errors=0 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 17s, tools/loop/tests/loop-selftest.sh --from-git 31c1d9db5232ec14e7505c5f3aeb30676939da14 19s, bash tools/loop/tests/loop-mutations.sh --check 6s, bash tools/gen-feature-list.sh --check-classification 6s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 39s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 146s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — base-red: tools/check-openspec-hygiene.sh:1
+```

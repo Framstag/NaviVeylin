@@ -1,0 +1,5 @@
+worktree#aRejectedPushIsRecordedOnTheItem|   the base a refusal kept off the remote is recorded on the run: expected '1', got '0'
+--- worktree#aRejectedPushIsRecordedOnTheItem[0] (exit 1)
+  the base a refusal kept off the remote is recorded on the run: expected '1', got '0'
+FAIL worktree#aRejectedPushIsRecordedOnTheItem
+loop-selftest: 1 of 1 cases failed

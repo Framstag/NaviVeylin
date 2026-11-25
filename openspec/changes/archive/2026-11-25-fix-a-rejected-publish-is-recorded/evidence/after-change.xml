@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="worktree#aRejectedPushIsRecordedOnTheItem" tests="1" failures="0" errors="0" time="0" run="2026-11-25T01:48:22Z">
+  <properties>
+    <property name="tree" value="the change applied, uncommitted, on 0522f8821e77e4a4e6cf3250f7667e00fca5d7ea"/>
+    <property name="command" value="bash tools/loop/tests/loop-selftest.sh --case worktree#aRejectedPushIsRecordedOnTheItem"/>
+  </properties>
+  <testcase classname="worktree" name="aRejectedPushIsRecordedOnTheItem"/>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="worktree#aRejectedPushIsRecordedOnTheItem" tests="1" failures="1" errors="0" time="0" run="2026-11-25T01:48:10Z">
+  <properties>
+    <property name="tree" value="base 0522f8821e77e4a4e6cf3250f7667e00fca5d7ea, the case added and the production change removed"/>
+    <property name="command" value="bash tools/loop/tests/loop-selftest.sh --case worktree#aRejectedPushIsRecordedOnTheItem"/>
+  </properties>
+  <testcase classname="worktree" name="aRejectedPushIsRecordedOnTheItem">
+    <failure message="the base a refusal kept off the remote is recorded on the run: expected '1', got '0'">loop-selftest: 1 of 1 cases failed</failure>
+  </testcase>
+</testsuite>

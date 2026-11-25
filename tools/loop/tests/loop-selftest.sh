@@ -171,9 +171,12 @@ unset LOOP_CHILD_EVENTS
 # started from inside `.pi/worktrees/loop`, `trim#aResultOlderThanTheAgeIsStubbedAndNamed` and three `repeat#…` cases
 # went red on a tree whose plain run was green — item #1018's gate paid for it. `LOOP_WORKTREE_SCRATCH_PATHS` is on the
 # list because the profile assigns it: it is exported again by the `source` above, so unsetting it earlier would be
-# undone. A case that wants a root sets it on its own command line, and `driver#theSuiteDoesNotInheritTheRunsRoots`
-# holds this.
-unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS
+# undone. `LOOP_STATE_FILE` is on the list for the same reason (issue #1066): `tools/loop/run.sh` exports it to every
+# child and the record it names stands under this tree, so a case that inherited it wrote the suite's fixture items
+# into the live `run.json` — the run of 2026-11-24 left `#22` and `#32` ahead of the item it worked, and the chain
+# charged that item's attempt to `#22`. A case that wants a root sets it on its own command line, and
+# `driver#theSuiteDoesNotInheritTheRunsRoots` holds this.
+unset LOOP_WORKTREE LOOP_TOOL_RESULT_LEDGER LOOP_WORKTREE_SCRATCH_PATHS LOOP_STATE_FILE
 
 # How many cases run at once (issue #260). The value is the invocation's `--jobs`, else the profile's
 # `LOOP_SELFTEST_JOBS`, else the host's CPU count — a host that cannot answer is a pool of one, never a suite that

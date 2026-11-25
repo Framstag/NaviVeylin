@@ -1,0 +1,73 @@
+# The red, on the unfixed source
+
+The tree is `23deb8c3` with `681fbd3f`'s two case files alone — `tools/loop/tests/loop-cases.sh` (the new case, its
+row in `LOOP_SHELL_CASES` and its dispatch arm) and `tools/loop/tests/loop-mutations.sh` (the two mutations that follow
+the moved paragraphs) — checked out over it (`git checkout 681fbd3f -- tools/loop/tests/loop-cases.sh
+tools/loop/tests/loop-mutations.sh`). Every other file is the base's, so `loop.conf` records no
+`LOOP_WORKER_PROMPT_MAX_BYTES`, `run.sh` renders no reference and `worker.md` still carries the three blocks whole.
+
+## 1. The base as it stands: the size every turn re-sends has no bound
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#theWorkerPromptFitsItsBudget'
+run#theWorkerPromptFitsItsBudget|   loop.conf records no LOOP_WORKER_PROMPT_MAX_BYTES — the size every turn of an item re-sends has no bound to be read against
+--- run#theWorkerPromptFitsItsBudget[0] (exit 1)
+  loop.conf records no LOOP_WORKER_PROMPT_MAX_BYTES — the size every turn of an item re-sends has no bound to be read against
+FAIL run#theWorkerPromptFitsItsBudget
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+The case's first assertion is the one that fires, and it is the root cause stated as a red: the bound is read out of
+`loop.conf` and there is no key to read, so the size that is charged at every turn of every item is measured against
+nothing. The assertions that follow it — the measurement, the pointer, the reference's three blocks, the over-bound
+line — are unreachable on this tree.
+
+## 2. The bound alone, and the prompt it would bound: 33 726 B against 29 000 B
+
+With the key added to the base's `loop.conf` and nothing else changed — `LOOP_WORKER_PROMPT_MAX_BYTES=29000` written
+beside `LOOP_ITEM_CALLS_PER_TURN_MIN`, `worker.md` and `run.sh` still the base's — the same case runs and reaches the
+measurement it exists for:
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#theWorkerPromptFitsItsBudget'
+run#theWorkerPromptFitsItsBudget| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-095258')
+run#theWorkerPromptFitsItsBudget| HEAD ist jetzt bei 64c8cea init
+run#theWorkerPromptFitsItsBudget| state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+run#theWorkerPromptFitsItsBudget| stub gh: recorded `gh issue edit`
+run#theWorkerPromptFitsItsBudget| HEAD ist jetzt bei d6e4d53 fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+run#theWorkerPromptFitsItsBudget| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d6e4d53).
+run#theWorkerPromptFitsItsBudget| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#theWorkerPromptFitsItsBudget| stub gh: recorded `gh issue edit`
+run#theWorkerPromptFitsItsBudget| stub gh: recorded `gh issue edit`
+run#theWorkerPromptFitsItsBudget| closed #21 (completed)
+run#theWorkerPromptFitsItsBudget|   landing #21 d6e4d53c8f7738d8e902ff7eda85e30bf7801122: unscored — the pipeline runs of this commit could not be read
+run#theWorkerPromptFitsItsBudget| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#theWorkerPromptFitsItsBudget|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#theWorkerPromptFitsItsBudget| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#theWorkerPromptFitsItsBudget|   the composed worker prompt is 33726 B, over the recorded bound of 29000 B (LOOP_WORKER_PROMPT_MAX_BYTES), and every turn of the item re-sends it
+--- run#theWorkerPromptFitsItsBudget[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-095258')
+HEAD ist jetzt bei 64c8cea init
+state: the quota check 'bash tools/loop-quota.sh' exited 127 — a check that cannot be made is not a refusal
+stub gh: recorded `gh issue edit`
+HEAD ist jetzt bei d6e4d53 fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d6e4d53).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+  landing #21 d6e4d53c8f7738d8e902ff7eda85e30bf7801122: unscored — the pipeline runs of this commit could not be read
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+  the composed worker prompt is 33726 B, over the recorded bound of 29000 B (LOOP_WORKER_PROMPT_MAX_BYTES), and every turn of the item re-sends it
+FAIL run#theWorkerPromptFitsItsBudget
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+`the composed worker prompt is 33726 B, over the recorded bound of 29000 B` is the failure this change is about: the
+file is byte-identical for every item and is re-sent with every turn, and 33 726 B is what the case's own throwaway
+project renders from the base's template. It is also the figure `evidence/measure.log` measures for the same fixture
+before the move.
+
+Both runs were made on the restored base — `git reset --hard HEAD` — and the second one's `loop.conf` edit was undone
+before the fix was applied, so the green of `evidence/green.log` is the same case over the fixed source and nothing
+else.

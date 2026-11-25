@@ -123,6 +123,17 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   tracked file is refused, while a filter of another command's output (`… | grep -c`), a `sed` that substitutes or
   writes, and a range read of a build log under `/tmp` or of an item's own artefact still stand — `guidelines/Build.md`
   §10 reads a build's log with them — but they are not how a tree question is answered (issues #1006, #1083).
+- **Rule: a prompt is charged on every turn, so its size is a recorded bound.** A child's prompt is byte-identical for
+  every item and re-sent with every turn of its session, so it is not paid once: the worker's was 32 580 B across the
+  loop's archive, about 11.6 k of the 15 649 tok a turn was charged. The blocks a child only *consults* — the project's
+  rule routing, what its own shell and tools refuse, and how a measurement is taken and calls batched — are one file
+  the prompt names (`tools/loop/prompts/worker-reference.md`), rendered beside it and read once when the question
+  arises; the prompt keeps the route, every verb the policy refuses, the read call that answers a refused range and
+  the batching rule, because those have to change behaviour before a question can be asked. The composed prompt's
+  size is the recorded bound `LOOP_WORKER_PROMPT_MAX_BYTES` (`tools/loop/loop.conf`), and a prompt over it is a line in
+  the run's own record and console naming the size and the bound (`run#theWorkerPromptFitsItsBudget`): a prompt that
+  grew is paid at every turn of every item, which is the one cost this loop cannot leave to a reader's eye (issue
+  #1082).
 
 ## 2b. Liveness guard and shell recipes
 

@@ -177,5 +177,6 @@ submodule_only_dirt	leftovers.sh	run.sh
 tail_after_gate	child.sh	run.sh
 tree	loop-clean.sh	gate.sh
 verdict	labels.sh	phase.sh prescreen.sh
+worker_prompt_bound_check	child.sh	run.sh
 worktree_is_dirty	leftovers.sh	run.sh
 write_review_diff	evidence.sh	run.sh

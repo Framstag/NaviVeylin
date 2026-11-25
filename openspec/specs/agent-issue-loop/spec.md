@@ -3035,6 +3035,28 @@ governs it.
   root the child is started in
 - **Case**: `prompt#thePhasePromptsCarryTheirOwnRoute`
 
+#### Scenario: What the prompt only consults travels as one file it names
+
+- **WHEN** the worker's prompt is rendered for an item
+- **THEN** the blocks a worker consults rather than obeys — the project's rule routing, what its own shell and tools
+  refuse, and how a measurement is taken and independent calls batched — are one file rendered beside the prompt and
+  named in it, which says that the file is read once and is not re-sent with the prompt
+- **AND** the prompt keeps what has to change behaviour before any question is asked: the document map, the recipe
+  that prints a section list, every verb the refusal policy exports, the read call that answers a refused range, and
+  the rule that independent calls belong in one turn
+- **AND** the file it names carries those blocks whole, so nothing the child must obey is stated in neither file
+- **Case**: `run#theWorkerPromptFitsItsBudget`
+
+#### Scenario: The composed prompt's size is a recorded bound
+
+- **WHEN** the worker's prompt is rendered and the configuration records a byte bound for it
+- **THEN** the run measures the composed file, and a prompt over the bound is a line in the run's own record and
+  console naming the size and the bound it crossed, so a prompt that grew is paid visibly and not at every turn of
+  every item in silence
+- **AND** the bound the run read is recorded in its state and printed beside the bounds its other figures are read
+  against, and a configuration that records no bound measures nothing and reports nothing
+- **Case**: `run#theWorkerPromptFitsItsBudget`
+
 ### Requirement: A child is told what its own shell and tools refuse
 
 The phase prompt a child is started with for work that writes the tree SHALL name what the process it runs in

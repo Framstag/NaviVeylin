@@ -596,7 +596,7 @@ MUTATIONS=(
   # command's output, the reviewer's that a number with no such command is a correction rather than a refusal.
   '61.1@-@tools/loop/measure.sh@measure#printsTheSuiteCountAndTheGateTiming@the declared case count the block carries, so a suite count is a command rather than a tally by hand (issue #244)@s|^if \[ -n "\$suite_cmd" \]; then$|if false; then|'
   '61.2@-@tools/loop/measure.sh@measure#printsTheSuiteCountAndTheGateTiming@the gate timing summed from the tallies it wrote (issue #244)@s|^if \[ "\$gate_suites" -gt 0 \]; then$|if false; then|'
-  '61.3@-@tools/loop/prompts/worker.md@prompt#workerIsHandedTheMeasureBlock@the worker told that a quoted number is a command'"'"'s output in its record (issue #244)@s|^\*\*A number the change quotes is the output of a command in its record\.\*\*|A number is a guess.|'
+  '61.3@-@tools/loop/prompts/worker-reference.md@prompt#workerIsHandedTheMeasureBlock@the worker told that a quoted number is a command'"'"'s output in its record (issue #244; the paragraph is the reference file the prompt names since #1082)@s|^\*\*A number the change quotes is the output of a command in its record\.\*\*|A number is a guess.|'
   '61.4@-@tools/loop/prompts/reviewer.md@prompt#reviewerIsBoundedToReading@the reviewer told that a number no command produced is a correction, not a refusal (issue #244)@s|A number no command in the record produced is not a claim|A number may be taken on trust|'
 
   # 62.x — the loop's own bounds and its record of what a stopped run found (issue #308). Six invariants, six
@@ -1115,7 +1115,7 @@ MUTATIONS=(
   # selection inside its own session — 129 cases in 219.93 s and 349 cases in 446.01 s — and the gate child then ran
   # both again. One record per prompt that states the split, each mutating the sentence its case asserts. Renumbered
   # from the branch's own 95.x when this landed: the tree had already spent 95.1 on the bounds issue #815 records.
-  '263.1@-@tools/loop/prompts/worker.md@prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite@the gate named as the owner of the full selection, so the change child runs that check itself (issue #816)@s|gate owns the full selection|the gate is run by the child that runs it|'
+  '263.1@-@tools/loop/prompts/worker-reference.md@prompt#theChangeChildCitesTheMeasureBlockAndRunsNoSuite@the gate named as the owner of the full selection, so the change child runs that check itself (issue #816; the paragraph is the reference file the prompt names since #1082)@s|gate owns the full selection|the gate is run by the child that runs it|'
   '263.2@-@tools/loop/prompts/pre-gate-review.md@prompt#thePreGateRoundRefusesOnlyWhatTheGateCannotSettle@the claim the round before the gate may refuse, so a check the gate will run is refused for want of a log the change child never produced (issue #816)@s|a claim the gate cannot settle|a claim nobody has logged|'
   # 264.x — the retry a transient failure earns (issue #752). A child that never started is not a verdict about the
   # item, and the run used to read it as one about the window: the pair of them ended a 360-minute run 125 s in. One

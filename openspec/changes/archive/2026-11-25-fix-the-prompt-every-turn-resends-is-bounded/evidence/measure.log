@@ -1,0 +1,112 @@
+# The measure
+
+## What is re-derived here, and how
+
+The counts that motivate the fix are issue #1082's own: 2 523 turns over the 8 newest items at a 15 649 tok/turn
+baseline, ~11.6 k of it the composed prompt, ~29 Mtok of a 90.6 Mtok night. This change re-derives none of them. What
+it does re-derive is the **size the fix moves**, three ways, so that a reader can put the before and the after side by
+side:
+
+1. the two skeletons, by `wc -c`;
+2. the **composed** prompt, rendered the way `run.sh` renders it, over one value set — item #1030's own, taken from
+   the prompt that item's run left behind — before and after the move;
+3. the prompt the **case's own throwaway project** renders, read out of the case's failure text when a bound is set
+   under it (the case only prints the size when it is over one).
+
+The renderer is `loop_render` (`tools/loop/lib.sh:1163`): one accumulated string, one `KEY=VALUE` pair at a time, with
+`patsub_replacement` off so a `&` in a section's text is a `&`. The harness below is that substitution and nothing else,
+and it is validated against the archived prompt: rendered from `adb79f6f^`'s template — the one item #1030's run was
+started with — it reproduces `.pi/issue-loop/items/1030/worker-prompt.md` **byte for byte**, 32 580 B.
+
+```
+$ cat /tmp/render1082.sh
+#!/usr/bin/env bash
+# /tmp/render1082.sh <template> <gate-step file> <out>
+set -u
+shopt -u patsub_replacement 2>/dev/null || true
+TPL="$1"; STEP="$2"; OUT="$3"
+item=/home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030
+tpl=$(cat "$TPL")
+tpl="${tpl//\{\{GATE_STEP\}\}/$(cat "$STEP")}"
+tpl="${tpl//\{\{ISSUE\}\}/1030}"
+tpl="${tpl//\{\{CHANGE_ROOT\}\}//home/tim/projects/NaviVeylin/.pi/worktrees/loop}"
+tpl="${tpl//\{\{WORK_PACKAGE\}\}/$item/work-package.md}"
+tpl="${tpl//\{\{EVIDENCE_DIR\}\}/$item}"
+tpl="${tpl//\{\{SCRATCH_DIR\}\}/$item/scratch}"
+tpl="${tpl//\{\{BASE\}\}/ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf}"
+tpl="${tpl//\{\{GATE_CMD\}\}/.\/tools\/loop\/gate.sh}"
+tpl="${tpl//\{\{MEASURE_CMD\}\}/.\/tools\/loop\/measure.sh}"
+tpl="${tpl//\{\{WORKER_SKILLS\}\}/openspec-propose openspec-apply-change build-app run-tests revert-check}"
+tpl="${tpl//\{\{CLASS\}\}/bug}"
+tpl="${tpl//\{\{PROPOSE_CLASS\}\}/feature}"
+tpl="${tpl//\{\{WORKER_REFERENCE\}\}/$item/worker-reference.md}"
+printf '%s\n' "$tpl" > "$OUT"
+```
+
+## The skeletons
+
+$ git show HEAD:tools/loop/prompts/worker.md | wc -c
+27516
+$ wc -c tools/loop/prompts/worker.md tools/loop/prompts/worker-reference.md
+21789 tools/loop/prompts/worker.md
+ 9443 tools/loop/prompts/worker-reference.md
+31232 insgesamt
+$ wc -c /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/worker-prompt.md   # read-only, the archived real one
+32580 /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/worker-prompt.md
+
+The template falls 27 516 B → 21 789 B (−5 727 B). The reference is 9 443 B, of which the three moved blocks are the
+bulk and the rest is the header saying what the file is, that it is rendered once per item and that it is not re-sent.
+
+## The composed prompt, one value set before and after
+
+$ bash /tmp/render1082.sh /tmp/worker-base.md /tmp/gate-own-base.md /tmp/base-1030.md && wc -c /tmp/base-1030.md
+32674 /tmp/base-1030.md
+$ bash /tmp/render1082.sh tools/loop/prompts/worker.md /tmp/gate-own-base.md /tmp/new-1030.md && wc -c /tmp/new-1030.md
+27112 /tmp/new-1030.md
+$ diff /tmp/base-1030.md /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/worker-prompt.md   # the HEAD template differs from the archived prompt by one sentence
+78,81c78,80
+<   the range is its own `offset` and `limit`, not a shell call) and `ctx_ls` (a directory). A quiet `sed`'s line range
+<   and a `tail`'s range over a file of the tree are that same read, and are refused with it. Not refused: a range read
+<   of a log outside the tree or of one of your own item files, a `sed` that substitutes or writes, and a filter of
+<   another command's output.
+---
+>   the range is its own `offset` and `limit`, not a shell call) and `ctx_ls` (a directory). Not refused: a range read
+>   of a log outside the tree or of one of your own item files, a `tail -n` of any file, a `sed` that substitutes or
+>   writes, and a filter of another command's output.
+$ grep -c "{{" /tmp/new-1030.md   # no placeholder left unfilled
+0
+
+**32 674 B → 27 112 B, 5 562 B less per turn** on item #1030's own paths. The 94 B between 32 580 and 32 674 is the
+sentence issue #1083 added to the shell-refusal block after item #1030 ran, so the archived prompt stands 5 468 B above
+the fixed one and the tree this fix lands on stands 5 562 B above it. At ~2 500 turns an item that is ~13.9 MB of
+re-sent prompt per item, ~1 980 tok a turn at the ~11.6 k-per-32 580 B the issue's baseline was taken at — ~13 % of a
+15 649 tok/turn turn, which is the −10…−13 % the issue claims and not the −26 % halving the prompt would give.
+
+## The prompt the case's own fixture renders
+
+The case's throwaway project sits deeper than a run's item directory (a suite scratch root, a case directory, the
+fixture repository), so it renders larger than the item figure above. The case prints its size only when the bound is
+under it, so both readings come from a failure run:
+
+- on the **base**, with `LOOP_WORKER_PROMPT_MAX_BYTES=29000` added to the base's `loop.conf`
+  (`evidence/red-on-base.log`, second block):
+  `the composed worker prompt is 33726 B, over the recorded bound of 29000 B (LOOP_WORKER_PROMPT_MAX_BYTES)`;
+- on the **fixed** tree, with the key temporarily set to `20000` and put back to `29000` afterwards:
+  `the composed worker prompt is 28389 B, over the recorded bound of 20000 B (LOOP_WORKER_PROMPT_MAX_BYTES)`.
+
+**33 726 B → 28 389 B, 5 337 B less per turn**, against a bound of 29 000 B: **611 B of headroom** on the deepest render
+this tree produces. That headroom is the number to read the bound with — a paragraph added to `worker.md` that costs
+more than 611 B on the fixture's paths crosses it and the run says so.
+
+## What the two figures in the fix's own text measure
+
+The fix commit's message states 32 580 B → 27 073 B (−5 507 B), and the comment over `LOOP_WORKER_PROMPT_MAX_BYTES` in
+`loop.conf` states "fell to 26 385 B" with "10 130 B it no longer carries". None of those four numbers re-renders from
+this tree by either method above: the rendered pairs are 32 674 → 27 112 and 33 726 → 28 389, and the bytes the prompt
+no longer carries are 5 727 B of template, 5 562 B of the item's composed prompt and 5 337 B of the fixture's. The
+measured figures are the ones this archive's evidence holds; correcting the two sentences in the merged fix is a
+change of its own, and the 611 B headroom is what that correction should be written against.
+
+Read: the prompt a turn re-reads fell by ~5.4 kB on both renders, the reference that carries the rest is charged once
+per item rather than once per turn, and the size that is still charged on every turn is a number a run records, prints
+beside its other bounds and compares the rendered file against.

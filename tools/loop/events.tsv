@@ -110,6 +110,7 @@ tests-cleared	cleared:text	run: cleared %s from the worktree before this child �
 child-started	phase:ident+log:path	loop: %s started (log %s)\n
 heartbeat	phase:ident+elapsed:text+log_bytes:num+changed:num+commits:num	loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n
 context-warn	ctx:num+warn:num	LOOP-CONTEXT: the child's context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, and below the stop the item's first worker is ended here and continued from the work it left (LOOP_ITEM_CONTEXT_MAX bounds the continuation)\n
+worker-prompt-over-bound	phase:ident+bytes:num+bound:num	LOOP-PROMPT: the %s prompt is %s B, over the recorded bound %s B (LOOP_WORKER_PROMPT_MAX_BYTES) — every turn of the child re-sends it, so a prompt that grew is paid at every turn of the item rather than once (issue #1082)\n
 child-finished	phase:ident+elapsed:text+exit:num+log_bytes:num	loop: %s finished in %s (exit %s, log %s B)\n
 change-ready-no-key	-	LOOP-CHANGE-READY: refused gate-not-configured — the profile declares no checks.changeReady\n
 change-ready-missing	gate:path	LOOP-CHANGE-READY: refused gate-not-configured — checks.changeReady names %s and no file is there\n

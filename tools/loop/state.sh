@@ -283,10 +283,14 @@ cmd_init() {
   # numbers used to live only in `tools/loop/loop.conf`, which is a line a person edits between runs — so a run at
   # another bound (the one experiment #791's 200 104-token cut asks for) left a state whose figures nobody could read
   # back as the figures of *that* bound. Recorded once, and `0` where the configuration records none.
-  local tool_result_max context_warn context_max
+  local tool_result_max context_warn context_max worker_prompt_max
   tool_result_max=$(recorded_bound LOOP_TOOL_RESULT_MAX_CHARS)
   context_warn=$(recorded_bound LOOP_ITEM_CONTEXT_WARN)
   context_max=$(recorded_bound LOOP_ITEM_CONTEXT_MAX)
+  # The bound on the composed worker prompt is the fourth of them (issue #1082): the file every turn of an item
+  # re-sends has a recorded size, and a run whose prompt was over it names both numbers — a reader comparing two
+  # runs' sizes compares them against the bound each run recorded, not against the key as it stands today.
+  worker_prompt_max=$(recorded_bound LOOP_WORKER_PROMPT_MAX_BYTES)
   started=$(now_epoch)
   deadline=$(( started + minutes * 60 ))
   write_state "$(jq -n \
@@ -294,21 +298,21 @@ cmd_init() {
     --argjson maxReviewRounds "$max_review_rounds" --argjson ownerPid "$owner_pid" \
     --argjson started "$started" --argjson deadline "$deadline" \
     --argjson toolResultMaxChars "$tool_result_max" --argjson itemContextWarn "$context_warn" \
-    --argjson itemContextMax "$context_max" \
+    --argjson itemContextMax "$context_max" --argjson workerPromptMaxBytes "$worker_prompt_max" \
     --arg review "$review" --arg mayClose "$may_close" --arg base "$base" \
     --arg startedAt "$(iso_utc "$started")" --arg deadlineAt "$(iso_utc "$deadline")" \
     '{run:{items:$items, minutes:$minutes, review:$review, mayClose:$mayClose,
            maxDecisions:$maxDecisions, maxReviewRounds:$maxReviewRounds, base:$base,
            toolResultMaxChars:$toolResultMaxChars, itemContextWarn:$itemContextWarn,
-           itemContextMax:$itemContextMax,
+           itemContextMax:$itemContextMax, workerPromptMaxBytes:$workerPromptMaxBytes,
            ownerPid:$ownerPid,
            startedAt:$startedAt, startedEpoch:$started,
            deadlineAt:$deadlineAt, deadlineEpoch:$deadline, holds:[]},
       queue:[], excluded:[], current:null, items:[], steps:[]}')"
   printf 'state: budget %s items / %s min · review %s · may-close %s · max-decisions %s · max-review-rounds %s · base %s\n' \
     "$items" "$minutes" "$review" "$may_close" "$max_decisions" "$max_review_rounds" "${base:0:12}"
-  printf 'state: bounds result %s · context warn %s · context max %s\n' \
-    "$tool_result_max" "$context_warn" "$context_max"
+  printf 'state: bounds result %s · context warn %s · context max %s · worker prompt %s\n' \
+    "$tool_result_max" "$context_warn" "$context_max" "$worker_prompt_max"
   printf 'state: deadline %s\n' "$(iso_utc "$deadline")"
 }
 
@@ -339,7 +343,7 @@ cmd_show() {
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
-      "bounds   result bound \($r.toolResultMaxChars // "?") · context warn \($r.itemContextWarn // "?") · context max \($r.itemContextMax // "?")",
+      "bounds   result bound \($r.toolResultMaxChars // "?") · context warn \($r.itemContextWarn // "?") · context max \($r.itemContextMax // "?") · worker prompt \($r.workerPromptMaxBytes // "?")",
       "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
       "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",

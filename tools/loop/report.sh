@@ -159,15 +159,16 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
 printf 'source: the state file is the authority for every figure below · the record is a cross-check (--from-events)\n\n'
 
 # The bounds every figure below was measured against (issue #815): the character bound an item's tool results were
-# cut at, and the two context bounds its `context` column is read against. They are printed beside the budget for the
-# reason the budget is: a run at another bound is a different run, and a state whose record does not name it leaves a
-# comparison of two runs' rates as a comparison of two numbers nobody wrote down. `?` is a state written before the
-# record carried them — not `0`, which is a configuration that records no bound (the rule every unreported figure
-# already follows).
-printf 'bounds: result bound %s · context warn %s · context max %s\n\n' \
+# cut at, the two context bounds its `context` column is read against, and the byte bound on the composed worker
+# prompt every turn of an item re-sends (issue #1082). They are printed beside the budget for the reason the budget
+# is: a run at another bound is a different run, and a state whose record does not name it leaves a comparison of two
+# runs' rates as a comparison of two numbers nobody wrote down. `?` is a state written before the record carried them
+# — not `0`, which is a configuration that records no bound (the rule every unreported figure already follows).
+printf 'bounds: result bound %s · context warn %s · context max %s · worker prompt %s\n\n' \
   "$(jq -r '.run.toolResultMaxChars // "?"' "$state_file")" \
   "$(jq -r '.run.itemContextWarn // "?"' "$state_file")" \
-  "$(jq -r '.run.itemContextMax // "?"' "$state_file")"
+  "$(jq -r '.run.itemContextMax // "?"' "$state_file")" \
+  "$(jq -r '.run.workerPromptMaxBytes // "?"' "$state_file")"
 
 # The budget left subtracts one run's spend from the same run's budget, so the spend has to be that run's:
 # from its start to the stop it recorded when it ended, and from its start to the clock only inside the

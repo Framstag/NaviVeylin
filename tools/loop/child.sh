@@ -748,6 +748,28 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
   loop_render "$template" "$@" > "$out"
 }
 
+# The composed prompt's size against the bound the configuration records (issue #1082). A phase prompt is
+# byte-identical for every item and is re-sent with **every turn** of the child it starts, so its size is not paid
+# once: the worker's was 32 580 B, about 11.6 k of the 15 649 tok a turn was charged — near a quarter of the loop's
+# spend — and no file recorded the number, so a prompt that grew was paid silently at every turn of every item.
+# This reads the file the run has just rendered and, when it is over the bound, names both numbers on the run's own
+# record and console in one call (`loop_emit`): a growth is a line a reader meets, never a silence.
+#
+# `0`, or a configuration that records no key, is no bound — the value every reader of these keys already knows — and
+# a prompt that cannot be measured (a path that is not there, a `stat` that answers something other than a size) is
+# not a refusal either: this rule reports, and it changes no verdict.
+worker_prompt_bound_check() { # <rendered prompt> <phase the prompt is for>
+  local prompt="$1" phase="$2" bytes bound
+  [ -f "$prompt" ] || return 0
+  bytes=$(stat -c %s "$prompt" 2>/dev/null) || return 0
+  case "$bytes" in ''|*[!0-9]*) return 0 ;; esac
+  bound=$(loop_conf_value LOOP_WORKER_PROMPT_MAX_BYTES)
+  case "$bound" in ''|*[!0-9]*) return 0 ;; esac
+  [ "$bound" -gt 0 ] || return 0
+  [ "$bytes" -le "$bound" ] && return 0
+  loop_emit worker-prompt-over-bound phase="$phase" bytes="$bytes" bound="$bound" --stderr
+}
+
 # The one section of `tools/loop/prompts/worker.md` that changes with the run's review shape (`{{GATE_STEP}}`). It is
 # a section of the worker's own prompt and not a second worker prompt, because everything else about the child — the
 # route, Phases A–C, the report block — is the same in both shapes and two copies of it would be two rules.

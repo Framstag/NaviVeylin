@@ -345,6 +345,7 @@ LOOP_SHELL_CASES=(
   'run#dryRunTouchesNothing'
   'run#reviewRoundsCapAtTwo'
   'run#reviewBudgetIsARecordedValue'
+  'run#theWorkerPromptFitsItsBudget'
   'run#aZeroRoundBudgetIsRefused'
   'run#aCorrectiveRefusalEarnsOneMoreRound'
   'run#aCorrectiveRoundIsHandedTheCorrections'
@@ -1194,6 +1195,7 @@ loop_run_shell_case() {
     'run#dryRunTouchesNothing') fn=case_run_dryRunTouchesNothing ;;
     'run#reviewRoundsCapAtTwo') fn=case_run_reviewRoundsCapAtTwo ;;
     'run#reviewBudgetIsARecordedValue') fn=case_run_reviewBudgetIsARecordedValue ;;
+    'run#theWorkerPromptFitsItsBudget') fn=case_run_theWorkerPromptFitsItsBudget ;;
     'run#aZeroRoundBudgetIsRefused') fn=case_run_aZeroRoundBudgetIsRefused ;;
     'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
     'run#aCorrectiveRoundIsHandedTheCorrections') fn=case_run_aCorrectiveRoundIsHandedTheCorrections ;;
@@ -2341,29 +2343,35 @@ case_state_baseBranchIsAConfigurationKey() {
 # one run at another `LOOP_TOOL_RESULT_MAX_CHARS`, judged against the 8 000 baseline — and the state of neither run
 # named the bound it ran under. The value has one home, `tools/loop/loop.conf`, which is a line a person edits between
 # runs, so the comparison was read off that file at the time somebody read it rather than off the record. The run now
-# records the three numbers an item's figures are read against: the character bound a result is cut at, and the
-# warning and stop bounds on the context an item's turns cost. The case pins each to the file's own number rather
-# than to a literal, so a key that moves and a record that stops following it are the same failure.
+# records the four numbers an item's figures are read against: the character bound a result is cut at, the warning and
+# stop bounds on the context an item's turns cost, and the byte bound on the composed worker prompt every turn of the
+# item re-sends (issue #1082). The case pins each to the file's own number rather than to a literal, so a key that
+# moves and a record that stops following it are the same failure.
 case_state_theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst() {
   # files: tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local d p result warn max out none f
+  local d p result warn max prompt out none f
   d=$(scratch); p=$(new_project)
   result=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
   warn=$(sed -n 's/^LOOP_ITEM_CONTEXT_WARN=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
   max=$(sed -n 's/^LOOP_ITEM_CONTEXT_MAX=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
+  prompt=$(sed -n 's/^LOOP_WORKER_PROMPT_MAX_BYTES=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' "$LOOP_CONF" | tail -1)
   [ -n "$result" ] || fail "loop.conf records no LOOP_TOOL_RESULT_MAX_CHARS — the bound a result is cut at has no recorded value"
   [ -n "$warn" ] && [ -n "$max" ] \
     || fail "loop.conf records no context bound — the largest context an item reached is read against nothing"
+  [ -n "$prompt" ] || fail "loop.conf records no LOOP_WORKER_PROMPT_MAX_BYTES — the size every turn re-sends has no recorded value"
   init_state "$p" 1 90
   assert_eq "$result" "$(run_state "$p" get run.toolResultMaxChars)" \
     "the record names the character bound its items' results were cut at"
   assert_eq "$warn" "$(run_state "$p" get run.itemContextWarn)" \
     "and the context at which the run flags an item"
   assert_eq "$max" "$(run_state "$p" get run.itemContextMax)" "and the context that ends one"
+  assert_eq "$prompt" "$(run_state "$p" get run.workerPromptMaxBytes)" \
+    "and the byte bound on the composed worker prompt every turn of an item re-sends (issue #1082)"
   out=$(run_state "$p" show)
   assert_contains "$out" "result bound $result" \
     "the live view prints the bound beside the item whose numbers it was measured against: $out"
   assert_contains "$out" "context max $max" "and the stop an item's largest context is read against: $out"
+  assert_contains "$out" "worker prompt $prompt" "and the prompt's own bound beside them: $out"
   assert_contains "$(run_report "$p")" "result bound $result" \
     "the report names the same number in the header its figures are read with"
   # A configuration that records none is `0` — no bound, the value every reader of these keys already treats as one —
@@ -7677,8 +7685,8 @@ case_measure_printsTheSuiteCountAndTheGateTiming() {
 }
 
 case_prompt_workerIsHandedTheMeasureBlock() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p prompt text measure conf
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/ tools/loop/loop.conf tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt reference text measure conf
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
   cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
@@ -7686,7 +7694,12 @@ case_prompt_workerIsHandedTheMeasureBlock() {
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
   prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
   [ -f "$prompt" ] || fail "the worker prompt was not rendered"
-  text=$(cat "$prompt")
+  # The measuring block's long form is the file the prompt names since issue #1082: a turn re-reads the prompt, and the
+  # block is consulted once when the question arises — so what the child is told is the two files read together, and
+  # that is what is asserted here.
+  reference="$p/.pi/issue-loop/items/21/worker-reference.md"
+  [ -f "$reference" ] || fail "the reference file the prompt names was not rendered"
+  text=$(cat "$prompt" "$reference")
   measure=$(sed -n 's/^LOOP_MEASURE_CMD="\(.*\)"/\1/p' "$LOOP_ENGINE/loop.conf")
   [ -n "$measure" ] || fail "the configuration names no measuring command"
   assert_contains "$text" "$measure" "the worker is handed the measuring command from loop.conf"
@@ -7712,18 +7725,22 @@ case_prompt_workerIsHandedTheMeasureBlock() {
 # graded the four checks it had not run `UNPROVEN` for want of a carried log (`items/798/pre-gate-review.md:83`) — the
 # same round the gate child then answered by running both selections again.
 case_prompt_theChangeChildCitesTheMeasureBlockAndRunsNoSuite() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p prompt text
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt reference text
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
   prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
   [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  # The split of the block between the two children is one of the blocks the prompt consults since issue #1082, so the
+  # child is told it by the prompt and by the reference file the prompt names — the two files are read together here.
+  reference="$p/.pi/issue-loop/items/21/worker-reference.md"
+  [ -f "$reference" ] || fail "the reference file the prompt names was not rendered"
   # The section is wrapped prose, so the text is flattened before it is asserted: the sentence that carries the rule
   # straddles a line break (`… the cases your` / `delta reaches: …`), and a literal substring over the wrapped text
   # fails on the paragraph's line breaks rather than on the rule. Item #816's own gate was red on exactly that: its
   # case was written while `worker.md` held the sentence on one line, a later commit rewrapped the paragraph, and the
   # red case was landed unread (`items/816/gate.log:1201` — `loop-selftest: 1 of 357 cases failed`).
-  text=$(tr '\n' ' ' < "$prompt")
+  text=$(cat "$prompt" "$reference" | tr '\n' ' ')
   assert_contains "$text" 'gate owns the full selection' \
     "the change child is told the block's check lines belong to the gate (issue #816)"
   assert_contains "$text" 'the named red case and the cases your delta reaches' \
@@ -12664,6 +12681,60 @@ case_run_reviewBudgetIsARecordedValue() {
   assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "the run takes the rounds it was budgeted"
   assert_eq "3" "$(jq -r '.run.maxReviewRounds' "$f")" "and records the budget it was given"
   assert_contains "$(run_report "$p")" "review rounds 3" "the report states it beside the other budgets"
+}
+
+# The worker prompt is composed once per item and re-sent with **every turn**, so its size is not paid once: the
+# 32 580 B a run rendered for every item was about 11.6 k of the 15 649 tok a turn was charged — near a quarter of the
+# loop's spend — and nothing recorded the number, so a prompt that grew was paid silently at every turn of every item
+# (issue #1082). The bound is a recorded value like the round budget (`run#reviewBudgetIsARecordedValue`): the
+# configuration records it, the state and the report carry it, the rendered prompt is read against it, and a project
+# that records a lower one gets a line naming both numbers in the run's own text.
+case_run_theWorkerPromptFitsItsBudget() {
+  # files: tools/loop/prompts/ tools/loop/loop.conf tools/loop/run.sh tools/loop/child.sh tools/loop/state.sh tools/loop/report.sh tools/loop/events.tsv tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local d p p2 prompt reference heading bound bytes out conf
+  d=$(scratch); p=$(new_project)
+  # The bound is read out of the configuration and never typed here, so a key that moves is a red case rather than a
+  # number this case keeps a second copy of.
+  bound=$(sed -n 's/^LOOP_WORKER_PROMPT_MAX_BYTES=\([0-9][0-9]*\)$/\1/p' "$LOOP_ENGINE/loop.conf" | tail -1)
+  [ -n "$bound" ] ||
+    fail "loop.conf records no LOOP_WORKER_PROMPT_MAX_BYTES — the size every turn of an item re-sends has no bound to be read against"
+  run_one_item "$p" "$d" --review off >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  bytes=$(stat -c %s "$prompt")
+  [ "$bytes" -le "$bound" ] ||
+    fail "the composed worker prompt is $bytes B, over the recorded bound of $bound B (LOOP_WORKER_PROMPT_MAX_BYTES), and every turn of the item re-sends it"
+  # What the prompt does not carry is one file it names, rendered beside it: a turn re-reads the prompt alone, and the
+  # long form is consulted once, when the question arises (issue #1082).
+  reference="$p/.pi/issue-loop/items/21/worker-reference.md"
+  [ -f "$reference" ] || fail "no reference file was rendered beside the worker prompt"
+  assert_contains "$(cat "$prompt")" "$reference" "the prompt names the file that carries what it does not"
+  # …and the move is a move: each block the prompt used to carry whole is still stated in the file it names, so no rule
+  # the child must obey is stated in neither file.
+  local heading
+  for heading in '## Where the project' '## What your own shell and tools refuse' '## One call per measurement'; do
+    assert_contains "$(cat "$reference")" "$heading" "the file the prompt names states the block: $heading"
+  done
+  # A prompt over the bound is a line in the round's own text, not a silence: a project that records a bound under
+  # the prompt it is about to render gets the measurement and the bound on one line of the run's own output. The
+  # lowered configuration is the run's (`LOOP_CONF`), which is the seam the run honours; `state.sh` is handed the
+  # tree's own configuration (`export -n LOOP_CONF`, run.sh), so the recorded number is the first run's, asserted below.
+  p2=$(new_project)
+  conf="$d/lower.conf"
+  sed 's/^LOOP_WORKER_PROMPT_MAX_BYTES=.*/LOOP_WORKER_PROMPT_MAX_BYTES=1000/' "$LOOP_ENGINE/loop.conf" > "$conf" ||
+    fail "could not write the loop configuration"
+  grep -qx 'LOOP_WORKER_PROMPT_MAX_BYTES=1000' "$conf" ||
+    fail "this case could not lower the bound in loop.conf"
+  out=$( export LOOP_CONF="$conf"; run_one_item "$p2" "$d" --review off 2>&1 ) || fail "the run failed"
+  assert_contains "$out" "over the recorded bound 1000" \
+    "a prompt over the recorded bound is named in the run's own text, with the bound it crossed: $out"
+  assert_contains "$out" "LOOP_WORKER_PROMPT_MAX_BYTES" "and the line names the key that records it: $out"
+  # …and the bound is a recorded value, not advice: the state of a run names the number it read, and the report
+  # prints it beside the other bounds its figures are read with (issue #815).
+  assert_eq "$bound" "$(run_state "$p" get run.workerPromptMaxBytes)" \
+    "the record names the bound the composed prompt is read against"
+  assert_contains "$(run_report "$p")" "worker prompt $bound" \
+    "and the report states it beside the other bounds"
 }
 
 # Zero rounds is not a cheap review: the item would be blocked on a round that never ran, and the branch would

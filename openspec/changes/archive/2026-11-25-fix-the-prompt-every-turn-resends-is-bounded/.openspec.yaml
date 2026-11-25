@@ -1,0 +1,9 @@
+# This change carries no spec delta: the requirement it answers — agent-issue-loop's "A child carries its own route,
+# and not the project's whole document" — was extended by the fix commit itself, in
+# openspec/specs/agent-issue-loop/spec.md, with the two scenarios this fix answers ("What the prompt only consults
+# travels as one file it names", "The composed prompt's size is a recorded bound"). Writing the same sentences again
+# as a change-relative delta would merge nothing at archive. See proposal.md, "Spec delta: none, and why".
+schema: spec-driven
+created: 2026-11-25
+x-issue: 1082
+skip_specs: true

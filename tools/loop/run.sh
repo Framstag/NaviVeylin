@@ -1213,12 +1213,25 @@ while true; do
       --change "${item_change:-}" --change-path "$change_path" --change-readiness "$change_readiness" > "$package" ||
     loop_die "run: could not render the work package for #$issue"
 
-  render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
+  # What the prompt does not carry, and why it is one file (issue #1082): the long form of the three blocks a worker
+  # consults — the rule routing, what its shell refuses, and how a measurement is taken and calls batched — is
+  # rendered as its own file beside the prompt, which names it, so that the prompt a turn re-reads is not the whole of
+  # what the item must be told. It is rendered once per item, with the same pairs as the prompt it belongs to, so a
+  # placeholder added there is filled here too; the round-2 prompt below names this same copy.
+  render_prompt "$LOOP_DIR/prompts/worker-reference.md" "$item_dir/worker-reference.md" \
     "GATE_STEP=$(gate_step_text "$pre_gate")" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
     "SCRATCH_DIR=$scratch_dir" \
     "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
     "CLASS=$class" "PROPOSE_CLASS=$propose_class"
+  render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
+    "GATE_STEP=$(gate_step_text "$pre_gate")" \
+    "WORKER_REFERENCE=$item_dir/worker-reference.md" \
+    "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+    "SCRATCH_DIR=$scratch_dir" \
+    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+    "CLASS=$class" "PROPOSE_CLASS=$propose_class"
+  worker_prompt_bound_check "$item_dir/worker-prompt.md" worker
 
   started=$(date +%s%3N)
   # The report the item is read from: the worker's, or the continuation's when this run ended that worker at its context
@@ -2456,10 +2469,14 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
       findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "GATE_STEP=$(gate_step_text off)" \
+        "WORKER_REFERENCE=$item_dir/worker-reference.md" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
         "SCRATCH_DIR=$scratch_dir" \
         "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
         "CLASS=$class" "PROPOSE_CLASS=$propose_class"
+      # The reference is the item's one copy, rendered beside the item's own prompt above: the rework round is the
+      # same item reading the same rules, so it is handed that file rather than a second rendering of it (issue #1082).
+      worker_prompt_bound_check "$item_dir/worker-prompt-round2.md" worker-round2
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"

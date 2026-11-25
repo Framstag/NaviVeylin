@@ -1166,6 +1166,14 @@ a change with no route line at all is a WARN until the project sets `LOOP_EVIDEN
 that first lands the rule works items whose reports were written before it (issue #974: of the items that wrote a
 work report, 109 named a `§` and nothing in the tree could say whether that `§` existed).
 
+The worker's skeleton states the same line where it is owed — in the phase step that picks the section and in the
+report block the child ends with (`tools/loop/prompts/worker.md`), because prose was all it asked for and prose is
+what 91 of those reports named — and the loop's own case runs the check over a project rather than over the tool's
+fixtures: `check#aRouteSectionResolvesAgainstItsDocument` resolves a route in both heading shapes, refuses an id the
+document does not carry with the sections it does carry, reads a paragraph that quotes the form as prose, and reads
+the same change with no route line as a warning under `warn` and a failure under `fail` (issue #1081, records `974.1`
+and `974.2`).
+
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a

@@ -137,8 +137,10 @@ option lists, and the recorded `2` came to mean a different option).
    asserts the number, count or absence the delta requires — never "better". For `{{PROPOSE_CLASS}}`, the
    red case is the acceptance scenario the new requirement states: it fails on HEAD because the capability is
    absent, and it passes only once the capability exists.
-4. Name the owning capability and the owning guideline section. Route with `AGENTS.md`'s Documentation
-   Map; never read a guideline in full.
+4. Name the owning capability and the owning guideline section, and **print the route as a line**:
+   `LOOP-ROUTE: guidelines/<doc>.md §<id>`, in the report block below and in the change's own markdown, which is
+   the file `tools/loop/evidence-check.sh`'s C6 resolves the id against the document's own headings. Route with
+   `AGENTS.md`'s Documentation Map; never read a guideline in full.
 5. Count the surface before the plan is fixed. The rule you are about to change has more than one place that
    asserts it, and the plan is only real once you know how many: `tools/look.sh '<the rule>'` names the files that
    hold the rule's text and its symbol — over the cases (`tools/*-cases.sh`), the engine, the prompts and the
@@ -240,10 +242,15 @@ not get.
 ```
 LOOP-CHANGE: <the change name, or - when nothing was planned>
 LOOP-ROOT-CAUSE: <one line>
+LOOP-ROUTE: guidelines/<doc>.md §<id>
 LOOP-RED-TEST: <case name> fails on HEAD — XML tests=<n> failures=<n> (<timestamp>)
 LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
 LOOP-DIFF-READY: <the change name — required in place of the gate line when the gate is not yours>
 ```
+
+`LOOP-ROUTE` is the line the change's own markdown carries as well, and the markdown is the copy that matters: C6
+reads that file, resolves the id against the headings the named document carries, and refuses an id it does not
+carry — so a route that only this block printed would resolve nothing.
 
 **The gate line, or the diff marker, is what ends your session** — whichever Phase D put at the end of it. `LOOP-GATE`
 is required when you ran the gate, and a `LOOP-GATE` you did not run is a false claim the tree contradicts.

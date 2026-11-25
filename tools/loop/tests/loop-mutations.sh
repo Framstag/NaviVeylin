@@ -1626,6 +1626,12 @@ MUTATIONS=(
   # the shaping label beside it and the in-progress mark off. Child A landed as #1039; this record is what makes the arm
   # falsifiable, which is the half the record case never covered.
   '1040.1@-@tools/loop/run.sh@run#aBoundCutItemAtTheWorkerTurnBoundIsHeldAsTooWide@the arm that holds a cut at the worker-role turn bound as `too-wide`, so the item is unpicked back to `agent/eligible` and the same bound is paid again on it (issue #1040)@s|^      if \[ "\$stop_reason" = bound \] && \[ "\$bound_key" = LOOP_CHILD_TURNS_MAX_WORKER \]; then$|      if false; then|'
+  # 974.1/974.2 — the route a report names (issue #974, landed as #1081). A report said which rule it was worked
+  # against in prose no step resolved, so a section number a document does not have was filed, reviewed and archived as
+  # a route. The two records are the two halves of the resolution: one makes a § that does not exist resolve, one makes
+  # the missing route line a refusal instead of the warning the first run reads.
+  '974.1@-@tools/loop/evidence-check.sh@check#aRouteSectionResolvesAgainstItsDocument@the comparison that resolves a cited § against the `## ` headings the document carries, so any id resolves and the id a document does not carry is filed as a route (issue #974)@s|^      if grep -qxF "\$id" <<<"\$ids"; then$|      if true; then|'
+  '974.2@-@tools/loop/evidence-check.sh@check#aRouteSectionResolvesAgainstItsDocument@the arm that reads a missing route as the warning the run after the rule landed needs, so the first run of a tree whose reports predate the line refuses every one of them (issue #974)@s|^      if \[ "\$route_mode" = "fail" \]; then$|      if true; then|'
   # 1027.1 — the report line that names a refused publish. Without it the refusal is a stderr event again and the
   # branch the remote does not carry is a fact only the events hold, which is the state the item was filed on.
   '1027.1@-@tools/loop/report.sh@worktree#aRejectedPushIsRecordedOnTheItem@the refused publish the report names, so the branch the remote does not carry is a fact no report line holds (issue #1027)@s|^printf .publish refused: %s.n. .*$|printf "publish refused: none"|'

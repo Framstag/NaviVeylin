@@ -99,6 +99,7 @@ LOOP_SHELL_CASES=(
   'prescreen#anUnansweredTrackerIsNotAnEmptyQueue'
   'worktree#seedsAllFourInputs'
   'evidence#scansWhatTheProfileNames'
+  'check#aRouteSectionResolvesAgainstItsDocument'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#checksOutTheNewPinWhenItReusesTheWorktree'
   'worktree#placesAPinOnlyTheRootCheckoutHolds'
@@ -947,6 +948,7 @@ loop_run_shell_case() {
     'prescreen#anUnansweredTrackerIsNotAnEmptyQueue') fn=case_prescreen_anUnansweredTrackerIsNotAnEmptyQueue ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'evidence#scansWhatTheProfileNames') fn=case_evidence_scansWhatTheProfileNames ;;
+    'check#aRouteSectionResolvesAgainstItsDocument') fn=case_check_aRouteSectionResolvesAgainstItsDocument ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#checksOutTheNewPinWhenItReusesTheWorktree') fn=case_worktree_checksOutTheNewPinWhenItReusesTheWorktree ;;
     'worktree#placesAPinOnlyTheRootCheckoutHolds') fn=case_worktree_placesAPinOnlyTheRootCheckoutHolds ;;
@@ -4053,6 +4055,54 @@ case_evidence_scansWhatTheProfileNames() {
   assert_eq 2 "$code" "a configuration that names no scan root is refused instead of scanning nothing: $out"
 }
 
+case_check_aRouteSectionResolvesAgainstItsDocument() {
+  # files: tools/loop/ tools/loop/evidence-check.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p out code route
+  p=$(new_project)
+  mkdir -p "$p/guidelines" "$p/src/module" "$p/build/test-results" "$p/openspec/changes/demo" "$p/tools/loop"
+  printf '| § | issue |\n|---|---|\n| 12 | #7 |\n' > "$p/table.md"
+  # A document's own sections are the ids its `## ` headings carry, in both shapes this project writes: `## 1. …`
+  # is §1 and `## §2a Agent iteration protocol` is §2a.
+  printf '# Backlog\n\n## 1. The queue\n\nthe text of 1\n\n## §2a Agent iteration protocol\n\nthe text of 2a\n' > "$p/guidelines/Backlog.md"
+  printf 'fun main() = Unit\n' > "$p/src/module/Foo.kt"
+  printf 'LOOP_EVIDENCE_SCAN_PATHS="src/module"\nLOOP_EVIDENCE_XML_DIR="build/test-results"\nLOOP_GUIDELINE_DIR="guidelines"\nLOOP_EVIDENCE_ROUTE="warn"\n' > "$p/tools/loop/loop.conf"
+
+  printf -- '- Related: §12 is settled\n- LOOP-ROUTE: guidelines/Backlog.md §2a\n' > "$p/openspec/changes/demo/proposal.md"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 0 "$code" "a route naming a section its document carries passes: $out"
+  assert_contains "$out" "1 of 1 route line(s) resolved" "C6 counts the route it resolved"
+
+  # The false pointer the item existed for: a § the document does not have was filed, reviewed and archived as a route.
+  printf -- '- Related: §12 is settled\n- LOOP-ROUTE: guidelines/Backlog.md §99\n' > "$p/openspec/changes/demo/proposal.md"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 1 "$code" "a § the document does not have is refused: $out"
+  assert_contains "$out" "its sections are: §1 §2a" "the refusal names the sections the document carries"
+
+  # The other heading shape: `## 1. The queue` carries no § in its own text, and it resolves too.
+  printf -- '- Related: §12 is settled\n- LOOP-ROUTE: guidelines/Backlog.md §1\n' > "$p/openspec/changes/demo/proposal.md"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 0 "$code" "a route naming a dotted section resolves: $out"
+
+  # A paragraph that quotes the form is prose about the line and not the line, and reading it as one would refuse
+  # every change that documents its own convention.
+  printf -- '- Related: §12 is settled\n- The report block carries `LOOP-ROUTE: guidelines/Backlog.md §99` and Phase A says where it goes\n' > "$p/openspec/changes/demo/proposal.md"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 0 "$code" "a paragraph quoting the form is not a route line: $out"
+  case "$out" in *"§99 does not resolve"*) fail "a quoted form was read as a route line: $out";; esac
+
+  # The WARN arm: the first run after the rule lands works items whose reports were written before it, so the line
+  # is owed from then on rather than demanded retroactively.
+  printf -- '- Related: §12 is settled\n' > "$p/openspec/changes/demo/proposal.md"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 0 "$code" "a report with no route line warns rather than failing: $out"
+  assert_contains "$out" "WARN C6" "the missing route is the warning the first run reads"
+
+  printf 'LOOP_EVIDENCE_SCAN_PATHS="src/module"\nLOOP_EVIDENCE_XML_DIR="build/test-results"\nLOOP_GUIDELINE_DIR="guidelines"\nLOOP_EVIDENCE_ROUTE="fail"\n' > "$p/tools/loop/loop.conf"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 1 "$code" "the same report fails once the project reads the route as required: $out"
+  assert_contains "$out" "FAIL C6 no LOOP-ROUTE" "the arm the project switches is the one the message names"
+}
+
 case_worktree_checksOutTheSubmoduleTheLoopConfigNames() {
   # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p d nested conf out
@@ -5387,6 +5437,15 @@ case_prompt_thePhasePromptsCarryTheirOwnRoute() {
     assert_contains "$text" 'offset' "$(basename "$f") names the offset/limit pair that pages until the last line (issue #818)"
     assert_contains "$text" 'arrived whole' "$(basename "$f") quotes only a window that arrived whole (issue #818)"
   done
+  # The route a report names is a line and not prose (issue #1081): the worker's skeleton gives the anchored form in
+  # the step that picks the section and carries the same line in the report block, so `evidence-check.sh`'s C6 has an
+  # id to resolve — of the 200 work reports written before it, 171 cited a `guidelines/…` document and only 109 named
+  # a `§N`, because prose was all the skeleton asked for.
+  text=$(cat "$LOOP_ENGINE/prompts/worker.md")
+  assert_contains "$text" 'LOOP-ROUTE: guidelines/<doc>.md §<id>' \
+    "the worker skeleton prints the route as the anchored line the check resolves (issue #1081)"
+  assert_contains "$text" '`LOOP-ROUTE` is the line' \
+    "and the change's own markdown is named as the copy the check reads (issue #1081)"
   [ -f "$LOOP_PROJECT_ROOT/AGENTS.md" ] || fail "the document map the prompts name is not in the project root"
   # …and the map the prompts send a child to must not hand it the recipe that child's own policy refuses (issue #796):
   # the prompts route into `AGENTS.md`, so a refused call there is the same defect one document further on.

@@ -947,19 +947,37 @@ the change does not depend on. The run SHALL refuse on that count, not on the ve
 
 #### Scenario: A blocking finding refuses the change as it always has
 
-- **WHEN** a review round counts one or more blocking findings
+- **WHEN** a review round counts one or more blocking findings and names them as `BLOCKING:` lines
 - **THEN** the round is a refusal: another round is taken within the budget, and a second refusal records the item
   `blocked`, escalates it and writes the reviewer's `LOOP-DECISION` into the escalation
 - **Case**: `run#aBlockingRefusalStillTakesTheRoundTwoPath`
+
+#### Scenario: A refusal that named no finding buys no round after it
+
+The count is the reviewer's claim about its own grading; the `BLOCKING:` lines are the findings. Measured over the
+archive: in the window from 2026-11-24 the reviewer is 12 sessions and 63.7 Mtok and 8 of those sessions end
+at exactly `LOOP_CHILD_TURNS_MAX_REVIEWER` with no refusal in them, so the bound ends the reading and not the item;
+and every `VERDICT: FAIL` report on record carries a `BLOCKING:` line, at line start or wrapped in the emphasis
+#1042's round 1-restart writes its finding with (issue #1085).
+
+- **WHEN** a review round refuses the change and its report names no `BLOCKING:` finding — whatever its
+  `LOOP-BLOCKING:` count says, including a report that carries no count line at all
+- **THEN** the item is refused as that report refused it — recorded `blocked` with `refused` as its mechanism,
+  escalated with the reviewer's `LOOP-DECISION` — and no round is taken after it, because a worker pass has nothing a
+  named line would have given it to answer
+- **AND** the round the run did not take is stated in the item's own note, so a round skipped in silence is never the
+  record a reader gets of the run
+- **Case**: `run#aReviewThatNamedNothingTakesNoSecondRound`
 
 #### Scenario: A report that states no count is read as a refusal
 
 - **WHEN** a reviewer report carries no `LOOP-BLOCKING` line, as every report written before this rule does
 - **THEN** the round is read as blocking whatever its verdict says, because a run cannot tell an older review from
-  a quiet one, so no review can pass by saying nothing
+  a quiet one, so no review can pass by saying nothing — and, naming no finding either, it buys no round after it
+  (the scenario above)
 - **AND** a report that carries no closing `VERDICT:` line either is not read by this rule at all: it arrived
   cut, and the retry below establishes whether there was anything to grade
-- **Case**: `run#reviewRoundsCapAtTwo`
+- **Case**: `run#aReviewThatNamedNothingTakesNoSecondRound`
 
 #### Scenario: An unchanged pass still passes
 

@@ -2256,6 +2256,9 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
     # blocks, which is the line the prompt draws.
     round_cap="$max_review_rounds"
     corrective_round_used=0
+    # Why the last round took no round after it, where the budget is not the answer: a refusal that named no finding
+    # ends the rounds itself (issue #1085), and the item's own text carries that reason instead of the budget's.
+    refusal_named_nothing=""
     # Read once: the same pathspec the round's diff is built with is the one its prompt names.
     review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
     # The base a round's diff is taken from, and which is the run's own except for the round a corrective refusal
@@ -2448,6 +2451,20 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         review_notes_text=$(review_notes "$reviewer_report")
         break
       fi
+      # The round after a refusal is owed by a report that **named** a finding (issue #1085). The count above is the
+      # reviewer's claim about its own grading; the `BLOCKING:` lines are the findings, and a finding is the one thing
+      # a worker pass can act on. Every `VERDICT: FAIL` report in the archive carries one, at line start or wrapped in
+      # the emphasis #1042's round 1-restart and #999's round 2 write theirs with, and the count says nothing about
+      # whether the line is there. Measured over the archive: in the window from 2026-11-24 the reviewer is 12
+      # sessions and 63.7 Mtok and 8 of those sessions end at exactly `LOOP_CHILD_TURNS_MAX_REVIEWER` turns with no
+      # refusal in any of them, so the bound ends the reading and not the item. A refusal that names nothing is
+      # therefore the item's last round: the refusal, the block and the escalation stay as they are, and the round
+      # nobody owed is written on the item rather than paid for — a round that is skipped in silence is a lie about
+      # the run.
+      if [ "$(blocking_findings "$reviewer_report")" -eq 0 ]; then
+        refusal_named_nothing="the round $round refused the change and named no finding — no BLOCKING: line for the count it states — so the run takes no round after it: a person reads the report and decides"
+        break
+      fi
       if [ "$round" -ge "$round_cap" ]; then
         # A corrective refusal earns one more round, once: a reviewer that says "nothing here adds a claim" has
         # answered the question its FAIL otherwise leaves open (#186, #187). That round exists only to decide the
@@ -2565,7 +2582,8 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
       round=$((round + 1))
     done
     if [ "$review_verdict" = "FAIL" ]; then
-      block refused "the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt"
+      # What ended the rounds is the item's reason: the budget, or the last refusal naming nothing (issue #1085).
+      block refused "${refusal_named_nothing:-the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt}"
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
       # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185). A
       # falsification has no change to record the verdict against — its tree did not move — so the branch keeps

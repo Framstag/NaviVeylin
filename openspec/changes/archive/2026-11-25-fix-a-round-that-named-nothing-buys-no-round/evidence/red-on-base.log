@@ -1,0 +1,35 @@
+# The red, before the fix, on the base's own source. The tree is `impl/land` at `9aac0236`, whose `tools/loop/`
+# is the base `ae2373cb`'s: this item's fix was not applied when these ran.
+
+## 1. The new case, with only the two test files checked out from the fix commit `4d1dea06` over that base
+
+$ git checkout 4d1dea06 -- tools/loop/tests/loop-cases.sh tools/loop/tests/loop-mutations.sh
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#aReviewThatNamedNothingTakesNoSecondRound'
+run#aReviewThatNamedNothingTakesNoSecondRound|   a report that counted a finding and named none bought a second review round
+--- run#aReviewThatNamedNothingTakesNoSecondRound[0] (exit 1)
+  a report that counted a finding and named none bought a second review round
+FAIL run#aReviewThatNamedNothingTakesNoSecondRound
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+The two files were then restored to the base (`git checkout HEAD -- tools/loop/tests/loop-cases.sh
+tools/loop/tests/loop-mutations.sh`) and `git status --porcelain -uall` was empty before the fix was applied.
+
+## 2. The arm this landing added, red against the reviewed parse `'^BLOCKING:'` before it was widened
+
+The reason it is an arm and not a case of its own (issue #1085, the correction this landing carries): the
+reviewed reader missed a finding written with markdown around it, and the archive writes it that way —
+`1042/reviewer-report-1-restart.md` states `LOOP-BLOCKING: 1` and puts its one finding on lines 19 and 118 as
+`**BLOCKING: the delta's scenario …**`, and the round after it passed. Read as "named nothing", that report's
+round would be skipped. This is `blocking_findings()` with the reviewed pattern, before the widening:
+
+$ bash tools/loop/tests/loop-selftest.sh --case 'run#aReviewThatNamedNothingTakesNoSecondRound'
+run#aReviewThatNamedNothingTakesNoSecondRound|   a refusal that named its finding in bold bought no second review round
+--- run#aReviewThatNamedNothingTakesNoSecondRound[0] (exit 1)
+  a refusal that named its finding in bold bought no second review round
+FAIL run#aReviewThatNamedNothingTakesNoSecondRound
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+The pattern was then widened to `'^[[:space:]>*_]*BLOCKING:'` and the same case is green (`evidence/green.log`,
+its first block).

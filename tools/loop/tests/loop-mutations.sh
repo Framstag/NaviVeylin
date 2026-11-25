@@ -563,7 +563,7 @@ MUTATIONS=(
   # stopped; each is noticed by the case that names its mechanism. The last two were rewritten in review round 1:
   # `58.4` mutated the whole interpolation, which produced an invalid jq escape so the report died instead of the
   # column going missing, and nothing mutated the `-` a row with no mechanism prints (issue #280, round 1).
-  '58.1@-@tools/loop/run.sh@run#reviewRoundsCapAtTwo@the refusing last round named as the mechanism that stopped the item (issue #280)@s|^      block refused "the change failed its last review round|      block "" "the change failed its last review round|'
+  '58.1@-@tools/loop/run.sh@run#reviewRoundsCapAtTwo@the refusing last round named as the mechanism that stopped the item (issue #280)@s|^      block refused "${refusal_named_nothing:-the change failed its last review round|      block "" "${refusal_named_nothing:-the change failed its last review round|'
   '58.2@-@tools/loop/run.sh@run#doesNotCloseOnAMergeTheBaseCannotTake@a base that would not take the branch named as the other mechanism (issue #280)@s|^      block unmergeable "|      block "" "|'
   # 862.1 — the landing is handed the reading the run already took (issue #862): `cmd_merge_item` re-judged the
   # project tree with a stricter rule than `outside_write_decides`, so a difference the run had placed in nothing
@@ -1383,6 +1383,13 @@ MUTATIONS=(
   '987.1@-@tools/loop/run.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the note that names the findings file to the caller, so the item state and the report resume line carry no account of the two readings the run paid for (issue #987)@s|if \[ -n "\$review_findings_file" \]; then|if false; then|'
   '987.2@-@tools/loop/evidence.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the write of the two readings, so the run spends a second session on the round and keeps neither reading anywhere (issue #987)@s#} > "$dest" 2>/dev/null || return 0#} > /dev/null || return 0#'
   '987.3@-@tools/loop/evidence.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the predicate that reads a restart off the report own name, so the second bound is recorded as the item cut and the two readings behind it are dropped (issue #987)@s#^  case "\$report" in$#  return 0; case "$report" in#'
+  # 1085.x — a refusal buys the round after it only when it **named** a finding (issue #1085): the count is the
+  # reviewer's claim about its own grading and the `BLOCKING:` line is the finding a worker pass can act on. Every
+  # `VERDICT: FAIL` report in the archive carries one, at line start or wrapped in the emphasis #1042's round
+  # 1-restart writes its finding with, so the parser reads the line whatever markdown wraps it. The record removes the
+  # guard, so a report that stated a count and named nothing is given a round again and
+  # `run#aReviewThatNamedNothingTakesNoSecondRound` is the case that must notice.
+  '1085.1@-@tools/loop/run.sh@run#aReviewThatNamedNothingTakesNoSecondRound@the guard that lets a refusal which named no finding end the rounds, so a report that counted a finding it never wrote spends a second bound on nothing (issue #1085)@s|^      if \[ "\$(blocking_findings "\$reviewer_report")" -eq 0 \]; then$|      if false; then|'
   # 924.x — the round the reviewer is handed is bounded (issue #924), and the cap is the half a case sees from the
   # outside: with it removed the bounded round hands the whole part again, the item's state records no cut and the
   # report prints the constant for a run nothing was cut from. One record, one invariant.

@@ -1,0 +1,97 @@
+# The measure — the cap's derivation, and the parse the guard is keyed on
+
+Everything here is read-only over the archive in the **main** tree (`.pi/issue-loop/items`), by `tools/loop-spend.py`
+and the two counts below. Nothing writes to it.
+
+## The population the reviewer's 81 is taken over
+
+`tools/loop-spend.py` reads each item's `events.jsonl`, and each of its sessions carries the prompt it was started
+with. For a reviewer that prompt is a file path — `<item>/reviewer-prompt-<round>[-restart].md` — so the session's
+report is the file named after it, `<item>/reviewer-report-<round>[-restart].md`, and whether the session ended with a
+verdict is a fact of that file, read as `report_lines` (`tools/loop/evidence.sh`) reads it: one backtick stripped at
+each end, so a closing block written as inline code is still the line it states (#793).
+
+    for each item in .pi/issue-loop/items/*/events.jsonl:
+        for each session of read_sessions(path) whose role is "reviewer":
+            turns  = len(session turns that carry usage)
+            report = session prompt path with reviewer-prompt- -> reviewer-report-
+            verdict_ended = the report has a line (after one backtick strip) that starts "VERDICT:"
+
+$ python3 tools/loop-spend.py --items .pi/issue-loop/items      # the reader whose sessions this walks
+$ (the walk above, `read_sessions` imported from tools/loop-spend.py: no other input)
+sessions=65 with_verdict=37 without=28
+at_110_all=20 at_110_verdict=2
+verdict_ended: n=37 p25=74 median=81 p75=98 max=110
+all: n=65 p50=90 p75=110 p95=110 max=110
+days=2026-11-17..2026-11-25 items=41
+
+`LOOP_CHILD_TURNS_MAX_REVIEWER` is therefore **81**: the median of the 37 sessions that reached a verdict, over the
+65 reviewer sessions of 41 items from 2026-11-17 to 2026-11-25. The old 110 is where **20 of the 65** sit — a fifth of
+the population ended at the ceiling, which is what a p95 taken over a sample censored there can only return.
+
+The 37 verdict-ended turns, sorted, are the derivation in one line:
+
+    28 46 50 51 66 67 70 72 74 74 75 75 75 77 77 78 79 80 81 81 86 87 89 90 92 94 95 98 100 100 102 104 105 106 106 110 110
+
+so the median is the 19th of 37, `81`, and p25 is `74`. p75 reads `98` on the linear interpolation between the 98 and
+the 100 that straddle it (the fix commit's message states `99`, the same boundary read with the other percentile
+convention); the figure the key holds is the median, and the median is the same under either.
+
+## The window the item was filed over
+
+$ python3 tools/loop-spend.py --items .pi/issue-loop/items --since 2026-11-24 --top 0
+12 items, 42 child sessions, 3809 turns
+
+  role              sessions   turns     Mtok  Mtok/session  ctx/turn
+  worker                  20    2242    128.8          6.44       57k
+  reviewer                12    1191     63.7          5.30       53k
+  worker-rework            2     216     15.5          7.76       72k
+  worker-tail              8     160      4.4          0.55       28k
+
+Of those 12 reviewer sessions, **8 end at exactly 110 turns**:
+
+$ turns, in the order the walk above returns them, for sessions whose item's first turn is on or after 2026-11-24
+46 78 81 106 110 110 110 110 110 110 110 110
+window_sessions=12 at_110=8
+
+## The parse the guard is keyed on, and the two reports that moved it
+
+The guard asks whether the round **named** a finding, not what it claimed to have counted. The finding line is the
+one thing a worker pass can act on, and a reviewer may put markdown around it; the archive writes it that way twice.
+Read by the shipped `blocking_findings()` (`tools/loop/evidence.sh`, `grep -cE '^[[:space:]>*_]*BLOCKING:'` over
+`report_lines`), beside the reviewed pattern `grep -c '^BLOCKING:'`:
+
+$ here=tools/loop bash -c 'source tools/loop/evidence.sh; blocking_findings <report>; grep -c "^BLOCKING:" <report>'
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/1042/reviewer-report-1-restart.md
+  blocking_findings=2  line-start=0
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/999/reviewer-report-2.md
+  blocking_findings=1  line-start=0
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/118/reviewer-report-1.md
+  blocking_findings=3  line-start=3
+
+`1042/reviewer-report-1-restart.md` states `LOOP-BLOCKING: 1`, `LOOP-CORRECTIONS-ONLY: yes`, `VERDICT: FAIL`, and
+writes its one finding on lines 19 and 118 as `**BLOCKING: the delta's scenario … **`; the round after it
+(`reviewer-report-2.md`) states `LOOP-BLOCKING: 0` / `VERDICT: PASS`. Read by the reviewed pattern the report names
+nothing, the guard breaks before the corrective arm, the item is refused, and the note on it would say the round named
+nothing — a round that in fact passed would never have been taken. `999/reviewer-report-2.md:38` writes its finding
+the same way (`**BLOCKING: the gate measured a different tree than this diff.**`, `LOOP-BLOCKING: 1`).
+
+## Every refusing report in the archive names a finding
+
+$ (the walk over .pi/issue-loop/items/*/reviewer-report-*.md, verdict read as `report_lines` reads it)
+report_files=83 failing=20
+with_line_start=18 with_emphasis_only=2 with_none=0
+fenced_blocking_lines=0
+emphasis-only 1042/reviewer-report-1-restart.md emph=2
+emphasis-only 999/reviewer-report-2.md emph=1
+
+20 reports refuse, and every one of them carries a `BLOCKING:` line — 18 at line start, 2 wrapped in emphasis, **none**
+with no finding at all. (`grep -l '^VERDICT: FAIL'` counts 19: the twentieth, `999/reviewer-report-1.md`, writes
+`` `VERDICT: FAIL` `` as inline code, which the run reads as the verdict it states and a plain grep for the bare line
+misses.) So the count a report states is not where the pointer is, and the line is read whether or not markdown wraps
+it.
+
+**The other direction, stated rather than hidden.** The parse does not skip fenced blocks, and a `BLOCKING:` line
+quoted inside one would be counted as a finding. No report in the archive has one (`fenced_blocking_lines=0` above),
+and the consequence of over-matching is a round spent, never a round skipped — the direction this guard must not fail
+in. A quoted `> BLOCKING:` line is over-matched the same way, deliberately.

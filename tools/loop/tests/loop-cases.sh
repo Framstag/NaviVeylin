@@ -351,6 +351,7 @@ LOOP_SHELL_CASES=(
   'run#aCorrectiveRoundIsHandedTheCorrections'
   'run#aZeroBlockingRefusalClosesWithItsNotes'
   'run#aBlockingRefusalStillTakesTheRoundTwoPath'
+  'run#aReviewThatNamedNothingTakesNoSecondRound'
   'run#aCutReportIsRetriedInsteadOfRefused'
   'run#aReportCutTwiceBlocksAsTheTransportsFault'
   'run#aFencedClosingBlockIsACompleteAnswer'
@@ -1201,6 +1202,7 @@ loop_run_shell_case() {
     'run#aCorrectiveRoundIsHandedTheCorrections') fn=case_run_aCorrectiveRoundIsHandedTheCorrections ;;
     'run#aZeroBlockingRefusalClosesWithItsNotes') fn=case_run_aZeroBlockingRefusalClosesWithItsNotes ;;
     'run#aBlockingRefusalStillTakesTheRoundTwoPath') fn=case_run_aBlockingRefusalStillTakesTheRoundTwoPath ;;
+    'run#aReviewThatNamedNothingTakesNoSecondRound') fn=case_run_aReviewThatNamedNothingTakesNoSecondRound ;;
     'run#aCutReportIsRetriedInsteadOfRefused') fn=case_run_aCutReportIsRetriedInsteadOfRefused ;;
     'run#aReportCutTwiceBlocksAsTheTransportsFault') fn=case_run_aReportCutTwiceBlocksAsTheTransportsFault ;;
     'run#aFencedClosingBlockIsACompleteAnswer') fn=case_run_aFencedClosingBlockIsACompleteAnswer ;;
@@ -10934,7 +10936,9 @@ case_run_recordsAFailedReviewOnTheBranch() {
   local d p branch files out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the fix is claimed over a scenario the diff never exercises
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
   out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
 
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "two failed rounds block the item"
@@ -10967,7 +10971,7 @@ case_run_aRefusedRoundLeavesAnAnswerBesideItsAnnouncement() {
   local d p files
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  printf 'VERDICT: FAIL\n' > "$d/reviewer-fail.txt"
+  printf 'BLOCKING: the change restates the requirement instead of stating a contract\nLOOP-BLOCKING: 1\nVERDICT: FAIL\n' > "$d/reviewer-fail.txt"
   printf 'VERDICT: PASS\n' > "$d/reviewer-pass.txt"
   # Round 1 refuses and round 2 accepts the rework, so the refusal is *not* the last round: it is exactly the round
   # the post-loop write never reaches.
@@ -12653,7 +12657,9 @@ case_run_reviewRoundsCapAtTwo() {
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the change cites a gate tally no command in its record produced
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "two failed rounds block the item"
   assert_eq "refused" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
@@ -12668,13 +12674,17 @@ case_run_reviewRoundsCapAtTwo() {
 }
 
 # The round budget was the literal `2` in the loop, so a project that reviews harder could not raise it and a
-# reviewer that asked only for corrections still ended the run's work on the item (#187).
+# reviewer that asked only for corrections still ended the run's work on the item (#187). The refusal below names the
+# line it refuses, because a round is bought by a report that named a finding (issue #1085): the budget is read on a
+# refusal that a round would actually follow.
 case_run_reviewBudgetIsARecordedValue() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/report.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: `tasks.md:2.1` marks the scenario done and names no case for it
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
   run_loop "$p" --items 1 --minutes 90 --review on --max-review-rounds 3 >/dev/null 2>&1 ||
     fail "the run itself failed"
   f=$(state_file "$p")
@@ -12758,9 +12768,11 @@ case_run_aCorrectiveRefusalEarnsOneMoreRound() {
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the demo scenario names no case
+LOOP-BLOCKING: 1
 LOOP-CORRECTIONS-ONLY: yes
-LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recommended: apply the corrections'
+LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recommended: apply the corrections
+VERDICT: FAIL'
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   f=$(state_file "$p")
   assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
@@ -12898,6 +12910,83 @@ VERDICT: FAIL'
   assert_contains "$(jq -r '.items[0].note' "$f")" "last review round" "the reason names the round"
   assert_eq "6" "$(grep -c '^invocation' "$PI_STUB_LOG")" "two workers, their two tails and two reviewers"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# A second review round is owed by a refusal that **named** something (issue #1085). In the window from 2026-11-24
+# the reviewer is 12 sessions and 63.7 Mtok, and 8 of those sessions end at exactly
+# `LOOP_CHILD_TURNS_MAX_REVIEWER` turns with no refusal in any of them: the bound ends the reading, not the item, and
+# the round that follows a refusal is started whatever that refusal wrote — so an item whose round named no line pays
+# a second bound for nothing. What a worker pass can act on is the finding, not the count of findings: every
+# `VERDICT: FAIL` report in the archive carries a `BLOCKING:` line, so the count is not where the pointer is, and the
+# line is read whether it stands at line start or is wrapped in emphasis (#1042's round 1-restart writes its one
+# finding as `**BLOCKING: …**`, and the round after it passed). A round 1 that names a line keeps its round 2
+# unchanged; a round 1 that names nothing ends the item as a refusal, and the round nobody owed is written on it.
+case_run_aReviewThatNamedNothingTakesNoSecondRound() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f d2 p2 f2 log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The refusal names the two lines it refuses, so the round it buys is taken exactly as it was (#205).
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: `tasks.md:2.1` marks the scenario done and names no case for it
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f=$(state_file "$p")
+  [ -f "$p/.pi/issue-loop/items/21/reviewer-prompt-2.md" ] ||
+    fail "a refusal that named a finding bought no second review round"
+  assert_eq "2" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
+    "the round a named finding pays for is still taken"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and the second refusal still blocks the item"
+  # The same refusal in the shape the archive holds: the count is stated and no `BLOCKING:` line is. It named nothing,
+  # so the round after it has nothing to answer and is not taken — and the item says which round it did not take.
+  d2=$(scratch); p2=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d2" "$STUB_WORKER_REPORT" 'LOOP-BLOCKING: 1
+VERDICT: FAIL'
+  run_loop "$p2" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f2=$(state_file "$p2")
+  [ ! -f "$p2/.pi/issue-loop/items/21/reviewer-prompt-2.md" ] ||
+    fail "a report that counted a finding and named none bought a second review round"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f2")" \
+    "a round that named nothing is the item's last round"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f2")" "the refusal still blocks the item"
+  assert_eq "refused" "$(jq -r '.items[0].stopReason' "$f2")" "and still names the refusal as what stopped it"
+  assert_contains "$(jq -r '.items[0].note' "$f2")" "named no finding" \
+    "the item's own text says the round refused without naming one"
+  assert_contains "$(jq -r '.items[0].note' "$f2")" "takes no round after it" \
+    "and that the round it would have paid for was not taken"
+  assert_eq "3" "$(grep -c '^invocation' "$PI_STUB_LOG")" \
+    "the worker's two children and one reviewer, and no rework worker for the round nobody owed"
+  # The older shape says the same thing: a report with no count line at all refuses the change (#205) and, naming
+  # nothing, buys no round either.
+  d2=$(scratch); p2=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d2" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  run_loop "$p2" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f2=$(state_file "$p2")
+  [ ! -f "$p2/.pi/issue-loop/items/21/reviewer-prompt-2.md" ] ||
+    fail "a report with no count line bought a second review round"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f2")" \
+    "a report with no count line refuses the item in one round"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f2")" "and the item is blocked, not closed"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "a refusal that named nothing is still escalated to a person"
+  # The emphasis a reviewer put around the line is not a fact about the finding, and the archive writes it that way:
+  # #1042's round 1-restart states `LOOP-BLOCKING: 1` and writes its finding as `**BLOCKING: the delta's scenario …**`
+  # (lines 19 and 118), and the round after it passed; #999's round 2 does the same. Read as "named nothing", the
+  # round the first of them paid for would be skipped — the one direction this guard must not fail in — so the line's
+  # first word is the vocabulary's whatever markdown wraps it, and the round is taken.
+  d2=$(scratch); p2=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d2" "$STUB_WORKER_REPORT" '**BLOCKING: `specs/ui/spec.md:41` states a clause the change does not carry**
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
+  run_loop "$p2" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f2=$(state_file "$p2")
+  [ -f "$p2/.pi/issue-loop/items/21/reviewer-prompt-2.md" ] ||
+    fail "a refusal that named its finding in bold bought no second review round"
+  assert_eq "2" "$(jq -r '.items[0].metrics.reviewRounds' "$f2")" \
+    "a finding wrapped in emphasis is still a finding, and still pays for its round"
 }
 
 # A report that stops mid-sentence is an answer that never arrived, and the run used to read it as a refusal
@@ -15323,8 +15412,10 @@ case_report_failedReviewEscalationIsNamed() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
   # Two failed review rounds end the item blocked — its verdict is `blocked`, and the label written is the
-  # decision label (the state verdict names neither).
-  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
+  # decision label (the state verdict names neither). The rounds are bought by the finding the report names.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the change leaves its own spec scenario unexercised
+LOOP-BLOCKING: 1
+VERDICT: FAIL'
   out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the recorded verdict is blocked"
   assert_contains "$(cat "$GH_STUB_RECORD")" "agent/needs-decision" "the run escalated the item"
@@ -23162,8 +23253,9 @@ EOF
   assert_contains "$out" "child-turns-max=worker:20" "the header names the worker's own bound"
   assert_contains "$out" ",reviewer:8," "and the reviewer's beside it"
   # Every role the header can name, in the order `agent-roles=` uses, as one string: the rework round's own key is the
-  # sixth role and its 150 is the only one of the six that is an experiment rather than a p95 (issue #842), so a key
-  # recorded there and a header printing five roles is the disagreement this assertion exists to catch.
+  # sixth role and its 150 is one of the two of the six that is not a p95 — the reviewer's 81 is a median since issue
+  # #1085 (issue #842) — so a key recorded there and a header printing five roles is the disagreement this assertion
+  # exists to catch.
   assert_contains "$out" \
     'child-turns-max=worker:20,worker-gate:100,worker-tail:65,worker-rework:150,reviewer:8,reviewer-pre-gate:110' \
     "and every role's figure in that order, the rework round's 150 among the six the project records (issue #842)"
@@ -23173,7 +23265,7 @@ EOF
   shipped=$(for key in WORKER WORKER_GATE WORKER_TAIL WORKER_REWORK REVIEWER REVIEWER_PRE_GATE; do
     sed -n "s/^LOOP_CHILD_TURNS_MAX_${key}=//p" "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | head -1
   done | paste -sd, -)
-  assert_eq "200,100,65,150,110,110" "$shipped" \
+  assert_eq "200,100,65,150,81,110" "$shipped" \
     "the six turn bounds the shipped loop.conf records: worker, worker-gate, worker-tail, worker-rework, reviewer, reviewer-pre-gate"
   worker_report="$p/.pi/issue-loop/items/21/worker-report.md"
   reviewer_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"

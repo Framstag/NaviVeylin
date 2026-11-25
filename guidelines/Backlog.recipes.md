@@ -613,8 +613,9 @@ rate per turn, which this archive does not carry, and the input cap fixes what t
 `run#aBoundCutRoundIsRestartedWithItsFindings` holds the round after the gate and `run#aPreGateReviewEndedAtItsBoundNamesIt`
 the one before it.
 
-**Where a stop bound sits** (measured 2026-11-06, issue #786; re-read 2026-11-09 for #804 and #842): each value is
-the archive's own p95 or above, per role, and the value a run applies is the one `tools/loop/loop.conf` records —
+**Where a stop bound sits** (measured 2026-11-06, issue #786; re-read 2026-11-09 for #804 and #842, and 2026-11-25 for
+#1085): each value is the archive's own p95 or above, per role — except the reviewer's, which is a median and is argued
+in its own row — and the value a run applies is the one `tools/loop/loop.conf` records —
 the two are stated together, one row per role, because a measurement and the bound it set move apart and a reader has
 to be able to tell which figure they are reading. `tools/check-doc-values.sh` compares every row with the profile and
 reddens the gate when one drifts, printing `LOOP-CHILD-TURNS-MAX: <role> prose <n> config <n>`.
@@ -625,8 +626,8 @@ reddens the gate when one drifts, printing `LOOP-CHILD-TURNS-MAX: <role> prose <
 | `LOOP_CHILD_TURNS_MAX_WORKER_GATE` | 100 | p50 37, p75 47.5, p90 67, p95 69, max 71 over 11 sessions — 80 was that maximum plus a margin and still ended #790's gate child at 80 turns, so 100 is 1.4× the observed maximum (issue #804) |
 | `LOOP_CHILD_TURNS_MAX_WORKER_TAIL` | 65 | p50 27.5, p75 37.5, p90 43.4, p95 56.2, max 60 over 20 tails — above the observed maximum, and the one value the raise of #804 left alone |
 | `LOOP_CHILD_TURNS_MAX_WORKER_REWORK` | 150 | 11 at the least, 60 at the median, 100 at the p95 over 109 rework sessions; 150 is a measured experiment and not a second p95 (issue #842) |
-| `LOOP_CHILD_TURNS_MAX_REVIEWER` | 110 | p50 31, p75 40, p90 52.7, p95 57.7, p99 68, max 107 over 234 rounds — the 75 it replaced sat **below** the observed maximum (issue #804) |
-| `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE` | 110 | n=12, p50 40, p95 55, max 55, every session censored at the old bound of 55 — too small a sample for a number of its own, so the role keeps the review round's |
+| `LOOP_CHILD_TURNS_MAX_REVIEWER` | 81 | **a median, not a p95** (issue #1085): p25 74, median 81, p75 99, max 110 over the 37 of the archive's 65 reviewer sessions that ended with a `VERDICT:` line (`tools/loop-spend.py`; the other 28 ended with no verdict, 20 of all 65 at exactly the old 110) — the bound here decides whether a round that would answer may finish, not which runaway to end, and 8 of the 12 sessions of the 2026-11-24 window ended at the 110 this key carried with no refusal in them |
+| `LOOP_CHILD_TURNS_MAX_REVIEWER_PRE_GATE` | 110 | n=12, p50 40, p95 55, max 55, every session censored at the old bound of 55 — too small a sample for a number of its own, and not the review round's 81 either: it keeps the 110 the review round carried before issue #1085 |
 
 The first values sat at the **p75 of a twelve-session sample**, and the first run
 that used them ended three of its six items' workers at exactly 110 turns after 4.5–12 min, each leaving a 4–6 k-line
@@ -635,7 +636,10 @@ sessions (22 %) sit at or over 110**, which is what a stop bound at p75 buys. A 
 runaway child (~18 Mtok at the measured 106 k tokens a turn), and the token band is what flags that item; the cost a
 bound at p75 pays is the item that was working.
 
-**One value is an experiment and not a p95** (issue #842): the rework round's key moves up — the table's
+**Two values are not a p95** (issues #842 and #1085). The reviewer's is a **median** of the rounds that reached a
+verdict — 81 over 37 sessions, and its row carries the population — because that bound decides whether a round that
+would answer may finish, and a p95 of a sample censored at the ceiling it set can only return that ceiling (the 110
+whose 20 of 65 sessions sit exactly on it). The rework round's key is an experiment instead — the table's
 `LOOP_CHILD_TURNS_MAX_WORKER_REWORK` row carries the figure and the measurement that set it — and 100 was that
 role's p95 over 109 sessions — the rule above, applied, and not a mistake in it. What moves the value is the one
 reading a distribution cannot give: which bound actually fired. The run started 2026-11-09T21:42:41Z cut seven items,

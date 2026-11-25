@@ -1,0 +1,159 @@
+$ bash tools/loop/tests/loop-selftest.sh --case run#aReviewThatNamedNothingTakesNoSecondRound
+PASS run#aReviewThatNamedNothingTakesNoSecondRound
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#eachChildIsBoundedByItsOwnRolesTurns
+PASS run#eachChildIsBoundedByItsOwnRolesTurns
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#reviewBudgetIsARecordedValue
+PASS run#reviewBudgetIsARecordedValue
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aCutReportIsRetriedInsteadOfRefused
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case run#theStartAfterTheRunsOwnEndedChildIsNotRefused
+PASS run#theStartAfterTheRunsOwnEndedChildIsNotRefused
+exit=0
+
+$ bash -n tools/loop/run.sh
+exit=0
+
+$ bash -n tools/loop/evidence.sh
+exit=0
+
+$ bash -n tools/loop/loop.conf
+exit=0
+
+$ bash -n tools/loop/tests/loop-cases.sh
+exit=0
+
+$ bash -n tools/loop/tests/loop-mutations.sh
+exit=0
+
+$ bash tools/loop/tests/loop-mutations-selftest.sh
+ok   a non-matching mutation exits non-zero
+ok   and it is named as such
+ok   and the copy was restored after the non-matching probe
+ok   an unnoticed mutation exits non-zero
+ok   and it says the case did not notice
+ok   and the copy was restored after the stays-green probe
+ok   a real mutation exits zero
+ok   the case noticed it
+ok   and the restore went green
+ok   the mutated copy is byte-identical to the pristine one again
+ok   a record whose case prints before it fails exits zero
+ok   a red record quotes the assertion the case failed on
+ok   and the copy is byte-identical again after the record whose reason is read
+ok   the scratch tree is the project's, not the host's tmpfs
+ok   and it is removed afterwards
+ok   and TMPDIR still moves it
+ok   a restore from an empty backup exits 2
+ok   and it says it refused
+ok   and nothing was copied over it
+ok   the file the empty backup would have replaced still holds its content
+ok   the mutation set lists what it declares
+ok   the file this check scopes by is owned by at least one declared record
+ok   a file set lists exactly the records its file owns
+ok   and it says how many of the declared set the file set selects
+ok   a file set runs the records its file owns
+ok   the selection line names the count and the declared set
+ok   exactly the owned records ran
+ok   no record outside the file set ran
+ok   and the copy is byte-identical to the pristine one again
+ok   a file set no record owns exits 2
+ok   the empty-selection guard message
+ok   and no record ran
+ok   and nothing was mutated
+ok   a git diff names the records its file owns
+ok   and nothing else
+ok   and it says the same selection the file set named
+ok   and the copy is byte-identical to the pristine one again
+ok   a copy with no sibling gate-log reader exits 2
+ok   and it names the sibling it lacks
+loop-mutations-selftest: all 39 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it quotes the assertion a red case failed on and the case-log line it read it from, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#anOwnedFunctionIsInItsOwnersFile
+driver#anOwnedFunctionIsInItsOwnersFile|   every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: report.sh defines action_add and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: state.sh defines cmd_publish_refused and its row does not own it'
+--- driver#anOwnedFunctionIsInItsOwnersFile[0] (exit 1)
+  every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: report.sh defines action_add and its row does not own it
+layout.tsv: state.sh defines cmd_publish_refused and its row does not own it'
+FAIL driver#anOwnedFunctionIsInItsOwnersFile
+loop-selftest: 1 of 1 cases failed
+exit=1
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#everyEngineScriptIsInTheTable
+PASS driver#everyEngineScriptIsInTheTable
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#noEngineFileExceedsItsBound
+PASS driver#noEngineFileExceedsItsBound
+exit=0
+
+$ bash tools/loop/tests/loop-selftest.sh --case driver#theSourceOrderIsDeclared
+PASS driver#theSourceOrderIsDeclared
+exit=0
+
+## The red this change carries and does not cause
+
+`driver#anOwnedFunctionIsInItsOwnersFile` is red on the base commit `ae2373cb` **itself**, run in a detached worktree of that commit (`git worktree add --detach /tmp/base-1085 ae2373cb`, removed afterwards), with exactly the two rows this tree reports:
+
+$ cd /tmp/base-1085 && bash tools/loop/tests/loop-selftest.sh --case 'driver#anOwnedFunctionIsInItsOwnersFile'
+driver#anOwnedFunctionIsInItsOwnersFile|   every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: report.sh defines action_add and its row does not own it
+driver#anOwnedFunctionIsInItsOwnersFile| layout.tsv: state.sh defines cmd_publish_refused and its row does not own it'
+--- driver#anOwnedFunctionIsInItsOwnersFile[0] (exit 1)
+  every function is defined in the file whose row owns it, and only there: expected '', got 'layout.tsv: report.sh defines action_add and its row does not own it
+layout.tsv: state.sh defines cmd_publish_refused and its row does not own it'
+FAIL driver#anOwnedFunctionIsInItsOwnersFile
+loop-selftest: 1 of 1 cases failed
+
+This change does not add a row to it. It touches `tools/loop/layout.tsv`, and the function it adds there is in its owner's row — the case would report `evidence.sh defines blocking_findings and its row does not own it` if it were not:
+
+$ git show ae2373cb:tools/loop/layout.tsv | grep -n "action_add\|cmd_publish_refused"
+exit=1
+
+$ git diff --name-only 4d1dea06^ 4d1dea06 -- tools/loop/report.sh tools/loop/state.sh
+exit=0
+
+$ grep -o "blocking_findings" tools/loop/layout.tsv
+blocking_findings
+exit=0
+$ bash tools/loop/tests/loop-mutations.sh --only 1085.1
+exit=0
+loop-mutations: selected 1 of 464 records (labels: 1085.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/lev/.pi/tmp/loop-mutations.bEdmgj
+RED    1085.1  run#aReviewThatNamedNothingTakesNoSecondRound   (the guard that lets a refusal which named no finding end the rounds, so a report that counted a finding it never wrote spends a second bound on nothing (issue #1085))
+       2026-11-25T10:06:27Z — case log line 1: a report that counted a finding and named none bought a second review round
+restore 1085.1 run#aReviewThatNamedNothingTakesNoSecondRound green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+$ bash tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: 0 of 356 references do not resolve, 2 stated figure(s) do not equal the section measurement
+exit=0
+
+The two figures are red at `9aac0236` itself — a detached worktree of that commit prints the same two lines — and they live in `AGENTS.md`, which this change does not touch.
+

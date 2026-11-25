@@ -201,6 +201,19 @@ blocking_count() { # blocking_count <report file> → the count, or empty when t
   printf '%s\n' "$value"
 }
 
+# The findings a round put down, which is what a round after it can answer (issue #1085). `blocking_count` above is
+# the reviewer's claim about its own grading; the `BLOCKING:` lines are the findings, each naming the path or the line
+# its refusal is about, so the count is the pointer's proxy and the line is the pointer. Read through `report_lines`,
+# so a closing block a reviewer wrote inside one fence is read as the lines it states (#793), and with the markdown a
+# reviewer may wrap the whole line in taken off, because the emphasis is not a fact about the finding: #1042's round
+# 1-restart writes its one finding as `**BLOCKING: …**` (lines 19 and 118) and #999's round 2 does the same, and a
+# parse that read either as naming nothing would skip the round the first of them paid for — a round that passed.
+# Across the archive's reviewer reports, every `VERDICT: FAIL` report carries a finding line, at line start or
+# emphasis-wrapped. Over-matching a quoted `> BLOCKING:` line spends a round and never skips one.
+blocking_findings() { # blocking_findings <report file> → how many `BLOCKING:` lines the report carries
+  report_lines "$1" | grep -cE '^[[:space:]>*_]*BLOCKING:' || true
+}
+
 # What a round that refused nothing leaves behind: its `NOTE:` findings, one per line as bullets, or the path of
 # the report when it graded none. This is what the item's closure comment and its state note carry, so a note is
 # recorded rather than spent on another round (#205).

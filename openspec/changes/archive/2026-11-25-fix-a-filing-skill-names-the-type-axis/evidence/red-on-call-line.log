@@ -1,0 +1,6 @@
+PROBE call-line-only at 2026-11-25T03:13:54Z
+  .pi/skills/file-finding/SKILL.md's documented create.sh call no longer carries --type and --parent beside its other flags
+FAIL docs#theFilingSkillsNameTheTypeAxis
+PROBE call-line-only exit=1
+PASS docs#theFilingSkillsNameTheTypeAxis
+PROBE restored exit=0

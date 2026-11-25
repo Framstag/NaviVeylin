@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/tests/issue-tooling-selftest.sh --case docs#theFilingSkillsNameTheTypeAxis" tests="1" failures="1" errors="0" time="1">
+  <system-out>issue-tooling-selftest: 1 of 1 cases failed — docs#theFilingSkillsNameTheTypeAxis (2026-11-25T03:13:48Z, this change's case run against the base 6a7107042e2f's two filing skills: .pi/skills/file-finding/SKILL.md no longer names --type)</system-out>
+</testsuite>

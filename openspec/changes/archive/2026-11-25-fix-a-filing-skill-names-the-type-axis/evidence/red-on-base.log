@@ -1,0 +1,4 @@
+PROBE base at 2026-11-25T03:13:48Z
+  .pi/skills/file-finding/SKILL.md no longer names --type, so a filing that follows it cannot carry the type axis
+FAIL docs#theFilingSkillsNameTheTypeAxis
+PROBE base exit=1

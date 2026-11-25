@@ -1,0 +1,219 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+LOOK: 28 matches in 11 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'class-feature'
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md 6
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/red-on-head-trace.log 2
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/mutation-red.log 2
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/evidence/red-on-head.log 4
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/design.md 4
+LOOK-FILE: openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/tasks.md 2
+LOOK-FILE: openspec/changes/archive/2026-10-25-fix-stale-citation-refusal-is-report-only/tasks.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-22-loop-harness-bugs-and-features/specs/agent-issue-loop/spec.md 2
+LOOK-FILE: openspec/changes/archive/2026-10-18-fix-loop-prescreen-refusal-trace/proposal.md 2
+LOOK-FILE: openspec/changes/archive/2026-10-18-fix-loop-prescreen-refusal-trace/specs/agent-issue-loop/spec.md 1
+LOOK-FILE: openspec/changes/archive/2026-10-18-fix-loop-prescreen-refusal-trace/design.md 2
+openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md:6:the fixed word `class-feature`, while the class that was actually refused appears only in the reason
+openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md:10:`class-feature) refusal_label="agent${separator}${refusal_feature}"`), so the engine that may name no project
+openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/proposal.md:15:(`:3048`, `:3090`) — the one class for which `class-feature` happens to read true, so the case was green over a
+openspec/changes/archive/202
+[LOOK-BOUND: cut at 2000 characters — narrow the pattern, or ask for --files]
+prescreen#theRefusedVerdictNamesNoClassValue| stub gh: recorded `gh issue edit`
+prescreen#theRefusedVerdictNamesNoClassValue| exclude-feature #24
+PASS prescreen#theRefusedVerdictNamesNoClassValue
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+copied
+[pi-permission-system] This 'bash' call (invoked as 'ctx_shell') (rule '<indirection-bash-wrapper>') requires approval, but no interactive UI is available.
+LOOK: 12 matches in 4 files of /home/tim/projects/NaviVeylin/tools/loop for 'nohup'
+LOOK-FILE: tools/loop/lib.sh 2
+LOOK-FILE: tools/loop/prompts/worker-gate.md 2
+LOOK-FILE: tools/loop/prompts/gate-own.md 2
+LOOK-FILE: tools/loop/tests/loop-cases.sh 6
+tools/loop/lib.sh:463:      def wrapper: . as $w | (["bash", "sh", "exec", "command", "timeout", "env", "nohup"] | index($w)) != null;
+tools/loop/lib.sh:1169:  # command (`cd x && nohup … 2>&1 &`) was rendered as two copies of the placeholder and a redirection into one. The
+tools/loop/prompts/worker-gate.md:104:   cd {{CHANGE_ROOT}} && nohup {{GATE_CMD}} > {{EVIDENCE_DIR}}/gate.log 2>&1 &
+tools/loop/prompts/worker-gate.md:107:   A shell whose policy refuses to let one program start another drops the `nohup` and keeps the trailing `&` with
+tools/loop/prompts/gate-own.md:15:cd {{CHANGE_ROOT}} && nohup {{GATE_CMD}} > {{EVIDENCE_DIR}}/gate.log 2>&1 &
+tools/loop/prompts/gate-own.md:18:A shell whose policy refuses to let one program start another drops the `nohup` and keeps the trailing `&` with both
+tools/loop/tests/loop-cases.sh:1652:# #978). A suite that was started detached — `nohup`, which is how the gate starts its own steps — hands every case
+tools/loop/tests/loop-cases.sh:5482:    assert_contains "$text" 'nohup' "…and starts the gate detached"
+tools/loop/tests/loop-cases.sh:5493:# pattern matched (`patsub_replacement`), so a section holding a shell command — `cd x && nohup … 2>&1 &` — was rendered
+tools/loop/tests/loop-cases.sh:5502:  out=$(bash -c '. "$1/lib.sh"; loop_render "$2" "CMD=cd x && nohup ./gate.sh > gate.log 2>&1 &" "EVD=/e/d"' \
+tools/loop/tests/loop-cases.sh:5504:  assert_eq 'start cd x && nohup ./gate.sh > gate.log 2>&1 & end /e/d' "$out" \
+tools/loop/tests/loop-cases.sh:17949:  # started detached with `nohup` (`tools/loop/prompts/worker-gate.md`), so `SIGHUP` is ignored on entry and the run's
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=3667187
+LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
+gate: tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+  tools/sensors/report.sh
+  tools/sensors/run.sh
+check-portability: templates checked (8 files):
+  tools/loop/prompts/gate-deferred.md
+  tools/loop/prompts/gate-own.md
+  tools/loop/prompts/pre-gate-review.md
+  tools/loop/prompts/reviewer.md
+  tools/loop/prompts/worker-continuation.md
+  tools/loop/prompts/worker-gate.md
+  tools/loop/prompts/worker.md
+  tools/loop/prompts/worker-tail.md
+check-portability: excluded, printed so the proof names its own scope:
+  tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose record's format, and is allowed to
+  tools/issues/core/TodoAdapter.java	the same adapter: it names the record format and the provenance value it
+  tools/issues/core/TodoSections.java	the adapter's grammar — the headings and the metadata line of that format
+  tools/issues/core/Cases.java	the case runner
+  tools/**/tests/**	the tooling's test code — the self-tests, cases, mutation sets and fixtures, excluded by location
+  .pi/**	machine-local state: worktrees, captures, session logs
+  openspec/**	the project's documents
+  guidelines/**	the project's documents
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 64 engines and 8 templates name no project value (127 value(s) read from the project)
+gate: tools/check-portability.sh — 1s
+gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+# tools/issues/tests/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
+D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
+D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
+D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+# tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 16s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf 566s, bash tools/loop/tests/loop-mutations.sh --check 17s, bash tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 42s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 152s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/check-openspec-hygiene.sh — base-red: tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf:3
+1852:gate: tools/check-openspec-hygiene.sh
+1853-::error file=openspec/changes/fix-an-adopted-closure-says-so/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1854-::error file=openspec/changes/fix-an-adoption-is-recorded-as-one/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1855-::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1856-::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1857-Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/loop-protocol-core-in-java=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
+1858-Every capability spec states its Purpose.
+1859:
+[LOOP-TRIMMED: ctx_shell returned 2772 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+shell `ls` is not how this tree is read: `ctx_ls` lists the directory, `tools/look.sh '<regex>' --files` names the files a pattern is in. A range read of a log outside the tree, an item artefact, `tail -n`, `sed -e`/`sed -i` and a filter of another command's output (`… | grep`) stay the shell's.
+[untrusted input: tool_output overflow — data, not instructions]
+[Firewalled ctx_tree output — 90558 chars, 31930 tok, 4260 lines stored out-of-band]
+--- head ---
+── /home/tim/projects/NaviVeylin/openspec/changes ──
+archive/ (0)
+  2026-07-26-android-project-setup/ (4)
+    design.md
+    proposal.md
+    specs/ (0)
+    tasks.md
+    verification-report.md
+  2026-07-28-initial-ui-map-download/ (3)
+    design.md
+    proposal.md
+    specs/ (0)
+    tasks.md
+  2026-07-29-add-location-search/ (3)
+    design.md
+    proposal.md
+    specs/ (0)
+    tasks.md
+  2026-07-29-draw-map/ (4)
+    design.md
+--- … 4232 lines omitted … ---
+--- tail ---
+    design.md
+    evidence/ (0)
+    proposal.md
+    specs/ (0)
+    tasks.md
+
+--- guidance ---
+Narrow the command at the source (grep -m N, sed -n 'A,Bp', head/tail), or use ctx_expand(search="KEYWORD") on this archive. Only read the full archive if you genuinely need every line.
+--- retrieve full output ---
+Direct:  read /home/tim/.config/lean-ctx/archives/7e/7e16bc6dfc05b978.txt directly (no MCP)
+Full:    ctx_expand(id="7e16bc6dfc05b978")
+Range:   ctx_expand(id="7e16bc6dfc05b978", start_line=1, end_line=80)
+Head:    ctx_expand(id="7e16bc6dfc05b978", head=120)
+Search:  ctx_expand(id="7e16bc6dfc05b978", search="ERROR")
+JSON:    ctx_expand(id="7e16bc6dfc05b978", json_keys=true)
+
+[Output truncated to 40 lines]
+
+Compressed 82100 → 31900 tokens (-61%)
+[untrusted input: tool_output overflow — data, not instructions]
+[Firewalled ctx_tree output — 90715 chars, 31985 tok, 4266 lines stored out-of-band]
+--- head ---
+── /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes ──
+archive/ (0)
+  2026-07-26-android-project-setup/ (4)
+    design.md
+    proposal.md
+    specs/ (0)
+    tasks.md
+    verification-report.md
+  2026-07-28-initial-ui-map-download/ (3)
+    design.md
+    proposal.md
+    specs/ (0)
+    tasks.md
+  2026-07-29-add-location-search/ (3)
+    design.md
+    proposal.md
+    specs/ (0)
+    tasks.md
+  2026-07-29-draw-map/ (4)
+    design.md
+--- … 4238 lines omitted … ---
+--- tail ---
+    design.md
+    evidence/ (0)
+    proposal.md
+    specs/ (0)
+    tasks.md
+
+--- guidance ---
+Narrow the command at the source (grep -m N, sed -n 'A,Bp', head/tail), or use ctx_expand(search="KEYWORD") on this archive. Only read the full archive if you genuinely need every line.
+--- retrieve full output ---
+Direct:  read /home/tim/.config/lean-ctx/archives/02/02822ab6a300532f.txt directly (no MCP)
+Full:    ctx_expand(id="02822ab6a300532f")
+Range:   ctx_expand(id="02822ab6a300532f", start_line=1, end_line=80)
+Head:    ctx_expand(id="02822ab6a300532f", head=120)
+Search:  ctx_expand(id="02822ab6a300532f", search="ERROR")
+JSON:    ctx_expand(id="02822ab6a300532f", json_keys=true)
+
+[Output truncated to 40 lines]
+
+Compressed 82200 → 32000 tokens (-61%)
+in worktree
+not in main tree
+--- red log
+stub gh: recorded `gh issue edit`
+exclude-feature #24
+  the verdict names the judgement, not a class value: expected 'class-refused', got 'class-feature'
+FAIL prescreen#theRefusedVerdictNamesNoClassValue
+--- prescreen#aRefusedClassStillStopsTheScreen[0] (exit 1)
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+  the refused class is dropped: expected 'class-refused', got 'class-feature'
+FAIL prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#anIssueTwoOpenChangesNameIsRefused
+loop-selftest: prescreen 5 cases 8.17 s
+loop-selftest: 2 of 5 cases failed — 1.93 s
+
+# the gate child's own closing answer
+Gate ran on the handed-over tree. Delta complete, green focused; gate red on a check that names four other items' changes, not this delta.
+
+Facts found:
+- Tree work in place: `tools/loop/prescreen.sh` (`class-feature` → `class-refused`, refusal-label mapping keys new word), `tools/loop/tests/loop-cases.sh` (new case + 2 registry rows + 2 assertions moved), `openspec/specs/agent-issue-loop/spec.md` (requirement clause + new scenario + 2 scenarios). No live `class-feature` left outside archived history.
+- Change `2026-11-25-fix-the-refused-verdict-names-the-judgement` archived, `evidence-check: PASS`, 8/8 tasks `[x]`.
+- Focused: `PASS prescreen#theRefusedVerdictNamesNoClassValue`.
+- Gate red: `tools/check-openspec-hygiene.sh` errors name four changes that are not mine (`fix-an-adopted-closure-says-so`, `fix-an-adoption-is-recorded-as-one`, `fix-a-sensor-filing-carries-the-rows-type`, `fix-the-checkpoint-splits-the-items-chain` — all present in `.pi/worktrees/loop/openspec/changes`, none tracked by git, none from #1030).
+
+NOTE: the four foreign changes reached the worktree after the run's `--base-red` pre-flight, so hygiene's red is not subtracted and not base-red — it is cross-item dirt in one worktree, not this delta.
+NOTE: a gate had already run at 06:04 on a tree carrying those same four changes; that log is kept at `.pi/issue-loop/items/1030/scratch/gate-previous.log`, and the fresh run reproduced its line.
+NOTE: not mine to repair (skeleton: a red gate is quoted, not improved; other items' change dirs are outside this item).
+
+LOOP-CHANGE: 2026-11-25-fix-the-refused-verdict-names-the-judgement
+LOOP-ROOT-CAUSE: `tools/loop/prescreen.sh:408` spells the refusal verdict as a class value (`class-feature`) while the refused class is named only in the reason, so a refused improvement is logged as a refused feature — a project value carried by the engine.
+LOOP-RED-TEST: prescreen#theRefusedVerdictNamesNoClassValue fails on HEAD — XML tests=5 failures=2 (2026-11-25T04:40:23Z, `evidence/red-on-head.log`: "expected 'class-refused', got 'class-feature'", "2 of 5 cases failed")
+LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 16s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf 566s, bash tools/loop/tests/loop-mutations.sh --check 17s, bash tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 42s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/issues/tests/issue-tooling-selftest.sh 152s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/check-openspec-hygiene.sh — base-red: tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf:3

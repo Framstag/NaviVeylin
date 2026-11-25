@@ -1,0 +1,5 @@
+prescreen#theRefusedVerdictNamesNoClassValue|   the verdict names the judgement, not a class value: expected 'class-refused', got 'class-feature'
+--- prescreen#theRefusedVerdictNamesNoClassValue[0] (exit 1)
+  the verdict names the judgement, not a class value: expected 'class-refused', got 'class-feature'
+FAIL prescreen#theRefusedVerdictNamesNoClassValue
+loop-selftest: 1 of 1 cases failed

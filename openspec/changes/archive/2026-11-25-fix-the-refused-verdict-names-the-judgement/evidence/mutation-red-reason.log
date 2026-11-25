@@ -1,0 +1,9 @@
+prescreen#theRefusedVerdictNamesNoClassValue| stub gh: recorded `gh issue edit`
+prescreen#theRefusedVerdictNamesNoClassValue| exclude-feature #24
+prescreen#theRefusedVerdictNamesNoClassValue|   the reason is the one place the refused class is named: 'class/improvement' not found in: the class is not worked by this loop
+--- prescreen#theRefusedVerdictNamesNoClassValue[0] (exit 1)
+stub gh: recorded `gh issue edit`
+exclude-feature #24
+  the reason is the one place the refused class is named: 'class/improvement' not found in: the class is not worked by this loop
+FAIL prescreen#theRefusedVerdictNamesNoClassValue
+loop-selftest: 1 of 1 cases failed

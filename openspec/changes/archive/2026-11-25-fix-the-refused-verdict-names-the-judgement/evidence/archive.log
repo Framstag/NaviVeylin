@@ -1,0 +1,14 @@
+$ openspec archive --yes fix-the-refused-verdict-names-the-judgement
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  agent-issue-loop: update
+Applying changes to openspec/specs/agent-issue-loop/spec.md:
+  ~ 2 modified
+Totals: + 0, ~ 2, - 0, → 0
+Specs updated successfully.
+Change 'fix-the-refused-verdict-names-the-judgement' archived as '2026-11-25-fix-the-refused-verdict-names-the-judgement'.
+archive exit=0

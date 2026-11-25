@@ -1,0 +1,21 @@
+PASS prescreen#missingPathIsReportedNotRefused
+prescreen#theRefusedVerdictNamesNoClassValue| stub gh: recorded `gh issue edit`
+prescreen#theRefusedVerdictNamesNoClassValue| exclude-feature #24
+prescreen#theRefusedVerdictNamesNoClassValue|   the verdict names the judgement, not a class value: expected 'class-refused', got 'class-feature'
+prescreen#aRefusedClassStillStopsTheScreen| stub gh: recorded `gh issue edit`
+prescreen#aRefusedClassStillStopsTheScreen| exclude-feature #25
+prescreen#aRefusedClassStillStopsTheScreen|   the refused class is dropped: expected 'class-refused', got 'class-feature'
+PASS prescreen#aChangeThatIsNoLongerReadyIsRefused
+--- prescreen#aRefusedClassStillStopsTheScreen[1] (exit 1)
+stub gh: recorded `gh issue edit`
+exclude-feature #24
+  the verdict names the judgement, not a class value: expected 'class-refused', got 'class-feature'
+FAIL prescreen#theRefusedVerdictNamesNoClassValue
+--- prescreen#aRefusedClassStillStopsTheScreen[0] (exit 1)
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+  the refused class is dropped: expected 'class-refused', got 'class-feature'
+FAIL prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#anIssueTwoOpenChangesNameIsRefused
+loop-selftest: prescreen 5 cases 8.17 s
+loop-selftest: 2 of 5 cases failed — 1.93 s

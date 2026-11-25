@@ -1,0 +1,5 @@
+prescreen#refusalLeavesATraceInTheTracker|   the fixture is still the refused one (stderr: stub gh: recorded `gh issue edit` exclude-feature #25 ): expected 'class-refused', got 'class-feature'
+--- prescreen#refusalLeavesATraceInTheTracker[0] (exit 1)
+  the fixture is still the refused one (stderr: stub gh: recorded `gh issue edit` exclude-feature #25 ): expected 'class-refused', got 'class-feature'
+FAIL prescreen#refusalLeavesATraceInTheTracker
+loop-selftest: 1 of 1 cases failed

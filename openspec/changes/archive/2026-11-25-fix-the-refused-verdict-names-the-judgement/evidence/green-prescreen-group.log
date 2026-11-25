@@ -1,0 +1,54 @@
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#readsTheVerdictsFromTheProfile
+PASS prescreen#missingPathIsReportedNotRefused
+PASS prescreen#deviceItemIsAVerdictNotWork
+prescreen#landedBranchIsNotADecision| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TJuO8G/cases/6/tree/case.yCS116/repo/.pi/issue-loop/runs/2026-11-25T04:40:34Z.json
+prescreen#anEmptyBlockedVerdictBlocksNothing| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.TJuO8G/cases/11/tree/case.Krw9cX/repo/.pi/issue-loop/runs/2026-11-25T04:40:32Z.json
+PASS prescreen#aBlockedCandidateWaitsForItsPredecessor
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#theRunHoldsWhatItsBlockedItemShares
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#settledItemIsDropped
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#aBlockedAttemptBranchIsWork
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+prescreen#theRefusedVerdictNamesNoClassValue| stub gh: recorded `gh issue edit`
+prescreen#theRefusedVerdictNamesNoClassValue| exclude-feature #24
+prescreen#aRefusedClassStillStopsTheScreen| stub gh: recorded `gh issue edit`
+PASS prescreen#withoutTheOptInIsNeverQueued
+prescreen#aRefusedClassStillStopsTheScreen| exclude-feature #25
+PASS prescreen#theRefusedVerdictNamesNoClassValue
+PASS prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+PASS prescreen#anEmptyBlockedVerdictBlocksNothing
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#landedBranchIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#theQueueIsWrittenInRankOrder
+PASS prescreen#aPinnedItemLeadsTheQueue
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS prescreen#oneUnreadableCandidateDoesNotStopTheScreen
+PASS prescreen#anUnansweredTrackerIsNotAnEmptyQueue
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
+PASS prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim
+PASS prescreen#aContainerTypeIsNotWork
+PASS prescreen#aTierAItemPassesUnchanged
+prescreen#anAnsweredBranchIsWorkNotADecision| set-aside: branch fix/issue-21-a-refused-attempt renamed to loop/leftover/issue-21-a-refused-attempt-20261125T044046Z, its commits are kept
+PASS prescreen#aProfileWithNoPinPinsNothing
+PASS prescreen#anIssueTwoOpenChangesNameIsRefused
+PASS prescreen#aChangeThatIsNoLongerReadyIsRefused
+PASS prescreen#anAnsweredBranchIsWorkNotADecision
+PASS prescreen#aReworkCutBranchIsWork
+PASS prescreen#anAnswerToAnotherAttemptDoesNotReworkTheBranch
+PASS prescreen#aContainerWhoseChildrenAllAwaitADecisionTakesNoSlot
+PASS prescreen#aClosedItemIsNotSelected
+PASS prescreen#refusalLeavesATraceInTheTracker
+PASS prescreen#theScreenRecordsTheItemsEpic
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#aContainerCutAtABoundTakesNoFurtherSlot
+loop-selftest: prescreen 45 cases 244.98 s
+loop-selftest: all 45 cases passed (JDK 21, offline, no token, no sandbox) — 18.73 s, selection: --group prescreen

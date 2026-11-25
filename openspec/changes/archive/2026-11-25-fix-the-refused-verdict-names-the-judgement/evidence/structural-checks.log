@@ -1,0 +1,13 @@
+# structural checks — the delta compiles nothing but shell
+$ bash -n tools/loop/prescreen.sh
+OK
+$ bash -n tools/loop/tests/loop-cases.sh
+OK
+$ bash tools/check-portability.sh
+  tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 64 engines and 8 templates name no project value (127 value(s) read from the project)
+$ bash tools/loop/tests/loop-selftest.sh --list | tail -n 1
+run#aConvertedSiteRendersFromItsRecord
+run#aFreeTextReasonSurvivesTheRoundTrip
+$ sha256sum -c evidence/mutation-before.sha256 (the file restored after both mutations)
+tools/loop/prescreen.sh: OK

@@ -1,0 +1,50 @@
+# item #1030 — the gate's one red, attributed (phase F, tail)
+# Read from the gate child's handed-over output only; no gate step re-run, no tree edit.
+
+## the red, as the gate printed it
+
+LOOP-GATE: tests=1287 failures=0 errors=1 (tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 16s, tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf 566s, bash tools/loop/tests/loop-mutations.sh --check 17s, bash tools/gen-feature-list.sh --check-classification 17s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 1s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 10s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 42s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/issues/tests/issue-tooling-selftest.sh 152s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/check-openspec-hygiene.sh — base-red: tools/loop/tests/loop-selftest.sh --from-git ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf:3
+
+1852:gate: tools/check-openspec-hygiene.sh
+1853-::error file=openspec/changes/fix-an-adopted-closure-says-so/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1854-::error file=openspec/changes/fix-an-adoption-is-recorded-as-one/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1855-::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1856-::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
+1861-gate: tools/check-openspec-hygiene.sh — 0s
+
+Sources: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/worker-tail-report-gate-output.txt:88-93 (full gate
+output copied beside this file as evidence/gate-output.txt), and
+/home/tim/projects/NaviVeylin/.pi/issue-loop/items/1030/scratch/gate-previous.log:1854-1861 for the earlier gate.
+
+## proof the red is foreign to this delta — red before the work, unchanged after it
+
+1. Every erroring path belongs to another item's open change: `fix-an-adopted-closure-says-so`,
+   `fix-an-adoption-is-recorded-as-one`, `fix-a-sensor-filing-carries-the-rows-type`,
+   `fix-the-checkpoint-splits-the-items-chain`. None is #1030's change; this change is archived under
+   `archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/` and hygiene printed no error for it.
+2. `git status --porcelain` in the change root (read-only), taken by the tail:
+    M openspec/specs/agent-issue-loop/spec.md
+    M tools/loop/prescreen.sh
+    M tools/loop/tests/loop-cases.sh
+   ?? openspec/changes/archive/2026-11-25-fix-the-refused-verdict-names-the-judgement/
+   That is the whole delta. The four erroring directories do not appear because
+   `git check-ignore -v` reports `.gitignore:82:openspec/changes/*/` for them — untracked, none tracked by git,
+   none written by this work. The delta touches no `openspec/changes/` directory, so it cannot influence what
+   `tools/check-openspec-hygiene.sh` reports about those four.
+3. Red before this work: `stat` gives `openspec/changes/fix-an-adoption-is-recorded-as-one` mtime
+   `2026-11-24 21:33:51 +0100`, older than the run's
+   base commit `ae2373cb001116c38ed70d1fad25ef7a1b3c3cbf` (`2026-11-25T05:36:48+01:00`) and older than this
+   change's red run (`red-on-head.log`, `2026-11-25 05:40:19 +0100`): an offending directory stood in the tree
+   before any of this work existed.
+4. Stays red after it: the identical four `::error` lines and the identical failing step printed in two gate
+   runs — the earlier one at 06:04 (`items/1030/scratch/gate-previous.log:1854`, closing
+   `LOOP-GATE: tests=1287 failures=0 errors=1 … failing: tools/check-openspec-hygiene.sh`) and the handed-over
+   run at 06:22 (`gate.log`, the LOOP-GATE line above). The delta was in place for both; the red did not move.
+5. The check itself is green where this item can be at fault:
+   `tools/tests/check-openspec-hygiene-selftest.sh` — `all 12 cases passed` in both runs
+   (`scratch/gate-previous.log:1864` and the handed-over gate).
+6. Bookkeeping note carried verbatim from the earlier gate, kept here so the run can count it:
+   `LOOP-GATE-BASERED-UNMEASURED:tools/check-openspec-hygiene.sh — no clean tree at ae2373cb0011 to measure it in, so its red stays with the item`
+
+The gate's failures tally is 0; errors=1 is this one foreign step, attributed above. A red on this change's own
+paths would be `blocked`; this red names none of them.

@@ -212,13 +212,14 @@ run_checks() { # <change> <root> <table> <scan-paths> <xml-dir> <guideline-dir> 
         fails=$((fails+1)); r_unresolved=$((r_unresolved+1)); continue
       fi
       # The two heading shapes this project writes: `## 2a. Agent iteration protocol` and `## §7a Running one
-      # item` — the id is the leading number, and what follows it is a `.` or the heading's first space, so a
-      # dotted sub-number (`## 3.6 …`) is not read as §3 (issue #974).
-      ids=$(sed -n 's/^## §\{0,1\}\([0-9][0-9a-z]*\)\(\.[[:space:]]*\|[[:space:]]\).*$/\1/p' "$root/$doc")
+      # item` — the id is the leading number, and the shape's own separator follows it: a `.` and then whitespace,
+      # or the heading's first space after the `§`. A heading that carries neither separator (`## 7a Running one
+      # item`) and a dotted sub-number (`## 3.6 …`) carry no id (issue #974).
+      ids=$(sed -n 's/^## §\([0-9][0-9a-z]*\)[[:space:]].*$/\1/p; s/^## \([0-9][0-9a-z]*\)\.[[:space:]].*$/\1/p' "$root/$doc")
       if grep -qxF "$id" <<<"$ids"; then
         resolved=$((resolved+1))
       else
-        echo "FAIL C6 §$id does not resolve in $doc — its sections are: $(sed -n 's/^## §\{0,1\}\([0-9][0-9a-z]*\)\(\.[[:space:]]*\|[[:space:]]\).*$/§\1/p' "$root/$doc" | tr '\n' ' ')"
+        echo "FAIL C6 §$id does not resolve in $doc — its sections are: $(sed -n 's/^## §\([0-9][0-9a-z]*\)[[:space:]].*$/§\1/p; s/^## \([0-9][0-9a-z]*\)\.[[:space:]].*$/§\1/p' "$root/$doc" | tr '\n' ' ')"
         fails=$((fails+1)); r_unresolved=$((r_unresolved+1))
       fi
     # A **route line** is anchored: nothing but list/quote markers and space may precede it. A paragraph that
@@ -253,7 +254,7 @@ selftest() {
   local scan="src" xmldir="build/test-results" guides="guidelines" route="warn"
   mkdir -p "$tmp/root/src/main/kotlin" "$tmp/root/$xmldir" "$tmp/change" "$tmp/root/$guides"
   # The route resolves against the document's own headings — `## 2a.` is `§2a`, and `§99` is not a section at all.
-  printf '# Doc\n\n## 1. One\n\ntext\n\n## 2a. Two A\n\ntext\n' > "$tmp/root/$guides/Doc.md"
+  printf '# Doc\n\n## 1. One\n\ntext\n\n## 2a. Two A\n\ntext\n\n## §2b Three\n\ntext\n\n## 3.6 Sub\n\ntext\n\n## 9 Nine\n\ntext\n' > "$tmp/root/$guides/Doc.md"
   printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/src/main/kotlin/Foo.kt"
   printf '<?xml version="1.0"?>\n<testsuite name="x" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-01-01T00:00:00Z"></testsuite>\n' \
     > "$tmp/root/$xmldir/TEST-x.xml"
@@ -323,14 +324,28 @@ MD
   # C6: a route resolves against the document's own headings, and one that does not is the false pointer the
   # check exists for (issue #974). The green arm first, then the § the document does not have, then the WARN arm a
   # report written before the rule landed falls into.
-  printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §2a\n' > "$tmp/change/proposal.md"
+  printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §2a\n- LOOP-ROUTE: guidelines/Doc.md §2b\n' > "$tmp/change/proposal.md"
   set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 0 "$code" "a route resolves against the document's own heading"
 
   printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §99\n' > "$tmp/change/proposal.md"
   set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 1 "$code" "a § the document does not have is a false pointer"
-  case "$out" in *"its sections are: §1 §2a"*) echo "ok   the refusal names the document's section list";; *) echo "FAIL C6 section list: $out"; fail=1;; esac
+  sections=$(sed -n 's/.*its sections are: \(.*\)$/\1/p' <<<"$out")
+  ok "§1 §2a §2b " "$sections" "the refusal names the document's section list"
+
+  # a dotted sub-number is neither of the two shapes this project writes, so it carries no id: a route to `§3`
+  # against a document whose only `3`-bearing heading is `## 3.6 Sub` is the false pointer C6 exists to refuse.
+  printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §3\n' > "$tmp/change/proposal.md"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
+  ok 1 "$code" "a dotted sub-number heading carries no id"
+  sections=$(sed -n 's/.*its sections are: \(.*\)$/\1/p' <<<"$out")
+  ok "§1 §2a §2b " "$sections" "the dotted sub-number is not in the document's section list"
+
+  # a heading that carries neither separator is neither shape either, so it carries no id: `## 9 Nine` is not §9.
+  printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §9\n' > "$tmp/change/proposal.md"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
+  ok 1 "$code" "a heading with neither shape separator carries no id"
 
   printf '# Doc\n- no route line here\n' > "$tmp/change/proposal.md"
   set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e

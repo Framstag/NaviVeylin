@@ -6657,12 +6657,13 @@ case that wants one of those roots SHALL set it on its own command line.
 A change SHALL name the guideline section its work was routed by in one line, `LOOP-ROUTE: guidelines/<doc>.md §<id>`,
 and `tools/loop/evidence-check.sh` SHALL resolve that id against the ids the named document's own `## ` headings
 carry — the `## <id>. Thing` shape and the `## §<id> Thing` shape this project writes, and only those headings, never
-the document's body. The check SHALL refuse a document outside the project's guideline directory, a document that does
-not exist, and an id no heading of it carries, naming the ids the document does carry. A line SHALL count as a route
-only when nothing but list or quote markers and space precedes it, so a paragraph that quotes the form is prose about
-a route and not one, and the migration table's reference check SHALL NOT read a route line's id against its own rows.
-A change that names no route at all SHALL be a warning until the project's configuration reads the route as required,
-and a failure after that.
+the document's body: a heading that carries a dotted sub-number (`## 3.6 …`) or no shape separator at all
+(`## 9 Nine`) carries no id. The check SHALL refuse a document outside the project's guideline directory, a document
+that does not exist, and an id no heading of it carries, naming the ids the document does carry. A line SHALL count as
+a route only when nothing but list or quote markers and space precedes it, so a paragraph that quotes the form is prose
+about a route and not one, and the migration table's reference check SHALL NOT read a route line's id against its own
+rows. A change that names no route at all SHALL be a warning until the project's configuration reads the route as
+required, and a failure after that.
 
 #### Scenario: An id a document does not carry is refused
 
@@ -6684,6 +6685,20 @@ and a failure after that.
 - **WHEN** a route names a section of a document written as `## <id>. Thing` or as `## §<id> Thing`
 - **THEN** the check exits 0 and reports the route lines it resolved against the document's own headings
 - **Case**: `tools/loop/evidence-check.sh --selftest` (`a route resolves against the document's own heading`)
+
+#### Scenario: A dotted sub-number heading carries no id
+
+- **WHEN** a route names an id whose only heading in the document is a dotted sub-number (`## 3.6 …`), which is
+  neither of the two shapes the project writes
+- **THEN** the check exits 1, so a false pointer to `§3` cannot pass as a resolved route
+- **Case**: `tools/loop/evidence-check.sh --selftest` (`a dotted sub-number heading carries no id`)
+
+#### Scenario: A heading with neither shape separator carries no id
+
+- **WHEN** a route names an id whose only heading in the document carries neither separator (`## 9 Nine`), which is
+  neither of the two shapes the project writes
+- **THEN** the check exits 1, so a false pointer to `§9` cannot pass as a resolved route
+- **Case**: `tools/loop/evidence-check.sh --selftest` (`a heading with neither shape separator carries no id`)
 
 #### Scenario: A quoted form is not a route line
 

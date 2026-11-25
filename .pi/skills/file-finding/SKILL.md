@@ -38,7 +38,7 @@ A tier-B finding is refused unless the change directory exists and the project's
 ## The call
 
 ```bash
-tools/issues/create.sh <<'FINDING'
+tools/issues/create.sh --type Task --parent <container> <<'FINDING'
 {
   "title": "The phone card header shows a number the step list disagrees with",
   "class": "bug",
@@ -52,6 +52,13 @@ tools/issues/create.sh <<'FINDING'
 }
 FINDING
 ```
+
+`--type` and `--parent` are the tracker's own classification and not labels, so they are named beside the flags the
+call already carries rather than written into the body: a finding filed without them appears under no container, and
+nothing groups it with the siblings of the epic it belongs to (`guidelines/Backlog.md` §3, "What the tracker
+holds"). The type's name is the one the account declares — `create-issue` names the flags, the payload's own
+`type`/`parent` fields and the series they file — and `roles.containerType` in `tools/tooling.json` is the name this
+project treats as a container.
 
 and, when the work needs a plan:
 

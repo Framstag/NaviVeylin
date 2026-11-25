@@ -3392,13 +3392,15 @@ case_list_untypedIsQueried() {
   return 0
 }
 
-# The route, as a case (D3, item #912): the two skills a filing session is routed to name the tracker's own
+# The route, as a case (D3, item #912): the skills a filing session is routed to name the tracker's own
 # classification. The repair that followed the nine unlinked siblings was doc-only, and nothing read a skill's
-# prose — so the pointer that was missing could be taken away again without a red run. This case reads the two
-# files, offline and token-free, and is what makes the loss loud.
+# prose — so the pointer that was missing could be taken away again without a red run. This case reads all four
+# files, offline and token-free, and is what makes the loss loud. The two filing skills were green by not being
+# read until #1028 added them here (item #1028).
 case_docs_theFilingSkillsNameTheTypeAxis() {
   local file flag
-  for file in .pi/skills/create-issue/SKILL.md .pi/skills/update-issue/SKILL.md; do
+  for file in .pi/skills/create-issue/SKILL.md .pi/skills/update-issue/SKILL.md \
+              .pi/skills/file-finding/SKILL.md .pi/skills/reshape-issue/SKILL.md; do
     [ -f "$ISSUES_REPO_ROOT/$file" ] || fail "the filing skill $file is missing"
     for flag in --type --parent; do
       grep -qF -- "$flag" "$ISSUES_REPO_ROOT/$file" ||
@@ -3409,6 +3411,13 @@ case_docs_theFilingSkillsNameTheTypeAxis() {
   # what an update must carry names both (task 3.2).
   grep -q 'At least one of.*--type.*--parent' "$ISSUES_REPO_ROOT/.pi/skills/update-issue/SKILL.md" ||
     fail "update-issue/SKILL.md's 'at least one of …' sentence no longer lists --type and --parent"
+  # and on the call itself, not merely in the prose around it: a session that copies the call line it is shown is
+  # the filing this case exists to keep whole, so the two skills that file a finding carry both flags on that line
+  # (item #1028 — the presence check above is satisfied by a mention in the paragraph below the call).
+  for file in .pi/skills/file-finding/SKILL.md .pi/skills/reshape-issue/SKILL.md; do
+    grep -Eq 'create\.sh .*--type [^ ]+ .*--parent [^ ]+' "$ISSUES_REPO_ROOT/$file" ||
+      fail "$file's documented create.sh call no longer carries --type and --parent beside its other flags"
+  done
   return 0
 }
 

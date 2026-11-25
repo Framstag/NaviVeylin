@@ -1221,6 +1221,16 @@ next case — which is why the exit trap's `/proc` sweep, one pass over every pr
 made per case and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the
 profile, else the host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
 
+A case that shares nothing but the engine still shares **the profile's bounds**, and a bound is not a read-only
+input: the run ends the item's first worker at the context checkpoint once it has work in the tree and continues it in
+a child of its own (issue #856), so a case that counts the children a phase started and stages a stream above the
+checkpoint counts the split's timing and not the phase's — green alone, red under the pool, on one tree at one commit
+(issue #1023: `expected '2', got '3'` in item #1018's gate, `539/539` green on the same tree afterwards). A case
+whose count a bound can decide therefore records that bound in a profile copy of its own and exports `LOOP_CONF`
+(`tools/loop/run.sh:90`) — the way the context-bound cases record the bound they enforce — and it asserts the children
+by **name**, the prompt each one was handed: `worker-prompt-continuation.md` in that list says which bound fired, and
+`got '3'` says only that something did.
+
 The suite's wall clock was the runner's core count and nothing the suite did could shorten it, so the pipeline runs it
 as **legs** (issue #781): `.github/workflows/build.yml`'s `loop-suite` job is a matrix of three, `fail-fast: false`,
 and a leg is the driver invoked once per group of its own selection — `run` (114 cases),

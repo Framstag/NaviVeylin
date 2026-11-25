@@ -12956,9 +12956,22 @@ case_run_metricsRecordedPerItem() {
 # `run.sh` keeps the stream beside the item's reports and records the sums with the wall time; the table prints
 # them. The fixture is a hand-written event stream: no model, no network, and every number below is asserted.
 case_run_childUsageIsRecordedPerItem() {
-  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/prompts/worker-tail.md tools/loop/report.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p f row
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prompts/worker.md tools/loop/prompts/worker-tail.md tools/loop/report.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p f row conf prompts
   d=$(scratch); p=$(new_project)
+  # The case is about what an item's children spent, not about the bounds: the run **ends** the item's first worker the
+  # moment its own reading reaches the profile's checkpoint and continues it in a child of its own (issue #856), so the
+  # fixture below — whose compaction stands at 150 000 — would put a third child in the log whenever the wait's
+  # once-a-second reading lands while the worker is alive, and two when the worker ended first. That is the
+  # `expected '2', got '3'` of issue #1023: green alone, red under the gate's pool. The case therefore records the two
+  # context keys in a profile of its own (`LOOP_CONF` is the self-test's seam for it, `tools/loop/run.sh:90`) exactly as
+  # the context-bound cases record the bound they enforce: the checkpoint off (`0`, the documented off of both keys),
+  # and the stop at its recorded value, which stays above the fixture's reading.
+  conf="$d/loop.conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_WARN=/d' -e '/^LOOP_ITEM_CONTEXT_MAX=/d' "$LOOP_CONF" > "$conf" ||
+    fail "this case could not copy the profile it runs with"
+  printf 'LOOP_ITEM_CONTEXT_WARN=0\nLOOP_ITEM_CONTEXT_MAX=200000\n' >> "$conf"
+  export LOOP_CONF="$conf"
   cat > "$d/events.jsonl" <<'JSONL'
 {"type":"turn_start"}
 {"type":"tool_execution_end","toolCallId":"c1","toolName":"bash","durationMs":1200}
@@ -13010,11 +13023,12 @@ LOOP-GATE: tests=1 failures=0 from the first child' \
   assert_eq "done" "$(jq -r '.items[0].result' "$f")" \
     "the report the adapter printed out of the stream's last assistant message is the one the run read"
   # What the split *is*: the child that ran the gate ends, and a second child — a prompt of its own — is started for
-  # the evidence and the archive. A run that kept one child cannot pass this pair.
-  assert_eq "2" "$(grep -c '^invocation' "$PI_STUB_LOG" || true)" "the worker phase is two children, not one"
-  assert_eq "worker-prompt.md worker-tail-prompt.md" \
-    "$(grep '^prompt: ' "$PI_STUB_LOG" | sed -e 's/^prompt: //' | paste -sd' ' -)" \
-    "in that order: the gate child first, then the tail child that is started from its gate line"
+  # the evidence and the archive. The list is the whole assertion: a count is the same fact with the one word a reader
+  # needs removed, and `expected '2', got '3'` cannot say *which* child made it three (issue #1023) — where the list
+  # names the third one, as `worker-prompt-continuation.md` is named by a run that split its worker at a bound.
+  prompts=$(grep '^prompt: ' "$PI_STUB_LOG" | sed -e 's/^prompt: //' | paste -sd' ' -)
+  assert_eq "worker-prompt.md worker-tail-prompt.md" "$prompts" \
+    "the worker phase is exactly these two children, in that order: the gate child first, then the tail child that is started from its gate line"
   # …and the tail is handed what the split exists to hand it, and nothing it would have to re-derive: the gate line
   # itself, the gate's own output, the change, and the facts the first child established.
   tail_prompt="$p/.pi/issue-loop/items/21/worker-tail-prompt.md"

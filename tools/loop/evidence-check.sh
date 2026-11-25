@@ -20,9 +20,12 @@
 #   C3 /tmp pointers a cited `/tmp/...` path without "not retained" on its line is a dangling pointer
 #   C4 mutations     `REVERT-CHECK MUTATION` must not survive anywhere under <root>/<LOOP_EVIDENCE_SCAN_PATHS>
 #   C5 file:line     every cited `path:NN` resolves (by path or by basename) and NN <= the file's line count
+#   C6 route         the report's `LOOP-ROUTE: <doc> §<id>` names a document under the project's guideline
+#                    directory whose own `^## ` heading carries that id; a report with no route line is a WARN
+#                    until the project's configuration makes it a FAIL (`LOOP_EVIDENCE_ROUTE`)
 #
 # Usage: evidence-check.sh <change-dir> [--table <file>] [--root .] [--conf <file>] [--scan <paths>]
-#                           [--xml-dir <path>] [--selftest]
+#                           [--xml-dir <path>] [--guidelines <dir>] [--route <warn|fail>] [--selftest]
 #   --scan / --xml-dir override the two values the project's configuration names, for a tree that is not this one.
 set -euo pipefail
 
@@ -47,8 +50,8 @@ conf_value() { # <conf> <KEY>
 SELFTEST_TMP=""
 trap 'if [ -n "$SELFTEST_TMP" ]; then rm -rf "$SELFTEST_TMP"; fi' EXIT
 
-run_checks() { # <change> <root> <table> <scan-paths> <xml-dir>
-  local change="$1" root="$2" table="$3" scan_paths="$4" xml_dir="$5"
+run_checks() { # <change> <root> <table> <scan-paths> <xml-dir> <guideline-dir> <route-mode>
+  local change="$1" root="$2" table="$3" scan_paths="$4" xml_dir="$5" guide_dir="$6" route_mode="$7"
   local fails=0 warns=0
   [ -d "$change" ] || { echo "FAIL change dir not found: $change"; return 1; }
   [ -f "$table" ] || { echo "FAIL reference table not found: $table"; return 1; }
@@ -64,6 +67,9 @@ run_checks() { # <change> <root> <table> <scan-paths> <xml-dir>
   # ---- C1: §references ------------------------------------------------------------------
   local missing=0 exempt=0 total=0
   while IFS= read -r line; do
+    # A route line's `§<id>` is the document's own section, not a backlog §: C6 resolves it, and C1 must not read
+    # it against the migration's table — `§7e` carries `§7`, and the table has no row 7 (issue #974).
+    case "$line" in *LOOP-ROUTE:*) continue;; esac
     local refs n
     refs=$(grep -o '§[0-9]\+' <<<"$line" | sort -u || true)
     for n in $refs; do
@@ -176,6 +182,62 @@ run_checks() { # <change> <root> <table> <scan-paths> <xml-dir>
   done < <(grep -n '' $mds)
   echo "ok   C5 file:line: $fl_checked resolved and in range, $fl_unresolved unresolved or ambiguous"
 
+  # ---- C6: the guideline route ------------------------------------------------------------
+  # A report says which rule it was worked against in one line, `LOOP-ROUTE: <doc> §<id>`, and nothing resolved
+  # that line until this check existed: a section number a document does not have was filed, reviewed and archived
+  # as a route (issue #974). Resolution compares the cited id with the id the document's own `## ` headings carry
+  # (`## 2a. Thing` is `§2a`), reading those headings and never the document. The directory is the project's
+  # configuration and never a literal here, which is the rule `tools/check-portability.sh` enforces.
+  local routes=0 resolved=0 r_unresolved=0 route_line doc id ids
+  if [ "$mode" = "archived" ]; then
+    echo "note C6 route: report-only on an archived change — the route is a rule of the live report"
+  elif [ -z "$guide_dir" ] || [ ! -d "$root/$guide_dir" ]; then
+    echo "note C6 route: no guideline directory at ${guide_dir:-<unnamed>} under $root — a route cannot resolve, so none is required"
+  else
+    while IFS= read -r route_line; do
+      routes=$((routes+1))
+      doc=$(sed -n 's/^.*LOOP-ROUTE:[[:space:]]*\([^[:space:]]*\).*$/\1/p' <<<"$route_line")
+      id=$(sed -n 's/^.*§\([0-9][0-9a-z]*\).*$/\1/p' <<<"$route_line")
+      if [ -z "$doc" ] || [ -z "$id" ]; then
+        echo "FAIL C6 $(cut -c1-160 <<<"$route_line") — a route is 'LOOP-ROUTE: $guide_dir/<doc>.md §<id>'"
+        fails=$((fails+1)); r_unresolved=$((r_unresolved+1)); continue
+      fi
+      case "$doc" in
+        "$guide_dir"/*) ;;
+        *) echo "FAIL C6 route names $doc, which is not under $guide_dir/"
+           fails=$((fails+1)); r_unresolved=$((r_unresolved+1)); continue;;
+      esac
+      if [ ! -f "$root/$doc" ]; then
+        echo "FAIL C6 route names a document that does not exist: $doc"
+        fails=$((fails+1)); r_unresolved=$((r_unresolved+1)); continue
+      fi
+      # The two heading shapes this project writes: `## 2a. Agent iteration protocol` and `## §7a Running one
+      # item` — the id is the leading number, and what follows it is a `.` or the heading's first space, so a
+      # dotted sub-number (`## 3.6 …`) is not read as §3 (issue #974).
+      ids=$(sed -n 's/^## §\{0,1\}\([0-9][0-9a-z]*\)\(\.[[:space:]]*\|[[:space:]]\).*$/\1/p' "$root/$doc")
+      if grep -qxF "$id" <<<"$ids"; then
+        resolved=$((resolved+1))
+      else
+        echo "FAIL C6 §$id does not resolve in $doc — its sections are: $(sed -n 's/^## §\{0,1\}\([0-9][0-9a-z]*\)\(\.[[:space:]]*\|[[:space:]]\).*$/§\1/p' "$root/$doc" | tr '\n' ' ')"
+        fails=$((fails+1)); r_unresolved=$((r_unresolved+1))
+      fi
+    # A **route line** is anchored: nothing but list/quote markers and space may precede it. A paragraph that
+    # quotes the form — "the report block carries `LOOP-ROUTE: …`" — is prose about the line, not the line, and
+    # reading it as one would refuse every change that documents its own convention (issue #974).
+    done < <(grep -nE '^[[:space:]>*-]*LOOP-ROUTE:' $mds 2>/dev/null || true)
+    if [ "$routes" -eq 0 ]; then
+      if [ "$route_mode" = "fail" ]; then
+        echo "FAIL C6 no LOOP-ROUTE: line — the change names no guideline section its work was routed by"
+        fails=$((fails+1))
+      else
+        echo "WARN C6 no LOOP-ROUTE: line — the change names no guideline section its work was routed by (a WARN until this project sets LOOP_EVIDENCE_ROUTE to fail)"
+        warns=$((warns+1))
+      fi
+    else
+      echo "ok   C6 route: $resolved of $routes route line(s) resolved against their documents' own headings"
+    fi
+  fi
+
   echo "----"
   if [ "$fails" -gt 0 ]; then echo "evidence-check: FAIL ($fails)"; return 1; fi
   echo "evidence-check: PASS"; return 0
@@ -188,8 +250,10 @@ selftest() {
 
   # The tree a check reads is the fixture's, and its two paths are this self-test's arguments — which is what a
   # project's configuration does in the real tree (`--scan`, `--xml-dir`), so no project value is written here.
-  local scan="src" xmldir="build/test-results"
-  mkdir -p "$tmp/root/src/main/kotlin" "$tmp/root/$xmldir" "$tmp/change"
+  local scan="src" xmldir="build/test-results" guides="guidelines" route="warn"
+  mkdir -p "$tmp/root/src/main/kotlin" "$tmp/root/$xmldir" "$tmp/change" "$tmp/root/$guides"
+  # The route resolves against the document's own headings — `## 2a.` is `§2a`, and `§99` is not a section at all.
+  printf '# Doc\n\n## 1. One\n\ntext\n\n## 2a. Two A\n\ntext\n' > "$tmp/root/$guides/Doc.md"
   printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/src/main/kotlin/Foo.kt"
   printf '<?xml version="1.0"?>\n<testsuite name="x" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-01-01T00:00:00Z"></testsuite>\n' \
     > "$tmp/root/$xmldir/TEST-x.xml"
@@ -204,64 +268,90 @@ selftest() {
 MD
 
   local out
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); local code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); local code=$?; set -e
   ok 0 "$code" "green fixture passes"
   case "$out" in *"evidence-check: PASS"*) echo "ok   green fixture verdict";; *) echo "FAIL green verdict: $out"; fail=1;; esac
   case "$out" in *"C2 test tallies: 1 pairs confirmed"*) echo "ok   tally confirmed against the XML";; *) echo "FAIL tally count: $out"; fail=1;; esac
 
   # C3 is report-only by design, so the strict half of this pair is C2: a number with no artifact fails there
   printf -- '- old evidence lived in /tmp/loop-1.log\n- Evidence: XML tests="999" failures="0"\n' > "$tmp/change/proposal.md"
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 1 "$code" "C2 red on an unbacked tally"
   case "$out" in *"DRIFT C3 /tmp path cited"*) echo "ok   C3 reports the /tmp pointer without failing";; *) echo "FAIL C3 drift line missing"; fail=1;; esac
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Related: §999 does not exist
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 1 "$code" "C1 red on a dangling §"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Related: §999 but the change is archived as fix-thing
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 0 "$code" "C1 exempts an archived pointer"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Files: `src/main/kotlin/Foo.kt:99`
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 1 "$code" "C5 red on a line past EOF"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Files: `Foo.kt:9`
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 0 "$code" "C5 resolves a basename-only citation"
   # the green half of C4's pair, before a marker is planted: it names the configured path it scanned
   case "$out" in *"no REVERT-CHECK MUTATION marker under 1 configured path(s): src"*) echo "ok   C4 names the configured path it scanned";; *) echo "FAIL C4 path line: $out"; fail=1;; esac
 
   printf '// REVERT-CHECK MUTATION (task 1)\n' >> "$tmp/root/src/main/kotlin/Foo.kt"
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 1 "$code" "C4 red on a leftover mutation"
 
   # a scan path that does not exist is a check that inspected nothing, and says so instead of passing
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "no-such-dir" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "no-such-dir" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 1 "$code" "C4 red when no configured scan path exists"
 
   printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/src/main/kotlin/Foo.kt"
   cat > "$tmp/change/proposal.md" <<'MD'
 - Evidence: XML tests="7" failures="0" — the red copy is not retained (overwritten by the gate run)
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
   ok 0 "$code" "a row labelled not retained is exempt by policy"
+
+  # C6: a route resolves against the document's own headings, and one that does not is the false pointer the
+  # check exists for (issue #974). The green arm first, then the § the document does not have, then the WARN arm a
+  # report written before the rule landed falls into.
+  printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §2a\n' > "$tmp/change/proposal.md"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
+  ok 0 "$code" "a route resolves against the document's own heading"
+
+  printf '# Doc\n- LOOP-ROUTE: guidelines/Doc.md §99\n' > "$tmp/change/proposal.md"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
+  ok 1 "$code" "a § the document does not have is a false pointer"
+  case "$out" in *"its sections are: §1 §2a"*) echo "ok   the refusal names the document's section list";; *) echo "FAIL C6 section list: $out"; fail=1;; esac
+
+  printf '# Doc\n- no route line here\n' > "$tmp/change/proposal.md"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
+  ok 0 "$code" "a report with no route line warns rather than failing"
+  case "$out" in *"WARN C6"*) echo "ok   the missing route is a WARN";; *) echo "FAIL C6 warn arm: $out"; fail=1;; esac
+
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "fail"); code=$?; set -e
+  ok 1 "$code" "and the same report fails once the project reads the route as required"
+
+  # A paragraph that quotes the form is prose about the line and not the line: reading it as one would refuse every
+  # change that documents its own convention, which is the shape the first draft of this check had.
+  printf '# Doc\nThe report block carries `LOOP-ROUTE: guidelines/Doc.md §99` and Phase A says where it goes\n' > "$tmp/change/proposal.md"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir" "$guides" "$route"); code=$?; set -e
+  ok 0 "$code" "a paragraph quoting the form is not a route line"
 
   [ "$fail" = 0 ] && echo "evidence-selftest: PASS" || { echo "evidence-selftest: FAIL"; return 1; }
 }
 
 main() {
   if [ "${1:-}" = "--selftest" ]; then selftest; return; fi
-  local change="" root="." table="" conf="" scan="" xml_dir=""
+  local change="" root="." table="" conf="" scan="" xml_dir="" guide_dir="" route=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --root) root="${2:?}"; shift 2;;
@@ -269,6 +359,8 @@ main() {
       --conf) conf="${2:?}"; shift 2;;
       --scan) scan="${2:?}"; shift 2;;
       --xml-dir) xml_dir="${2:?}"; shift 2;;
+      --guidelines) guide_dir="${2:?}"; shift 2;;
+      --route) route="${2:?}"; shift 2;;
       -h|--help) usage; return 0;;
       --*) echo "evidence-check: unknown flag $1" >&2; exit 2;;
       *) change="$1"; shift;;
@@ -285,10 +377,22 @@ main() {
     [ -n "$scan" ] || scan=$(conf_value "$conf_file" LOOP_EVIDENCE_SCAN_PATHS)
     [ -n "$xml_dir" ] || xml_dir=$(conf_value "$conf_file" LOOP_EVIDENCE_XML_DIR)
   fi
+
+  # The route's two values are the project's as well: the directory its guideline documents live in, and whether a
+  # report that carries no route line is a WARN (the run after the rule landed, whose items were written before it)
+  # or a FAIL (every run after). A project that names neither owes no route, and C6 says so instead of passing
+  # silently — a path the configuration does not name is reported, never read as clean.
+  [ -n "$guide_dir" ] || guide_dir=$(conf_value "$conf_file" LOOP_GUIDELINE_DIR 2>/dev/null || true)
+  [ -n "$route" ] || route=$(conf_value "$conf_file" LOOP_EVIDENCE_ROUTE 2>/dev/null || true)
+  [ -n "$route" ] || route="warn"
+  case "$route" in
+    warn|fail) ;;
+    *) echo "evidence-check: LOOP_EVIDENCE_ROUTE is '$route' — it takes 'warn' or 'fail'" >&2; exit 2;;
+  esac
   [ -n "$scan" ] || { echo "evidence-check: $conf_file names no LOOP_EVIDENCE_SCAN_PATHS — the mutation scan would inspect nothing" >&2; exit 2; }
   [ -n "$xml_dir" ] || { echo "evidence-check: $conf_file names no LOOP_EVIDENCE_XML_DIR — the tally check would find no XML" >&2; exit 2; }
 
-  run_checks "$change" "$root" "$table" "$scan" "$xml_dir"
+  run_checks "$change" "$root" "$table" "$scan" "$xml_dir" "$guide_dir" "$route"
 }
 
 main "$@"

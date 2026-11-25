@@ -1157,6 +1157,15 @@ attempt would read as finished (`gate#aRedGateRestoresTheChangeToItsUnarchivedNa
 XML in that archive's `evidence/gate/` is stamped `12:23:41.923Z`–`12:26:30.823Z`, and the round-2 runs are stamped
 `12:42:56.420Z` and `12:43:06.048Z`, so the corrected tree was never gated and no record in the tree could say so.
 
+A change also names the guideline section its work was routed by, in one line — `LOOP-ROUTE:
+guidelines/<doc>.md §<id>` — and `tools/loop/evidence-check.sh`'s C6 resolves that id against the ids the document's own
+`## ` headings carry, reading those headings and never the document: `## 2a. Agent iteration protocol` is `§2a` and
+`## §7a Running one item` is `§7a`, the two shapes this project writes. A section a document does not have is a FAIL
+that prints the sections it does carry, which is the false pointer C1 already refuses for the migration's `§` table;
+a change with no route line at all is a WARN until the project sets `LOOP_EVIDENCE_ROUTE` to `fail`, because the run
+that first lands the rule works items whose reports were written before it (issue #974: of the items that wrote a
+work report, 109 named a `§` and nothing in the tree could say whether that `§` existed).
+
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a

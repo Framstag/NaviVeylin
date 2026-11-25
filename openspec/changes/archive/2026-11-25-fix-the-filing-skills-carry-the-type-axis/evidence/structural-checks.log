@@ -1,0 +1,8 @@
+$ bash -n tools/issues/tests/issue-tooling-cases.sh
+exit=0
+$ tools/check-doc-values.sh
+LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+exit=0
+$ tools/check-doc-routes.sh
+check-doc-routes: all 357 section references resolve, all 8 skill references resolve
+exit=0

@@ -1,9 +1,9 @@
-LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/1069/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 LOOP-GATE-POOL: at most 4 suite step(s) in flight at once — the first steps and the build run alone
 LOOP-GATE-BASE: fa45813e4fd4b79a8becf27b4ecc1ce07cf1a22e (from the base branch main)
-LOOP-GATE-TREE: head=fa45813e4fd4b79a8becf27b4ecc1ce07cf1a22e diff=f7f053da87cad689
-LOOP-GATE-TALLY: app/build/test-results/loop-gate run=727370
+LOOP-GATE-TREE: head=1289801da54d22f51ccf0d72e9a62a3428b8c1b8 diff=8942f73aeb64b194
+LOOP-GATE-TALLY: app/build/test-results/loop-gate run=1293092
 LOOP-GATE-LOG: app/build/test-results/loop-gate/gate.log
 gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/sensors/tests/sensor-selftest.sh
@@ -102,7 +102,7 @@ PASS sensors#aMultipliedKindSetIsListed
 PASS workflow#theFindingsRecordIsFetchedBeforeItsRowsRun
 PASS workflow#theFindingsReadinessIsReportedApart
 sensor-selftest: all 94 cases passed (JDK 21, offline, no token)
-gate: tools/sensors/tests/sensor-selftest.sh — 116s
+gate: tools/sensors/tests/sensor-selftest.sh — 148s
 gate: tools/sensors/tests/sensor-mutations.sh --list
 8.1 guard#refusesOffMain — HEAD is the remote main branch (tools/sensors/guard.sh)
 8.2 workflow#onlyTwoTriggers — the trigger cap — schedule and dispatch only (.github/workflows/sensors.yml)
@@ -150,7 +150,42 @@ gate: tools/sensors/tests/sensor-mutations.sh --list
 4.12 sensors#aMultipliedKindSetIsListed — a run files at most the bound its row carries, and the rest leaves as one summary (tools/sensors/run.sh)
 5.4 workflow#theFindingsRecordIsFetchedBeforeItsRowsRun — the findings record is fetched from its own artifact (.github/workflows/sensors.yml)
 5.5 workflow#theFindingsReadinessIsReportedApart — a record that is not there is reported as not-ready, not as ready (.github/workflows/sensors.yml)
-gate: tools/sensors/tests/sensor-mutations.sh --list — 1s
+gate: tools/sensors/tests/sensor-mutations.sh --list — 0s
+gate: tools/tests/check-portability-selftest.sh
+PASS portability#plantedRepoNameFails
+PASS portability#plantedCategoryFails
+PASS portability#plantedValueInEveryNamespaceFails
+PASS portability#plantedSubmodulePathFails
+PASS portability#authorisationLabelIsTheOneException
+PASS portability#excludesTheAdapterAndFixtures
+PASS portability#testsDirectoryIsNotScanned
+PASS portability#productionEnginesAreStillScanned
+PASS portability#valueSetIsReadNotHardCoded
+PASS portability#passesOnTheRealTree
+PASS discovery#fromASubdirectory
+PASS discovery#fromAWorktree
+PASS discovery#ignoresGithubRepositoryEnv
+PASS discovery#outsideAGitTree
+PASS preconditions#refusesOutsideAGitTree
+PASS preconditions#refusesUnderMachineLocalState
+PASS preconditions#runsInALinkedWorkingTree
+PASS foreign#profileDiffersFromOurs
+PASS foreign#noProjectNameInTheStub
+stub gh: recorded `gh issue edit`
+PASS foreign#toolchainRunsEndToEnd
+PASS foreign#duplicateIsRefused
+PASS foreign#identityIsRefusedToo
+PASS foreign#emptyGateCommandStillRunsThePhases
+PASS foreign#fixtureIsVersioned
+PASS foreign#fixtureDeclaresEveryBudgetDefault
+PASS foreign#baseBranchIsTheFixturesConfiguration
+PASS foreign#statesWhatItDoesNotModel
+PASS porting#everyCommandInTheRecipeRuns
+PASS porting#recipeDoesNotAssumeOurBuild
+PASS porting#namesTheAdaptationPoint
+PASS porting#statesTheCopyCost
+check-portability-selftest: all 31 cases passed (JDK 21, offline, no token, no Gradle)
+gate: tools/tests/check-portability-selftest.sh — 48s
 gate: bash tools/gen-feature-list.sh --check-classification
 gen-feature-list: stale classification entry for a spec that no longer exists:
   search-name-matching
@@ -160,16 +195,16 @@ gen-feature-list: stale classification entry for a spec that no longer exists:
 specs read: 193
 classified: 197
 unclassified: 0
-delta spec ids: 16
+delta spec ids: 0
 stale: 4
 pending (classified ahead of its archive): 0
 car-only areas: 1
 highlights: 19
-gate: bash tools/gen-feature-list.sh --check-classification — 4s
+gate: bash tools/gen-feature-list.sh --check-classification — 7s
+gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/check-doc-values.sh
 LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
-gate: tools/check-doc-values.sh — 1s
-gate-pool: 4 steps start together — at most 4 in flight
+gate: tools/check-doc-values.sh — 0s
 gate: tools/tests/check-doc-values-selftest.sh
 PASS  values#proseMatchesTheProfile — LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
 PASS  values#aDriftedValueIsReported — a profile value the section does not state is reported with the figure the section states and the one the profile records
@@ -221,7 +256,8 @@ PASS  routed-read#range — a range a row states is the span of the lettered sec
 PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the three skills the iteration loop ends with by their paths, and the route check resolves all three
 PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
 check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
-gate: tools/tests/check-doc-routes-selftest.sh — 8s
+gate: tools/tests/check-doc-routes-selftest.sh — 9s
+gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list
 # tools/tests/check-doc-routes-mutations.json — 11 mutation(s), case command: bash tools/tests/check-doc-routes-selftest.sh --case {case}
 skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
@@ -236,7 +272,6 @@ rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents sta
 rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry
 rule-with-no-name	rules#aRuleWithNoNameIsReported	a rule with no name is reported with its file and line instead of being skipped by the extraction, so the empty case cannot pass as a rule the tree does not count
 gate: tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list — 0s
-gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/check-todo-references.sh
 check-todo-references: excluded, and why:
   openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
@@ -252,20 +287,17 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 201 line(s) scanned, 67 distinct citation(s), 162 in the recorded table
-check-todo-references: 67 citation(s) resolve through the recorded table; 13482 file(s) excluded by the allowlist above
-gate: tools/check-todo-references.sh — 1s
+check-todo-references: 67 citation(s) resolve through the recorded table; 13484 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 2s
 gate: tools/check-openspec-hygiene.sh
-::error file=openspec/changes/fix-an-adopted-closure-says-so/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
-::error file=openspec/changes/fix-an-adoption-is-recorded-as-one/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
-::error file=openspec/changes/fix-a-sensor-filing-carries-the-rows-type/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
-::error file=openspec/changes/fix-the-checkpoint-splits-the-items-chain/.openspec.yaml::no 'x-issue:' field and no 'fix-issue-<N>-' name — nothing in the tree says which item this change answers, so a second change for that item is caught only by the archive that makes this one unarchivable; write 'x-issue: <number>', or 'x-issue: none' when no item is owed
-Written before the field was required (created before 2026-11-19), reported rather than refused: openspec/changes/a-case-name-resolves-to-one-harness=2026-11-14, openspec/changes/loop-protocol-core-in-java=2026-11-14, openspec/changes/run-event-stream-is-typed=2026-11-14, openspec/changes/settings-taxonomy-and-surface=2026-11-14, openspec/changes/the-bounds-spend-and-budget-are-typed=2026-11-14, openspec/changes/the-print-sites-are-converted=2026-11-14.
+Every open change names its issue: .
 Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, every open change names its issue or was written before the field was required, the context block is a pointer, and every capability spec states its Purpose.
 gate: tools/check-openspec-hygiene.sh — 0s
-LOOP-GATE-BASERED-UNMEASURED:tools/check-openspec-hygiene.sh — no clean tree at fa45813e4fd4 to measure it in, so its red stays with the item
 gate: tools/tests/check-openspec-hygiene-selftest.sh
 check-openspec-hygiene-selftest: all 12 cases passed (throwaway OpenSpec trees, no Gradle)
 gate: tools/tests/check-openspec-hygiene-selftest.sh — 1s
+gate-pool: 4 steps start together — at most 4 in flight
 gate: tools/check-portability.sh
 check-portability: engines checked (64 files):
   tools/issues/answer.sh
@@ -354,45 +386,7 @@ check-portability: excluded, printed so the proof names its own scope:
 check-portability: the documented exception — the label that authorises work is declared read-only, once:
   tools/loop/lib.sh:75:LOOP_AUTHORISATION_LABEL="agent/eligible"
 check-portability: OK — 64 engines and 9 templates name no project value (127 value(s) read from the project)
-gate: tools/check-portability.sh — 1s
-gate-pool: 4 steps start together — at most 4 in flight
-gate: tools/tests/check-portability-selftest.sh
-PASS portability#plantedRepoNameFails
-PASS portability#plantedCategoryFails
-PASS portability#plantedValueInEveryNamespaceFails
-PASS portability#plantedSubmodulePathFails
-PASS portability#authorisationLabelIsTheOneException
-PASS portability#excludesTheAdapterAndFixtures
-PASS portability#testsDirectoryIsNotScanned
-PASS portability#productionEnginesAreStillScanned
-PASS portability#valueSetIsReadNotHardCoded
-PASS portability#passesOnTheRealTree
-PASS discovery#fromASubdirectory
-PASS discovery#fromAWorktree
-PASS discovery#ignoresGithubRepositoryEnv
-PASS discovery#outsideAGitTree
-PASS preconditions#refusesOutsideAGitTree
-PASS preconditions#refusesUnderMachineLocalState
-PASS preconditions#runsInALinkedWorkingTree
-PASS foreign#profileDiffersFromOurs
-PASS foreign#noProjectNameInTheStub
-stub gh: recorded `gh issue edit`
-  the sensor row failed in the foreign project: row-incomplete: foreign-row: row-type-unmapped: improvement
-FAIL foreign#toolchainRunsEndToEnd
-PASS foreign#duplicateIsRefused
-PASS foreign#identityIsRefusedToo
-PASS foreign#emptyGateCommandStillRunsThePhases
-PASS foreign#fixtureIsVersioned
-PASS foreign#fixtureDeclaresEveryBudgetDefault
-PASS foreign#baseBranchIsTheFixturesConfiguration
-PASS foreign#statesWhatItDoesNotModel
-PASS porting#everyCommandInTheRecipeRuns
-PASS porting#recipeDoesNotAssumeOurBuild
-PASS porting#namesTheAdaptationPoint
-PASS porting#statesTheCopyCost
-check-portability-selftest: 1 of 31 cases failed
-gate: tools/tests/check-portability-selftest.sh — 28s
-LOOP-GATE-BASERED-UNMEASURED:tools/tests/check-portability-selftest.sh — no clean tree at fa45813e4fd4 to measure it in, so its red stays with the item
+gate: tools/check-portability.sh — 2s
 gate: tools/tests/mutate-selftest.sh
 PASS  a real mutation exits 0
 PASS  the transcript reports the red run
@@ -433,7 +427,7 @@ PASS  the portability set declares 4.1
 PASS  the portability set names the check's own self-test as its gate
 
 mutate-selftest: 37 passed, 0 failed
-gate: tools/tests/mutate-selftest.sh — 0s
+gate: tools/tests/mutate-selftest.sh — 1s
 gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
 # tools/tests/portability-mutations.json — 18 mutation(s), case command: bash tools/tests/check-portability-selftest.sh --case {case}
 5.1	portability#valueSetIsReadNotHardCoded	the value set is read from the profile, not hard-coded
@@ -454,7 +448,7 @@ gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
 7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)
 7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project's base branch is its own configuration value, not the engine's default (issue #303)
 4.1	portability#testsDirectoryIsNotScanned	the engine set skips the tooling's test code by directory, not by a file-name suffix, so a test file with no suffix is never scanned (#740)
-gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/tests/portability-mutations.json --list — 1s
 gate: tools/tests/build-inputs-selftest.sh
 PASS workflow#tickMinutesCoverTheRegistryCrons
 PASS inputs#manifestIsTheProducerSet
@@ -501,7 +495,7 @@ gate: tools/tests/build-inputs-mutations.sh --list
 gate: tools/tests/build-inputs-mutations.sh --list — 0s
 gate: tools/issues/check-metadata.sh
 check-metadata: 0 issue(s) checked · 0 violation(s) · 0 untyped
-gate: tools/issues/check-metadata.sh — 2s
+gate: tools/issues/check-metadata.sh — 3s
 gate: tools/issues/tests/metadata-mutations.sh --list
 basis-drops-labels               the basis must move when a kind label changes (task 8.1, D3)
 basis-hashes-the-raw-body        a reflowed body must not move the basis (task 8.2, D3)
@@ -705,8 +699,8 @@ PASS prioritise#recordsOutgrowOneArgument
 PASS create#writesTheTypeItWasGiven
 PASS create#writesTheDependencyItWasGiven
 PASS update#writesTheTypeItWasGiven
-issue-tooling-selftest: all 188 cases passed (JDK 21, offline, no token, HEAD fa45813e, tools 9a9298bce943, 2026-11-26T05:02:44Z)
-gate: tools/issues/tests/issue-tooling-selftest.sh — 139s
+issue-tooling-selftest: all 188 cases passed (JDK 21, offline, no token, HEAD 1289801d, tools 759e638e43e5, 2026-11-26T16:51:48Z)
+gate: tools/issues/tests/issue-tooling-selftest.sh — 150s
 gate: tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
 # tools/issues/tests/status-mutations.json — 6 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
 5.1	update#statusReplacesTheOldStatus	the displaced state labels being read from the item, so the add and the removals ride one edit
@@ -740,7 +734,7 @@ D1	duplicates#olderItemSurvives	the survivor is the older item: the number is im
 D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
 D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
 D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
-gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list — 1s
 gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
 # tools/issues/tests/decision-question-mutations.json — 7 mutation(s), case command: bash tools/issues/tests/issue-tooling-selftest.sh --case {case}
 A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
@@ -750,5 +744,5 @@ A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits fo
 A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
 A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
 A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
-gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
-LOOP-GATE: tests=364 failures=1 errors=1 (tools/sensors/tests/sensor-selftest.sh 116s, tools/sensors/tests/sensor-mutations.sh --list 1s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-values.sh 1s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 28s, tools/tests/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/tests/build-inputs-selftest.sh 2s, tools/build-inputs.sh --check 0s, tools/tests/build-inputs-mutations.sh --list 0s, tools/issues/check-metadata.sh 2s, tools/issues/tests/metadata-mutations.sh --list 2s, tools/issues/tests/issue-tooling-selftest.sh 139s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/check-openspec-hygiene.sh tools/tests/check-portability-selftest.sh
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 1s
+LOOP-GATE: tests=364 failures=0 errors=0 (tools/sensors/tests/sensor-selftest.sh 148s, tools/sensors/tests/sensor-mutations.sh --list 0s, tools/tests/check-portability-selftest.sh 48s, bash tools/gen-feature-list.sh --check-classification 7s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 9s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 2s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 1s, tools/tests/build-inputs-selftest.sh 2s, tools/build-inputs.sh --check 0s, tools/tests/build-inputs-mutations.sh --list 0s, tools/issues/check-metadata.sh 3s, tools/issues/tests/metadata-mutations.sh --list 2s, tools/issues/tests/issue-tooling-selftest.sh 150s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 1s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 1s)

@@ -6,6 +6,12 @@
     "status": "open",
     "source": "ci"
   },
+  "classTypes": {
+    "comment": "The tracker type a row's class files its item as — the fixture's own names rather than the upstream project's, because a type is the tracker account's and no engine may name one (design D12): an engine that knew `Bug` would pass this mapping by accident. A class neither the row nor this mapping names is refused as `row-type-unmapped` before any filing.",
+    "bug": "Defect",
+    "improvement": "Maintenance",
+    "feature": "Enhancement"
+  },
   "escalation": {
     "comment": "Two reopenings, then a person. Different from the upstream project's three, so the escalation shape is a fixture fact rather than a copy.",
     "maxRecurrences": 2,

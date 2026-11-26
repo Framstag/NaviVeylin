@@ -1,0 +1,15 @@
+{
+  "data": {
+    "repository": {
+      "issueTypes": {
+        "comment": "THE FOREIGN ACCOUNT'S TYPES — the three this fixture's registry maps its classes to, in this project's own words, so a sensor filing is typed only because the registry said so. One type is declared and disabled, because the reader selects the enabled ones and a listing with no disabled entry would pass a reader that ignores `isEnabled`.",
+        "nodes": [
+          { "name": "Defect", "isEnabled": true },
+          { "name": "Maintenance", "isEnabled": true },
+          { "name": "Enhancement", "isEnabled": true },
+          { "name": "Spike", "isEnabled": false }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case run#aRetriedRestartQuotesTheReadingItRetried" tests="1" failures="1" errors="0">
+  <testcase name="run#aRetriedRestartQuotesTheReadingItRetried">
+    <failure>the first section quotes the reading the retry replaced, which is the restart's own report: 'NOTE: the restart opened with finding B' not found in: # what a round the run cut twice wrote (issue #987)</failure>
+  </testcase>
+  <system-out>transcribed from red-on-HEAD-aRetriedRestartQuotesTheReadingItRetried.log, the run of this case on the base 251e7abe with the engine unmodified (the log is the record)</system-out>
+</testsuite>

@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 470 records (labels: 1045.1 1045.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.eHKtbw
+RED    1045.1  run#aRestartQuotesTheRetriedReadingItReplaced   (the replaced reading the caller hands in, so the predicate derives it from the restart own name and quotes the attempt before the retry — a reading the restart was never handed — in place of the findings the run paid a session for (issue #1045))
+       2026-11-26T01:17:44Z — case log line 1: the first section quotes the reading the restart replaced, which is the retry and not the empty attempt before it: 'NOTE: the retried reading names finding B' not found in: # what a round the run cut twice wrote (issue #987)
+restore 1045.1 run#aRestartQuotesTheRetriedReadingItReplaced green again
+RED    1045.2  run#aRetriedRestartQuotesTheReadingItRetried   (the reading a retry of a restart replaced, so the retry records the attempt before the restart and the file quotes a reading the retry was never handed while the restart own report is dropped (issue #1045))
+       2026-11-26T01:17:58Z — case log line 1: the first section quotes the reading the retry replaced, which is the restart's own report: 'NOTE: the restart opened with finding B' not found in: # what a round the run cut twice wrote (issue #987)
+restore 1045.2 run#aRetriedRestartQuotesTheReadingItRetried green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

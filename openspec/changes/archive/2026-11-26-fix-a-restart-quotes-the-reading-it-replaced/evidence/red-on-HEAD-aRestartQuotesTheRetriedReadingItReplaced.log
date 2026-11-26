@@ -1,0 +1,33 @@
+run#aRestartQuotesTheRetriedReadingItReplaced|   the first section quotes the reading the restart replaced, which is the retry and not the empty attempt before it: 'NOTE: the retried reading names finding B' not found in: # what a round the run cut twice wrote (issue #987)
+run#aRestartQuotesTheRetriedReadingItReplaced| 
+run#aRestartQuotesTheRetriedReadingItReplaced| The run ended this review round at one of its spend bounds, restarted it in a fresh session on the same
+run#aRestartQuotesTheRetriedReadingItReplaced| bounded input, and the restart was ended at a bound as well — so the item is recorded `cut`, no reviewer
+run#aRestartQuotesTheRetriedReadingItReplaced| answered the change, and what remains is a phase the next run resumes. The `BLOCKING:` and `NOTE:`
+run#aRestartQuotesTheRetriedReadingItReplaced| lines of both readings stand here, so the person who takes the work kept beside this item starts from
+run#aRestartQuotesTheRetriedReadingItReplaced| what two rounds found instead of from nothing.
+run#aRestartQuotesTheRetriedReadingItReplaced| 
+run#aRestartQuotesTheRetriedReadingItReplaced| ## The first reading (`pre-gate-review.md`)
+run#aRestartQuotesTheRetriedReadingItReplaced| 
+run#aRestartQuotesTheRetriedReadingItReplaced| (it wrote no `BLOCKING:` or `NOTE:` line down)
+run#aRestartQuotesTheRetriedReadingItReplaced| 
+run#aRestartQuotesTheRetriedReadingItReplaced| ## The restart (`pre-gate-review-restart.md`)
+run#aRestartQuotesTheRetriedReadingItReplaced| 
+run#aRestartQuotesTheRetriedReadingItReplaced| BLOCKING: the restart names finding C
+--- run#aRestartQuotesTheRetriedReadingItReplaced[0] (exit 1)
+  the first section quotes the reading the restart replaced, which is the retry and not the empty attempt before it: 'NOTE: the retried reading names finding B' not found in: # what a round the run cut twice wrote (issue #987)
+
+The run ended this review round at one of its spend bounds, restarted it in a fresh session on the same
+bounded input, and the restart was ended at a bound as well — so the item is recorded `cut`, no reviewer
+answered the change, and what remains is a phase the next run resumes. The `BLOCKING:` and `NOTE:`
+lines of both readings stand here, so the person who takes the work kept beside this item starts from
+what two rounds found instead of from nothing.
+
+## The first reading (`pre-gate-review.md`)
+
+(it wrote no `BLOCKING:` or `NOTE:` line down)
+
+## The restart (`pre-gate-review-restart.md`)
+
+BLOCKING: the restart names finding C
+FAIL run#aRestartQuotesTheRetriedReadingItReplaced
+loop-selftest: 1 of 1 cases failed

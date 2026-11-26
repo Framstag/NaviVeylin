@@ -1,0 +1,33 @@
+run#aRetriedRestartQuotesTheReadingItRetried|   the first section quotes the reading the retry replaced, which is the restart's own report: 'NOTE: the restart opened with finding B' not found in: # what a round the run cut twice wrote (issue #987)
+run#aRetriedRestartQuotesTheReadingItRetried| 
+run#aRetriedRestartQuotesTheReadingItRetried| The run ended this review round at one of its spend bounds, restarted it in a fresh session on the same
+run#aRetriedRestartQuotesTheReadingItRetried| bounded input, and the restart was ended at a bound as well — so the item is recorded `cut`, no reviewer
+run#aRetriedRestartQuotesTheReadingItRetried| answered the change, and what remains is a phase the next run resumes. The `BLOCKING:` and `NOTE:`
+run#aRetriedRestartQuotesTheReadingItRetried| lines of both readings stand here, so the person who takes the work kept beside this item starts from
+run#aRetriedRestartQuotesTheReadingItRetried| what two rounds found instead of from nothing.
+run#aRetriedRestartQuotesTheReadingItRetried| 
+run#aRetriedRestartQuotesTheReadingItRetried| ## The first reading (`reviewer-report-1.md`)
+run#aRetriedRestartQuotesTheReadingItRetried| 
+run#aRetriedRestartQuotesTheReadingItRetried| BLOCKING: the round names finding A
+run#aRetriedRestartQuotesTheReadingItRetried| 
+run#aRetriedRestartQuotesTheReadingItRetried| ## The restart (`reviewer-report-1-restart-retry.md`)
+run#aRetriedRestartQuotesTheReadingItRetried| 
+run#aRetriedRestartQuotesTheReadingItRetried| BLOCKING: the retried restart names finding C
+--- run#aRetriedRestartQuotesTheReadingItRetried[0] (exit 1)
+  the first section quotes the reading the retry replaced, which is the restart's own report: 'NOTE: the restart opened with finding B' not found in: # what a round the run cut twice wrote (issue #987)
+
+The run ended this review round at one of its spend bounds, restarted it in a fresh session on the same
+bounded input, and the restart was ended at a bound as well — so the item is recorded `cut`, no reviewer
+answered the change, and what remains is a phase the next run resumes. The `BLOCKING:` and `NOTE:`
+lines of both readings stand here, so the person who takes the work kept beside this item starts from
+what two rounds found instead of from nothing.
+
+## The first reading (`reviewer-report-1.md`)
+
+BLOCKING: the round names finding A
+
+## The restart (`reviewer-report-1-restart-retry.md`)
+
+BLOCKING: the retried restart names finding C
+FAIL run#aRetriedRestartQuotesTheReadingItRetried
+loop-selftest: 1 of 1 cases failed

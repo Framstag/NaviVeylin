@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-mutations-selftest.sh" tests="40" failures="0" errors="0" time="129" run="3404203">
+  <system-out>ok   and it names the sibling it lacks ok   the compile's marker is read in one place, so the line record 48.2 mutates is one a case reaches loop-mutations-selftest: all 40 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it quotes the assertion a red case failed on and the case-log line it read it from, it restores what it touches, it backs up under the p</system-out>
+</testsuite>

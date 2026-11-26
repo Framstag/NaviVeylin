@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 471 records (labels: 48.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.n6TczW
+GREEN  48.2  driver#theCoreIsCompiledOncePerSuite   <-- the case did not notice the mutation
+restore 48.2 driver#theCoreIsCompiledOncePerSuite green again
+
+red-when-mutated: 0 · not-noticed: 1 · restore-failures: 0

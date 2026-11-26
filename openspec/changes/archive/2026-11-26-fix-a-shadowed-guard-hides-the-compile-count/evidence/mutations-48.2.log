@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 471 records (labels: 48.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.14dAhM
+RED    48.2  driver#theCoreIsCompiledOncePerSuite   (the marker that keeps the compile to one per suite, not one per asking case (issue #261))
+       2026-11-26T03:43:35Z — case log line 1: the core is compiled once for the suite, not once per asking case (javac ran 2 times, recorded in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.EAam5o/cases/0/tree/case.Nsgjhs/javac.log): expected '1', got '2'
+restore 48.2 driver#theCoreIsCompiledOncePerSuite green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

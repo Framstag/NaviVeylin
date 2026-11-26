@@ -1,0 +1,5 @@
+worktree#aSingleCasesLogIsNotTheChangesGate|   one case's own log is not the change's verification: adoptable	2026-01-01-fix-a-single-cases-log	green-policy-case.log: expected 'archived-not-green', got 'adoptable'
+--- worktree#aSingleCasesLogIsNotTheChangesGate[0] (exit 1)
+  one case's own log is not the change's verification: adoptable	2026-01-01-fix-a-single-cases-log	green-policy-case.log: expected 'archived-not-green', got 'adoptable'
+FAIL worktree#aSingleCasesLogIsNotTheChangesGate
+loop-selftest: 1 of 1 cases failed

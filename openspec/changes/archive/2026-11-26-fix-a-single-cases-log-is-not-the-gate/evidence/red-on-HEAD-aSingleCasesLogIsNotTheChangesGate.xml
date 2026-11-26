@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case worktree#aSingleCasesLogIsNotTheChangesGate" tests="1" failures="1" errors="0" time="1" run="2026-11-26T00:33:52Z">
+  <testcase name="worktree#aSingleCasesLogIsNotTheChangesGate">
+    <failure>one case's own log is not the change's verification: adoptable&#9;2026-01-01-fix-a-single-cases-log&#9;green-policy-case.log: expected 'archived-not-green', got 'adoptable'</failure>
+  </testcase>
+  <system-out>worktree#aSingleCasesLogIsNotTheChangesGate|   one case's own log is not the change's verification: adoptable 2026-01-01-fix-a-single-cases-log green-policy-case.log: expected 'archived-not-green', got 'adoptable' FAIL worktree#aSingleCasesLogIsNotTheChangesGate loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

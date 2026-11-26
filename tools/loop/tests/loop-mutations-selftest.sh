@@ -215,6 +215,17 @@ status=$?
 check "a copy with no sibling gate-log reader exits 2" "2" "$status"
 contains "and it names the sibling it lacks" "has no sibling gate-attribute.sh" "$out"
 
+# 11. A record's line is one its case reaches. The compile-per-suite invariant is the one record `48.2` asserts, and
+# its expression quotes the *guard* the second asking case passes through — so a second, earlier read of the same
+# marker (a fast path above the claiming block) shadows that guard: the mutation lands, the second asking case never
+# arrives at the line, and the record prints `the case did not notice the mutation` while `--check` says it applies
+# (issue #1047). One read is the whole guard, so the count is what this case asserts — over this repository's driver,
+# not the copied engine, because the count is a claim about the file the record names.
+marker_reads=$(sed -n '/^core_ensure() {/,/^}$/p' "$root/tools/loop/tests/loop-selftest.sh" |
+  grep -c 'if \[ ! -f "$selftest_core_marker" \]; then')
+check "the compile's marker is read in one place, so the line record 48.2 mutates is one a case reaches" "1" \
+  "$marker_reads"
+
 if [ "$failures" -ne 0 ]; then
   printf 'loop-mutations-selftest: %s of %s cases failed — the mutation harness does not hold its own guards\n' \
     "$failures" "$cases"

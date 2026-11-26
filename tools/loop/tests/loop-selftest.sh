@@ -440,25 +440,28 @@ readonly selftest_core_claim="$tmp/core-claim"
 # output directory is a class path neither of them can use. The claiming `mkdir` is the same shape the repository's
 # lock uses, the wait is the marker (so the second asking case compiles nothing and is handed the same path), and the
 # wait is bounded — a claim left by a case the kernel killed is removed after ~60 s and taken again.
+#
+# The marker is read in **one** place: the claim block below. A second, earlier read of it above that block was a fast
+# path and nothing else — it skipped a `mkdir` the claim block would have taken and skipped again — and it left the
+# invariant unfalsifiable: with both reads in place, mutating either one still made the second asking case compile
+# nothing, so no record could prove the count (issue #1047, records `48.1` and `48.2`).
 core_ensure() {
   local waited=0
+  while ! mkdir "$selftest_core_claim" 2>/dev/null; do
+    [ -f "$selftest_core_marker" ] && break
+    sleep 0.05
+    waited=$((waited + 1))
+    [ "$waited" -lt 1200 ] || { rm -rf "$selftest_core_claim" 2>/dev/null || true; waited=0; }
+  done
   if [ ! -f "$selftest_core_marker" ]; then
-    while ! mkdir "$selftest_core_claim" 2>/dev/null; do
-      [ -f "$selftest_core_marker" ] && break
-      sleep 0.05
-      waited=$((waited + 1))
-      [ "$waited" -lt 1200 ] || { rm -rf "$selftest_core_claim" 2>/dev/null || true; waited=0; }
-    done
-    if [ ! -f "$selftest_core_marker" ]; then
-      javac --release 17 -d "$selftest_classes" "$root"/tools/issues/core/*.java || {
-        rm -rf "$selftest_classes" "$selftest_core_claim"
-        echo "loop-selftest: the issue tooling's Java core does not compile" >&2
-        exit 1
-      }
-      : > "$selftest_core_marker"
-    fi
-    rm -rf "$selftest_core_claim" 2>/dev/null || true
+    javac --release 17 -d "$selftest_classes" "$root"/tools/issues/core/*.java || {
+      rm -rf "$selftest_classes" "$selftest_core_claim"
+      echo "loop-selftest: the issue tooling's Java core does not compile" >&2
+      exit 1
+    }
+    : > "$selftest_core_marker"
   fi
+  rm -rf "$selftest_core_claim" 2>/dev/null || true
   export ISSUES_CORE_CLASSES="$selftest_classes"
 }
 

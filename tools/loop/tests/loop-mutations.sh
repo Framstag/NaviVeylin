@@ -449,8 +449,11 @@ MUTATIONS=(
   # 48.2 is the other half of 48.1: the marker is what makes the compile *once per suite* rather than once per
   # asking case. Without it a suite of two asking cases is still green — each case compiles again and is handed a
   # class path — so the invariant is invisible to an assertion and only a count catches it: the case installs a
-  # `javac` that records every invocation, and the mutation makes it record two.
-  '48.2@-@tools/loop/tests/loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^    if \[ ! -f "$selftest_core_marker" \]; then$|    if true; then|'
+  # `javac` that records every invocation, and the mutation makes it record two. The marker is read in one place only
+  # — the claim block, not a fast path above it too — because a second read left this record mutating a line no
+  # asking case reached: it reported `the case did not notice the mutation` while `--check` said it applied (issue
+  # #1047).
+  '48.2@-@tools/loop/tests/loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^  if \[ ! -f "$selftest_core_marker" \]; then$|  if true; then|'
   # 49.x — the suite's own selection and its record of what it cost. Measured 2026-10-23: one case under
   # `tools/loop/**` owes the whole self-test (723 s for 163 cases, serial) and the gate said nothing about it, so an
   # item that touched two files paid 723 s on every iteration (#261 paid eight) and the twelve minutes could only

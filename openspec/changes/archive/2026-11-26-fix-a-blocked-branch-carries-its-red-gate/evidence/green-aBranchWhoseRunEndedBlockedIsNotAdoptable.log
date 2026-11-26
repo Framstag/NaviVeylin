@@ -1,0 +1,4 @@
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable| HEAD ist jetzt bei 2627787 init
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable| Zu neuem Branch 'fix/issue-31-a-blocked-item' gewechselt
+PASS worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable

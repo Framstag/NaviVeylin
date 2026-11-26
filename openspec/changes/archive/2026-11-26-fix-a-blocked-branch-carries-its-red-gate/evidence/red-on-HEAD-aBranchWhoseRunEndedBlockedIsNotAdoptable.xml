@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable" tests="1" failures="1" errors="0" time="8" run="2026-11-25T23:20:00Z">
+  <testcase name="worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable">
+    <failure>the branch whose run ended on a red gate states that, not adoptable: adoptable&#9;2026-01-05-fix-a-blocked-item&#9;green-one-case.log: expected 'gate-red', got 'adoptable'</failure>
+  </testcase>
+  <system-out>the case ran on the base engine 7b8c1d13 with only the case added: the branch carries one archived change, the focused run's own green case log, and a red LOOP-GATE: tests=1261 failures=1 errors=0, and `branch-state` still answers adoptable. FAIL worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

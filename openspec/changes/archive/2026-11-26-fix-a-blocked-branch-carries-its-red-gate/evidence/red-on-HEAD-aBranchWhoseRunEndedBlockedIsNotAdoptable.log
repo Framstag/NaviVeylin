@@ -1,0 +1,11 @@
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable| HEAD ist jetzt bei 2f6861e init
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable| Zu neuem Branch 'fix/issue-31-a-blocked-item' gewechselt
+worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable|   the branch whose run ended on a red gate states that, not adoptable: adoptable	2026-01-05-fix-a-blocked-item	green-one-case.log: expected 'gate-red', got 'adoptable'
+--- worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 2f6861e init
+Zu neuem Branch 'fix/issue-31-a-blocked-item' gewechselt
+  the branch whose run ended on a red gate states that, not adoptable: adoptable	2026-01-05-fix-a-blocked-item	green-one-case.log: expected 'gate-red', got 'adoptable'
+FAIL worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable
+loop-selftest: 1 of 1 cases failed

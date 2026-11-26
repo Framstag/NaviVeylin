@@ -697,6 +697,7 @@
         "BuildGate.md §2a \"look, then measure, before changing code.\"",
         "BuildGate.md §2a \"iterate with focused suites, gate once.\"",
         "BuildGate.md §2a \"batch independent questions.\"",
+        "BuildGate.md §2a \"a prompt is charged on every turn, so its size is a recorded bound.\"",
         "BuildGate.md §2a \"one builder per working tree.\"",
         "BuildGate.md §2a \"a reviewer is a reader, not a runner.\"",
         "BuildGate.md §2a \"answer a tree question with one call.\"",

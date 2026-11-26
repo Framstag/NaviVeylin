@@ -124,6 +124,29 @@ jobs:
             "ndk;27.0.12077973" \
             "cmake;3.22.1"
 
+      # ── Gradle build ─────────────────────────────────────────
+      # This step sits above the first `./gradlew` of the job on purpose: `settings.gradle.kts` resolves
+      # `org.gradle.toolchains.foojay-resolver-convention` from the plugin portal at configuration time, so a
+      # cold `~/.gradle` makes even a `--dry-run` probe depend on the portal answering — it did not, and the
+      # `Build debug APK (all ABIs)` job died in "Check the JVM-only test graph" with "could not resolve
+      # plugin artifact" (issue #1087, 2026-11-26). Restored first, the plugin (and the wrapper distribution)
+      # come from the cache and only a first run on a new key needs the network.
+      # The key carries the `m2` component on purpose: a key is saved only when it is absent, so a key
+      # unchanged since before this change would restore the old, `.m2`-less entry and the three warm jars
+      # would never be cached. The component is a version, not a file hash — bump it when the warm list's
+      # coordinates change, or a saved entry keeps the old jars and the new ones are fetched every run.
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/dists
+            ~/.gradle/jdks
+            ~/.m2/repository
+          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       # ── the graph a JVM-only test run asks for ─────────────────
       # The licence inventory is a variant asset source, so the unit-test graph carried the SBOM and
       # licence chain and a tree without a vcpkg checkout could not configure `./gradlew test` at all
@@ -233,23 +256,6 @@ jobs:
             fi
           done
           echo "All vcpkg packages present for all triplets."
-
-      # ── Gradle build ─────────────────────────────────────────
-      # The key carries the `m2` component on purpose: a key is saved only when it is absent, so a key
-      # unchanged since before this change would restore the old, `.m2`-less entry and the three warm jars
-      # would never be cached. The component is a version, not a file hash — bump it when the warm list's
-      # coordinates change, or a saved entry keeps the old jars and the new ones are fetched every run.
-      - name: Cache Gradle
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper/dists
-            ~/.gradle/jdks
-            ~/.m2/repository
-          key: gradle-${{ runner.os }}-m2-v1-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
 
       # ── the Robolectric SDK jars ─────────────────────────────
       # Robolectric resolves its `android-all-instrumented` SDK jar at *test* time, not through Gradle's

@@ -48,6 +48,7 @@ LOOP_SHELL_CASES=(
   'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry'
   'state#aBlockedItemNamesTheMechanismThatStoppedIt'
   'state#anAdoptionRefusalIsRecordedBesideTheExclusion'
+  'state#anAdoptedClosureIsRecordedAsOne'
   'state#defaultsComeFromLoopConf'
   'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst'
   'state#projectKeysAreReadFromLoopConf'
@@ -902,6 +903,7 @@ loop_run_shell_case() {
     'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry') fn=case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry ;;
     'state#aBlockedItemNamesTheMechanismThatStoppedIt') fn=case_state_aBlockedItemNamesTheMechanismThatStoppedIt ;;
     'state#anAdoptionRefusalIsRecordedBesideTheExclusion') fn=case_state_anAdoptionRefusalIsRecordedBesideTheExclusion ;;
+    'state#anAdoptedClosureIsRecordedAsOne') fn=case_state_anAdoptedClosureIsRecordedAsOne ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst') fn=case_state_theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
@@ -2770,6 +2772,62 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
     "a mechanism that arrives with the second account does not fill the first record's"
   assert_eq "3" "$(jq -r '.items | length' "$f")" "and the item keeps one record"
+}
+
+# An adoption — the run finding a finished branch an earlier attempt left, merging it and starting no child of its
+# own — is a fact of the record and not of its note (issue #1064). The closure `adopt_finished_attempt` wrote carried
+# the branch, the commits, the change, the evidence and the landed sha, and nothing that said the item was landed
+# from a previous attempt's work rather than worked by a child of this run, so a figure derived from `.items` read the
+# two closures alike. `done --adopted yes` records it beside `merged`; a record written without the flag carries it
+# null, so a state written before the field existed keeps the reading it has, a second account of the item merges
+# the fact the way it merges the note, and a value that is not `yes` is refused before anything is written.
+case_state_anAdoptedClosureIsRecordedAsOne() {
+  # files: tools/loop/state.sh tools/loop/leftovers.sh tools/pi-child-events.sh tools/tooling.json
+  local p f out status before
+  p=$(new_project)
+  init_state "$p" 3 90
+  run_state "$p" done 21 --result done --verdict closed --change "fix-a-thing" \
+    --merged-branch "fix/issue-21-a-thing" --merged-commits "abc1234" \
+    --merged-evidence "openspec/changes/archive/2026-11-24-fix-a-thing" --merged-sha "def5678" \
+    --adopted yes >/dev/null || fail "an adopted closure recording the fact was refused"
+  f=$(state_file "$p")
+  assert_eq "true" "$(jq -r '.items[] | select(.issue == 21) | .adopted' "$f")" \
+    "an adopted closure records the fact beside the merge it took (issue #1064)"
+  assert_eq "fix/issue-21-a-thing" "$(jq -r '.items[] | select(.issue == 21) | .merged.branch' "$f")" \
+    "and the merge it took is recorded beside it unchanged"
+  # A closure written without the flag is no adoption, and its key is written as null rather than left out: a reader
+  # tells the three shapes apart — adopted, authored, a state older than the field — with one key and no prose.
+  run_state "$p" done 22 --result done --verdict closed --change "fix-another-thing" >/dev/null ||
+    fail "a closure this run's own child worked was refused"
+  assert_eq "true" "$(jq -r '.items[] | select(.issue == 22) | has("adopted")' "$f")" \
+    "a closure without the flag writes the key, so a record made today has one shape"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 22) | .adopted | tostring' "$f")" \
+    "and carries it null — neither false nor true, which is the record of an adoption"
+  # A second account of the same item joins the record it already has (#284) through the branch that merges only the
+  # fields it names, so the fact travels both ways there: an account carrying the flag writes it on a record that has
+  # none, and an account that carries nothing keeps the one the first record wrote — a join that dropped either half
+  # would lose the adoption the moment the item was recorded a second time.
+  run_state "$p" done 22 --result done --verdict closed --adopted yes >/dev/null ||
+    fail "a second account carrying the adoption was refused"
+  assert_eq "true" "$(jq -r '.items[] | select(.issue == 22) | .adopted' "$f")" \
+    "an account that carries the adoption writes it on a record that did not have it"
+  assert_eq "2" "$(jq -r '.items | length' "$f")" "and that item keeps one record too"
+  run_state "$p" done 21 --result done --verdict closed --note "a second account of the same item" >/dev/null ||
+    fail "a second account of the adopted item was refused"
+  assert_eq "true" "$(jq -r '.items[] | select(.issue == 21) | .adopted' "$f")" \
+    "a second account keeps the fact the first record wrote"
+  assert_eq "2" "$(jq -r '.items | length' "$f")" "and the item keeps one record"
+  # Only `yes` is the fact: one other value is a usage error refused before the state is written, because
+  # `--adopted maybe` recorded as true would be a record asserting something nobody said.
+  before=$(cat "$f")
+  out=$(run_state "$p" done 23 --result done --verdict closed --adopted maybe 2>&1); status=$?
+  assert_eq "2" "$status" "--adopted takes one value, and another is a usage error (exit $status)"
+  assert_contains "$out" "--adopted must be yes" "and the refusal names the value it takes: $out"
+  assert_eq "$before" "$(cat "$f")" "and the state is not written by a value that is not the fact"
+  # One writer covers both adoption call sites — `run.sh`'s pre-screen arm and `leftovers.sh`'s own — and no case in
+  # this suite drives a real adoption (a branch, a tracker and a merge), so the flag is read where it stands.
+  assert_eq "1" "$(grep -c -- '--adopted yes' "$LOOP_ENGINE/leftovers.sh")" \
+    "the one writer both adoption paths go through records the fact, and records it once"
 }
 
 # An adoption the tree refused is recorded on the pre-screen's own entry for that item, never on a record of the

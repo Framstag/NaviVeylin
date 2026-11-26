@@ -79,6 +79,11 @@
 #                         [--stop-reason refused|unmergeable|bound|child-blocked|child-failed|outside-write|
 #                                        uncommitted|unverified|unanswered|reviewer-wrote|contradicted]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
+#                         [--adopted yes]
+#     `--adopted yes` is the one writer of an adoption saying so (issue #1064): the closure the run records when it
+#     merges a finished branch an earlier attempt left instead of starting a child of its own. A record without it
+#     carries `adopted: null`, so a state written before the field existed reads as an authored closure, and one
+#     value that is not `yes` is refused rather than recorded as the fact.
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write|
 #                                                  unanswered]
 #                         [--review-input TEXT]   # the scale of what `LOOP_REVIEW_INPUT_MAX_BYTES` cut from the round
@@ -790,7 +795,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" merge_refused_branch="" events="" stop_reason="" review_verdict="" review_input="" review_restart="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value="" cut_gate="" cut_gate_result=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" gate_attribution="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" adopted="" merge_refused_branch="" events="" stop_reason="" review_verdict="" review_input="" review_restart="" bound_key="" bound_value="" round_bound="" round_bound_key="" round_bound_value="" cut_gate="" cut_gate_result=""
   # A landing that was refused names its branch and the paths its refusal read (issue #883), read as the array the
   # report counts: the branch alone is the shape of a refusal that named no path (a base that moved, a branch this
   # tree does not hold), and no path is accepted without it.
@@ -837,6 +842,7 @@ cmd_done() {
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
       --merged-sha) need_value "$@"; merged_sha="${2:-}"; shift 2 ;;
+      --adopted) need_value "$@"; adopted="${2:-}"; shift 2 ;;
       # What a refused landing named (issue #883): the branch the merge could not take, and each path the refusal
       # read as one `git status --porcelain` line — leading space included, exactly as `worktree.sh` printed it
       # after its `onto the base:`. The report prints the action from this record, so it no longer parses the
@@ -971,6 +977,13 @@ cmd_done() {
   case "$review_restart" in
     *$'\n'*|*$'\r'*) loop_die "done: --review-restart is one line" ;;
   esac
+  # Whether this closure was an adoption is a fact only the writer that landed it can say (issue #1064), so it is a
+  # flag with one value rather than a sentence in the note: `yes` is the adoption, no flag is a closure this run's own
+  # child worked, and anything else is a usage error settled here, before `patch_state` writes anything.
+  case "$adopted" in
+    ""|yes) ;;
+    *) loop_die "done: --adopted must be yes" ;;
+  esac
   # Which tree fails the case the tally named is the other half of a red gate's record (issue #853): `delta` a case that
   # fails again when it is run once more, `flaked` one that passes on that second look (issue #861), `base` a case that
   # also fails at the base commit, `unattributable` a red the run could not answer. It is a closed vocabulary rather
@@ -1081,6 +1094,11 @@ cmd_done() {
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me,
                           sha:(if $ms == "" then null else $ms end)},
+                  # The adoption the merge records (issue #1064): `true` for a branch an earlier attempt left and this
+                  # run landed, null for a closure a child of this run worked. The word `adopted` sits in the note of
+                  # every such closure, but a note is a sentence a second account appends to, so no reader can tell
+                  # the fact from the prose — this key is the fact.
+                  adopted:(if $adopted == "" then null else true end),
                   mergeRefused:$mr,
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
@@ -1110,6 +1128,7 @@ cmd_done() {
           | .leftoverFiles = (if $lof == "" then .leftoverFiles else ($lof | tonumber) end)
           | .cutGate = (if $cg == "" then .cutGate
                        else {result:(if $cgr == "" then null else $cgr end), log:$cg} end)
+          | .adopted = (if $adopted == "" then .adopted else true end)
           | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
           | .labelFailures = (((.labelFailures // []) + ($lf | split(" ") | map(select(length > 0)))) | unique)
         else . end)
@@ -1130,7 +1149,7 @@ cmd_done() {
     --arg gw "$gate_waived" --arg gws "$gate_waived_suite" --arg ga "$gate_attribution" \
     --argjson usage "$usage" \
     --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence" \
-    --arg ms "$merged_sha" --argjson mr "$merge_refused"
+    --arg ms "$merged_sha" --arg adopted "$adopted" --argjson mr "$merge_refused"
   printf 'recorded %s (#%s %s)\n' "$result" "$issue" "$verdict"
 }
 

@@ -52,10 +52,12 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
   if loop_labels close "${close_args[@]}" >&2; then
     closure="$(if [ "$may_close" = yes ]; then printf yes; else printf skipped; fi)"
   fi
+  # The `--adopted` flag is the one fact that tells this closure from one a child of the run worked (issue #1064): both
+  # adoption paths come through this call, so the record is written here and nowhere else.
   loop_state done "$issue" --result done --verdict closed --change "$merged_change" \
     --closed "$closure" --note "$out" \
     --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-evidence "$merged_evidence" \
-    --merged-sha "$base" \
+    --merged-sha "$base" --adopted yes \
     --review-verdict off \
     >/dev/null
   score_landings

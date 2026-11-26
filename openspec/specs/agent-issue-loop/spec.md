@@ -6960,3 +6960,26 @@ A core case SHALL exist in the core's own case list, and the suite SHALL ask tha
 - **WHEN** a core case carries no declared files
 - **THEN** the case-list check fails and names the case
 - **Case**: `core#aCoreCaseDeclaresItsFiles`
+
+### Requirement: A closure the run adopted says so
+
+The run's state record SHALL mark an item it closes by landing a previous attempt's finished branch, apart from an
+item a child of the run worked. `state.sh done` SHALL accept `--adopted yes`, SHALL refuse any other value before the
+state is written, and SHALL record `adopted: true` beside the `merged` branch the closure took. A closure recorded
+without the flag SHALL carry the key with the value `null`, so a reader tells an adoption, a closure this run's child
+worked, and a state written before the field existed apart without reading prose from the note. A second account of
+the same item SHALL carry the fact through the join in both directions — an account carrying it sets it on a record
+that has none, and an account carrying nothing keeps what the first record wrote. The one writer a finished attempt's
+adoption goes through SHALL pass the flag, so both paths that adopt carry the fact from one place.
+
+#### Scenario: An adopted closure records the fact beside the merge it took
+
+- **WHEN** `state.sh done 21 --result done --verdict closed --merged-branch fix/issue-21-a-thing --merged-sha def5678
+  --adopted yes` writes a closure, `state.sh done 22` writes one without the flag, `state.sh done 22 --adopted yes`
+  and `state.sh done 21 --note …` are recorded as second accounts of those two items, and
+  `state.sh done 23 --adopted maybe` is attempted
+- **THEN** the item 21 record reads `adopted: true` with its merged branch unchanged, the item 22 record carries the
+  key with the value `null` until its second account sets it `true`, the item 21 record keeps `true` when its second
+  account carries no flag, each item keeps exactly one record, and `--adopted maybe` exits `2` naming the value it
+  takes with the state file left byte for byte as it was
+- **Case**: `state#anAdoptedClosureIsRecordedAsOne`

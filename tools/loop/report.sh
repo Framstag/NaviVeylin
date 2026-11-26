@@ -515,6 +515,26 @@ printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAg
   + [.excluded[] | select(.verdict == $d and (.mechanism // "") != "unmergeable") | "#\(.issue)"]
   | if length == 0 then "none" else join(" · ") end' "$state_file")"
 
+# A hold is not a decision, and it is not silence either (issue #1067). A round the run's own context ceiling ends
+# writes `status/on-hold` with `agent/needs-shaping` — the shaping verdicts, the ask that the item be split — and
+# the item is then neither work nor a question: the decisions line above counts only the items that carry the
+# decision label, so the round of 2026-11-24 held #1064 and #1021 for reshaping and its owner-facing line read
+# `decisions the owner owes: #908 · #905 · #903`. The request was in a label nothing the owner reads names. So the
+# holds get a line of their own, beside the decisions and shaped like them, and it is a *request* and not an
+# escalation: no decision label is written, no verdict changes and no count moves.
+#
+# It is read from the two places a hold stands: the run's own items — a skip whose verdict is one of the profile's
+# `shapingVerdicts` and which carries no decision label — and the exclusions a pre-screen recorded as `held` whose
+# evidence names the profile's shaping agent, which is the same item met by the run after it. An item a person
+# parked by hand leaves the same `status/on-hold` and names no shaping label, so it stays out of this line.
+printf 'held for reshaping: %s\n' "$(jq -r --arg h "$(loop_role heldVerdict)" --arg s "$(loop_role shapingAgent)" \
+  --argjson sv "$(loop_role shapingVerdicts | jq -R -s 'split("\n") | map(select(length > 0))')" '
+  [.items[] | select(.result == "skipped" and (.escalatedLabel // "") == "")
+     | select((.verdict // "") as $v | ($sv | index($v)) != null) | "#\(.issue)"]
+  + [(.excluded // [])[] | select(.verdict == $h and ((.evidence // "") | contains($s))) | "#\(.issue)"]
+  | unique
+  | if length == 0 then "none" else join(" · ") end' "$state_file")"
+
 # The branches are read from git, not from a child's report: the run's own script created them. What each
 # of them carries is asked once, by patch identity — the loop lands work as `fix: … (#N)`, so a branch whose
 # work is already on the base is not an ancestor of it, and ancestry named leftovers as landings for ever

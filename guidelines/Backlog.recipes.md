@@ -1833,6 +1833,17 @@ says the item is converging. A round a bound ended is the item's class as well (
 `bound` and the key the round reached, `state.sh` prints that pair in the report's `stop` cell as it does for a
 bound-ended child, and the round's own number, key and figure stay in `metrics.roundBound` beside it.
 
+A hold the loop itself wrote is the loop's own ask, so it is not silent: the report names it on a line of its own,
+`held for reshaping: #<n> · #<n>` (or `none`), immediately after the one naming the decisions, and the two lines are
+disjoint (#1067). Measured 2026-11-24: a round ended #1064 and #1021 at the context checkpoint — 91 140 and 90 092
+tokens — wrote `status/on-hold` with `agent/needs-shaping` for both and merged neither, while its owner-facing line
+read `decisions the owner owes: #908 · #905 · #903`, because that line is built from the decision label a hold by
+design never writes. The new line is a request and not a question: it names the run's own items a shaping verdict held
+with no decision label, and the pre-screen exclusions recorded `held` whose evidence names the profile's shaping agent
+— the same item met by a later run, which is why `prescreen.sh` writes that label into the held item's evidence, the
+report reading the state and never the tracker. It writes no label, moves no verdict and no count, and a hold carrying
+no shaping label — a person's own park — stays off it.
+
 A **block** the run's own bound caused was the same fact one result over (issue #786), and is now that fact: the
 item's tree was left mid-phase, its work is kept exactly as the child left it and its patch is named in the
 record — but its result is `cut`, like every other phase the run's own bound ended (issue #790), and the mechanism

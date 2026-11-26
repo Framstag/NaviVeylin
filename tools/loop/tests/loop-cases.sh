@@ -81,6 +81,7 @@ LOOP_SHELL_CASES=(
   'prescreen#landedBranchIsNotADecision'
   'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#aHoldWithNoDecisionIsNotADecision'
+  'prescreen#aHoldForReshapingNamesItsShapingLabel'
   'prescreen#harnessItemsLeadTheQueue'
   'prescreen#theQueueIsWrittenInRankOrder'
   'prescreen#aPinnedItemLeadsTheQueue'
@@ -462,6 +463,7 @@ LOOP_SHELL_CASES=(
   'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt'
   'report#anActionNamesAnItemPathThatExists'
   'report#theRunGroupsItsItemsByEpic'
+  'report#aReshapeHoldIsNamedBesideTheDecisions'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#reportsAnAgedItemDirectory'
@@ -935,6 +937,7 @@ loop_run_shell_case() {
     'prescreen#landedBranchIsNotADecision') fn=case_prescreen_landedBranchIsNotADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
+    'prescreen#aHoldForReshapingNamesItsShapingLabel') fn=case_prescreen_aHoldForReshapingNamesItsShapingLabel ;;
     'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
     'prescreen#theQueueIsWrittenInRankOrder') fn=case_prescreen_theQueueIsWrittenInRankOrder ;;
     'prescreen#aPinnedItemLeadsTheQueue') fn=case_prescreen_aPinnedItemLeadsTheQueue ;;
@@ -1320,6 +1323,7 @@ loop_run_shell_case() {
     'report#aCutItemIsNamedOnceAndItsKeptWorkWithIt') fn=case_report_aCutItemIsNamedOnceAndItsKeptWorkWithIt ;;
     'report#anActionNamesAnItemPathThatExists') fn=case_report_anActionNamesAnItemPathThatExists ;;
     'report#theRunGroupsItsItemsByEpic') fn=case_report_theRunGroupsItsItemsByEpic ;;
+    'report#aReshapeHoldIsNamedBesideTheDecisions') fn=case_report_aReshapeHoldIsNamedBesideTheDecisions ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#reportsAnAgedItemDirectory') fn=case_clean_reportsAnAgedItemDirectory ;;
@@ -3786,6 +3790,34 @@ case_prescreen_aHoldWithNoDecisionIsNotADecision() {
   assert_eq "0" "$(grep -c 'needs-decision' "$log" || true)" "no decision label is written for the hold"
   assert_eq "0" "$(grep -c 'issue comment' "$log" || true)" "and nothing is escalated for it"
   assert_eq "held" "$(jq -r '.excluded[0].verdict' "$(state_file "$p")")" "the run records the item as held"
+}
+
+# A hold is not a decision (#193), and a hold the loop itself wrote to ask for a split is not silent either
+# (#1067): `status/on-hold` is left by both a reshape request and a person's own park, so the shaping label is the
+# only thing that tells them apart — and the report reads the state file and never the tracker. The pre-screen
+# therefore records the label in the held item's evidence, and only when the tracker carries it.
+case_prescreen_aHoldForReshapingNamesItsShapingLabel() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario shaping)
+  out=$(run_prescreen "$p" --json); status=$?
+  assert_eq "3" "$status" "a backlog whose items are all reshape holds is 'nothing eligible'"
+  assert_eq "held" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "held")][0].verdict')" \
+    "an item the loop held for reshaping is a hold and not a decision"
+  assert_contains "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "held")][0].evidence')" \
+    "agent/needs-shaping" \
+    "and its evidence names the label that says the hold asks for a split"
+
+  p=$(new_project)
+  init_state "$p" 1 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario held)
+  out=$(run_prescreen "$p" --json); status=$?
+  assert_eq "3" "$status" "and so is a backlog whose only item is a bare hold"
+  assert_eq "held" "$(printf '%s' "$out" | jq -r '.[0].verdict')" "a person's own park is the same hold"
+  assert_eq "status/on-hold" "$(printf '%s' "$out" | jq -r '.[0].evidence')" \
+    "and its evidence reads exactly as it did, with no shaping label to invent a request from"
 }
 
 # An item the run escalated *and* whose branch carries a finished attempt is the one the adopt path exists for
@@ -15673,6 +15705,33 @@ case_report_misdiagnosedIsCountedApart() {
 # verdict means a decision ends on `agent/needs-decision` while the state records `needs-diagnosis`, and
 # the run that fills the cap has to show the cap coming in its own report.
 decisions_line() { printf '%s\n' "$1" | sed -n 's/^decisions the owner owes: //p'; }
+held_line() { printf '%s\n' "$1" | sed -n 's/^held for reshaping: //p'; }
+
+# A hold is not a decision, and it is not silence either (issue #1067). The round of 2026-11-24 worked #1064 and
+# #1021, each ended at the context ceiling, wrote `status/on-hold` + `agent/needs-shaping` and merged nothing — and
+# its owner-facing line read `decisions the owner owes: #908 · #905 · #903`, because that line is built from the
+# decision label a hold never writes. So the holds are named on a line of their own, beside the decisions and shaped
+# like them, and the line is a request: no decision label is written, no verdict changes and no count moves.
+case_report_aReshapeHoldIsNamedBesideTheDecisions() {
+  # files: tools/loop/prescreen.sh tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  init_state "$p" 4 90
+  # #21 is the shape the item was filed for: a skip whose verdict is a shaping one, carrying no decision label.
+  # #22 is the same item met by a later run, which the pre-screen excluded as `held` with the shaping label in its
+  # evidence. #23 is an item a person parked by hand — a bare hold with no request in it — and #24 is an escalation,
+  # whose label the decisions line already names.
+  printf '[{"issue":22,"class":"improvement","verdict":"held","reason":"the item is on hold with no recorded decision (status/on-hold)","evidence":"status/on-hold + agent/needs-shaping"},{"issue":23,"class":"improvement","verdict":"held","reason":"the item is on hold with no recorded decision (status/on-hold)","evidence":"status/on-hold"}]' |
+    run_state "$p" queue >/dev/null || fail "the pre-screen's exclusions were refused"
+  run_state "$p" done 21 --result skipped --verdict too-wide >/dev/null || fail "the held skip was refused"
+  run_state "$p" done 24 --result skipped --verdict needs-diagnosis \
+    --decision-label agent/needs-decision >/dev/null || fail "the escalation was refused"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_eq "#21 · #22" "$(held_line "$out")" \
+    "the report names the item a bound held for reshaping and the hold a later pre-screen excluded, and neither the parked item nor the escalation"
+  assert_eq "#24" "$(decisions_line "$out")" \
+    "while the decisions line is the one it was: a hold asks no question and spends no slot of the cap"
+}
 
 case_report_escalatedSkipNamesTheLabelWritten() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json

@@ -815,6 +815,14 @@ a question, so a bare hold SHALL be reported as a hold, SHALL NOT be escalated, 
 decision cap (#193). A `stale` skip SHALL write no bare hold: that verdict leaves a question, so the escalation
 writes the decision label beside the hold, as the requirement "A stale skip asks its own question" states.
 
+A hold the loop wrote to ask that an item be reshaped SHALL be named on a line of the run's report of its own, beside
+the line that names the decisions (#1067): the report SHALL print `held for reshaping:` naming the items its own
+state records as held by a shaping verdict with no decision label, and the pre-screen exclusions whose verdict is the
+profile's held verdict and whose evidence names the profile's shaping agent, or `none` when there are none. That line
+SHALL state a request and not a question: it SHALL write no label, SHALL add no item to the decisions line, SHALL
+change no verdict, count or cap figure, and a hold carrying no shaping label — a person's own park — SHALL NOT appear
+on it.
+
 #### Scenario: A bare hold is reported for what it is
 
 - **WHEN** the pre-screen meets an eligible item on hold that carries no decision label
@@ -829,6 +837,16 @@ writes the decision label beside the hold, as the requirement "A stale skip asks
   the refusal still states how many items carry the label beside the count it compared
 - **Case**: `run#decisionCapCountsOnlyCandidates`, `run#decisionCapRefusesToStart`,
   `prescreen#aHoldWithNoDecisionIsNotADecision`
+
+#### Scenario: A reshape hold is named beside the decisions
+
+- **WHEN** the run's state holds an item a shaping verdict held with no decision label, or a pre-screen excluded an
+  item as held with the shaping agent in its evidence
+- **THEN** the report prints those items on a `held for reshaping:` line beside the decisions line, prints `none`
+  there when it holds none, lists neither a bare hold nor an escalation on it, and leaves the decisions line and
+  every count exactly as they stood
+- **Case**: `prescreen#aHoldForReshapingNamesItsShapingLabel`,
+  `report#aReshapeHoldIsNamedBesideTheDecisions`
 
 ### Requirement: The run's mechanics are the project's configuration, not its code
 

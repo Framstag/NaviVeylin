@@ -102,6 +102,14 @@ inflight_status=$(loop_role inFlightStatus)
 device_status=$(loop_role deviceStatus)
 device_agent=$(loop_role deviceAgent)
 hold_status=$(loop_role holdStatus)
+# The label a shaping verdict writes beside a hold (`labels.sh`): the loop's own ask that the item be split. The
+# report names the holds that carry it on a line of its own (issue #1067), so the pre-screen records it in the
+# excluded item's evidence — a hold a person parked by hand leaves the same status and no such label, and the two
+# are otherwise one reading.
+shaping_agent=$(loop_role shapingAgent)
+# …as a label, because the role names the value and the vocabulary names the label: `needs-shaping` is written as
+# `agent/needs-shaping` on the tracker, exactly as the decision verdict is written as `agent/needs-decision` above.
+shaping_label="agent${separator}${shaping_agent}"
 # The label an escalation writes, and the state it leaves beside it: an item carrying either has already been
 # decided about, by this loop, and is its owner's until a person answers it (#183).
 decision_label="agent${separator}${decision_verdict}"
@@ -677,6 +685,14 @@ the item is left open and no child was started: shape $changes_family/${named_ch
       verdict="$held_verdict"
       reason="the item is on hold with no recorded decision (status${separator}${hold_status}) — nobody has stated a question for it, so it is neither work nor a decision this run may take"
       evidence="status${separator}${hold_status}"
+      # A hold that carries the shaping label is the loop's own request to split the item, and the report names it
+      # as one (issue #1067): the request used to stand only in a label nothing an owner reads names. It rides the
+      # excluded item's evidence, because the report reads this record and never the tracker — and only when the
+      # label is there, so a bare hold's evidence reads exactly as it did.
+      if [ -n "$shaping_agent" ] &&
+         printf '%s' "$labels" | jq -e --arg l "$shaping_label" 'any(.[]; .name == $l)' >/dev/null; then
+        evidence="$evidence + $shaping_label"
+      fi
       already_escalated=0
     fi
   fi
